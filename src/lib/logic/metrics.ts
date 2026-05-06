@@ -40,7 +40,8 @@ function distancePointToSegment(p: Point, a: Point, b: Point): number {
 export function computeMetrics(
   off: AttackerPositions,
   defPos: ComputedDefense,
-  carrier: AttackerId
+  carrier: AttackerId,
+  hoop: Point = HOOP
 ): DefensiveMetrics {
   let paintCoverage = 0;
   let lateCount = 0;
@@ -50,7 +51,7 @@ export function computeMetrics(
 
   (Object.keys(defPos) as DefenderId[]).forEach((dId) => {
     const d = defPos[dId];
-    if (distance({ x: d.x, y: d.y }, HOOP) < 100) paintCoverage++;
+    if (distance({ x: d.x, y: d.y }, hoop) < 100) paintCoverage++;
     if (d.late) lateCount++;
     helpTotal += d.helpFactor || 0;
     const matched = off[d.matchedTo];

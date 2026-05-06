@@ -14,16 +14,18 @@ export function computeHelpTarget(
   carrierPos: Point,
   attPos: Point,
   ballSide: -1 | 0 | 1,
-  allOff?: AttackerPositions
+  allOff?: AttackerPositions,
+  hoop: Point = HOOP
 ): HelpResult {
-  const myAttSide = Math.sign(attPos.x - HOOP.x) || 0;
+  const myAttSide = Math.sign(attPos.x - hoop.x) || 0;
 
   if (!triggers.any || rule.helpPct === 0) {
     if (rule.helpPct > 0 && ballSide !== 0 && myAttSide !== 0 && myAttSide !== ballSide) {
       const sagFactor = (rule.helpPct / 100) * 0.5;
+      const sign = hoop.y > 540 ? -1 : 1; // sens panier→milieu (sag pousse vers le milieu)
       const aim = {
-        x: (manPos.x + HOOP.x) / 2 + (carrierPos.x - HOOP.x) * 0.2,
-        y: Math.max((manPos.y + HOOP.y) / 2 + 20, carrierPos.y - 30),
+        x: (manPos.x + hoop.x) / 2 + (carrierPos.x - hoop.x) * 0.2,
+        y: Math.max((manPos.y + hoop.y) / 2 + 20 * sign, carrierPos.y - 30 * sign),
       };
       return {
         target: {
@@ -77,8 +79,11 @@ export function computeHelpTarget(
   let aim: Point;
   switch (rule.priority) {
     case 'paint': {
-      const leftBlock: Point = { x: HOOP.x - 70, y: HOOP.y + 80 };
-      const rightBlock: Point = { x: HOOP.x + 70, y: HOOP.y + 80 };
+      // Blocs bas : décalés DEPUIS le panier vers l'intérieur (sens dépendant
+      // du panier de référence : vers le milieu en bas, vers le haut sinon).
+      const intoCourtY = hoop.y > 540 ? -1 : 1;
+      const leftBlock: Point = { x: hoop.x - 70, y: hoop.y + 80 * intoCourtY };
+      const rightBlock: Point = { x: hoop.x + 70, y: hoop.y + 80 * intoCourtY };
       let bestDist = Infinity;
       let blockTarget: Point | null = null;
       if (allOff) {
@@ -92,7 +97,7 @@ export function computeHelpTarget(
           }
         });
       }
-      aim = blockTarget ?? { x: HOOP.x, y: HOOP.y + 60 };
+      aim = blockTarget ?? { x: hoop.x, y: hoop.y + 60 * intoCourtY };
       break;
     }
     case 'passlane': {

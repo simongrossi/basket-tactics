@@ -123,7 +123,8 @@ export function applyScreenAdjustment(
   defenderId: DefenderId,
   off: AttackerPositions,
   screenRadius: number = 35,
-  dropDepth: DropDepth = 'medium'
+  dropDepth: DropDepth = 'medium',
+  hoop: Point = HOOP
 ): Point {
   if (rule === 'switch') return baseTarget;
 
@@ -135,7 +136,7 @@ export function applyScreenAdjustment(
   const carrierPos = off[screen.carrier];
   const screenerPos = off[screen.screener];
 
-  const dirToHoop = { x: HOOP.x - screenerPos.x, y: HOOP.y - screenerPos.y };
+  const dirToHoop = { x: hoop.x - screenerPos.x, y: hoop.y - screenerPos.y };
   const len = Math.hypot(dirToHoop.x, dirToHoop.y) || 1;
   const nx = dirToHoop.x / len;
   const ny = dirToHoop.y / len;

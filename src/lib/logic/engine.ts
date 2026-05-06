@@ -22,7 +22,14 @@ import {
 } from './screens';
 import { computeZoneTargets } from './zoneDefense';
 import { ballSide, distance, resolvePlayerCollisions } from './geometry';
-import { PLAYER_RADIUS } from '../data/court';
+import { HOOP, HOOP_OPPOSITE, PLAYER_RADIUS } from '../data/court';
+import type { Point } from '../types';
+import { isInTrapZone, pickTrapHelper, trapTarget } from './trap';
+
+/** Panier de référence côté défense pour cet AppState (selon attackingDirection). */
+export function getDefenseHoop(state: AppState): Point {
+  return state.attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP;
+}
 
 const DEFENDER_IDS: DefenderId[] = ['D1', 'D2', 'D3', 'D4', 'D5'];
 
@@ -100,7 +107,8 @@ export function computeDefenseTargets(
   }
 
   const prevOff = stepIdx > 0 ? state.steps[stepIdx - 1].off : null;
-  const triggers = detectTriggers(off, prevOff, ballCarrier, state.triggers);
+  const hoop = getDefenseHoop(state);
+  const triggers = detectTriggers(off, prevOff, ballCarrier, state.triggers, hoop);
   const side = ballSide(off[ballCarrier]);
   const carrierPos = off[ballCarrier];
 
@@ -116,25 +124,25 @@ export function computeDefenseTargets(
     let helpFactor = 0;
 
     if (isCarrierDefender) {
-      target = carrierDefenderTarget(rule.vsCarrier, att, state.defenseDistance) || state.defenseInitial[dId];
+      target = carrierDefenderTarget(rule.vsCarrier, att, state.defenseDistance, hoop) || state.defenseInitial[dId];
     } else {
       const stance = rule.offBallStance ?? 'sag';
       const stancePos =
         stance !== 'sag'
-          ? offBallStanceTarget(att, carrierPos, state.defenseDistance, stance) || state.defenseInitial[dId]
-          : manTarget(att, state.defenseDistance) || state.defenseInitial[dId];
+          ? offBallStanceTarget(att, carrierPos, state.defenseDistance, stance, hoop) || state.defenseInitial[dId]
+          : manTarget(att, state.defenseDistance, hoop) || state.defenseInitial[dId];
       target = stancePos;
       // Le help bias n'est appliqué qu'avec la stance "sag" — les stances
       // dirigées (deny-3q, fronting, behind) sont des positions absolues.
       if (stance === 'sag' && att && carrierPos) {
-        const help = computeHelpTarget(stancePos, rule, triggers, carrierPos, att, side, off);
+        const help = computeHelpTarget(stancePos, rule, triggers, carrierPos, att, side, off, hoop);
         target = help.target;
         helpFactor = help.helpFactor;
       }
     }
 
     if (screen && effectiveScreenRule !== 'switch') {
-      target = applyScreenAdjustment(target, screen, effectiveScreenRule, dId, off, state.screenRadius, state.dropDepth);
+      target = applyScreenAdjustment(target, screen, effectiveScreenRule, dId, off, state.screenRadius, state.dropDepth, hoop);
     }
 
     positions[dId] = {
@@ -171,6 +179,22 @@ export function computeDefenseTargets(
     }
     positions[obs.cutterDef].onScreen = true;
     positions[obs.screenerDef].onScreen = true;
+  }
+
+  // Trap en corner : si le porteur est dans une zone de trappe et que le
+  // trigger est actif, le défenseur le plus proche (hors carrierDef) vient
+  // verrouiller le côté opposé pour fermer la cage.
+  if (state.triggers.trap && screen === null && isInTrapZone(carrierPos, hoop)) {
+    const carrierDef = (Object.entries(matchups) as [DefenderId, AttackerId][])
+      .find(([, o]) => o === ballCarrier)?.[0];
+    if (carrierDef) {
+      const helper = pickTrapHelper(off, prevDefenderPositions, matchups, ballCarrier);
+      if (helper) {
+        const t = trapTarget(carrierPos, { x: positions[carrierDef].x, y: positions[carrierDef].y });
+        positions[helper].x = Math.round(t.x);
+        positions[helper].y = Math.round(t.y);
+      }
+    }
   }
 
   return { positions, matchupsApplied: matchups };

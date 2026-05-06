@@ -5,11 +5,17 @@ export function distance(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-export function distHoop(p: Point): number {
-  return distance(p, HOOP);
+export function distHoop(p: Point, hoop: Point = HOOP): number {
+  return distance(p, hoop);
 }
 
-export function inPaint(p: Point): boolean {
+export function inPaint(p: Point, hoop: Point = HOOP): boolean {
+  // PAINT est défini autour de HOOP top. Pour HOOP_OPPOSITE (bas), on
+  // miroite la position autour de la ligne médiane (y=540) avant le test.
+  if (hoop.y > 540) {
+    const mirrored = { x: p.x, y: 2 * 540 - p.y };
+    return mirrored.x >= PAINT.x1 && mirrored.x <= PAINT.x2 && mirrored.y >= PAINT.y1 && mirrored.y <= PAINT.y2;
+  }
   return p.x >= PAINT.x1 && p.x <= PAINT.x2 && p.y >= PAINT.y1 && p.y <= PAINT.y2;
 }
 
@@ -188,6 +194,50 @@ export function curveAroundObstacle(
     x: omt * omt * start.x + 2 * omt * te * ctrlX + te * te * end.x,
     y: omt * omt * start.y + 2 * omt * te * ctrlY + te * te * end.y,
   };
+}
+
+/**
+ * Sélectionne l'obstacle le plus bloquant pour le segment start→end.
+ * "Le plus bloquant" = celui dont la pénétration dans le segment est la plus
+ * profonde (rayon - distance à la ligne, parmi les obstacles entre start et end).
+ * Retourne null si aucun obstacle ne traverse réellement le segment.
+ *
+ * Sert pour les écrans en série (staggered) : plutôt que de contourner le
+ * premier obstacle de la liste (arbitraire), on contourne celui qui gêne
+ * vraiment. Limite v1 : on ne fait qu'un seul contournement, pas un
+ * enchaînement de courbes — un second obstacle plus loin sur le segment
+ * est ignoré.
+ */
+export function pickBlockingObstacle(
+  start: Point,
+  end: Point,
+  obstacles: { center: Point; radius: number }[]
+): { center: Point; radius: number } | null {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.01) return null;
+  const ux = dx / len;
+  const uy = dy / len;
+
+  let best: { center: Point; radius: number } | null = null;
+  let bestPen = 0;
+  for (const obs of obstacles) {
+    const ox = obs.center.x - start.x;
+    const oy = obs.center.y - start.y;
+    const proj = ox * ux + oy * uy;
+    if (proj < 0 || proj > len) continue;
+    const closestX = start.x + proj * ux;
+    const closestY = start.y + proj * uy;
+    const distToLine = Math.hypot(obs.center.x - closestX, obs.center.y - closestY);
+    if (distToLine >= obs.radius) continue;
+    const pen = obs.radius - distToLine;
+    if (pen > bestPen) {
+      bestPen = pen;
+      best = obs;
+    }
+  }
+  return best;
 }
 
 /**

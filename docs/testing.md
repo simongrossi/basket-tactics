@@ -28,7 +28,7 @@ Les tests vivent à côté du code testé sous `__tests__/`. Le pattern d'inclus
 
 ## Couverture actuelle
 
-48 tests sur 4 modules de la logique défensive.
+70 tests sur 7 modules de la logique défensive.
 
 ### `engine.test.ts`
 - `getMatchupsAt` : matchups de base, application d'un switch, cumul de plusieurs switches sur étapes successives, immuabilité de `baseMatchups`.
@@ -51,6 +51,20 @@ Les tests vivent à côté du code testé sous `__tests__/`. Le pattern d'inclus
 ### `help.test.ts`
 - Régression : sag baseline weak-side sans trigger reste actif (helpFactor > 0).
 - Strong-side denial : pull vers la ligne de passe pour un défenseur proche du ballon, intensité décroissante avec la distance att↔ballon, désactivé au-delà de 250px, désactivé pour `priority='paint'`, désactivé quand un trigger est actif (l'aide prime), désactivé pour les défenseurs weak-side (qui restent sur leur sag baseline).
+
+### `trap.test.ts`
+- `isInTrapZone` : détection des coins fond gauche/droit, exclusion du centre / haut de raquette / milieu de terrain.
+- `pickTrapHelper` : choisit le défenseur non-porteur le plus proche, retourne null si aucun défenseur n'est sur le porteur.
+- `trapTarget` : place le helper côté opposé au carrierDef, à <50px du porteur.
+
+### `manDefense.test.ts`
+- `offBallStanceTarget` stance `'stunt'` : entre l'homme et la ligne homme↔ballon (blend 0.4), moins agressif que `'fronting'`, fallback sur `manTarget` quand le ballon est absent.
+
+### `geometry.test.ts`
+- `pickBlockingObstacle` : retourne null sans obstacle bloquant ; retourne l'unique obstacle bloquant ; staggered screens : préfère l'obstacle de pénétration max ; ignore les obstacles hors segment ; gère le segment de longueur nulle.
+
+### Engine — attackingDirection
+Régression que `attackingDirection='up'` (default) place les défenseurs entre attaquants et HOOP top, et que `attackingDirection='down'` (avec positions miroir en bas) les place entre attaquants et HOOP_OPPOSITE.
 
 ## Conventions
 

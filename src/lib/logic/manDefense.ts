@@ -5,24 +5,28 @@ import { clamp } from './geometry';
 /**
  * Position cible d'un défenseur en marquage classique :
  * sur la ligne homme-panier, à `distance` pixels devant son homme.
+ *
+ * `hoop` : panier de référence côté défense (default = HOOP top). Permet
+ * d'inverser le sens d'attaque en passant HOOP_OPPOSITE.
  */
-export function manTarget(att: Point | undefined, distance: number): Point | null {
+export function manTarget(att: Point | undefined, distance: number, hoop: Point = HOOP): Point | null {
   if (!att) return null;
-  const dx = att.x - HOOP.x;
-  const dy = att.y - HOOP.y;
+  const dx = att.x - hoop.x;
+  const dy = att.y - hoop.y;
   const dist = Math.hypot(dx, dy) || 1;
   const ratio = Math.max(0, (dist - distance) / dist);
-  return { x: HOOP.x + dx * ratio, y: HOOP.y + dy * ratio };
+  return { x: hoop.x + dx * ratio, y: hoop.y + dy * ratio };
 }
 
 export function carrierDefenderTarget(
   vsCarrier: CarrierBehavior,
   att: Point | undefined,
-  defenseDistance: number
+  defenseDistance: number,
+  hoop: Point = HOOP
 ): Point | null {
   if (!att) return null;
-  const dx = att.x - HOOP.x;
-  const dy = att.y - HOOP.y;
+  const dx = att.x - hoop.x;
+  const dy = att.y - hoop.y;
   const dist = Math.hypot(dx, dy) || 1;
 
   const normalizedDist = clamp(dist / THREE_POINT_RADIUS, 0, 1.5);
@@ -65,10 +69,10 @@ export function carrierDefenderTarget(
   // selon le côté du porteur (+ vers le centre du terrain en haut/bas)
   const perpX = -dy / dist;
   const perpY = dx / dist;
-  const sideSign = att.x >= HOOP.x ? 1 : -1;
+  const sideSign = att.x >= hoop.x ? 1 : -1;
   return {
-    x: HOOP.x + dx * ratio - (dx / dist) * bumpOffset + perpX * lateralOffset * sideSign,
-    y: HOOP.y + dy * ratio - (dy / dist) * bumpOffset + perpY * lateralOffset * sideSign,
+    x: hoop.x + dx * ratio - (dx / dist) * bumpOffset + perpX * lateralOffset * sideSign,
+    y: hoop.y + dy * ratio - (dy / dist) * bumpOffset + perpY * lateralOffset * sideSign,
   };
 }
 
@@ -78,21 +82,24 @@ export function carrierDefenderTarget(
  * - 'behind' : strictement entre attaquant et panier, sans biais d'aide
  * - 'deny-3q' : 3/4 ball-side — un pied dans la ligne de passe
  * - 'fronting' : entre attaquant et ballon (full denial / face-guard)
+ * - 'stunt' : fake d'aide vers le ballon, moins agressif que deny-3q (le
+ *   défenseur menace de doubler puis revient sur son homme à l'étape suivante)
  */
 export function offBallStanceTarget(
   att: Point | undefined,
   ball: Point | undefined,
   defenseDistance: number,
-  stance: OffBallStance
+  stance: OffBallStance,
+  hoop: Point = HOOP
 ): Point | null {
   if (!att) return null;
   if (!ball || stance === 'sag' || stance === 'behind') {
-    return manTarget(att, defenseDistance);
+    return manTarget(att, defenseDistance, hoop);
   }
 
   // Position "behind" (entre attaquant et panier)
-  const dxB = HOOP.x - att.x;
-  const dyB = HOOP.y - att.y;
+  const dxB = hoop.x - att.x;
+  const dyB = hoop.y - att.y;
   const dB = Math.hypot(dxB, dyB) || 1;
   const behind = {
     x: att.x + (dxB / dB) * defenseDistance,
@@ -108,7 +115,14 @@ export function offBallStanceTarget(
     y: att.y + (dyF / dF) * defenseDistance,
   };
 
-  const blend = stance === 'fronting' ? 1 : 0.75; // deny-3q
+  // Blend : 1 = full devant ballon, 0 = entre homme et panier
+  let blend: number;
+  switch (stance) {
+    case 'fronting': blend = 1; break;
+    case 'deny-3q': blend = 0.75; break;
+    case 'stunt': blend = 0.4; break; // moins agressif, plus proche du behind
+    default: blend = 0;
+  }
   return {
     x: behind.x + (front.x - behind.x) * blend,
     y: behind.y + (front.y - behind.y) * blend,

@@ -9,7 +9,7 @@ import { Timeline } from '@/components/Timeline';
 import { CourtView } from '@/components/CourtView';
 import { PlaybookView } from '@/components/PlaybookView';
 import { MetricsBar } from '@/components/MetricsBar';
-import { effectiveDefensePositions } from '@/lib/logic/engine';
+import { effectiveDefensePositions, getDefenseHoop } from '@/lib/logic/engine';
 import { computeMetrics } from '@/lib/logic/metrics';
 import type { AppState } from '@/lib/types';
 
@@ -26,7 +26,7 @@ export default function Page() {
     const step = app.state.steps[app.state.activeStep];
     if (!step) return null;
     const defPos = effectiveDefensePositions(app.state, app.state.activeStep);
-    return computeMetrics(step.off, defPos, step.ballCarrier);
+    return computeMetrics(step.off, defPos, step.ballCarrier, getDefenseHoop(app.state));
   }, [app.state]);
 
   const handlePlayToggle = useCallback(() => {

@@ -11,6 +11,10 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 - 🟢 **Closeout dynamique v1** — bump de vitesse ×1.4 + flag `closingOut` + anneau orange sur le défenseur du nouveau porteur. Cf. [docs/logique-defensive.md § Closeout dynamique](docs/logique-defensive.md#closeout-dynamique)
 - 🟢 **Menu contextuel attaquant** — clic-droit sur un attaquant : marquer porteur, forcer comme poseur d'écran (override `detectScreen`), effacer ses annotations. Cadenas violet sur le joueur quand forcé.
 - 🟢 **Strong-side denial automatique** — sans trigger, un défenseur strong-side proche du ballon glisse vers la ligne de passe (denial passif), intensité proportionnelle à la proximité. Cf. [docs/logique-defensive.md § Strong-side denial](docs/logique-defensive.md#strong-side-denial-automatique)
+- 🟢 **Trap en corner v1** — toggle `triggers.trap` ; quand le porteur entre dans un coin fond, le défenseur le plus proche vient verrouiller le côté opposé pour fermer la cage.
+- 🟢 **Stunt and recover v1** — nouvelle `OffBallStance: 'stunt'` (fake d'aide vers le ballon, blend 0.4 entre behind et fronting). Le "recover" est naturel : la stance par défaut est récupérée à l'étape suivante.
+- 🟢 **Staggered screens v1** — `pickBlockingObstacle` choisit l'obstacle de plus profonde pénétration plutôt que le premier de la liste. Évitement plus fidèle quand plusieurs poseurs s'enchaînent. Limite : pas de double courbe.
+- 🟢 **Inversion HOOP v1** — `attackingDirection: 'up' | 'down'` + `getDefenseHoop(state)` threadé dans engine vers manTarget, carrierDefenderTarget, offBallStanceTarget, computeHelpTarget, applyScreenAdjustment, detectTriggers, computeMetrics, isInTrapZone. Bouton "↻ sens d'attaque" dans le panneau défense (gated sur fullCourt). Zone defense pas encore directionnelle.
 
 ---
 
@@ -28,17 +32,17 @@ Implémenté dans `help.ts` : quand pas de trigger actif + défenseur strong-sid
 
 ⚪ **À venir v2** : indicateur visuel dédié (différencier le ring "denial" du ring "help" actuel) ; tunable `denyAggressiveness` global ou par règle.
 
-### ⚪ Staggered screens (séquençage d'écrans multiples)
-`curveAroundObstacle` ne contourne aujourd'hui qu'un seul obstacle prioritaire (le porteur). Étendre à des trajectoires d'évitement à travers plusieurs poseurs successifs, en triant par proximité au segment direct.
+### 🟢 Staggered screens (v1)
+Implémenté : `pickBlockingObstacle` (geometry.ts) sélectionne l'obstacle de plus profonde pénétration dans le segment du défenseur. Plus fidèle qu'un break sur le premier match. ⚪ **v2** : enchaîner deux courbes pour traverser réellement deux écrans en série.
 
-### ⚪ Stunt and recover
-Hors-ballon : un pas vers le porteur pour le dissuader de driver, puis recovery rapide sur son homme. Variante du hedge sans contact d'écran.
+### 🟢 Stunt and recover (v1)
+Implémenté : nouvelle `OffBallStance: 'stunt'` avec blend 0.4 dans `offBallStanceTarget`. Position intermédiaire entre behind et fronting, biaisée vers le ballon — le "recover" est naturel via le retour à `'sag'` à l'étape suivante.
 
-### ⚪ Trap en corner / sideline
-Prise à deux automatique dès que le porteur entre dans une zone de "trappe" (coins, ligne de touche), sans dépendre d'un écran. Définir des polygones de trigger.
+### 🟢 Trap en corner / sideline (v1)
+Implémenté dans `lib/logic/trap.ts` (polygones, helper picker, position cible) + trigger `state.triggers.trap` + override appliqué dans `engine.computeDefenseTargets`. Active quand le porteur entre dans un coin fond. ⚪ **v2** : zones supplémentaires (sideline mi-terrain), gestion explicite quand un écran est aussi détecté simultanément.
 
-### ⚪ Inversion du panier de référence (transition)
-Le mode `fullCourt` existe (terrain entier rendu) mais `HOOP` reste figé à `(300, 75)`. Pour modéliser le repli défensif et la contre-attaque, permettre d'inverser le panier de référence côté défense + bouton "rotation 180°" pour basculer le sens d'attaque.
+### 🟢 Inversion HOOP (v1, man defense uniquement)
+Implémenté : `state.attackingDirection: 'up' | 'down'` + `getDefenseHoop(state)`. Threading via param `hoop?: Point` (default = HOOP) dans manTarget, carrierDefenderTarget, offBallStanceTarget, computeHelpTarget, applyScreenAdjustment, detectTriggers, computeMetrics, isInTrapZone, inPaint, distHoop. Bouton "↻ sens d'attaque" dans le panneau défense (gated sur fullCourt). ⚪ **v2** : zone defense directionnelle (computeZoneTargets utilise encore HOOP top hardcodé), rendu visuel de la second hoop comme panier "actif".
 
 ---
 

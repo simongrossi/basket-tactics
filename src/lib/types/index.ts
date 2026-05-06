@@ -40,7 +40,7 @@ export interface Step {
 
 export type HelpPriority = 'paint' | 'man' | 'passlane';
 export type CarrierBehavior = 'coller' | 'bumper' | 'contester' | 'reculer' | 'topside' | 'baseline';
-export type OffBallStance = 'sag' | 'deny-3q' | 'fronting' | 'behind';
+export type OffBallStance = 'sag' | 'deny-3q' | 'fronting' | 'behind' | 'stunt';
 /** Override individuel de la règle d'écran porteur. 'auto' suit la règle globale. */
 export type OnScreenNav = 'auto' | 'over' | 'under' | 'switch' | 'hedge' | 'drop' | 'blitz';
 
@@ -58,6 +58,9 @@ export interface DefenseTriggers {
   drive: boolean;
   post: boolean;
   paint: boolean;
+  /** Active la prise à deux automatique quand le porteur entre dans une zone
+   *  de trappe (coins fond + ligne de touche). Indépendant du système d'écran. */
+  trap?: boolean;
 }
 
 export interface DetectedTriggers extends DefenseTriggers {
@@ -159,4 +162,8 @@ export interface AppState {
   offBallScreenRule: OffBallScreenRule;
   fullCourt: boolean;
   showPassLanes: boolean;
+  /** Sens d'attaque : 'up' (panier visé = HOOP top, défaut) ou 'down' (panier
+   *  visé = HOOP_OPPOSITE bottom). Utile en mode fullCourt pour modéliser le
+   *  repli/contre-attaque. La défense de zone n'est pas encore directionnelle. */
+  attackingDirection?: 'up' | 'down';
 }

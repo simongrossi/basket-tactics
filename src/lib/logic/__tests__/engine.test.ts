@@ -161,6 +161,94 @@ describe('effectiveDefensePositions', () => {
   });
 });
 
+describe('computeDefenseTargets — trap en corner', () => {
+  it("ne déclenche pas le trap si le trigger est désactivé", () => {
+    const s = cloneState();
+    s.triggers.trap = false;
+    // Place le porteur dans le coin gauche fond
+    s.steps[0].off.O1 = { x: 60, y: 80 };
+    const before = { ...s.defenseInitial };
+    const { positions } = computeDefenseTargets(s, 0, false);
+    // Aucun défenseur ne doit avoir été repositionné par un trap
+    // (ils gardent leur logique normale). On checke juste que D2 (helper
+    // probable) n'est pas collé au porteur.
+    const dist = Math.hypot(positions.D2.x - s.steps[0].off.O1.x, positions.D2.y - s.steps[0].off.O1.y);
+    expect(dist).toBeGreaterThan(50);
+    expect(before.D2).toBeDefined(); // sanity
+  });
+
+  it("déclenche le trap quand trigger=true ET porteur en coin", () => {
+    const s = cloneState();
+    s.triggers.trap = true;
+    s.steps[0].off.O1 = { x: 60, y: 80 };
+    const { positions } = computeDefenseTargets(s, 0, false);
+    // Un défenseur (le helper) doit avoir été placé près du porteur
+    const distances = (Object.keys(positions) as Array<keyof typeof positions>).map((id) =>
+      Math.hypot(positions[id].x - 60, positions[id].y - 80)
+    );
+    const closeOnes = distances.filter((d) => d < 40);
+    // Au moins 2 défenseurs (carrierDef + helper) à <40px du porteur
+    expect(closeOnes.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("ne déclenche pas le trap si le porteur n'est pas dans une zone", () => {
+    const s = cloneState();
+    s.triggers.trap = true;
+    // Porteur au centre du terrain (hors zone)
+    s.steps[0].off.O1 = { x: 300, y: 300 };
+    const { positions } = computeDefenseTargets(s, 0, false);
+    const distances = (Object.keys(positions) as Array<keyof typeof positions>).map((id) =>
+      Math.hypot(positions[id].x - 300, positions[id].y - 300)
+    );
+    const closeOnes = distances.filter((d) => d < 40);
+    // Seul D1 (carrierDef) devrait être proche
+    expect(closeOnes.length).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('computeDefenseTargets — attackingDirection', () => {
+  it("attackingDirection='up' (default) place les défenseurs entre attaquants et HOOP top", () => {
+    const s = cloneState();
+    const { positions } = computeDefenseTargets(s, 0, false);
+    // Tous les défenseurs ont un y < att.y (entre att et panier en y=75)
+    Object.entries(positions).forEach(([dId, p]) => {
+      const matchup = (Object.entries(p.matchedTo === undefined ? {} : { x: 0 })); // sanity
+      const att = s.steps[0].off[p.matchedTo];
+      if (att) expect(p.y).toBeLessThan(att.y);
+      void matchup; void dId;
+    });
+  });
+
+  it("attackingDirection='down' place les défenseurs entre attaquants et HOOP_OPPOSITE bottom", () => {
+    const s = cloneState();
+    s.attackingDirection = 'down';
+    s.fullCourt = true;
+    // Mirror les positions des attaquants vers le bas (y → 1080 - y autour de 540)
+    s.steps[0].off = {
+      O1: { x: 300, y: 1080 - 470 + 1080 - 540 - (1080 - 540 - 470) }, // simplifier
+      O2: { x: 130, y: 700 },
+      O3: { x: 470, y: 700 },
+      O4: { x: 220, y: 850 },
+      O5: { x: 380, y: 850 },
+    };
+    s.steps[0].off.O1 = { x: 300, y: 610 }; // miroir de y=470 autour de 540
+    s.defenseInitial = {
+      D1: { x: 300, y: 700 },
+      D2: { x: 170, y: 770 },
+      D3: { x: 430, y: 770 },
+      D4: { x: 240, y: 920 },
+      D5: { x: 360, y: 920 },
+    };
+    const { positions } = computeDefenseTargets(s, 0, false);
+    // Avec hoop bas (y=1005), les défenseurs doivent être entre l'attaquant
+    // et le panier bas → y > att.y pour la plupart.
+    Object.entries(positions).forEach(([, p]) => {
+      const att = s.steps[0].off[p.matchedTo];
+      if (att) expect(p.y).toBeGreaterThan(att.y);
+    });
+  });
+});
+
 describe('effectiveDefensePositions — closeout dynamique', () => {
   it("ne marque aucun closeout à l'étape 0 (setup, pas de transition)", () => {
     const s = cloneState();

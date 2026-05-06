@@ -119,6 +119,7 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, onUpdate, onClearOverride,
         >
           <option value="sag">sag (aide raquette)</option>
           <option value="behind">derrière (entre lui & panier)</option>
+          <option value="stunt">stunt (fake d'aide)</option>
           <option value="deny-3q">3/4 deny (pied dans la passe)</option>
           <option value="fronting">devant (full denial)</option>
         </select>

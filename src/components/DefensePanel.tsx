@@ -210,6 +210,11 @@ export function DefensePanel(props: DefensePanelProps) {
               label="aide si porteur dans raquette"
               onChange={(v) => props.onPatch({ triggers: { ...state.triggers, paint: v } })}
             />
+            <CheckboxLine
+              checked={!!state.triggers.trap}
+              label="trap si porteur en coin fond"
+              onChange={(v) => props.onPatch({ triggers: { ...state.triggers, trap: v } })}
+            />
           </Section>
 
           <Section theme="defense" label="Écran porteur" open>
@@ -330,6 +335,7 @@ export function DefensePanel(props: DefensePanelProps) {
                   >
                     <option value="sag">sag</option>
                     <option value="behind">derrière</option>
+                    <option value="stunt">stunt</option>
                     <option value="deny-3q">3/4 deny</option>
                     <option value="fronting">devant</option>
                   </select>
@@ -374,6 +380,26 @@ export function DefensePanel(props: DefensePanelProps) {
           label="terrain complet"
           onChange={(v) => props.onPatch({ fullCourt: v })}
         />
+        <button
+          onClick={() => props.onPatch({
+            attackingDirection: state.attackingDirection === 'down' ? 'up' : 'down',
+          })}
+          disabled={!state.fullCourt}
+          title={state.fullCourt ? 'Bascule le sens d\'attaque (panier visé / panier protégé)' : 'Active "terrain complet" pour utiliser cette option'}
+          style={{
+            fontSize: 11,
+            padding: '4px 8px',
+            borderRadius: 4,
+            border: '1px solid #cbd5e1',
+            background: state.fullCourt ? '#fff' : '#f8f8f7',
+            color: state.fullCourt ? '#334155' : '#a8a29e',
+            cursor: state.fullCourt ? 'pointer' : 'default',
+            marginTop: 4,
+            textAlign: 'left',
+          }}
+        >
+          ↻ sens d'attaque : {state.attackingDirection === 'down' ? 'vers le bas' : 'vers le haut'}
+        </button>
         <details style={{ marginTop: 6 }}>
           <summary style={{ cursor: 'pointer', fontSize: 11, color: c.accentText, fontWeight: 500 }}>
             Légende couleurs

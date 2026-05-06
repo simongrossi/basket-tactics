@@ -24,7 +24,7 @@ import type { DetectedOffBallScreen } from '@/lib/types';
 import { detectTriggers } from '@/lib/logic/triggers';
 import { getZoneLayout } from '@/lib/data/zones';
 import { COURT, PLAYER_RADIUS, FULL_COURT_HEIGHT, FULL_COURT_INNER_MAX_Y } from '@/lib/data/court';
-import { clamp, distance, curveAroundObstacle, resolvePlayerCollisions, makeCluster } from '@/lib/logic/geometry';
+import { clamp, distance, curveAroundObstacle, resolvePlayerCollisions, makeCluster, pickBlockingObstacle } from '@/lib/logic/geometry';
 import { ContextMenu } from './ContextMenu';
 
 interface CourtViewProps {
@@ -178,10 +178,13 @@ export function CourtView(props: CourtViewProps) {
           x: defA[id].x + (defB[id].x - defA[id].x) * localT,
           y: defA[id].y + (defB[id].y - defA[id].y) * localT,
         };
-        for (const obs of screenerObstacles) {
-          if (id === obs.defenderToSkip) continue;
-          p = curveAroundObstacle(defA[id], defB[id], obs.center, obs.radius, localT);
-          break;
+        // Staggered screens : plusieurs poseurs sur le chemin → on contourne
+        // celui qui est LE PLUS BLOQUANT (pénétration dans le segment la plus
+        // profonde), pas le premier de la liste.
+        const candidates = screenerObstacles.filter((o) => id !== o.defenderToSkip);
+        const blocking = pickBlockingObstacle(defA[id], defB[id], candidates);
+        if (blocking) {
+          p = curveAroundObstacle(defA[id], defB[id], blocking.center, blocking.radius, localT);
         }
         defPos[id] = {
           x: p.x,
@@ -295,10 +298,10 @@ export function CourtView(props: CourtViewProps) {
         x: defA[id].x + (defB[id].x - defA[id].x) * localT,
         y: defA[id].y + (defB[id].y - defA[id].y) * localT,
       };
-      for (const obs of screenerObstacles) {
-        if (id === obs.defenderToSkip) continue;
-        p = curveAroundObstacle(defA[id], defB[id], obs.center, obs.radius, localT);
-        break;
+      const candidates = screenerObstacles.filter((o) => id !== o.defenderToSkip);
+      const blocking = pickBlockingObstacle(defA[id], defB[id], candidates);
+      if (blocking) {
+        p = curveAroundObstacle(defA[id], defB[id], blocking.center, blocking.radius, localT);
       }
       defPos[id] = {
         x: p.x,

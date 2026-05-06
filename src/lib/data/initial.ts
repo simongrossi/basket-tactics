@@ -59,7 +59,7 @@ export function makeInitialState(): AppState {
     defenseInitial: structuredClone(initialDef),
     defenseDistance: 40,
     defenseMaxSpeed: 110,
-    triggers: { drive: true, post: false, paint: true },
+    triggers: { drive: true, post: false, paint: true, trap: false },
     rules: structuredClone(defaultRules),
     screenRule: 'hedge',
     screenRadius: 35,
@@ -78,5 +78,6 @@ export function makeInitialState(): AppState {
     offBallScreenRule: 'over',
     fullCourt: false,
     showPassLanes: false,
+    attackingDirection: 'up',
   };
 }
