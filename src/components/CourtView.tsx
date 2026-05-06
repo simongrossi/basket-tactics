@@ -23,7 +23,7 @@ import type { DetectedOffBallScreen } from '@/lib/types';
 import { detectTriggers } from '@/lib/logic/triggers';
 import { getZoneLayout } from '@/lib/data/zones';
 import { COURT, PLAYER_RADIUS, FULL_COURT_HEIGHT, FULL_COURT_INNER_MAX_Y } from '@/lib/data/court';
-import { clamp, distance, curveAroundObstacle, resolvePlayerCollisions } from '@/lib/logic/geometry';
+import { clamp, distance, curveAroundObstacle, resolvePlayerCollisions, makeCluster } from '@/lib/logic/geometry';
 import { ContextMenu } from './ContextMenu';
 
 interface CourtViewProps {
@@ -134,13 +134,23 @@ export function CourtView(props: CourtViewProps) {
         offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosLinear, cur.screenRadius);
       }
 
-      // Liste des poseurs d'écran à contourner (porteur + non-porteur)
-      const screenerObstacles: { pos: Point; defenderToSkip: DefenderId }[] = [];
+      // Liste des CLUSTERS (poseur + son défenseur) à contourner.
+      // Traiter chaque écran comme une masse unique évite l'effet
+      // "snap" entre deux courbes consécutives très proches.
+      const screenerObstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
+      const linkDist = PLAYER_RADIUS * 4; // 64px : on lie poseur et son défenseur
+      const baseR = PLAYER_RADIUS * 2 + 4;
       if (screen) {
-        screenerObstacles.push({ pos: off[screen.screener], defenderToSkip: screen.screenerDef });
+        const sPos = off[screen.screener];
+        const sDef = { x: defB[screen.screenerDef].x, y: defB[screen.screenerDef].y };
+        const c = makeCluster(sPos, [sDef], linkDist, baseR);
+        screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: screen.screenerDef });
       }
       offBallScreens.forEach((s) => {
-        screenerObstacles.push({ pos: off[s.screener], defenderToSkip: s.screenerDef });
+        const sPos = off[s.screener];
+        const sDef = { x: defB[s.screenerDef].x, y: defB[s.screenerDef].y };
+        const c = makeCluster(sPos, [sDef], linkDist, baseR);
+        screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: s.screenerDef });
       });
 
       const defPos = {} as ComputedDefense;
@@ -149,12 +159,9 @@ export function CourtView(props: CourtViewProps) {
           x: defA[id].x + (defB[id].x - defA[id].x) * localT,
           y: defA[id].y + (defB[id].y - defA[id].y) * localT,
         };
-        // Contourner chaque poseur d'écran (sauf si on EST son défenseur)
         for (const obs of screenerObstacles) {
           if (id === obs.defenderToSkip) continue;
-          p = curveAroundObstacle(defA[id], defB[id], obs.pos, PLAYER_RADIUS * 2 + 2, localT);
-          // applique au plus un contournement (si plusieurs écrans, on
-          // privilégie le premier — porteur)
+          p = curveAroundObstacle(defA[id], defB[id], obs.center, obs.radius, localT);
           break;
         }
         defPos[id] = {
@@ -236,9 +243,21 @@ export function CourtView(props: CourtViewProps) {
       screen = detectScreen(off, carrier, matchups, defPosLinear, state.screenRadius);
       offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosLinear, state.screenRadius);
     }
-    const screenerObstacles: { pos: Point; defenderToSkip: DefenderId }[] = [];
-    if (screen) screenerObstacles.push({ pos: off[screen.screener], defenderToSkip: screen.screenerDef });
-    offBallScreens.forEach((s) => screenerObstacles.push({ pos: off[s.screener], defenderToSkip: s.screenerDef }));
+    const screenerObstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
+    const linkDist = PLAYER_RADIUS * 4;
+    const baseR = PLAYER_RADIUS * 2 + 4;
+    if (screen) {
+      const sPos = off[screen.screener];
+      const sDef = { x: defB[screen.screenerDef].x, y: defB[screen.screenerDef].y };
+      const c = makeCluster(sPos, [sDef], linkDist, baseR);
+      screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: screen.screenerDef });
+    }
+    offBallScreens.forEach((s) => {
+      const sPos = off[s.screener];
+      const sDef = { x: defB[s.screenerDef].x, y: defB[s.screenerDef].y };
+      const c = makeCluster(sPos, [sDef], linkDist, baseR);
+      screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: s.screenerDef });
+    });
 
     const defPos = {} as ComputedDefense;
     (Object.keys(defA) as DefenderId[]).forEach((id) => {
@@ -248,7 +267,7 @@ export function CourtView(props: CourtViewProps) {
       };
       for (const obs of screenerObstacles) {
         if (id === obs.defenderToSkip) continue;
-        p = curveAroundObstacle(defA[id], defB[id], obs.pos, PLAYER_RADIUS * 2 + 2, localT);
+        p = curveAroundObstacle(defA[id], defB[id], obs.center, obs.radius, localT);
         break;
       }
       defPos[id] = {

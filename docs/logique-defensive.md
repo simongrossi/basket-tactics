@@ -143,9 +143,9 @@ function pushOutOfScreener(target, screener):
 
 Évite que les défenseurs traversent visuellement le poseur.
 
-## Contournement pendant l'animation (`curveAroundObstacle`)
+## Contournement pendant l'animation (`curveAroundObstacle` + clusters)
 
-Pour les frames d'animation (playback ET scrubbing), le défenseur ne se contente pas d'une interpolation linéaire entre `defA[id]` et `defB[id]`. Si le segment direct passe à travers le cercle du poseur d'écran, on bend la trajectoire en **Bezier quadratique** :
+Pour les frames d'animation (playback ET scrubbing), le défenseur ne se contente pas d'une interpolation linéaire entre `defA[id]` et `defB[id]`. Si le segment direct passe à travers le cercle d'un obstacle, on bend la trajectoire en **Bezier quadratique** avec easing au sommet :
 
 ```
 curveAroundObstacle(start, end, obstacle, radius, t):
@@ -155,13 +155,33 @@ curveAroundObstacle(start, end, obstacle, radius, t):
   perp = vecteur perpendiculaire au segment
   side = signe(croix(obstacle - start, perp))
   ctrl = milieu(start, end) + perp * 2*(radius+6) * (-side)
-  // Bezier quadratique paramétrée par t
-  return (1-t)² * start + 2(1-t)t * ctrl + t² * end
+  te = easeSlowAtApex(t)  // ralentit au sommet pour éviter l'effet "snap"
+  return (1-te)² * start + 2(1-te)te * ctrl + te² * end
 ```
 
-Le côté de contournement est choisi automatiquement (opposé à l'obstacle par rapport au segment). Tous les défenseurs contournent le poseur d'écran SAUF son propre défenseur (`screenerDef`) qui reste près de son homme.
+Le côté de contournement est choisi automatiquement (opposé à l'obstacle par rapport au segment).
 
-Un filet de sécurité `pushOutOfMany` est appliqué après l'évitement : pousse chaque défenseur hors de tous les autres joueurs (sauf son `matchedTo`) pour éliminer toute superposition résiduelle.
+### Clusters (poseur + son défenseur)
+
+Le poseur d'écran et son propre défenseur sont quasi-collés sur l'action. Pour éviter deux courbes successives (et l'effet "téléportation" entre elles), on les regroupe en **cluster** via `makeCluster` :
+
+```
+makeCluster(core, others, linkDist, baseRadius):
+  members = core + others à moins de linkDist du core
+  center = barycentre(members)
+  radius = max(distance(center, member)) + baseRadius
+  return { center, radius }
+```
+
+Avec `linkDist = 4 * PLAYER_RADIUS` (64px) : si le défenseur du poseur est à moins de 64px du poseur, ils ne forment qu'une seule masse à contourner d'un coup. La courbe est plus large mais lisse, le défenseur ne snap plus entre deux courbes.
+
+### Easing au sommet
+
+`easeSlowAtApex(t, a=0.3)` : `t + a · sin(2πt) / (2π)`. La dérivée vaut `1 + a` aux extrémités et `1 − a` au milieu — visuellement, le défenseur "négocie" l'écran (ralentit en plein contournement) au lieu de filer comme une fusée.
+
+### Solveur de collisions strict
+
+Toujours appliqué après le contournement Bezier : voir section suivante.
 
 ## Solveur de collisions strict (`resolvePlayerCollisions`)
 

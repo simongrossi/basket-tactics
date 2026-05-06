@@ -116,12 +116,25 @@ export function resolvePlayerCollisions<
 }
 
 /**
+ * Easing qui ralentit autour de t=0.5 : la dérivée vaut 1+a aux extrémités
+ * et 1-a au milieu. Visuellement, le défenseur ralentit en passant le
+ * sommet du contournement (comme un humain qui négocie un écran).
+ */
+function easeSlowAtApex(t: number, a: number = 0.3): number {
+  return t + (a * Math.sin(2 * Math.PI * t)) / (2 * Math.PI);
+}
+
+/**
  * Position interpolée entre `start` et `end` au paramètre `t`,
  * MAIS en contournant `obstacle` via une courbe Bezier quadratique
  * si le segment direct passe au travers du cercle de l'obstacle.
  *
  * Le côté de contournement est choisi automatiquement : on dévie
  * dans la direction opposée à l'obstacle par rapport au segment direct.
+ *
+ * `obstacleRadius` peut représenter un cluster (poseur + son défenseur,
+ * deux écrans qui se touchent…) — passer la demi-largeur du cluster +
+ * une marge.
  */
 export function curveAroundObstacle(
   start: Point,
@@ -165,10 +178,34 @@ export function curveAroundObstacle(
   const ctrlX = mx + perpX * 2 * peak * pushSign;
   const ctrlY = my + perpY * 2 * peak * pushSign;
 
-  // Bezier quadratique
-  const omt = 1 - t;
+  // Easing pour ralentir au sommet du contournement (effet "négociation")
+  const te = easeSlowAtApex(t);
+  const omt = 1 - te;
   return {
-    x: omt * omt * start.x + 2 * omt * t * ctrlX + t * t * end.x,
-    y: omt * omt * start.y + 2 * omt * t * ctrlY + t * t * end.y,
+    x: omt * omt * start.x + 2 * omt * te * ctrlX + te * te * end.x,
+    y: omt * omt * start.y + 2 * omt * te * ctrlY + te * te * end.y,
   };
+}
+
+/**
+ * Calcule un cluster (centre + rayon) à partir d'un noyau central et
+ * d'éventuels obstacles voisins (à moins de `linkDist` du noyau).
+ * Utile pour traiter "poseur d'écran + son défenseur" comme une seule
+ * masse à contourner d'un coup, plutôt que deux courbes successives.
+ */
+export function makeCluster(
+  core: Point,
+  others: Point[],
+  linkDist: number,
+  baseRadius: number
+): { center: Point; radius: number } {
+  const members = [core, ...others.filter((o) => Math.hypot(o.x - core.x, o.y - core.y) <= linkDist)];
+  if (members.length === 1) {
+    return { center: { x: core.x, y: core.y }, radius: baseRadius };
+  }
+  const cx = members.reduce((s, p) => s + p.x, 0) / members.length;
+  const cy = members.reduce((s, p) => s + p.y, 0) / members.length;
+  const center = { x: cx, y: cy };
+  const maxFar = Math.max(...members.map((p) => Math.hypot(p.x - cx, p.y - cy)));
+  return { center, radius: maxFar + baseRadius };
 }
