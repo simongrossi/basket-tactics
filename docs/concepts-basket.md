@@ -115,14 +115,15 @@ Le bouton « annuler les switches actifs » vide tous les `Step.switches`.
 
 Le terrain est partitionné en **régions** polygonales. Chaque défenseur est assigné à une région et doit couvrir l'attaquant le plus dangereux qui s'y trouve.
 
-### Quatre layouts implémentés
+### Cinq layouts implémentés
 
 Convention de coordonnées : `y=20` = ligne de fond (proche du panier), `y=540` = ligne médiane. Donc dans la description ci-dessous, "haut" du terrain = grands `y`, "bas" (près du panier) = petits `y`.
 
-- **2-3** : 2 gardes au top of key extended (y=280..540), pivot dans la raquette + 2 ailes basses (y=20..280)
-- **1-3-1** : ancre baseline (y=20..160), 3 sur la ligne des LF (y=160..380, splittés gauche/centre/droit), chasseur top (y=380..540)
-- **3-2** : 3 au top (Top G/C/D, y=280..540), 2 en bas (Bas G/D, y=20..280)
-- **match-up** : mêmes polygones que le 2-3 mais marquage individuel à l'intérieur de la zone
+- **2-3** (style Wikipedia, compact) : 2 gardes au top (y=240..540), 3 derrière compacts y=20..240 (pivot dans la raquette à `y=110`, 2 ailes au niveau low blocks à `y=170`). Philosophie focus raquette.
+- **1-3-1** : ancre baseline (y=20..160), 3 sur la ligne des LF (y=160..380, splittés G/C/D), chasseur top y=380..540.
+- **3-2** : 3 au top large bande (y=220..540), 2 en bas restreint à la raquette + low blocks (y=20..220). Philosophie focus perimeter.
+- **2-1-2** (losange) : 2 fronts perimeter (y=320..540, splittés G/D), 1 cœur de raquette (y=160..320 full width), 2 lows presque au niveau panier (y=20..160, splittés G/D).
+- **match-up** : mêmes polygones que le 2-3 mais marquage individuel à l'intérieur de la zone.
 
 ### Algorithme par défenseur
 

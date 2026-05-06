@@ -11,25 +11,27 @@ import type { ZoneType, ZoneLayout, DefenderPositions } from '../types';
 //  - x=20 et x=580 : touches latérales
 
 // =============================================================
-// ZONE 2-3
+// ZONE 2-3 (style Wikipedia / 2-3 compact)
 // =============================================================
-// Disposition standard : philosophie défensive bas-de-zone (focus raquette).
-//   - 2 gardes en HAUT (perimeter, autour du top of key)
-//   - 3 derrière qui couvrent une LARGE bande basse jusqu'au FT line étendu
-//     (pivot dans la raquette, 2 ailes qui couvrent corners + ailes)
-// Ligne de partition haute (y=330) : la back-3 prend du volume.
+// Disposition standard :
+//   - 2 gardes au top (au-dessus du top of key, jusqu'à la médiane)
+//   - 3 derrière compacts autour du panier :
+//     * pivot dans le cœur de la raquette (homePos très bas, ~y=110)
+//     * 2 ailes au niveau des low blocks/short corners (~y=170)
+// Ligne de partition à y=240 (juste au-dessus de la FT line) — les
+// back-3 sont vraiment "back", pas étalés sur toute la moitié.
 const ZONE_2_3: ZoneLayout = [
-  // Back 3 — large bande basse y=20..330
+  // Back 3 — bande basse compacte y=20..240
   {
     id: 'pivot',
     label: 'Pivot',
     polygon: [
       { x: 200, y: 20 },
       { x: 400, y: 20 },
-      { x: 400, y: 330 },
-      { x: 200, y: 330 },
+      { x: 400, y: 240 },
+      { x: 200, y: 240 },
     ],
-    homePos: { x: 300, y: 150 },
+    homePos: { x: 300, y: 110 },
     assignedTo: 'D5',
   },
   {
@@ -38,10 +40,10 @@ const ZONE_2_3: ZoneLayout = [
     polygon: [
       { x: 20, y: 20 },
       { x: 200, y: 20 },
-      { x: 200, y: 330 },
-      { x: 20, y: 330 },
+      { x: 200, y: 240 },
+      { x: 20, y: 240 },
     ],
-    homePos: { x: 110, y: 200 },
+    homePos: { x: 130, y: 170 },
     assignedTo: 'D4',
   },
   {
@@ -50,36 +52,111 @@ const ZONE_2_3: ZoneLayout = [
     polygon: [
       { x: 400, y: 20 },
       { x: 580, y: 20 },
-      { x: 580, y: 330 },
-      { x: 400, y: 330 },
+      { x: 580, y: 240 },
+      { x: 400, y: 240 },
     ],
-    homePos: { x: 490, y: 200 },
+    homePos: { x: 470, y: 170 },
     assignedTo: 'D3',
   },
-  // Top 2 — bande haute restreinte y=330..540
+  // Top 2 — large bande haute y=240..540 (FT line jusqu'à médiane)
   {
     id: 'guard-left',
     label: 'Garde G',
     polygon: [
-      { x: 20, y: 330 },
-      { x: 300, y: 330 },
+      { x: 20, y: 240 },
+      { x: 300, y: 240 },
       { x: 300, y: 540 },
       { x: 20, y: 540 },
     ],
-    homePos: { x: 200, y: 410 },
+    homePos: { x: 200, y: 320 },
     assignedTo: 'D1',
   },
   {
     id: 'guard-right',
     label: 'Garde D',
     polygon: [
-      { x: 300, y: 330 },
-      { x: 580, y: 330 },
+      { x: 300, y: 240 },
+      { x: 580, y: 240 },
       { x: 580, y: 540 },
       { x: 300, y: 540 },
     ],
-    homePos: { x: 400, y: 410 },
+    homePos: { x: 400, y: 320 },
     assignedTo: 'D2',
+  },
+];
+
+// =============================================================
+// ZONE 2-1-2
+// =============================================================
+// Disposition en losange / diamant :
+//   - 2 défenseurs au TOP (perimeter, gauche + droite)
+//   - 1 au cœur de la raquette (autour de la FT line)
+//   - 2 LOW BLOCKS sur les côtés, presque au niveau du panier
+// Trois bandes verticales : bottom (y=20..160) / middle (y=160..320) /
+// top (y=320..540).
+const ZONE_2_1_2: ZoneLayout = [
+  // Top 2 (perimeter)
+  {
+    id: 'front-left',
+    label: 'Avant G',
+    polygon: [
+      { x: 20, y: 320 },
+      { x: 300, y: 320 },
+      { x: 300, y: 540 },
+      { x: 20, y: 540 },
+    ],
+    homePos: { x: 200, y: 400 },
+    assignedTo: 'D1',
+  },
+  {
+    id: 'front-right',
+    label: 'Avant D',
+    polygon: [
+      { x: 300, y: 320 },
+      { x: 580, y: 320 },
+      { x: 580, y: 540 },
+      { x: 300, y: 540 },
+    ],
+    homePos: { x: 400, y: 400 },
+    assignedTo: 'D2',
+  },
+  // Center (cœur de raquette, bande médiane)
+  {
+    id: 'middle',
+    label: 'Cœur',
+    polygon: [
+      { x: 20, y: 160 },
+      { x: 580, y: 160 },
+      { x: 580, y: 320 },
+      { x: 20, y: 320 },
+    ],
+    homePos: { x: 300, y: 240 },
+    assignedTo: 'D5',
+  },
+  // Lows (presque au niveau panier, sur les côtés)
+  {
+    id: 'low-left',
+    label: 'Low G',
+    polygon: [
+      { x: 20, y: 20 },
+      { x: 300, y: 20 },
+      { x: 300, y: 160 },
+      { x: 20, y: 160 },
+    ],
+    homePos: { x: 180, y: 100 },
+    assignedTo: 'D4',
+  },
+  {
+    id: 'low-right',
+    label: 'Low D',
+    polygon: [
+      { x: 300, y: 20 },
+      { x: 580, y: 20 },
+      { x: 580, y: 160 },
+      { x: 300, y: 160 },
+    ],
+    homePos: { x: 420, y: 100 },
+    assignedTo: 'D3',
   },
 ];
 
@@ -239,6 +316,7 @@ const layouts: Record<ZoneType, ZoneLayout> = {
   'zone-2-3': ZONE_2_3,
   'zone-1-3-1': ZONE_1_3_1,
   'zone-3-2': ZONE_3_2,
+  'zone-2-1-2': ZONE_2_1_2,
   'zone-matchup': ZONE_MATCHUP,
 };
 

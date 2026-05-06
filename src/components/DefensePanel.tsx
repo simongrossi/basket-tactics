@@ -134,6 +134,7 @@ export function DefensePanel(props: DefensePanelProps) {
               <option value="zone-2-3">2-3</option>
               <option value="zone-1-3-1">1-3-1</option>
               <option value="zone-3-2">3-2</option>
+              <option value="zone-2-1-2">2-1-2</option>
               <option value="zone-matchup">match-up</option>
             </select>
           </div>

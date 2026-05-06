@@ -67,7 +67,7 @@ export type DropDepth = 'shallow' | 'medium' | 'deep';
 // --- Défense de zone (Palier 3-C) ---
 
 export type DefenseSystem = 'man' | 'zone';
-export type ZoneType = 'zone-2-3' | 'zone-1-3-1' | 'zone-3-2' | 'zone-matchup';
+export type ZoneType = 'zone-2-3' | 'zone-1-3-1' | 'zone-3-2' | 'zone-2-1-2' | 'zone-matchup';
 
 export interface ZoneRegion {
   id: string;
