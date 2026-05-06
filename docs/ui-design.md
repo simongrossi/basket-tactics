@@ -55,6 +55,11 @@ Les panneaux ont une ombre douce `0 1px 3px + 0 8px 24px` rgba(15, 23, 42, 0.04)
 - **Indicateur d'écran porteur** : cercle violet pointillé `#534AB7`
 - **Indicateur d'écran non-porteur** : cercle vert pointillé `#16a34a`
 - **Indicateur de lecture (badge)** : `rgba(30, 64, 175, 0.92)` blanc
+- **Cadenas position manuelle (défenseur override)** : badge jaune `#fbbf24` + ✋
+- **Cadenas forcedScreener (attaquant)** : badge violet `#a78bfa` + 🔒
+- **Closeout actif** : double anneau orange `#F97316` autour du défenseur du nouveau porteur (apparition pendant la transition où le ballon change de mains)
+- **Defender en retard (`late`)** : contour épais rouge `#E24B4A`
+- **Defender du porteur** : contour jaune `#FAC775`
 
 ## Conventions de tracé d'annotations
 

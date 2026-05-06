@@ -20,7 +20,7 @@ interface AppState {
   defenseMaxSpeed: number;     // 40–200 px/étape, contrainte de vitesse (lateness)
 
   // Triggers d'aide (homme à homme)
-  triggers: { drive: boolean; post: boolean; paint: boolean };
+  triggers: { drive: boolean; post: boolean; paint: boolean; trap?: boolean };
 
   // Règles individuelles par défenseur
   rules: Record<DefenderId, DefenderRule>;
@@ -41,7 +41,9 @@ interface AppState {
   tool: 'move' | 'pass' | 'dribble' | 'cut' | 'screen';
   showHelpLines: boolean;
   showMatchups: boolean;
+  showPassLanes: boolean;
   fullCourt: boolean;
+  attackingDirection?: 'up' | 'down';   // sens d'attaque (panier visé). Default 'up'.
 }
 ```
 
@@ -57,8 +59,13 @@ interface Step {
   switches?: [DefenderId, DefenderId][]; // switches déclenchés (cumulés)
   label?: string;                       // texte libre éditable ("dribble drive")
   defenseOverrides?: Partial<Record<DefenderId, Point>>; // overrides manuels
+  forcedScreener?: AttackerId;          // override de detectScreen (clic-droit)
 }
 ```
+
+### `forcedScreener`
+
+Override de l'auto-detection d'écran porteur. Quand posé, `detectScreen` skip les checks de proximité et utilise cet attaquant comme poseur. Garde-fous : doit exister dans `off`, doit être différent du porteur, doit avoir un défenseur dans `matchups`. Visible : cadenas violet sur le joueur. Activé via clic-droit sur l'attaquant → "forcer comme poseur d'écran".
 
 ### `defenseOverrides`
 
@@ -90,6 +97,7 @@ type CarrierBehavior =
 type OffBallStance =
   | 'sag'         // défaut, position avec aide
   | 'behind'      // strict entre attaquant et panier, pas d'aide
+  | 'stunt'       // fake d'aide (blend 0.4 entre behind et fronting)
   | 'deny-3q'     // 3/4 ball-side, pied dans la passe
   | 'fronting';   // full denial, devant l'attaquant face au ballon
 
@@ -122,13 +130,16 @@ Conventions de tracé (voir [ui-design.md](ui-design.md)) :
 
 ```typescript
 interface ZoneConfig {
-  type: 'zone-2-3' | 'zone-1-3-1' | 'zone-3-2' | 'zone-matchup';
+  type: 'zone-2-3' | 'zone-1-3-1' | 'zone-3-2' | 'zone-2-1-2' | 'zone-matchup';
   ballPressure: number;       // 0–100, attraction des défenseurs vers le ballon
   rotationSpeed: number;      // 40–200 px/étape, vitesse de rotation
-  trapCorners: boolean;       // piège en coin
+  trapCorners: boolean;       // piège en coin (zone defense)
   extendTo3pt: boolean;       // étendre à 3pts
+  verticalOffset?: number;    // décalage vertical de la zone (px)
 }
 ```
+
+> ⚠️ Le trigger `triggers.trap` (sur `AppState`) et `zoneConfig.trapCorners` sont distincts : le premier active le trap automatique en défense individuelle, le second en défense de zone.
 
 Les polygones de zones sont dans [`lib/data/zones.ts`](../src/lib/data/zones.ts).
 
@@ -150,13 +161,14 @@ Ces types sont produits par le moteur à chaque frame, jamais stockés.
 interface ComputedDefender {
   x: number; y: number;
   late: boolean;                // n'a pas pu atteindre sa cible
-  helpFactor: number;           // 0–1, intensité d'aide actuelle
+  helpFactor: number;           // 0–1, intensité d'aide ou denial actuel
   isCarrierDefender: boolean;
   matchedTo: AttackerId;        // qui il défend (matchups + switches)
   onScreen: boolean;            // impliqué dans un écran
   switchedThisStep: boolean;
   zoneId?: string;              // si zone
   isRotating?: boolean;         // si en rotation zone
+  closingOut?: boolean;         // closeout actif sur cette transition (anneau orange)
 }
 
 interface DetectedScreen {

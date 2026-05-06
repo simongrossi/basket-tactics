@@ -67,6 +67,44 @@ La cible "denyAim" est sur le segment porteur ↔ attaquant à 35% du chemin dep
 
 Pour un denial **manuel total** (fronting, 3/4 deny), l'utilisateur garde le contrôle via `DefenderRule.offBallStance` (`'fronting'` ou `'deny-3q'`), traités séparément en amont dans le moteur.
 
+## Stance off-ball `'stunt'` (fake d'aide)
+
+Cinquième valeur de `OffBallStance`, à côté de `sag / behind / deny-3q / fronting`. Position calculée dans `offBallStanceTarget` avec un blend 0.4 entre la position "behind" (entre homme et panier) et la position "fronting" (entre homme et ballon). Moins agressif que `deny-3q` (0.75), plus offensif que `behind`. Le "recover" est naturel : à l'étape suivante, l'utilisateur remet la stance à `sag` ou `behind`, le défenseur revient sur son homme avec la lateness habituelle (modulée par `defenseMaxSpeed`).
+
+## Trap en corner
+
+Module dédié [`lib/logic/trap.ts`](../src/lib/logic/trap.ts). Quand `state.triggers.trap` est activé ET aucun écran n'est détecté ET le porteur est dans une zone de trappe, le défenseur le plus proche du porteur (hors carrierDef) est forcé en position de trap : sur la prolongation du vecteur carrierDef→porteur, à 28px au-delà du porteur. Cela ferme le côté opposé et crée la cage à deux.
+
+Zones définies par bbox (TRAP_ZONES) :
+- Coin gauche fond : `x ∈ [20, 130]`, `y ∈ [20, 200]`
+- Coin droit fond : `x ∈ [470, 580]`, `y ∈ [20, 200]`
+
+`isInTrapZone(carrierPos, hoop?)` miroite la position autour de la ligne médiane si `hoop.y > 540` pour appliquer les zones du côté du panier de référence.
+
+## Staggered screens (sélection de l'obstacle bloquant)
+
+Pendant le playback et le scrubbing, `CourtView` utilise `curveAroundObstacle` pour faire contourner les défenseurs autour des poseurs d'écran. Avant : la première occurrence de la liste `screenerObstacles` était utilisée (break après match), ce qui pouvait être arbitraire avec plusieurs écrans simultanés.
+
+`pickBlockingObstacle(start, end, obstacles)` (geometry.ts) sélectionne l'obstacle de **plus profonde pénétration** dans le segment du défenseur (`pen = radius - distance_to_line`). Si plusieurs obstacles bloquent la trajectoire, on contourne celui qui gêne réellement, pas celui qui s'est trouvé en premier dans la liste.
+
+**Limite v1** : un seul contournement à la fois (pas de double courbe pour traverser deux écrans en série). Si la trajectoire de contournement passe à travers un autre écran, c'est ignoré.
+
+## Inversion du panier de référence (`attackingDirection`)
+
+`state.attackingDirection: 'up' | 'down'` (default `'up'` = compatibilité avec l'historique). Le helper `getDefenseHoop(state)` retourne `HOOP` ou `HOOP_OPPOSITE` selon la direction.
+
+Toutes les fonctions pures qui utilisaient `HOOP` en constante prennent maintenant un paramètre optionnel `hoop?: Point` (default = `HOOP`) :
+- `manTarget`, `carrierDefenderTarget`, `offBallStanceTarget` (manDefense.ts)
+- `computeHelpTarget` (help.ts) — paint priority et sag baseline adaptés via `intoCourtY = hoop.y > 540 ? -1 : 1`
+- `applyScreenAdjustment` (screens.ts) — direction du drop relative au panier
+- `detectTriggers` (triggers.ts) — détection drive/post/paint via `yIntoCourt = (carrier.y - hoop.y) * intoCourtSign`
+- `computeMetrics` (metrics.ts) — paint coverage via le panier paramétré
+- `isInTrapZone` (trap.ts), `inPaint` / `distHoop` (geometry.ts) — miroir autour de y=540 si bottom
+
+`engine.computeDefenseTargets` extrait `hoop` une fois par étape et le thread à toutes les fonctions appelées. Le bouton "↻ sens d'attaque" dans le panneau défense est gated sur `fullCourt` (l'inversion n'a de sens que sur le terrain entier).
+
+**Limite v1** : la défense de zone n'est pas encore directionnelle (`computeZoneTargets` utilise toujours `HOOP` top hardcodé). Le rendu visuel ne distingue pas le panier "actif" du panier "défendu" en mode inversé.
+
 ## Closeout dynamique
 
 Quand le ballon change de mains entre l'étape N-1 et N, le défenseur du **nouveau** porteur reçoit un bump de vitesse `× CLOSEOUT_SPEED_FACTOR` (1.4) sur cette transition. Cela modélise l'urgence du closeout : sur une passe entrante, le défenseur sait que son homme va recevoir et accélère pour fermer la distance avant le tir/drive.

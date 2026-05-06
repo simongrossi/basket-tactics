@@ -132,8 +132,11 @@ Conditions qui activent l'aide automatique :
 | **aide sur drive** | Porteur s'approche du panier (delta > 25px / 250px du panier) |
 | **aide sur post-up** | Porteur en poste bas, stationnaire |
 | **aide si porteur dans raquette** | Porteur dans la peinture |
+| **trap si porteur en coin fond** | Porteur dans la zone coin gauche/droit fond → le défenseur le plus proche vient verrouiller le côté opposé pour fermer la cage |
 
-Indépendant des triggers : un sag baseline weak-side est toujours actif sur les défenseurs avec `helpPct > 0` côté faible.
+Indépendants des triggers :
+- **sag baseline weak-side** toujours actif (défenseurs avec `helpPct > 0` côté faible)
+- **strong-side denial** automatique quand pas de trigger + même côté que le ballon + `priority !== 'paint'`
 
 ### Écran porteur (visible si système = homme)
 
@@ -160,7 +163,7 @@ Tableau 5 lignes (D1–D5) × 6 colonnes :
 | **aide** | 0–100 | Intensité d'aide en % |
 | **prio.** | raquette / homme / passe | Cible préférée quand on aide |
 | **vs porteur** | coller / bumper / contester / reculer / topside / baseline | Comportement quand on défend le porteur |
-| **hors-bal.** | sag / derrière / 3/4 deny / devant | Stance quand on défend hors-ballon |
+| **hors-bal.** | sag / derrière / stunt / 3/4 deny / devant | Stance quand on défend hors-ballon (stunt = fake d'aide, blend 0.4 entre derrière et devant) |
 | **écran** | auto / over / under / switch / hedge / drop / blitz | Override individuel sur écran porteur (auto = règle globale) |
 
 Astuce : **clic-droit** sur un défenseur sur le terrain ouvre un menu compact avec les mêmes réglages.
@@ -171,19 +174,35 @@ Astuce : **clic-droit** sur un défenseur sur le terrain ouvre un menu compact a
 |--------|-------|
 | **lignes d'aide** | Affiche les lignes pointillées violettes entre la position d'aide et la position de marquage homme |
 | **matchups (traits)** | Trait gris entre chaque défenseur et son attaquant (orange si switch) |
-| **terrain complet** | Étend le terrain à 1080 de hauteur avec second panier mirroitée (visuel uniquement, pas de logique miroir) |
+| **terrain complet** | Étend le terrain à 1080 de hauteur avec second panier (active aussi le bouton "↻ sens d'attaque") |
+| **lignes de passe** | Lignes colorées (vert / orange / rouge) depuis le porteur vers chaque cible selon ouverture/contestation/blocage |
+| **↻ sens d'attaque** | Bascule `attackingDirection` entre `up` et `down`. Disponible uniquement en terrain complet. La logique défensive (manTarget, help, screens, triggers, trap, metrics) suit le panier ciblé. Zone defense pas encore directionnelle. |
 
-## Menu contextuel (clic-droit défenseur)
+## Menu contextuel (clic-droit)
 
-Menu compact qui apparaît au clic-droit. Cinq réglages :
+Le clic-droit ouvre un menu différent selon le joueur ciblé.
 
+### Sur un défenseur (bleu)
+
+Cinq réglages :
 - **aide %** : slider 0–100 + valeur
 - **priorité** : raquette / homme / passe
 - **vs porteur** : 6 valeurs (cf. tableau)
-- **hors-ballon** : 4 stances
+- **hors-ballon** : 5 stances (sag / derrière / stunt / 3/4 deny / devant)
 - **vs écran** : auto + 6 règles d'écran (override individuel)
 
-Se ferme au clic en dehors. Comportement : si la cible DOM est un attaquant (cas d'un poseur d'écran rendu au-dessus dans la pile SVG), fallback automatique sur la recherche du défenseur le plus proche du point cliqué.
+Si une position manuelle (override drag) est active, un bouton "↻ ré-auto-positionner" apparaît en bas du menu.
+
+### Sur un attaquant (orange)
+
+Trois actions :
+- **marquer comme porteur** — équivalent rapide du sélecteur "porteur" du panneau gauche
+- **forcer comme poseur d'écran** — pose `Step.forcedScreener` sur l'étape active. Le moteur saute l'auto-detection de proximité et utilise cet attaquant directement comme poseur. Cadenas violet 🔒 affiché sur le joueur. Bouton "↻ libérer" pour annuler.
+- **effacer ses annotations** — supprime toutes les annotations dont `fromId === oId` sur l'étape active
+
+### Comportement commun
+
+Se ferme au clic en dehors. Si la cible DOM est un poseur d'écran (rendu au-dessus dans la pile SVG, masque le `data-id` du joueur en dessous), fallback automatique sur la recherche du joueur le plus proche du point cliqué.
 
 ## Vue playbook (overlay)
 
