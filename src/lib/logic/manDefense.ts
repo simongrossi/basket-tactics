@@ -1,5 +1,5 @@
 import type { Point, CarrierBehavior, OffBallStance } from '../types';
-import { HOOP, THREE_POINT_RADIUS } from '../data/court';
+import { HOOP, THREE_POINT_RADIUS, PLAYER_RADIUS } from '../data/court';
 import { clamp } from './geometry';
 
 /**
@@ -57,7 +57,7 @@ export function carrierDefenderTarget(
   }
 
   // Distance minimale pour que les cercles ne se superposent pas visuellement.
-  const MIN_TARGET_DIST = 38; // 2 * PLAYER_RADIUS (18) + 2px de jeu
+  const MIN_TARGET_DIST = PLAYER_RADIUS * 2 + 2;
   const targetDist = Math.max(MIN_TARGET_DIST, (baseRatio * defenseDistance) / pressureFactor);
 
   const ratio = Math.max(0, (dist - targetDist) / dist);

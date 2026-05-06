@@ -23,7 +23,7 @@ import type { DetectedOffBallScreen } from '@/lib/types';
 import { detectTriggers } from '@/lib/logic/triggers';
 import { getZoneLayout } from '@/lib/data/zones';
 import { COURT, PLAYER_RADIUS, FULL_COURT_HEIGHT, FULL_COURT_INNER_MAX_Y } from '@/lib/data/court';
-import { clamp, distance } from '@/lib/logic/geometry';
+import { clamp, distance, curveAroundObstacle, pushOutOfMany } from '@/lib/logic/geometry';
 import { ContextMenu } from './ContextMenu';
 
 interface CourtViewProps {
@@ -116,11 +116,50 @@ export function CourtView(props: CourtViewProps) {
       });
       const defA = effectiveDefensePositions(cur, idxA);
       const defB = effectiveDefensePositions(cur, idxB);
+
+      const carrier = localT < 0.5 ? a.ballCarrier : b.ballCarrier;
+      // Détection d'écran sur la frame en cours pour piloter l'évitement
+      let screen: ReturnType<typeof detectScreen> = null;
+      let offBallScreens: DetectedOffBallScreen[] = [];
+      if (cur.defenseSystem === 'man') {
+        const matchups = getMatchupsAt(cur.steps, idxB - 1);
+        const defPosLinear = {} as Record<DefenderId, Point>;
+        (Object.keys(defA) as DefenderId[]).forEach((id) => {
+          defPosLinear[id] = {
+            x: defA[id].x + (defB[id].x - defA[id].x) * localT,
+            y: defA[id].y + (defB[id].y - defA[id].y) * localT,
+          };
+        });
+        screen = detectScreen(off, carrier, matchups, defPosLinear, cur.screenRadius);
+        offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosLinear, cur.screenRadius);
+      }
+
+      // Liste des poseurs d'écran à contourner (porteur + non-porteur)
+      const screenerObstacles: { pos: Point; defenderToSkip: DefenderId }[] = [];
+      if (screen) {
+        screenerObstacles.push({ pos: off[screen.screener], defenderToSkip: screen.screenerDef });
+      }
+      offBallScreens.forEach((s) => {
+        screenerObstacles.push({ pos: off[s.screener], defenderToSkip: s.screenerDef });
+      });
+
       const defPos = {} as ComputedDefense;
       (Object.keys(defA) as DefenderId[]).forEach((id) => {
-        defPos[id] = {
+        let p: Point = {
           x: defA[id].x + (defB[id].x - defA[id].x) * localT,
           y: defA[id].y + (defB[id].y - defA[id].y) * localT,
+        };
+        // Contourner chaque poseur d'écran (sauf si on EST son défenseur)
+        for (const obs of screenerObstacles) {
+          if (id === obs.defenderToSkip) continue;
+          p = curveAroundObstacle(defA[id], defB[id], obs.pos, PLAYER_RADIUS * 2 + 2, localT);
+          // applique au plus un contournement (si plusieurs écrans, on
+          // privilégie le premier — porteur)
+          break;
+        }
+        defPos[id] = {
+          x: p.x,
+          y: p.y,
           late: defB[id].late,
           helpFactor: defB[id].helpFactor,
           isCarrierDefender: defB[id].isCarrierDefender,
@@ -129,15 +168,26 @@ export function CourtView(props: CourtViewProps) {
           switchedThisStep: defB[id].switchedThisStep,
         };
       });
-      const carrier = localT < 0.5 ? a.ballCarrier : b.ballCarrier;
-      let screen: ReturnType<typeof detectScreen> = null;
-      let offBallScreens: DetectedOffBallScreen[] = [];
-      if (cur.defenseSystem === 'man') {
-        const matchups = getMatchupsAt(cur.steps, idxB - 1);
-        const defPosExtracted = extractDefPositions(defPos);
-        screen = detectScreen(off, carrier, matchups, defPosExtracted, cur.screenRadius);
-        offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosExtracted, cur.screenRadius);
-      }
+
+      // Filet de sécurité : push tout défenseur hors des autres joueurs
+      // (sauf son matchedTo) pour éviter superpositions persistantes.
+      const obstaclesByDefender = (id: DefenderId, matched: AttackerId): Point[] => {
+        const obs: Point[] = [];
+        (Object.keys(off) as AttackerId[]).forEach((aId) => {
+          if (aId !== matched) obs.push(off[aId]);
+        });
+        (Object.keys(defPos) as DefenderId[]).forEach((dId) => {
+          if (dId !== id) obs.push({ x: defPos[dId].x, y: defPos[dId].y });
+        });
+        return obs;
+      };
+      (Object.keys(defPos) as DefenderId[]).forEach((id) => {
+        const obs = obstaclesByDefender(id, defPos[id].matchedTo);
+        const pushed = pushOutOfMany({ x: defPos[id].x, y: defPos[id].y }, obs, PLAYER_RADIUS * 2 + 2);
+        defPos[id].x = pushed.x;
+        defPos[id].y = pushed.y;
+      });
+
       setPlayFrame({ off, defPos, carrier, screen, offBallScreens, stepIdx: idxA });
     };
     // setInterval plus déterministe que requestAnimationFrame pour ce cas
@@ -182,11 +232,39 @@ export function CourtView(props: CourtViewProps) {
     });
     const defA = effectiveDefensePositions(state, idxA);
     const defB = effectiveDefensePositions(state, idxB);
+    const carrier = localT < 0.5 ? a.ballCarrier : b.ballCarrier;
+    let screen: ReturnType<typeof detectScreen> = null;
+    let offBallScreens: DetectedOffBallScreen[] = [];
+    if (state.defenseSystem === 'man') {
+      const matchups = getMatchupsAt(state.steps, Math.max(0, idxB - 1));
+      const defPosLinear = {} as Record<DefenderId, Point>;
+      (Object.keys(defA) as DefenderId[]).forEach((id) => {
+        defPosLinear[id] = {
+          x: defA[id].x + (defB[id].x - defA[id].x) * localT,
+          y: defA[id].y + (defB[id].y - defA[id].y) * localT,
+        };
+      });
+      screen = detectScreen(off, carrier, matchups, defPosLinear, state.screenRadius);
+      offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosLinear, state.screenRadius);
+    }
+    const screenerObstacles: { pos: Point; defenderToSkip: DefenderId }[] = [];
+    if (screen) screenerObstacles.push({ pos: off[screen.screener], defenderToSkip: screen.screenerDef });
+    offBallScreens.forEach((s) => screenerObstacles.push({ pos: off[s.screener], defenderToSkip: s.screenerDef }));
+
     const defPos = {} as ComputedDefense;
     (Object.keys(defA) as DefenderId[]).forEach((id) => {
-      defPos[id] = {
+      let p: Point = {
         x: defA[id].x + (defB[id].x - defA[id].x) * localT,
         y: defA[id].y + (defB[id].y - defA[id].y) * localT,
+      };
+      for (const obs of screenerObstacles) {
+        if (id === obs.defenderToSkip) continue;
+        p = curveAroundObstacle(defA[id], defB[id], obs.pos, PLAYER_RADIUS * 2 + 2, localT);
+        break;
+      }
+      defPos[id] = {
+        x: p.x,
+        y: p.y,
         late: defB[id].late,
         helpFactor: defB[id].helpFactor,
         isCarrierDefender: defB[id].isCarrierDefender,
@@ -195,15 +273,22 @@ export function CourtView(props: CourtViewProps) {
         switchedThisStep: defB[id].switchedThisStep,
       };
     });
-    const carrier = localT < 0.5 ? a.ballCarrier : b.ballCarrier;
-    let screen: ReturnType<typeof detectScreen> = null;
-    let offBallScreens: DetectedOffBallScreen[] = [];
-    if (state.defenseSystem === 'man') {
-      const matchups = getMatchupsAt(state.steps, Math.max(0, idxB - 1));
-      const defPosExtracted = extractDefPositions(defPos);
-      screen = detectScreen(off, carrier, matchups, defPosExtracted, state.screenRadius);
-      offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosExtracted, state.screenRadius);
-    }
+
+    // Push de sécurité contre superpositions résiduelles
+    (Object.keys(defPos) as DefenderId[]).forEach((id) => {
+      const matched = defPos[id].matchedTo;
+      const obs: Point[] = [];
+      (Object.keys(off) as AttackerId[]).forEach((aId) => {
+        if (aId !== matched) obs.push(off[aId]);
+      });
+      (Object.keys(defPos) as DefenderId[]).forEach((dId) => {
+        if (dId !== id) obs.push({ x: defPos[dId].x, y: defPos[dId].y });
+      });
+      const pushed = pushOutOfMany({ x: defPos[id].x, y: defPos[id].y }, obs, PLAYER_RADIUS * 2 + 2);
+      defPos[id].x = pushed.x;
+      defPos[id].y = pushed.y;
+    });
+
     return { off, defPos, carrier, screen, offBallScreens, stepIdx: Math.round(t) };
   }, [props.scrubT, state]);
 

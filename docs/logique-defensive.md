@@ -136,12 +136,32 @@ Après chaque ajustement, on s'assure que la cible n'est pas à l'intérieur du 
 ```
 function pushOutOfScreener(target, screener):
   d = distance(target, screener)
-  minClearance = 2 * PLAYER_RADIUS + 2  // 38px
+  minClearance = 2 * PLAYER_RADIUS + 2  // 34px (avec PLAYER_RADIUS = 16)
   if d >= minClearance: return target
   return screener + (target - screener) * (minClearance / d)
 ```
 
 Évite que les défenseurs traversent visuellement le poseur.
+
+## Contournement pendant l'animation (`curveAroundObstacle`)
+
+Pour les frames d'animation (playback ET scrubbing), le défenseur ne se contente pas d'une interpolation linéaire entre `defA[id]` et `defB[id]`. Si le segment direct passe à travers le cercle du poseur d'écran, on bend la trajectoire en **Bezier quadratique** :
+
+```
+curveAroundObstacle(start, end, obstacle, radius, t):
+  proj = projection de obstacle sur le segment start→end
+  si projection hors segment OU distance(obstacle, ligne) >= radius:
+    return interpolation linéaire
+  perp = vecteur perpendiculaire au segment
+  side = signe(croix(obstacle - start, perp))
+  ctrl = milieu(start, end) + perp * 2*(radius+6) * (-side)
+  // Bezier quadratique paramétrée par t
+  return (1-t)² * start + 2(1-t)t * ctrl + t² * end
+```
+
+Le côté de contournement est choisi automatiquement (opposé à l'obstacle par rapport au segment). Tous les défenseurs contournent le poseur d'écran SAUF son propre défenseur (`screenerDef`) qui reste près de son homme.
+
+Un filet de sécurité `pushOutOfMany` est appliqué après l'évitement : pousse chaque défenseur hors de tous les autres joueurs (sauf son `matchedTo`) pour éliminer toute superposition résiduelle.
 
 ## Aide (help)
 

@@ -27,5 +27,5 @@ export const PAINT = {
 
 export const THREE_POINT_RADIUS = 220;
 
-export const PLAYER_RADIUS = 18;
+export const PLAYER_RADIUS = 16;
 export const BALL_RADIUS = 7;

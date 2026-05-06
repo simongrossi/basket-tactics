@@ -123,13 +123,15 @@ Les défenseurs hors-ballon collaient leur homme tant qu'aucun trigger (drive/po
 
 Implémenté dans `help.ts` : sag baseline proportionnel à `helpPct` quand defender est weak-side.
 
-### Path-aware screen avoidance (animation)
-Aujourd'hui les positions cibles passent au-dessus du poseur d'écran (fonction `pushOutOfScreener`) mais le **chemin** entre étape N et étape N+1 reste une interpolation linéaire qui peut traverser le poseur d'écran pendant le playback. Pour que l'animation soit physiquement crédible :
-- Détecter pendant l'animation si le segment `from→to` du défenseur croise le cercle du poseur d'écran
-- Dévier la trajectoire (courbe Bezier ou détour à 1 point intermédiaire) qui contourne le poseur
-- À implémenter dans la boucle RAF de `CourtView.tsx` avant l'interpolation
+### Path-aware screen avoidance (FAIT)
+Implémenté via `curveAroundObstacle` (Bezier quadratique) appliqué pendant le playback et le scrubbing. Tous les défenseurs sauf le `screenerDef` contournent les poseurs d'écran (porteur + non-porteur). Le côté de contournement est choisi automatiquement (opposé à l'obstacle par rapport au segment direct).
 
-Idem pour le porteur qui dribble vers / passe à côté du poseur d'écran.
+Un filet de sécurité `pushOutOfMany` (plusieurs passes) pousse chaque défenseur hors de tous les autres joueurs (sauf son matchedTo) à la fin du calcul de chaque frame, pour éliminer les superpositions résiduelles.
+
+Évolutions possibles :
+- Étendre aux attaquants (notamment porteur qui contourne un écran avec son ballon)
+- Choisir le côté de contournement selon la règle d'écran active (over/under) plutôt que automatique
+- Multi-obstacles : le code actuel ne contourne qu'un seul poseur à la fois (le porteur en priorité). Si plusieurs écrans simultanés, prendre le plus proche du segment.
 
 ### Strong-side denial
 Symétrique du sag : un défenseur strong-side proche du ballon devrait jouer "denial" (sur la ligne de passe entre son homme et le ballon, pas entre son homme et le panier). Actuellement le manTarget place toujours le défenseur entre attaquant et HOOP, jamais en denial.
