@@ -53,9 +53,14 @@ export default function Page() {
   return (
     <main
       style={{
-        minHeight: '100vh',
+        height: '100vh',
+        maxHeight: '100vh',
+        overflow: 'hidden',
         background: 'linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%)',
-        padding: '12px 16px 24px',
+        padding: '10px 14px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
       }}
     >
       <header
@@ -63,12 +68,12 @@ export default function Page() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: 12,
           flexWrap: 'wrap',
           gap: 12,
+          flex: '0 0 auto',
         }}
       >
-        <h1 style={{ fontSize: 20, fontWeight: 600, color: '#0f172a', margin: 0 }}>
+        <h1 style={{ fontSize: 18, fontWeight: 600, color: '#0f172a', margin: 0, letterSpacing: '-0.01em' }}>
           🏀 Simulateur tactique basket
         </h1>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -101,7 +106,7 @@ export default function Page() {
           onSetPlaybackSpeed={setPlaybackSpeed}
         />
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0, minHeight: 0 }}>
           <CourtView
             state={app.state}
             onMoveAttacker={app.moveAttacker}
@@ -153,12 +158,14 @@ export default function Page() {
           display: grid;
           grid-template-columns: 280px 1fr 320px;
           gap: 12px;
-          align-items: start;
+          flex: 1;
+          min-height: 0;
         }
         @media (max-width: 1100px) {
           .layout-grid { grid-template-columns: 240px 1fr 280px; }
         }
         @media (max-width: 900px) {
+          main { height: auto !important; max-height: none !important; overflow: auto !important; }
           .layout-grid { grid-template-columns: 1fr; }
         }
       `}</style>
@@ -168,10 +175,13 @@ export default function Page() {
 
 const btnStyle: React.CSSProperties = {
   fontSize: 12,
-  padding: '6px 10px',
-  borderRadius: 6,
-  border: '1px solid #cbd5e1',
+  padding: '7px 12px',
+  borderRadius: 8,
+  border: '1px solid #e2e8f0',
   background: '#fff',
   cursor: 'pointer',
   color: '#334155',
+  fontWeight: 500,
+  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+  transition: 'border-color 120ms, background 120ms',
 };

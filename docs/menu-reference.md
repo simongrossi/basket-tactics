@@ -1,0 +1,176 @@
+# Référence des menus
+
+Documentation exhaustive de chaque réglage disponible dans l'interface.
+
+## Header global
+
+Affiché en haut de la page, regroupe les actions transverses.
+
+| Bouton | Action |
+|--------|--------|
+| 📄 **playbook PDF** | Ouvre la vue playbook (overlay) pour exporter en PDF |
+| **exporter JSON** | Télécharge l'état actuel en `.json` |
+| **importer JSON** | Charge un fichier `.json` (merge avec defaults) |
+| **reset complet** | Réinitialise tout, vide le localStorage |
+
+## Panneau attaque (gauche, orange)
+
+### Outils
+
+Sélection de l'outil actif pour interagir avec le terrain.
+
+| Outil | Comportement |
+|-------|--------------|
+| **déplacer** | Drag-and-drop pour repositionner les joueurs |
+| **passe** | Dessine une flèche pointillée orange ; change le porteur |
+| **dribble** | Dessine une flèche en zig-zag orange |
+| **course** | Dessine une flèche pleine grise (cut) |
+| **écran** | Dessine un trait + barre en T (manuel, indépendant de la détection) |
+
+### Bibliothèque systèmes
+
+Templates de systèmes offensifs chargeables en un clic.
+
+| Système | Contenu |
+|---------|---------|
+| **PNR central** | Pick & roll au centre, 4 étapes (setup, écran, utilisation, roll) |
+| **Horns flare** | Alignement Horns + flare screen côté faible, 4 étapes |
+| **Pindown coin** | Pindown pour O2 dans le coin, 4 étapes |
+
+Charger un système écrase les étapes en cours (avec confirmation si présence de travail).
+
+### Étapes
+
+Liste des étapes du système courant. L'étape active est éditable :
+- **#N** : numéro
+- **input texte** : label libre éditable ("dribble drive", "skip pass"…)
+- **switch** : indicateur si un switch a été enregistré
+- **porteur** : sélecteur du porteur de balle (O1–O5)
+- **N annot.** : nombre d'annotations dessinées
+
+Boutons :
+- **+ étape** : ajoute une étape héritant des positions de l'étape active
+- **dup.** : duplique l'étape active
+- **suppr.** : supprime l'étape active (si plus d'une)
+
+### Lecture
+
+| Bouton | Action |
+|--------|--------|
+| ▶ **play / ⏸ pause** | Démarre/met en pause la lecture animée |
+| ■ **stop** | Stoppe et revient à l'étape 0 |
+| **vitesse** | Multiplicateur 0.3× → 2× (slider) |
+
+## Timeline
+
+Sous le terrain. Permet de naviguer dans les étapes.
+
+- **Track** : barre horizontale, portion remplie en orange (édition) / bleue (lecture)
+- **Marqueurs** : un cercle par étape, cliquable pour activer
+- **Playhead** : draggable, scrubbing fluide entre étapes au drag
+- **Snap** : au relâchement, l'étape entière la plus proche est activée
+- **Texte** : "Étape N / total — label" + "porteur : Ox"
+
+## Panneau défense (droit, bleu)
+
+### Système
+
+Choix entre **homme** et **zone**. Bascule masque/affiche les sections suivantes.
+
+### Configuration zone (visible si système = zone)
+
+| Réglage | Valeurs | Effet |
+|---------|---------|-------|
+| **type** | 2-3, 1-3-1, 3-2, match-up | Layout de la zone |
+| **pression bal.** | 0–100 | Attraction des défenseurs vers le ballon |
+| **vit. rotation** | 40–200 | Vitesse max des rotations en zone |
+| **trap en coin** | bool | Active le piège sur les attaques de coin (placeholder) |
+| **extension 3pts** | bool | Étend la couverture au-delà de la ligne (placeholder) |
+
+### Paramètres globaux (visible si système = homme)
+
+| Réglage | Valeurs | Effet |
+|---------|---------|-------|
+| **distance** | 20–80 | Distance par défaut défenseur ↔ son homme |
+| **vit. max** | 40–200 | Distance max parcourue par étape — au-delà : `late` |
+
+#### Triggers d'aide
+
+Conditions qui activent l'aide automatique :
+
+| Trigger | Condition |
+|---------|-----------|
+| **aide sur drive** | Porteur s'approche du panier (delta > 25px / 250px du panier) |
+| **aide sur post-up** | Porteur en poste bas, stationnaire |
+| **aide si porteur dans raquette** | Porteur dans la peinture |
+
+Indépendant des triggers : un sag baseline weak-side est toujours actif sur les défenseurs avec `helpPct > 0` côté faible.
+
+### Écran porteur (visible si système = homme)
+
+| Réglage | Valeurs | Effet |
+|---------|---------|-------|
+| **consigne** | over/under/switch/hedge/drop/blitz | Réponse défensive aux écrans porteur |
+| **détection** | 20–60 | Rayon de détection de l'écran (px) |
+| **profondeur** | shallow/medium/deep | Visible si consigne = drop, profondeur du repli |
+| **annuler les switches actifs** | — | Vide tous les `Step.switches` |
+
+### Écran non-porteur (visible si système = homme)
+
+| Réglage | Valeurs | Effet |
+|---------|---------|-------|
+| **consigne** | over/under/switch/bump | Réponse défensive aux écrans hors-ballon |
+
+### Règles individuelles (visible si système = homme)
+
+Tableau 5 lignes (D1–D5) × 5 colonnes :
+
+| Colonne | Valeurs | Description |
+|---------|---------|-------------|
+| **D#** | — | Identifiant du défenseur |
+| **aide** | 0–100 | Intensité d'aide en % |
+| **prio.** | raquette / homme / passe | Cible préférée quand on aide |
+| **vs porteur** | coller / bumper / contester / reculer / topside / baseline | Comportement quand on défend le porteur |
+| **hors-bal.** | sag / derrière / 3/4 deny / devant | Stance quand on défend hors-ballon |
+
+Astuce : **clic-droit** sur un défenseur sur le terrain ouvre un menu compact avec les mêmes réglages.
+
+### Visualisation
+
+| Toggle | Effet |
+|--------|-------|
+| **lignes d'aide** | Affiche les lignes pointillées violettes entre la position d'aide et la position de marquage homme |
+| **matchups (traits)** | Trait gris entre chaque défenseur et son attaquant (orange si switch) |
+| **terrain complet** | Étend le terrain à 1080 de hauteur avec second panier mirroitée (visuel uniquement, pas de logique miroir) |
+
+## Menu contextuel (clic-droit défenseur)
+
+Menu compact qui apparaît au clic-droit. Quatre réglages :
+
+- **aide %** : slider 0–100 + valeur
+- **priorité** : raquette / homme / passe
+- **vs porteur** : 6 valeurs (cf. tableau)
+- **hors-ballon** : 4 stances
+
+Se ferme au clic en dehors. Comportement : si la cible DOM est un attaquant (cas d'un poseur d'écran rendu au-dessus dans la pile SVG), fallback automatique sur la recherche du défenseur le plus proche du point cliqué.
+
+## Vue playbook (overlay)
+
+Ouverte par le bouton "📄 playbook PDF" du header.
+
+| Réglage | Effet |
+|---------|-------|
+| **titre** | Titre du document (input éditable) |
+| **colonnes** | 1 / 2 / 3 vignettes par ligne |
+| **défense** | Affiche ou masque les défenseurs dans les vignettes |
+| **légende** | Affiche en pied de page la légende des conventions de tracé |
+| **🖨 imprimer / PDF** | Lance `window.print()` du navigateur |
+| **fermer** | Ferme l'overlay |
+
+Le CSS `@media print` masque tout sauf le contenu playbook pour l'export.
+
+## Persistance automatique
+
+Tous les réglages sont sauvegardés en localStorage (clé `basket-tactics-state-v1`) avec un debounce de 400ms après chaque modification. Au prochain reload, tout est restauré.
+
+Le bouton **reset complet** vide aussi le localStorage.

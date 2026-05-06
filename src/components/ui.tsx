@@ -36,34 +36,44 @@ interface PanelProps {
 
 export function Panel({ theme, title, children }: PanelProps) {
   const c = COLORS[theme];
+  const accent = 'accent' in c ? c.accent : '#94a3b8';
   return (
     <aside
       style={{
-        background: c.bg,
+        background: '#fff',
         border: `1px solid ${c.border}`,
-        borderRadius: 10,
+        borderRadius: 12,
         padding: 12,
         display: 'flex',
         flexDirection: 'column',
         gap: 10,
         minHeight: 0,
         overflow: 'hidden',
+        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04)',
       }}
     >
       <div
         style={{
-          fontSize: 12,
-          fontWeight: 700,
-          letterSpacing: '0.6px',
-          textTransform: 'uppercase',
-          color: 'accentText' in c ? c.accentText : c.text,
-          paddingBottom: 6,
-          borderBottom: `2px solid ${c.border}`,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          paddingBottom: 8,
+          borderBottom: `1px solid ${c.border}`,
         }}
       >
-        {title}
+        <div style={{ width: 4, height: 18, background: accent, borderRadius: 2 }} />
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            letterSpacing: '-0.01em',
+            color: 'accentText' in c ? c.accentText : c.text,
+          }}
+        >
+          {title}
+        </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, overflow: 'auto', minHeight: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, overflow: 'auto', minHeight: 0 }}>
         {children}
       </div>
     </aside>
@@ -80,15 +90,18 @@ interface SectionProps {
 export function Section({ theme, label, open, children }: SectionProps) {
   const c = COLORS[theme];
   return (
-    <details open={open} style={{ borderTop: `1px solid ${c.border}`, paddingTop: 6 }}>
+    <details open={open} style={{ borderTop: `1px solid ${c.border}`, paddingTop: 8 }}>
       <summary
         style={{
           fontSize: 11,
           fontWeight: 600,
           cursor: 'pointer',
           color: 'accentText' in c ? c.accentText : c.text,
-          textTransform: 'uppercase',
-          letterSpacing: '0.4px',
+          letterSpacing: '0.02em',
+          listStyle: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
         }}
       >
         {label}

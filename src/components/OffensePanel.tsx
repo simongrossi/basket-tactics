@@ -65,8 +65,8 @@ export function OffensePanel(props: OffensePanelProps) {
         </div>
       </Section>
 
-      <Section theme="offense" label="Templates">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <Section theme="offense" label="Bibliothèque systèmes">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {TEMPLATES.map((t) => (
             <button
               key={t.id}
@@ -79,16 +79,49 @@ export function OffensePanel(props: OffensePanelProps) {
               title={t.description}
               style={{
                 textAlign: 'left',
-                padding: '6px 8px',
+                padding: '8px 10px',
                 fontSize: 11,
-                borderRadius: 5,
+                borderRadius: 8,
                 border: `1px solid ${c.border}`,
                 background: '#fff',
                 cursor: 'pointer',
+                display: 'flex',
+                gap: 8,
+                alignItems: 'flex-start',
+                transition: 'border-color 120ms, background 120ms, transform 120ms',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = c.accent;
+                e.currentTarget.style.background = c.bg;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = c.border;
+                e.currentTarget.style.background = '#fff';
               }}
             >
-              <div style={{ fontWeight: 500, color: c.accentText }}>{t.name}</div>
-              <div style={{ fontSize: 10, color: '#78716c', marginTop: 2 }}>{t.description}</div>
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  flex: '0 0 28px',
+                  borderRadius: 6,
+                  background: c.accent,
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 11,
+                  fontWeight: 700,
+                }}
+              >
+                {t.steps.length}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, color: c.accentText, fontSize: 12 }}>{t.name}</div>
+                <div style={{ fontSize: 10, color: '#78716c', marginTop: 2, lineHeight: 1.35 }}>
+                  {t.description}
+                </div>
+              </div>
             </button>
           ))}
         </div>

@@ -311,11 +311,25 @@ export function CourtView(props: CourtViewProps) {
   };
 
   return (
-    <div style={{ position: 'relative', background: '#f5f5f4', borderRadius: 12, padding: 6 }}>
+    <div
+      style={{
+        position: 'relative',
+        background: '#f5f5f4',
+        borderRadius: 12,
+        padding: 6,
+        flex: 1,
+        minHeight: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 2px 12px rgba(15, 23, 42, 0.06)',
+      }}
+    >
       <svg
         ref={svgRef}
         viewBox={`0 0 ${COURT.width} ${state.fullCourt ? FULL_COURT_HEIGHT : COURT.height}`}
-        style={{ width: '100%', height: 'auto', display: 'block', touchAction: 'none', userSelect: 'none' }}
+        preserveAspectRatio="xMidYMid meet"
+        style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', display: 'block', touchAction: 'none', userSelect: 'none' }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
