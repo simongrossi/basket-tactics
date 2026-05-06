@@ -33,6 +33,37 @@ export function computeHelpTarget(
         helpFactor: sagFactor,
       };
     }
+
+    // Strong-side denial automatique : un défenseur strong-side proche du
+    // ballon glisse vers la ligne de passe (entre son homme et le porteur).
+    // Dissuade la passe d'entrée. Conditions : pas de trigger actif (sinon
+    // c'est l'aide qui prime), même côté que le ballon, à <250px du ballon
+    // (≈ "à une passe"), et priority ≠ paint (les protecteurs gardent la
+    // raquette quoi qu'il arrive).
+    if (
+      rule.priority !== 'paint' &&
+      ballSide !== 0 &&
+      myAttSide !== 0 &&
+      myAttSide === ballSide
+    ) {
+      const distAttBall = distance(attPos, carrierPos);
+      if (distAttBall < 250) {
+        const denyAim = {
+          x: attPos.x + (carrierPos.x - attPos.x) * 0.35,
+          y: attPos.y + (carrierPos.y - attPos.y) * 0.35,
+        };
+        const proximity = 1 - distAttBall / 250; // 1 (collé) → 0 (à la limite)
+        const denyFactor = 0.45 * proximity;
+        return {
+          target: {
+            x: manPos.x + (denyAim.x - manPos.x) * denyFactor,
+            y: manPos.y + (denyAim.y - manPos.y) * denyFactor,
+          },
+          helpFactor: denyFactor,
+        };
+      }
+    }
+
     return { target: manPos, helpFactor: 0 };
   }
 

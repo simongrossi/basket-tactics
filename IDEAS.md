@@ -79,25 +79,37 @@ Ajoutés à la bibliothèque : Spain PNR (PNR + back-screen sur D5), UCLA cut (p
 
 Encore à ajouter : Iverson cut, Hammer action, PNR aile / step-up / step-back, Princeton chin, Pistol, Stagger.
 
-### Tests unitaires logique pure
-Vitest sur :
-- `engine.computeDefenseTargets` : matrice d'inputs canoniques
-- `screens.detectScreen` / `detectOffBallScreens` : cas limites (carrier coincé, screener loin)
-- `zoneDefense.pointInPolygon` / `mapAttackersToZones`
-- `geometry` : trivial mais utile en sécurité
-- `triggers.detectTriggers` : drive movement, post-up stationnaire
+### Tests unitaires logique pure (FAIT v1 — 33 tests)
+Vitest installé, 33 tests passants couvrant les 3 modules critiques :
+- `engine.computeDefenseTargets` + `getMatchupsAt` + `effectiveDefensePositions` (man + zone, lateness, overrides)
+- `screens.detectScreen` / `detectOffBallScreens` / `applyScreenAdjustment` / `applySwitch`
+- `metrics.computeMetrics` (paint coverage, mostFreeAttacker, lateCount, classification passes)
 
-~30 tests pour les chemins critiques, ça stabilise les futurs refactors.
+Doc : [docs/testing.md](docs/testing.md). Lancer : `npm test`.
 
-### Undo / Redo + raccourcis clavier
+À ajouter plus tard : `triggers.detectTriggers`, `zoneDefense.pointInPolygon` + `mapAttackersToZones`, `help.computeHelpTarget`, `geometry`.
+
+### Menu contextuel attaquant (FAIT)
+Clic-droit sur un attaquant ouvre un menu avec :
+- **marquer comme porteur** — équivalent rapide du sélecteur "porteur" du panneau gauche
+- **forcer comme poseur d'écran** — pose `Step.forcedScreener`, l'engine.detectScreen utilise cet attaquant directement (skip des checks de proximité). Cadenas violet sur le joueur. Bouton "↻ libérer" pour annuler.
+- **effacer ses annotations** — supprime toutes les annotations dont `fromId === oId` sur l'étape active
+
+Implémentation : variant `kind: 'attacker'` dans `ContextMenu.tsx`, fallback "joueur le plus proche du clic" dans `CourtView.onContextMenu` étendu aux attaquants. Tests : `screens.test.ts § detectScreen — forcedScreener` (3 cas).
+
+### Raccourcis clavier (FAIT)
+Implémenté dans `hooks/useKeyboardShortcuts.ts` :
+- Espace : play/pause
+- ←/→ : étape précédente/suivante
+- M / P / D / R / E : outils (move / pass / dribble / cut / écran)
+- Suppr ou Backspace : supprime la dernière annotation de l'étape active
+
+Skip auto si focus dans input/textarea/select/contenteditable, ou si Ctrl/Cmd/Alt enfoncé. Doc : [docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md).
+
+### Undo / Redo
 - Stack des AppState (max 50)
 - Ctrl+Z / Ctrl+Y → restaurer l'état
 - À séparer du state principal (un useReducer dédié)
-- Raccourcis :
-  - Espace : play/pause
-  - ←/→ : étape précédente/suivante
-  - M / P / D / R / E : outils
-  - Suppr : supprimer la dernière annotation
 
 ---
 
@@ -123,11 +135,15 @@ Un filet de sécurité `pushOutOfMany` (plusieurs passes) pousse chaque défense
 - Choisir le côté de contournement selon la règle d'écran active (over/under) plutôt que automatique
 - Multi-obstacles : le code actuel ne contourne qu'un seul poseur à la fois (le porteur en priorité). Si plusieurs écrans simultanés, prendre le plus proche du segment.
 
-### Strong-side denial
-Symétrique du sag : un défenseur strong-side proche du ballon devrait jouer "denial" (sur la ligne de passe entre son homme et le ballon, pas entre son homme et le panier). Actuellement le manTarget place toujours le défenseur entre attaquant et HOOP, jamais en denial.
+### Strong-side denial (FAIT v1)
+Implémenté dans `help.computeHelpTarget`. Conditions : pas de trigger, strong-side, attaquant à <250px du ballon, `priority !== 'paint'`. Pull vers `denyAim = att + 0.35 * (carrier - att)` avec `denyFactor` jusqu'à 0.45 modulé par la proximité du ballon. Tests dans `help.test.ts § strong-side denial` (6 cas dont régression sag weak-side). Doc : `docs/logique-defensive.md § Strong-side denial automatique`.
 
-### Closeout dynamique
-Quand le ballon arrive sur un attaquant (passe entrante), son défenseur devrait faire un closeout (rapprochement rapide les deux dernières yards). Actuellement la transition est linéaire.
+À ajouter v2 : ring visuel dédié (différencier denial / help), tunable global ou par règle.
+
+### Closeout dynamique (FAIT v1)
+Implémenté dans `engine.effectiveDefensePositions` : quand `ballCarrier` change entre étape N-1 et N, le défenseur du nouveau porteur reçoit `defenseMaxSpeed × CLOSEOUT_SPEED_FACTOR` (1.4) sur la transition. Flag `closingOut: true` propagé dans `ComputedDefender`. Anneau orange autour du joueur dans `Player`. Tests dans `engine.test.ts § effectiveDefensePositions — closeout dynamique` (5 cas). Doc : `docs/logique-defensive.md`.
+
+À ajouter v2 : modélisation de l'over-closeout (drive subi quand le défenseur arrive trop fort). Nécessite un trigger drive consolidé.
 
 ### Stunt and recover
 Variante du hedge mais hors-ballon : tape vers le ballon puis recovery. Pas modélisé.

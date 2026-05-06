@@ -34,6 +34,9 @@ interface CourtViewProps {
   onAddAnnotation: (a: Annotation) => void;
   onUpdateRule: (dId: DefenderId, patch: Partial<AppState['rules'][DefenderId]>) => void;
   onClearDefenseOverride: (dId: DefenderId) => void;
+  onSetBallCarrier: (oId: AttackerId) => void;
+  onSetForcedScreener: (oId: AttackerId | null) => void;
+  onClearAnnotationsFor: (oId: AttackerId) => void;
   onSetTool: (t: Tool) => void;
   isPlaying: boolean;
   playbackSpeed: number;
@@ -64,7 +67,10 @@ export function CourtView(props: CourtViewProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<{ id: PlayerId; isDef: boolean } | null>(null);
   const [pending, setPending] = useState<PendingAnnotation | null>(null);
-  const [ctxMenu, setCtxMenu] = useState<{ dId: DefenderId; x: number; y: number } | null>(null);
+  type CtxMenuState =
+    | { kind: 'defender'; dId: DefenderId; x: number; y: number }
+    | { kind: 'attacker'; oId: AttackerId; x: number; y: number };
+  const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null);
   const [playFrame, setPlayFrame] = useState<PlaybackFrame | null>(null);
 
   // Playback animation
@@ -131,7 +137,8 @@ export function CourtView(props: CourtViewProps) {
             y: defA[id].y + (defB[id].y - defA[id].y) * localT,
           };
         });
-        screen = detectScreen(off, carrier, matchups, defPosLinear, cur.screenRadius);
+        const forced = (localT < 0.5 ? a : b).forcedScreener;
+        screen = detectScreen(off, carrier, matchups, defPosLinear, cur.screenRadius, forced);
         offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosLinear, cur.screenRadius);
       }
 
@@ -185,6 +192,7 @@ export function CourtView(props: CourtViewProps) {
           matchedTo: defB[id].matchedTo,
           onScreen: defB[id].onScreen,
           switchedThisStep: defB[id].switchedThisStep,
+          closingOut: defB[id].closingOut,
         };
       });
 
@@ -214,7 +222,7 @@ export function CourtView(props: CourtViewProps) {
     if (state.defenseSystem === 'man') {
       const matchups = getMatchupsAt(state.steps, state.activeStep - 1);
       const defPosExtracted = extractDefPositions(defPos);
-      screen = detectScreen(cur.off, cur.ballCarrier, matchups, defPosExtracted, state.screenRadius);
+      screen = detectScreen(cur.off, cur.ballCarrier, matchups, defPosExtracted, state.screenRadius, cur.forcedScreener);
       offBallScreens = detectOffBallScreens(cur.off, cur.ballCarrier, matchups, defPosExtracted, state.screenRadius);
     }
     return { off: cur.off, defPos, carrier: cur.ballCarrier, screen, offBallScreens, stepIdx: state.activeStep };
@@ -252,7 +260,8 @@ export function CourtView(props: CourtViewProps) {
           y: defA[id].y + (defB[id].y - defA[id].y) * localT,
         };
       });
-      screen = detectScreen(off, carrier, matchups, defPosLinear, state.screenRadius);
+      const forced = (localT < 0.5 ? a : b).forcedScreener;
+      screen = detectScreen(off, carrier, matchups, defPosLinear, state.screenRadius, forced);
       offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosLinear, state.screenRadius);
     }
     // Obstacles stables (midpoint A-B) pour la durée du segment.
@@ -300,6 +309,7 @@ export function CourtView(props: CourtViewProps) {
         matchedTo: defB[id].matchedTo,
         onScreen: defB[id].onScreen,
         switchedThisStep: defB[id].switchedThisStep,
+        closingOut: defB[id].closingOut,
       };
     });
 
@@ -408,15 +418,19 @@ export function CourtView(props: CourtViewProps) {
   };
 
   const onContextMenu = (e: React.MouseEvent) => {
-    // Cherche d'abord via le DOM ; si la cible n'est pas un défenseur (ex.
-    // un poseur d'écran rendu au-dessus), on retombe sur la recherche
-    // du défenseur le plus proche du point cliqué.
-    let dId: DefenderId | null = null;
     const target = (e.target as Element).closest('g[data-id]');
     const domId = target?.getAttribute('data-id');
-    if (domId && domId.startsWith('D')) {
+
+    let dId: DefenderId | null = null;
+    let oId: AttackerId | null = null;
+
+    if (domId?.startsWith('D')) {
       dId = domId as DefenderId;
+    } else if (domId?.startsWith('O')) {
+      oId = domId as AttackerId;
     } else {
+      // Fallback : cherche le joueur le plus proche du point cliqué (couvre
+      // le cas où un poseur d'écran est rendu au-dessus, masquant le data-id).
       const pt = svgPoint(e as unknown as React.PointerEvent);
       let bestDist = Infinity;
       (Object.entries(frame.defPos) as [DefenderId, ComputedDefense[DefenderId]][]).forEach(
@@ -425,19 +439,32 @@ export function CourtView(props: CourtViewProps) {
           if (d < PLAYER_RADIUS + 6 && d < bestDist) {
             bestDist = d;
             dId = id;
+            oId = null;
           }
         }
       );
+      (Object.entries(frame.off) as [AttackerId, Point][]).forEach(([id, p]) => {
+        const d = distance(pt, p);
+        if (d < PLAYER_RADIUS + 6 && d < bestDist) {
+          bestDist = d;
+          oId = id;
+          dId = null;
+        }
+      });
     }
-    if (!dId) return;
+    if (!dId && !oId) return;
     e.preventDefault();
     const wrap = svgRef.current?.parentElement?.getBoundingClientRect();
     if (!wrap) return;
-    setCtxMenu({ dId, x: e.clientX - wrap.left, y: e.clientY - wrap.top });
+    const x = e.clientX - wrap.left;
+    const y = e.clientY - wrap.top;
+    if (dId) setCtxMenu({ kind: 'defender', dId, x, y });
+    else if (oId) setCtxMenu({ kind: 'attacker', oId, x, y });
   };
 
   return (
     <div
+      onContextMenu={onContextMenu}
       style={{
         position: 'relative',
         background: '#f5f5f4',
@@ -460,7 +487,6 @@ export function CourtView(props: CourtViewProps) {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onContextMenu={onContextMenu}
       >
         <ArrowMarkers />
         <CourtBackground fullCourt={state.fullCourt} />
@@ -483,12 +509,19 @@ export function CourtView(props: CourtViewProps) {
             const screenerIds = new Set<AttackerId>();
             if (frame.screen?.screener) screenerIds.add(frame.screen.screener);
             frame.offBallScreens.forEach((s) => screenerIds.add(s.screener));
+            const forcedScreenerId = state.steps[state.activeStep]?.forcedScreener;
             return (
               <>
                 {(Object.entries(frame.off) as [AttackerId, Point][])
                   .filter(([id]) => !screenerIds.has(id))
                   .map(([id, pos]) => (
-                    <Player key={id} id={id} pos={pos} isAttacker />
+                    <Player
+                      key={id}
+                      id={id}
+                      pos={pos}
+                      isAttacker
+                      isForcedScreener={id === forcedScreenerId}
+                    />
                   ))}
                 {(Object.entries(frame.defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(
                   ([id, p]) => (
@@ -503,12 +536,19 @@ export function CourtView(props: CourtViewProps) {
                       helpFactor={p.helpFactor}
                       facing={frame.off[p.matchedTo]}
                       isOverridden={!!state.steps[state.activeStep]?.defenseOverrides?.[id]}
+                      closingOut={p.closingOut}
                     />
                   )
                 )}
                 {Array.from(screenerIds).map((id) =>
                   frame.off[id] ? (
-                    <Player key={`screener-${id}`} id={id} pos={frame.off[id]} isAttacker />
+                    <Player
+                      key={`screener-${id}`}
+                      id={id}
+                      pos={frame.off[id]}
+                      isAttacker
+                      isForcedScreener={id === forcedScreenerId}
+                    />
                   ) : null
                 )}
               </>
@@ -564,8 +604,9 @@ export function CourtView(props: CourtViewProps) {
           </span>
         </div>
       )}
-      {ctxMenu && (
+      {ctxMenu?.kind === 'defender' && (
         <ContextMenu
+          kind="defender"
           dId={ctxMenu.dId}
           x={ctxMenu.x}
           y={ctxMenu.y}
@@ -576,6 +617,26 @@ export function CourtView(props: CourtViewProps) {
           onClose={() => setCtxMenu(null)}
         />
       )}
+      {ctxMenu?.kind === 'attacker' && (() => {
+        const oId = ctxMenu.oId;
+        const cur = state.steps[state.activeStep];
+        return (
+          <ContextMenu
+            kind="attacker"
+            oId={oId}
+            x={ctxMenu.x}
+            y={ctxMenu.y}
+            isCarrier={cur?.ballCarrier === oId}
+            isForcedScreener={cur?.forcedScreener === oId}
+            hasAnnotations={(cur?.annotations ?? []).some((a) => a.fromId === oId)}
+            onMakeCarrier={() => props.onSetBallCarrier(oId)}
+            onForceScreener={() => props.onSetForcedScreener(oId)}
+            onClearForcedScreener={() => props.onSetForcedScreener(null)}
+            onClearAnnotations={() => props.onClearAnnotationsFor(oId)}
+            onClose={() => setCtxMenu(null)}
+          />
+        );
+      })()}
     </div>
   );
 }

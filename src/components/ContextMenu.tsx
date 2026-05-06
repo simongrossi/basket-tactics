@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { DefenderId, DefenderRule } from '@/lib/types';
+import type { AttackerId, DefenderId, DefenderRule } from '@/lib/types';
 
-interface ContextMenuProps {
+interface DefenderMenuProps {
+  kind: 'defender';
   dId: DefenderId;
   x: number;
   y: number;
@@ -14,7 +15,29 @@ interface ContextMenuProps {
   onClose: () => void;
 }
 
-export function ContextMenu({ dId, x, y, rule, hasOverride, onUpdate, onClearOverride, onClose }: ContextMenuProps) {
+interface AttackerMenuProps {
+  kind: 'attacker';
+  oId: AttackerId;
+  x: number;
+  y: number;
+  isCarrier: boolean;
+  isForcedScreener: boolean;
+  hasAnnotations: boolean;
+  onMakeCarrier: () => void;
+  onForceScreener: () => void;
+  onClearForcedScreener: () => void;
+  onClearAnnotations: () => void;
+  onClose: () => void;
+}
+
+type ContextMenuProps = DefenderMenuProps | AttackerMenuProps;
+
+export function ContextMenu(props: ContextMenuProps) {
+  if (props.kind === 'attacker') return <AttackerMenu {...props} />;
+  return <DefenderMenu {...props} />;
+}
+
+function DefenderMenu({ dId, x, y, rule, hasOverride, onUpdate, onClearOverride, onClose }: DefenderMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -156,6 +179,103 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
       <span style={{ fontSize: 12, color: '#666', width: 88 }}>{label}</span>
       {children}
+    </div>
+  );
+}
+
+function AttackerMenu({
+  oId, x, y, isCarrier, isForcedScreener, hasAnnotations,
+  onMakeCarrier, onForceScreener, onClearForcedScreener, onClearAnnotations, onClose,
+}: AttackerMenuProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  const Item = ({
+    label, onClick, disabled,
+  }: { label: string; onClick: () => void; disabled?: boolean }) => (
+    <button
+      onClick={() => { if (!disabled) { onClick(); onClose(); } }}
+      disabled={disabled}
+      style={{
+        display: 'block',
+        width: '100%',
+        textAlign: 'left',
+        fontSize: 12,
+        padding: '6px 8px',
+        borderRadius: 4,
+        border: '1px solid #e7e5e4',
+        background: disabled ? '#f8f8f7' : '#fff',
+        color: disabled ? '#a8a29e' : '#1c1917',
+        cursor: disabled ? 'default' : 'pointer',
+      }}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        position: 'absolute',
+        left: x,
+        top: y,
+        background: '#fff',
+        border: '1px solid #ddd',
+        borderRadius: 8,
+        padding: 10,
+        minWidth: 220,
+        zIndex: 1000,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      }}
+    >
+      <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8, color: '#9A3412' }}>
+        ⚪ {oId}
+        <span
+          onClick={onClose}
+          style={{ float: 'right', cursor: 'pointer', color: '#999', fontSize: 14 }}
+        >
+          ×
+        </span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <Item
+          label={isCarrier ? '✓ porteur (étape active)' : 'marquer comme porteur'}
+          onClick={onMakeCarrier}
+          disabled={isCarrier}
+        />
+        {isForcedScreener ? (
+          <Item label="↻ libérer (ne plus forcer)" onClick={onClearForcedScreener} />
+        ) : (
+          <Item label="forcer comme poseur d'écran" onClick={onForceScreener} />
+        )}
+        <Item
+          label="effacer ses annotations"
+          onClick={onClearAnnotations}
+          disabled={!hasAnnotations}
+        />
+      </div>
+      {isForcedScreener && (
+        <div
+          style={{
+            marginTop: 8,
+            padding: '4px 6px',
+            fontSize: 11,
+            color: '#5b21b6',
+            background: '#ede9fe',
+            borderRadius: 4,
+          }}
+        >
+          Forcé comme poseur sur cette étape — l'auto-detection de proximité est désactivée.
+        </div>
+      )}
     </div>
   );
 }

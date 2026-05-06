@@ -38,11 +38,22 @@ function loadFromStorage(): AppState | null {
 }
 
 export function useAppState() {
-  const [state, setState] = useState<AppState>(() => loadFromStorage() ?? makeInitialState());
+  // Premier render identique côté SSR et client : on part toujours de l'état
+  // par défaut. localStorage est lu dans un effect post-montage uniquement
+  // (sinon hydration mismatch).
+  const [state, setState] = useState<AppState>(() => makeInitialState());
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    const persisted = loadFromStorage();
+    if (persisted) setState(persisted);
+    setHydrated(true);
+  }, []);
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (!hydrated) return; // skip avant hydration : éviterait d'écraser le persisté
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       try {
@@ -54,7 +65,7 @@ export function useAppState() {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [state]);
+  }, [state, hydrated]);
 
   const setActiveStep = useCallback((idx: number) => {
     setState((s) => ({ ...s, activeStep: Math.max(0, Math.min(s.steps.length - 1, idx)) }));
@@ -138,6 +149,37 @@ export function useAppState() {
         cur.ballCarrier = annotation.toId;
       }
       steps[s.activeStep] = cur;
+      return { ...s, steps };
+    });
+  }, []);
+
+  const setForcedScreener = useCallback((oId: AttackerId | null) => {
+    setState((s) => {
+      const steps = [...s.steps];
+      const cur = { ...steps[s.activeStep] };
+      if (oId == null) delete cur.forcedScreener;
+      else cur.forcedScreener = oId;
+      steps[s.activeStep] = cur;
+      return { ...s, steps };
+    });
+  }, []);
+
+  const clearAnnotationsFor = useCallback((oId: AttackerId) => {
+    setState((s) => {
+      const steps = [...s.steps];
+      const cur = { ...steps[s.activeStep] };
+      cur.annotations = cur.annotations.filter((a) => a.fromId !== oId);
+      steps[s.activeStep] = cur;
+      return { ...s, steps };
+    });
+  }, []);
+
+  const deleteLastAnnotation = useCallback(() => {
+    setState((s) => {
+      const cur = s.steps[s.activeStep];
+      if (!cur || cur.annotations.length === 0) return s;
+      const steps = [...s.steps];
+      steps[s.activeStep] = { ...cur, annotations: cur.annotations.slice(0, -1) };
       return { ...s, steps };
     });
   }, []);
@@ -305,6 +347,9 @@ export function useAppState() {
     moveAttacker,
     moveDefender,
     addAnnotation,
+    deleteLastAnnotation,
+    setForcedScreener,
+    clearAnnotationsFor,
     setTool,
     updateRule,
     setScreenRule,

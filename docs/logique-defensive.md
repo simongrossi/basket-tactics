@@ -47,9 +47,37 @@ effectiveDefensePositions(state, stepIdx)
   └── Pour chaque défenseur:
         ├── from = position au step précédent
         ├── d = distance(from, target)
+        ├── closingOut = (transition + ballCarrier a changé + man + isCarrierDefender)
+        ├── maxSpeed = closingOut ? base × 1.4 : base
         ├── if (d <= maxSpeed) défenseur arrive à la cible
         └── else défenseur en chemin, marqué late: true
 ```
+
+## Strong-side denial automatique
+
+Sans trigger actif, un défenseur **strong-side** (même côté du terrain que le ballon) reste par défaut à `manPos` — entre son homme et le panier. Or en basket réel, à une passe du ballon, on doit **denier la ligne de passe d'entrée**.
+
+`computeHelpTarget` glisse le défenseur vers la ligne porteur ↔ attaquant quand toutes les conditions sont remplies :
+- `triggers.any === false` (les triggers déclenchent l'aide, pas le denial)
+- `ballSide !== 0` et `myAttSide !== 0` et `myAttSide === ballSide` (vraiment strong-side)
+- `distance(att, carrier) < 250` (≈ "à une passe")
+- `rule.priority !== 'paint'` (les protecteurs de raquette gardent leur zone)
+
+La cible "denyAim" est sur le segment porteur ↔ attaquant à 35% du chemin depuis l'attaquant. L'intensité du pull (`denyFactor` jusqu'à 0.45) augmente avec la proximité du ballon : plus l'attaquant est près de la passe d'entrée, plus le denial est agressif.
+
+Pour un denial **manuel total** (fronting, 3/4 deny), l'utilisateur garde le contrôle via `DefenderRule.offBallStance` (`'fronting'` ou `'deny-3q'`), traités séparément en amont dans le moteur.
+
+## Closeout dynamique
+
+Quand le ballon change de mains entre l'étape N-1 et N, le défenseur du **nouveau** porteur reçoit un bump de vitesse `× CLOSEOUT_SPEED_FACTOR` (1.4) sur cette transition. Cela modélise l'urgence du closeout : sur une passe entrante, le défenseur sait que son homme va recevoir et accélère pour fermer la distance avant le tir/drive.
+
+Conditions cumulées pour qu'un closeout soit appliqué :
+- `stepIdx > 0` (pas au setup)
+- `state.defenseSystem === 'man'` (la zone a sa propre logique de rotation)
+- `steps[stepIdx-1].ballCarrier !== steps[stepIdx].ballCarrier`
+- `targets[dId].isCarrierDefender === true` (uniquement le défenseur du nouveau porteur)
+
+Le flag `closingOut: true` est exposé dans `ComputedDefender`, ce qui permet au composant `Player` d'afficher un anneau orange autour du défenseur concerné. Hors-scope v1 : modélisation de l'over-closeout (l'attaquant qui drive sur un défenseur arrivé trop vite) — sera attaqué quand on aura un trigger de drive consolidé sur l'étape.
 
 ## Récursion sur les étapes précédentes
 
@@ -65,6 +93,8 @@ Pourquoi récursif ? Parce que :
 ## Détection d'écran
 
 `detectScreen()` cherche le poseur d'écran le plus probable :
+
+> **Override utilisateur** : si `Step.forcedScreener` est posé (clic-droit sur un attaquant → "forcer comme poseur d'écran"), `detectScreen` saute toute la logique de proximité ci-dessous et utilise directement l'attaquant désigné comme poseur. Les checks `screenRadius` et `dToCarrier > 80` sont ignorés. Garde-fous restants : le forcedScreener doit exister dans `off`, doit être différent du porteur, et doit avoir un défenseur dans `matchups` — sinon retour à l'auto-detection ou `null`.
 
 ```
 pour chaque attaquant non-porteur p:

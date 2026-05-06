@@ -14,6 +14,8 @@ Cette documentation couvre tous les aspects du projet, de l'architecture à la s
 | [menu-reference.md](menu-reference.md) | Référence exhaustive de chaque réglage du panneau |
 | [bibliotheque-systemes.md](bibliotheque-systemes.md) | Templates fournis, format pour en ajouter |
 | [export-pdf.md](export-pdf.md) | Comment fonctionne l'export playbook |
+| [testing.md](testing.md) | Stack Vitest, couverture, conventions de tests |
+| [keyboard-shortcuts.md](keyboard-shortcuts.md) | Référence des raccourcis clavier |
 
 ## Pour reprendre le projet
 
@@ -24,4 +26,5 @@ Cette documentation couvre tous les aspects du projet, de l'architecture à la s
 
 ## État actuel
 
-Voir [../IDEAS.md](../IDEAS.md) pour le backlog priorisé et l'historique des features.
+- [../ROADMAP.md](../ROADMAP.md) — vision forward-looking, structurée en 3 sections (Logique / UX / Produit) avec statuts ⚪🟡🟢
+- [../IDEAS.md](../IDEAS.md) — backlog technique fin et historique des features livrées

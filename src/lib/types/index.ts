@@ -33,6 +33,9 @@ export interface Step {
   /** Positions imposées par l'utilisateur (drag manuel). Surchargent les
    *  positions calculées par le moteur pour cette étape. */
   defenseOverrides?: Partial<Record<DefenderId, Point>>;
+  /** Override de l'auto-detection d'écran porteur : l'utilisateur impose
+   *  cet attaquant comme poseur, peu importe sa position. */
+  forcedScreener?: AttackerId;
 }
 
 export type HelpPriority = 'paint' | 'man' | 'passlane';
@@ -128,6 +131,9 @@ export interface ComputedDefender {
   switchedThisStep: boolean;
   zoneId?: string;
   isRotating?: boolean;
+  /** Le défenseur est en closeout sur cette transition (le ballon vient
+   *  d'arriver sur son homme, il accélère pour fermer la distance). */
+  closingOut?: boolean;
 }
 
 export type ComputedDefense = Record<DefenderId, ComputedDefender>;

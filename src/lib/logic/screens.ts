@@ -52,7 +52,8 @@ export function detectScreen(
   ballCarrier: AttackerId,
   matchups: Matchups,
   defenderPositions: Record<DefenderId, Point>,
-  screenRadius: number
+  screenRadius: number,
+  forcedScreener?: AttackerId
 ): DetectedScreen | null {
   const carrier = off[ballCarrier];
   if (!carrier) return null;
@@ -62,6 +63,23 @@ export function detectScreen(
     if (o === ballCarrier) carrierDef = d;
   });
   if (!carrierDef) return null;
+
+  // Override utilisateur : l'attaquant désigné est le poseur, on saute
+  // les checks de proximité (l'utilisateur a tranché).
+  if (forcedScreener && forcedScreener !== ballCarrier && off[forcedScreener]) {
+    let screenerDef: DefenderId | null = null;
+    (Object.entries(matchups) as [DefenderId, AttackerId][]).forEach(([d, o]) => {
+      if (o === forcedScreener) screenerDef = d;
+    });
+    if (!screenerDef) return null;
+    return {
+      screener: forcedScreener,
+      screenerDef,
+      carrier: ballCarrier,
+      carrierDef,
+      screenerPos: off[forcedScreener],
+    };
+  }
 
   const cdPos = defenderPositions[carrierDef];
 

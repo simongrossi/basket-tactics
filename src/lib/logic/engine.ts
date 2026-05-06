@@ -26,6 +26,12 @@ import { PLAYER_RADIUS } from '../data/court';
 
 const DEFENDER_IDS: DefenderId[] = ['D1', 'D2', 'D3', 'D4', 'D5'];
 
+/** Facteur multiplicatif appliqué à `defenseMaxSpeed` pour le défenseur du
+ *  nouveau porteur quand le ballon vient d'arriver sur lui (passe entrante).
+ *  Modélise l'urgence du closeout : on accélère pour fermer la distance
+ *  avant que l'attaquant ne tire ou ne drive. */
+const CLOSEOUT_SPEED_FACTOR = 1.4;
+
 /**
  * Calcule les matchups en vigueur AU DÉBUT d'une étape donnée
  * en cumulant tous les switches survenus dans les étapes précédentes.
@@ -74,7 +80,7 @@ export function computeDefenseTargets(
       ? structuredClone(state.defenseInitial)
       : extractPositions(computeDefenseTargets(state, stepIdx - 1, false).positions);
 
-  const screen = detectScreen(off, ballCarrier, matchups, prevDefenderPositions, state.screenRadius);
+  const screen = detectScreen(off, ballCarrier, matchups, prevDefenderPositions, state.screenRadius, cur.forcedScreener);
 
   // Règle effective : on regarde l'override individuel du défenseur du porteur,
   // sinon on retombe sur la règle globale.
@@ -221,9 +227,16 @@ function extractPositions(
 export function effectiveDefensePositions(state: AppState, stepIdx: number): ComputedDefense {
   const { positions: targets } = computeDefenseTargets(state, stepIdx, true);
 
-  const maxSpeed = state.defenseSystem === 'zone'
+  const baseMaxSpeed = state.defenseSystem === 'zone'
     ? state.zoneConfig.rotationSpeed
     : state.defenseMaxSpeed;
+
+  // Détection closeout : transition (stepIdx > 0) où le ballon a changé de mains
+  // entre l'étape précédente et celle-ci, en défense individuelle uniquement.
+  const isCloseoutTransition =
+    stepIdx > 0 &&
+    state.defenseSystem === 'man' &&
+    state.steps[stepIdx - 1].ballCarrier !== state.steps[stepIdx].ballCarrier;
 
   let prevPositions: DefenderPositions;
   if (stepIdx === 0) {
@@ -263,11 +276,15 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     const to = targets[dId];
     const d = distance(from, to);
 
+    // Closeout : le défenseur du nouveau porteur bénéficie d'un bump de vitesse.
+    const closingOut = isCloseoutTransition && targets[dId].isCarrierDefender;
+    const maxSpeed = closingOut ? baseMaxSpeed * CLOSEOUT_SPEED_FACTOR : baseMaxSpeed;
+
     // À l'étape 0, on considère que les défenseurs SONT à leur position idéale
     // (le step 0 est un setup, pas une transition). La contrainte de vitesse
     // ne s'applique qu'entre les étapes suivantes.
     if (stepIdx === 0 || d <= maxSpeed) {
-      out[dId] = { ...to, late: false };
+      out[dId] = { ...to, late: false, closingOut: closingOut || undefined };
     } else {
       const r = maxSpeed / d;
       out[dId] = {
@@ -279,6 +296,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
         matchedTo: targets[dId].matchedTo,
         onScreen: targets[dId].onScreen,
         switchedThisStep: targets[dId].switchedThisStep,
+        closingOut: closingOut || undefined,
       };
     }
   });

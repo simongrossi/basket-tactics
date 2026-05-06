@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useMemo } from 'react';
 import { useAppState } from '@/hooks/useAppState';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { OffensePanel } from '@/components/OffensePanel';
 import { DefensePanel } from '@/components/DefensePanel';
 import { Timeline } from '@/components/Timeline';
@@ -27,6 +28,19 @@ export default function Page() {
     const defPos = effectiveDefensePositions(app.state, app.state.activeStep);
     return computeMetrics(step.off, defPos, step.ballCarrier);
   }, [app.state]);
+
+  const handlePlayToggle = useCallback(() => {
+    setIsPlaying((p) => !p);
+    setPlaybackT(null);
+  }, []);
+
+  useKeyboardShortcuts({
+    onPlayPause: handlePlayToggle,
+    onPrevStep: () => app.setActiveStep(app.state.activeStep - 1),
+    onNextStep: () => app.setActiveStep(app.state.activeStep + 1),
+    onSetTool: app.setTool,
+    onDeleteLastAnnotation: app.deleteLastAnnotation,
+  });
 
   const handleExport = useCallback(() => {
     const blob = new Blob([JSON.stringify(app.state, null, 2)], { type: 'application/json' });
@@ -105,10 +119,7 @@ export default function Page() {
           onSetStepLabel={app.setStepLabel}
           onSetBallCarrier={app.setBallCarrier}
           onLoadTemplate={app.loadTemplate}
-          onPlayToggle={() => {
-            setIsPlaying((p) => !p);
-            setPlaybackT(null);
-          }}
+          onPlayToggle={handlePlayToggle}
           onStop={() => {
             setIsPlaying(false);
             setPlaybackT(null);
@@ -129,6 +140,9 @@ export default function Page() {
             onAddAnnotation={app.addAnnotation}
             onUpdateRule={app.updateRule}
             onClearDefenseOverride={app.clearDefenseOverride}
+            onSetBallCarrier={app.setBallCarrier}
+            onSetForcedScreener={app.setForcedScreener}
+            onClearAnnotationsFor={app.clearAnnotationsFor}
             onSetTool={app.setTool}
             isPlaying={isPlaying}
             playbackSpeed={playbackSpeed}

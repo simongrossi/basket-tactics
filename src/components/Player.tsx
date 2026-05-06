@@ -11,6 +11,8 @@ interface PlayerProps {
   helpFactor?: number;
   facing?: Point;
   isOverridden?: boolean;
+  closingOut?: boolean;
+  isForcedScreener?: boolean;
 }
 
 export function Player({
@@ -23,6 +25,8 @@ export function Player({
   helpFactor,
   facing,
   isOverridden,
+  closingOut,
+  isForcedScreener,
 }: PlayerProps) {
   const fill = isAttacker ? '#D85A30' : '#378ADD';
 
@@ -113,6 +117,29 @@ export function Player({
           pointerEvents="none"
         />
       )}
+      {closingOut && !isAttacker && (
+        <g pointerEvents="none">
+          {/* Anneau orange pulsé : urgence du closeout. */}
+          <circle
+            cx={pos.x}
+            cy={pos.y}
+            r={r + 5}
+            fill="none"
+            stroke="#F97316"
+            strokeWidth={2.5}
+            opacity={0.85}
+          />
+          <circle
+            cx={pos.x}
+            cy={pos.y}
+            r={r + 9}
+            fill="none"
+            stroke="#F97316"
+            strokeWidth={1}
+            opacity={0.4}
+          />
+        </g>
+      )}
       {isOverridden && !isAttacker && (
         <g pointerEvents="none">
           <circle
@@ -132,6 +159,28 @@ export function Player({
             fontWeight={700}
           >
             ✋
+          </text>
+        </g>
+      )}
+      {isForcedScreener && isAttacker && (
+        <g pointerEvents="none">
+          <circle
+            cx={pos.x + r * 0.85}
+            cy={pos.y - r * 0.85}
+            r={5}
+            fill="#a78bfa"
+            stroke="#5b21b6"
+            strokeWidth={1.2}
+          />
+          <text
+            x={pos.x + r * 0.85}
+            y={pos.y - r * 0.85 + 2.5}
+            textAnchor="middle"
+            fill="#5b21b6"
+            fontSize={7}
+            fontWeight={700}
+          >
+            🔒
           </text>
         </g>
       )}

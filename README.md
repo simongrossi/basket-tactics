@@ -19,6 +19,8 @@ Autres commandes utiles :
 
 ```bash
 npm run type-check   # tsc --noEmit
+npm test             # Vitest — 48 tests sur la logique pure
+npm run test:watch   # Vitest en mode watch
 npm run build        # build de production statique
 ```
 
@@ -118,10 +120,12 @@ Toute la doc technique vit dans [`docs/`](docs/) :
 | [`docs/menu-reference.md`](docs/menu-reference.md) | Référence exhaustive de chaque réglage de l'interface |
 | [`docs/bibliotheque-systemes.md`](docs/bibliotheque-systemes.md) | Format des templates, comment en ajouter |
 | [`docs/export-pdf.md`](docs/export-pdf.md) | Comment fonctionne l'export PDF |
+| [`docs/testing.md`](docs/testing.md) | Stack Vitest, couverture des tests, conventions |
+| [`docs/keyboard-shortcuts.md`](docs/keyboard-shortcuts.md) | Référence des raccourcis clavier |
 
 Pour reprendre le projet, lis dans cet ordre : `architecture.md` → `concepts-basket.md` → `logique-defensive.md`.
 
-Backlog et historique des features : [`IDEAS.md`](IDEAS.md).
+Vision produit et chantiers à venir : [`ROADMAP.md`](ROADMAP.md). Backlog technique et historique des features : [`IDEAS.md`](IDEAS.md).
 
 ---
 
