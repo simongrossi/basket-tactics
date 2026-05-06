@@ -135,20 +135,31 @@ export function CourtView(props: CourtViewProps) {
       }
 
       // Liste des CLUSTERS (poseur + son défenseur) à contourner.
-      // Traiter chaque écran comme une masse unique évite l'effet
-      // "snap" entre deux courbes consécutives très proches.
+      // Important : on utilise la position MOYENNE entre A et B pour
+      // que l'obstacle soit STABLE pendant tout le segment (sinon la
+      // courbe Bezier est recalculée à chaque frame avec une géométrie
+      // qui change, ce qui produit un effet de clignotement quand le
+      // segment passe juste à la limite du cercle de l'obstacle).
       const screenerObstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
       const linkDist = PLAYER_RADIUS * 4; // 64px : on lie poseur et son défenseur
-      const baseR = PLAYER_RADIUS * 2 + 4;
+      const baseR = PLAYER_RADIUS + 4; // 20px — clearance autour du cluster (tight)
+      const midpointOff = (id: AttackerId): Point => ({
+        x: (a.off[id].x + b.off[id].x) / 2,
+        y: (a.off[id].y + b.off[id].y) / 2,
+      });
+      const midpointDef = (id: DefenderId): Point => ({
+        x: (defA[id].x + defB[id].x) / 2,
+        y: (defA[id].y + defB[id].y) / 2,
+      });
       if (screen) {
-        const sPos = off[screen.screener];
-        const sDef = { x: defB[screen.screenerDef].x, y: defB[screen.screenerDef].y };
+        const sPos = midpointOff(screen.screener);
+        const sDef = midpointDef(screen.screenerDef);
         const c = makeCluster(sPos, [sDef], linkDist, baseR);
         screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: screen.screenerDef });
       }
       offBallScreens.forEach((s) => {
-        const sPos = off[s.screener];
-        const sDef = { x: defB[s.screenerDef].x, y: defB[s.screenerDef].y };
+        const sPos = midpointOff(s.screener);
+        const sDef = midpointDef(s.screenerDef);
         const c = makeCluster(sPos, [sDef], linkDist, baseR);
         screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: s.screenerDef });
       });
@@ -243,18 +254,27 @@ export function CourtView(props: CourtViewProps) {
       screen = detectScreen(off, carrier, matchups, defPosLinear, state.screenRadius);
       offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosLinear, state.screenRadius);
     }
+    // Obstacles stables (midpoint A-B) pour la durée du segment.
     const screenerObstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
     const linkDist = PLAYER_RADIUS * 4;
-    const baseR = PLAYER_RADIUS * 2 + 4;
+    const baseR = PLAYER_RADIUS + 4;
+    const midpointOff = (id: AttackerId): Point => ({
+      x: (a.off[id].x + b.off[id].x) / 2,
+      y: (a.off[id].y + b.off[id].y) / 2,
+    });
+    const midpointDef = (id: DefenderId): Point => ({
+      x: (defA[id].x + defB[id].x) / 2,
+      y: (defA[id].y + defB[id].y) / 2,
+    });
     if (screen) {
-      const sPos = off[screen.screener];
-      const sDef = { x: defB[screen.screenerDef].x, y: defB[screen.screenerDef].y };
+      const sPos = midpointOff(screen.screener);
+      const sDef = midpointDef(screen.screenerDef);
       const c = makeCluster(sPos, [sDef], linkDist, baseR);
       screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: screen.screenerDef });
     }
     offBallScreens.forEach((s) => {
-      const sPos = off[s.screener];
-      const sDef = { x: defB[s.screenerDef].x, y: defB[s.screenerDef].y };
+      const sPos = midpointOff(s.screener);
+      const sDef = midpointDef(s.screenerDef);
       const c = makeCluster(sPos, [sDef], linkDist, baseR);
       screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: s.screenerDef });
     });

@@ -172,7 +172,10 @@ export function curveAroundObstacle(
   const cross = ox * perpX + oy * perpY;
   const pushSign = cross >= 0 ? -1 : 1;
 
-  const peak = obstacleRadius + 6; // amplitude du contournement au sommet
+  // Amplitude proportionnelle à la pénétration : un frôlement ne
+  // produit qu'une mini courbe, une traversée profonde une grande.
+  const penetration = obstacleRadius - distToLine;
+  const peak = penetration + 6; // juste assez pour dégager + marge
   const mx = (start.x + end.x) / 2;
   const my = (start.y + end.y) / 2;
   const ctrlX = mx + perpX * 2 * peak * pushSign;

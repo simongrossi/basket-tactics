@@ -154,10 +154,20 @@ curveAroundObstacle(start, end, obstacle, radius, t):
     return interpolation linéaire
   perp = vecteur perpendiculaire au segment
   side = signe(croix(obstacle - start, perp))
-  ctrl = milieu(start, end) + perp * 2*(radius+6) * (-side)
+  // Amplitude PROPORTIONNELLE à la pénétration : un frôlement
+  // produit une mini courbe, une traversée profonde une grande.
+  penetration = radius - distance(obstacle, ligne)
+  peak = penetration + 6
+  ctrl = milieu(start, end) + perp * 2 * peak * (-side)
   te = easeSlowAtApex(t)  // ralentit au sommet pour éviter l'effet "snap"
   return (1-te)² * start + 2(1-te)te * ctrl + te² * end
 ```
+
+### Stabilisation de l'obstacle pendant le segment
+
+L'obstacle (poseur d'écran) bouge entre `idxA` et `idxB` puisqu'il est interpolé. Si on utilise sa position COURANTE (à `t` donné) pour calculer la courbe, la géométrie change frame par frame → quand le segment direct passe juste à la limite du cercle, on alterne entre courbe et ligne droite → effet de clignotement.
+
+Fix : on utilise la position **midpoint** entre A et B comme obstacle stable pour TOUTE la durée du segment. La courbe est figée pour le segment, plus de flicker.
 
 Le côté de contournement est choisi automatiquement (opposé à l'obstacle par rapport au segment).
 
