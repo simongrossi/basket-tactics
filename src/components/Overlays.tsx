@@ -1,0 +1,199 @@
+import type {
+  AttackerPositions,
+  ComputedDefense,
+  DetectedScreen,
+  DetectedOffBallScreen,
+  ScreenRule,
+  ZoneLayout,
+} from '@/lib/types';
+import { manTarget } from '@/lib/logic/manDefense';
+
+interface MatchupsProps {
+  off: AttackerPositions;
+  defPos: ComputedDefense;
+  show: boolean;
+}
+
+export function Matchups({ off, defPos, show }: MatchupsProps) {
+  if (!show) return null;
+  return (
+    <g>
+      {(Object.entries(defPos) as [keyof typeof defPos, ComputedDefense[keyof ComputedDefense]][]).map(
+        ([dId, p]) => {
+          const att = off[p.matchedTo];
+          if (!att) return null;
+          return (
+            <line
+              key={dId}
+              x1={p.x}
+              y1={p.y}
+              x2={att.x}
+              y2={att.y}
+              stroke={p.switchedThisStep ? '#BA7517' : '#888780'}
+              strokeWidth={p.switchedThisStep ? 1.8 : 0.8}
+              opacity={p.switchedThisStep ? 0.85 : 0.3}
+              strokeDasharray={p.switchedThisStep ? '5 3' : undefined}
+            />
+          );
+        }
+      )}
+    </g>
+  );
+}
+
+interface HelpLinesProps {
+  off: AttackerPositions;
+  defPos: ComputedDefense;
+  defenseDistance: number;
+  show: boolean;
+}
+
+export function HelpLines({ off, defPos, defenseDistance, show }: HelpLinesProps) {
+  if (!show) return null;
+  return (
+    <g>
+      {(Object.entries(defPos) as [keyof typeof defPos, ComputedDefense[keyof ComputedDefense]][]).map(
+        ([dId, p]) => {
+          if (p.isCarrierDefender || !p.helpFactor || p.helpFactor < 0.05) return null;
+          const att = off[p.matchedTo];
+          if (!att) return null;
+          const man = manTarget(att, defenseDistance);
+          if (!man) return null;
+          return (
+            <line
+              key={dId}
+              x1={man.x}
+              y1={man.y}
+              x2={p.x}
+              y2={p.y}
+              stroke="#534AB7"
+              strokeWidth={1.5}
+              strokeDasharray="3 3"
+              opacity={0.7}
+            />
+          );
+        }
+      )}
+    </g>
+  );
+}
+
+interface ScreenIndicatorProps {
+  screen: DetectedScreen | null;
+  off: AttackerPositions;
+  rule: ScreenRule;
+}
+
+export function ScreenIndicator({ screen, off, rule }: ScreenIndicatorProps) {
+  if (!screen) return null;
+  const sp = off[screen.screener];
+  if (!sp) return null;
+  return (
+    <g>
+      <circle
+        cx={sp.x}
+        cy={sp.y}
+        r={26}
+        fill="none"
+        stroke="#534AB7"
+        strokeWidth={2.5}
+        strokeDasharray="4 3"
+        opacity={0.85}
+      />
+      <text
+        x={sp.x}
+        y={sp.y - 30}
+        textAnchor="middle"
+        fill="#534AB7"
+        fontSize={11}
+        fontWeight={500}
+      >
+        écran {screen.screener} → {screen.carrier} [{rule}]
+      </text>
+    </g>
+  );
+}
+
+const ZONE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+interface ZoneOverlayProps {
+  layout: ZoneLayout;
+  show: boolean;
+}
+
+export function ZoneOverlay({ layout, show }: ZoneOverlayProps) {
+  if (!show) return null;
+  return (
+    <g>
+      {layout.map((zone, i) => {
+        const points = zone.polygon.map((p) => `${p.x},${p.y}`).join(' ');
+        const color = ZONE_COLORS[i % ZONE_COLORS.length];
+        return (
+          <g key={zone.id}>
+            <polygon
+              points={points}
+              fill={color}
+              fillOpacity={0.08}
+              stroke={color}
+              strokeOpacity={0.4}
+              strokeWidth={1.5}
+              strokeDasharray="6 3"
+            />
+            <text
+              x={zone.homePos.x}
+              y={zone.homePos.y - 12}
+              textAnchor="middle"
+              fill={color}
+              fontSize={10}
+              fontWeight={500}
+              opacity={0.7}
+            >
+              {zone.label}
+            </text>
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+interface OffBallScreenIndicatorProps {
+  screens: DetectedOffBallScreen[];
+  off: AttackerPositions;
+}
+
+export function OffBallScreenIndicator({ screens, off }: OffBallScreenIndicatorProps) {
+  if (screens.length === 0) return null;
+  return (
+    <g>
+      {screens.map((s, i) => {
+        const sp = off[s.screener];
+        if (!sp) return null;
+        return (
+          <g key={i}>
+            <circle
+              cx={sp.x}
+              cy={sp.y}
+              r={26}
+              fill="none"
+              stroke="#16a34a"
+              strokeWidth={2}
+              strokeDasharray="4 3"
+              opacity={0.85}
+            />
+            <text
+              x={sp.x}
+              y={sp.y - 30}
+              textAnchor="middle"
+              fill="#16a34a"
+              fontSize={10}
+              fontWeight={500}
+            >
+              {s.type} {s.screener} → {s.cutter}
+            </text>
+          </g>
+        );
+      })}
+    </g>
+  );
+}
