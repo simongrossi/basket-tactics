@@ -3,6 +3,7 @@ import type {
   AppState,
   AttackerId,
   DefenderId,
+  DefenderPositions,
   Annotation,
   Step,
   ScreenRule,
@@ -10,8 +11,10 @@ import type {
   DefenderRule,
   DefenseSystem,
   ZoneConfig,
+  Point,
 } from '@/lib/types';
 import { makeInitialState, makeStep, initialOff, initialDef } from '@/lib/data/initial';
+import { getZoneLayout } from '@/lib/data/zones';
 import type { Template } from '@/lib/data/templates';
 import type { DefensePreset } from '@/lib/data/defensePresets';
 
@@ -225,11 +228,58 @@ export function useAppState() {
   }, []);
 
   const setDefenseSystem = useCallback((system: DefenseSystem) => {
-    setState((s) => ({ ...s, defenseSystem: system }));
+    setState((s) => {
+      // Au changement de système : on efface tous les overrides et on snap
+      // defenseInitial à des positions cohérentes avec le nouveau système.
+      const cleanedSteps = s.steps.map((st) => {
+        const c = { ...st };
+        delete c.defenseOverrides;
+        return c;
+      });
+      let defenseInitial = s.defenseInitial;
+      if (system === 'zone') {
+        const layout = getZoneLayout(s.zoneConfig.type, s.zoneConfig.verticalOffset ?? 0);
+        defenseInitial = {} as DefenderPositions;
+        layout.forEach((z) => {
+          defenseInitial![z.assignedTo] = { ...z.homePos };
+        });
+      }
+      return { ...s, defenseSystem: system, steps: cleanedSteps, defenseInitial };
+    });
   }, []);
 
   const updateZoneConfig = useCallback((zPatch: Partial<ZoneConfig>) => {
-    setState((s) => ({ ...s, zoneConfig: { ...s.zoneConfig, ...zPatch } }));
+    setState((s) => {
+      const newConfig = { ...s.zoneConfig, ...zPatch };
+      let next: AppState = { ...s, zoneConfig: newConfig };
+      // Si on change le TYPE de zone, on snap tous les défenseurs aux nouvelles
+      // home positions et on efface les overrides — l'utilisateur s'attend à
+      // voir la formation par défaut quand il sélectionne un layout.
+      if (zPatch.type && zPatch.type !== s.zoneConfig.type) {
+        const layout = getZoneLayout(newConfig.type, newConfig.verticalOffset ?? 0);
+        const newDefenseInitial = {} as DefenderPositions;
+        const overrides: Partial<Record<DefenderId, Point>> = {};
+        layout.forEach((z) => {
+          newDefenseInitial[z.assignedTo] = { ...z.homePos };
+          overrides[z.assignedTo] = { ...z.homePos };
+        });
+        const cleanedSteps = s.steps.map((st, i) => {
+          const c = { ...st };
+          delete c.defenseOverrides;
+          // On force les overrides sur l'étape active uniquement, pour que
+          // l'utilisateur voie la formation par défaut sans qu'elles ne
+          // polluent les autres étapes.
+          if (i === s.activeStep) c.defenseOverrides = overrides;
+          return c;
+        });
+        next = {
+          ...next,
+          defenseInitial: newDefenseInitial,
+          steps: cleanedSteps,
+        };
+      }
+      return next;
+    });
   }, []);
 
   const importState = useCallback((next: AppState) => {

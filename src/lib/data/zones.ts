@@ -1,37 +1,37 @@
 import type { ZoneType, ZoneLayout, DefenderPositions } from '../types';
 
-// Repères du terrain (HOOP en haut) :
-//  - y=20   : ligne de fond (baseline)
-//  - y=75   : panier
-//  - y=210  : ligne des lancers francs (FT line)
-//  - y=270  : haut de la raquette / "top of key"
-//  - y=295  : sommet de l'arc à 3pts
-//  - y=540  : ligne médiane
-//  - x=240..360 : raquette (paint)
+// Repères du terrain FIBA (HOOP en haut, panier à y=75, échelle ≈37 px/m) :
+//  - y=20    : ligne de fond (baseline)
+//  - y=75    : panier (centre de l'anneau)
+//  - y=235   : ligne des lancers francs (FT line)
+//  - y=302   : bas du cercle des LF (FT line + rayon 67px)
+//  - y=325   : sommet de l'arc à 3pts (HOOP.y + radius 250)
+//  - y=540   : ligne médiane
+//  - x=210..390 : raquette (paint, 4.90 m de large)
+//  - x=53 et x=547 : sections droites des coins 3 pts (0.90 m de la touche)
 //  - x=20 et x=580 : touches latérales
 
 // =============================================================
-// ZONE 2-3 (style Wikipedia / 2-3 compact)
+// ZONE 2-3 (textbook compact)
 // =============================================================
-// Disposition standard :
-//   - 2 gardes au top (au-dessus du top of key, jusqu'à la médiane)
-//   - 3 derrière compacts autour du panier :
-//     * pivot dans le cœur de la raquette (homePos très bas, ~y=110)
-//     * 2 ailes au niveau des low blocks/short corners (~y=170)
-// Ligne de partition à y=240 (juste au-dessus de la FT line) — les
-// back-3 sont vraiment "back", pas étalés sur toute la moitié.
+// Référence : 5 défenseurs en formation 2-3 au repos.
+//   - Top 2 (gardes) : aux ELBOWS de la FT line (juste au-dessus, à
+//     l'aplomb des coins de raquette)
+//   - Pivot : au coeur de la raquette, juste sous la FT line
+//   - 2 forwards : aux LOW BLOCKS (1.75 m de la baseline, sur les
+//     bords intérieurs de la raquette)
 const ZONE_2_3: ZoneLayout = [
   // Back 3 — bande basse compacte y=20..240
   {
     id: 'pivot',
     label: 'Pivot',
     polygon: [
-      { x: 200, y: 20 },
-      { x: 400, y: 20 },
-      { x: 400, y: 240 },
-      { x: 200, y: 240 },
+      { x: 210, y: 20 },
+      { x: 390, y: 20 },
+      { x: 390, y: 240 },
+      { x: 210, y: 240 },
     ],
-    homePos: { x: 300, y: 110 },
+    homePos: { x: 300, y: 145 }, // milieu de la raquette, sous FT
     assignedTo: 'D5',
   },
   {
@@ -39,26 +39,26 @@ const ZONE_2_3: ZoneLayout = [
     label: 'Aile basse G',
     polygon: [
       { x: 20, y: 20 },
-      { x: 200, y: 20 },
-      { x: 200, y: 240 },
+      { x: 210, y: 20 },
+      { x: 210, y: 240 },
       { x: 20, y: 240 },
     ],
-    homePos: { x: 130, y: 170 },
+    homePos: { x: 130, y: 145 }, // low block gauche étendu
     assignedTo: 'D4',
   },
   {
     id: 'wing-right',
     label: 'Aile basse D',
     polygon: [
-      { x: 400, y: 20 },
+      { x: 390, y: 20 },
       { x: 580, y: 20 },
       { x: 580, y: 240 },
-      { x: 400, y: 240 },
+      { x: 390, y: 240 },
     ],
-    homePos: { x: 470, y: 170 },
+    homePos: { x: 470, y: 145 }, // low block droit étendu
     assignedTo: 'D3',
   },
-  // Top 2 — large bande haute y=240..540 (FT line jusqu'à médiane)
+  // Top 2 — bande haute y=240..540, gardes aux elbows
   {
     id: 'guard-left',
     label: 'Garde G',
@@ -68,7 +68,7 @@ const ZONE_2_3: ZoneLayout = [
       { x: 300, y: 540 },
       { x: 20, y: 540 },
     ],
-    homePos: { x: 200, y: 320 },
+    homePos: { x: 235, y: 270 }, // elbow gauche (au-dessus FT line, à l'aplomb du coin de raquette)
     assignedTo: 'D1',
   },
   {
@@ -80,20 +80,17 @@ const ZONE_2_3: ZoneLayout = [
       { x: 580, y: 540 },
       { x: 300, y: 540 },
     ],
-    homePos: { x: 400, y: 320 },
+    homePos: { x: 365, y: 270 }, // elbow droit
     assignedTo: 'D2',
   },
 ];
 
 // =============================================================
-// ZONE 2-1-2
+// ZONE 2-1-2 (losange / diamant)
 // =============================================================
-// Disposition en losange / diamant :
-//   - 2 défenseurs au TOP (perimeter, gauche + droite)
-//   - 1 au cœur de la raquette (autour de la FT line)
-//   - 2 LOW BLOCKS sur les côtés, presque au niveau du panier
-// Trois bandes verticales : bottom (y=20..160) / middle (y=160..320) /
-// top (y=320..540).
+//   - 2 fronts (gardes) au-dessus de la FT line, autour des elbows
+//   - 1 milieu au cœur de la raquette (juste au-dessus du basket)
+//   - 2 lows sur les low blocks de la raquette
 const ZONE_2_1_2: ZoneLayout = [
   // Top 2 (perimeter)
   {
@@ -105,7 +102,7 @@ const ZONE_2_1_2: ZoneLayout = [
       { x: 300, y: 540 },
       { x: 20, y: 540 },
     ],
-    homePos: { x: 200, y: 400 },
+    homePos: { x: 230, y: 360 }, // au-dessus de l'elbow gauche
     assignedTo: 'D1',
   },
   {
@@ -117,10 +114,10 @@ const ZONE_2_1_2: ZoneLayout = [
       { x: 580, y: 540 },
       { x: 300, y: 540 },
     ],
-    homePos: { x: 400, y: 400 },
+    homePos: { x: 370, y: 360 }, // au-dessus de l'elbow droit
     assignedTo: 'D2',
   },
-  // Center (cœur de raquette, bande médiane)
+  // Cœur (bande médiane) — milieu de la raquette
   {
     id: 'middle',
     label: 'Cœur',
@@ -130,10 +127,10 @@ const ZONE_2_1_2: ZoneLayout = [
       { x: 580, y: 320 },
       { x: 20, y: 320 },
     ],
-    homePos: { x: 300, y: 240 },
+    homePos: { x: 300, y: 200 }, // juste au-dessus du basket, dans la raquette
     assignedTo: 'D5',
   },
-  // Lows (presque au niveau panier, sur les côtés)
+  // Lows — low blocks de la raquette
   {
     id: 'low-left',
     label: 'Low G',
@@ -143,7 +140,7 @@ const ZONE_2_1_2: ZoneLayout = [
       { x: 300, y: 160 },
       { x: 20, y: 160 },
     ],
-    homePos: { x: 180, y: 100 },
+    homePos: { x: 220, y: 110 }, // low block gauche
     assignedTo: 'D4',
   },
   {
@@ -155,20 +152,19 @@ const ZONE_2_1_2: ZoneLayout = [
       { x: 580, y: 160 },
       { x: 300, y: 160 },
     ],
-    homePos: { x: 420, y: 100 },
+    homePos: { x: 380, y: 110 }, // low block droit
     assignedTo: 'D3',
   },
 ];
 
 // =============================================================
-// ZONE 1-3-1
+// ZONE 1-3-1 (active / piège)
 // =============================================================
-// Disposition standard :
-//   - 1 ancre baseline (juste devant le panier)
-//   - 3 sur la ligne médiane des LF (Mid G / Mid C / Mid D)
-//   - 1 chasseur en haut (au-dessus du top of key)
+//   - 1 chasseur au top of key étendu (au-dessus du sommet de l'arc 3pts)
+//   - 3 alignés sur la FT line (G/C/D) — formant la barre du milieu
+//   - 1 ancre directement sous le panier
 const ZONE_1_3_1: ZoneLayout = [
-  // Ancre (baseline)
+  // Ancre (devant le panier)
   {
     id: 'anchor',
     label: 'Ancre',
@@ -178,10 +174,10 @@ const ZONE_1_3_1: ZoneLayout = [
       { x: 580, y: 160 },
       { x: 20, y: 160 },
     ],
-    homePos: { x: 300, y: 90 },
+    homePos: { x: 300, y: 100 }, // sous l'anneau, dans le no-charge
     assignedTo: 'D5',
   },
-  // Mid 3 (entre baseline et top of key)
+  // Mid 3 — alignés sur la FT line
   {
     id: 'mid-left',
     label: 'Mid G',
@@ -191,7 +187,7 @@ const ZONE_1_3_1: ZoneLayout = [
       { x: 220, y: 380 },
       { x: 20, y: 380 },
     ],
-    homePos: { x: 130, y: 250 },
+    homePos: { x: 120, y: 235 }, // sur FT line, côté G (entre touche et raquette)
     assignedTo: 'D2',
   },
   {
@@ -203,7 +199,7 @@ const ZONE_1_3_1: ZoneLayout = [
       { x: 380, y: 380 },
       { x: 220, y: 380 },
     ],
-    homePos: { x: 300, y: 240 },
+    homePos: { x: 300, y: 235 }, // sur FT line, milieu (au-dessus du cercle des LF)
     assignedTo: 'D3',
   },
   {
@@ -215,10 +211,10 @@ const ZONE_1_3_1: ZoneLayout = [
       { x: 580, y: 380 },
       { x: 380, y: 380 },
     ],
-    homePos: { x: 470, y: 250 },
+    homePos: { x: 480, y: 235 }, // sur FT line, côté D
     assignedTo: 'D4',
   },
-  // Chasseur (top)
+  // Chasseur — au top of key étendu
   {
     id: 'chaser',
     label: 'Chasseur',
@@ -228,23 +224,18 @@ const ZONE_1_3_1: ZoneLayout = [
       { x: 580, y: 540 },
       { x: 20, y: 540 },
     ],
-    homePos: { x: 300, y: 430 },
+    homePos: { x: 300, y: 410 }, // top of key étendu (au-dessus du sommet 3pts à y=325)
     assignedTo: 'D1',
   },
 ];
 
 // =============================================================
-// ZONE 3-2
+// ZONE 3-2 (focus perimeter)
 // =============================================================
-// Disposition standard : philosophie défensive haute (focus perimeter).
-//   - 3 en HAUT qui montent jusqu'au top of key étendu (G / C / D)
-//   - 2 derrière qui ne couvrent QUE la raquette + low blocks (bande basse
-//     restreinte)
-// Ligne de partition basse (y=220, juste au-dessus de la FT line) : les 2
-// défenseurs du bas restent près du panier, les 3 du haut prennent
-// presque tout le perimeter.
+//   - 3 au top : G/C/D au top of key étendu, presque sur la ligne 3pts
+//   - 2 en bas : low blocks de la raquette
 const ZONE_3_2: ZoneLayout = [
-  // Bottom 2 — bande basse restreinte y=20..220 (raquette étendue)
+  // Bottom 2 — y=20..220, low blocks
   {
     id: 'low-left',
     label: 'Bas G',
@@ -254,7 +245,7 @@ const ZONE_3_2: ZoneLayout = [
       { x: 300, y: 220 },
       { x: 20, y: 220 },
     ],
-    homePos: { x: 200, y: 110 },
+    homePos: { x: 230, y: 130 }, // low block gauche
     assignedTo: 'D4',
   },
   {
@@ -266,10 +257,10 @@ const ZONE_3_2: ZoneLayout = [
       { x: 580, y: 220 },
       { x: 300, y: 220 },
     ],
-    homePos: { x: 400, y: 110 },
+    homePos: { x: 370, y: 130 }, // low block droit
     assignedTo: 'D5',
   },
-  // Top 3 — large bande haute y=220..540 (du FT line à la médiane)
+  // Top 3 — y=220..540, sur la ligne 3pts
   {
     id: 'top-left',
     label: 'Top G',
@@ -279,7 +270,7 @@ const ZONE_3_2: ZoneLayout = [
       { x: 200, y: 540 },
       { x: 20, y: 540 },
     ],
-    homePos: { x: 110, y: 320 },
+    homePos: { x: 110, y: 310 }, // wing G, sur la ligne 3pts
     assignedTo: 'D2',
   },
   {
@@ -291,7 +282,7 @@ const ZONE_3_2: ZoneLayout = [
       { x: 400, y: 540 },
       { x: 200, y: 540 },
     ],
-    homePos: { x: 300, y: 350 },
+    homePos: { x: 300, y: 340 }, // top of key, juste au-dessus du sommet 3pts
     assignedTo: 'D1',
   },
   {
@@ -303,7 +294,7 @@ const ZONE_3_2: ZoneLayout = [
       { x: 580, y: 540 },
       { x: 400, y: 540 },
     ],
-    homePos: { x: 490, y: 320 },
+    homePos: { x: 490, y: 310 }, // wing D
     assignedTo: 'D3',
   },
 ];
