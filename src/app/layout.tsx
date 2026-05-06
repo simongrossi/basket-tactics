@@ -6,7 +6,13 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
-      <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif', background: '#fafafa' }}>
+      {/* suppressHydrationWarning : certaines extensions navigateur (Dark
+          Reader, Grammarly, gestionnaires de mots de passe…) injectent des
+          nœuds dans <body> avant l'hydration React. Ça causait des warnings
+          de mismatch sans bug réel. La directive ne masque les warnings
+          QUE sur ce nœud — les divergences plus profondes restent
+          détectées normalement. */}
+      <body suppressHydrationWarning style={{ margin: 0, fontFamily: 'system-ui, sans-serif', background: '#fafafa' }}>
         {children}
       </body>
     </html>
