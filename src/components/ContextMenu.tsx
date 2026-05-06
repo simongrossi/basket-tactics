@@ -100,6 +100,21 @@ export function ContextMenu({ dId, x, y, rule, hasOverride, onUpdate, onClearOve
           <option value="fronting">devant (full denial)</option>
         </select>
       </Row>
+      <Row label="vs écran">
+        <select
+          value={rule.screenNav ?? 'auto'}
+          onChange={(e) => onUpdate({ screenNav: e.target.value as DefenderRule['screenNav'] })}
+          style={{ flex: 1 }}
+        >
+          <option value="auto">auto (règle globale)</option>
+          <option value="over">over (par-dessus)</option>
+          <option value="under">under (en dessous)</option>
+          <option value="switch">switch (échange)</option>
+          <option value="hedge">hedge (show & recover)</option>
+          <option value="drop">drop (recul)</option>
+          <option value="blitz">blitz (piège)</option>
+        </select>
+      </Row>
       {hasOverride && (
         <div
           style={{

@@ -225,19 +225,20 @@ export function DefensePanel(props: DefensePanelProps) {
             <div style={{ fontSize: 10, color: '#64748b', marginBottom: 2 }}>
               Astuce : clic-droit sur un défenseur pour ouvrir un menu rapide.
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '24px 44px 1fr 1fr 1fr', gap: 3, fontSize: 10, color: '#64748b' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '24px 40px 1fr 1fr 1fr 1fr', gap: 3, fontSize: 10, color: '#64748b' }}>
               <span></span>
               <span>aide</span>
               <span>prio.</span>
               <span>vs porteur</span>
               <span>hors-bal.</span>
+              <span>écran</span>
             </div>
             {(['D1', 'D2', 'D3', 'D4', 'D5'] as DefenderId[]).map((dId) => {
               const r = state.rules[dId];
               return (
                 <div
                   key={dId}
-                  style={{ display: 'grid', gridTemplateColumns: '24px 44px 1fr 1fr 1fr', gap: 3, alignItems: 'center', fontSize: 11 }}
+                  style={{ display: 'grid', gridTemplateColumns: '24px 40px 1fr 1fr 1fr 1fr', gap: 3, alignItems: 'center', fontSize: 11 }}
                 >
                   <span style={{ fontWeight: 500, color: c.accentText }}>{dId}</span>
                   <input
@@ -281,6 +282,19 @@ export function DefensePanel(props: DefensePanelProps) {
                     <option value="behind">derrière</option>
                     <option value="deny-3q">3/4 deny</option>
                     <option value="fronting">devant</option>
+                  </select>
+                  <select
+                    value={r.screenNav ?? 'auto'}
+                    onChange={(e) => props.onUpdateRule(dId, { screenNav: e.target.value as any })}
+                    style={{ fontSize: 11, height: 22 }}
+                  >
+                    <option value="auto">auto</option>
+                    <option value="over">over</option>
+                    <option value="under">under</option>
+                    <option value="switch">switch</option>
+                    <option value="hedge">hedge</option>
+                    <option value="drop">drop</option>
+                    <option value="blitz">blitz</option>
                   </select>
                 </div>
               );

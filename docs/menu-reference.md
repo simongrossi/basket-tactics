@@ -124,7 +124,7 @@ Indépendant des triggers : un sag baseline weak-side est toujours actif sur les
 
 ### Règles individuelles (visible si système = homme)
 
-Tableau 5 lignes (D1–D5) × 5 colonnes :
+Tableau 5 lignes (D1–D5) × 6 colonnes :
 
 | Colonne | Valeurs | Description |
 |---------|---------|-------------|
@@ -133,6 +133,7 @@ Tableau 5 lignes (D1–D5) × 5 colonnes :
 | **prio.** | raquette / homme / passe | Cible préférée quand on aide |
 | **vs porteur** | coller / bumper / contester / reculer / topside / baseline | Comportement quand on défend le porteur |
 | **hors-bal.** | sag / derrière / 3/4 deny / devant | Stance quand on défend hors-ballon |
+| **écran** | auto / over / under / switch / hedge / drop / blitz | Override individuel sur écran porteur (auto = règle globale) |
 
 Astuce : **clic-droit** sur un défenseur sur le terrain ouvre un menu compact avec les mêmes réglages.
 
@@ -146,12 +147,13 @@ Astuce : **clic-droit** sur un défenseur sur le terrain ouvre un menu compact a
 
 ## Menu contextuel (clic-droit défenseur)
 
-Menu compact qui apparaît au clic-droit. Quatre réglages :
+Menu compact qui apparaît au clic-droit. Cinq réglages :
 
 - **aide %** : slider 0–100 + valeur
 - **priorité** : raquette / homme / passe
 - **vs porteur** : 6 valeurs (cf. tableau)
 - **hors-ballon** : 4 stances
+- **vs écran** : auto + 6 règles d'écran (override individuel)
 
 Se ferme au clic en dehors. Comportement : si la cible DOM est un attaquant (cas d'un poseur d'écran rendu au-dessus dans la pile SVG), fallback automatique sur la recherche du défenseur le plus proche du point cliqué.
 

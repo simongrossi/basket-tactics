@@ -75,8 +75,16 @@ export function computeDefenseTargets(
 
   const screen = detectScreen(off, ballCarrier, matchups, prevDefenderPositions, state.screenRadius);
 
+  // Règle effective : on regarde l'override individuel du défenseur du porteur,
+  // sinon on retombe sur la règle globale.
+  const effectiveScreenRule = (() => {
+    if (!screen) return state.screenRule;
+    const nav = state.rules[screen.carrierDef]?.screenNav;
+    return nav && nav !== 'auto' ? nav : state.screenRule;
+  })();
+
   let switchedThisStep = false;
-  if (screen && state.screenRule === 'switch') {
+  if (screen && effectiveScreenRule === 'switch') {
     matchups = applySwitch(matchups, screen);
     switchedThisStep = true;
     if (mutateStepForSwitch && !cur.switches) {
@@ -118,8 +126,8 @@ export function computeDefenseTargets(
       }
     }
 
-    if (screen && state.screenRule !== 'switch') {
-      target = applyScreenAdjustment(target, screen, state.screenRule, dId, off, state.screenRadius, state.dropDepth);
+    if (screen && effectiveScreenRule !== 'switch') {
+      target = applyScreenAdjustment(target, screen, effectiveScreenRule, dId, off, state.screenRadius, state.dropDepth);
     }
 
     positions[dId] = {

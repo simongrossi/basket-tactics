@@ -81,6 +81,14 @@ Un attaquant non-porteur (le « screener ») se positionne près du défenseur d
 | `drop` | Le défenseur du screener recule en couverture | Position derrière le screener vers le panier (depth shallow/medium/deep) |
 | `blitz` | Les deux défenseurs piègent le porteur | Forme un V à 45° autour du porteur |
 
+### Override par défenseur (`screenNav`)
+
+Chaque défenseur peut avoir son **propre** comportement vs écran via `DefenderRule.screenNav` :
+- `'auto'` (défaut) : suit la règle globale `state.screenRule`
+- `'over' | 'under' | 'switch' | 'hedge' | 'drop' | 'blitz'` : override individuel
+
+Quand un écran est détecté, le moteur regarde la `screenNav` du **défenseur du porteur** (`carrierDef`). Si non-auto, c'est cette valeur qui sert de règle effective pour la résolution de l'écran (et qui est affichée dans l'indicateur sur le terrain). Cas d'usage : tu peux avoir 5 défenseurs avec 5 comportements différents pour expliquer une consigne par poste ("D5 fait drop, D2 fait switch, les autres over").
+
 ### Garde anti-superposition
 
 `pushOutOfScreener()` garantit qu'aucune position cible de défenseur ne se retrouve à l'intérieur du cercle du poseur d'écran (clearance = 2 × rayon joueur + 2px). Le poseur est aussi rendu **au-dessus** des défenseurs dans la pile SVG pour la lisibilité.

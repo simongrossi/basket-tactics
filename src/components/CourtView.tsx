@@ -497,7 +497,15 @@ export function CourtView(props: CourtViewProps) {
           carrier={frame.carrier}
           show={state.showPassLanes}
         />
-        <ScreenIndicator screen={frame.screen} off={frame.off} rule={state.screenRule} />
+        <ScreenIndicator
+          screen={frame.screen}
+          off={frame.off}
+          rule={(() => {
+            if (!frame.screen) return state.screenRule;
+            const nav = state.rules[frame.screen.carrierDef]?.screenNav;
+            return nav && nav !== 'auto' ? nav : state.screenRule;
+          })()}
+        />
         <OffBallScreenIndicator screens={frame.offBallScreens} off={frame.off} />
         <Ball carrierPos={frame.off[frame.carrier]} />
       </svg>

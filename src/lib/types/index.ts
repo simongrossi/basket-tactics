@@ -38,12 +38,15 @@ export interface Step {
 export type HelpPriority = 'paint' | 'man' | 'passlane';
 export type CarrierBehavior = 'coller' | 'bumper' | 'contester' | 'reculer' | 'topside' | 'baseline';
 export type OffBallStance = 'sag' | 'deny-3q' | 'fronting' | 'behind';
+/** Override individuel de la règle d'écran porteur. 'auto' suit la règle globale. */
+export type OnScreenNav = 'auto' | 'over' | 'under' | 'switch' | 'hedge' | 'drop' | 'blitz';
 
 export interface DefenderRule {
   helpPct: number;
   priority: HelpPriority;
   vsCarrier: CarrierBehavior;
   offBallStance?: OffBallStance;
+  screenNav?: OnScreenNav;
 }
 
 export type DefenderRules = Record<DefenderId, DefenderRule>;

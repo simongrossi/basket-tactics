@@ -76,6 +76,7 @@ interface DefenderRule {
   priority: 'paint' | 'man' | 'passlane'; // où viser quand on aide
   vsCarrier: CarrierBehavior;           // si on défend le porteur
   offBallStance?: OffBallStance;        // si on défend hors-ballon
+  screenNav?: OnScreenNav;              // override individuel vs écran
 }
 
 type CarrierBehavior =
@@ -91,6 +92,10 @@ type OffBallStance =
   | 'behind'      // strict entre attaquant et panier, pas d'aide
   | 'deny-3q'     // 3/4 ball-side, pied dans la passe
   | 'fronting';   // full denial, devant l'attaquant face au ballon
+
+type OnScreenNav =
+  | 'auto'        // suit state.screenRule (défaut)
+  | 'over' | 'under' | 'switch' | 'hedge' | 'drop' | 'blitz';
 ```
 
 ## Annotation
