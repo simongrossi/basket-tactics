@@ -69,7 +69,7 @@ export function DefensePanel(props: DefensePanelProps) {
         </div>
       </Section>
 
-      <Section theme="defense" label="Système" open>
+      <Section theme="defense" label="Type de défense" open>
         <div style={{ display: 'flex', gap: 8 }}>
           <label
             style={{
@@ -93,7 +93,7 @@ export function DefensePanel(props: DefensePanelProps) {
               checked={isMan}
               onChange={() => props.onSetDefenseSystem('man')}
             />
-            homme
+            individuelle
           </label>
           <label
             style={{
