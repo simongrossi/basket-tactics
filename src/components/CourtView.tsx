@@ -84,15 +84,18 @@ export function CourtView(props: CourtViewProps) {
     }
     playStart.current = performance.now();
 
-    let raf = 0;
-    const tick = (now: number) => {
+    const tick = () => {
       const cur = stateRef.current;
-      const elapsed = now - playStart.current;
+      const elapsed = performance.now() - playStart.current;
       const stepDuration = 1500 / props.playbackSpeed;
       const totalSteps = cur.steps.length - 1;
-      if (totalSteps <= 0) return;
+      if (totalSteps <= 0) {
+        window.clearInterval(intervalId);
+        return;
+      }
       const globalT = elapsed / stepDuration;
       if (globalT >= totalSteps) {
+        window.clearInterval(intervalId);
         setPlayFrame(null);
         onPlaybackTickRef.current?.(totalSteps);
         onPlaybackEndRef.current?.();
@@ -136,10 +139,12 @@ export function CourtView(props: CourtViewProps) {
         offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosExtracted, cur.screenRadius);
       }
       setPlayFrame({ off, defPos, carrier, screen, offBallScreens, stepIdx: idxA });
-      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    // setInterval plus déterministe que requestAnimationFrame pour ce cas
+    // (pas de soucis avec re-renders qui restartent la boucle).
+    const intervalId = window.setInterval(tick, 33); // ~30fps
+    tick(); // premier frame immédiat
+    return () => window.clearInterval(intervalId);
   }, [props.isPlaying, props.playbackSpeed]);
 
   // Computed (static frame)
