@@ -22,6 +22,18 @@ describe('isInTrapZone', () => {
   it("ne détecte pas le milieu de terrain (y trop bas)", () => {
     expect(isInTrapZone({ x: 60, y: 500 })).toBe(false);
   });
+
+  it("détecte la sideline gauche mi-terrain (au-delà du coin baseline)", () => {
+    expect(isInTrapZone({ x: 60, y: 350 })).toBe(true);
+  });
+
+  it("détecte la sideline droite mi-terrain", () => {
+    expect(isInTrapZone({ x: 540, y: 350 })).toBe(true);
+  });
+
+  it("ne détecte pas la zone à mi-distance des sidelines (x=200)", () => {
+    expect(isInTrapZone({ x: 200, y: 350 })).toBe(false);
+  });
 });
 
 describe('pickTrapHelper', () => {

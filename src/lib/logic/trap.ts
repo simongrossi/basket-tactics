@@ -24,10 +24,14 @@ interface BBox {
 }
 
 const TRAP_ZONES: BBox[] = [
-  // Coin gauche fond
+  // Coin gauche fond (baseline)
   { xMin: 20, xMax: 130, yMin: 20, yMax: 200 },
-  // Coin droit fond
+  // Coin droit fond (baseline)
   { xMin: 470, xMax: 580, yMin: 20, yMax: 200 },
+  // Sideline gauche mi-terrain (au-delà du 3pt côté gauche, vers le milieu)
+  { xMin: 20, xMax: 110, yMin: 200, yMax: 460 },
+  // Sideline droite mi-terrain
+  { xMin: 490, xMax: 580, yMin: 200, yMax: 460 },
 ];
 
 /** True si le porteur est dans une zone de trappe.

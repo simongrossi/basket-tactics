@@ -39,8 +39,8 @@ Implémenté : `pickBlockingObstacle` (geometry.ts) sélectionne l'obstacle de p
 ### 🟢 Stunt and recover (v1)
 Implémenté : nouvelle `OffBallStance: 'stunt'` avec blend 0.4 dans `offBallStanceTarget`. Position intermédiaire entre behind et fronting, biaisée vers le ballon — le "recover" est naturel via le retour à `'sag'` à l'étape suivante.
 
-### 🟢 Trap en corner / sideline (v1)
-Implémenté dans `lib/logic/trap.ts` (polygones, helper picker, position cible) + trigger `state.triggers.trap` + override appliqué dans `engine.computeDefenseTargets`. Active quand le porteur entre dans un coin fond. ⚪ **v2** : zones supplémentaires (sideline mi-terrain), gestion explicite quand un écran est aussi détecté simultanément.
+### 🟢 Trap en corner / sideline (v2)
+Implémenté dans `lib/logic/trap.ts` (polygones, helper picker, position cible) + trigger `state.triggers.trap` + override appliqué dans `engine.computeDefenseTargets`. **v2** : 4 zones au lieu de 2 — coins baseline (gauche/droite, y < 200) + sidelines mi-terrain (gauche/droite, y ∈ [200, 460]). ⚪ **À venir v3** : gestion explicite quand un écran est aussi détecté simultanément (aujourd'hui le trap est désactivé si screen ≠ null).
 
 ### 🟢 Inversion HOOP (v1, man defense uniquement)
 Implémenté : `state.attackingDirection: 'up' | 'down'` + `getDefenseHoop(state)`. Threading via param `hoop?: Point` (default = HOOP) dans manTarget, carrierDefenderTarget, offBallStanceTarget, computeHelpTarget, applyScreenAdjustment, detectTriggers, computeMetrics, isInTrapZone, inPaint, distHoop. Bouton "↻ sens d'attaque" dans le panneau défense (gated sur fullCourt). ⚪ **v2** : zone defense directionnelle (computeZoneTargets utilise encore HOOP top hardcodé), rendu visuel de la second hoop comme panier "actif".

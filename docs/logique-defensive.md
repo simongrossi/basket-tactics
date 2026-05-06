@@ -78,6 +78,8 @@ Module dédié [`lib/logic/trap.ts`](../src/lib/logic/trap.ts). Quand `state.tri
 Zones définies par bbox (TRAP_ZONES) :
 - Coin gauche fond : `x ∈ [20, 130]`, `y ∈ [20, 200]`
 - Coin droit fond : `x ∈ [470, 580]`, `y ∈ [20, 200]`
+- Sideline gauche mi-terrain : `x ∈ [20, 110]`, `y ∈ [200, 460]`
+- Sideline droite mi-terrain : `x ∈ [490, 580]`, `y ∈ [200, 460]`
 
 `isInTrapZone(carrierPos, hoop?)` miroite la position autour de la ligne médiane si `hoop.y > 540` pour appliquer les zones du côté du panier de référence.
 
