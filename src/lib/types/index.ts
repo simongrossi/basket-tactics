@@ -137,6 +137,10 @@ export interface ComputedDefender {
   /** Le défenseur est en closeout sur cette transition (le ballon vient
    *  d'arriver sur son homme, il accélère pour fermer la distance). */
   closingOut?: boolean;
+  /** Le défenseur est en over-closeout : closeout sur cette transition ET
+   *  l'attaquant en a profité pour driver vers le panier. Modélise le
+   *  risque "il s'est fait déborder". */
+  overClosed?: boolean;
   /** Le défenseur applique un strong-side denial automatique (glisse vers la
    *  ligne de passe). Utilisé pour différencier visuellement du ring "help"
    *  classique côté faible. */

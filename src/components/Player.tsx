@@ -12,6 +12,7 @@ interface PlayerProps {
   facing?: Point;
   isOverridden?: boolean;
   closingOut?: boolean;
+  overClosed?: boolean;
   isForcedScreener?: boolean;
   denying?: boolean;
 }
@@ -27,6 +28,7 @@ export function Player({
   facing,
   isOverridden,
   closingOut,
+  overClosed,
   isForcedScreener,
   denying,
 }: PlayerProps) {
@@ -122,13 +124,13 @@ export function Player({
       )}
       {closingOut && !isAttacker && (
         <g pointerEvents="none">
-          {/* Anneau orange pulsé : urgence du closeout. */}
+          {/* Anneau orange (closeout normal) ou rouge (over-closeout, déborde). */}
           <circle
             cx={pos.x}
             cy={pos.y}
             r={r + 5}
             fill="none"
-            stroke="#F97316"
+            stroke={overClosed ? '#DC2626' : '#F97316'}
             strokeWidth={2.5}
             opacity={0.85}
           />
@@ -137,10 +139,21 @@ export function Player({
             cy={pos.y}
             r={r + 9}
             fill="none"
-            stroke="#F97316"
+            stroke={overClosed ? '#DC2626' : '#F97316'}
             strokeWidth={1}
             opacity={0.4}
           />
+          {overClosed && (
+            <text
+              x={pos.x + r + 14}
+              y={pos.y - r - 4}
+              fontSize={9}
+              fontWeight={700}
+              fill="#DC2626"
+            >
+              ⚠
+            </text>
+          )}
         </g>
       )}
       {isOverridden && !isAttacker && (

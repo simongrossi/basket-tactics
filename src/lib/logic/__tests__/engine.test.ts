@@ -300,6 +300,27 @@ describe('effectiveDefensePositions — closeout dynamique', () => {
     expect(out.D2.closingOut).toBe(true);
   });
 
+  it("marque overClosed quand closeout ET le nouveau porteur drive vers le panier", () => {
+    const s = cloneState();
+    // Étape 1 : passe O1→O2 ET O2 a driver vers le panier (deltaY important)
+    const off2 = { ...s.steps[0].off, O2: { x: 200, y: 200 } }; // O2 monte beaucoup vers le panier
+    // Initial O2 was at (130, 380). Distance to hoop (300,75): sqrt(170²+305²)≈349
+    // New O2 (200, 200): sqrt(100²+125²)≈160 → delta=189 > 25, curD=160 < 250 → overClosed
+    s.steps = [s.steps[0], makeStep(off2, 'O2', [])];
+    const out = effectiveDefensePositions(s, 1);
+    expect(out.D2.closingOut).toBe(true);
+    expect(out.D2.overClosed).toBe(true);
+  });
+
+  it("closeout sans drive (porteur stationnaire après réception) → pas d'over-closeout", () => {
+    const s = cloneState();
+    // Passe à O2 mais O2 ne bouge pas
+    s.steps = [s.steps[0], makeStep(s.steps[0].off, 'O2', [])];
+    const out = effectiveDefensePositions(s, 1);
+    expect(out.D2.closingOut).toBe(true);
+    expect(out.D2.overClosed).toBeFalsy();
+  });
+
   it("ne marque pas de closeout en défense de zone (le concept est man-only)", () => {
     const s = cloneState();
     s.defenseSystem = 'zone';

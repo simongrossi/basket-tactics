@@ -265,6 +265,21 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     state.defenseSystem === 'man' &&
     state.steps[stepIdx - 1].ballCarrier !== state.steps[stepIdx].ballCarrier;
 
+  // Over-closeout : closeout ET le nouveau porteur a driver vers le panier
+  // entre N-1 et N (le défenseur arrivé trop fort se fait déborder).
+  let isOverClosedTransition = false;
+  if (isCloseoutTransition) {
+    const newCarrier = state.steps[stepIdx].ballCarrier;
+    const prevP = state.steps[stepIdx - 1].off[newCarrier];
+    const curP = state.steps[stepIdx].off[newCarrier];
+    if (prevP && curP) {
+      const hoop = getDefenseHoop(state);
+      const prevD = Math.hypot(prevP.x - hoop.x, prevP.y - hoop.y);
+      const curD = Math.hypot(curP.x - hoop.x, curP.y - hoop.y);
+      isOverClosedTransition = prevD - curD > 25 && curD < 250;
+    }
+  }
+
   let prevPositions: DefenderPositions;
   if (stepIdx === 0) {
     if (state.defenseSystem === 'zone') {
@@ -306,13 +321,14 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
 
     // Closeout : le défenseur du nouveau porteur bénéficie d'un bump de vitesse.
     const closingOut = isCloseoutTransition && targets[dId].isCarrierDefender;
+    const overClosed = isOverClosedTransition && targets[dId].isCarrierDefender;
     const maxSpeed = closingOut ? baseMaxSpeed * CLOSEOUT_SPEED_FACTOR : baseMaxSpeed;
 
     // À l'étape 0, on considère que les défenseurs SONT à leur position idéale
     // (le step 0 est un setup, pas une transition). La contrainte de vitesse
     // ne s'applique qu'entre les étapes suivantes.
     if (stepIdx === 0 || d <= maxSpeed) {
-      out[dId] = { ...to, late: false, closingOut: closingOut || undefined };
+      out[dId] = { ...to, late: false, closingOut: closingOut || undefined, overClosed: overClosed || undefined };
     } else {
       const r = maxSpeed / d;
       out[dId] = {
@@ -325,6 +341,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
         onScreen: targets[dId].onScreen,
         switchedThisStep: targets[dId].switchedThisStep,
         closingOut: closingOut || undefined,
+        overClosed: overClosed || undefined,
         denying: targets[dId].denying,
       };
     }
