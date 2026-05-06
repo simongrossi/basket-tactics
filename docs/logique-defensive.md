@@ -163,6 +163,24 @@ Le côté de contournement est choisi automatiquement (opposé à l'obstacle par
 
 Un filet de sécurité `pushOutOfMany` est appliqué après l'évitement : pousse chaque défenseur hors de tous les autres joueurs (sauf son `matchedTo`) pour éliminer toute superposition résiduelle.
 
+## Solveur de collisions strict (`resolvePlayerCollisions`)
+
+Appliqué partout (engine statique, playback tick, scrubFrame, vignettes PDF) : itère jusqu'à 8 fois la résolution.
+
+```
+pour iter de 1 à 8:
+  anyMoved = false
+  pour chaque défenseur D:
+    obstacles = (tous attaquants sauf D.matchedTo) + (tous autres défenseurs)
+    nouveau = pushOutOfMany(D.pos, obstacles, 2 * PLAYER_RADIUS + 2)
+    si déplacement > 0.5px : D.pos = nouveau, anyMoved = true
+  si !anyMoved : stop
+```
+
+Garantie : aucun défenseur ne reste à moins de `2 * PLAYER_RADIUS + 2` (= 34px avec `PLAYER_RADIUS=16`) d'un autre joueur, sauf de son `matchedTo` (la proximité voulue avec le marqué).
+
+L'exemption du `matchedTo` permet à `vsCarrier=coller` ou `offBallStance=fronting` de fonctionner — le défenseur peut être tout proche de son homme sans que le solveur ne l'écarte.
+
 ## Aide (help)
 
 `computeHelpTarget(manPos, rule, triggers, carrier, attacker, side, allOff)` retourne :

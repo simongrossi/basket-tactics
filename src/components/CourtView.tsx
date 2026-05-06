@@ -23,7 +23,7 @@ import type { DetectedOffBallScreen } from '@/lib/types';
 import { detectTriggers } from '@/lib/logic/triggers';
 import { getZoneLayout } from '@/lib/data/zones';
 import { COURT, PLAYER_RADIUS, FULL_COURT_HEIGHT, FULL_COURT_INNER_MAX_Y } from '@/lib/data/court';
-import { clamp, distance, curveAroundObstacle, pushOutOfMany } from '@/lib/logic/geometry';
+import { clamp, distance, curveAroundObstacle, resolvePlayerCollisions } from '@/lib/logic/geometry';
 import { ContextMenu } from './ContextMenu';
 
 interface CourtViewProps {
@@ -169,24 +169,13 @@ export function CourtView(props: CourtViewProps) {
         };
       });
 
-      // Filet de sécurité : push tout défenseur hors des autres joueurs
-      // (sauf son matchedTo) pour éviter superpositions persistantes.
-      const obstaclesByDefender = (id: DefenderId, matched: AttackerId): Point[] => {
-        const obs: Point[] = [];
-        (Object.keys(off) as AttackerId[]).forEach((aId) => {
-          if (aId !== matched) obs.push(off[aId]);
-        });
-        (Object.keys(defPos) as DefenderId[]).forEach((dId) => {
-          if (dId !== id) obs.push({ x: defPos[dId].x, y: defPos[dId].y });
-        });
-        return obs;
-      };
-      (Object.keys(defPos) as DefenderId[]).forEach((id) => {
-        const obs = obstaclesByDefender(id, defPos[id].matchedTo);
-        const pushed = pushOutOfMany({ x: defPos[id].x, y: defPos[id].y }, obs, PLAYER_RADIUS * 2 + 2);
-        defPos[id].x = pushed.x;
-        defPos[id].y = pushed.y;
-      });
+      // Solveur de collisions strict : aucun défenseur ne se superpose
+      // à un autre joueur (sauf son matchedTo).
+      resolvePlayerCollisions(
+        defPos as unknown as Record<string, ComputedDefense[DefenderId]>,
+        off,
+        PLAYER_RADIUS * 2 + 2
+      );
 
       setPlayFrame({ off, defPos, carrier, screen, offBallScreens, stepIdx: idxA });
     };
@@ -274,20 +263,12 @@ export function CourtView(props: CourtViewProps) {
       };
     });
 
-    // Push de sécurité contre superpositions résiduelles
-    (Object.keys(defPos) as DefenderId[]).forEach((id) => {
-      const matched = defPos[id].matchedTo;
-      const obs: Point[] = [];
-      (Object.keys(off) as AttackerId[]).forEach((aId) => {
-        if (aId !== matched) obs.push(off[aId]);
-      });
-      (Object.keys(defPos) as DefenderId[]).forEach((dId) => {
-        if (dId !== id) obs.push({ x: defPos[dId].x, y: defPos[dId].y });
-      });
-      const pushed = pushOutOfMany({ x: defPos[id].x, y: defPos[id].y }, obs, PLAYER_RADIUS * 2 + 2);
-      defPos[id].x = pushed.x;
-      defPos[id].y = pushed.y;
-    });
+    // Solveur de collisions strict
+    resolvePlayerCollisions(
+      defPos as unknown as Record<string, ComputedDefense[DefenderId]>,
+      off,
+      PLAYER_RADIUS * 2 + 2
+    );
 
     return { off, defPos, carrier, screen, offBallScreens, stepIdx: Math.round(t) };
   }, [props.scrubT, state]);

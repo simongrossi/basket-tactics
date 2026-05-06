@@ -59,7 +59,7 @@ export function pushOutOf(pos: Point, obstacle: Point, minDist: number): Point {
  */
 export function pushOutOfMany(pos: Point, obstacles: Point[], minDist: number): Point {
   let result = pos;
-  for (let iter = 0; iter < 3; iter++) {
+  for (let iter = 0; iter < 5; iter++) {
     let moved = false;
     for (const obs of obstacles) {
       const next = pushOutOf(result, obs, minDist);
@@ -71,6 +71,48 @@ export function pushOutOfMany(pos: Point, obstacles: Point[], minDist: number): 
     if (!moved) break;
   }
   return result;
+}
+
+/**
+ * Solveur de collisions itératif sur une carte de défenseurs.
+ * Pour chaque défenseur, on le pousse hors :
+ *  - de tous les attaquants SAUF son matchedTo
+ *  - de tous les autres défenseurs
+ * On répète jusqu'à stabilité (ou maxIter).
+ *
+ * Mute defPos en place. minDist = écart minimal entre centres
+ * (typiquement 2 * PLAYER_RADIUS + buffer).
+ */
+export function resolvePlayerCollisions<
+  D extends { x: number; y: number; matchedTo: string }
+>(
+  defPos: Record<string, D>,
+  off: Record<string, Point>,
+  minDist: number,
+  maxIter: number = 8
+): void {
+  const epsilon = 0.5;
+  for (let iter = 0; iter < maxIter; iter++) {
+    let anyMoved = false;
+    for (const dId in defPos) {
+      const p = defPos[dId];
+      const matched = p.matchedTo;
+      const obstacles: Point[] = [];
+      for (const aId in off) {
+        if (aId !== matched) obstacles.push(off[aId]);
+      }
+      for (const otherId in defPos) {
+        if (otherId !== dId) obstacles.push({ x: defPos[otherId].x, y: defPos[otherId].y });
+      }
+      const pushed = pushOutOfMany({ x: p.x, y: p.y }, obstacles, minDist);
+      if (Math.abs(pushed.x - p.x) > epsilon || Math.abs(pushed.y - p.y) > epsilon) {
+        p.x = pushed.x;
+        p.y = pushed.y;
+        anyMoved = true;
+      }
+    }
+    if (!anyMoved) break;
+  }
 }
 
 /**

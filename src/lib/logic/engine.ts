@@ -21,7 +21,8 @@ import {
   applySwitchOffBall,
 } from './screens';
 import { computeZoneTargets } from './zoneDefense';
-import { ballSide, distance } from './geometry';
+import { ballSide, distance, resolvePlayerCollisions } from './geometry';
+import { PLAYER_RADIUS } from '../data/court';
 
 const DEFENDER_IDS: DefenderId[] = ['D1', 'D2', 'D3', 'D4', 'D5'];
 
@@ -238,6 +239,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
   }
 
   const overrides = state.steps[stepIdx]?.defenseOverrides;
+  const offAtStep = state.steps[stepIdx]?.off ?? {};
 
   const out = {} as ComputedDefense;
   DEFENDER_IDS.forEach((dId) => {
@@ -279,6 +281,15 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
         switchedThisStep: targets[dId].switchedThisStep,
       };
     }
+  });
+
+  // Solveur de collisions : aucun défenseur ne peut se superposer à un
+  // autre joueur (sauf son matchedTo).
+  resolvePlayerCollisions(out as unknown as Record<string, ComputedDefense[DefenderId]>, offAtStep, PLAYER_RADIUS * 2 + 2);
+  // Re-arrondit après résolution
+  DEFENDER_IDS.forEach((dId) => {
+    out[dId].x = Math.round(out[dId].x);
+    out[dId].y = Math.round(out[dId].y);
   });
 
   return out;
