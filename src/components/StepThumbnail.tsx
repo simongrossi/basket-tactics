@@ -10,7 +10,8 @@ import type {
 import { CourtBackground, ArrowMarkers } from './Court';
 import { Player, Ball } from './Player';
 import { AnnotationView } from './Annotations';
-import { effectiveDefensePositions } from '@/lib/logic/engine';
+import { effectiveDefensePositions, getMatchupsAt } from '@/lib/logic/engine';
+import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
 import { getZoneLayout } from '@/lib/data/zones';
 import { ZoneOverlay } from './Overlays';
 import { COURT, FULL_COURT_HEIGHT } from '@/lib/data/court';
@@ -49,20 +50,47 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
         ))}
       </g>
       <g>
-        {(Object.entries(step.off) as [AttackerId, Point][]).map(([id, pos]) => (
-          <Player key={id} id={id} pos={pos} isAttacker />
-        ))}
-        {showDefense &&
-          (Object.entries(defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(([id, p]) => (
-            <Player
-              key={id}
-              id={id}
-              pos={p}
-              isAttacker={false}
-              isCarrierDefender={p.isCarrierDefender}
-              onScreen={p.onScreen}
-            />
-          ))}
+        {(() => {
+          const screenerIds = new Set<AttackerId>();
+          if (showDefense && state.defenseSystem === 'man') {
+            const matchups = getMatchupsAt(state.steps, stepIdx - 1);
+            const defPositions = Object.fromEntries(
+              (Object.entries(defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(([id, p]) => [
+                id,
+                { x: p.x, y: p.y },
+              ])
+            ) as Record<DefenderId, Point>;
+            const screen = detectScreen(step.off, step.ballCarrier, matchups, defPositions, state.screenRadius);
+            const offBallScreens = detectOffBallScreens(step.off, step.ballCarrier, matchups, defPositions, state.screenRadius);
+            if (screen?.screener) screenerIds.add(screen.screener);
+            offBallScreens.forEach((s) => screenerIds.add(s.screener));
+          }
+          return (
+            <>
+              {(Object.entries(step.off) as [AttackerId, Point][])
+                .filter(([id]) => !screenerIds.has(id))
+                .map(([id, pos]) => (
+                  <Player key={id} id={id} pos={pos} isAttacker />
+                ))}
+              {showDefense &&
+                (Object.entries(defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(([id, p]) => (
+                  <Player
+                    key={id}
+                    id={id}
+                    pos={p}
+                    isAttacker={false}
+                    isCarrierDefender={p.isCarrierDefender}
+                    onScreen={p.onScreen}
+                  />
+                ))}
+              {Array.from(screenerIds).map((id) =>
+                step.off[id] ? (
+                  <Player key={`screener-${id}`} id={id} pos={step.off[id]} isAttacker />
+                ) : null
+              )}
+            </>
+          );
+        })()}
       </g>
       <Ball carrierPos={step.off[step.ballCarrier]} />
     </svg>

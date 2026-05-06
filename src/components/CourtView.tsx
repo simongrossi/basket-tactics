@@ -273,21 +273,39 @@ export function CourtView(props: CourtViewProps) {
           {pending && pending.from && <AnnotationView annotation={pending as Annotation} preview />}
         </g>
         <g>
-          {(Object.entries(frame.off) as [AttackerId, Point][]).map(([id, pos]) => (
-            <Player key={id} id={id} pos={pos} isAttacker />
-          ))}
-          {(Object.entries(frame.defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(([id, p]) => (
-            <Player
-              key={id}
-              id={id}
-              pos={p}
-              isAttacker={false}
-              isCarrierDefender={p.isCarrierDefender}
-              isLate={p.late}
-              onScreen={p.onScreen}
-              helpFactor={p.helpFactor}
-            />
-          ))}
+          {(() => {
+            const screenerIds = new Set<AttackerId>();
+            if (frame.screen?.screener) screenerIds.add(frame.screen.screener);
+            frame.offBallScreens.forEach((s) => screenerIds.add(s.screener));
+            return (
+              <>
+                {(Object.entries(frame.off) as [AttackerId, Point][])
+                  .filter(([id]) => !screenerIds.has(id))
+                  .map(([id, pos]) => (
+                    <Player key={id} id={id} pos={pos} isAttacker />
+                  ))}
+                {(Object.entries(frame.defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(
+                  ([id, p]) => (
+                    <Player
+                      key={id}
+                      id={id}
+                      pos={p}
+                      isAttacker={false}
+                      isCarrierDefender={p.isCarrierDefender}
+                      isLate={p.late}
+                      onScreen={p.onScreen}
+                      helpFactor={p.helpFactor}
+                    />
+                  )
+                )}
+                {Array.from(screenerIds).map((id) =>
+                  frame.off[id] ? (
+                    <Player key={`screener-${id}`} id={id} pos={frame.off[id]} isAttacker />
+                  ) : null
+                )}
+              </>
+            );
+          })()}
         </g>
         <Ball carrierPos={frame.off[frame.carrier]} />
       </svg>

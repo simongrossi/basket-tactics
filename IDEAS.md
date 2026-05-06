@@ -14,6 +14,14 @@ Les défenseurs hors-ballon collaient leur homme tant qu'aucun trigger (drive/po
 
 Implémenté dans `help.ts` : sag baseline proportionnel à `helpPct` quand defender est weak-side.
 
+### Path-aware screen avoidance (animation)
+Aujourd'hui les positions cibles passent au-dessus du poseur d'écran (fonction `pushOutOfScreener`) mais le **chemin** entre étape N et étape N+1 reste une interpolation linéaire qui peut traverser le poseur d'écran pendant le playback. Pour que l'animation soit physiquement crédible :
+- Détecter pendant l'animation si le segment `from→to` du défenseur croise le cercle du poseur d'écran
+- Dévier la trajectoire (courbe Bezier ou détour à 1 point intermédiaire) qui contourne le poseur
+- À implémenter dans la boucle RAF de `CourtView.tsx` avant l'interpolation
+
+Idem pour le porteur qui dribble vers / passe à côté du poseur d'écran.
+
 ### Strong-side denial
 Symétrique du sag : un défenseur strong-side proche du ballon devrait jouer "denial" (sur la ligne de passe entre son homme et le ballon, pas entre son homme et le panier). Actuellement le manTarget place toujours le défenseur entre attaquant et HOOP, jamais en denial.
 

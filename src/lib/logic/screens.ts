@@ -11,8 +11,26 @@ import type {
   OffBallScreenRule,
   DropDepth,
 } from '../types';
-import { HOOP } from '../data/court';
+import { HOOP, PLAYER_RADIUS } from '../data/court';
 import { distance } from './geometry';
+
+/**
+ * Garantit qu'un point cible n'est pas à l'intérieur du cercle du poseur d'écran
+ * (deux joueurs ne peuvent pas se superposer physiquement). Si trop proche,
+ * on pousse le point dans la direction opposée jusqu'à un dégagement minimum.
+ */
+function pushOutOfScreener(target: Point, screenerPos: Point): Point {
+  const minClearance = PLAYER_RADIUS * 2 + 2;
+  const dx = target.x - screenerPos.x;
+  const dy = target.y - screenerPos.y;
+  const d = Math.hypot(dx, dy);
+  if (d >= minClearance || d < 0.01) return target;
+  const k = minClearance / d;
+  return {
+    x: screenerPos.x + dx * k,
+    y: screenerPos.y + dy * k,
+  };
+}
 
 /**
  * Détecte automatiquement un écran porteur :
@@ -109,15 +127,19 @@ export function applyScreenAdjustment(
 
   if (rule === 'over' && isCarrierDef) {
     const screenTightness = 1 - Math.min(distance(screenerPos, baseTarget), screenRadius) / screenRadius;
-    const amplitude = 4 + screenTightness * 8;
-    return {
+    const amplitude = 14 + screenTightness * 18;
+    let target = {
       x: baseTarget.x + perpX * amplitude * sideOfCarrier,
       y: baseTarget.y + perpY * amplitude * sideOfCarrier,
     };
+    target = pushOutOfScreener(target, screenerPos);
+    return target;
   }
 
   if (rule === 'under' && isCarrierDef) {
-    return { x: baseTarget.x + nx * 24, y: baseTarget.y + ny * 24 };
+    let target = { x: baseTarget.x + nx * 36, y: baseTarget.y + ny * 36 };
+    target = pushOutOfScreener(target, screenerPos);
+    return target;
   }
 
   if (rule === 'hedge' && isScreenerDef) {
@@ -127,10 +149,13 @@ export function applyScreenAdjustment(
       x: (screenerPos.x + carrierPos.x) / 2 - nx * 6,
       y: (screenerPos.y + carrierPos.y) / 2 - ny * 6,
     };
-    return {
-      x: showPos.x + (baseTarget.x - showPos.x) * showT,
-      y: showPos.y + (baseTarget.y - showPos.y) * showT,
-    };
+    return pushOutOfScreener(
+      {
+        x: showPos.x + (baseTarget.x - showPos.x) * showT,
+        y: showPos.y + (baseTarget.y - showPos.y) * showT,
+      },
+      screenerPos
+    );
   }
 
   if (rule === 'drop' && isScreenerDef) {
@@ -138,10 +163,13 @@ export function applyScreenAdjustment(
     return { x: screenerPos.x + nx * depthPx, y: screenerPos.y + ny * depthPx };
   }
   if (rule === 'drop' && isCarrierDef) {
-    return {
-      x: baseTarget.x + perpX * 6 * sideOfCarrier,
-      y: baseTarget.y + perpY * 6 * sideOfCarrier,
-    };
+    return pushOutOfScreener(
+      {
+        x: baseTarget.x + perpX * 14 * sideOfCarrier,
+        y: baseTarget.y + perpY * 14 * sideOfCarrier,
+      },
+      screenerPos
+    );
   }
 
   if (rule === 'blitz') {
@@ -260,11 +288,11 @@ export function applyOffBallScreenAdjustment(
   const cy = cutDir.y / cutLen;
 
   if (rule === 'over' && isCutterDef) {
-    return { x: baseTarget.x + cx * 10, y: baseTarget.y + cy * 10 };
+    return pushOutOfScreener({ x: baseTarget.x + cx * 18, y: baseTarget.y + cy * 18 }, screenerPos);
   }
 
   if (rule === 'under' && isCutterDef) {
-    return { x: baseTarget.x - cx * 12, y: baseTarget.y - cy * 12 };
+    return pushOutOfScreener({ x: baseTarget.x - cx * 22, y: baseTarget.y - cy * 22 }, screenerPos);
   }
 
   if (rule === 'bump' && isScreenerDef) {
