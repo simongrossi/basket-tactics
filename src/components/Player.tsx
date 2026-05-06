@@ -45,34 +45,48 @@ export function Player({
 
   return (
     <g data-id={id} style={{ cursor: 'grab' }}>
-      {!isAttacker && (() => {
-        // Les bras pointent par défaut vers le haut (-90°). Si on a une cible
-        // à défendre, on tourne le groupe pour qu'ils pointent vers elle.
-        const facingAngle = facing
-          ? (Math.atan2(facing.y - pos.y, facing.x - pos.x) * 180) / Math.PI + 90
-          : 0;
-        return (
-          <g
-            pointerEvents="none"
-            transform={`rotate(${facingAngle.toFixed(1)} ${pos.x} ${pos.y})`}
-          >
-            <path
-              d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
-              fill="none"
-              stroke={stroke}
-              strokeWidth={2.5}
-              strokeLinecap="round"
-            />
-            <path
-              d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
-              fill="none"
-              stroke={stroke}
-              strokeWidth={2.5}
-              strokeLinecap="round"
-            />
-          </g>
-        );
-      })()}
+      {!isAttacker && (
+        <g pointerEvents="none">
+          {/* Convention FIBA : bras stylisés au-dessus du cercle, fixes
+              quelle que soit l'orientation. L'orientation du défenseur sera
+              indiquée séparément (pointeur de facing en option). */}
+          <path
+            d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={2.5}
+            strokeLinecap="round"
+          />
+          <path
+            d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={2.5}
+            strokeLinecap="round"
+          />
+          {facing && (() => {
+            // Petit pointeur de "facing" : un triangle posé sur le bord du
+            // cercle, du côté de l'homme défendu. Indique l'orientation
+            // sans toucher aux bras.
+            const dx = facing.x - pos.x;
+            const dy = facing.y - pos.y;
+            const len = Math.hypot(dx, dy) || 1;
+            const ux = dx / len;
+            const uy = dy / len;
+            const tip = { x: pos.x + ux * (r + 6), y: pos.y + uy * (r + 6) };
+            const base = { x: pos.x + ux * r, y: pos.y + uy * r };
+            const px = -uy * 4;
+            const py = ux * 4;
+            return (
+              <polygon
+                points={`${tip.x},${tip.y} ${base.x + px},${base.y + py} ${base.x - px},${base.y - py}`}
+                fill={stroke}
+                opacity={0.9}
+              />
+            );
+          })()}
+        </g>
+      )}
       <circle cx={pos.x} cy={pos.y} r={r} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
       <text
         x={pos.x}
