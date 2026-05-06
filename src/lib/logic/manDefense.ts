@@ -1,4 +1,4 @@
-import type { Point, CarrierBehavior } from '../types';
+import type { Point, CarrierBehavior, OffBallStance } from '../types';
 import { HOOP, THREE_POINT_RADIUS } from '../data/court';
 import { clamp } from './geometry';
 
@@ -31,6 +31,7 @@ export function carrierDefenderTarget(
   let baseRatio: number;
   let bumpOffset = 0;
 
+  let lateralOffset = 0;
   switch (vsCarrier) {
     case 'coller':
       baseRatio = 0.4;
@@ -45,13 +46,69 @@ export function carrierDefenderTarget(
     case 'reculer':
       baseRatio = 1.3;
       break;
+    case 'topside':
+      baseRatio = 0.4;
+      lateralOffset = 14; // pousse vers le côté ligne de fond → milieu
+      break;
+    case 'baseline':
+      baseRatio = 0.4;
+      lateralOffset = -14; // force le porteur côté ligne de fond
+      break;
   }
 
   const targetDist = (baseRatio * defenseDistance) / pressureFactor;
 
   const ratio = Math.max(0, (dist - targetDist) / dist);
+  // Décalage latéral : perpendiculaire à l'axe homme-panier, signé
+  // selon le côté du porteur (+ vers le centre du terrain en haut/bas)
+  const perpX = -dy / dist;
+  const perpY = dx / dist;
+  const sideSign = att.x >= HOOP.x ? 1 : -1;
   return {
-    x: HOOP.x + dx * ratio - (dx / dist) * bumpOffset,
-    y: HOOP.y + dy * ratio - (dy / dist) * bumpOffset,
+    x: HOOP.x + dx * ratio - (dx / dist) * bumpOffset + perpX * lateralOffset * sideSign,
+    y: HOOP.y + dy * ratio - (dy / dist) * bumpOffset + perpY * lateralOffset * sideSign,
+  };
+}
+
+/**
+ * Position cible d'un défenseur HORS-BALLON selon sa stance off-ball.
+ * - 'sag' / undefined : entre attaquant et panier (manTarget classique)
+ * - 'behind' : strictement entre attaquant et panier, sans biais d'aide
+ * - 'deny-3q' : 3/4 ball-side — un pied dans la ligne de passe
+ * - 'fronting' : entre attaquant et ballon (full denial / face-guard)
+ */
+export function offBallStanceTarget(
+  att: Point | undefined,
+  ball: Point | undefined,
+  defenseDistance: number,
+  stance: OffBallStance
+): Point | null {
+  if (!att) return null;
+  if (!ball || stance === 'sag' || stance === 'behind') {
+    return manTarget(att, defenseDistance);
+  }
+
+  // Position "behind" (entre attaquant et panier)
+  const dxB = HOOP.x - att.x;
+  const dyB = HOOP.y - att.y;
+  const dB = Math.hypot(dxB, dyB) || 1;
+  const behind = {
+    x: att.x + (dxB / dB) * defenseDistance,
+    y: att.y + (dyB / dB) * defenseDistance,
+  };
+
+  // Position "fronting" (entre attaquant et ballon)
+  const dxF = ball.x - att.x;
+  const dyF = ball.y - att.y;
+  const dF = Math.hypot(dxF, dyF) || 1;
+  const front = {
+    x: att.x + (dxF / dF) * defenseDistance,
+    y: att.y + (dyF / dF) * defenseDistance,
+  };
+
+  const blend = stance === 'fronting' ? 1 : 0.75; // deny-3q
+  return {
+    x: behind.x + (front.x - behind.x) * blend,
+    y: behind.y + (front.y - behind.y) * blend,
   };
 }

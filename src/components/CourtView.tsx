@@ -282,14 +282,32 @@ export function CourtView(props: CourtViewProps) {
   };
 
   const onContextMenu = (e: React.MouseEvent) => {
+    // Cherche d'abord via le DOM ; si la cible n'est pas un défenseur (ex.
+    // un poseur d'écran rendu au-dessus), on retombe sur la recherche
+    // du défenseur le plus proche du point cliqué.
+    let dId: DefenderId | null = null;
     const target = (e.target as Element).closest('g[data-id]');
-    if (!target) return;
-    const id = target.getAttribute('data-id');
-    if (!id || !id.startsWith('D')) return;
+    const domId = target?.getAttribute('data-id');
+    if (domId && domId.startsWith('D')) {
+      dId = domId as DefenderId;
+    } else {
+      const pt = svgPoint(e as unknown as React.PointerEvent);
+      let bestDist = Infinity;
+      (Object.entries(frame.defPos) as [DefenderId, ComputedDefense[DefenderId]][]).forEach(
+        ([id, p]) => {
+          const d = distance(pt, { x: p.x, y: p.y });
+          if (d < PLAYER_RADIUS + 6 && d < bestDist) {
+            bestDist = d;
+            dId = id;
+          }
+        }
+      );
+    }
+    if (!dId) return;
     e.preventDefault();
     const wrap = svgRef.current?.parentElement?.getBoundingClientRect();
     if (!wrap) return;
-    setCtxMenu({ dId: id as DefenderId, x: e.clientX - wrap.left, y: e.clientY - wrap.top });
+    setCtxMenu({ dId, x: e.clientX - wrap.left, y: e.clientY - wrap.top });
   };
 
   return (

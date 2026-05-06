@@ -10,7 +10,7 @@ import type {
 import { baseMatchups } from '../data/initial';
 import { getZoneLayout } from '../data/zones';
 import { detectTriggers } from './triggers';
-import { manTarget, carrierDefenderTarget } from './manDefense';
+import { manTarget, carrierDefenderTarget, offBallStanceTarget } from './manDefense';
 import { computeHelpTarget } from './help';
 import {
   detectScreen,
@@ -103,10 +103,16 @@ export function computeDefenseTargets(
     if (isCarrierDefender) {
       target = carrierDefenderTarget(rule.vsCarrier, att, state.defenseDistance) || state.defenseInitial[dId];
     } else {
-      const manPos = manTarget(att, state.defenseDistance) || state.defenseInitial[dId];
-      target = manPos;
-      if (att && carrierPos) {
-        const help = computeHelpTarget(manPos, rule, triggers, carrierPos, att, side, off);
+      const stance = rule.offBallStance ?? 'sag';
+      const stancePos =
+        stance !== 'sag'
+          ? offBallStanceTarget(att, carrierPos, state.defenseDistance, stance) || state.defenseInitial[dId]
+          : manTarget(att, state.defenseDistance) || state.defenseInitial[dId];
+      target = stancePos;
+      // Le help bias n'est appliqué qu'avec la stance "sag" — les stances
+      // dirigées (deny-3q, fronting, behind) sont des positions absolues.
+      if (stance === 'sag' && att && carrierPos) {
+        const help = computeHelpTarget(stancePos, rule, triggers, carrierPos, att, side, off);
         target = help.target;
         helpFactor = help.helpFactor;
       }

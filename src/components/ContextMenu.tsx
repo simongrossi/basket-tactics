@@ -82,6 +82,20 @@ export function ContextMenu({ dId, x, y, rule, onUpdate, onClose }: ContextMenuP
           <option value="bumper">bumper (entre lui & panier)</option>
           <option value="contester">contester (recul actif)</option>
           <option value="reculer">reculer (drop)</option>
+          <option value="topside">topside (force milieu)</option>
+          <option value="baseline">baseline (force ligne de fond)</option>
+        </select>
+      </Row>
+      <Row label="hors-ballon">
+        <select
+          value={rule.offBallStance ?? 'sag'}
+          onChange={(e) => onUpdate({ offBallStance: e.target.value as DefenderRule['offBallStance'] })}
+          style={{ flex: 1 }}
+        >
+          <option value="sag">sag (aide raquette)</option>
+          <option value="behind">derrière (entre lui & panier)</option>
+          <option value="deny-3q">3/4 deny (pied dans la passe)</option>
+          <option value="fronting">devant (full denial)</option>
         </select>
       </Row>
     </div>

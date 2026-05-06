@@ -33,12 +33,14 @@ export interface Step {
 }
 
 export type HelpPriority = 'paint' | 'man' | 'passlane';
-export type CarrierBehavior = 'coller' | 'bumper' | 'contester' | 'reculer';
+export type CarrierBehavior = 'coller' | 'bumper' | 'contester' | 'reculer' | 'topside' | 'baseline';
+export type OffBallStance = 'sag' | 'deny-3q' | 'fronting' | 'behind';
 
 export interface DefenderRule {
   helpPct: number;
   priority: HelpPriority;
   vsCarrier: CarrierBehavior;
+  offBallStance?: OffBallStance;
 }
 
 export type DefenderRules = Record<DefenderId, DefenderRule>;
