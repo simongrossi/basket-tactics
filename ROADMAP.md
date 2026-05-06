@@ -15,6 +15,7 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 - 🟢 **Stunt and recover v1** — nouvelle `OffBallStance: 'stunt'` (fake d'aide vers le ballon, blend 0.4 entre behind et fronting). Le "recover" est naturel : la stance par défaut est récupérée à l'étape suivante.
 - 🟢 **Staggered screens v1** — `pickBlockingObstacle` choisit l'obstacle de plus profonde pénétration plutôt que le premier de la liste. Évitement plus fidèle quand plusieurs poseurs s'enchaînent. Limite : pas de double courbe.
 - 🟢 **Inversion HOOP v1** — `attackingDirection: 'up' | 'down'` + `getDefenseHoop(state)` threadé dans engine vers manTarget, carrierDefenderTarget, offBallStanceTarget, computeHelpTarget, applyScreenAdjustment, detectTriggers, computeMetrics, isInTrapZone. Bouton "↻ sens d'attaque" dans le panneau défense (gated sur fullCourt). Zone defense pas encore directionnelle.
+- 🟢 **Numérotation des étapes** — petits ronds 1, 2, 3… au pied du joueur initiateur de chaque annotation sur les vignettes PDF.
 
 ---
 
@@ -68,8 +69,8 @@ Magnétisme `Ctrl+drag` sur les lignes clés du terrain (ligne 3pt, raquette, bl
 
 ### Visualisation & feedback
 
-#### ⚪ Numérotation des étapes
-Petits ronds 1, 2, 3 sur les positions joueurs dans chaque vignette playbook, pour voir l'ordre des actions sans comparer mentalement étape N et N+1. À implémenter dans `StepThumbnail.tsx`.
+#### 🟢 Numérotation des étapes (v1)
+Implémenté dans `StepThumbnail.tsx` (composant `ActionOrderBadges`). Pour chaque annotation de l'étape, un petit rond noir numéroté est posé en bas-gauche du joueur initiateur (`fromId`), dans l'ordre des annotations. Si un même joueur initie plusieurs actions, les badges s'empilent horizontalement. Visible uniquement sur les vignettes playbook PDF.
 
 #### ⚪ Mode fantôme (ghosting)
 Afficher en transparence la position des joueurs à l'étape N-1 pendant l'édition de l'étape N, pour visualiser les vecteurs de déplacement.
