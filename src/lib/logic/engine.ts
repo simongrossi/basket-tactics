@@ -235,7 +235,10 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     const to = targets[dId];
     const d = distance(from, to);
 
-    if (d <= maxSpeed) {
+    // À l'étape 0, on considère que les défenseurs SONT à leur position idéale
+    // (le step 0 est un setup, pas une transition). La contrainte de vitesse
+    // ne s'applique qu'entre les étapes suivantes.
+    if (stepIdx === 0 || d <= maxSpeed) {
       out[dId] = { ...to, late: false };
     } else {
       const r = maxSpeed / d;

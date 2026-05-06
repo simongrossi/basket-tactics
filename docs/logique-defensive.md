@@ -206,7 +206,7 @@ Dans `effectiveDefensePositions`:
 maxSpeed = state.defenseSystem === 'zone' ? rotationSpeed : defenseMaxSpeed
 pour chaque défenseur:
   d = distance(from, target)
-  if (d <= maxSpeed):
+  if (stepIdx === 0 OR d <= maxSpeed):
     out[dId] = target  (late: false)
   else:
     r = maxSpeed / d
@@ -214,6 +214,8 @@ pour chaque défenseur:
 ```
 
 Le défenseur en retard est rendu avec un contour rouge.
+
+**Important** : à l'étape 0 (setup initial), la contrainte de vitesse ne s'applique PAS — les défenseurs sont à leur position idéale d'entrée. La lateness ne joue qu'entre les étapes suivantes (transitions). Sinon, repositionner un attaquant en mode édition donnerait l'illusion que le défenseur "ne défend plus" (en réalité il était en retard depuis `defenseInitial`).
 
 ## Points d'extension
 
