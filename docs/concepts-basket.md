@@ -117,10 +117,12 @@ Le terrain est partitionné en **régions** polygonales. Chaque défenseur est a
 
 ### Quatre layouts implémentés
 
-- **2-3** : 2 gardes en haut, 3 lignards en bas
-- **1-3-1** : un chasseur en haut, 3 en ligne médiane, 1 ancre baseline
-- **3-2** : 3 en haut, 2 en bas
-- **match-up** : zones du 2-3 mais marquage individuel dans la zone
+Convention de coordonnées : `y=20` = ligne de fond (proche du panier), `y=540` = ligne médiane. Donc dans la description ci-dessous, "haut" du terrain = grands `y`, "bas" (près du panier) = petits `y`.
+
+- **2-3** : 2 gardes au top of key extended (y=280..540), pivot dans la raquette + 2 ailes basses (y=20..280)
+- **1-3-1** : ancre baseline (y=20..160), 3 sur la ligne des LF (y=160..380, splittés gauche/centre/droit), chasseur top (y=380..540)
+- **3-2** : 3 au top (Top G/C/D, y=280..540), 2 en bas (Bas G/D, y=20..280)
+- **match-up** : mêmes polygones que le 2-3 mais marquage individuel à l'intérieur de la zone
 
 ### Algorithme par défenseur
 
