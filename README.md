@@ -1,54 +1,151 @@
 # 🏀 Basket Tactics
 
-Simulateur tactique de basket pour visualiser des systèmes offensifs et observer la réaction d'une défense paramétrable. Next.js 14 + TypeScript + SVG natif, application client-only.
+Simulateur tactique de basket-ball pour visualiser des systèmes offensifs et observer la **réaction d'une défense entièrement paramétrable**. Tu construis ton système en étapes, tu règles le comportement de chaque défenseur, et le moteur calcule à la volée où ils devraient se trouver. Tout est interactif, vectoriel, et tient dans une page Next.js client-only.
 
-## Démarrage
+> Pas de backend, pas de compte, pas de tracking. Tu lances `npm run dev`, c'est joué.
+
+---
+
+## Démarrage rapide
 
 ```bash
+git clone https://github.com/simongrossi/basket-tactics.git
+cd basket-tactics
 npm install
 npm run dev          # → http://localhost:3000
-npm run type-check   # vérifier les types
-npm run build        # build statique
 ```
 
-## Quoi ?
+Autres commandes utiles :
 
-Tu poses 5 attaquants et 5 défenseurs sur un terrain, tu construis un système en plusieurs étapes (passes, dribbles, écrans, courses), tu règles le comportement défensif (homme à homme avec consignes individuelles, ou zone 2-3 / 1-3-1 / 3-2 / match-up), et le moteur calcule où devraient être les défenseurs à chaque étape.
+```bash
+npm run type-check   # tsc --noEmit
+npm run build        # build de production statique
+```
 
-Tu peux ensuite :
-- Lire l'animation entre étapes
-- Scrubber dans la timeline pour voir les positions intermédiaires
-- Charger un système pré-construit depuis la **bibliothèque** (PNR central, Horns flare, Pindown coin)
-- Exporter en **playbook PDF** pour partager avec un staff
-- Sauvegarder/charger en JSON
+---
+
+## Ce qu'on peut faire
+
+### Côté attaque (panneau gauche, orange)
+
+- Poser 5 attaquants et dessiner leur action via 4 conventions de tracé : **passe** (pointillés), **dribble** (zig-zag), **course** (ligne pleine), **écran** (T)
+- Construire un système en plusieurs **étapes** (keyframes), chacune avec son label, son porteur de balle, ses annotations
+- Charger un système depuis la **bibliothèque** : PNR central, Horns flare, Pindown coin, Spain PNR, UCLA cut, Floppy
+- Lire l'animation, **scrubber** dans la timeline pour voir les positions intermédiaires
+
+### Côté défense (panneau droit, bleu)
+
+- Bascule **homme à homme / zone** (4 layouts : 2-3, 1-3-1, 3-2, match-up)
+- 6 règles d'écran porteur (over / under / switch / hedge / drop / blitz) + 4 pour écrans non-porteur
+- 3 triggers d'aide globaux (drive / post-up / paint)
+- **Règles individuelles par défenseur** : intensité d'aide, priorité (raquette / homme / passe), comportement vs porteur (coller / bumper / contester / reculer / topside / baseline), stance hors-ballon (sag / derrière / 3/4 deny / fronting), navigation sur écran (override individuel)
+- 6 **presets défensifs** prêts à l'emploi : Drop coverage, Switch tout, Hedge & recover, Ice + drop, Fond de raquette, Pression all-court
+- Position de chaque défenseur **manuellement modifiable** par drag (override par étape, désactivable d'un clic-droit)
+
+### Visualisation
+
+- **Métriques en temps réel** sous la timeline : couverture raquette, gap max, écart moyen, défenseurs en retard, intensité d'aide, ratio passes ouvertes
+- **Lignes de passe** colorées (ouverte / contestée / bloquée) depuis le porteur
+- **Lignes d'aide** : trait pointillé violet entre la position de marquage pure et la position d'aide effective
+- **Indicateurs d'écran** : cercle violet sur le poseur d'écran porteur, vert sur écran non-porteur
+- Bras stylisés FIBA + petit triangle d'orientation sur chaque défenseur
+- Toggle **terrain complet** (demi-terrain par défaut)
+
+### Export & persistance
+
+- **Playbook PDF** : grille de vignettes 1/2/3 colonnes, options défense / légende, via `window.print()` du navigateur
+- **Export / import JSON** complet
+- **Persistance localStorage automatique** (debounce 400ms)
+
+---
+
+## Captures (pour info)
+
+L'interface est un layout 3 colonnes :
+
+```
+┌──────────────┬──────────────────────────────┬──────────────┐
+│              │                              │              │
+│   ATTAQUE    │           TERRAIN            │   DÉFENSE    │
+│   (orange)   │           (SVG)              │    (bleu)    │
+│              │                              │              │
+│  Outils      │                              │  Presets     │
+│  Bibliothèque│                              │  Système     │
+│  Étapes      │                              │  Triggers    │
+│  Lecture     │                              │  Écran porteur│
+│              │                              │  Écran nonP  │
+│              ├──────────────────────────────┤  Règles indiv│
+│              │   Timeline (scrubbing)       │  Visualisation│
+│              │   Métriques (pills colorées) │              │
+└──────────────┴──────────────────────────────┴──────────────┘
+```
+
+---
+
+## Architecture en 30 secondes
+
+```
+src/
+├── app/                    # Next.js App Router (page.tsx)
+├── components/             # OffensePanel, DefensePanel, CourtView,
+│                          #   Timeline, MetricsBar, PlaybookView, ...
+├── hooks/useAppState.ts    # état central + tous les callbacks
+└── lib/
+    ├── data/               # court.ts, initial.ts, zones.ts,
+    │                       #   templates.ts, defensePresets.ts
+    ├── logic/              # MOTEUR PUR — pas de React :
+    │                       #   engine, manDefense, help, screens,
+    │                       #   triggers, zoneDefense, geometry,
+    │                       #   metrics
+    └── types/index.ts      # types stricts
+```
+
+**Le moteur est pur**. `src/lib/logic/` ne dépend de rien (ni React, ni DOM). Tu lui passes l'état, il te rend les positions calculées. Conséquence : testable isolément, ré-utilisable côté serveur, et chaque modif d'un paramètre recalcule instantanément toutes les étapes.
+
+---
 
 ## Documentation
 
-Toute la doc structurée vit dans [`docs/`](docs/) :
+Toute la doc technique vit dans [`docs/`](docs/) :
 
-- [docs/architecture.md](docs/architecture.md) — stack, dossiers, flux de données
-- [docs/data-model.md](docs/data-model.md) — types, AppState, persistance
-- [docs/concepts-basket.md](docs/concepts-basket.md) — vocabulaire basket modélisé
-- [docs/logique-defensive.md](docs/logique-defensive.md) — fonctionnement du moteur
-- [docs/ui-design.md](docs/ui-design.md) — choix visuels, layout, conventions de tracé
-- [docs/menu-reference.md](docs/menu-reference.md) — référence exhaustive des menus
-- [docs/bibliotheque-systemes.md](docs/bibliotheque-systemes.md) — format des templates
-- [docs/export-pdf.md](docs/export-pdf.md) — comment fonctionne l'export PDF
+| Fichier | Sujet |
+|---------|-------|
+| [`docs/architecture.md`](docs/architecture.md) | Stack, structure des dossiers, flux de données |
+| [`docs/data-model.md`](docs/data-model.md) | Forme de l'`AppState`, types, persistance |
+| [`docs/concepts-basket.md`](docs/concepts-basket.md) | Vocabulaire basket modélisé (stances, screens, switches, zone, triggers, lateness) |
+| [`docs/logique-defensive.md`](docs/logique-defensive.md) | Pipeline du moteur étape par étape, formules, points d'extension |
+| [`docs/ui-design.md`](docs/ui-design.md) | Choix visuels, layout, conventions de tracé |
+| [`docs/menu-reference.md`](docs/menu-reference.md) | Référence exhaustive de chaque réglage de l'interface |
+| [`docs/bibliotheque-systemes.md`](docs/bibliotheque-systemes.md) | Format des templates, comment en ajouter |
+| [`docs/export-pdf.md`](docs/export-pdf.md) | Comment fonctionne l'export PDF |
 
-Backlog et historique : [IDEAS.md](IDEAS.md).
+Pour reprendre le projet, lis dans cet ordre : `architecture.md` → `concepts-basket.md` → `logique-defensive.md`.
+
+Backlog et historique des features : [`IDEAS.md`](IDEAS.md).
+
+---
 
 ## Décisions structurantes
 
-- **Le moteur est pur** — aucune dépendance à React, testable isolément, réutilisable. Tout vit dans `src/lib/logic/`.
-- **Les positions défensives sont calculées, pas stockées.** Seules les positions OFFENSIVES par étape et la position INITIALE de la défense sont persistées. Tout le reste est recalculé à la volée. Conséquence : changer un paramètre défensif global recalcule instantanément toutes les étapes.
-- **Les switches d'écran sont persistés par étape** dans `step.switches` et cumulés via `getMatchupsAt()`.
-- **SVG plutôt que Canvas** — vectoriel, simple, lisible à l'export, performance largement suffisante pour 10 joueurs.
+- **Moteur pur** (`lib/logic/`) — aucune dépendance React, testable et réutilisable.
+- **Positions défensives calculées, pas stockées** — seules les positions offensives par étape sont persistées. La défense est recomputée à chaque frame depuis l'état.
+- **Override manuel par étape** — l'utilisateur peut imposer la position d'un défenseur sur une étape donnée (`Step.defenseOverrides`), le moteur la respecte.
+- **Switches persistés sur l'étape** où ils ont lieu, cumulés via `getMatchupsAt()`.
+- **Path-aware avoidance** — pendant l'animation, les défenseurs contournent les poseurs d'écran via une courbe Bezier (pas un push réactif), avec ralentissement au sommet.
+- **Solveur de collisions strict** — aucun défenseur ne se superpose à un autre joueur (sauf à son matched man).
+- **SVG natif plutôt que Canvas** — vectoriel, simple, lisible à l'export, performance largement suffisante.
+
+---
 
 ## Tech
 
-- Next.js 14 (App Router), client-only
-- React 18, TypeScript strict
-- SVG natif (pas de Konva, pas de Canvas, pas de bibliothèque UI)
-- localStorage pour la persistance
+- **Next.js 14** (App Router) — application 100 % client-only
+- **React 18**, **TypeScript** strict
+- **SVG natif** — pas de Konva, pas de Canvas, pas de lib UI
+- **localStorage** pour la persistance
 
-Pour reprendre le projet, lis dans cet ordre : `docs/architecture.md` → `docs/concepts-basket.md` → `docs/logique-defensive.md`.
+---
+
+## Statut
+
+Projet personnel en évolution — voir [`IDEAS.md`](IDEAS.md) pour le backlog priorisé. Contributions, retours et idées bienvenus via les issues.
