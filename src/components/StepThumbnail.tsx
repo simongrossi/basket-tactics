@@ -45,11 +45,6 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
         <ZoneOverlay layout={getZoneLayout(state.zoneConfig.type)} show />
       )}
       <g>
-        {step.annotations.map((a, i) => (
-          <AnnotationView key={i} annotation={a} />
-        ))}
-      </g>
-      <g>
         {(() => {
           const screenerIds = new Set<AttackerId>();
           if (showDefense && state.defenseSystem === 'man') {
@@ -81,6 +76,7 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     isAttacker={false}
                     isCarrierDefender={p.isCarrierDefender}
                     onScreen={p.onScreen}
+                    facing={step.off[p.matchedTo]}
                   />
                 ))}
               {Array.from(screenerIds).map((id) =>
@@ -91,6 +87,11 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
             </>
           );
         })()}
+      </g>
+      <g>
+        {step.annotations.map((a, i) => (
+          <AnnotationView key={i} annotation={a} />
+        ))}
       </g>
       <Ball carrierPos={step.off[step.ballCarrier]} />
     </svg>

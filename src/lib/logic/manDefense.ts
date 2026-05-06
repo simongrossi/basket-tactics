@@ -56,7 +56,9 @@ export function carrierDefenderTarget(
       break;
   }
 
-  const targetDist = (baseRatio * defenseDistance) / pressureFactor;
+  // Distance minimale pour que les cercles ne se superposent pas visuellement.
+  const MIN_TARGET_DIST = 38; // 2 * PLAYER_RADIUS (18) + 2px de jeu
+  const targetDist = Math.max(MIN_TARGET_DIST, (baseRatio * defenseDistance) / pressureFactor);
 
   const ratio = Math.max(0, (dist - targetDist) / dist);
   // Décalage latéral : perpendiculaire à l'axe homme-panier, signé

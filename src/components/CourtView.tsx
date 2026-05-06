@@ -341,15 +341,7 @@ export function CourtView(props: CourtViewProps) {
           <ZoneOverlay layout={getZoneLayout(state.zoneConfig.type)} show />
         )}
         <Matchups off={frame.off} defPos={frame.defPos} show={state.showMatchups} />
-        <ScreenIndicator screen={frame.screen} off={frame.off} rule={state.screenRule} />
-        <OffBallScreenIndicator screens={frame.offBallScreens} off={frame.off} />
         <HelpLines off={frame.off} defPos={frame.defPos} defenseDistance={state.defenseDistance} show={state.showHelpLines} />
-        <g>
-          {state.steps[frame.stepIdx]?.annotations.map((a, i) => (
-            <AnnotationView key={i} annotation={a} />
-          ))}
-          {pending && pending.from && <AnnotationView annotation={pending as Annotation} preview />}
-        </g>
         <g>
           {(() => {
             const screenerIds = new Set<AttackerId>();
@@ -373,6 +365,7 @@ export function CourtView(props: CourtViewProps) {
                       isLate={p.late}
                       onScreen={p.onScreen}
                       helpFactor={p.helpFactor}
+                      facing={frame.off[p.matchedTo]}
                     />
                   )
                 )}
@@ -385,6 +378,14 @@ export function CourtView(props: CourtViewProps) {
             );
           })()}
         </g>
+        <g>
+          {state.steps[frame.stepIdx]?.annotations.map((a, i) => (
+            <AnnotationView key={i} annotation={a} />
+          ))}
+          {pending && pending.from && <AnnotationView annotation={pending as Annotation} preview />}
+        </g>
+        <ScreenIndicator screen={frame.screen} off={frame.off} rule={state.screenRule} />
+        <OffBallScreenIndicator screens={frame.offBallScreens} off={frame.off} />
         <Ball carrierPos={frame.off[frame.carrier]} />
       </svg>
       {props.isPlaying && (

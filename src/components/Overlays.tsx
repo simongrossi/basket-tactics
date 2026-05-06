@@ -89,24 +89,35 @@ export function ScreenIndicator({ screen, off, rule }: ScreenIndicatorProps) {
   const sp = off[screen.screener];
   if (!sp) return null;
   return (
-    <g>
+    <g pointerEvents="none">
+      <circle cx={sp.x} cy={sp.y} r={28} fill="rgba(83, 74, 183, 0.10)" />
       <circle
         cx={sp.x}
         cy={sp.y}
-        r={26}
+        r={28}
         fill="none"
         stroke="#534AB7"
-        strokeWidth={2.5}
-        strokeDasharray="4 3"
-        opacity={0.85}
+        strokeWidth={3}
+        strokeDasharray="5 3"
+        opacity={0.95}
+      />
+      <rect
+        x={sp.x - 60}
+        y={sp.y - 46}
+        width={120}
+        height={16}
+        fill="rgba(255,255,255,0.92)"
+        stroke="#534AB7"
+        strokeWidth={1}
+        rx={3}
       />
       <text
         x={sp.x}
-        y={sp.y - 30}
+        y={sp.y - 34}
         textAnchor="middle"
         fill="#534AB7"
         fontSize={11}
-        fontWeight={500}
+        fontWeight={600}
       >
         écran {screen.screener} → {screen.carrier} [{rule}]
       </text>

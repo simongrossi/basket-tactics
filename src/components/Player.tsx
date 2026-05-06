@@ -9,6 +9,7 @@ interface PlayerProps {
   isLate?: boolean;
   onScreen?: boolean;
   helpFactor?: number;
+  facing?: Point;
 }
 
 export function Player({
@@ -19,6 +20,7 @@ export function Player({
   isLate,
   onScreen,
   helpFactor,
+  facing,
 }: PlayerProps) {
   const fill = isAttacker ? '#D85A30' : '#378ADD';
 
@@ -43,24 +45,34 @@ export function Player({
 
   return (
     <g data-id={id} style={{ cursor: 'grab' }}>
-      {!isAttacker && (
-        <g pointerEvents="none">
-          <path
-            d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
-            fill="none"
-            stroke={stroke}
-            strokeWidth={2.5}
-            strokeLinecap="round"
-          />
-          <path
-            d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
-            fill="none"
-            stroke={stroke}
-            strokeWidth={2.5}
-            strokeLinecap="round"
-          />
-        </g>
-      )}
+      {!isAttacker && (() => {
+        // Les bras pointent par défaut vers le haut (-90°). Si on a une cible
+        // à défendre, on tourne le groupe pour qu'ils pointent vers elle.
+        const facingAngle = facing
+          ? (Math.atan2(facing.y - pos.y, facing.x - pos.x) * 180) / Math.PI + 90
+          : 0;
+        return (
+          <g
+            pointerEvents="none"
+            transform={`rotate(${facingAngle.toFixed(1)} ${pos.x} ${pos.y})`}
+          >
+            <path
+              d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
+              fill="none"
+              stroke={stroke}
+              strokeWidth={2.5}
+              strokeLinecap="round"
+            />
+            <path
+              d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
+              fill="none"
+              stroke={stroke}
+              strokeWidth={2.5}
+              strokeLinecap="round"
+            />
+          </g>
+        );
+      })()}
       <circle cx={pos.x} cy={pos.y} r={r} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
       <text
         x={pos.x}
