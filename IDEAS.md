@@ -115,6 +115,15 @@ Pas de souci visible aujourd'hui (5 vs 5, frames 60Hz fluides) mais `effectiveDe
 
 ## UI / UX
 
+### Réorganisation du menu défense (À FAIRE)
+Le panneau actuel mélange les aspects collectifs et individuels. Refactor proposé :
+- **Section "défense collective"** : système (man/zone), config zone, règle écran porteur, règle écran non-porteur, paramètres globaux (distance, vit max), triggers d'aide
+- **Section "défense individuelle"** : règles par défenseur (aide %, priorité, vs porteur)
+
+Avantage : un coach règle d'abord la philosophie défensive d'équipe, puis ajuste les comportements individuels. Aujourd'hui les deux sont entremêlés.
+
+Idée bonus : un set de presets globaux ("fond de raquette", "pression all-court", "switch tout", "drop coverage") qui appliquent en une fois système + screen rule + triggers + ratios.
+
 ### Symbolique défenseur "à la FIBA" (bras défensifs) (FAIT)
 Deux arcs SVG (Bezier quadratique) au-dessus du cercle des défenseurs simulant les bras en posture défensive. Lisibilité immédiate.
 
