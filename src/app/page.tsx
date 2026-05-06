@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from 'react';
 import { useAppState } from '@/hooks/useAppState';
 import { ControlPanel } from '@/components/ControlPanel';
 import { CourtView } from '@/components/CourtView';
+import { PlaybookView } from '@/components/PlaybookView';
 import type { Tool, AppState } from '@/lib/types';
 
 const TOOLS: { value: Tool; label: string }[] = [
@@ -58,6 +59,7 @@ export default function Page() {
   const app = useAppState();
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [showPlaybook, setShowPlaybook] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = useCallback(() => {
@@ -122,6 +124,8 @@ export default function Page() {
           onUpdateZoneConfig={app.updateZoneConfig}
           onSetStepLabel={app.setStepLabel}
           onSetBallCarrier={app.setBallCarrier}
+          onLoadTemplate={app.loadTemplate}
+          onOpenPlaybook={() => setShowPlaybook(true)}
         />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -182,6 +186,9 @@ export default function Page() {
         style={{ display: 'none' }}
         onChange={handleFile}
       />
+      {showPlaybook && (
+        <PlaybookView state={app.state} onClose={() => setShowPlaybook(false)} />
+      )}
     </main>
   );
 }

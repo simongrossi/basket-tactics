@@ -39,17 +39,10 @@ Sauvegarde auto de l'état dans localStorage (debounce 400ms, clé `basket-tacti
 - Annotations affichées en cohérence avec l'étape en cours d'animation pendant le playback (avant : seulement celles de l'étape active)
 - Fin de playback s'arrête sur la dernière étape (avant : retour à activeStep)
 
-### Templates tactiques
-Pré-enregistrer des situations classiques chargeables en un clic :
-- PNR central / aile / step-up
-- Horns
-- Princeton chin
-- UCLA cut
-- Iverson cut
-- Floppy / pin-down series
-- Hammer action
+### Templates tactiques (FAIT — 3 templates v1)
+Implémenté dans `lib/data/templates.ts` avec PNR central, Horns flare, Pindown coin. Section dépliable dans le panneau gauche, charger remplace les étapes en cours (avec confirmation si du travail est présent).
 
-Stockage : `lib/data/templates.ts` avec `Step[]` complets.
+À ajouter plus tard : PNR aile, PNR step-up, Princeton chin, UCLA cut, Iverson cut, Floppy, Hammer action, Spain PNR. Format Template stable, ajouter une entrée dans le tableau `TEMPLATES` suffit.
 
 ### Métriques défensives
 Score de couverture par étape :
@@ -77,14 +70,14 @@ Cacher la sidebar, plein écran SVG, gros boutons play/pause/step.
 ### Export vidéo / GIF
 Capturer la lecture complète en vidéo téléchargeable (canvas → mediarecorder ou côté serveur).
 
-### Export playbook PDF / image (planches multi-étapes)
-Format playbook classique : grille d'images, une vignette par étape avec ses annotations figées (flèches/passes/écrans), titre = label de l'étape, numérotation. Disposition 2x2 ou 3x2 pour tenir sur une page A4. Cas d'usage : impression, partage avec un staff, archivage tactique.
+### Export playbook PDF / image (FAIT v1)
+Implémenté avec `PlaybookView` (overlay) + `StepThumbnail` (rendu statique réutilisable). Bouton "playbook (PDF)" en bas du panneau ouvre la vue, l'utilisateur ajuste titre / colonnes / défense / légende, puis clique "imprimer / PDF" — le navigateur fait son print dialog avec "Save as PDF". CSS `@media print` masque tout sauf le contenu playbook, gère pageBreakInside.
 
-Approche technique :
-- Rendre chaque étape dans un SVG offscreen avec ses annotations + positions figées
-- Composer une page (HTML print CSS ou jsPDF + svg2img)
-- Bouton "exporter playbook" en plus de l'export JSON
-- Options : nombre de vignettes/page, afficher les défenseurs ou pas, légende des conventions de tracé
+Améliorations possibles :
+- Page de garde dédiée
+- Numérotation auto des étapes sur le terrain (cercles 1, 2, 3 sur les positions)
+- Diff visuel entre étapes consécutives (ghost de la position précédente)
+- Vrai PDF côté client (jsPDF) pour piloter pagination plus finement
 
 ---
 
@@ -115,14 +108,10 @@ Pas de souci visible aujourd'hui (5 vs 5, frames 60Hz fluides) mais `effectiveDe
 
 ## UI / UX
 
-### Réorganisation du menu défense (À FAIRE)
-Le panneau actuel mélange les aspects collectifs et individuels. Refactor proposé :
-- **Section "défense collective"** : système (man/zone), config zone, règle écran porteur, règle écran non-porteur, paramètres globaux (distance, vit max), triggers d'aide
-- **Section "défense individuelle"** : règles par défenseur (aide %, priorité, vs porteur)
+### Réorganisation du menu défense (FAIT — bandeaux)
+Bandeaux de section "DÉFENSE COLLECTIVE" et "DÉFENSE INDIVIDUELLE" pour distinguer visuellement les deux niveaux dans le panneau de droite. La structure des `<details>` reste inchangée.
 
-Avantage : un coach règle d'abord la philosophie défensive d'équipe, puis ajuste les comportements individuels. Aujourd'hui les deux sont entremêlés.
-
-Idée bonus : un set de presets globaux ("fond de raquette", "pression all-court", "switch tout", "drop coverage") qui appliquent en une fois système + screen rule + triggers + ratios.
+À faire ensuite : presets globaux ("fond de raquette", "pression all-court", "switch tout", "drop coverage") qui appliquent en une fois système + screen rule + triggers + ratios — un select au-dessus des bandeaux.
 
 ### Symbolique défenseur "à la FIBA" (bras défensifs) (FAIT)
 Deux arcs SVG (Bezier quadratique) au-dessus du cercle des défenseurs simulant les bras en posture défensive. Lisibilité immédiate.

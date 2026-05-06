@@ -10,6 +10,7 @@ import type {
   DropDepth,
   OffBallScreenRule,
 } from '@/lib/types';
+import { TEMPLATES, type Template } from '@/lib/data/templates';
 
 const ATTACKER_IDS: AttackerId[] = ['O1', 'O2', 'O3', 'O4', 'O5'];
 
@@ -33,6 +34,8 @@ interface ControlPanelProps {
   onUpdateZoneConfig: (p: Partial<ZoneConfig>) => void;
   onSetStepLabel: (idx: number, label: string) => void;
   onSetBallCarrier: (carrier: AttackerId) => void;
+  onLoadTemplate: (template: Template) => void;
+  onOpenPlaybook: () => void;
 }
 
 export function ControlPanel(props: ControlPanelProps) {
@@ -40,6 +43,36 @@ export function ControlPanel(props: ControlPanelProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 230 }}>
+      <details>
+        <summary style={{ fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Templates</summary>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+          {TEMPLATES.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => {
+                if (state.steps.length > 1 || state.steps[0].annotations.length > 0) {
+                  if (!confirm(`Charger "${t.name}" ? Le travail en cours sera remplacé.`)) return;
+                }
+                props.onLoadTemplate(t);
+              }}
+              title={t.description}
+              style={{
+                textAlign: 'left',
+                padding: '6px 8px',
+                fontSize: 12,
+                borderRadius: 6,
+                border: '1px solid #ddd',
+                background: '#fff',
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{ fontWeight: 500 }}>{t.name}</div>
+              <div style={{ fontSize: 10, color: '#666', marginTop: 2 }}>{t.description}</div>
+            </button>
+          ))}
+        </div>
+      </details>
+
       <div style={{ fontSize: 13, fontWeight: 500 }}>Étapes</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 180, overflow: 'auto' }}>
         {state.steps.map((s, i) => {
@@ -111,6 +144,22 @@ export function ControlPanel(props: ControlPanelProps) {
           <button onClick={props.onStop}>■ stop</button>
         </div>
       </details>
+
+      <div
+        style={{
+          marginTop: 8,
+          padding: '4px 6px',
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: '0.5px',
+          color: '#1e3a8a',
+          background: '#dbeafe',
+          borderRadius: 4,
+          textTransform: 'uppercase',
+        }}
+      >
+        Défense collective
+      </div>
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
         <span style={{ fontSize: 12, fontWeight: 500 }}>système</span>
@@ -276,6 +325,23 @@ export function ControlPanel(props: ControlPanelProps) {
         </div>
       </details>
 
+      <div
+        style={{
+          marginTop: 8,
+          padding: '4px 6px',
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: '0.5px',
+          color: '#1e3a8a',
+          background: '#dbeafe',
+          borderRadius: 4,
+          textTransform: 'uppercase',
+          display: state.defenseSystem === 'man' ? undefined : 'none',
+        }}
+      >
+        Défense individuelle
+      </div>
+
       <details style={{ display: state.defenseSystem === 'man' ? undefined : 'none' }}>
         <summary style={{ fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>règles individuelles</summary>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
@@ -349,7 +415,10 @@ export function ControlPanel(props: ControlPanelProps) {
       </details>
 
       <div style={{ borderTop: '1px solid #ddd', paddingTop: 8 }}>
-        <button onClick={props.onExport} style={{ width: '100%' }}>
+        <button onClick={props.onOpenPlaybook} style={{ width: '100%' }}>
+          📄 playbook (PDF)
+        </button>
+        <button onClick={props.onExport} style={{ width: '100%', marginTop: 4 }}>
           exporter JSON
         </button>
         <button onClick={props.onImport} style={{ width: '100%', marginTop: 4 }}>

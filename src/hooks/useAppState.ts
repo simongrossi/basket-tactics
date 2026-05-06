@@ -12,6 +12,7 @@ import type {
   ZoneConfig,
 } from '@/lib/types';
 import { makeInitialState, makeStep, initialOff, initialDef } from '@/lib/data/initial';
+import type { Template } from '@/lib/data/templates';
 
 const STORAGE_KEY = 'basket-tactics-state-v1';
 
@@ -169,6 +170,15 @@ export function useAppState() {
     });
   }, []);
 
+  const loadTemplate = useCallback((template: Template) => {
+    setState((s) => ({
+      ...s,
+      steps: structuredClone(template.steps),
+      activeStep: 0,
+      defenseInitial: structuredClone(template.defenseInitial),
+    }));
+  }, []);
+
   const setDefenseSystem = useCallback((system: DefenseSystem) => {
     setState((s) => ({ ...s, defenseSystem: system }));
   }, []);
@@ -211,5 +221,6 @@ export function useAppState() {
     updateZoneConfig,
     setStepLabel,
     setBallCarrier,
+    loadTemplate,
   };
 }
