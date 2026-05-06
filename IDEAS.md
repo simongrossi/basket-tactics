@@ -4,6 +4,55 @@ Notes de développement au fil de l'eau. Les items en haut sont les plus récent
 
 ---
 
+## Backlog actuel (à attaquer)
+
+### Numérotation des étapes sur le terrain (vignettes playbook)
+Petits ronds 1, 2, 3 sur les positions des joueurs dans chaque vignette PDF, pour voir l'ordre des actions sans avoir à comparer mentalement étape N et N+1. À implémenter dans `StepThumbnail.tsx` : tracer un petit cercle blanc avec un numéro à côté du joueur qui bouge entre cette étape et la précédente.
+
+### Presets défensifs globaux
+Au-dessus de la section système, un select "preset" qui applique en un clic une config cohérente :
+- **drop coverage** : screenRule=drop, dropDepth=medium, helpPct centre élevé, distance modérée
+- **switch tout** : screenRule=switch, offBallScreenRule=switch, helpPct bas
+- **fond de raquette** : screenRule=under, helpPct paint élevé, triggers paint actif
+- **pression all-court** : distance courte, vit max élevée, blitz sur écrans
+- **shell drill** : zone match-up + ballPressure modérée
+
+Stockage dans `lib/data/defensePresets.ts` puis callback `applyPreset(preset)` qui patche les champs concernés.
+
+### Plus de templates offensifs
+- **Spain PNR** : double écran central avec back-screen
+- **UCLA cut** : passe latérale + back-screen high post pour cut basket
+- **Iverson cut** : double écran top-of-key pour traverser
+- **Floppy** : option deux côtés, couper vers l'écran de son choix
+- **Hammer action** : skip pass + back-screen baseline côté faible
+- **PNR aile / step-up / step-back**
+
+Format `Template` stable, ajouter dans le tableau `TEMPLATES` de `lib/data/templates.ts`.
+
+### Tests unitaires logique pure
+Vitest sur :
+- `engine.computeDefenseTargets` : matrice d'inputs canoniques
+- `screens.detectScreen` / `detectOffBallScreens` : cas limites (carrier coincé, screener loin)
+- `zoneDefense.pointInPolygon` / `mapAttackersToZones`
+- `geometry` : trivial mais utile en sécurité
+- `triggers.detectTriggers` : drive movement, post-up stationnaire
+
+~30 tests pour les chemins critiques, ça stabilise les futurs refactors.
+
+### Undo / Redo + raccourcis clavier
+- Stack des AppState (max 50)
+- Ctrl+Z / Ctrl+Y → restaurer l'état
+- À séparer du state principal (un useReducer dédié)
+- Raccourcis :
+  - Espace : play/pause
+  - ←/→ : étape précédente/suivante
+  - M / P / D / R / E : outils
+  - Suppr : supprimer la dernière annotation
+
+---
+
+---
+
 ## Comportements défensifs à affiner
 
 ### Sag weak-side baseline (FAIT)
@@ -116,10 +165,24 @@ Pas de souci visible aujourd'hui (5 vs 5, frames 60Hz fluides) mais `effectiveDe
 
 ## UI / UX
 
-### Réorganisation du menu défense (FAIT — bandeaux)
-Bandeaux de section "DÉFENSE COLLECTIVE" et "DÉFENSE INDIVIDUELLE" pour distinguer visuellement les deux niveaux dans le panneau de droite. La structure des `<details>` reste inchangée.
+### Refonte UI complète (FAIT)
+- Layout 3 colonnes responsive : **OffensePanel** (orange) à gauche, **court + Timeline** au centre, **DefensePanel** (bleu) à droite
+- Header global avec actions playbook / export / import / reset
+- Composants partagés `Panel`, `Section`, `Slider`, `CheckboxLine`, `Button` dans `ui.tsx`
+- Couleurs cohérentes avec les joueurs (orange = attaque, bleu = défense)
+- Media queries : 3 colonnes desktop, 2 colonnes-1 mobile
+- Suppression de `ControlPanel.tsx` obsolète
 
-À faire ensuite : presets globaux ("fond de raquette", "pression all-court", "switch tout", "drop coverage") qui appliquent en une fois système + screen rule + triggers + ratios — un select au-dessus des bandeaux.
+### Timeline scrubbing (FAIT)
+Barre de progression horizontale sous le terrain :
+- Marqueurs cliquables pour chaque étape
+- Drag du playhead = scrubbing fluide (interpolation entre étapes)
+- Relâcher = snap à l'étape entière la plus proche
+- Affiche n° d'étape, label, porteur courant
+- Couleur orange en édition, bleue en lecture
+
+### Réorganisation du menu défense (FAIT — séparation panneau)
+Maintenant dans son propre panneau bleu à droite (DefensePanel), distinct du panneau attaque. Sections : Système, Configuration zone (si zone), Paramètres globaux + triggers, Écran porteur, Écran non-porteur, Règles individuelles, Visualisation.
 
 ### Symbolique défenseur "à la FIBA" (bras défensifs) (FAIT)
 Deux arcs SVG (Bezier quadratique) au-dessus du cercle des défenseurs simulant les bras en posture défensive. Lisibilité immédiate.

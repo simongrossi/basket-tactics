@@ -35,6 +35,7 @@ interface CourtViewProps {
   isPlaying: boolean;
   playbackSpeed: number;
   onPlaybackEnd?: () => void;
+  scrubT?: number | null;
 }
 
 interface PendingAnnotation {
@@ -141,7 +142,52 @@ export function CourtView(props: CourtViewProps) {
     return { off: cur.off, defPos, carrier: cur.ballCarrier, screen, offBallScreens, stepIdx: state.activeStep };
   }, [state]);
 
-  const frame = playFrame ?? staticFrame;
+  // Scrub frame (interpolation entre étapes pendant le drag de la timeline)
+  const scrubFrame = useMemo<PlaybackFrame | null>(() => {
+    if (props.scrubT == null) return null;
+    const totalSteps = state.steps.length - 1;
+    if (totalSteps <= 0) return null;
+    const t = Math.max(0, Math.min(totalSteps, props.scrubT));
+    const idxA = Math.floor(t);
+    const idxB = Math.min(idxA + 1, totalSteps);
+    const localT = t - idxA;
+    const a = state.steps[idxA];
+    const b = state.steps[idxB];
+    const off = {} as AttackerPositions;
+    (Object.keys(a.off) as AttackerId[]).forEach((id) => {
+      off[id] = {
+        x: a.off[id].x + (b.off[id].x - a.off[id].x) * localT,
+        y: a.off[id].y + (b.off[id].y - a.off[id].y) * localT,
+      };
+    });
+    const defA = effectiveDefensePositions(state, idxA);
+    const defB = effectiveDefensePositions(state, idxB);
+    const defPos = {} as ComputedDefense;
+    (Object.keys(defA) as DefenderId[]).forEach((id) => {
+      defPos[id] = {
+        x: defA[id].x + (defB[id].x - defA[id].x) * localT,
+        y: defA[id].y + (defB[id].y - defA[id].y) * localT,
+        late: defB[id].late,
+        helpFactor: defB[id].helpFactor,
+        isCarrierDefender: defB[id].isCarrierDefender,
+        matchedTo: defB[id].matchedTo,
+        onScreen: defB[id].onScreen,
+        switchedThisStep: defB[id].switchedThisStep,
+      };
+    });
+    const carrier = localT < 0.5 ? a.ballCarrier : b.ballCarrier;
+    let screen: ReturnType<typeof detectScreen> = null;
+    let offBallScreens: DetectedOffBallScreen[] = [];
+    if (state.defenseSystem === 'man') {
+      const matchups = getMatchupsAt(state.steps, Math.max(0, idxB - 1));
+      const defPosExtracted = extractDefPositions(defPos);
+      screen = detectScreen(off, carrier, matchups, defPosExtracted, state.screenRadius);
+      offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosExtracted, state.screenRadius);
+    }
+    return { off, defPos, carrier, screen, offBallScreens, stepIdx: Math.round(t) };
+  }, [props.scrubT, state]);
+
+  const frame = playFrame ?? scrubFrame ?? staticFrame;
 
   // Pointer events
   const svgPoint = useCallback((evt: React.PointerEvent | PointerEvent): Point => {
