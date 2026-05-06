@@ -69,25 +69,15 @@ Notes de développement au fil de l'eau. Les items en haut sont les plus récent
 ### Numérotation des étapes sur le terrain (vignettes playbook)
 Petits ronds 1, 2, 3 sur les positions des joueurs dans chaque vignette PDF, pour voir l'ordre des actions sans avoir à comparer mentalement étape N et N+1. À implémenter dans `StepThumbnail.tsx` : tracer un petit cercle blanc avec un numéro à côté du joueur qui bouge entre cette étape et la précédente.
 
-### Presets défensifs globaux
-Au-dessus de la section système, un select "preset" qui applique en un clic une config cohérente :
-- **drop coverage** : screenRule=drop, dropDepth=medium, helpPct centre élevé, distance modérée
-- **switch tout** : screenRule=switch, offBallScreenRule=switch, helpPct bas
-- **fond de raquette** : screenRule=under, helpPct paint élevé, triggers paint actif
-- **pression all-court** : distance courte, vit max élevée, blitz sur écrans
-- **shell drill** : zone match-up + ballPressure modérée
+### Presets défensifs globaux (FAIT)
+6 presets dans `lib/data/defensePresets.ts` : Drop coverage, Switch tout, Hedge & recover, Ice (force baseline) + drop, Fond de raquette, Pression all-court. Section "Presets" en haut du panneau défense. Au clic, on patche système + screenRule + offBallScreenRule + dropDepth + distance + maxSpeed + triggers + 5 règles individuelles d'un coup (avec confirm). Les valeurs des règles sont **mergées** (le preset n'écrase que ses propres champs).
 
-Stockage dans `lib/data/defensePresets.ts` puis callback `applyPreset(preset)` qui patche les champs concernés.
+À ajouter plus tard : presets pour la zone (2-3 trapping, 1-3-1 active, match-up flex), presets utilisateur (sauvegarder ses propres configs).
 
-### Plus de templates offensifs
-- **Spain PNR** : double écran central avec back-screen
-- **UCLA cut** : passe latérale + back-screen high post pour cut basket
-- **Iverson cut** : double écran top-of-key pour traverser
-- **Floppy** : option deux côtés, couper vers l'écran de son choix
-- **Hammer action** : skip pass + back-screen baseline côté faible
-- **PNR aile / step-up / step-back**
+### Plus de templates offensifs (FAIT v2 — 6 templates)
+Ajoutés à la bibliothèque : Spain PNR (PNR + back-screen sur D5), UCLA cut (passe latérale + back-screen high post pour cut basket), Floppy (O2 sous le panier choisit son écran).
 
-Format `Template` stable, ajouter dans le tableau `TEMPLATES` de `lib/data/templates.ts`.
+Encore à ajouter : Iverson cut, Hammer action, PNR aile / step-up / step-back, Princeton chin, Pistol, Stagger.
 
 ### Tests unitaires logique pure
 Vitest sur :
@@ -163,14 +153,18 @@ Implémenté dans `lib/data/templates.ts` avec PNR central, Horns flare, Pindown
 
 À ajouter plus tard : PNR aile, PNR step-up, Princeton chin, UCLA cut, Iverson cut, Floppy, Hammer action, Spain PNR. Format Template stable, ajouter une entrée dans le tableau `TEMPLATES` suffit.
 
-### Métriques défensives
-Score de couverture par étape :
-- Distance moyenne défenseur ↔ son homme
-- Nombre de gaps (espaces > Xpx entre adjacents)
-- Couverture de la raquette (combien de défenseurs à <100px de HOOP)
-- "Help score" : somme des helpFactor
+### Métriques défensives (FAIT)
+Calculées dans `lib/logic/metrics.ts` (fonction pure) et affichées dans `MetricsBar` sous la timeline. Métriques :
+- **raquette** : nombre de défenseurs à moins de 100px du panier (proxy "raquette protégée")
+- **gap max** : pour chaque attaquant, distance au défenseur le plus proche → on retient le MAX (= attaquant le plus libre). Tooltip indique qui c'est.
+- **écart moy** : distance moyenne défenseur ↔ son matché
+- **en retard** : count de `late: true`
+- **aide** : somme des `helpFactor`
+- **passes** : ratio passes ouvertes / total depuis le porteur (tooltip détaille ouvertes / contestées / bloquées)
 
-Affichage dans un panneau lateral.
+Code couleur des pills : vert (good), orange (warn), rouge (bad), gris (neutral) selon des seuils définis par métrique. Les seuils sont à affiner avec l'usage.
+
+À ajouter plus tard : graphique des métriques au fil des étapes (ligne d'évolution), comparaison entre deux configs défensives sur le même template, métriques "offensives" (espaces créés, options ouvertes).
 
 ### Comparaison côte à côte
 Charger deux solutions tactiques du même set offensif et les jouer en parallèle pour comparer la couverture.

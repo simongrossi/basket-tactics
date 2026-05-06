@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { useAppState } from '@/hooks/useAppState';
 import { OffensePanel } from '@/components/OffensePanel';
 import { DefensePanel } from '@/components/DefensePanel';
 import { Timeline } from '@/components/Timeline';
 import { CourtView } from '@/components/CourtView';
 import { PlaybookView } from '@/components/PlaybookView';
+import { MetricsBar } from '@/components/MetricsBar';
+import { effectiveDefensePositions } from '@/lib/logic/engine';
+import { computeMetrics } from '@/lib/logic/metrics';
 import type { AppState } from '@/lib/types';
 
 export default function Page() {
@@ -17,6 +20,13 @@ export default function Page() {
   const [showPlaybook, setShowPlaybook] = useState(false);
   const [scrubT, setScrubT] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const metrics = useMemo(() => {
+    const step = app.state.steps[app.state.activeStep];
+    if (!step) return null;
+    const defPos = effectiveDefensePositions(app.state, app.state.activeStep);
+    return computeMetrics(step.off, defPos, step.ballCarrier);
+  }, [app.state]);
 
   const handleExport = useCallback(() => {
     const blob = new Blob([JSON.stringify(app.state, null, 2)], { type: 'application/json' });
@@ -138,6 +148,7 @@ export default function Page() {
             scrubT={scrubT}
             playbackT={playbackT}
           />
+          {metrics && <MetricsBar metrics={metrics} />}
         </div>
 
         <DefensePanel
@@ -148,6 +159,7 @@ export default function Page() {
           onUpdateRule={app.updateRule}
           onSetDefenseSystem={app.setDefenseSystem}
           onUpdateZoneConfig={app.updateZoneConfig}
+          onApplyDefensePreset={app.applyDefensePreset}
         />
       </div>
 

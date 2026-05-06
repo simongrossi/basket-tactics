@@ -61,6 +61,21 @@ Boutons :
 | ■ **stop** | Stoppe et revient à l'étape 0 |
 | **vitesse** | Multiplicateur 0.3× → 2× (slider) |
 
+## Métriques (sous la timeline)
+
+Pills colorées affichées en temps réel selon l'étape active. Voir `lib/logic/metrics.ts` pour la formule de chaque indicateur :
+
+| Pill | Sens | Tooltip |
+|------|------|---------|
+| **raquette** | Nb défenseurs à <100px du panier | Couverture raquette |
+| **gap max** | Plus grand écart attaquant ↔ défenseur le plus proche | Indique l'attaquant le plus libre |
+| **écart moy** | Distance moyenne défenseur ↔ son matché | — |
+| **en retard** | Nb de défenseurs `late: true` | — |
+| **aide** | Somme des `helpFactor` | Intensité d'aide globale |
+| **passes** | `ouvertes / total` depuis le porteur | Détail ouvertes/contestées/bloquées |
+
+Code couleur des pills : vert (bon), orange (alerte), rouge (mauvais), gris (neutre).
+
 ## Timeline
 
 Sous le terrain. Permet de naviguer dans les étapes.
@@ -73,6 +88,19 @@ Sous le terrain. Permet de naviguer dans les étapes.
 - **Texte** : "Étape N / total — label" + "porteur : Ox"
 
 ## Panneau défense (droit, bleu)
+
+### Presets
+
+Configurations défensives complètes chargeables en un clic. Six presets fournis :
+
+- **Drop coverage** : pivot recule, extérieurs over
+- **Switch tout** : tous switchent (porteur + non-porteur)
+- **Hedge & recover** : show classique du défenseur du screener puis recover
+- **Ice (force baseline) + drop** : pousse le porteur côté ligne de fond, drop shallow
+- **Fond de raquette** : priorité absolue à la protection raquette, under sur écrans
+- **Pression all-court** : pression haute, blitz sur écran porteur, peu d'aide
+
+Chaque preset patche : `defenseSystem`, `screenRule`, `dropDepth`, `offBallScreenRule`, `defenseDistance`, `defenseMaxSpeed`, `triggers`, et les 5 règles individuelles. Une confirmation est demandée avant application.
 
 ### Système
 

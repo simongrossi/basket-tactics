@@ -316,9 +316,168 @@ const PINDOWN_CORNER: Template = {
 };
 
 // ============================================================
+// SPAIN PNR (PNR central avec back-screen sur le défenseur du screener)
+// ============================================================
+const spainSetup: AttackerPositions = {
+  O1: { x: 300, y: 380 },
+  O2: { x: 130, y: 320 },
+  O3: { x: 470, y: 320 },
+  O4: { x: 380, y: 200 },
+  O5: { x: 310, y: 240 },
+};
+const spainScreen: AttackerPositions = {
+  ...spainSetup,
+  O5: { x: 295, y: 340 },
+};
+const spainBack: AttackerPositions = {
+  ...spainScreen,
+  O4: { x: 305, y: 290 }, // O4 monte poser back-screen sur D5
+};
+const spainAttack: AttackerPositions = {
+  ...spainBack,
+  O1: { x: 380, y: 290 },
+  O5: { x: 300, y: 150 },
+};
+const SPAIN_PNR: Template = {
+  id: 'spain-pnr',
+  name: 'Spain PNR',
+  description: "PNR central + back-screen de O4 sur D5 pour libérer O5 dans la raquette.",
+  defenseInitial: defaultDef(spainSetup),
+  steps: [
+    { label: 'Setup', off: spainSetup, ballCarrier: 'O1', annotations: [] },
+    {
+      label: "O5 monte l'écran",
+      off: spainScreen,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'cut', fromId: 'O5', toId: null, from: spainSetup.O5, to: spainScreen.O5 } as Annotation,
+        { type: 'screen', fromId: 'O5', toId: null, from: spainScreen.O5, to: { x: spainScreen.O5.x, y: spainScreen.O5.y + 18 } } as Annotation,
+      ],
+    },
+    {
+      label: 'O4 back-screen sur D5',
+      off: spainBack,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'cut', fromId: 'O4', toId: null, from: spainScreen.O4, to: spainBack.O4 } as Annotation,
+        { type: 'screen', fromId: 'O4', toId: null, from: spainBack.O4, to: { x: spainBack.O4.x, y: spainBack.O4.y + 18 } } as Annotation,
+      ],
+    },
+    {
+      label: 'O1 attaque, O5 plonge',
+      off: spainAttack,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'dribble', fromId: 'O1', toId: null, from: spainBack.O1, to: spainAttack.O1 } as Annotation,
+        { type: 'cut', fromId: 'O5', toId: null, from: spainBack.O5, to: spainAttack.O5 } as Annotation,
+      ],
+    },
+  ],
+};
+
+// ============================================================
+// UCLA CUT
+// ============================================================
+const uclaSetup: AttackerPositions = {
+  O1: { x: 300, y: 380 },
+  O2: { x: 130, y: 320 },
+  O3: { x: 470, y: 320 },
+  O4: { x: 200, y: 200 },
+  O5: { x: 300, y: 240 }, // high post
+};
+const uclaPass: AttackerPositions = {
+  ...uclaSetup,
+  O1: { x: 280, y: 360 },
+};
+const uclaCut: AttackerPositions = {
+  ...uclaPass,
+  O1: { x: 300, y: 180 }, // cut basket via back-screen O5
+};
+const UCLA_CUT: Template = {
+  id: 'ucla-cut',
+  name: 'UCLA cut',
+  description: "Passe latérale + back-screen high post pour cut basket de O1.",
+  defenseInitial: defaultDef(uclaSetup),
+  steps: [
+    { label: 'Setup', off: uclaSetup, ballCarrier: 'O1', annotations: [] },
+    {
+      label: 'O1 → O3',
+      off: uclaPass,
+      ballCarrier: 'O3',
+      annotations: [
+        { type: 'pass', fromId: 'O1', toId: 'O3', from: uclaSetup.O1, to: uclaSetup.O3 } as Annotation,
+        { type: 'cut', fromId: 'O1', toId: null, from: uclaSetup.O1, to: uclaPass.O1 } as Annotation,
+      ],
+    },
+    {
+      label: 'UCLA cut basket',
+      off: uclaCut,
+      ballCarrier: 'O3',
+      annotations: [
+        { type: 'screen', fromId: 'O5', toId: null, from: uclaSetup.O5, to: { x: uclaSetup.O5.x + 18, y: uclaSetup.O5.y } } as Annotation,
+        { type: 'cut', fromId: 'O1', toId: null, from: uclaPass.O1, to: uclaCut.O1 } as Annotation,
+      ],
+    },
+  ],
+};
+
+// ============================================================
+// FLOPPY (option two-side, écran double)
+// ============================================================
+const floppySetup: AttackerPositions = {
+  O1: { x: 300, y: 380 },
+  O2: { x: 300, y: 105 }, // sous le panier
+  O3: { x: 480, y: 320 },
+  O4: { x: 220, y: 165 }, // bloc bas gauche
+  O5: { x: 380, y: 165 }, // bloc bas droit
+};
+const floppyChoose: AttackerPositions = {
+  ...floppySetup,
+  O2: { x: 215, y: 240 }, // O2 choisit gauche
+};
+const floppyCatch: AttackerPositions = {
+  ...floppyChoose,
+  O2: { x: 130, y: 320 },
+};
+const FLOPPY: Template = {
+  id: 'floppy',
+  name: 'Floppy',
+  description: "O2 sous le panier choisit son écran (gauche O4 ou droite O5) pour ressortir.",
+  defenseInitial: defaultDef(floppySetup),
+  steps: [
+    { label: 'Setup floppy', off: floppySetup, ballCarrier: 'O1', annotations: [] },
+    {
+      label: 'O2 choisit gauche, écran de O4',
+      off: floppyChoose,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'cut', fromId: 'O2', toId: null, from: floppySetup.O2, to: floppyChoose.O2 } as Annotation,
+        { type: 'screen', fromId: 'O4', toId: null, from: floppySetup.O4, to: { x: floppySetup.O4.x, y: floppySetup.O4.y - 18 } } as Annotation,
+      ],
+    },
+    {
+      label: "Sortie + passe pour le tir",
+      off: floppyCatch,
+      ballCarrier: 'O2',
+      annotations: [
+        { type: 'cut', fromId: 'O2', toId: null, from: floppyChoose.O2, to: floppyCatch.O2 } as Annotation,
+        { type: 'pass', fromId: 'O1', toId: 'O2', from: floppyChoose.O1, to: floppyCatch.O2 } as Annotation,
+      ],
+    },
+  ],
+};
+
+// ============================================================
 // EXPORT
 // ============================================================
-export const TEMPLATES: Template[] = [PNR_CENTRAL, HORNS_FLARE, PINDOWN_CORNER];
+export const TEMPLATES: Template[] = [
+  PNR_CENTRAL,
+  HORNS_FLARE,
+  PINDOWN_CORNER,
+  SPAIN_PNR,
+  UCLA_CUT,
+  FLOPPY,
+];
 
 export function findTemplate(id: string): Template | undefined {
   return TEMPLATES.find((t) => t.id === id);

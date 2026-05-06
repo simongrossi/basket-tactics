@@ -13,6 +13,7 @@ import type {
 } from '@/lib/types';
 import { makeInitialState, makeStep, initialOff, initialDef } from '@/lib/data/initial';
 import type { Template } from '@/lib/data/templates';
+import type { DefensePreset } from '@/lib/data/defensePresets';
 
 const STORAGE_KEY = 'basket-tactics-state-v1';
 
@@ -203,6 +204,26 @@ export function useAppState() {
     }));
   }, []);
 
+  const applyDefensePreset = useCallback((preset: DefensePreset) => {
+    setState((s) => {
+      const { rules: ruleOverrides, ...rest } = preset.patch;
+      const mergedRules = ruleOverrides
+        ? (Object.keys(s.rules) as DefenderId[]).reduce(
+            (acc, dId) => ({
+              ...acc,
+              [dId]: { ...s.rules[dId], ...(ruleOverrides[dId] ?? {}) },
+            }),
+            {} as typeof s.rules
+          )
+        : s.rules;
+      return {
+        ...s,
+        ...rest,
+        rules: mergedRules,
+      };
+    });
+  }, []);
+
   const setDefenseSystem = useCallback((system: DefenseSystem) => {
     setState((s) => ({ ...s, defenseSystem: system }));
   }, []);
@@ -247,5 +268,6 @@ export function useAppState() {
     setBallCarrier,
     loadTemplate,
     clearDefenseOverride,
+    applyDefensePreset,
   };
 }

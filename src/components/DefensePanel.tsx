@@ -10,6 +10,7 @@ import type {
   OffBallScreenRule,
 } from '@/lib/types';
 import { Panel, Section, Slider, CheckboxLine, Button, COLORS } from './ui';
+import { DEFENSE_PRESETS, type DefensePreset } from '@/lib/data/defensePresets';
 
 interface DefensePanelProps {
   state: AppState;
@@ -19,6 +20,7 @@ interface DefensePanelProps {
   onUpdateRule: (dId: DefenderId, patch: Partial<AppState['rules'][DefenderId]>) => void;
   onSetDefenseSystem: (s: DefenseSystem) => void;
   onUpdateZoneConfig: (p: Partial<ZoneConfig>) => void;
+  onApplyDefensePreset: (preset: DefensePreset) => void;
 }
 
 export function DefensePanel(props: DefensePanelProps) {
@@ -28,6 +30,45 @@ export function DefensePanel(props: DefensePanelProps) {
 
   return (
     <Panel theme="defense" title="🛡 Défense">
+      <Section theme="defense" label="Presets">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {DEFENSE_PRESETS.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => {
+                if (confirm(`Appliquer "${p.name}" ?\n\n${p.description}`)) {
+                  props.onApplyDefensePreset(p);
+                }
+              }}
+              title={p.description}
+              style={{
+                textAlign: 'left',
+                padding: '6px 8px',
+                fontSize: 11,
+                borderRadius: 6,
+                border: `1px solid ${c.border}`,
+                background: '#fff',
+                cursor: 'pointer',
+                transition: 'border-color 120ms, background 120ms',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = c.accent;
+                e.currentTarget.style.background = c.bg;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = c.border;
+                e.currentTarget.style.background = '#fff';
+              }}
+            >
+              <div style={{ fontWeight: 600, color: c.accentText, fontSize: 12 }}>{p.name}</div>
+              <div style={{ fontSize: 10, color: '#475569', marginTop: 2, lineHeight: 1.35 }}>
+                {p.description}
+              </div>
+            </button>
+          ))}
+        </div>
+      </Section>
+
       <Section theme="defense" label="Système" open>
         <div style={{ display: 'flex', gap: 8 }}>
           <label

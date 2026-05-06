@@ -2,13 +2,16 @@
 
 Format des templates et procédure pour en ajouter.
 
-## Templates fournis (v1)
+## Templates fournis (v2)
 
 | ID | Nom | Étapes | Description |
 |----|-----|--------|-------------|
 | `pnr-central` | PNR central | 4 | Pick & roll au centre. O5 monte poser l'écran, O1 attaque, O5 plonge. |
-| `horns-flare` | Horns flare | 4 | Alignement Horns. O1 passe à O2 puis utilise un flare screen de O5 côté faible pour un tir extérieur. |
-| `pindown-corner` | Pindown coin | 4 | O4 descend poser un pindown pour O2 au coin. O2 sort vers l'aile et reçoit la passe pour un tir. |
+| `horns-flare` | Horns flare | 4 | Alignement Horns. O1 passe à O2 puis utilise un flare screen de O5 côté faible. |
+| `pindown-corner` | Pindown coin | 4 | O4 descend poser un pindown pour O2 au coin. O2 sort vers l'aile pour le tir. |
+| `spain-pnr` | Spain PNR | 4 | PNR central + back-screen de O4 sur le défenseur de O5 pour libérer le pivot. |
+| `ucla-cut` | UCLA cut | 3 | Passe latérale + back-screen high post pour cut basket de O1. |
+| `floppy` | Floppy | 3 | O2 sous le panier choisit son écran (gauche O4 ou droite O5) pour ressortir. |
 
 Définis dans [`src/lib/data/templates.ts`](../src/lib/data/templates.ts).
 
