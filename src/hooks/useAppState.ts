@@ -37,12 +37,54 @@ function loadFromStorage(): AppState | null {
   }
 }
 
+const HISTORY_LIMIT = 50;
+
 export function useAppState() {
   // Premier render identique côté SSR et client : on part toujours de l'état
   // par défaut. localStorage est lu dans un effect post-montage uniquement
   // (sinon hydration mismatch).
   const [state, setState] = useState<AppState>(() => makeInitialState());
   const [hydrated, setHydrated] = useState(false);
+
+  // Pile undo/redo. Pas dans le state principal pour ne pas re-rendre à chaque
+  // push. setStateWithHistory pousse l'état précédent dans `past` et vide
+  // `future`. undo/redo utilisent setState brut pour ne pas se ré-historiser.
+  const historyRef = useRef<{ past: AppState[]; future: AppState[] }>({ past: [], future: [] });
+
+  const setStateWithHistory: typeof setState = useCallback((updater) => {
+    setState((prev) => {
+      const next = typeof updater === 'function'
+        ? (updater as (s: AppState) => AppState)(prev)
+        : updater;
+      if (next === prev) return prev;
+      historyRef.current.past.push(prev);
+      if (historyRef.current.past.length > HISTORY_LIMIT) {
+        historyRef.current.past.shift();
+      }
+      historyRef.current.future = [];
+      return next;
+    });
+  }, []);
+
+  const undo = useCallback(() => {
+    setState((cur) => {
+      const past = historyRef.current.past;
+      if (past.length === 0) return cur;
+      const prev = past.pop()!;
+      historyRef.current.future.push(cur);
+      return prev;
+    });
+  }, []);
+
+  const redo = useCallback(() => {
+    setState((cur) => {
+      const future = historyRef.current.future;
+      if (future.length === 0) return cur;
+      const next = future.pop()!;
+      historyRef.current.past.push(cur);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const persisted = loadFromStorage();
@@ -68,11 +110,11 @@ export function useAppState() {
   }, [state, hydrated]);
 
   const setActiveStep = useCallback((idx: number) => {
-    setState((s) => ({ ...s, activeStep: Math.max(0, Math.min(s.steps.length - 1, idx)) }));
+    setStateWithHistory((s) => ({ ...s, activeStep: Math.max(0, Math.min(s.steps.length - 1, idx)) }));
   }, []);
 
   const addStep = useCallback(() => {
-    setState((s) => {
+    setStateWithHistory((s) => {
       const cur = s.steps[s.activeStep];
       const newStep = makeStep(cur.off, cur.ballCarrier, []);
       const steps = [...s.steps];
@@ -82,7 +124,7 @@ export function useAppState() {
   }, []);
 
   const duplicateStep = useCallback(() => {
-    setState((s) => {
+    setStateWithHistory((s) => {
       const copy: Step = structuredClone(s.steps[s.activeStep]);
       delete copy.switches;
       const steps = [...s.steps];
@@ -92,7 +134,7 @@ export function useAppState() {
   }, []);
 
   const deleteStep = useCallback(() => {
-    setState((s) => {
+    setStateWithHistory((s) => {
       if (s.steps.length <= 1) return s;
       const steps = s.steps.filter((_, i) => i !== s.activeStep);
       return { ...s, steps, activeStep: Math.max(0, s.activeStep - 1) };
@@ -100,7 +142,7 @@ export function useAppState() {
   }, []);
 
   const moveAttacker = useCallback((id: AttackerId, x: number, y: number) => {
-    setState((s) => {
+    setStateWithHistory((s) => {
       const steps = [...s.steps];
       const cur = { ...steps[s.activeStep] };
       cur.off = { ...cur.off, [id]: { x, y } };
@@ -114,7 +156,7 @@ export function useAppState() {
     // Le moteur respectera cette position (skip auto-targeting pour ce
     // défenseur sur cette étape). Pour réauto-positionner, voir
     // clearDefenseOverride.
-    setState((s) => {
+    setStateWithHistory((s) => {
       const steps = [...s.steps];
       const cur = { ...steps[s.activeStep] };
       cur.defenseOverrides = { ...cur.defenseOverrides, [id]: { x, y } };
@@ -128,7 +170,7 @@ export function useAppState() {
   }, []);
 
   const clearDefenseOverride = useCallback((id: DefenderId) => {
-    setState((s) => {
+    setStateWithHistory((s) => {
       const steps = [...s.steps];
       const cur = { ...steps[s.activeStep] };
       if (cur.defenseOverrides) {
@@ -141,7 +183,7 @@ export function useAppState() {
   }, []);
 
   const addAnnotation = useCallback((annotation: Annotation) => {
-    setState((s) => {
+    setStateWithHistory((s) => {
       const steps = [...s.steps];
       const cur = { ...steps[s.activeStep] };
       cur.annotations = [...cur.annotations, annotation];
@@ -154,7 +196,7 @@ export function useAppState() {
   }, []);
 
   const setForcedScreener = useCallback((oId: AttackerId | null) => {
-    setState((s) => {
+    setStateWithHistory((s) => {
       const steps = [...s.steps];
       const cur = { ...steps[s.activeStep] };
       if (oId == null) delete cur.forcedScreener;
@@ -165,7 +207,7 @@ export function useAppState() {
   }, []);
 
   const clearAnnotationsFor = useCallback((oId: AttackerId) => {
-    setState((s) => {
+    setStateWithHistory((s) => {
       const steps = [...s.steps];
       const cur = { ...steps[s.activeStep] };
       cur.annotations = cur.annotations.filter((a) => a.fromId !== oId);
@@ -175,7 +217,7 @@ export function useAppState() {
   }, []);
 
   const deleteLastAnnotation = useCallback(() => {
-    setState((s) => {
+    setStateWithHistory((s) => {
       const cur = s.steps[s.activeStep];
       if (!cur || cur.annotations.length === 0) return s;
       const steps = [...s.steps];
@@ -185,18 +227,18 @@ export function useAppState() {
   }, []);
 
   const setTool = useCallback((tool: Tool) => {
-    setState((s) => ({ ...s, tool }));
+    setStateWithHistory((s) => ({ ...s, tool }));
   }, []);
 
   const updateRule = useCallback((dId: DefenderId, patch: Partial<DefenderRule>) => {
-    setState((s) => ({
+    setStateWithHistory((s) => ({
       ...s,
       rules: { ...s.rules, [dId]: { ...s.rules[dId], ...patch } },
     }));
   }, []);
 
   const setScreenRule = useCallback((rule: ScreenRule) => {
-    setState((s) => {
+    setStateWithHistory((s) => {
       const steps = s.steps.map((st) => {
         const copy = { ...st };
         delete copy.switches;
@@ -207,7 +249,7 @@ export function useAppState() {
   }, []);
 
   const resetSwitches = useCallback(() => {
-    setState((s) => ({
+    setStateWithHistory((s) => ({
       ...s,
       steps: s.steps.map((st) => {
         const copy = { ...st };
@@ -221,11 +263,11 @@ export function useAppState() {
     if (typeof window !== 'undefined') {
       try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
     }
-    setState(makeInitialState());
+    setStateWithHistory(makeInitialState());
   }, []);
 
   const setStepLabel = useCallback((idx: number, label: string) => {
-    setState((s) => {
+    setStateWithHistory((s) => {
       const steps = [...s.steps];
       steps[idx] = { ...steps[idx], label: label || undefined };
       return { ...s, steps };
@@ -233,7 +275,7 @@ export function useAppState() {
   }, []);
 
   const setBallCarrier = useCallback((carrier: AttackerId) => {
-    setState((s) => {
+    setStateWithHistory((s) => {
       const steps = [...s.steps];
       steps[s.activeStep] = { ...steps[s.activeStep], ballCarrier: carrier };
       return { ...s, steps };
@@ -241,7 +283,7 @@ export function useAppState() {
   }, []);
 
   const loadTemplate = useCallback((template: Template) => {
-    setState((s) => ({
+    setStateWithHistory((s) => ({
       ...s,
       steps: structuredClone(template.steps),
       activeStep: 0,
@@ -250,7 +292,7 @@ export function useAppState() {
   }, []);
 
   const applyDefensePreset = useCallback((preset: DefensePreset) => {
-    setState((s) => {
+    setStateWithHistory((s) => {
       const { rules: ruleOverrides, ...rest } = preset.patch;
       const mergedRules = ruleOverrides
         ? (Object.keys(s.rules) as DefenderId[]).reduce(
@@ -270,7 +312,7 @@ export function useAppState() {
   }, []);
 
   const setDefenseSystem = useCallback((system: DefenseSystem) => {
-    setState((s) => {
+    setStateWithHistory((s) => {
       // Au changement de système : on efface tous les overrides et on snap
       // defenseInitial à des positions cohérentes avec le nouveau système.
       const cleanedSteps = s.steps.map((st) => {
@@ -291,7 +333,7 @@ export function useAppState() {
   }, []);
 
   const updateZoneConfig = useCallback((zPatch: Partial<ZoneConfig>) => {
-    setState((s) => {
+    setStateWithHistory((s) => {
       const newConfig = { ...s.zoneConfig, ...zPatch };
       let next: AppState = { ...s, zoneConfig: newConfig };
       // Si on change le TYPE de zone, on snap tous les défenseurs aux nouvelles
@@ -331,15 +373,17 @@ export function useAppState() {
       ...next,
       zoneConfig: { ...defaults.zoneConfig, ...(next.zoneConfig || {}) },
     };
-    setState(merged);
+    setStateWithHistory(merged);
   }, []);
 
   const patch = useCallback((p: Partial<AppState>) => {
-    setState((s) => ({ ...s, ...p }));
+    setStateWithHistory((s) => ({ ...s, ...p }));
   }, []);
 
   return {
     state,
+    undo,
+    redo,
     setActiveStep,
     addStep,
     duplicateStep,

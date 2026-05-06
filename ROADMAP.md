@@ -80,8 +80,10 @@ Mini-graphique sous la timeline montrant l'évolution de la dangerosité (gap ma
 
 ### Édition avancée
 
-#### ⚪ Undo / Redo
-Stack des `AppState` (max ~50), `Ctrl+Z` / `Ctrl+Y`. À séparer du state principal (`useReducer` dédié).
+#### 🟢 Undo / Redo (v1)
+Implémenté dans `useAppState` : pile `historyRef` (past/future) cap à 50, wrapper `setStateWithHistory` qui pousse l'état précédent à chaque mutation utilisateur. `undo` / `redo` exposés. Raccourcis `Ctrl/Cmd+Z` (undo) et `Ctrl/Cmd+Shift+Z` ou `Ctrl/Cmd+Y` (redo) câblés dans `useKeyboardShortcuts`.
+
+⚪ **À venir v2** : coalescing pendant le drag (un drag continu = une entrée dans la pile, pas une par mouvement de pointeur).
 
 #### ⚪ Sélection multiple
 Pouvoir déplacer un groupe de joueurs en une fois, ou modifier le `helpPct` (ou autre champ) de plusieurs défenseurs simultanément. Marquage `Shift+clic` ou marquee.

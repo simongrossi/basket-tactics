@@ -40,6 +40,8 @@ export default function Page() {
     onNextStep: () => app.setActiveStep(app.state.activeStep + 1),
     onSetTool: app.setTool,
     onDeleteLastAnnotation: app.deleteLastAnnotation,
+    onUndo: app.undo,
+    onRedo: app.redo,
   });
 
   const handleExport = useCallback(() => {

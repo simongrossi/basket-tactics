@@ -7,6 +7,8 @@ type Handlers = {
   onNextStep: () => void;
   onSetTool: (t: Tool) => void;
   onDeleteLastAnnotation: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
 };
 
 const TOOL_KEYS: Record<string, Tool> = {
@@ -27,8 +29,25 @@ function isTypingTarget(target: EventTarget | null): boolean {
 export function useKeyboardShortcuts(h: Handlers) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (isTypingTarget(e.target)) return;
+
+      // Undo / Redo : interceptés AVANT le filtre des modificateurs.
+      // Ctrl/Cmd+Z = undo. Ctrl/Cmd+Shift+Z ou Ctrl/Cmd+Y = redo.
+      if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+        const k = e.key.toLowerCase();
+        if (k === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          h.onUndo();
+          return;
+        }
+        if ((k === 'z' && e.shiftKey) || k === 'y') {
+          e.preventDefault();
+          h.onRedo();
+          return;
+        }
+      }
+
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       if (e.code === 'Space') {
         e.preventDefault();
