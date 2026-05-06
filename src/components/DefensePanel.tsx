@@ -376,6 +376,11 @@ export function DefensePanel(props: DefensePanelProps) {
           onChange={(v) => props.onPatch({ showPassLanes: v })}
         />
         <CheckboxLine
+          checked={!!state.showGhosts}
+          label="mode fantôme (ghost N-1)"
+          onChange={(v) => props.onPatch({ showGhosts: v })}
+        />
+        <CheckboxLine
           checked={state.fullCourt}
           label="terrain complet"
           onChange={(v) => props.onPatch({ fullCourt: v })}

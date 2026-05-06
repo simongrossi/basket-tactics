@@ -162,6 +162,9 @@ export interface AppState {
   offBallScreenRule: OffBallScreenRule;
   fullCourt: boolean;
   showPassLanes: boolean;
+  /** Mode fantôme : affiche en transparence les positions de l'étape N-1
+   *  pendant l'édition de l'étape N. Visualise les vecteurs de déplacement. */
+  showGhosts?: boolean;
   /** Sens d'attaque : 'up' (panier visé = HOOP top, défaut) ou 'down' (panier
    *  visé = HOOP_OPPOSITE bottom). Utile en mode fullCourt pour modéliser le
    *  repli/contre-attaque. La défense de zone n'est pas encore directionnelle. */

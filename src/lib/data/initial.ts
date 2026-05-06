@@ -79,5 +79,6 @@ export function makeInitialState(): AppState {
     fullCourt: false,
     showPassLanes: false,
     attackingDirection: 'up',
+    showGhosts: false,
   };
 }

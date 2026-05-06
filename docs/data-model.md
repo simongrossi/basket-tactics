@@ -44,6 +44,7 @@ interface AppState {
   showPassLanes: boolean;
   fullCourt: boolean;
   attackingDirection?: 'up' | 'down';   // sens d'attaque (panier visé). Default 'up'.
+  showGhosts?: boolean;                 // mode fantôme : affiche l'étape N-1 en transparence
 }
 ```
 

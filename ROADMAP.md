@@ -72,8 +72,8 @@ Magnétisme `Ctrl+drag` sur les lignes clés du terrain (ligne 3pt, raquette, bl
 #### 🟢 Numérotation des étapes (v1)
 Implémenté dans `StepThumbnail.tsx` (composant `ActionOrderBadges`). Pour chaque annotation de l'étape, un petit rond noir numéroté est posé en bas-gauche du joueur initiateur (`fromId`), dans l'ordre des annotations. Si un même joueur initie plusieurs actions, les badges s'empilent horizontalement. Visible uniquement sur les vignettes playbook PDF.
 
-#### ⚪ Mode fantôme (ghosting)
-Afficher en transparence la position des joueurs à l'étape N-1 pendant l'édition de l'étape N, pour visualiser les vecteurs de déplacement.
+#### 🟢 Mode fantôme (ghosting) (v1)
+Implémenté : toggle `state.showGhosts`. Quand actif (et `activeStep > 0` et hors lecture/scrub), `GhostLayer` dans `CourtView` affiche les positions de l'étape N-1 en cercles pointillés (orange pour attaquants, bleu pour défenseurs) à 35% d'opacité, sans label. Visualise le vecteur de déplacement entre les deux étapes.
 
 #### ⚪ Graphique de métriques
 Mini-graphique sous la timeline montrant l'évolution de la dangerosité (gap max) ou de la protection de raquette au fil du système. La fonction pure `metrics.ts` est déjà là, il "suffit" de l'évaluer pour chaque step.

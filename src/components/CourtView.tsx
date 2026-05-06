@@ -507,6 +507,9 @@ export function CourtView(props: CourtViewProps) {
           <Matchups off={frame.off} defPos={frame.defPos} show={state.showMatchups} />
         )}
         <HelpLines off={frame.off} defPos={frame.defPos} defenseDistance={state.defenseDistance} show={state.showHelpLines} />
+        {state.showGhosts && state.activeStep > 0 && !props.isPlaying && props.scrubT == null && (
+          <GhostLayer state={state} stepIdx={state.activeStep - 1} />
+        )}
         <g>
           {(() => {
             const screenerIds = new Set<AttackerId>();
@@ -652,4 +655,44 @@ function extractDefPositions(defPos: ComputedDefense): Record<DefenderId, Point>
     D4: { x: defPos.D4.x, y: defPos.D4.y },
     D5: { x: defPos.D5.x, y: defPos.D5.y },
   };
+}
+
+/**
+ * Affiche en transparence les positions de tous les joueurs à l'étape donnée
+ * (utilisé pour le mode fantôme : ghost de l'étape N-1 quand on édite N).
+ * Cercles gris avec contour pointillé, sans label, opacité 0.35.
+ */
+function GhostLayer({ state, stepIdx }: { state: AppState; stepIdx: number }) {
+  const step = state.steps[stepIdx];
+  if (!step) return null;
+  const defPos = effectiveDefensePositions(state, stepIdx);
+  const r = PLAYER_RADIUS;
+  return (
+    <g pointerEvents="none" opacity={0.35}>
+      {(Object.entries(step.off) as [AttackerId, Point][]).map(([id, pos]) => (
+        <circle
+          key={`ghost-o-${id}`}
+          cx={pos.x}
+          cy={pos.y}
+          r={r}
+          fill="none"
+          stroke="#D85A30"
+          strokeWidth={1.5}
+          strokeDasharray="3 3"
+        />
+      ))}
+      {(Object.entries(defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(([id, p]) => (
+        <circle
+          key={`ghost-d-${id}`}
+          cx={p.x}
+          cy={p.y}
+          r={r}
+          fill="none"
+          stroke="#378ADD"
+          strokeWidth={1.5}
+          strokeDasharray="3 3"
+        />
+      ))}
+    </g>
+  );
 }
