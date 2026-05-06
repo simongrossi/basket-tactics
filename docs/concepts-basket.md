@@ -138,6 +138,18 @@ Si une zone est surchargée (2+) et qu'une zone adjacente est vide, le défenseu
 
 Code : `applyZoneRotation()` dans [`zoneDefense.ts`](../src/lib/logic/zoneDefense.ts).
 
+### Décalage vertical (`verticalOffset`)
+
+Slider "position vert." dans la config zone (-100 à +150 px). Décale tous les polygones et homePos verticalement, permet de "remonter" (zone basse) ou "redescendre" (zone haute) sans recoder les layouts. Appliqué dans `getZoneLayout(type, offset)`.
+
+### Couverture (composant `ZoneCoverage`)
+
+En zone, le composant remplace les `Matchups` classiques (toggle "matchups (traits)" du panneau visu) :
+- Trait épais violet entre le défenseur et son `trackedAttacker` (l'attaquant principal de sa zone)
+- Trait fin pointillé vert entre le défenseur et chaque autre attaquant présent dans sa zone (cas d'overload où plusieurs attaquants entrent dans la même zone)
+
+Le défenseur "voit" donc tous les joueurs dont il a la charge à un instant donné, ce qui colle à la réalité d'une défense de zone (responsabilité par zone, pas par homme).
+
 ## Triggers d'aide (homme à homme)
 
 Trois conditions activent l'aide globale (par-dessus le sag baseline) :

@@ -42,7 +42,7 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
       <ArrowMarkers />
       <CourtBackground fullCourt={state.fullCourt} />
       {state.defenseSystem === 'zone' && showDefense && (
-        <ZoneOverlay layout={getZoneLayout(state.zoneConfig.type)} show />
+        <ZoneOverlay layout={getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0)} show />
       )}
       <g>
         {(() => {

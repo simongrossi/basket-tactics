@@ -237,8 +237,14 @@ const layouts: Record<ZoneType, ZoneLayout> = {
   'zone-matchup': ZONE_MATCHUP,
 };
 
-export function getZoneLayout(type: ZoneType): ZoneLayout {
-  return layouts[type];
+export function getZoneLayout(type: ZoneType, verticalOffset: number = 0): ZoneLayout {
+  const base = layouts[type];
+  if (!verticalOffset) return base;
+  return base.map((r) => ({
+    ...r,
+    polygon: r.polygon.map((p) => ({ x: p.x, y: p.y + verticalOffset })),
+    homePos: { x: r.homePos.x, y: r.homePos.y + verticalOffset },
+  }));
 }
 
 export function getZoneInitialPositions(type: ZoneType): DefenderPositions {

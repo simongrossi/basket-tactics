@@ -175,7 +175,7 @@ function computeZoneDefenseTargets(
   stepIdx: number
 ): { positions: Record<DefenderId, { x: number; y: number; helpFactor: number; isCarrierDefender: boolean; matchedTo: AttackerId; onScreen: boolean; switchedThisStep: boolean }>; matchupsApplied: Matchups } {
   const cur = state.steps[stepIdx];
-  const layout = getZoneLayout(state.zoneConfig.type);
+  const layout = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
   const zoneTargets = computeZoneTargets(
     cur.off, cur.ballCarrier, layout, state.zoneConfig, state.defenseDistance
   );
@@ -228,7 +228,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
   let prevPositions: DefenderPositions;
   if (stepIdx === 0) {
     if (state.defenseSystem === 'zone') {
-      const layout = getZoneLayout(state.zoneConfig.type);
+      const layout = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
       prevPositions = {} as DefenderPositions;
       layout.forEach((z) => { prevPositions[z.assignedTo] = { ...z.homePos }; });
     } else {

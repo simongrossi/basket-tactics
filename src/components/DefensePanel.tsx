@@ -153,6 +153,14 @@ export function DefensePanel(props: DefensePanelProps) {
             value={state.zoneConfig.rotationSpeed}
             onChange={(v) => props.onUpdateZoneConfig({ rotationSpeed: v })}
           />
+          <Slider
+            label="position vert."
+            min={-100}
+            max={150}
+            step={5}
+            value={state.zoneConfig.verticalOffset ?? 0}
+            onChange={(v) => props.onUpdateZoneConfig({ verticalOffset: v })}
+          />
           <CheckboxLine
             checked={state.zoneConfig.trapCorners}
             label="trap en coin"

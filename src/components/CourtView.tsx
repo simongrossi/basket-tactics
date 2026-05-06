@@ -16,6 +16,7 @@ import { CourtBackground, ArrowMarkers } from './Court';
 import { Player, Ball } from './Player';
 import { AnnotationView } from './Annotations';
 import { Matchups, HelpLines, ScreenIndicator, ZoneOverlay, OffBallScreenIndicator } from './Overlays';
+import { ZoneCoverage } from './ZoneCoverage';
 import { PassLanesOverlay } from './PassLanesOverlay';
 import { effectiveDefensePositions, getMatchupsAt } from '@/lib/logic/engine';
 import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
@@ -464,9 +465,18 @@ export function CourtView(props: CourtViewProps) {
         <ArrowMarkers />
         <CourtBackground fullCourt={state.fullCourt} />
         {state.defenseSystem === 'zone' && (
-          <ZoneOverlay layout={getZoneLayout(state.zoneConfig.type)} show />
+          <ZoneOverlay layout={getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0)} show />
         )}
-        <Matchups off={frame.off} defPos={frame.defPos} show={state.showMatchups} />
+        {state.defenseSystem === 'zone' ? (
+          <ZoneCoverage
+            off={frame.off}
+            defPos={frame.defPos}
+            layout={getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0)}
+            show={state.showMatchups}
+          />
+        ) : (
+          <Matchups off={frame.off} defPos={frame.defPos} show={state.showMatchups} />
+        )}
         <HelpLines off={frame.off} defPos={frame.defPos} defenseDistance={state.defenseDistance} show={state.showHelpLines} />
         <g>
           {(() => {

@@ -85,6 +85,10 @@ export interface ZoneConfig {
   rotationSpeed: number;
   trapCorners: boolean;
   extendTo3pt: boolean;
+  /** Décalage vertical (en px) appliqué à toutes les zones — positif = vers le
+   *  milieu de terrain, négatif = vers le panier. Permet de "remonter" ou
+   *  "redescendre" la zone selon la philosophie défensive. */
+  verticalOffset?: number;
 }
 
 // --- Écrans non-porteur (Palier 4) ---
