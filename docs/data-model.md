@@ -56,8 +56,13 @@ interface Step {
   annotations: Annotation[];            // flèches dessinées sur cette étape
   switches?: [DefenderId, DefenderId][]; // switches déclenchés (cumulés)
   label?: string;                       // texte libre éditable ("dribble drive")
+  defenseOverrides?: Partial<Record<DefenderId, Point>>; // overrides manuels
 }
 ```
+
+### `defenseOverrides`
+
+Quand l'utilisateur drag un défenseur, sa position est enregistrée comme **override** pour l'étape active. Le moteur ne calcule pas de cible pour ce défenseur sur cette étape — il utilise la position imposée. Pour réauto-positionner, voir le bouton "↻ ré-auto-positionner" dans le menu contextuel (clic-droit). Un petit cadenas jaune apparaît sur les défenseurs avec override actif.
 
 **Important** : seules les positions OFFENSIVES sont stockées par étape. Les positions DÉFENSIVES sont **calculées** à la volée par le moteur, sauf pour `defenseInitial` qui est l'état avant l'étape 0.
 

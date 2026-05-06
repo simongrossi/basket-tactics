@@ -10,6 +10,7 @@ interface PlayerProps {
   onScreen?: boolean;
   helpFactor?: number;
   facing?: Point;
+  isOverridden?: boolean;
 }
 
 export function Player({
@@ -21,6 +22,7 @@ export function Player({
   onScreen,
   helpFactor,
   facing,
+  isOverridden,
 }: PlayerProps) {
   const fill = isAttacker ? '#D85A30' : '#378ADD';
 
@@ -110,6 +112,28 @@ export function Player({
           opacity={0.4 + helpFactor! * 0.5}
           pointerEvents="none"
         />
+      )}
+      {isOverridden && !isAttacker && (
+        <g pointerEvents="none">
+          <circle
+            cx={pos.x + r * 0.85}
+            cy={pos.y - r * 0.85}
+            r={5}
+            fill="#fbbf24"
+            stroke="#92400e"
+            strokeWidth={1.2}
+          />
+          <text
+            x={pos.x + r * 0.85}
+            y={pos.y - r * 0.85 + 2.5}
+            textAnchor="middle"
+            fill="#92400e"
+            fontSize={7}
+            fontWeight={700}
+          >
+            ✋
+          </text>
+        </g>
       )}
     </g>
   );

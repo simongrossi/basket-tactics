@@ -8,11 +8,13 @@ interface ContextMenuProps {
   x: number;
   y: number;
   rule: DefenderRule;
+  hasOverride: boolean;
   onUpdate: (patch: Partial<DefenderRule>) => void;
+  onClearOverride: () => void;
   onClose: () => void;
 }
 
-export function ContextMenu({ dId, x, y, rule, onUpdate, onClose }: ContextMenuProps) {
+export function ContextMenu({ dId, x, y, rule, hasOverride, onUpdate, onClearOverride, onClose }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -98,6 +100,38 @@ export function ContextMenu({ dId, x, y, rule, onUpdate, onClose }: ContextMenuP
           <option value="fronting">devant (full denial)</option>
         </select>
       </Row>
+      {hasOverride && (
+        <div
+          style={{
+            marginTop: 8,
+            paddingTop: 8,
+            borderTop: '1px solid #e2e8f0',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
+          }}
+        >
+          <div style={{ fontSize: 11, color: '#92400e', background: '#fef3c7', padding: '4px 6px', borderRadius: 4 }}>
+            Position manuelle active sur cette étape.
+          </div>
+          <button
+            onClick={() => {
+              onClearOverride();
+              onClose();
+            }}
+            style={{
+              fontSize: 11,
+              padding: '5px 8px',
+              borderRadius: 4,
+              border: '1px solid #cbd5e1',
+              background: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            ↻ ré-auto-positionner
+          </button>
+        </div>
+      )}
     </div>
   );
 }

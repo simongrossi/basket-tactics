@@ -30,6 +30,9 @@ export interface Step {
   annotations: Annotation[];
   switches?: [DefenderId, DefenderId][];
   label?: string;
+  /** Positions imposées par l'utilisateur (drag manuel). Surchargent les
+   *  positions calculées par le moteur pour cette étape. */
+  defenseOverrides?: Partial<Record<DefenderId, Point>>;
 }
 
 export type HelpPriority = 'paint' | 'man' | 'passlane';
@@ -142,4 +145,5 @@ export interface AppState {
   zoneConfig: ZoneConfig;
   offBallScreenRule: OffBallScreenRule;
   fullCourt: boolean;
+  showPassLanes: boolean;
 }

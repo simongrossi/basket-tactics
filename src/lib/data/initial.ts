@@ -77,5 +77,6 @@ export function makeInitialState(): AppState {
     },
     offBallScreenRule: 'over',
     fullCourt: false,
+    showPassLanes: false,
   };
 }

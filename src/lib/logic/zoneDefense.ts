@@ -151,7 +151,7 @@ function applyZoneRotation(
   zoneAttackers: Map<string, AttackerId[]>,
   layout: ZoneLayout,
   off: AttackerPositions,
-  config: ZoneConfig
+  _config: ZoneConfig
 ): void {
   const overloaded: string[] = [];
   const empty: string[] = [];
@@ -164,41 +164,56 @@ function applyZoneRotation(
 
   if (overloaded.length === 0 || empty.length === 0) return;
 
-  for (const emptyZoneId of empty) {
-    const emptyZone = layout.find((z) => z.id === emptyZoneId)!;
-    let closestOverloaded: string | null = null;
-    let closestDist = Infinity;
+  // Pour chaque zone surchargée, on prend la zone vide la plus proche disponible
+  // et on lui assigne le 2e attaquant (secondaire). Une zone vide "consommée"
+  // n'est pas réutilisée → on évite que plusieurs défenseurs convergent vers
+  // le même attaquant.
+  const consumedEmpty = new Set<string>();
 
-    for (const overZoneId of overloaded) {
-      const overZone = layout.find((z) => z.id === overZoneId)!;
+  // Tri des surchargées par "criticité" : celles près du panier d'abord (plus
+  // dangereuses), pour qu'elles aient priorité sur l'aide.
+  const sortedOverloaded = [...overloaded].sort((a, b) => {
+    const za = layout.find((z) => z.id === a)!;
+    const zb = layout.find((z) => z.id === b)!;
+    return distance(za.homePos, HOOP) - distance(zb.homePos, HOOP);
+  });
+
+  for (const overZoneId of sortedOverloaded) {
+    const overZone = layout.find((z) => z.id === overZoneId)!;
+
+    // Trouve la zone vide la plus proche encore disponible
+    let closestEmptyId: string | null = null;
+    let closestDist = Infinity;
+    for (const emptyId of empty) {
+      if (consumedEmpty.has(emptyId)) continue;
+      const emptyZone = layout.find((z) => z.id === emptyId)!;
       const d = distance(emptyZone.homePos, overZone.homePos);
       if (d < closestDist) {
         closestDist = d;
-        closestOverloaded = overZoneId;
+        closestEmptyId = emptyId;
       }
     }
+    if (!closestEmptyId) continue;
+    consumedEmpty.add(closestEmptyId);
 
-    if (!closestOverloaded) continue;
+    // Trouve l'attaquant secondaire (différent du primary tracked)
+    const overAttackers = zoneAttackers.get(overZoneId) || [];
+    if (overAttackers.length < 2) continue;
+    const primary = targets[overZone.assignedTo].trackedAttacker;
+    const secondary = overAttackers.find((a) => a !== primary);
+    if (!secondary) continue;
 
-    const overZoneAttackers = zoneAttackers.get(closestOverloaded) || [];
-    if (overZoneAttackers.length < 2) continue;
-
-    const secondaryAttacker = overZoneAttackers.reduce((farthest, oId) => {
-      if (oId === targets[layout.find((z) => z.id === closestOverloaded)!.assignedTo].trackedAttacker) return farthest;
-      return distance(off[oId], HOOP) > distance(off[farthest], HOOP) ? oId : farthest;
-    });
-
+    // Place le défenseur de la zone vide entre le secondaire et le panier
+    const emptyZone = layout.find((z) => z.id === closestEmptyId)!;
     const emptyDef = emptyZone.assignedTo;
-    const attPos = off[secondaryAttacker];
-    const shiftTarget = manTarget(attPos, 60);
-
+    const shiftTarget = manTarget(off[secondary], 50);
     if (shiftTarget) {
       targets[emptyDef] = {
         x: Math.round(shiftTarget.x),
         y: Math.round(shiftTarget.y),
-        zoneId: emptyZoneId,
+        zoneId: closestEmptyId,
         isRotating: true,
-        trackedAttacker: secondaryAttacker,
+        trackedAttacker: secondary,
       };
     }
   }

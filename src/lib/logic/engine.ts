@@ -229,8 +229,26 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     prevPositions = extractPositions(computeDefenseTargets(state, stepIdx - 1, false).positions);
   }
 
+  const overrides = state.steps[stepIdx]?.defenseOverrides;
+
   const out = {} as ComputedDefense;
   DEFENDER_IDS.forEach((dId) => {
+    // Override manuel utilisateur : prend toujours le pas sur le calcul.
+    if (overrides?.[dId]) {
+      const pos = overrides[dId]!;
+      out[dId] = {
+        x: pos.x,
+        y: pos.y,
+        late: false,
+        helpFactor: targets[dId].helpFactor,
+        isCarrierDefender: targets[dId].isCarrierDefender,
+        matchedTo: targets[dId].matchedTo,
+        onScreen: targets[dId].onScreen,
+        switchedThisStep: targets[dId].switchedThisStep,
+      };
+      return;
+    }
+
     const from = prevPositions[dId];
     const to = targets[dId];
     const d = distance(from, to);

@@ -95,10 +95,34 @@ export function useAppState() {
   }, []);
 
   const moveDefender = useCallback((id: DefenderId, x: number, y: number) => {
-    setState((s) => ({
-      ...s,
-      defenseInitial: { ...s.defenseInitial, [id]: { x, y } },
-    }));
+    // Drag d'un défenseur = override manuel pour l'étape active.
+    // Le moteur respectera cette position (skip auto-targeting pour ce
+    // défenseur sur cette étape). Pour réauto-positionner, voir
+    // clearDefenseOverride.
+    setState((s) => {
+      const steps = [...s.steps];
+      const cur = { ...steps[s.activeStep] };
+      cur.defenseOverrides = { ...cur.defenseOverrides, [id]: { x, y } };
+      steps[s.activeStep] = cur;
+      // On met aussi à jour defenseInitial à l'étape 0 pour la cohérence
+      // de la détection d'écran et l'export JSON pre-overrides.
+      const defenseInitial =
+        s.activeStep === 0 ? { ...s.defenseInitial, [id]: { x, y } } : s.defenseInitial;
+      return { ...s, steps, defenseInitial };
+    });
+  }, []);
+
+  const clearDefenseOverride = useCallback((id: DefenderId) => {
+    setState((s) => {
+      const steps = [...s.steps];
+      const cur = { ...steps[s.activeStep] };
+      if (cur.defenseOverrides) {
+        const { [id]: _, ...rest } = cur.defenseOverrides;
+        cur.defenseOverrides = Object.keys(rest).length > 0 ? rest : undefined;
+      }
+      steps[s.activeStep] = cur;
+      return { ...s, steps };
+    });
   }, []);
 
   const addAnnotation = useCallback((annotation: Annotation) => {
@@ -222,5 +246,6 @@ export function useAppState() {
     setStepLabel,
     setBallCarrier,
     loadTemplate,
+    clearDefenseOverride,
   };
 }

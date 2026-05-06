@@ -301,6 +301,11 @@ export function DefensePanel(props: DefensePanelProps) {
           onChange={(v) => props.onPatch({ showMatchups: v })}
         />
         <CheckboxLine
+          checked={state.showPassLanes}
+          label="lignes de passe"
+          onChange={(v) => props.onPatch({ showPassLanes: v })}
+        />
+        <CheckboxLine
           checked={state.fullCourt}
           label="terrain complet"
           onChange={(v) => props.onPatch({ fullCourt: v })}

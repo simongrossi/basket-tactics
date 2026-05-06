@@ -113,6 +113,7 @@ export default function Page() {
             onMoveDefender={app.moveDefender}
             onAddAnnotation={app.addAnnotation}
             onUpdateRule={app.updateRule}
+            onClearDefenseOverride={app.clearDefenseOverride}
             onSetTool={app.setTool}
             isPlaying={isPlaying}
             playbackSpeed={playbackSpeed}

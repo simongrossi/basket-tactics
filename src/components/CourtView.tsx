@@ -16,6 +16,7 @@ import { CourtBackground, ArrowMarkers } from './Court';
 import { Player, Ball } from './Player';
 import { AnnotationView } from './Annotations';
 import { Matchups, HelpLines, ScreenIndicator, ZoneOverlay, OffBallScreenIndicator } from './Overlays';
+import { PassLanesOverlay } from './PassLanesOverlay';
 import { effectiveDefensePositions, getMatchupsAt } from '@/lib/logic/engine';
 import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
 import type { DetectedOffBallScreen } from '@/lib/types';
@@ -31,6 +32,7 @@ interface CourtViewProps {
   onMoveDefender: (id: DefenderId, x: number, y: number) => void;
   onAddAnnotation: (a: Annotation) => void;
   onUpdateRule: (dId: DefenderId, patch: Partial<AppState['rules'][DefenderId]>) => void;
+  onClearDefenseOverride: (dId: DefenderId) => void;
   onSetTool: (t: Tool) => void;
   isPlaying: boolean;
   playbackSpeed: number;
@@ -366,6 +368,7 @@ export function CourtView(props: CourtViewProps) {
                       onScreen={p.onScreen}
                       helpFactor={p.helpFactor}
                       facing={frame.off[p.matchedTo]}
+                      isOverridden={!!state.steps[state.activeStep]?.defenseOverrides?.[id]}
                     />
                   )
                 )}
@@ -384,6 +387,12 @@ export function CourtView(props: CourtViewProps) {
           ))}
           {pending && pending.from && <AnnotationView annotation={pending as Annotation} preview />}
         </g>
+        <PassLanesOverlay
+          off={frame.off}
+          defPos={frame.defPos}
+          carrier={frame.carrier}
+          show={state.showPassLanes}
+        />
         <ScreenIndicator screen={frame.screen} off={frame.off} rule={state.screenRule} />
         <OffBallScreenIndicator screens={frame.offBallScreens} off={frame.off} />
         <Ball carrierPos={frame.off[frame.carrier]} />
@@ -419,7 +428,9 @@ export function CourtView(props: CourtViewProps) {
           x={ctxMenu.x}
           y={ctxMenu.y}
           rule={state.rules[ctxMenu.dId]}
+          hasOverride={!!state.steps[state.activeStep]?.defenseOverrides?.[ctxMenu.dId]}
           onUpdate={(p) => props.onUpdateRule(ctxMenu.dId, p)}
+          onClearOverride={() => props.onClearDefenseOverride(ctxMenu.dId)}
           onClose={() => setCtxMenu(null)}
         />
       )}
