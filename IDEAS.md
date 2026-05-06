@@ -4,6 +4,66 @@ Notes de développement au fil de l'eau. Les items en haut sont les plus récent
 
 ---
 
+## Changements récents (rétro-historique condensé)
+
+### Lecture & timeline (FAIT)
+- `playbackT` lifté au niveau de la page : `CourtView` notifie via `onPlaybackTick`, `Timeline` affiche le playhead qui avance pendant la lecture
+- Refactor du RAF de lecture : `state` n'est plus dans les deps de `useEffect` — on passe par un `stateRef.current` mis à jour à chaque render. Avant, chaque petite mutation de `state` (mémo, mutation interne pour persister un switch, etc.) redémarrait le RAF avec `playStart` reset à `now()` → la lecture restait coincée à `globalT ≈ 0`. Cause directe du bug "rien ne se passe quand je clique play".
+- Onglet "stop" remet aussi `playbackT` à `null` et active step à 0
+- Fin de lecture remet `playbackT` à `null` et l'active step au dernier
+
+### Viewport (FAIT)
+- SVG du terrain : `width: 100%; height: 100%` + `preserveAspectRatio="xMidYMid meet"` ; wrapper `flex: 1; min-height: 0; overflow: hidden`. Plus de débordement, le terrain s'adapte exactement à l'espace disponible.
+
+### Overrides défense (FAIT)
+- `Step.defenseOverrides: Partial<Record<DefenderId, Point>>` — positions manuelles par étape
+- `moveDefender` écrit dans les overrides de l'étape active (et met à jour `defenseInitial` à l'étape 0 pour la cohérence détection d'écran)
+- L'engine respecte les overrides : skip auto-targeting + lateness pour les défenseurs override
+- Cadenas jaune sur les défenseurs avec override actif (visible d'un coup d'œil)
+- Bouton "↻ ré-auto-positionner" dans le menu contextuel (clic-droit) pour effacer un override
+
+### Lignes de passe (FAIT)
+- Nouveau composant `PassLanesOverlay`
+- Toggle "lignes de passe" dans Visualisation (panneau défense)
+- Pour chaque destinataire potentiel : ligne pointillée du porteur, catégorisée selon l'écart du défenseur le plus proche au segment
+  - Vert "ouverte" : > 35px
+  - Orange "contestée" : 18–35px
+  - Rouge "bloquée" : < 18px
+- Badge central avec ID + statut
+
+### Rotation zone améliorée (FAIT)
+- L'algo itère désormais sur les **zones surchargées** (pas sur les vides) et **consomme** les zones vides au fur et à mesure → plus de convergence multiple sur le même attaquant secondaire
+- Tri des surchargées par criticité (proches du panier d'abord)
+
+### Contraintes vsCarrier supplémentaires (FAIT)
+- `topside` : force le porteur côté milieu (lateral offset +14px)
+- `baseline` : force le porteur côté ligne de fond (lateral offset −14px)
+
+### Stances off-ball (FAIT)
+- `OffBallStance: 'sag' | 'behind' | 'deny-3q' | 'fronting'`
+- Champ optionnel `DefenderRule.offBallStance`
+- Les stances dirigées sautent le help bias (positions absolues)
+
+### Distance min carrier defender (FAIT)
+- `MIN_TARGET_DIST = 38` dans `carrierDefenderTarget` — empêche le défenseur de chevaucher visuellement le porteur
+
+### Clic-droit fixed après screener layering (FAIT)
+- Si la cible DOM est un attaquant (cas du poseur d'écran rendu au-dessus dans la pile SVG), fallback sur la recherche du défenseur le plus proche du point cliqué
+
+### Bras défensifs (FAIT, version finale)
+- Bras stylisés FIBA fixes au-dessus du cercle (ne tournent plus — la rotation vers `matchedTo` donnait visuellement un défenseur "à l'envers")
+- Pointeur d'orientation : petit triangle plein sur le bord du cercle, du côté du `matchedTo`
+
+### Calque z-order corrigé (FAIT)
+- Annotations utilisateur (passe/dribble/course/écran) et indicateurs d'écran rendus **au-dessus** des joueurs
+- ScreenIndicator renforcé : cercle plus épais + fond translucide sur le poseur + label sur fond blanc avec border
+
+### Step 0 sans lateness (FAIT)
+- À l'étape 0, la contrainte `defenseMaxSpeed` ne s'applique pas — c'est un setup, pas une transition
+- La lateness ne joue qu'aux transitions step → step+1
+
+---
+
 ## Backlog actuel (à attaquer)
 
 ### Numérotation des étapes sur le terrain (vignettes playbook)

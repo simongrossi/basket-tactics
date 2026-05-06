@@ -9,6 +9,7 @@ interface TimelineProps {
   onScrub?: (t: number | null) => void;
   isPlaying: boolean;
   scrubT: number | null;
+  playbackT?: number | null;
 }
 
 /**
@@ -17,7 +18,7 @@ interface TimelineProps {
  * - clic-glisser = scrubbing fluide entre les étapes (callback onScrub)
  * - relâcher = snap à l'étape entière la plus proche
  */
-export function Timeline({ state, onSetActiveStep, onScrub, isPlaying, scrubT }: TimelineProps) {
+export function Timeline({ state, onSetActiveStep, onScrub, isPlaying, scrubT, playbackT }: TimelineProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const total = state.steps.length;
@@ -57,7 +58,7 @@ export function Timeline({ state, onSetActiveStep, onScrub, isPlaying, scrubT }:
     onSetActiveStep(snapped);
   };
 
-  const displayT = scrubT ?? state.activeStep;
+  const displayT = scrubT ?? playbackT ?? state.activeStep;
   const ratio = total > 1 ? displayT / (total - 1) : 0;
   const currentStepIdx = Math.round(displayT);
   const currentStep = state.steps[currentStepIdx];

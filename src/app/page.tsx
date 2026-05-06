@@ -13,6 +13,7 @@ export default function Page() {
   const app = useAppState();
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [playbackT, setPlaybackT] = useState<number | null>(null);
   const [showPlaybook, setShowPlaybook] = useState(false);
   const [scrubT, setScrubT] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -94,9 +95,13 @@ export default function Page() {
           onSetStepLabel={app.setStepLabel}
           onSetBallCarrier={app.setBallCarrier}
           onLoadTemplate={app.loadTemplate}
-          onPlayToggle={() => setIsPlaying((p) => !p)}
+          onPlayToggle={() => {
+            setIsPlaying((p) => !p);
+            setPlaybackT(null);
+          }}
           onStop={() => {
             setIsPlaying(false);
+            setPlaybackT(null);
             app.setActiveStep(0);
           }}
           isPlaying={isPlaying}
@@ -118,8 +123,10 @@ export default function Page() {
             isPlaying={isPlaying}
             playbackSpeed={playbackSpeed}
             scrubT={scrubT}
+            onPlaybackTick={setPlaybackT}
             onPlaybackEnd={() => {
               setIsPlaying(false);
+              setPlaybackT(null);
               app.setActiveStep(app.state.steps.length - 1);
             }}
           />
@@ -129,6 +136,7 @@ export default function Page() {
             onScrub={setScrubT}
             isPlaying={isPlaying}
             scrubT={scrubT}
+            playbackT={playbackT}
           />
         </div>
 

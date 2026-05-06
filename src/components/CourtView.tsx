@@ -37,6 +37,7 @@ interface CourtViewProps {
   isPlaying: boolean;
   playbackSpeed: number;
   onPlaybackEnd?: () => void;
+  onPlaybackTick?: (t: number) => void;
   scrubT?: number | null;
 }
 
@@ -67,6 +68,15 @@ export function CourtView(props: CourtViewProps) {
 
   // Playback animation
   const playStart = useRef(0);
+  // Refs pour ne PAS faire dépendre l'effet de `state` (sinon chaque
+  // mutation reset playStart et la lecture n'avance jamais).
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const onPlaybackTickRef = useRef(props.onPlaybackTick);
+  onPlaybackTickRef.current = props.onPlaybackTick;
+  const onPlaybackEndRef = useRef(props.onPlaybackEnd);
+  onPlaybackEndRef.current = props.onPlaybackEnd;
+
   useEffect(() => {
     if (!props.isPlaying) {
       setPlayFrame(null);
@@ -76,21 +86,24 @@ export function CourtView(props: CourtViewProps) {
 
     let raf = 0;
     const tick = (now: number) => {
+      const cur = stateRef.current;
       const elapsed = now - playStart.current;
       const stepDuration = 1500 / props.playbackSpeed;
-      const totalSteps = state.steps.length - 1;
+      const totalSteps = cur.steps.length - 1;
       if (totalSteps <= 0) return;
       const globalT = elapsed / stepDuration;
       if (globalT >= totalSteps) {
         setPlayFrame(null);
-        props.onPlaybackEnd?.();
+        onPlaybackTickRef.current?.(totalSteps);
+        onPlaybackEndRef.current?.();
         return;
       }
+      onPlaybackTickRef.current?.(globalT);
       const idxA = Math.floor(globalT);
       const idxB = idxA + 1;
       const localT = globalT - idxA;
-      const a = state.steps[idxA];
-      const b = state.steps[idxB];
+      const a = cur.steps[idxA];
+      const b = cur.steps[idxB];
       const off = {} as AttackerPositions;
       (Object.keys(a.off) as AttackerId[]).forEach((id) => {
         off[id] = {
@@ -98,8 +111,8 @@ export function CourtView(props: CourtViewProps) {
           y: a.off[id].y + (b.off[id].y - a.off[id].y) * localT,
         };
       });
-      const defA = effectiveDefensePositions(state, idxA);
-      const defB = effectiveDefensePositions(state, idxB);
+      const defA = effectiveDefensePositions(cur, idxA);
+      const defB = effectiveDefensePositions(cur, idxB);
       const defPos = {} as ComputedDefense;
       (Object.keys(defA) as DefenderId[]).forEach((id) => {
         defPos[id] = {
@@ -116,18 +129,18 @@ export function CourtView(props: CourtViewProps) {
       const carrier = localT < 0.5 ? a.ballCarrier : b.ballCarrier;
       let screen: ReturnType<typeof detectScreen> = null;
       let offBallScreens: DetectedOffBallScreen[] = [];
-      if (state.defenseSystem === 'man') {
-        const matchups = getMatchupsAt(state.steps, idxB - 1);
+      if (cur.defenseSystem === 'man') {
+        const matchups = getMatchupsAt(cur.steps, idxB - 1);
         const defPosExtracted = extractDefPositions(defPos);
-        screen = detectScreen(off, carrier, matchups, defPosExtracted, state.screenRadius);
-        offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosExtracted, state.screenRadius);
+        screen = detectScreen(off, carrier, matchups, defPosExtracted, cur.screenRadius);
+        offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosExtracted, cur.screenRadius);
       }
       setPlayFrame({ off, defPos, carrier, screen, offBallScreens, stepIdx: idxA });
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [props.isPlaying, props.playbackSpeed, state]);
+  }, [props.isPlaying, props.playbackSpeed]);
 
   // Computed (static frame)
   const staticFrame = useMemo<PlaybackFrame>(() => {
@@ -321,6 +334,7 @@ export function CourtView(props: CourtViewProps) {
         padding: 6,
         flex: 1,
         minHeight: 0,
+        overflow: 'hidden',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -331,7 +345,7 @@ export function CourtView(props: CourtViewProps) {
         ref={svgRef}
         viewBox={`0 0 ${COURT.width} ${state.fullCourt ? FULL_COURT_HEIGHT : COURT.height}`}
         preserveAspectRatio="xMidYMid meet"
-        style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', display: 'block', touchAction: 'none', userSelect: 'none' }}
+        style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none', userSelect: 'none' }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}

@@ -75,6 +75,22 @@ CourtView → effectiveDefensePositions(state, activeStep)
 Le moteur recalcule les positions défensives à chaque frame
 ```
 
+### Lecture (playback)
+
+Le RAF de lecture vit dans `CourtView`. Il utilise un **`stateRef.current`** (pas une dépendance d'effet) pour accéder à la version courante de `state` sans redémarrer la boucle à chaque mutation.
+
+À chaque tick :
+- calcul du `globalT` (fraction d'étape écoulée)
+- interpolation des positions O et D entre `idxA` et `idxB`
+- `setPlayFrame(...)` met à jour la frame locale
+- `onPlaybackTick(globalT)` remonte vers la page
+
+La page stocke `playbackT` et le passe à la `Timeline` qui affiche le playhead qui avance.
+
+### Overrides défense
+
+L'utilisateur peut **drag** un défenseur sur le terrain → la position est écrite dans `state.steps[activeStep].defenseOverrides[D_i]`. Pour cette étape, l'engine **respecte** l'override : pas de calcul de cible, pas de lateness. Le défenseur est marqué visuellement avec un petit cadenas. Pour réauto-positionner, clic-droit → "↻ ré-auto-positionner".
+
 ### Pourquoi le moteur est-il pur ?
 
 Toute la logique défensive (engine.ts, screens.ts, etc.) est **pure** : entrée = `AppState`, sortie = positions. Aucun hook React, aucun localStorage, aucun side-effect.

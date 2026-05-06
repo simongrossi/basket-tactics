@@ -69,6 +69,7 @@ Sous le terrain. Permet de naviguer dans les étapes.
 - **Marqueurs** : un cercle par étape, cliquable pour activer
 - **Playhead** : draggable, scrubbing fluide entre étapes au drag
 - **Snap** : au relâchement, l'étape entière la plus proche est activée
+- **Pendant la lecture** : le playhead avance automatiquement, alimenté par `playbackT` remonté depuis `CourtView`
 - **Texte** : "Étape N / total — label" + "porteur : Ox"
 
 ## Panneau défense (droit, bleu)
