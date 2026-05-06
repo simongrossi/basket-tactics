@@ -13,6 +13,7 @@ interface PlayerProps {
   isOverridden?: boolean;
   closingOut?: boolean;
   isForcedScreener?: boolean;
+  denying?: boolean;
 }
 
 export function Player({
@@ -27,6 +28,7 @@ export function Player({
   isOverridden,
   closingOut,
   isForcedScreener,
+  denying,
 }: PlayerProps) {
   const fill = isAttacker ? '#D85A30' : '#378ADD';
 
@@ -111,8 +113,9 @@ export function Player({
           cy={pos.y}
           r={22 + helpFactor! * 4}
           fill="none"
-          stroke="#534AB7"
+          stroke={denying ? '#0EA5A8' : '#534AB7'}
           strokeWidth={1.5}
+          strokeDasharray={denying ? '4 3' : undefined}
           opacity={0.4 + helpFactor! * 0.5}
           pointerEvents="none"
         />

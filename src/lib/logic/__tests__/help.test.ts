@@ -35,6 +35,7 @@ describe('computeHelpTarget — strong-side denial', () => {
     const manPos = { x: 470, y: 300 }; // entre att et panier
     const r = computeHelpTarget(manPos, ruleSag(20), noTriggers, carrier, att, 1);
     expect(r.helpFactor).toBeGreaterThan(0);
+    expect(r.denying).toBe(true);
     // La cible doit s'être rapprochée de la ligne carrier ↔ att.
     // Distance(target, segment) < distance(manPos, segment)
     const segDist = (p: { x: number; y: number }) => {
@@ -98,5 +99,6 @@ describe('computeHelpTarget — strong-side denial', () => {
     // weak-side prend la branche sag baseline, pas la branche denial
     // helpFactor doit être (helpPct/100)*0.5 = 0.1
     expect(r.helpFactor).toBeCloseTo(0.1, 2);
+    expect(r.denying).toBeFalsy();
   });
 });

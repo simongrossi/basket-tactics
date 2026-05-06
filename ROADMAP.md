@@ -31,7 +31,7 @@ Implémenté : quand `ballCarrier` change entre étape N-1 et N, le défenseur d
 ### 🟢 Strong-side denial (v1 — automatique)
 Implémenté dans `help.ts` : quand pas de trigger actif + défenseur strong-side + attaquant à <250px du ballon + `priority !== 'paint'`, glissement vers la ligne de passe avec intensité proportionnelle à la proximité (`denyFactor` jusqu'à 0.45). Détails : [docs/logique-defensive.md § Strong-side denial automatique](docs/logique-defensive.md#strong-side-denial-automatique).
 
-⚪ **À venir v2** : indicateur visuel dédié (différencier le ring "denial" du ring "help" actuel) ; tunable `denyAggressiveness` global ou par règle.
+🟢 **v2 (ring dédié)** : `HelpResult.denying` propagé jusqu'à `ComputedDefender.denying`. Player affiche un ring **cyan pointillé** (`#0EA5A8`, dasharray `4 3`) quand `denying`, à la place du ring violet plein "help". Tunable `denyAggressiveness` reste à venir en v3.
 
 ### 🟢 Staggered screens (v1)
 Implémenté : `pickBlockingObstacle` (geometry.ts) sélectionne l'obstacle de plus profonde pénétration dans le segment du défenseur. Plus fidèle qu'un break sur le premier match. ⚪ **v2** : enchaîner deux courbes pour traverser réellement deux écrans en série.

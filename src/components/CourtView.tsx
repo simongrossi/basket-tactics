@@ -196,6 +196,7 @@ export function CourtView(props: CourtViewProps) {
           onScreen: defB[id].onScreen,
           switchedThisStep: defB[id].switchedThisStep,
           closingOut: defB[id].closingOut,
+          denying: defB[id].denying,
         };
       });
 
@@ -543,6 +544,7 @@ export function CourtView(props: CourtViewProps) {
                       facing={frame.off[p.matchedTo]}
                       isOverridden={!!state.steps[state.activeStep]?.defenseOverrides?.[id]}
                       closingOut={p.closingOut}
+                      denying={p.denying}
                     />
                   )
                 )}

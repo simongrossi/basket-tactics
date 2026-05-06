@@ -68,7 +68,7 @@ export function computeDefenseTargets(
   state: AppState,
   stepIdx: number,
   mutateStepForSwitch: boolean = true
-): { positions: Record<DefenderId, { x: number; y: number; helpFactor: number; isCarrierDefender: boolean; matchedTo: AttackerId; onScreen: boolean; switchedThisStep: boolean }>; matchupsApplied: Matchups } {
+): { positions: Record<DefenderId, { x: number; y: number; helpFactor: number; isCarrierDefender: boolean; matchedTo: AttackerId; onScreen: boolean; switchedThisStep: boolean; denying?: boolean }>; matchupsApplied: Matchups } {
   if (state.defenseSystem === 'zone') {
     return computeZoneDefenseTargets(state, stepIdx);
   }
@@ -122,6 +122,7 @@ export function computeDefenseTargets(
 
     let target: { x: number; y: number };
     let helpFactor = 0;
+    let denying = false;
 
     if (isCarrierDefender) {
       target = carrierDefenderTarget(rule.vsCarrier, att, state.defenseDistance, hoop) || state.defenseInitial[dId];
@@ -138,6 +139,7 @@ export function computeDefenseTargets(
         const help = computeHelpTarget(stancePos, rule, triggers, carrierPos, att, side, off, hoop);
         target = help.target;
         helpFactor = help.helpFactor;
+        denying = !!help.denying;
       }
     }
 
@@ -153,6 +155,7 @@ export function computeDefenseTargets(
       matchedTo: oId,
       onScreen: !!(screen && (dId === screen.carrierDef || dId === screen.screenerDef)),
       switchedThisStep: switchedThisStep && !!(screen && (dId === screen.carrierDef || dId === screen.screenerDef)),
+      denying: denying || undefined,
     };
   });
 
@@ -292,6 +295,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
         matchedTo: targets[dId].matchedTo,
         onScreen: targets[dId].onScreen,
         switchedThisStep: targets[dId].switchedThisStep,
+        denying: targets[dId].denying,
       };
       return;
     }
@@ -321,6 +325,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
         onScreen: targets[dId].onScreen,
         switchedThisStep: targets[dId].switchedThisStep,
         closingOut: closingOut || undefined,
+        denying: targets[dId].denying,
       };
     }
   });

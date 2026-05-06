@@ -137,6 +137,10 @@ export interface ComputedDefender {
   /** Le défenseur est en closeout sur cette transition (le ballon vient
    *  d'arriver sur son homme, il accélère pour fermer la distance). */
   closingOut?: boolean;
+  /** Le défenseur applique un strong-side denial automatique (glisse vers la
+   *  ligne de passe). Utilisé pour différencier visuellement du ring "help"
+   *  classique côté faible. */
+  denying?: boolean;
 }
 
 export type ComputedDefense = Record<DefenderId, ComputedDefender>;

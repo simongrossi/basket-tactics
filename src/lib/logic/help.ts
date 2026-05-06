@@ -5,6 +5,10 @@ import { distance } from './geometry';
 export interface HelpResult {
   target: Point;
   helpFactor: number;
+  /** True si le pull provient de la branche strong-side denial (et non de
+   *  l'aide weak-side ou de la sag baseline). Permet au rendu de différencier
+   *  visuellement les deux comportements. */
+  denying?: boolean;
 }
 
 export function computeHelpTarget(
@@ -62,6 +66,7 @@ export function computeHelpTarget(
             y: manPos.y + (denyAim.y - manPos.y) * denyFactor,
           },
           helpFactor: denyFactor,
+          denying: true,
         };
       }
     }
