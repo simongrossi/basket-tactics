@@ -1,33 +1,136 @@
-import { COURT, HOOP, PAINT, FULL_COURT_HEIGHT, MIDLINE_Y } from '@/lib/data/court';
+import {
+  COURT,
+  HOOP,
+  HOOP_RADIUS,
+  PAINT,
+  FT_LINE_Y,
+  FT_CIRCLE_RADIUS,
+  THREE_POINT_RADIUS,
+  CORNER_3PT_X_LEFT,
+  CORNER_3PT_X_RIGHT,
+  CORNER_3PT_Y,
+  RESTRICTED_AREA_RADIUS,
+  CENTER_CIRCLE_RADIUS,
+  BACKBOARD_Y,
+  BACKBOARD_HALF_WIDTH,
+  FULL_COURT_HEIGHT,
+  MIDLINE_Y,
+} from '@/lib/data/court';
 
 interface CourtBackgroundProps {
   fullCourt?: boolean;
 }
 
+const LINE_COLOR = '#FFFFFF';
+const LINE_WIDTH = 3;
+
+/**
+ * Demi-terrain FIBA. Tout est dessiné depuis la baseline (y=20) du côté
+ * du panier en haut. Les fonctions de symétrie pour le terrain complet
+ * miroitent ce demi-terrain autour de y = MIDLINE_Y.
+ */
 function HalfCourt() {
+  const cx = 300;
+  const baseY = 20; // ligne de fond
+
   return (
     <>
-      <rect x={200} y={20} width={200} height={190} fill="none" stroke="#FFFFFF" strokeWidth={3} />
+      {/* Raquette (paint) */}
       <rect
         x={PAINT.x1}
         y={PAINT.y1}
         width={PAINT.x2 - PAINT.x1}
         height={PAINT.y2 - PAINT.y1}
         fill="#C97A3A"
-        stroke="#FFFFFF"
-        strokeWidth={3}
+        stroke={LINE_COLOR}
+        strokeWidth={LINE_WIDTH}
       />
-      <circle cx={300} cy={210} r={60} fill="none" stroke="#FFFFFF" strokeWidth={3} strokeDasharray="6 6" />
-      <path
-        d="M 80 20 L 80 160 A 220 220 0 0 0 520 160 L 520 20"
+
+      {/* Cercle des lancers francs (demi-cercle plein côté FT, pointillé côté
+          panier — convention FIBA). On dessine un cercle complet dashed pour
+          simplicité. */}
+      <circle
+        cx={cx}
+        cy={FT_LINE_Y}
+        r={FT_CIRCLE_RADIUS}
         fill="none"
-        stroke="#FFFFFF"
-        strokeWidth={3}
+        stroke={LINE_COLOR}
+        strokeWidth={LINE_WIDTH}
+        strokeDasharray="6 6"
       />
-      <line x1={20} y1={160} x2={80} y2={160} stroke="#FFFFFF" strokeWidth={3} />
-      <line x1={520} y1={160} x2={580} y2={160} stroke="#FFFFFF" strokeWidth={3} />
-      <rect x={280} y={55} width={40} height={3} fill="#FFFFFF" />
-      <circle cx={HOOP.x} cy={HOOP.y} r={9} fill="none" stroke="#E24B4A" strokeWidth={2.5} />
+
+      {/* Zone restreinte (no-charge semicircle) sous le panier */}
+      <path
+        d={`M ${cx - RESTRICTED_AREA_RADIUS} ${HOOP.y} A ${RESTRICTED_AREA_RADIUS} ${RESTRICTED_AREA_RADIUS} 0 0 0 ${cx + RESTRICTED_AREA_RADIUS} ${HOOP.y}`}
+        fill="none"
+        stroke={LINE_COLOR}
+        strokeWidth={LINE_WIDTH - 1}
+      />
+
+      {/* Ligne à 3 points : sections droites des coins + arc */}
+      <line
+        x1={CORNER_3PT_X_LEFT}
+        y1={baseY}
+        x2={CORNER_3PT_X_LEFT}
+        y2={CORNER_3PT_Y}
+        stroke={LINE_COLOR}
+        strokeWidth={LINE_WIDTH}
+      />
+      <line
+        x1={CORNER_3PT_X_RIGHT}
+        y1={baseY}
+        x2={CORNER_3PT_X_RIGHT}
+        y2={CORNER_3PT_Y}
+        stroke={LINE_COLOR}
+        strokeWidth={LINE_WIDTH}
+      />
+      <path
+        d={`M ${CORNER_3PT_X_LEFT} ${CORNER_3PT_Y} A ${THREE_POINT_RADIUS} ${THREE_POINT_RADIUS} 0 0 0 ${CORNER_3PT_X_RIGHT} ${CORNER_3PT_Y}`}
+        fill="none"
+        stroke={LINE_COLOR}
+        strokeWidth={LINE_WIDTH}
+      />
+
+      {/* Backboard (planche) — petit trait horizontal */}
+      <line
+        x1={cx - BACKBOARD_HALF_WIDTH}
+        y1={BACKBOARD_Y}
+        x2={cx + BACKBOARD_HALF_WIDTH}
+        y2={BACKBOARD_Y}
+        stroke={LINE_COLOR}
+        strokeWidth={4}
+      />
+      {/* Petit segment qui rattache la planche au panier (rim mount) */}
+      <line
+        x1={cx}
+        y1={BACKBOARD_Y}
+        x2={cx}
+        y2={HOOP.y - HOOP_RADIUS}
+        stroke={LINE_COLOR}
+        strokeWidth={2}
+      />
+
+      {/* Anneau du panier */}
+      <circle
+        cx={HOOP.x}
+        cy={HOOP.y}
+        r={HOOP_RADIUS}
+        fill="none"
+        stroke="#E24B4A"
+        strokeWidth={2.5}
+      />
+
+      {/* Marques sur les côtés de la raquette (rebound positions FIBA :
+          4 hash marks par côté, à 1.75/2.75/3.75/4.75 m de la baseline) */}
+      {[1.75, 2.75, 3.75, 4.75].map((m) => {
+        const y = baseY + m * 37;
+        return (
+          <g key={m}>
+            <rect x={PAINT.x1 - 5} y={y - 1} width={5} height={3} fill={LINE_COLOR} />
+            <rect x={PAINT.x2} y={y - 1} width={5} height={3} fill={LINE_COLOR} />
+          </g>
+        );
+      })}
     </>
   );
 }
@@ -37,29 +140,65 @@ export function CourtBackground({ fullCourt = false }: CourtBackgroundProps) {
   const totalInner = fullCourt ? FULL_COURT_HEIGHT - 40 : 520;
   return (
     <>
+      {/* Fond du SVG */}
       <rect x={0} y={0} width={COURT.width} height={totalHeight} fill="#E8C99B" />
+
+      {/* Bordure extérieure du terrain (touches + ligne de fond) */}
       <rect
         x={20}
         y={20}
         width={560}
         height={totalInner}
         fill="none"
-        stroke="#FFFFFF"
-        strokeWidth={3}
+        stroke={LINE_COLOR}
+        strokeWidth={LINE_WIDTH}
       />
+
       <HalfCourt />
+
       {fullCourt ? (
         <>
+          {/* Demi-terrain symétrique en bas */}
           <g transform={`translate(0 ${2 * MIDLINE_Y}) scale(1 -1)`}>
             <HalfCourt />
           </g>
-          <line x1={20} y1={MIDLINE_Y} x2={580} y2={MIDLINE_Y} stroke="#FFFFFF" strokeWidth={3} />
-          <circle cx={300} cy={MIDLINE_Y} r={60} fill="none" stroke="#FFFFFF" strokeWidth={3} />
+          {/* Ligne médiane + cercle central plein */}
+          <line
+            x1={20}
+            y1={MIDLINE_Y}
+            x2={580}
+            y2={MIDLINE_Y}
+            stroke={LINE_COLOR}
+            strokeWidth={LINE_WIDTH}
+          />
+          <circle
+            cx={300}
+            cy={MIDLINE_Y}
+            r={CENTER_CIRCLE_RADIUS}
+            fill="none"
+            stroke={LINE_COLOR}
+            strokeWidth={LINE_WIDTH}
+          />
         </>
       ) : (
         <>
-          <line x1={20} y1={540} x2={580} y2={540} stroke="#FFFFFF" strokeWidth={3} />
-          <circle cx={300} cy={540} r={60} fill="none" stroke="#FFFFFF" strokeWidth={3} />
+          {/* Ligne médiane + demi-cercle central */}
+          <line
+            x1={20}
+            y1={MIDLINE_Y}
+            x2={580}
+            y2={MIDLINE_Y}
+            stroke={LINE_COLOR}
+            strokeWidth={LINE_WIDTH}
+          />
+          <circle
+            cx={300}
+            cy={MIDLINE_Y}
+            r={CENTER_CIRCLE_RADIUS}
+            fill="none"
+            stroke={LINE_COLOR}
+            strokeWidth={LINE_WIDTH}
+          />
         </>
       )}
     </>
