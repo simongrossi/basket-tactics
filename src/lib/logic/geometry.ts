@@ -241,6 +241,54 @@ export function pickBlockingObstacle(
 }
 
 /**
+ * Variante "staggered screens" : si plusieurs obstacles bloquent réellement
+ * le segment, les fusionne en un super-cluster (centroid pondéré, rayon
+ * couvrant l'enveloppe). curveAroundObstacle peut alors les contourner d'un
+ * seul mouvement large plutôt que de slalomer entre eux.
+ *
+ * - 0 obstacle bloquant → null
+ * - 1 obstacle → l'obstacle lui-même
+ * - 2+ → super-cluster (centroid des centres, rayon = max(distance centroid →
+ *   centre_i + radius_i))
+ */
+export function pickBlockingCluster(
+  start: Point,
+  end: Point,
+  obstacles: { center: Point; radius: number }[]
+): { center: Point; radius: number } | null {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.01) return null;
+  const ux = dx / len;
+  const uy = dy / len;
+
+  const blockers: { center: Point; radius: number }[] = [];
+  for (const obs of obstacles) {
+    const ox = obs.center.x - start.x;
+    const oy = obs.center.y - start.y;
+    const proj = ox * ux + oy * uy;
+    if (proj < 0 || proj > len) continue;
+    const closestX = start.x + proj * ux;
+    const closestY = start.y + proj * uy;
+    const distToLine = Math.hypot(obs.center.x - closestX, obs.center.y - closestY);
+    if (distToLine >= obs.radius) continue;
+    blockers.push(obs);
+  }
+
+  if (blockers.length === 0) return null;
+  if (blockers.length === 1) return blockers[0];
+
+  const cx = blockers.reduce((s, b) => s + b.center.x, 0) / blockers.length;
+  const cy = blockers.reduce((s, b) => s + b.center.y, 0) / blockers.length;
+  const center = { x: cx, y: cy };
+  const radius = Math.max(
+    ...blockers.map((b) => Math.hypot(b.center.x - cx, b.center.y - cy) + b.radius)
+  );
+  return { center, radius };
+}
+
+/**
  * Calcule un cluster (centre + rayon) à partir d'un noyau central et
  * d'éventuels obstacles voisins (à moins de `linkDist` du noyau).
  * Utile pour traiter "poseur d'écran + son défenseur" comme une seule

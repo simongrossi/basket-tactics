@@ -33,8 +33,9 @@ Implémenté dans `help.ts` : quand pas de trigger actif + défenseur strong-sid
 
 🟢 **v2 (ring dédié)** : `HelpResult.denying` propagé jusqu'à `ComputedDefender.denying`. Player affiche un ring **cyan pointillé** (`#0EA5A8`, dasharray `4 3`) quand `denying`, à la place du ring violet plein "help". Tunable `denyAggressiveness` reste à venir en v3.
 
-### 🟢 Staggered screens (v1)
-Implémenté : `pickBlockingObstacle` (geometry.ts) sélectionne l'obstacle de plus profonde pénétration dans le segment du défenseur. Plus fidèle qu'un break sur le premier match. ⚪ **v2** : enchaîner deux courbes pour traverser réellement deux écrans en série.
+### 🟢 Staggered screens (v2)
+v1 : `pickBlockingObstacle` (geometry.ts) sélectionne l'obstacle de plus profonde pénétration dans le segment.
+**v2** : `pickBlockingCluster` fusionne tous les obstacles bloquants en super-cluster (centroid des centres + rayon couvrant l'enveloppe). `curveAroundObstacle` contourne alors les écrans en chaîne d'un seul mouvement large plutôt que de slalomer entre eux. CourtView utilise `pickBlockingCluster` à la place de `pickBlockingObstacle`. ⚪ **v3** : double courbe Bezier réelle pour weave entre deux écrans très espacés (le super-cluster reste équivalent à un détour quand ils sont proches).
 
 ### 🟢 Stunt and recover (v1)
 Implémenté : nouvelle `OffBallStance: 'stunt'` avec blend 0.4 dans `offBallStanceTarget`. Position intermédiaire entre behind et fronting, biaisée vers le ballon — le "recover" est naturel via le retour à `'sag'` à l'étape suivante.

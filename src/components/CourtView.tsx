@@ -24,7 +24,7 @@ import type { DetectedOffBallScreen } from '@/lib/types';
 import { detectTriggers } from '@/lib/logic/triggers';
 import { getZoneLayout } from '@/lib/data/zones';
 import { COURT, PLAYER_RADIUS, FULL_COURT_HEIGHT, FULL_COURT_INNER_MAX_Y } from '@/lib/data/court';
-import { clamp, distance, curveAroundObstacle, resolvePlayerCollisions, makeCluster, pickBlockingObstacle } from '@/lib/logic/geometry';
+import { clamp, distance, curveAroundObstacle, resolvePlayerCollisions, makeCluster, pickBlockingCluster } from '@/lib/logic/geometry';
 import { ContextMenu } from './ContextMenu';
 
 interface CourtViewProps {
@@ -182,7 +182,7 @@ export function CourtView(props: CourtViewProps) {
         // celui qui est LE PLUS BLOQUANT (pénétration dans le segment la plus
         // profonde), pas le premier de la liste.
         const candidates = screenerObstacles.filter((o) => id !== o.defenderToSkip);
-        const blocking = pickBlockingObstacle(defA[id], defB[id], candidates);
+        const blocking = pickBlockingCluster(defA[id], defB[id], candidates);
         if (blocking) {
           p = curveAroundObstacle(defA[id], defB[id], blocking.center, blocking.radius, localT);
         }
@@ -301,7 +301,7 @@ export function CourtView(props: CourtViewProps) {
         y: defA[id].y + (defB[id].y - defA[id].y) * localT,
       };
       const candidates = screenerObstacles.filter((o) => id !== o.defenderToSkip);
-      const blocking = pickBlockingObstacle(defA[id], defB[id], candidates);
+      const blocking = pickBlockingCluster(defA[id], defB[id], candidates);
       if (blocking) {
         p = curveAroundObstacle(defA[id], defB[id], blocking.center, blocking.radius, localT);
       }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickBlockingObstacle } from '../geometry';
+import { pickBlockingObstacle, pickBlockingCluster } from '../geometry';
 
 describe('pickBlockingObstacle', () => {
   it("retourne null s'il n'y a aucun obstacle qui traverse le segment", () => {
@@ -42,6 +42,47 @@ describe('pickBlockingObstacle', () => {
       { x: 100, y: 100 },
       { x: 100, y: 100 },
       [{ center: { x: 100, y: 100 }, radius: 50 }]
+    );
+    expect(r).toBeNull();
+  });
+});
+
+describe('pickBlockingCluster', () => {
+  it("renvoie l'unique obstacle quand un seul bloque (parité avec pickBlockingObstacle)", () => {
+    const obs = { center: { x: 100, y: 105 }, radius: 20 };
+    const r = pickBlockingCluster({ x: 0, y: 100 }, { x: 200, y: 100 }, [obs]);
+    expect(r).toBe(obs);
+  });
+
+  it("fusionne deux obstacles en super-cluster (centroid + rayon couvrant)", () => {
+    // Deux écrans en série le long d'un segment horizontal
+    const a = { center: { x: 60, y: 105 }, radius: 18 };
+    const b = { center: { x: 140, y: 102 }, radius: 18 };
+    const r = pickBlockingCluster({ x: 0, y: 100 }, { x: 200, y: 100 }, [a, b]);
+    expect(r).not.toBeNull();
+    expect(r).not.toBe(a);
+    expect(r).not.toBe(b);
+    // Centroid à mi-chemin x≈100
+    expect(r!.center.x).toBeCloseTo(100, 0);
+    // Rayon couvre les deux : doit englober chaque centre + son radius
+    const dToA = Math.hypot(r!.center.x - a.center.x, r!.center.y - a.center.y) + a.radius;
+    const dToB = Math.hypot(r!.center.x - b.center.x, r!.center.y - b.center.y) + b.radius;
+    expect(r!.radius).toBeGreaterThanOrEqual(dToA - 0.01);
+    expect(r!.radius).toBeGreaterThanOrEqual(dToB - 0.01);
+  });
+
+  it("ignore les obstacles non-bloquants même si la liste en contient", () => {
+    const blocker = { center: { x: 100, y: 105 }, radius: 20 };
+    const farAway = { center: { x: 100, y: 500 }, radius: 30 };
+    const r = pickBlockingCluster({ x: 0, y: 100 }, { x: 200, y: 100 }, [blocker, farAway]);
+    expect(r).toBe(blocker);
+  });
+
+  it("renvoie null quand aucun obstacle ne bloque", () => {
+    const r = pickBlockingCluster(
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      [{ center: { x: 50, y: 200 }, radius: 10 }]
     );
     expect(r).toBeNull();
   });

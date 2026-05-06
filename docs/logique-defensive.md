@@ -87,9 +87,11 @@ Zones définies par bbox (TRAP_ZONES) :
 
 Pendant le playback et le scrubbing, `CourtView` utilise `curveAroundObstacle` pour faire contourner les défenseurs autour des poseurs d'écran. Avant : la première occurrence de la liste `screenerObstacles` était utilisée (break après match), ce qui pouvait être arbitraire avec plusieurs écrans simultanés.
 
-`pickBlockingObstacle(start, end, obstacles)` (geometry.ts) sélectionne l'obstacle de **plus profonde pénétration** dans le segment du défenseur (`pen = radius - distance_to_line`). Si plusieurs obstacles bloquent la trajectoire, on contourne celui qui gêne réellement, pas celui qui s'est trouvé en premier dans la liste.
+`pickBlockingObstacle(start, end, obstacles)` (geometry.ts) sélectionne l'obstacle de **plus profonde pénétration** dans le segment du défenseur (`pen = radius - distance_to_line`).
 
-**Limite v1** : un seul contournement à la fois (pas de double courbe pour traverser deux écrans en série). Si la trajectoire de contournement passe à travers un autre écran, c'est ignoré.
+**v2 — super-cluster** : `pickBlockingCluster(start, end, obstacles)` fusionne tous les obstacles bloquants en une seule masse (centroid des centres + rayon couvrant l'enveloppe). Le défenseur contourne alors les écrans en chaîne d'un seul mouvement large plutôt que de slalomer. C'est ce que CourtView utilise désormais. `pickBlockingObstacle` reste exporté pour les cas où l'on veut explicitement le seul "vrai" bloqueur.
+
+**Limite v2** : pas de double courbe Bezier réelle. Quand les écrans sont très espacés, le super-cluster donne un détour large (équivalent à un seul gros écran). Pour un weave authentique entre deux écrans distants, v3 ajoutera un chaînage de courbes.
 
 ## Inversion du panier de référence (`attackingDirection`)
 
