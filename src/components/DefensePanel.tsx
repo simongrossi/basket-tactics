@@ -373,7 +373,51 @@ export function DefensePanel(props: DefensePanelProps) {
           label="terrain complet"
           onChange={(v) => props.onPatch({ fullCourt: v })}
         />
+        <details style={{ marginTop: 6 }}>
+          <summary style={{ cursor: 'pointer', fontSize: 11, color: c.accentText, fontWeight: 500 }}>
+            Légende couleurs
+          </summary>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 6 }}>
+            <LegendRow color="#534AB7" sample="dashed" label="ligne d'aide (weak-side)" />
+            <LegendRow color="#888780" sample="line" label="matchup défenseur ↔ son homme" />
+            <LegendRow color="#BA7517" sample="dashed" label="matchup après un switch" />
+            <LegendRow color="#7c3aed" sample="line-thick" label="zone : attaquant tracké" />
+            <LegendRow color="#10b981" sample="dashed-thin" label="zone : autre attaquant en zone / passe ouverte" />
+            <LegendRow color="#f59e0b" sample="dashed" label="passe contestée" />
+            <LegendRow color="#dc2626" sample="dashed-thin" label="passe bloquée" />
+            <LegendRow color="#534AB7" sample="circle" label="indicateur écran porteur" />
+            <LegendRow color="#16a34a" sample="circle" label="indicateur écran non-porteur" />
+            <LegendRow color="#FAC775" sample="ring" label="contour défenseur du porteur" />
+            <LegendRow color="#E24B4A" sample="ring" label="contour défenseur en retard" />
+            <LegendRow color="#fbbf24" sample="dot" label="cadenas — position manuelle" />
+          </div>
+        </details>
       </Section>
     </Panel>
+  );
+}
+
+type LegendSample = 'line' | 'line-thick' | 'dashed' | 'dashed-thin' | 'circle' | 'ring' | 'dot';
+
+function LegendRow({ color, sample, label }: { color: string; sample: LegendSample; label: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10, color: '#475569' }}>
+      <svg width="32" height="14" viewBox="0 0 32 14" style={{ flex: '0 0 32px' }}>
+        {sample === 'line' && <line x1="2" y1="7" x2="30" y2="7" stroke={color} strokeWidth="1.4" />}
+        {sample === 'line-thick' && <line x1="2" y1="7" x2="30" y2="7" stroke={color} strokeWidth="2.4" />}
+        {sample === 'dashed' && (
+          <line x1="2" y1="7" x2="30" y2="7" stroke={color} strokeWidth="1.6" strokeDasharray="4 3" />
+        )}
+        {sample === 'dashed-thin' && (
+          <line x1="2" y1="7" x2="30" y2="7" stroke={color} strokeWidth="1.2" strokeDasharray="3 3" />
+        )}
+        {sample === 'circle' && (
+          <circle cx="16" cy="7" r="5" fill="none" stroke={color} strokeWidth="1.6" strokeDasharray="3 2" />
+        )}
+        {sample === 'ring' && <circle cx="16" cy="7" r="5" fill="none" stroke={color} strokeWidth="2.5" />}
+        {sample === 'dot' && <circle cx="16" cy="7" r="3.5" fill={color} stroke="#92400e" strokeWidth="0.8" />}
+      </svg>
+      <span>{label}</span>
+    </div>
   );
 }

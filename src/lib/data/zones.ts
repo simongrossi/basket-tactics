@@ -13,22 +13,23 @@ import type { ZoneType, ZoneLayout, DefenderPositions } from '../types';
 // =============================================================
 // ZONE 2-3
 // =============================================================
-// Disposition standard :
-//   - 2 gardes en HAUT (au-dessus du top of key, vers la médiane)
-//   - 3 derrière (proches du panier) : pivot dans la raquette,
-//     2 ailes qui couvrent corners + ailes basses
+// Disposition standard : philosophie défensive bas-de-zone (focus raquette).
+//   - 2 gardes en HAUT (perimeter, autour du top of key)
+//   - 3 derrière qui couvrent une LARGE bande basse jusqu'au FT line étendu
+//     (pivot dans la raquette, 2 ailes qui couvrent corners + ailes)
+// Ligne de partition haute (y=330) : la back-3 prend du volume.
 const ZONE_2_3: ZoneLayout = [
-  // Back 3 (y=20..280)
+  // Back 3 — large bande basse y=20..330
   {
     id: 'pivot',
     label: 'Pivot',
     polygon: [
       { x: 200, y: 20 },
       { x: 400, y: 20 },
-      { x: 400, y: 280 },
-      { x: 200, y: 280 },
+      { x: 400, y: 330 },
+      { x: 200, y: 330 },
     ],
-    homePos: { x: 300, y: 130 },
+    homePos: { x: 300, y: 150 },
     assignedTo: 'D5',
   },
   {
@@ -37,10 +38,10 @@ const ZONE_2_3: ZoneLayout = [
     polygon: [
       { x: 20, y: 20 },
       { x: 200, y: 20 },
-      { x: 200, y: 280 },
-      { x: 20, y: 280 },
+      { x: 200, y: 330 },
+      { x: 20, y: 330 },
     ],
-    homePos: { x: 110, y: 180 },
+    homePos: { x: 110, y: 200 },
     assignedTo: 'D4',
   },
   {
@@ -49,35 +50,35 @@ const ZONE_2_3: ZoneLayout = [
     polygon: [
       { x: 400, y: 20 },
       { x: 580, y: 20 },
-      { x: 580, y: 280 },
-      { x: 400, y: 280 },
+      { x: 580, y: 330 },
+      { x: 400, y: 330 },
     ],
-    homePos: { x: 490, y: 180 },
+    homePos: { x: 490, y: 200 },
     assignedTo: 'D3',
   },
-  // Top 2 (y=280..540)
+  // Top 2 — bande haute restreinte y=330..540
   {
     id: 'guard-left',
     label: 'Garde G',
     polygon: [
-      { x: 20, y: 280 },
-      { x: 300, y: 280 },
+      { x: 20, y: 330 },
+      { x: 300, y: 330 },
       { x: 300, y: 540 },
       { x: 20, y: 540 },
     ],
-    homePos: { x: 200, y: 350 },
+    homePos: { x: 200, y: 410 },
     assignedTo: 'D1',
   },
   {
     id: 'guard-right',
     label: 'Garde D',
     polygon: [
-      { x: 300, y: 280 },
-      { x: 580, y: 280 },
+      { x: 300, y: 330 },
+      { x: 580, y: 330 },
       { x: 580, y: 540 },
       { x: 300, y: 540 },
     ],
-    homePos: { x: 400, y: 350 },
+    homePos: { x: 400, y: 410 },
     assignedTo: 'D2',
   },
 ];
@@ -158,21 +159,25 @@ const ZONE_1_3_1: ZoneLayout = [
 // =============================================================
 // ZONE 3-2
 // =============================================================
-// Disposition standard :
-//   - 3 en HAUT (Top G / Top C / Top D)
-//   - 2 derrière (proches du panier)
+// Disposition standard : philosophie défensive haute (focus perimeter).
+//   - 3 en HAUT qui montent jusqu'au top of key étendu (G / C / D)
+//   - 2 derrière qui ne couvrent QUE la raquette + low blocks (bande basse
+//     restreinte)
+// Ligne de partition basse (y=220, juste au-dessus de la FT line) : les 2
+// défenseurs du bas restent près du panier, les 3 du haut prennent
+// presque tout le perimeter.
 const ZONE_3_2: ZoneLayout = [
-  // Bottom 2 (y=20..280)
+  // Bottom 2 — bande basse restreinte y=20..220 (raquette étendue)
   {
     id: 'low-left',
     label: 'Bas G',
     polygon: [
       { x: 20, y: 20 },
       { x: 300, y: 20 },
-      { x: 300, y: 280 },
-      { x: 20, y: 280 },
+      { x: 300, y: 220 },
+      { x: 20, y: 220 },
     ],
-    homePos: { x: 180, y: 140 },
+    homePos: { x: 200, y: 110 },
     assignedTo: 'D4',
   },
   {
@@ -181,47 +186,47 @@ const ZONE_3_2: ZoneLayout = [
     polygon: [
       { x: 300, y: 20 },
       { x: 580, y: 20 },
-      { x: 580, y: 280 },
-      { x: 300, y: 280 },
+      { x: 580, y: 220 },
+      { x: 300, y: 220 },
     ],
-    homePos: { x: 420, y: 140 },
+    homePos: { x: 400, y: 110 },
     assignedTo: 'D5',
   },
-  // Top 3 (y=280..540) — 1/3 chacune
+  // Top 3 — large bande haute y=220..540 (du FT line à la médiane)
   {
     id: 'top-left',
     label: 'Top G',
     polygon: [
-      { x: 20, y: 280 },
-      { x: 200, y: 280 },
+      { x: 20, y: 220 },
+      { x: 200, y: 220 },
       { x: 200, y: 540 },
       { x: 20, y: 540 },
     ],
-    homePos: { x: 130, y: 360 },
+    homePos: { x: 110, y: 320 },
     assignedTo: 'D2',
   },
   {
     id: 'top-center',
     label: 'Top C',
     polygon: [
-      { x: 200, y: 280 },
-      { x: 400, y: 280 },
+      { x: 200, y: 220 },
+      { x: 400, y: 220 },
       { x: 400, y: 540 },
       { x: 200, y: 540 },
     ],
-    homePos: { x: 300, y: 360 },
+    homePos: { x: 300, y: 350 },
     assignedTo: 'D1',
   },
   {
     id: 'top-right',
     label: 'Top D',
     polygon: [
-      { x: 400, y: 280 },
-      { x: 580, y: 280 },
+      { x: 400, y: 220 },
+      { x: 580, y: 220 },
       { x: 580, y: 540 },
       { x: 400, y: 540 },
     ],
-    homePos: { x: 470, y: 360 },
+    homePos: { x: 490, y: 320 },
     assignedTo: 'D3',
   },
 ];
