@@ -107,7 +107,9 @@ Toutes les fonctions pures qui utilisaient `HOOP` en constante prennent maintena
 
 `engine.computeDefenseTargets` extrait `hoop` une fois par étape et le thread à toutes les fonctions appelées. Le bouton "↻ sens d'attaque" dans le panneau défense est gated sur `fullCourt` (l'inversion n'a de sens que sur le terrain entier).
 
-**Limite v1** : la défense de zone n'est pas encore directionnelle (`computeZoneTargets` utilise toujours `HOOP` top hardcodé). Le rendu visuel ne distingue pas le panier "actif" du panier "défendu" en mode inversé.
+**v2 — zone defense directionnelle** : `computeZoneTargets` accepte `hoop` et le propage à `manTarget` / `carrierDefenderTarget` ainsi qu'aux sortings internes (zone surchargée la plus proche du panier, attaquant primaire le plus proche du panier). `mirrorZoneLayout(layout)` (data/zones.ts) miroite polygones et homePos autour de y=540, appliqué quand `attackingDirection='down'`. Le rendu (`ZoneOverlay` dans CourtView et StepThumbnail) utilise le layout miroité pour rester cohérent avec les positions défensives.
+
+**Limite v2** : le rendu visuel ne distingue pas encore le panier "actif" (visé par l'attaque) du panier "protégé" (côté défense). Les deux paniers se ressemblent.
 
 ## Closeout dynamique
 

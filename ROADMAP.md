@@ -14,7 +14,7 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 - 🟢 **Trap en corner v1** — toggle `triggers.trap` ; quand le porteur entre dans un coin fond, le défenseur le plus proche vient verrouiller le côté opposé pour fermer la cage.
 - 🟢 **Stunt and recover v1** — nouvelle `OffBallStance: 'stunt'` (fake d'aide vers le ballon, blend 0.4 entre behind et fronting). Le "recover" est naturel : la stance par défaut est récupérée à l'étape suivante.
 - 🟢 **Staggered screens v1** — `pickBlockingObstacle` choisit l'obstacle de plus profonde pénétration plutôt que le premier de la liste. Évitement plus fidèle quand plusieurs poseurs s'enchaînent. Limite : pas de double courbe.
-- 🟢 **Inversion HOOP v1** — `attackingDirection: 'up' | 'down'` + `getDefenseHoop(state)` threadé dans engine vers manTarget, carrierDefenderTarget, offBallStanceTarget, computeHelpTarget, applyScreenAdjustment, detectTriggers, computeMetrics, isInTrapZone. Bouton "↻ sens d'attaque" dans le panneau défense (gated sur fullCourt). Zone defense pas encore directionnelle.
+- 🟢 **Inversion HOOP v2** — v1 (man) + zone defense directionnelle : `mirrorZoneLayout` miroite polygones/homePos autour de y=540. Engine + CourtView + StepThumbnail adaptent le rendu et le calcul.
 - 🟢 **Numérotation des étapes** — petits ronds 1, 2, 3… au pied du joueur initiateur de chaque annotation sur les vignettes PDF.
 
 ---
@@ -43,8 +43,10 @@ Implémenté : nouvelle `OffBallStance: 'stunt'` avec blend 0.4 dans `offBallSta
 ### 🟢 Trap en corner / sideline (v2)
 Implémenté dans `lib/logic/trap.ts` (polygones, helper picker, position cible) + trigger `state.triggers.trap` + override appliqué dans `engine.computeDefenseTargets`. **v2** : 4 zones au lieu de 2 — coins baseline (gauche/droite, y < 200) + sidelines mi-terrain (gauche/droite, y ∈ [200, 460]). ⚪ **À venir v3** : gestion explicite quand un écran est aussi détecté simultanément (aujourd'hui le trap est désactivé si screen ≠ null).
 
-### 🟢 Inversion HOOP (v1, man defense uniquement)
-Implémenté : `state.attackingDirection: 'up' | 'down'` + `getDefenseHoop(state)`. Threading via param `hoop?: Point` (default = HOOP) dans manTarget, carrierDefenderTarget, offBallStanceTarget, computeHelpTarget, applyScreenAdjustment, detectTriggers, computeMetrics, isInTrapZone, inPaint, distHoop. Bouton "↻ sens d'attaque" dans le panneau défense (gated sur fullCourt). ⚪ **v2** : zone defense directionnelle (computeZoneTargets utilise encore HOOP top hardcodé), rendu visuel de la second hoop comme panier "actif".
+### 🟢 Inversion HOOP (v2, man + zone)
+v1 : `state.attackingDirection: 'up' | 'down'` + threading `hoop?: Point` dans manDefense / help / screens / triggers / metrics / trap / geometry. Bouton "↻ sens d'attaque" gated sur fullCourt.
+**v2 — zone defense directionnelle** : `computeZoneTargets` accepte `hoop` et le passe à `manTarget` / `carrierDefenderTarget` / sortings internes. Nouveau helper `mirrorZoneLayout(layout)` qui miroite polygones et homePos autour de y=540. Engine miroite le layout en mode 'down' (pour les positions calculées ET les positions `prevPositions` au step 0). CourtView et StepThumbnail rendent le `ZoneOverlay` et `ZoneCoverage` avec le layout adapté au sens d'attaque.
+⚪ **v3** : rendu visuel distinct de la "second hoop" comme panier actif quand inversion (badge ou couleur différente sur le panneau visé vs panneau protégé).
 
 ---
 

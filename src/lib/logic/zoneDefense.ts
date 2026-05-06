@@ -65,7 +65,8 @@ export function computeZoneTargets(
   ballCarrier: AttackerId,
   layout: ZoneLayout,
   config: ZoneConfig,
-  defenseDistance: number
+  defenseDistance: number,
+  hoop: Point = HOOP
 ): Record<DefenderId, ZoneDefenderTarget> {
   const zoneAttackers = mapAttackersToZones(off, layout);
   const ballPos = off[ballCarrier];
@@ -106,7 +107,7 @@ export function computeZoneTargets(
       primaryAttacker = ballCarrier;
     } else {
       primaryAttacker = attackersInZone.reduce((closest, oId) => {
-        return distance(off[oId], HOOP) < distance(off[closest], HOOP) ? oId : closest;
+        return distance(off[oId], hoop) < distance(off[closest], hoop) ? oId : closest;
       });
     }
 
@@ -114,13 +115,13 @@ export function computeZoneTargets(
     let targetPos: Point;
 
     if (primaryAttacker === ballCarrier) {
-      const carrierTarget = carrierDefenderTarget('contester', attPos, defenseDistance);
+      const carrierTarget = carrierDefenderTarget('contester', attPos, defenseDistance, hoop);
       targetPos = carrierTarget || zone.homePos;
     } else if (config.type === 'zone-matchup') {
-      const manPos = manTarget(attPos, defenseDistance);
+      const manPos = manTarget(attPos, defenseDistance, hoop);
       targetPos = manPos || zone.homePos;
     } else {
-      const manPos = manTarget(attPos, defenseDistance * 1.2);
+      const manPos = manTarget(attPos, defenseDistance * 1.2, hoop);
       if (manPos && ballPos) {
         const ballShift = ballPressureFactor * 0.15;
         targetPos = {
@@ -141,7 +142,7 @@ export function computeZoneTargets(
     };
   });
 
-  applyZoneRotation(targets, zoneAttackers, layout, off, config);
+  applyZoneRotation(targets, zoneAttackers, layout, off, config, hoop);
 
   return targets;
 }
@@ -151,7 +152,8 @@ function applyZoneRotation(
   zoneAttackers: Map<string, AttackerId[]>,
   layout: ZoneLayout,
   off: AttackerPositions,
-  _config: ZoneConfig
+  _config: ZoneConfig,
+  hoop: Point = HOOP
 ): void {
   const overloaded: string[] = [];
   const empty: string[] = [];
@@ -175,7 +177,7 @@ function applyZoneRotation(
   const sortedOverloaded = [...overloaded].sort((a, b) => {
     const za = layout.find((z) => z.id === a)!;
     const zb = layout.find((z) => z.id === b)!;
-    return distance(za.homePos, HOOP) - distance(zb.homePos, HOOP);
+    return distance(za.homePos, hoop) - distance(zb.homePos, hoop);
   });
 
   for (const overZoneId of sortedOverloaded) {
@@ -206,7 +208,7 @@ function applyZoneRotation(
     // Place le défenseur de la zone vide entre le secondaire et le panier
     const emptyZone = layout.find((z) => z.id === closestEmptyId)!;
     const emptyDef = emptyZone.assignedTo;
-    const shiftTarget = manTarget(off[secondary], 50);
+    const shiftTarget = manTarget(off[secondary], 50, hoop);
     if (shiftTarget) {
       targets[emptyDef] = {
         x: Math.round(shiftTarget.x),

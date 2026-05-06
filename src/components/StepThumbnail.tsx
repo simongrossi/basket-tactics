@@ -12,7 +12,7 @@ import { Player, Ball } from './Player';
 import { AnnotationView } from './Annotations';
 import { effectiveDefensePositions, getMatchupsAt } from '@/lib/logic/engine';
 import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
-import { getZoneLayout } from '@/lib/data/zones';
+import { getZoneLayout, mirrorZoneLayout } from '@/lib/data/zones';
 import { ZoneOverlay } from './Overlays';
 import { COURT, FULL_COURT_HEIGHT } from '@/lib/data/court';
 
@@ -41,9 +41,11 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
     >
       <ArrowMarkers />
       <CourtBackground fullCourt={state.fullCourt} />
-      {state.defenseSystem === 'zone' && showDefense && (
-        <ZoneOverlay layout={getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0)} show />
-      )}
+      {state.defenseSystem === 'zone' && showDefense && (() => {
+        const base = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
+        const layout = state.attackingDirection === 'down' ? mirrorZoneLayout(base) : base;
+        return <ZoneOverlay layout={layout} show />;
+      })()}
       <g>
         {(() => {
           const screenerIds = new Set<AttackerId>();

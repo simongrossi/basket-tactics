@@ -22,7 +22,7 @@ import { effectiveDefensePositions, getMatchupsAt } from '@/lib/logic/engine';
 import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
 import type { DetectedOffBallScreen } from '@/lib/types';
 import { detectTriggers } from '@/lib/logic/triggers';
-import { getZoneLayout } from '@/lib/data/zones';
+import { getZoneLayout, mirrorZoneLayout } from '@/lib/data/zones';
 import { COURT, PLAYER_RADIUS, FULL_COURT_HEIGHT, FULL_COURT_INNER_MAX_Y } from '@/lib/data/court';
 import { clamp, distance, curveAroundObstacle, resolvePlayerCollisions, makeCluster, pickBlockingCluster } from '@/lib/logic/geometry';
 import { ContextMenu } from './ContextMenu';
@@ -495,17 +495,23 @@ export function CourtView(props: CourtViewProps) {
       >
         <ArrowMarkers />
         <CourtBackground fullCourt={state.fullCourt} />
-        {state.defenseSystem === 'zone' && (
-          <ZoneOverlay layout={getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0)} show />
-        )}
-        {state.defenseSystem === 'zone' ? (
-          <ZoneCoverage
-            off={frame.off}
-            defPos={frame.defPos}
-            layout={getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0)}
-            show={state.showMatchups}
-          />
-        ) : (
+        {state.defenseSystem === 'zone' && (() => {
+          const base = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
+          const zoneLayout = state.attackingDirection === 'down' ? mirrorZoneLayout(base) : base;
+          return <ZoneOverlay layout={zoneLayout} show />;
+        })()}
+        {state.defenseSystem === 'zone' ? (() => {
+          const base = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
+          const zoneLayout = state.attackingDirection === 'down' ? mirrorZoneLayout(base) : base;
+          return (
+            <ZoneCoverage
+              off={frame.off}
+              defPos={frame.defPos}
+              layout={zoneLayout}
+              show={state.showMatchups}
+            />
+          );
+        })() : (
           <Matchups off={frame.off} defPos={frame.defPos} show={state.showMatchups} />
         )}
         <HelpLines off={frame.off} defPos={frame.defPos} defenseDistance={state.defenseDistance} show={state.showHelpLines} />

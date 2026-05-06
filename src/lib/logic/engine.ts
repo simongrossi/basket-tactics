@@ -8,7 +8,7 @@ import type {
   AttackerId,
 } from '../types';
 import { baseMatchups } from '../data/initial';
-import { getZoneLayout } from '../data/zones';
+import { getZoneLayout, mirrorZoneLayout } from '../data/zones';
 import { detectTriggers } from './triggers';
 import { manTarget, carrierDefenderTarget, offBallStanceTarget } from './manDefense';
 import { computeHelpTarget } from './help';
@@ -208,9 +208,13 @@ function computeZoneDefenseTargets(
   stepIdx: number
 ): { positions: Record<DefenderId, { x: number; y: number; helpFactor: number; isCarrierDefender: boolean; matchedTo: AttackerId; onScreen: boolean; switchedThisStep: boolean }>; matchupsApplied: Matchups } {
   const cur = state.steps[stepIdx];
-  const layout = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
+  const hoop = getDefenseHoop(state);
+  const baseLayout = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
+  // En mode attack 'down', miroite le layout autour de la médiane pour que
+  // les zones soient devant le panier protégé (bas).
+  const layout = state.attackingDirection === 'down' ? mirrorZoneLayout(baseLayout) : baseLayout;
   const zoneTargets = computeZoneTargets(
-    cur.off, cur.ballCarrier, layout, state.zoneConfig, state.defenseDistance
+    cur.off, cur.ballCarrier, layout, state.zoneConfig, state.defenseDistance, hoop
   );
 
   const positions = {} as ReturnType<typeof computeDefenseTargets>['positions'];
@@ -283,7 +287,8 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
   let prevPositions: DefenderPositions;
   if (stepIdx === 0) {
     if (state.defenseSystem === 'zone') {
-      const layout = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
+      const baseLayout = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
+      const layout = state.attackingDirection === 'down' ? mirrorZoneLayout(baseLayout) : baseLayout;
       prevPositions = {} as DefenderPositions;
       layout.forEach((z) => { prevPositions[z.assignedTo] = { ...z.homePos }; });
     } else {

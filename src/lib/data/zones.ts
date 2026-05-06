@@ -321,6 +321,20 @@ export function getZoneLayout(type: ZoneType, verticalOffset: number = 0): ZoneL
   }));
 }
 
+/**
+ * Miroite un layout autour de la ligne médiane (y=540) pour le mode
+ * `attackingDirection='down'`. Tous les points (polygones + homePos) sont
+ * symétrisés. Utilisé quand la défense protège le panier bas.
+ */
+export function mirrorZoneLayout(layout: ZoneLayout): ZoneLayout {
+  const flipY = (y: number) => 1080 - y;
+  return layout.map((r) => ({
+    ...r,
+    polygon: r.polygon.map((p) => ({ x: p.x, y: flipY(p.y) })),
+    homePos: { x: r.homePos.x, y: flipY(r.homePos.y) },
+  }));
+}
+
 export function getZoneInitialPositions(type: ZoneType): DefenderPositions {
   const layout = layouts[type];
   const out = {} as DefenderPositions;
