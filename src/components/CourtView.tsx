@@ -626,8 +626,7 @@ export function CourtView(props: CourtViewProps) {
                       closingOut={p.closingOut}
                       overClosed={p.overClosed}
                       denying={p.denying}
-                      stance={state.rules[id]?.stance}
-                      attackerHand={state.attackerHands?.[p.matchedTo]}
+                      orientation={state.rules[id]?.orientation}
                       showStateRings={state.showStateRings !== false}
                       showLockBadges={state.showLockBadges !== false}
                     />

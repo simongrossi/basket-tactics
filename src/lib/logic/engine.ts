@@ -10,7 +10,7 @@ import type {
 import { baseMatchups } from '../data/initial';
 import { getZoneLayout, mirrorZoneLayout } from '../data/zones';
 import { detectTriggers } from './triggers';
-import { manTarget, carrierDefenderTarget, offBallStanceTarget, resolveStance, stanceLateralOffset } from './manDefense';
+import { manTarget, carrierDefenderTarget, offBallStanceTarget, orientationLateralOffset } from './manDefense';
 import { computeHelpTarget } from './help';
 import {
   detectScreen,
@@ -155,12 +155,12 @@ export function computeDefenseTargets(
       target = applyScreenAdjustment(target, screen, effectiveScreenRule, dId, off, state.screenRadius, state.dropDepth, hoop);
     }
 
-    // Offset latéral selon stance (force-left/right/weak). Subtil, ~10px.
-    // Pas appliqué si le défenseur est en aide active (helpFactor élevé) :
-    // sa position est déjà dictée par la cible d'aide, pas par son homme.
-    const resolvedStance = resolveStance(rule.stance, state.attackerHands?.[oId]);
-    if (resolvedStance !== 'square' && helpFactor < 0.5) {
-      target = { x: target.x + stanceLateralOffset(resolvedStance), y: target.y };
+    // Offset latéral selon l'orientation du défenseur (en degrés). Subtil,
+    // max ~12px à ±90°. Pas appliqué si le défenseur est en aide active
+    // (helpFactor >= 0.5) : sa position est déjà dictée par la cible d'aide.
+    const orientation = rule.orientation ?? 0;
+    if (orientation !== 0 && helpFactor < 0.5) {
+      target = { x: target.x + orientationLateralOffset(orientation), y: target.y };
     }
 
     positions[dId] = {

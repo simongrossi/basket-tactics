@@ -299,18 +299,40 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
       </Row>
       <Row
         label="orientation"
-        title="Pose des bras / direction que ce défenseur force. 'square' = stance neutre, bras symétriques. 'force gauche' = bras droit extended, ferme le côté droit, pousse le porteur à gauche. 'force droite' = mirror. 'mauvaise main' = pousse vers la main faible (gauche par défaut, droitier supposé)."
+        title="Rotation du corps en degrés (range -90 à +90, default 0). 0 = neutre, bras au-dessus. Positif (+) = horaire (épaule droite avancée, ferme le côté droit, pousse le porteur à gauche). Négatif (-) = anti-horaire. Applique aussi un petit décalage latéral à la position cible (max ±12px)."
       >
-        <select
-          value={rule.stance ?? 'square'}
-          onChange={(e) => onUpdate({ stance: e.target.value as DefenderRule['stance'] })}
+        <input
+          type="range"
+          min={-90}
+          max={90}
+          step={5}
+          value={rule.orientation ?? 0}
+          onChange={(e) => {
+            const v = parseInt(e.target.value);
+            onUpdate({ orientation: v === 0 ? undefined : v });
+          }}
           style={{ flex: 1 }}
-        >
-          <option value="square">square (symétrique)</option>
-          <option value="force-left">force gauche</option>
-          <option value="force-right">force droite</option>
-          <option value="force-weak">mauvaise main</option>
-        </select>
+        />
+        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: rule.orientation ? '#9a3412' : '#94a3b8', fontWeight: rule.orientation ? 600 : 400 }}>
+          {rule.orientation ? `${rule.orientation > 0 ? '+' : ''}${rule.orientation}°` : '0°'}
+        </span>
+        {rule.orientation !== undefined && rule.orientation !== 0 && (
+          <button
+            onClick={() => onUpdate({ orientation: undefined })}
+            title="Remettre à 0"
+            style={{
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              color: '#94a3b8',
+              fontSize: 13,
+              padding: '0 2px',
+              lineHeight: 1,
+            }}
+          >
+            ↻
+          </button>
+        )}
       </Row>
       <Row
         label="vs écran"

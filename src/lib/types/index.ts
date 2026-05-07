@@ -53,13 +53,6 @@ export type HelpMode = 'auto' | 'aggressive' | 'passive' | 'disabled';
 /** Override individuel de la règle d'écran porteur. 'auto' suit la règle globale. */
 export type OnScreenNav = 'auto' | 'over' | 'under' | 'switch' | 'hedge' | 'drop' | 'blitz';
 
-/** Orientation du défenseur (pose des bras / direction qu'il force).
- *  - 'square' (default) : stance neutre, bras symétriques
- *  - 'force-left' : bras droit extended → ferme le côté droit, pousse le porteur à gauche
- *  - 'force-right' : bras gauche extended → mirror, pousse à droite
- *  - 'force-weak' : pousse vers la main faible (par défaut = gauche, droitier supposé) */
-export type DefenderStance = 'square' | 'force-left' | 'force-right' | 'force-weak';
-
 export interface DefenderRule {
   helpPct: number;
   priority: HelpPriority;
@@ -84,8 +77,12 @@ export interface DefenderRule {
   maxSpeed?: number;
   /** Comportement d'aide du défenseur. Default 'auto'. Voir `HelpMode`. */
   helpMode?: HelpMode;
-  /** Orientation / pose des bras. Default 'square'. Voir `DefenderStance`. */
-  stance?: DefenderStance;
+  /** Rotation du corps du défenseur en degrés (range -90 à +90, default 0).
+   *  0 = neutre (bras symétriques au-dessus, convention FIBA). Positif =
+   *  rotation horaire (épaule droite avancée, ferme le côté droit).
+   *  Négatif = anti-horaire. Applique aussi un petit offset latéral à la
+   *  position cible pour matérialiser le force. */
+  orientation?: number;
 }
 
 export type DefenderRules = Record<DefenderId, DefenderRule>;
@@ -236,8 +233,8 @@ export interface AppState {
    *  visé = HOOP_OPPOSITE bottom). Utile en mode fullCourt pour modéliser le
    *  repli/contre-attaque. La défense de zone n'est pas encore directionnelle. */
   attackingDirection?: 'up' | 'down';
-  /** Main dominante de chaque attaquant (default 'right'). Utilisée pour
-   *  résoudre `stance: 'force-weak'` du défenseur matché : un droitier sera
-   *  poussé à gauche, un gaucher à droite. */
+  /** Main dominante de chaque attaquant (default 'right'). Information de
+   *  scouting pour le coach — le moteur ne la consomme pas pour l'instant.
+   *  Utile pour décider manuellement de l'orientation des défenseurs. */
   attackerHands?: AttackerHands;
 }

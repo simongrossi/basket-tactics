@@ -243,13 +243,13 @@ Cinq réglages :
 - **closeout ×** : override individuel du multiplicateur de vitesse en closeout. Affiche "global" si non override (slider grisé, suit `state.closeoutBoost`). Bouton ↻ pour revenir au global.
 - **denial agr.** : override individuel de l'intensité du strong-side denial. Comportement identique : "global" par défaut, ↻ pour reset.
 - **vit. max** : distance max parcourue par étape (range 40–200px). **Défauts par poste** : D1 meneur 145 · D2 arrière 130 · D3 ailier 110 · D4 ailier fort 90 · D5 pivot 75. Modélise la mobilité réelle du joueur : un pivot atteint rarement les rotations d'aide longue distance, un meneur les atteint quasi toujours. ↻ revient au global (`state.defenseMaxSpeed`) si on veut effacer le profil par poste.
-- **orientation** : pose des bras + petit décalage latéral du défenseur (~10px) pour traduire la consigne :
-  - `square` (défaut) : bras symétriques, pas de décalage
-  - `force gauche` : bras droit extended, défenseur shifté vers la droite (ferme côté droit, pousse à gauche)
-  - `force droite` : mirror
-  - `mauvaise main` : résolu d'après la main dominante de l'attaquant matché (droitier → force gauche, gaucher → force droite)
+- **orientation** : rotation du corps en degrés (range -90 à +90, default 0). Slider continu :
+  - `0°` = stance neutre, bras symétriques au-dessus (convention FIBA)
+  - `+30°` = horaire, épaule droite avancée → ferme le côté droit, pousse le porteur à gauche
+  - `-30°` = anti-horaire, mirror
+  - Range typique en jeu : -45° à +45°
   
-  Le décalage n'est appliqué que si le défenseur n'est pas en aide active (helpFactor < 0.5) — quand il aide, sa cible prime.
+  Les **deux bras tournent ensemble** (rotation du groupe SVG). Applique aussi un petit décalage latéral à la position cible, proportionnel à `sin(angle)` (max ±12px à ±90°). Désactivé si le défenseur est en aide active (helpFactor ≥ 0.5). ↻ pour remettre à 0.
 
 **Toggle placement Auto / Manuel** en haut du menu (juste sous la barre d'outils) indique le mode courant pour ce défenseur sur cette étape :
 - **⚙ auto** (gris) : le moteur calcule la position d'après les règles d'aide, l'écran, le strong-side denial. C'est le mode par défaut.

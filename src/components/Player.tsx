@@ -1,6 +1,5 @@
-import type { Point, DefenderStance, DominantHand } from '@/lib/types';
+import type { Point } from '@/lib/types';
 import { PLAYER_RADIUS } from '@/lib/data/court';
-import { resolveStance } from '@/lib/logic/manDefense';
 
 interface PlayerProps {
   id: string;
@@ -16,10 +15,9 @@ interface PlayerProps {
   overClosed?: boolean;
   isForcedScreener?: boolean;
   denying?: boolean;
-  /** Orientation des bras du défenseur. Default 'square' (symétrique). */
-  stance?: DefenderStance;
-  /** Main dominante de l'attaquant matché — pour résoudre 'force-weak'. */
-  attackerHand?: DominantHand;
+  /** Rotation du corps en degrés (default 0). 0 = neutre (bras au-dessus,
+   *  convention FIBA). Positif = horaire, négatif = anti-horaire. */
+  orientation?: number;
   /** Master switch pour les anneaux d'état (carrier, late, closeout, denial, helpRing).
    *  Default true. Quand false, le défenseur garde son contour standard. */
   showStateRings?: boolean;
@@ -41,8 +39,7 @@ export function Player({
   overClosed,
   isForcedScreener,
   denying,
-  stance = 'square',
-  attackerHand,
+  orientation = 0,
   showStateRings = true,
   showLockBadges = true,
 }: PlayerProps) {
@@ -69,40 +66,26 @@ export function Player({
 
   return (
     <g data-id={id} style={{ cursor: 'grab' }}>
-      {!isAttacker && (() => {
-        // Bras asymétriques selon le stance. 'square' (default) = symétrique
-        // (convention FIBA). 'force-left' = bras DROIT extended/raised pour
-        // fermer le côté droit (pousse le porteur à gauche). 'force-right'
-        // = mirror. 'force-weak' = comme force-left (droitier supposé).
-        // Pour chaque bras : (innerRatio, outerWidth, outerHeight) où
-        // - innerRatio = position du coude (Q de la bezier)
-        // - outerWidth = jusqu'où va la main (en r)
-        // - outerHeight = hauteur de la main (-r*0.5 = haute, +r*0.05 = basse)
-        type ArmShape = { coudeX: number; coudeY: number; tipX: number; tipY: number };
-        const wide: ArmShape = { coudeX: 1.55, coudeY: -0.95, tipX: 1.95, tipY: -0.5 };
-        const normal: ArmShape = { coudeX: 1.4, coudeY: -0.95, tipX: 1.55, tipY: -0.15 };
-        const tucked: ArmShape = { coudeX: 0.95, coudeY: -0.5, tipX: 0.95, tipY: 0.05 };
-        const resolved = resolveStance(stance, attackerHand);
-        const forceLeft = resolved === 'force-left';
-        const forceRight = resolved === 'force-right';
-        const leftArm: ArmShape = forceLeft ? tucked : forceRight ? wide : normal;
-        const rightArm: ArmShape = forceLeft ? wide : forceRight ? tucked : normal;
-        return (
-          <g pointerEvents="none">
+      {!isAttacker && (
+        <g pointerEvents="none">
+          {/* Bras symétriques (convention FIBA), pivotés autour du centre du
+              joueur selon `orientation` (degrés). 0 = neutre. */}
+          <g transform={`rotate(${orientation}, ${pos.x}, ${pos.y})`}>
             <path
-              d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * leftArm.coudeX} ${pos.y + r * leftArm.coudeY} ${pos.x - r * leftArm.tipX} ${pos.y + r * leftArm.tipY}`}
+              d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
               fill="none"
               stroke={stroke}
               strokeWidth={2.5}
               strokeLinecap="round"
             />
             <path
-              d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * rightArm.coudeX} ${pos.y + r * rightArm.coudeY} ${pos.x + r * rightArm.tipX} ${pos.y + r * rightArm.tipY}`}
+              d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
               fill="none"
               stroke={stroke}
               strokeWidth={2.5}
               strokeLinecap="round"
             />
+          </g>
           {facing && (() => {
             // Petit pointeur de "facing" : un triangle posé sur le bord du
             // cercle, du côté de l'homme défendu. Indique l'orientation
@@ -124,9 +107,8 @@ export function Player({
               />
             );
           })()}
-          </g>
-        );
-      })()}
+        </g>
+      )}
       <circle cx={pos.x} cy={pos.y} r={r} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
       <text
         x={pos.x}
