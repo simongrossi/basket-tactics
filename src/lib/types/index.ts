@@ -187,6 +187,13 @@ export interface AppState {
    *  (faible pression défensive cumulée). Aide à voir d'un coup d'œil les
    *  espaces ouverts pour passe ou tir. */
   showHeatmap?: boolean;
+  /** Toggles fine-grained sur les indicateurs auto. Default true partout —
+   *  ces visuels sont normalement utiles. Le coach peut désactiver pour
+   *  alléger la vue (ex : présentation, capture playbook). */
+  showSwitchMatchups?: boolean;
+  showScreenIndicators?: boolean;
+  showStateRings?: boolean;
+  showLockBadges?: boolean;
   /** Multiplicateur de vitesse appliqué au défenseur du nouveau porteur en
    *  closeout. 1 = closeout désactivé, 1.4 = défaut, 2 = très agressif. */
   closeoutBoost?: number;

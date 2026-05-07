@@ -82,6 +82,10 @@ export function makeInitialState(): AppState {
     showGhosts: false,
     showActionOrder: false,
     showHeatmap: false,
+    showSwitchMatchups: true,
+    showScreenIndicators: true,
+    showStateRings: true,
+    showLockBadges: true,
     closeoutBoost: 1.4,
     denyAggressiveness: 0.45,
   };

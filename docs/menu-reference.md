@@ -182,6 +182,19 @@ Section unifiée. Chaque toggle est précédé de son **swatch visuel** (mini-ap
 | **lignes de passe** | Lignes colorées (vert / orange / rouge) depuis le porteur vers chaque cible selon ouverture/contestation/blocage |
 | **mode fantôme (ghost N-1)** | Affiche en transparence les positions de l'étape précédente pour visualiser les vecteurs de déplacement. Inactif pendant la lecture et le scrubbing. |
 | **heatmap zones** | Calque qui surligne en jaune/orange/rouge les zones du terrain où la pression défensive cumulée est faible. Permet de voir d'un coup d'œil les espaces ouverts pour passe ou tir. Plus la couleur est rouge, plus la zone est ouverte. Les zones bien défendues restent transparentes. |
+
+#### Indicateurs auto (toggleables)
+
+Quatre groupes pilotables individuellement (default tous activés) :
+
+| Toggle | Effet |
+|--------|-------|
+| **matchup switch** | Surligne en orange pointillé le matchup post-switch (sinon : style standard gris fin). |
+| **indicateurs écran** | Cercles pointillés violet (écran porteur) et vert (écran non-porteur) autour des poseurs détectés. |
+| **anneaux défenseur** | Anneaux d'état autour des défenseurs : jaune (carrier defender), rouge (late), orange (closeout), cyan (strong-side denial), rouge + ⚠ (over-closeout), violet (sur-écran). Master switch — désactive tous d'un coup. |
+| **badges cadenas** | Badges position manuelle (cadenas jaune sur défenseur drag-override) et forcedScreener (cadenas violet sur attaquant forcé). |
+
+Les autres entrées de la légende (`zone tracké`, `passe contestée/bloquée`, `écran non-porteur`, `déf. en retard`, `closeout actif`, `strong-side denial`, `poseur d'écran forcé`) sont **informatives** : elles documentent les couleurs des cues qui sont toggleables via les 4 catégories ci-dessus ou via les toggles du haut (lignes passe).
 | **numéroter les actions (1, 2, 3…)** | Affiche des badges noirs numérotés au pied du joueur initiateur de chaque annotation de l'étape active, dans l'ordre des annotations. Inactif pendant la lecture et le scrubbing. Apparaît aussi automatiquement dans les vignettes du playbook PDF. |
 | **↻ sens d'attaque** | Bascule `attackingDirection` entre `up` et `down`. Disponible uniquement en terrain complet. La logique défensive (man + zone) suit le panier ciblé : positions, layouts de zone (polygones miroir), triggers, trap, metrics, rotations. |
 

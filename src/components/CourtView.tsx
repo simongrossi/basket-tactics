@@ -571,7 +571,12 @@ export function CourtView(props: CourtViewProps) {
             />
           );
         })() : (
-          <Matchups off={frame.off} defPos={frame.defPos} show={state.showMatchups} />
+          <Matchups
+            off={frame.off}
+            defPos={frame.defPos}
+            show={state.showMatchups}
+            highlightSwitches={state.showSwitchMatchups !== false}
+          />
         )}
         <HeatmapOverlay
           defPos={frame.defPos}
@@ -600,6 +605,7 @@ export function CourtView(props: CourtViewProps) {
                       pos={pos}
                       isAttacker
                       isForcedScreener={id === forcedScreenerId}
+                      showLockBadges={state.showLockBadges !== false}
                     />
                   ))}
                 {(Object.entries(frame.defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(
@@ -618,6 +624,8 @@ export function CourtView(props: CourtViewProps) {
                       closingOut={p.closingOut}
                       overClosed={p.overClosed}
                       denying={p.denying}
+                      showStateRings={state.showStateRings !== false}
+                      showLockBadges={state.showLockBadges !== false}
                     />
                   )
                 )}
@@ -629,6 +637,7 @@ export function CourtView(props: CourtViewProps) {
                       pos={frame.off[id]}
                       isAttacker
                       isForcedScreener={id === forcedScreenerId}
+                      showLockBadges={state.showLockBadges !== false}
                     />
                   ) : null
                 )}
@@ -661,16 +670,20 @@ export function CourtView(props: CourtViewProps) {
           carrier={frame.carrier}
           show={state.showPassLanes}
         />
-        <ScreenIndicator
-          screen={frame.screen}
-          off={frame.off}
-          rule={(() => {
-            if (!frame.screen) return state.screenRule;
-            const nav = state.rules[frame.screen.carrierDef]?.screenNav;
-            return nav && nav !== 'auto' ? nav : state.screenRule;
-          })()}
-        />
-        <OffBallScreenIndicator screens={frame.offBallScreens} off={frame.off} />
+        {state.showScreenIndicators !== false && (
+          <ScreenIndicator
+            screen={frame.screen}
+            off={frame.off}
+            rule={(() => {
+              if (!frame.screen) return state.screenRule;
+              const nav = state.rules[frame.screen.carrierDef]?.screenNav;
+              return nav && nav !== 'auto' ? nav : state.screenRule;
+            })()}
+          />
+        )}
+        {state.showScreenIndicators !== false && (
+          <OffBallScreenIndicator screens={frame.offBallScreens} off={frame.off} />
+        )}
         {state.showActionOrder && !props.isPlaying && props.scrubT == null && state.steps[state.activeStep] && (
           <ActionOrderBadges step={state.steps[state.activeStep]} />
         )}

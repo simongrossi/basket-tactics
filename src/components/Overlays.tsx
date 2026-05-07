@@ -12,9 +12,12 @@ interface MatchupsProps {
   off: AttackerPositions;
   defPos: ComputedDefense;
   show: boolean;
+  /** Quand false, les matchups après switch sont rendus comme les autres
+   *  (gris fin) au lieu d'orange épais. Default true. */
+  highlightSwitches?: boolean;
 }
 
-export function Matchups({ off, defPos, show }: MatchupsProps) {
+export function Matchups({ off, defPos, show, highlightSwitches = true }: MatchupsProps) {
   if (!show) return null;
   return (
     <g>
@@ -22,6 +25,7 @@ export function Matchups({ off, defPos, show }: MatchupsProps) {
         ([dId, p]) => {
           const att = off[p.matchedTo];
           if (!att) return null;
+          const isSwitched = highlightSwitches && p.switchedThisStep;
           return (
             <line
               key={dId}
@@ -29,10 +33,10 @@ export function Matchups({ off, defPos, show }: MatchupsProps) {
               y1={p.y}
               x2={att.x}
               y2={att.y}
-              stroke={p.switchedThisStep ? '#BA7517' : '#888780'}
-              strokeWidth={p.switchedThisStep ? 1.8 : 0.8}
-              opacity={p.switchedThisStep ? 0.85 : 0.3}
-              strokeDasharray={p.switchedThisStep ? '5 3' : undefined}
+              stroke={isSwitched ? '#BA7517' : '#888780'}
+              strokeWidth={isSwitched ? 1.8 : 0.8}
+              opacity={isSwitched ? 0.85 : 0.3}
+              strokeDasharray={isSwitched ? '5 3' : undefined}
             />
           );
         }

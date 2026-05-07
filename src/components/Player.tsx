@@ -15,6 +15,11 @@ interface PlayerProps {
   overClosed?: boolean;
   isForcedScreener?: boolean;
   denying?: boolean;
+  /** Master switch pour les anneaux d'état (carrier, late, closeout, denial, helpRing).
+   *  Default true. Quand false, le défenseur garde son contour standard. */
+  showStateRings?: boolean;
+  /** Master switch pour les badges cadenas (override drag + forcedScreener). Default true. */
+  showLockBadges?: boolean;
 }
 
 export function Player({
@@ -31,12 +36,14 @@ export function Player({
   overClosed,
   isForcedScreener,
   denying,
+  showStateRings = true,
+  showLockBadges = true,
 }: PlayerProps) {
   const fill = isAttacker ? '#D85A30' : '#378ADD';
 
   let stroke = isAttacker ? '#4A1B0C' : '#042C53';
   let strokeWidth = 2;
-  if (!isAttacker) {
+  if (!isAttacker && showStateRings) {
     if (isLate) {
       stroke = '#E24B4A';
       strokeWidth = 4;
@@ -49,7 +56,7 @@ export function Player({
     }
   }
 
-  const showHelpRing = !isAttacker && !isCarrierDefender && helpFactor && helpFactor > 0.05;
+  const showHelpRing = showStateRings && !isAttacker && !isCarrierDefender && helpFactor && helpFactor > 0.05;
 
   const r = PLAYER_RADIUS;
 
@@ -122,7 +129,7 @@ export function Player({
           pointerEvents="none"
         />
       )}
-      {closingOut && !isAttacker && (
+      {closingOut && !isAttacker && showStateRings && (
         <g pointerEvents="none">
           {/* Anneau orange (closeout normal) ou rouge (over-closeout, déborde). */}
           <circle
@@ -156,7 +163,7 @@ export function Player({
           )}
         </g>
       )}
-      {isOverridden && !isAttacker && (
+      {isOverridden && !isAttacker && showLockBadges && (
         <g pointerEvents="none">
           <circle
             cx={pos.x + r * 0.85}
@@ -178,7 +185,7 @@ export function Player({
           </text>
         </g>
       )}
-      {isForcedScreener && isAttacker && (
+      {isForcedScreener && isAttacker && showLockBadges && (
         <g pointerEvents="none">
           <circle
             cx={pos.x + r * 0.85}

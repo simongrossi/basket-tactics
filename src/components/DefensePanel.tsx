@@ -441,25 +441,48 @@ export function DefensePanel(props: DefensePanelProps) {
         >
           ↻ sens d'attaque : {state.attackingDirection === 'down' ? 'vers le bas' : 'vers le haut'}
         </button>
-        {/* Légende auto : indicateurs visuels qui s'affichent automatiquement
-            selon le contexte (pas de toggle). Affichés en grille 2-col compacte
-            pour rester sous les yeux sans dépliage. */}
+        {/* Indicateurs auto. Les visuels groupés en 4 toggles (switch matchup,
+            écrans, anneaux d'état, badges cadenas) — chaque toggle pilote
+            plusieurs cues du même type. Les autres entrées (zone, passes
+            contestée/bloquée) sont informatives (sub-cases d'autres toggles). */}
         <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px dashed ${c.border}` }}>
           <div style={{ fontSize: 10, fontWeight: 600, color: c.accentText, marginBottom: 4, opacity: 0.8 }}>
             Indicateurs auto
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 6px' }}>
-            <LegendRow color="#BA7517" sample="dashed" label="matchup switch" />
+            <LegendCheckboxLine
+              checked={state.showSwitchMatchups !== false}
+              label="matchup switch"
+              sample="dashed" color="#BA7517"
+              onChange={(v) => props.onPatch({ showSwitchMatchups: v })}
+            />
+            <LegendCheckboxLine
+              checked={state.showScreenIndicators !== false}
+              label="indicateurs écran"
+              sample="circle" color="#534AB7"
+              onChange={(v) => props.onPatch({ showScreenIndicators: v })}
+            />
+            <LegendCheckboxLine
+              checked={state.showStateRings !== false}
+              label="anneaux défenseur"
+              sample="ring" color="#FAC775"
+              onChange={(v) => props.onPatch({ showStateRings: v })}
+            />
+            <LegendCheckboxLine
+              checked={state.showLockBadges !== false}
+              label="badges cadenas"
+              sample="dot" color="#fbbf24"
+              onChange={(v) => props.onPatch({ showLockBadges: v })}
+            />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 6px', marginTop: 4, opacity: 0.7 }}>
             <LegendRow color="#7c3aed" sample="line-thick" label="zone tracké" />
             <LegendRow color="#f59e0b" sample="dashed" label="passe contestée" />
             <LegendRow color="#dc2626" sample="dashed-thin" label="passe bloquée" />
-            <LegendRow color="#534AB7" sample="circle" label="écran porteur" />
             <LegendRow color="#16a34a" sample="circle" label="écran non-porteur" />
-            <LegendRow color="#FAC775" sample="ring" label="déf. du porteur" />
             <LegendRow color="#E24B4A" sample="ring" label="déf. en retard" />
             <LegendRow color="#F97316" sample="ring" label="closeout actif" />
             <LegendRow color="#0EA5A8" sample="circle" label="strong-side denial" />
-            <LegendRow color="#fbbf24" sample="dot" label="position manuelle" />
             <LegendRow color="#a78bfa" sample="dot" label="poseur d'écran forcé" />
           </div>
         </div>
