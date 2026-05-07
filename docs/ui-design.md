@@ -7,9 +7,17 @@ Choix visuels et conventions appliqués dans l'application.
 ### Desktop (≥ 1100px)
 
 Layout 3 colonnes en grid CSS :
-### Bibliothèque systèmes (callout en haut de l'OffensePanel)
+### Bibliothèque systèmes (modal)
 
-Bloc visuellement distinct des `<Section>` ordinaires : background tinté `bg` orange clair, bordure gauche accent `#D85A30` (3px), titre court `📚 BIBLIOTHÈQUE — N systèmes` en majuscules. Toujours visible (pas de toggle), grille 2 colonnes de boutons compacts (badge nombre d'étapes + nom). Signale visuellement qu'on charge un système clé en main, distinct des réglages affinés des autres sections.
+Bouton compact en haut de l'OffensePanel : `📚 Bibliothèque (N systèmes)` avec background tinté orange et bordure gauche accent. Le clic ouvre une **modal centrée** ([`TemplateLibraryModal.tsx`](../src/components/TemplateLibraryModal.tsx)) :
+
+- Backdrop sombre, modal max 720px de large, max 85vh de haut
+- Header tinté orange avec titre + sous-titre + bouton de fermeture
+- Grille auto-fill `minmax(280px, 1fr)` de cartes : badge nombre d'étapes + nom + description complète
+- Hover : bordure accent, lift léger
+- Fermeture : clic hors modal, bouton ×, ou touche `Échap`
+
+Le choix du modal sépare clairement "charger un système clé en main" du reste des contrôles (édition fine), libère de l'espace dans le panel pour les Outils/Étapes/Lecture, et permet d'afficher les descriptions complètes sans contrainte de largeur.
 
 ### Layout 3 colonnes
 

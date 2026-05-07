@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import type { AppState, AttackerId, Tool } from '@/lib/types';
 import { TEMPLATES, type Template } from '@/lib/data/templates';
 import { Panel, Section, Button, COLORS } from './ui';
+import { TemplateLibraryModal } from './TemplateLibraryModal';
 
 const ATTACKER_IDS: AttackerId[] = ['O1', 'O2', 'O3', 'O4', 'O5'];
 
@@ -74,85 +76,48 @@ function ToolIcon({ tool, color }: { tool: Tool; color: string }) {
 export function OffensePanel(props: OffensePanelProps) {
   const { state } = props;
   const c = COLORS.offense;
+  const [libraryOpen, setLibraryOpen] = useState(false);
 
   return (
     <Panel theme="offense" title="⚪ Attaque">
-      {/* Bibliothèque en carte distincte tout en haut. Visuellement séparée
-          des Sections (background tinté, bord coloré) pour signaler qu'on
-          charge un système clé en main, pas un simple réglage. */}
-      <div
+      {/* Bouton compact qui ouvre la bibliothèque en modal — descriptions
+          visibles, pas de friction sur l'espace du panel. */}
+      <button
+        onClick={() => setLibraryOpen(true)}
         style={{
-          background: c.bg,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          padding: '8px 10px',
+          borderRadius: 8,
           border: `1px solid ${c.border}`,
           borderLeft: `3px solid ${c.accent}`,
-          borderRadius: 8,
-          padding: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 6,
+          background: c.bg,
+          cursor: 'pointer',
+          fontSize: 12,
+          fontWeight: 600,
+          color: c.accentText,
+          transition: 'background 120ms, border-color 120ms',
         }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = c.bgSubtle;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = c.bg;
+        }}
+        title="Ouvrir la bibliothèque de systèmes prêts à l'emploi"
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: c.accentText, letterSpacing: '0.02em' }}>
-          📚 BIBLIOTHÈQUE — {TEMPLATES.length} systèmes
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-          {TEMPLATES.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => {
-                if (state.steps.length > 1 || state.steps[0].annotations.length > 0) {
-                  if (!confirm(`Charger "${t.name}" ? Le travail en cours sera remplacé.`)) return;
-                }
-                props.onLoadTemplate(t);
-              }}
-              title={t.description}
-              style={{
-                textAlign: 'left',
-                padding: '5px 7px',
-                fontSize: 11,
-                borderRadius: 5,
-                border: `1px solid ${c.border}`,
-                background: '#fff',
-                cursor: 'pointer',
-                display: 'flex',
-                gap: 6,
-                alignItems: 'center',
-                lineHeight: 1.2,
-                transition: 'border-color 120ms, background 120ms',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = c.accent;
-                e.currentTarget.style.background = c.bgSubtle;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = c.border;
-                e.currentTarget.style.background = '#fff';
-              }}
-            >
-              <div
-                style={{
-                  width: 18,
-                  height: 18,
-                  flex: '0 0 18px',
-                  borderRadius: 4,
-                  background: c.accent,
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 10,
-                  fontWeight: 700,
-                }}
-              >
-                {t.steps.length}
-              </div>
-              <div style={{ flex: 1, minWidth: 0, fontWeight: 600, color: c.accentText, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {t.name}
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
+        <span>📚 Bibliothèque ({TEMPLATES.length} systèmes)</span>
+        <span style={{ fontSize: 10, color: c.accent, opacity: 0.7 }}>cliquer pour ouvrir →</span>
+      </button>
+      {libraryOpen && (
+        <TemplateLibraryModal
+          hasWorkInProgress={state.steps.length > 1 || state.steps[0].annotations.length > 0}
+          onLoad={props.onLoadTemplate}
+          onClose={() => setLibraryOpen(false)}
+        />
+      )}
 
       <Section theme="offense" label="Outils" open>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
