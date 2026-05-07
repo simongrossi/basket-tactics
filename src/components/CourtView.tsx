@@ -212,6 +212,7 @@ export function CourtView(props: CourtViewProps) {
           closingOut: defB[id].closingOut,
           overClosed: defB[id].overClosed,
           denying: defB[id].denying,
+          helpTriggered: defB[id].helpTriggered,
         };
       });
 

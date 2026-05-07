@@ -31,7 +31,11 @@ export function detectTriggers(
     const prevD2hoop = distHoop(prevOff[ballCarrier], hoop);
     drive = prevD2hoop - d2hoop > 25 && d2hoop < 250;
   } else {
-    drive = triggers.drive && d2hoop < 180 && yIntoCourt < 245;
+    // Étape 0 (pas de prev) : on déclenche drive dès que le porteur est
+    // dans la zone de menace (250px du panier). Permet aux coachs de
+    // simuler une menace de pénétration directement sans avoir besoin
+    // d'une étape précédente.
+    drive = triggers.drive && d2hoop < 250;
   }
 
   let post: boolean;
@@ -49,7 +53,9 @@ export function detectTriggers(
     post = false;
   }
 
-  const paint = triggers.paint && inPaint(carrier, hoop);
+  // Paint trigger : raquette stricte OU dans les 80px du panier (couvre
+  // les drives qui finissent juste hors raquette, runner, floater, etc.)
+  const paint = triggers.paint && (inPaint(carrier, hoop) || d2hoop < 80);
 
   return { drive, post, paint, any: drive || post || paint };
 }

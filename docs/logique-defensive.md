@@ -310,7 +310,24 @@ aim = selon priority:
 target = lerp(manPos, aim, helpFactor)
 ```
 
-## Détection de triggers
+## Triggers — comportement détaillé
+
+Trois conditions activent l'aide globale (par-dessus le sag baseline) :
+
+- **`drive`** :
+  - Étape > 0 avec prev step : delta distance au panier > 25px ET dans 250px du panier
+  - Étape 0 (pas de prev) : carrier dans 250px du panier (zone de menace, suffisant pour anticiper)
+- **`post`** : porteur en poste bas, lateral 80–160px du panier, profondeur 45–145px, déplacement <30px
+- **`paint`** : carrier DANS la raquette OU à <80px du panier (couvre les drives qui finissent juste hors raquette, runner, floater)
+- **`trap`** : carrier dans une zone de trappe (coins fond + sidelines mi-terrain) — déclenche le trap auto
+
+Quand au moins un trigger est actif, le `helpFactor` de chaque défenseur est calculé selon `(helpPct/100) × sideFactor` et le mouvement vise la cible définie par `priority`. Le résultat est exposé sur `ComputedDefender.helpTriggered = true`, ce qui permet à HelpLines de rendre le trait plus marqué (violet vif `#7c3aed`, dasharray `6 3`, opacité 0.9) versus le sag baseline passif (violet pâle, fin, opacité 0.55).
+
+## Priority `man` avec léger biais paint
+
+Avant : priority='man' → `aim = manPos` → aucun mouvement même avec helpPct=100%, ce qui était contre-intuitif. Maintenant : `aim = manPos + (hoop - manPos) × 0.3` → le défenseur descend 30% du chemin vers le panier quand le helpFactor est plein. Permet à un coach d'avoir tout le panier qui aide même sur priority=man.
+
+## Détection de triggers (legacy)
 
 `detectTriggers(off, prevOff, ballCarrier, config)` :
 

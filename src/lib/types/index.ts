@@ -156,6 +156,9 @@ export interface ComputedDefender {
    *  ligne de passe). Utilisé pour différencier visuellement du ring "help"
    *  classique côté faible. */
   denying?: boolean;
+  /** L'aide vient d'un trigger actif (drive/post/paint), par opposition au
+   *  sag baseline weak-side passif. Permet à HelpLines de différencier visuellement. */
+  helpTriggered?: boolean;
 }
 
 export type ComputedDefense = Record<DefenderId, ComputedDefender>;

@@ -67,7 +67,7 @@ export function computeDefenseTargets(
   state: AppState,
   stepIdx: number,
   mutateStepForSwitch: boolean = true
-): { positions: Record<DefenderId, { x: number; y: number; helpFactor: number; isCarrierDefender: boolean; matchedTo: AttackerId; onScreen: boolean; switchedThisStep: boolean; denying?: boolean }>; matchupsApplied: Matchups } {
+): { positions: Record<DefenderId, { x: number; y: number; helpFactor: number; isCarrierDefender: boolean; matchedTo: AttackerId; onScreen: boolean; switchedThisStep: boolean; denying?: boolean; helpTriggered?: boolean }>; matchupsApplied: Matchups } {
   if (state.defenseSystem === 'zone') {
     return computeZoneDefenseTargets(state, stepIdx);
   }
@@ -122,6 +122,7 @@ export function computeDefenseTargets(
     let target: { x: number; y: number };
     let helpFactor = 0;
     let denying = false;
+    let helpTriggered = false;
 
     // Override de distance individuel (rule.distance) > global
     const dist = rule.distance ?? state.defenseDistance;
@@ -146,6 +147,7 @@ export function computeDefenseTargets(
         target = help.target;
         helpFactor = help.helpFactor;
         denying = !!help.denying;
+        helpTriggered = !!help.triggered;
       }
     }
 
@@ -162,6 +164,7 @@ export function computeDefenseTargets(
       onScreen: !!(screen && (dId === screen.carrierDef || dId === screen.screenerDef)),
       switchedThisStep: switchedThisStep && !!(screen && (dId === screen.carrierDef || dId === screen.screenerDef)),
       denying: denying || undefined,
+      helpTriggered: helpTriggered || undefined,
     };
   });
 
@@ -322,6 +325,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
         onScreen: targets[dId].onScreen,
         switchedThisStep: targets[dId].switchedThisStep,
         denying: targets[dId].denying,
+        helpTriggered: targets[dId].helpTriggered,
       };
       return;
     }
@@ -342,7 +346,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     // (le step 0 est un setup, pas une transition). La contrainte de vitesse
     // ne s'applique qu'entre les étapes suivantes.
     if (stepIdx === 0 || d <= maxSpeed) {
-      out[dId] = { ...to, late: false, closingOut: closingOut || undefined, overClosed: overClosed || undefined };
+      out[dId] = { ...to, late: false, closingOut: closingOut || undefined, overClosed: overClosed || undefined, helpTriggered: targets[dId].helpTriggered };
     } else {
       const r = maxSpeed / d;
       out[dId] = {
@@ -357,6 +361,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
         closingOut: closingOut || undefined,
         overClosed: overClosed || undefined,
         denying: targets[dId].denying,
+        helpTriggered: targets[dId].helpTriggered,
       };
     }
   });

@@ -9,6 +9,11 @@ export interface HelpResult {
    *  l'aide weak-side ou de la sag baseline). Permet au rendu de différencier
    *  visuellement les deux comportements. */
   denying?: boolean;
+  /** True si le mouvement provient d'un trigger d'aide actif (drive/post/paint),
+   *  par opposition au sag baseline weak-side qui est toujours là à
+   *  petite intensité. Utilisé par HelpLines pour rendre visible la
+   *  différence entre "aide active maintenant" vs "sag passif". */
+  triggered?: boolean;
 }
 
 export function computeHelpTarget(
@@ -118,9 +123,19 @@ export function computeHelpTarget(
       };
       break;
     }
-    case 'man':
-      aim = manPos;
+    case 'man': {
+      // priority='man' = "stay close to your guy". Mais avec helpPct > 0
+      // et un trigger actif, il faut quand même laisser un léger penchant
+      // vers le panier (sinon helpPct=100 sur un défenseur priority=man
+      // ne produit aucun mouvement, ce qui est contre-intuitif).
+      // 30% du chemin man → panier. Avec helpPct=100/sideFactor=1 →
+      // défenseur descend 30% du chemin vers le panier.
+      aim = {
+        x: manPos.x + (hoop.x - manPos.x) * 0.3,
+        y: manPos.y + (hoop.y - manPos.y) * 0.3,
+      };
       break;
+    }
   }
 
   return {
@@ -129,5 +144,6 @@ export function computeHelpTarget(
       y: manPos.y + (aim.y - manPos.y) * helpFactor,
     },
     helpFactor,
+    triggered: true,
   };
 }

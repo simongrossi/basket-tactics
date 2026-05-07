@@ -63,6 +63,9 @@ export function HelpLines({ off, defPos, defenseDistance, show }: HelpLinesProps
           if (!att) return null;
           const man = manTarget(att, defenseDistance);
           if (!man) return null;
+          // Aide active (trigger) → trait plus marqué + couleur soutenue
+          // Aide passive (sag baseline) → discret comme avant
+          const triggered = !!p.helpTriggered;
           return (
             <line
               key={dId}
@@ -70,10 +73,10 @@ export function HelpLines({ off, defPos, defenseDistance, show }: HelpLinesProps
               y1={man.y}
               x2={p.x}
               y2={p.y}
-              stroke="#534AB7"
-              strokeWidth={1.5}
-              strokeDasharray="3 3"
-              opacity={0.7}
+              stroke={triggered ? '#7c3aed' : '#534AB7'}
+              strokeWidth={triggered ? 2.5 : 1.5}
+              strokeDasharray={triggered ? '6 3' : '3 3'}
+              opacity={triggered ? 0.9 : 0.55}
             />
           );
         }
