@@ -76,11 +76,13 @@ export function HeatmapOverlay({ defPos, off: _off, fullCourt, show }: HeatmapOv
       {cells.map((c, i) => {
         // Hue : 120° (vert) à 0° (rouge) en passant par 60° (jaune)
         const hue = Math.round((1 - c.t) * 120);
-        // Pastel : haute lightness, saturation modérée
-        const fill = `hsl(${hue}, 60%, 65%)`;
-        // Opacité : un peu plus marquée sur les rouges et les verts francs,
-        // un peu moins sur le jaune intermédiaire pour éviter une bouillie.
-        const opacity = 0.22 + Math.abs(c.t - 0.5) * 0.2;
+        // Saturation/lightness moyennes : assez vives pour être lisibles
+        // par-dessus le terrain ocre, sans pour autant tuer les contrastes
+        // des joueurs/lignes.
+        const fill = `hsl(${hue}, 78%, 50%)`;
+        // Opacité plus marquée aux extrémités (vert franc / rouge franc),
+        // un peu moins sur le jaune intermédiaire.
+        const opacity = 0.4 + Math.abs(c.t - 0.5) * 0.25;
         return (
           <rect
             key={i}
