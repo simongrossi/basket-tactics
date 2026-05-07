@@ -22,7 +22,8 @@ import { effectiveDefensePositions, getMatchupsAt } from '@/lib/logic/engine';
 import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
 import type { DetectedOffBallScreen } from '@/lib/types';
 import { detectTriggers } from '@/lib/logic/triggers';
-import { getZoneLayout, mirrorZoneLayout } from '@/lib/data/zones';
+import { getZoneLayout, mirrorZoneLayout, applyZoneOverrides } from '@/lib/data/zones';
+import { ZoneEditOverlay, ZoneRegionMenu } from './ZoneEditOverlay';
 import { COURT, PLAYER_RADIUS, FULL_COURT_HEIGHT, FULL_COURT_INNER_MAX_Y } from '@/lib/data/court';
 import {
   clamp, distance, curveAroundObstacle, resolvePlayerCollisions, makeCluster,
@@ -43,6 +44,8 @@ interface CourtViewProps {
   onSetForcedScreener: (oId: AttackerId | null) => void;
   onClearAnnotationsFor: (oId: AttackerId) => void;
   onSetAttackerHand: (oId: AttackerId, hand: 'right' | 'left') => void;
+  onSetZoneOverride: (regionId: string, override: Partial<import('@/lib/types').ZoneRegionOverride>) => void;
+  onClearZoneOverride: (regionId: string) => void;
   onDeleteAnnotation: (idx: number) => void;
   onSetTool: (t: Tool) => void;
   isPlaying: boolean;
@@ -79,6 +82,7 @@ export function CourtView(props: CourtViewProps) {
   type CtxMenuState =
     | { kind: 'defender'; dId: DefenderId; x: number; y: number }
     | { kind: 'attacker'; oId: AttackerId; x: number; y: number };
+  const [zoneRegionMenu, setZoneRegionMenu] = useState<{ regionId: string; x: number; y: number } | null>(null);
   const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null);
   const [playFrame, setPlayFrame] = useState<PlaybackFrame | null>(null);
 
@@ -558,12 +562,44 @@ export function CourtView(props: CourtViewProps) {
         <CourtBackground fullCourt={state.fullCourt} attackingDirection={state.attackingDirection} />
         {state.defenseSystem === 'zone' && (() => {
           const base = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
-          const zoneLayout = state.attackingDirection === 'down' ? mirrorZoneLayout(base) : base;
+          const oriented = state.attackingDirection === 'down' ? mirrorZoneLayout(base) : base;
+          const zoneLayout = applyZoneOverrides(oriented, state.zoneOverrides);
+          if (state.zoneEditMode) {
+            return (
+              <ZoneEditOverlay
+                layout={zoneLayout}
+                toCourtPoint={(cx, cy) => {
+                  const svg = svgRef.current;
+                  if (!svg) return null;
+                  const pt = svg.createSVGPoint();
+                  pt.x = cx;
+                  pt.y = cy;
+                  const ctm = svg.getScreenCTM();
+                  if (!ctm) return null;
+                  const t = pt.matrixTransform(ctm.inverse());
+                  return { x: t.x, y: t.y };
+                }}
+                onMoveHomePos={(regionId, pos) =>
+                  props.onSetZoneOverride(regionId, { homePos: { x: Math.round(pos.x), y: Math.round(pos.y) } })
+                }
+                onSelectRegion={(regionId, e) => {
+                  const wrap = svgRef.current?.parentElement?.getBoundingClientRect();
+                  if (!wrap) return;
+                  setZoneRegionMenu({
+                    regionId,
+                    x: e.clientX - wrap.left,
+                    y: e.clientY - wrap.top,
+                  });
+                }}
+              />
+            );
+          }
           return <ZoneOverlay layout={zoneLayout} show />;
         })()}
         {state.defenseSystem === 'zone' ? (() => {
           const base = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
-          const zoneLayout = state.attackingDirection === 'down' ? mirrorZoneLayout(base) : base;
+          const oriented = state.attackingDirection === 'down' ? mirrorZoneLayout(base) : base;
+          const zoneLayout = applyZoneOverrides(oriented, state.zoneOverrides);
           return (
             <ZoneCoverage
               off={frame.off}
@@ -753,6 +789,23 @@ export function CourtView(props: CourtViewProps) {
             onClearAnnotations={() => props.onClearAnnotationsFor(oId)}
             onSetDominantHand={(h) => props.onSetAttackerHand(oId, h)}
             onClose={() => setCtxMenu(null)}
+          />
+        );
+      })()}
+      {zoneRegionMenu && state.defenseSystem === 'zone' && state.zoneEditMode && (() => {
+        const base = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
+        const oriented = state.attackingDirection === 'down' ? mirrorZoneLayout(base) : base;
+        const layout = applyZoneOverrides(oriented, state.zoneOverrides);
+        const region = layout.find((r) => r.id === zoneRegionMenu.regionId);
+        if (!region) return null;
+        return (
+          <ZoneRegionMenu
+            region={region}
+            x={zoneRegionMenu.x}
+            y={zoneRegionMenu.y}
+            onUpdate={(patch) => props.onSetZoneOverride(zoneRegionMenu.regionId, patch)}
+            onReset={() => props.onClearZoneOverride(zoneRegionMenu.regionId)}
+            onClose={() => setZoneRegionMenu(null)}
           />
         );
       })()}

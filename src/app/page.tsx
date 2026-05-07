@@ -143,6 +143,8 @@ export default function Page() {
             onSetForcedScreener={app.setForcedScreener}
             onClearAnnotationsFor={app.clearAnnotationsFor}
             onSetAttackerHand={app.setAttackerHand}
+            onSetZoneOverride={app.setZoneOverride}
+            onClearZoneOverride={app.clearZoneOverride}
             onDeleteAnnotation={app.deleteAnnotation}
             onSetTool={app.setTool}
             isPlaying={isPlaying}

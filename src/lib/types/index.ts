@@ -108,15 +108,34 @@ export type DropDepth = 'shallow' | 'medium' | 'deep';
 export type DefenseSystem = 'man' | 'zone';
 export type ZoneType = 'zone-2-3' | 'zone-1-3-1' | 'zone-3-2' | 'zone-2-1-2' | 'zone-matchup';
 
+export type ZoneRegionMode = 'auto' | 'agressif' | 'passif' | 'trap';
+
 export interface ZoneRegion {
   id: string;
   label: string;
   polygon: Point[];
   homePos: Point;
   assignedTo: DefenderId;
+  /** Rayon de responsabilité étendu (px). Override le défaut 200. */
+  radius?: number;
+  /** Comportement de la région. 'auto' (default) = tracking continu standard.
+   *  'agressif' = sortir vite et fort (engagement boosté).
+   *  'passif' = rester près du home, sortir mou (engagement réduit).
+   *  'trap' = piéger le porteur s'il entre dans la région (full track + offset
+   *  agressif vers le ballon). */
+  mode?: ZoneRegionMode;
 }
 
 export type ZoneLayout = ZoneRegion[];
+
+/** Override par région (keyed by region.id). Persiste dans AppState. */
+export interface ZoneRegionOverride {
+  homePos?: Point;
+  radius?: number;
+  mode?: ZoneRegionMode;
+}
+
+export type ZoneOverrides = Record<string, ZoneRegionOverride>;
 
 export interface ZoneConfig {
   type: ZoneType;
@@ -237,4 +256,10 @@ export interface AppState {
    *  scouting pour le coach — le moteur ne la consomme pas pour l'instant.
    *  Utile pour décider manuellement de l'orientation des défenseurs. */
   attackerHands?: AttackerHands;
+  /** Overrides par région de zone (homePos déplacé, radius, mode). Keyed
+   *  par region.id. Persistant à travers les types de zone. */
+  zoneOverrides?: ZoneOverrides;
+  /** Mode édition zones : active l'overlay interactif (drag des homePos +
+   *  clic sur les labels pour ouvrir le popup de réglage par région). */
+  zoneEditMode?: boolean;
 }

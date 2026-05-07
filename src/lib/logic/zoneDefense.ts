@@ -88,6 +88,8 @@ export function computeZoneTargets(
   layout.forEach((zone) => {
     const dId = zone.assignedTo;
     const homePos = zone.homePos;
+    const radius = zone.radius ?? ZONE_RESPONSIBILITY_RADIUS;
+    const mode = zone.mode ?? 'auto';
 
     // Position de "home shifté vers le ballon" — base quand pas d'engagement.
     const homeShifted = ballPos
@@ -98,10 +100,9 @@ export function computeZoneTargets(
       : homePos;
 
     // Trouve l'attaquant primaire à suivre : le plus proche du homePos dans
-    // un rayon de responsabilité étendu, avec préférence pour le porteur si
-    // proche. Cette logique remplace l'assignation discrète par polygone.
+    // le rayon de responsabilité, avec préférence pour le porteur si proche.
     let primaryAttacker: AttackerId | null = null;
-    let primaryDist = ZONE_RESPONSIBILITY_RADIUS;
+    let primaryDist = radius;
     (Object.entries(off) as [AttackerId, Point][]).forEach(([oId, pos]) => {
       const d = distance(pos, homePos);
       if (d < primaryDist) {
@@ -113,7 +114,7 @@ export function computeZoneTargets(
     // (≤ +60px du primary actuel), il prend la priorité.
     if (ballCarrier && off[ballCarrier]) {
       const carrierDist = distance(off[ballCarrier], homePos);
-      if (carrierDist < ZONE_RESPONSIBILITY_RADIUS && carrierDist < primaryDist + 60) {
+      if (carrierDist < radius && carrierDist < primaryDist + 60) {
         primaryAttacker = ballCarrier;
         primaryDist = carrierDist;
       }
@@ -132,13 +133,23 @@ export function computeZoneTargets(
     }
 
     // Engagement linéaire : 1.0 à 0px du home, 0.0 au bord du rayon.
-    const engagement = Math.max(0, 1 - primaryDist / ZONE_RESPONSIBILITY_RADIUS);
+    let engagement = Math.max(0, 1 - primaryDist / radius);
+    // Modulation par mode :
+    // - agressif : engagement boosté (+50%, capé à 1) → sortir vite et fort
+    // - passif : engagement réduit ×0.5 → reste près du home
+    // - trap : full track si le porteur est dans la région (engagement = 1)
+    if (mode === 'agressif') engagement = Math.min(1, engagement * 1.5);
+    else if (mode === 'passif') engagement *= 0.5;
+    else if (mode === 'trap' && primaryAttacker === ballCarrier) engagement = 1;
 
     const attPos = off[primaryAttacker];
     let trackedPos: Point;
 
     if (primaryAttacker === ballCarrier) {
-      const carrierTarget = carrierDefenderTarget('contester', attPos, defenseDistance, hoop);
+      // En mode trap, on adopte un comportement bumper (corps entre porteur
+      // et panier, plus rapproché) pour matérialiser le piège.
+      const stance = mode === 'trap' ? 'bumper' : 'contester';
+      const carrierTarget = carrierDefenderTarget(stance, attPos, defenseDistance, hoop);
       trackedPos = carrierTarget || homePos;
     } else if (config.type === 'zone-matchup') {
       trackedPos = manTarget(attPos, defenseDistance, hoop) || homePos;

@@ -8,7 +8,7 @@ import type {
   AttackerId,
 } from '../types';
 import { baseMatchups } from '../data/initial';
-import { getZoneLayout, mirrorZoneLayout } from '../data/zones';
+import { getZoneLayout, mirrorZoneLayout, applyZoneOverrides } from '../data/zones';
 import { detectTriggers } from './triggers';
 import { manTarget, carrierDefenderTarget, offBallStanceTarget, orientationLateralOffset } from './manDefense';
 import { computeHelpTarget } from './help';
@@ -229,7 +229,10 @@ function computeZoneDefenseTargets(
   const baseLayout = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
   // En mode attack 'down', miroite le layout autour de la médiane pour que
   // les zones soient devant le panier protégé (bas).
-  const layout = state.attackingDirection === 'down' ? mirrorZoneLayout(baseLayout) : baseLayout;
+  const oriented = state.attackingDirection === 'down' ? mirrorZoneLayout(baseLayout) : baseLayout;
+  // Applique les overrides utilisateur (homePos déplacés, radius, mode) après
+  // l'orientation pour rester invariant au sens d'attaque.
+  const layout = applyZoneOverrides(oriented, state.zoneOverrides);
   const zoneTargets = computeZoneTargets(
     cur.off, cur.ballCarrier, layout, state.zoneConfig, state.defenseDistance, hoop
   );

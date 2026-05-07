@@ -1,4 +1,4 @@
-import type { ZoneType, ZoneLayout, DefenderPositions } from '../types';
+import type { ZoneType, ZoneLayout, ZoneOverrides, DefenderPositions } from '../types';
 
 // Repères du terrain FIBA (HOOP en haut, panier à y=75, échelle ≈37 px/m) :
 //  - y=20    : ligne de fond (baseline)
@@ -319,6 +319,29 @@ export function getZoneLayout(type: ZoneType, verticalOffset: number = 0): ZoneL
     polygon: r.polygon.map((p) => ({ x: p.x, y: p.y + verticalOffset })),
     homePos: { x: r.homePos.x, y: r.homePos.y + verticalOffset },
   }));
+}
+
+/**
+ * Applique les overrides utilisateur sur un layout. Pour chaque région, si
+ * un override existe (par id), on remplace homePos / radius / mode par les
+ * valeurs override. Le polygone et l'assignation restent inchangés (pour
+ * l'instant — l'éditeur de polygones libres viendra plus tard).
+ */
+export function applyZoneOverrides(
+  layout: ZoneLayout,
+  overrides: ZoneOverrides | undefined
+): ZoneLayout {
+  if (!overrides) return layout;
+  return layout.map((r) => {
+    const o = overrides[r.id];
+    if (!o) return r;
+    return {
+      ...r,
+      homePos: o.homePos ?? r.homePos,
+      radius: o.radius ?? r.radius,
+      mode: o.mode ?? r.mode,
+    };
+  });
 }
 
 /**

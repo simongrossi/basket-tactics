@@ -352,6 +352,36 @@ export function useAppState() {
     });
   }, []);
 
+  const setZoneOverride = useCallback(
+    (regionId: string, override: Partial<import('@/lib/types').ZoneRegionOverride>) => {
+      setStateWithHistory((s) => {
+        const cur = s.zoneOverrides?.[regionId] ?? {};
+        const merged = { ...cur, ...override };
+        // Si tous les champs sont undefined, on retire l'entrée pour rester propre.
+        const hasValue =
+          merged.homePos !== undefined || merged.radius !== undefined || merged.mode !== undefined;
+        const next = { ...(s.zoneOverrides ?? {}) };
+        if (hasValue) next[regionId] = merged;
+        else delete next[regionId];
+        return { ...s, zoneOverrides: Object.keys(next).length ? next : undefined };
+      });
+    },
+    []
+  );
+
+  const clearZoneOverride = useCallback((regionId: string) => {
+    setStateWithHistory((s) => {
+      if (!s.zoneOverrides?.[regionId]) return s;
+      const next = { ...s.zoneOverrides };
+      delete next[regionId];
+      return { ...s, zoneOverrides: Object.keys(next).length ? next : undefined };
+    });
+  }, []);
+
+  const setZoneEditMode = useCallback((on: boolean) => {
+    setStateWithHistory((s) => ({ ...s, zoneEditMode: on }));
+  }, []);
+
   const updateZoneConfig = useCallback((zPatch: Partial<ZoneConfig>) => {
     setStateWithHistory((s) => {
       const newConfig = { ...s.zoneConfig, ...zPatch };
@@ -380,6 +410,9 @@ export function useAppState() {
           ...next,
           defenseInitial: newDefenseInitial,
           steps: cleanedSteps,
+          // Reset des overrides de région — les ids de région diffèrent entre
+          // formations, ils n'ont aucun sens après changement de type.
+          zoneOverrides: undefined,
         };
       }
       return next;
@@ -425,6 +458,9 @@ export function useAppState() {
     patch,
     setDefenseSystem,
     updateZoneConfig,
+    setZoneOverride,
+    clearZoneOverride,
+    setZoneEditMode,
     setStepLabel,
     setBallCarrier,
     loadTemplate,

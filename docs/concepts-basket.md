@@ -140,6 +140,19 @@ Pour chaque zone, on calcule un **engagement** ∈ [0, 1] basé sur la distance 
 
 **Conséquence** : pas de saut quand un attaquant traverse une frontière de polygone. Le défenseur l'accompagne progressivement à mesure qu'il se rapproche du homePos. Les polygones ne sont plus utilisés pour l'assignation, juste pour la rotation (cas 2+ attaquants strictement dans une zone).
 
+### Mode édition zones
+
+Toggle `✎ mode édition zones` dans le panneau Défense (zone uniquement). Active un overlay interactif :
+- **Régions colorées** : chaque zone reçoit un fill semi-transparent vif (5 couleurs distinctes) avec contour plein
+- **Cercle de rayon de responsabilité** : visible en pointillé autour de chaque homePos — montre où le défenseur sortira sur un attaquant
+- **Handle draggable** au homePos : repositionne l'ancrage. L'override est stocké dans `state.zoneOverrides[regionId].homePos` et persiste jusqu'au changement de type de zone (qui efface tout)
+- **Label cliquable** (`Top G → D2`) : ouvre un popup par région avec :
+  - **mode** : `auto` (standard) / `agressif` (engagement +50%) / `passif` (engagement ×0.5) / `trap` (full track sur le porteur, stance bumper)
+  - **rayon** : slider 80–350px (default 200) pour étendre ou restreindre la zone d'influence
+  - **↻ réinitialiser cette région** : efface tous les overrides
+
+Les overrides sont consommés par le moteur (`applyZoneOverrides` dans [`zones.ts`](../src/lib/data/zones.ts)) avant le calcul des cibles. Quand le mode édition est OFF, l'overlay sobre `ZoneOverlay` reprend la main, mais les overrides restent actifs côté logique.
+
 ### Rotation
 
 Si une zone est surchargée (2+) et qu'une zone adjacente est vide, le défenseur de la zone vide se déplace vers l'attaquant secondaire (plus loin du panier) de la zone surchargée. Marqué `isRotating: true`.

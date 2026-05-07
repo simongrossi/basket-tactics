@@ -172,6 +172,14 @@ export function DefensePanel(props: DefensePanelProps) {
             label="extension 3pts"
             onChange={(v) => props.onUpdateZoneConfig({ extendTo3pt: v })}
           />
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #cbd5e1' }}>
+            <CheckboxLine
+              checked={!!state.zoneEditMode}
+              label="✎ mode édition zones"
+              onChange={(v) => props.onPatch({ zoneEditMode: v })}
+              title="Active l'overlay interactif : régions colorées, drag des homePos pour repositionner les ancrages, clic sur les labels pour ouvrir le menu (mode + rayon de responsabilité par région)."
+            />
+          </div>
         </Section>
       )}
 
