@@ -153,7 +153,7 @@ export default function Page() {
           onSetPlaybackSpeed={setPlaybackSpeed}
         />}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
+        <div className="center-col">
           <CourtView
             state={app.state}
             onMoveAttacker={app.moveAttacker}
@@ -209,7 +209,9 @@ export default function Page() {
         <PlaybookView state={app.state} onClose={() => setShowPlaybook(false)} />
       )}
 
-      <style>{`
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .layout-grid {
           display: grid;
           grid-template-columns: 280px 1fr 320px;
@@ -218,12 +220,16 @@ export default function Page() {
           flex: 1;
           min-height: 0;
         }
-        .layout-grid > * {
-          min-height: 0;
-          min-width: 0;
-        }
         .layout-grid.presenting {
           grid-template-columns: 1fr;
+        }
+        .center-col {
+          display: grid;
+          grid-template-rows: minmax(0, 1fr) auto auto;
+          gap: 6px;
+          min-width: 0;
+          min-height: 0;
+          overflow: hidden;
         }
         @media (max-width: 1100px) {
           .layout-grid:not(.presenting) { grid-template-columns: 240px 1fr 280px; }
@@ -232,7 +238,9 @@ export default function Page() {
           main { height: auto !important; max-height: none !important; overflow: auto !important; }
           .layout-grid { grid-template-columns: 1fr; grid-template-rows: auto; }
         }
-      `}</style>
+      `,
+        }}
+      />
     </main>
   );
 }

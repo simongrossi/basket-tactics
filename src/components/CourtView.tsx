@@ -526,12 +526,9 @@ export function CourtView(props: CourtViewProps) {
         background: '#f5f5f4',
         borderRadius: 12,
         padding: 6,
-        flex: 1,
         minHeight: 0,
+        minWidth: 0,
         overflow: 'hidden',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
         boxShadow: '0 2px 12px rgba(15, 23, 42, 0.06)',
       }}
     >
