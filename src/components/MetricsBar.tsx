@@ -1,12 +1,16 @@
 'use client';
 
 import type { DefensiveMetrics } from '@/lib/logic/metrics';
+import type { AttackerThreat } from '@/lib/logic/threats';
 
 interface MetricsBarProps {
   metrics: DefensiveMetrics;
+  /** Meilleure option offensive (Phase A simulation). Affichée comme pill
+   *  séparée à droite si fournie. */
+  bestOption?: AttackerThreat | null;
 }
 
-export function MetricsBar({ metrics }: MetricsBarProps) {
+export function MetricsBar({ metrics, bestOption }: MetricsBarProps) {
   return (
     <div
       style={{
@@ -63,6 +67,14 @@ export function MetricsBar({ metrics }: MetricsBarProps) {
         }
         title={`Depuis le porteur : ${metrics.openPasses} ouvertes · ${metrics.contestedPasses} contestées · ${metrics.blockedPasses} bloquées`}
       />
+      {bestOption && (
+        <Pill
+          label="meilleure option"
+          value={`${bestOption.attackerId} ${Math.round(bestOption.score * 100)}%`}
+          tone={bestOption.score >= 0.40 ? 'bad' : bestOption.score >= 0.25 ? 'warn' : 'good'}
+          title={`Modèle de menace : ${bestOption.attackerId} a la meilleure proba de marquer (${Math.round(bestOption.shotQuality * 100)}% qualité × ${Math.round(bestOption.receivability * 100)}% receivability, zone ${bestOption.zone}, contesté à ${bestOption.contestDist}px)`}
+        />
+      )}
     </div>
   );
 }

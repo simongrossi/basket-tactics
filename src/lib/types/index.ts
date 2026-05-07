@@ -239,6 +239,10 @@ export interface AppState {
    *  (faible pression défensive cumulée). Aide à voir d'un coup d'œil les
    *  espaces ouverts pour passe ou tir. */
   showHeatmap?: boolean;
+  /** Affiche un anneau et un badge % autour de chaque attaquant indiquant
+   *  son score de menace (probabilité de marquer s'il devient l'option
+   *  offensive). Phase A de la simulation Monte Carlo. */
+  showThreats?: boolean;
   /** Toggles fine-grained sur les indicateurs auto. Default true partout —
    *  ces visuels sont normalement utiles. Le coach peut désactiver pour
    *  alléger la vue (ex : présentation, capture playbook). */

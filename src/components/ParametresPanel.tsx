@@ -58,6 +58,12 @@ export function ParametresPanel({ state, onPatch }: ParametresPanelProps) {
           sample="gradient" color=""
           onChange={(v) => onPatch({ showHeatmap: v })}
         />
+        <LegendCheckboxLine
+          checked={!!state.showThreats}
+          label="menace attaquants"
+          sample="ring-solid" color="#10b981"
+          onChange={(v) => onPatch({ showThreats: v })}
+        />
         <CheckboxLine
           checked={state.fullCourt}
           label="terrain complet"
@@ -131,7 +137,7 @@ export function ParametresPanel({ state, onPatch }: ParametresPanelProps) {
 
 type LegendSample =
   | 'line' | 'line-thick' | 'dashed' | 'dashed-thin'
-  | 'circle' | 'circle-dashed' | 'ring' | 'dot' | 'num' | 'gradient';
+  | 'circle' | 'circle-dashed' | 'ring' | 'ring-solid' | 'dot' | 'num' | 'gradient';
 
 function Swatch({ color, sample }: { color: string; sample: LegendSample }) {
   return (
@@ -151,6 +157,12 @@ function Swatch({ color, sample }: { color: string; sample: LegendSample }) {
         <circle cx="11" cy="6" r="4" fill="none" stroke={color} strokeWidth="1.4" strokeDasharray="2 2" />
       )}
       {sample === 'ring' && <circle cx="11" cy="6" r="4" fill="none" stroke={color} strokeWidth="2.2" />}
+      {sample === 'ring-solid' && (
+        <>
+          <circle cx="11" cy="6" r="4" fill="none" stroke={color} strokeWidth="2" />
+          <rect x="14" y="3" width="7" height="6" rx="1" fill={color} />
+        </>
+      )}
       {sample === 'dot' && <circle cx="11" cy="6" r="3" fill={color} stroke="#92400e" strokeWidth="0.8" />}
       {sample === 'num' && (
         <>
