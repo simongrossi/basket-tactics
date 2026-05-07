@@ -136,7 +136,8 @@ Pour chaque zone, on calcule un **engagement** ∈ [0, 1] basé sur la distance 
    - Porteur → `carrierDefenderTarget('contester')`
    - Match-up → `manTarget` à distance standard
    - Zone classique → `manTarget` à distance étendue (×1.2) avec léger shift vers le ballon
-5. Position finale = `lerp(homeShifted, trackedPos, engagement)` — interpolation continue.
+5. Engagement avec **falloff quadratique doux** : `1 - (dist / (radius × 1.5))²`. Reste élevé sur la majorité de la zone (1.0 au centre, 0.89 à la moitié, 0.56 au bord du rayon, 0 à 1.5×). Plus de coupure dure → un attaquant qui sort d'un poil est encore accompagné.
+6. Position finale = `lerp(homeShifted, trackedPos, engagement)` — interpolation continue.
 
 **Conséquence** : pas de saut quand un attaquant traverse une frontière de polygone. Le défenseur l'accompagne progressivement à mesure qu'il se rapproche du homePos. Les polygones ne sont plus utilisés pour l'assignation, juste pour la rotation (cas 2+ attaquants strictement dans une zone).
 
@@ -145,7 +146,7 @@ Pour chaque zone, on calcule un **engagement** ∈ [0, 1] basé sur la distance 
 Toggle `✎ mode édition zones` dans le panneau Défense (zone uniquement). Active un overlay interactif :
 - **Régions colorées** : chaque zone reçoit un fill semi-transparent vif (5 couleurs distinctes) avec contour plein
 - **Cercle de rayon de responsabilité** : visible en pointillé autour de chaque homePos — montre où le défenseur sortira sur un attaquant
-- **Handle draggable** au homePos : repositionne l'ancrage. L'override est stocké dans `state.zoneOverrides[regionId].homePos` et persiste jusqu'au changement de type de zone (qui efface tout)
+- **Handle draggable** au homePos : repositionne l'ancrage. **Drag du défenseur lui-même** = même chose (le défenseur et son ancrage sont liés en mode édition). L'override est stocké dans `state.zoneOverrides[regionId].homePos` et persiste jusqu'au changement de type de zone (qui efface tout)
 - **Label cliquable** (`Top G → D2`) : ouvre un popup par région avec :
   - **mode** : `auto` (standard) / `agressif` (engagement +50%) / `passif` (engagement ×0.5) / `trap` (full track sur le porteur, stance bumper)
   - **rayon** : slider 80–350px (default 200) pour étendre ou restreindre la zone d'influence

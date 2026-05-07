@@ -14,7 +14,7 @@ import type {
   Point,
 } from '@/lib/types';
 import { makeInitialState, makeStep, initialOff, initialDef } from '@/lib/data/initial';
-import { getZoneLayout } from '@/lib/data/zones';
+import { getZoneLayout, mirrorZoneLayout } from '@/lib/data/zones';
 import type { Template } from '@/lib/data/templates';
 import type { DefensePreset } from '@/lib/data/defensePresets';
 
@@ -152,17 +152,32 @@ export function useAppState() {
   }, []);
 
   const moveDefender = useCallback((id: DefenderId, x: number, y: number) => {
-    // Drag d'un défenseur = override manuel pour l'étape active.
-    // Le moteur respectera cette position (skip auto-targeting pour ce
-    // défenseur sur cette étape). Pour réauto-positionner, voir
-    // clearDefenseOverride.
     setStateWithHistory((s) => {
+      // En mode édition zones : drag d'un défenseur = drag de son homePos.
+      // Plus intuitif que de créer un override manuel — le défenseur reste
+      // un défenseur de zone, son ancrage suit le drag, et l'engine continue
+      // à le faire suivre les attaquants dans son rayon de responsabilité.
+      if (s.defenseSystem === 'zone' && s.zoneEditMode) {
+        const baseLayout = getZoneLayout(s.zoneConfig.type, s.zoneConfig.verticalOffset ?? 0);
+        const oriented = s.attackingDirection === 'down' ? mirrorZoneLayout(baseLayout) : baseLayout;
+        const region = oriented.find((r) => r.assignedTo === id);
+        if (region) {
+          const cur = s.zoneOverrides?.[region.id] ?? {};
+          return {
+            ...s,
+            zoneOverrides: {
+              ...(s.zoneOverrides ?? {}),
+              [region.id]: { ...cur, homePos: { x: Math.round(x), y: Math.round(y) } },
+            },
+          };
+        }
+      }
+      // Sinon (man defense, ou zone hors édition) : override manuel pour
+      // l'étape active. Le moteur respectera cette position.
       const steps = [...s.steps];
       const cur = { ...steps[s.activeStep] };
       cur.defenseOverrides = { ...cur.defenseOverrides, [id]: { x, y } };
       steps[s.activeStep] = cur;
-      // On met aussi à jour defenseInitial à l'étape 0 pour la cohérence
-      // de la détection d'écran et l'export JSON pre-overrides.
       const defenseInitial =
         s.activeStep === 0 ? { ...s.defenseInitial, [id]: { x, y } } : s.defenseInitial;
       return { ...s, steps, defenseInitial };

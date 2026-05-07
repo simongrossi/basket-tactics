@@ -99,10 +99,13 @@ export function computeZoneTargets(
         }
       : homePos;
 
-    // Trouve l'attaquant primaire à suivre : le plus proche du homePos dans
-    // le rayon de responsabilité, avec préférence pour le porteur si proche.
+    // Trouve l'attaquant primaire à suivre : toujours le plus proche du
+    // homePos (sans coupure dure). On lit le rayon comme un "rayon de
+    // responsabilité forte" — l'engagement décroît au-delà mais ne tombe
+    // pas à zéro brutalement. Permet au défenseur d'accompagner un attaquant
+    // qui sort un peu de sa zone, sans téléportation.
     let primaryAttacker: AttackerId | null = null;
-    let primaryDist = radius;
+    let primaryDist = Infinity;
     (Object.entries(off) as [AttackerId, Point][]).forEach(([oId, pos]) => {
       const d = distance(pos, homePos);
       if (d < primaryDist) {
@@ -110,18 +113,17 @@ export function computeZoneTargets(
         primaryAttacker = oId;
       }
     });
-    // Préférence porteur : s'il est dans le rayon et raisonnablement proche
-    // (≤ +60px du primary actuel), il prend la priorité.
+    // Préférence porteur : s'il est raisonnablement proche du primary
+    // (≤ +60px), il prend la priorité.
     if (ballCarrier && off[ballCarrier]) {
       const carrierDist = distance(off[ballCarrier], homePos);
-      if (carrierDist < radius && carrierDist < primaryDist + 60) {
+      if (carrierDist < primaryDist + 60) {
         primaryAttacker = ballCarrier;
         primaryDist = carrierDist;
       }
     }
 
     if (!primaryAttacker) {
-      // Aucun attaquant dans le rayon → défenseur reste au home shifté.
       targets[dId] = {
         x: Math.round(homeShifted.x),
         y: Math.round(homeShifted.y),
@@ -132,8 +134,16 @@ export function computeZoneTargets(
       return;
     }
 
-    // Engagement linéaire : 1.0 à 0px du home, 0.0 au bord du rayon.
-    let engagement = Math.max(0, 1 - primaryDist / radius);
+    // Engagement avec falloff quadratique doux : reste élevé dans la zone
+    // d'influence puis décroît rapidement au-delà du rayon × 1.5.
+    //   dist = 0          → 1.00 (full track)
+    //   dist = radius/2   → 0.89
+    //   dist = radius     → 0.56 (l'attaquant est à la limite de la zone)
+    //   dist = radius×1.5 → 0    (full home)
+    // Permet au défenseur d'accompagner un attaquant sur la majorité de sa
+    // zone, sans téléportation au franchissement de frontière.
+    const normDist = primaryDist / (radius * 1.5);
+    let engagement = Math.max(0, 1 - normDist * normDist);
     // Modulation par mode :
     // - agressif : engagement boosté (+50%, capé à 1) → sortir vite et fort
     // - passif : engagement réduit ×0.5 → reste près du home
