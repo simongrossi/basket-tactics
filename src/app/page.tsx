@@ -142,6 +142,7 @@ export default function Page() {
             onSetBallCarrier={app.setBallCarrier}
             onSetForcedScreener={app.setForcedScreener}
             onClearAnnotationsFor={app.clearAnnotationsFor}
+            onSetAttackerHand={app.setAttackerHand}
             onDeleteAnnotation={app.deleteAnnotation}
             onSetTool={app.setTool}
             isPlaying={isPlaying}

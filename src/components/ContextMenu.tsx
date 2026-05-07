@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { AttackerId, DefenderId, DefenderRule, Tool } from '@/lib/types';
+import type { AttackerId, DefenderId, DefenderRule, DominantHand, Tool } from '@/lib/types';
 
 /**
  * Repositionne un menu contextuel pour qu'il ne déborde pas du conteneur
@@ -105,12 +105,14 @@ interface AttackerMenuProps {
   isCarrier: boolean;
   isForcedScreener: boolean;
   hasAnnotations: boolean;
+  dominantHand: DominantHand;
   tool: Tool;
   onSetTool: (t: Tool) => void;
   onMakeCarrier: () => void;
   onForceScreener: () => void;
   onClearForcedScreener: () => void;
   onClearAnnotations: () => void;
+  onSetDominantHand: (h: DominantHand) => void;
   onClose: () => void;
 }
 
@@ -450,9 +452,9 @@ function OverrideSliderRow({
 }
 
 function AttackerMenu({
-  oId, x, y, isCarrier, isForcedScreener, hasAnnotations,
+  oId, x, y, isCarrier, isForcedScreener, hasAnnotations, dominantHand,
   tool, onSetTool,
-  onMakeCarrier, onForceScreener, onClearForcedScreener, onClearAnnotations, onClose,
+  onMakeCarrier, onForceScreener, onClearForcedScreener, onClearAnnotations, onSetDominantHand, onClose,
 }: AttackerMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
   const pos = useClampedPosition(x, y, ref);
@@ -530,6 +532,29 @@ function AttackerMenu({
           onClick={onClearAnnotations}
           disabled={!hasAnnotations}
         />
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          marginTop: 8,
+          padding: '5px 6px',
+          borderRadius: 4,
+          background: '#fff7ed',
+          border: '1px solid #fed7aa',
+        }}
+        title="Main dominante de l'attaquant. Utilisée par les défenseurs en stance 'mauvaise main' pour décider quel côté fermer (droitier → on le pousse à gauche, gaucher → à droite)."
+      >
+        <span style={{ fontSize: 11, color: '#9a3412', width: 88, fontWeight: 500 }}>main dom.</span>
+        <select
+          value={dominantHand}
+          onChange={(e) => onSetDominantHand(e.target.value as DominantHand)}
+          style={{ flex: 1, fontSize: 11 }}
+        >
+          <option value="right">droitier</option>
+          <option value="left">gaucher</option>
+        </select>
       </div>
       {isForcedScreener && (
         <div

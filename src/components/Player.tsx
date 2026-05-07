@@ -1,5 +1,6 @@
-import type { Point, DefenderStance } from '@/lib/types';
+import type { Point, DefenderStance, DominantHand } from '@/lib/types';
 import { PLAYER_RADIUS } from '@/lib/data/court';
+import { resolveStance } from '@/lib/logic/manDefense';
 
 interface PlayerProps {
   id: string;
@@ -17,6 +18,8 @@ interface PlayerProps {
   denying?: boolean;
   /** Orientation des bras du défenseur. Default 'square' (symétrique). */
   stance?: DefenderStance;
+  /** Main dominante de l'attaquant matché — pour résoudre 'force-weak'. */
+  attackerHand?: DominantHand;
   /** Master switch pour les anneaux d'état (carrier, late, closeout, denial, helpRing).
    *  Default true. Quand false, le défenseur garde son contour standard. */
   showStateRings?: boolean;
@@ -39,6 +42,7 @@ export function Player({
   isForcedScreener,
   denying,
   stance = 'square',
+  attackerHand,
   showStateRings = true,
   showLockBadges = true,
 }: PlayerProps) {
@@ -78,8 +82,9 @@ export function Player({
         const wide: ArmShape = { coudeX: 1.55, coudeY: -0.95, tipX: 1.95, tipY: -0.5 };
         const normal: ArmShape = { coudeX: 1.4, coudeY: -0.95, tipX: 1.55, tipY: -0.15 };
         const tucked: ArmShape = { coudeX: 0.95, coudeY: -0.5, tipX: 0.95, tipY: 0.05 };
-        const forceLeft = stance === 'force-left' || stance === 'force-weak';
-        const forceRight = stance === 'force-right';
+        const resolved = resolveStance(stance, attackerHand);
+        const forceLeft = resolved === 'force-left';
+        const forceRight = resolved === 'force-right';
         const leftArm: ArmShape = forceLeft ? tucked : forceRight ? wide : normal;
         const rightArm: ArmShape = forceLeft ? wide : forceRight ? tucked : normal;
         return (

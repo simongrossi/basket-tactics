@@ -91,5 +91,6 @@ export function makeInitialState(): AppState {
     showLockBadges: true,
     closeoutBoost: 1.4,
     denyAggressiveness: 0.45,
+    attackerHands: { O1: 'right', O2: 'right', O3: 'right', O4: 'right', O5: 'right' },
   };
 }

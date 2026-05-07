@@ -250,6 +250,13 @@ export function useAppState() {
     }));
   }, []);
 
+  const setAttackerHand = useCallback((oId: AttackerId, hand: 'right' | 'left') => {
+    setStateWithHistory((s) => ({
+      ...s,
+      attackerHands: { ...(s.attackerHands ?? { O1: 'right', O2: 'right', O3: 'right', O4: 'right', O5: 'right' }), [oId]: hand },
+    }));
+  }, []);
+
   const setScreenRule = useCallback((rule: ScreenRule) => {
     setStateWithHistory((s) => {
       const steps = s.steps.map((st) => {
@@ -410,6 +417,7 @@ export function useAppState() {
     clearAnnotationsFor,
     setTool,
     updateRule,
+    setAttackerHand,
     setScreenRule,
     resetSwitches,
     resetAll,

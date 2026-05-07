@@ -1,6 +1,33 @@
-import type { Point, CarrierBehavior, OffBallStance } from '../types';
+import type { Point, CarrierBehavior, OffBallStance, DefenderStance, DominantHand } from '../types';
 import { HOOP, THREE_POINT_RADIUS, PLAYER_RADIUS } from '../data/court';
 import { clamp } from './geometry';
+
+/** Résout le stance d'un défenseur en orientation absolue.
+ *  - 'square' / undefined → 'square' (pas de force)
+ *  - 'force-left' / 'force-right' → identique
+ *  - 'force-weak' → utilise la main dominante de l'attaquant matché
+ *    (droitier → force-left, gaucher → force-right). Default droitier. */
+export function resolveStance(
+  stance: DefenderStance | undefined,
+  attackerHand: DominantHand | undefined
+): 'square' | 'force-left' | 'force-right' {
+  if (!stance || stance === 'square') return 'square';
+  if (stance === 'force-weak') {
+    return (attackerHand ?? 'right') === 'right' ? 'force-left' : 'force-right';
+  }
+  return stance;
+}
+
+/** Décalage latéral en x à appliquer à la position cible du défenseur selon
+ *  son stance résolu. force-left = défenseur shifté à droite (+x) pour fermer
+ *  le côté droit du porteur. force-right = mirror. ~10px = lisible mais subtil. */
+export function stanceLateralOffset(
+  resolvedStance: 'square' | 'force-left' | 'force-right'
+): number {
+  if (resolvedStance === 'force-left') return 10;
+  if (resolvedStance === 'force-right') return -10;
+  return 0;
+}
 
 /**
  * Position cible d'un défenseur en marquage classique :

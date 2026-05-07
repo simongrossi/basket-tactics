@@ -42,6 +42,7 @@ interface CourtViewProps {
   onSetBallCarrier: (oId: AttackerId) => void;
   onSetForcedScreener: (oId: AttackerId | null) => void;
   onClearAnnotationsFor: (oId: AttackerId) => void;
+  onSetAttackerHand: (oId: AttackerId, hand: 'right' | 'left') => void;
   onDeleteAnnotation: (idx: number) => void;
   onSetTool: (t: Tool) => void;
   isPlaying: boolean;
@@ -626,6 +627,7 @@ export function CourtView(props: CourtViewProps) {
                       overClosed={p.overClosed}
                       denying={p.denying}
                       stance={state.rules[id]?.stance}
+                      attackerHand={state.attackerHands?.[p.matchedTo]}
                       showStateRings={state.showStateRings !== false}
                       showLockBadges={state.showLockBadges !== false}
                     />
@@ -743,12 +745,14 @@ export function CourtView(props: CourtViewProps) {
             isCarrier={cur?.ballCarrier === oId}
             isForcedScreener={cur?.forcedScreener === oId}
             hasAnnotations={(cur?.annotations ?? []).some((a) => a.fromId === oId)}
+            dominantHand={state.attackerHands?.[oId] ?? 'right'}
             tool={state.tool}
             onSetTool={props.onSetTool}
             onMakeCarrier={() => props.onSetBallCarrier(oId)}
             onForceScreener={() => props.onSetForcedScreener(oId)}
             onClearForcedScreener={() => props.onSetForcedScreener(null)}
             onClearAnnotations={() => props.onClearAnnotationsFor(oId)}
+            onSetDominantHand={(h) => props.onSetAttackerHand(oId, h)}
             onClose={() => setCtxMenu(null)}
           />
         );

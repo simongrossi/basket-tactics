@@ -14,6 +14,9 @@ export interface Positions<K extends string> {
 export type AttackerPositions = Record<AttackerId, Point>;
 export type DefenderPositions = Record<DefenderId, Point>;
 
+export type DominantHand = 'right' | 'left';
+export type AttackerHands = Record<AttackerId, DominantHand>;
+
 export type AnnotationType = 'pass' | 'dribble' | 'cut' | 'screen';
 
 export interface Annotation {
@@ -233,4 +236,8 @@ export interface AppState {
    *  visé = HOOP_OPPOSITE bottom). Utile en mode fullCourt pour modéliser le
    *  repli/contre-attaque. La défense de zone n'est pas encore directionnelle. */
   attackingDirection?: 'up' | 'down';
+  /** Main dominante de chaque attaquant (default 'right'). Utilisée pour
+   *  résoudre `stance: 'force-weak'` du défenseur matché : un droitier sera
+   *  poussé à gauche, un gaucher à droite. */
+  attackerHands?: AttackerHands;
 }
