@@ -139,6 +139,7 @@ export default function Page() {
             onAddAnnotation={app.addAnnotation}
             onUpdateRule={app.updateRule}
             onClearDefenseOverride={app.clearDefenseOverride}
+            onApplyDefenderProfile={app.applyDefenderProfile}
             onSetBallCarrier={app.setBallCarrier}
             onSetForcedScreener={app.setForcedScreener}
             onClearAnnotationsFor={app.clearAnnotationsFor}
@@ -187,6 +188,7 @@ export default function Page() {
               onSetDefenseSystem={app.setDefenseSystem}
               onUpdateZoneConfig={app.updateZoneConfig}
               onApplyDefensePreset={app.applyDefensePreset}
+              onApplyDefenderProfile={app.applyDefenderProfile}
               onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
             />
             <ParametresPanel state={app.state} onPatch={app.patch} />

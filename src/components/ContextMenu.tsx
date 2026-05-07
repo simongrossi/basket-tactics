@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { AttackerId, DefenderId, DefenderRule, DominantHand, Tool } from '@/lib/types';
+import { DEFENDER_PROFILES, type DefenderProfile } from '@/lib/data/defenderProfiles';
 
 /**
  * Repositionne un menu contextuel pour qu'il ne déborde pas du conteneur
@@ -93,6 +94,7 @@ interface DefenderMenuProps {
   tool: Tool;
   onSetTool: (t: Tool) => void;
   onUpdate: (patch: Partial<DefenderRule>) => void;
+  onApplyProfile: (profile: DefenderProfile) => void;
   onClearOverride: () => void;
   onClose: () => void;
 }
@@ -123,7 +125,7 @@ export function ContextMenu(props: ContextMenuProps) {
   return <DefenderMenu {...props} />;
 }
 
-function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate, onClearOverride, onClose }: DefenderMenuProps) {
+function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate, onApplyProfile, onClearOverride, onClose }: DefenderMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
   const pos = useClampedPosition(x, y, ref);
 
@@ -220,6 +222,24 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
           </button>
         </div>
       </div>
+      <Row
+        label="profil"
+        title="Applique un profil de rôle (stopper, helper, denier…) — merge superficiel : seuls les champs définis par le profil sont écrasés, les overrides individuels (distance, vit. max, orientation…) sont préservés."
+      >
+        <select
+          value=""
+          onChange={(e) => {
+            const profile = DEFENDER_PROFILES.find((p) => p.id === e.target.value);
+            if (profile) onApplyProfile(profile);
+          }}
+          style={{ flex: 1, fontSize: 11 }}
+        >
+          <option value="" disabled>— choisir un profil —</option>
+          {DEFENDER_PROFILES.map((p) => (
+            <option key={p.id} value={p.id} title={p.description}>{p.name}</option>
+          ))}
+        </select>
+      </Row>
       <Row
         label="aide %"
         title="Intensité de l'aide ce défenseur quand un trigger est actif (drive/post/raquette). 0 = ne quitte jamais son homme. 100 = bouge complètement vers la cible d'aide."

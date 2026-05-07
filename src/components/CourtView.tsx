@@ -39,6 +39,7 @@ interface CourtViewProps {
   onMoveDefender: (id: DefenderId, x: number, y: number) => void;
   onAddAnnotation: (a: Annotation) => void;
   onUpdateRule: (dId: DefenderId, patch: Partial<AppState['rules'][DefenderId]>) => void;
+  onApplyDefenderProfile: (dId: DefenderId, profile: import('@/lib/data/defenderProfiles').DefenderProfile) => void;
   onClearDefenseOverride: (dId: DefenderId) => void;
   onSetBallCarrier: (oId: AttackerId) => void;
   onSetForcedScreener: (oId: AttackerId | null) => void;
@@ -767,6 +768,7 @@ export function CourtView(props: CourtViewProps) {
           tool={state.tool}
           onSetTool={props.onSetTool}
           onUpdate={(p) => props.onUpdateRule(ctxMenu.dId, p)}
+          onApplyProfile={(profile) => props.onApplyDefenderProfile(ctxMenu.dId, profile)}
           onClearOverride={() => props.onClearDefenseOverride(ctxMenu.dId)}
           onClose={() => setCtxMenu(null)}
         />

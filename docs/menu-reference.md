@@ -102,6 +102,29 @@ Configurations défensives complètes chargeables en un clic. Six presets fourni
 
 Chaque preset patche : `defenseSystem`, `screenRule`, `dropDepth`, `offBallScreenRule`, `defenseDistance`, `defenseMaxSpeed`, `triggers`, et les 5 règles individuelles. Une confirmation est demandée avant application.
 
+### Profils individuels
+
+Profils de **rôle** appliqués à un seul défenseur (ou à tous). Complément des presets système : ceux-ci décident "*quel système on joue*", les profils décident "*quel rôle joue ce joueur*". Application en **merge** — seuls les champs définis par le profil sont écrasés, les overrides individuels existants (distance, vit. max, orientation…) sont préservés.
+
+Sélection de la cible via une rangée de boutons `D1 D2 D3 D4 D5 [tous]` au-dessus de la liste.
+
+10 profils fournis :
+
+| Profil | Effet principal |
+|--------|-----------------|
+| **Stopper** | Lockdown sur le porteur (coller, peu d'aide, denial fort) |
+| **Helper raquette** | Free safety, aide à fond côté faible, vise le bloc bas |
+| **Denier 3pts** | Pied dans la ligne de passe, garde son homme longtemps |
+| **Fronting post** | Devant le pivot poste bas, denial total |
+| **Drop big** | Pivot lent en couverture, drop sur écran |
+| **Switcher** | Échange systématiquement sur tout écran |
+| **Hedge & recover** | Show extérieur sur écran puis revient |
+| **Ice baseline** | Force le porteur côté ligne de fond |
+| **Topside** | Force le porteur vers le milieu |
+| **Ball hawk** | Closeout agressif, contestation tir |
+
+Note : la majorité des champs `DefenderRule` (helpPct, screenNav, vsCarrier, offBallStance, helpMode) sont consommés en **défense individuelle**. En zone, seuls `orientation`, `maxSpeed`, `distance` ont un effet visible — les autres valeurs sont stockées et reprendront effet au passage en man.
+
 ### Système
 
 Choix entre **homme** et **zone**. Bascule masque/affiche les sections suivantes.
@@ -232,7 +255,10 @@ Une barre compacte en haut de chaque menu permet de **changer l'outil** courant 
 
 ### Sur un défenseur (bleu)
 
-Cinq réglages :
+En haut, juste sous le toggle Auto/Manuel :
+- **profil** : applique un profil de rôle (10 profils — stopper, helper, denier, fronting, drop big, switcher, hedger, ice baseline, topside, ball hawk). Merge superficiel : seuls les champs définis par le profil sont écrasés, les overrides individuels (distance, vit. max, orientation…) sont préservés. Voir aussi la section "Profils individuels" du panneau Défense pour appliquer en batch.
+
+Réglages :
 - **aide %** : slider 0–100 + valeur
 - **priorité** : raquette / homme / passe
 - **vs porteur** : 6 valeurs (cf. tableau)

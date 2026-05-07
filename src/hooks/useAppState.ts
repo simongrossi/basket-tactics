@@ -17,6 +17,7 @@ import { makeInitialState, makeStep, initialOff, initialDef } from '@/lib/data/i
 import { getZoneLayout, mirrorZoneLayout } from '@/lib/data/zones';
 import type { Template } from '@/lib/data/templates';
 import type { DefensePreset } from '@/lib/data/defensePresets';
+import type { DefenderProfile } from '@/lib/data/defenderProfiles';
 
 const STORAGE_KEY = 'basket-tactics-state-v1';
 
@@ -265,6 +266,16 @@ export function useAppState() {
     }));
   }, []);
 
+  const applyDefenderProfile = useCallback(
+    (dId: DefenderId, profile: DefenderProfile) => {
+      setStateWithHistory((s) => ({
+        ...s,
+        rules: { ...s.rules, [dId]: { ...s.rules[dId], ...profile.rule } },
+      }));
+    },
+    []
+  );
+
   const setAttackerHand = useCallback((oId: AttackerId, hand: 'right' | 'left') => {
     setStateWithHistory((s) => ({
       ...s,
@@ -477,6 +488,7 @@ export function useAppState() {
     clearAnnotationsFor,
     setTool,
     updateRule,
+    applyDefenderProfile,
     setAttackerHand,
     setScreenRule,
     resetSwitches,
