@@ -24,7 +24,7 @@ import type { DetectedOffBallScreen } from '@/lib/types';
 import { detectTriggers } from '@/lib/logic/triggers';
 import { getZoneLayout, mirrorZoneLayout } from '@/lib/data/zones';
 import { COURT, PLAYER_RADIUS, FULL_COURT_HEIGHT, FULL_COURT_INNER_MAX_Y } from '@/lib/data/court';
-import { clamp, distance, curveAroundObstacle, resolvePlayerCollisions, makeCluster, pickBlockingCluster } from '@/lib/logic/geometry';
+import { clamp, distance, curveAroundObstacle, resolvePlayerCollisions, makeCluster, pickBlockingCluster, computeBallFrame } from '@/lib/logic/geometry';
 import { ContextMenu } from './ContextMenu';
 
 interface CourtViewProps {
@@ -60,6 +60,8 @@ interface PlaybackFrame {
   screen: ReturnType<typeof detectScreen>;
   offBallScreens: DetectedOffBallScreen[];
   stepIdx: number;
+  ballPos: Point;
+  ballInFlight: boolean;
 }
 
 export function CourtView(props: CourtViewProps) {
@@ -209,7 +211,13 @@ export function CourtView(props: CourtViewProps) {
         PLAYER_RADIUS * 2 + 2
       );
 
-      setPlayFrame({ off, defPos, carrier, screen, offBallScreens, stepIdx: idxA });
+      const ball = computeBallFrame(
+        a.off[a.ballCarrier],
+        b.off[b.ballCarrier],
+        a.ballCarrier !== b.ballCarrier,
+        localT
+      );
+      setPlayFrame({ off, defPos, carrier, screen, offBallScreens, stepIdx: idxA, ballPos: ball.pos, ballInFlight: ball.inFlight });
     };
     // setInterval plus déterministe que requestAnimationFrame pour ce cas
     // (pas de soucis avec re-renders qui restartent la boucle).
@@ -230,7 +238,20 @@ export function CourtView(props: CourtViewProps) {
       screen = detectScreen(cur.off, cur.ballCarrier, matchups, defPosExtracted, state.screenRadius, cur.forcedScreener);
       offBallScreens = detectOffBallScreens(cur.off, cur.ballCarrier, matchups, defPosExtracted, state.screenRadius);
     }
-    return { off: cur.off, defPos, carrier: cur.ballCarrier, screen, offBallScreens, stepIdx: state.activeStep };
+    const carrierPos = cur.off[cur.ballCarrier];
+    const ballPos: Point = carrierPos
+      ? { x: carrierPos.x + 16, y: carrierPos.y - 16 }
+      : { x: 0, y: 0 };
+    return {
+      off: cur.off,
+      defPos,
+      carrier: cur.ballCarrier,
+      screen,
+      offBallScreens,
+      stepIdx: state.activeStep,
+      ballPos,
+      ballInFlight: false,
+    };
   }, [state]);
 
   // Scrub frame (interpolation entre étapes pendant le drag de la timeline)
@@ -325,7 +346,22 @@ export function CourtView(props: CourtViewProps) {
       PLAYER_RADIUS * 2 + 2
     );
 
-    return { off, defPos, carrier, screen, offBallScreens, stepIdx: Math.round(t) };
+    const ball = computeBallFrame(
+      a.off[a.ballCarrier],
+      b.off[b.ballCarrier],
+      a.ballCarrier !== b.ballCarrier,
+      localT
+    );
+    return {
+      off,
+      defPos,
+      carrier,
+      screen,
+      offBallScreens,
+      stepIdx: Math.round(t),
+      ballPos: ball.pos,
+      ballInFlight: ball.inFlight,
+    };
   }, [props.scrubT, state]);
 
   const frame = playFrame ?? scrubFrame ?? staticFrame;
@@ -593,7 +629,7 @@ export function CourtView(props: CourtViewProps) {
           })()}
         />
         <OffBallScreenIndicator screens={frame.offBallScreens} off={frame.off} />
-        <Ball carrierPos={frame.off[frame.carrier]} />
+        <Ball pos={frame.ballPos} inFlight={frame.ballInFlight} />
       </svg>
       {props.isPlaying && (
         <div

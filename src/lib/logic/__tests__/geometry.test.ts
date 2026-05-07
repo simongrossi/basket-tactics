@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickBlockingObstacle, pickBlockingCluster } from '../geometry';
+import { pickBlockingObstacle, pickBlockingCluster, computeBallFrame } from '../geometry';
 
 describe('pickBlockingObstacle', () => {
   it("retourne null s'il n'y a aucun obstacle qui traverse le segment", () => {
@@ -85,5 +85,56 @@ describe('pickBlockingCluster', () => {
       [{ center: { x: 50, y: 200 }, radius: 10 }]
     );
     expect(r).toBeNull();
+  });
+});
+
+describe('computeBallFrame', () => {
+  it("porteur inchangé : ball suit avec offset constant (16, -16) à t=0", () => {
+    const carrier = { x: 300, y: 300 };
+    const r = computeBallFrame(carrier, carrier, false, 0);
+    expect(r.inFlight).toBe(false);
+    expect(r.pos.x).toBeCloseTo(316, 1);
+    expect(r.pos.y).toBeCloseTo(284, 1);
+  });
+
+  it("porteur inchangé en mouvement : interpolation linéaire entre les deux positions + offset", () => {
+    const a = { x: 100, y: 100 };
+    const b = { x: 300, y: 200 };
+    const r = computeBallFrame(a, b, false, 0.5);
+    expect(r.inFlight).toBe(false);
+    // Mid-point = (200, 150) + offset = (216, 134)
+    expect(r.pos.x).toBeCloseTo(216, 1);
+    expect(r.pos.y).toBeCloseTo(134, 1);
+  });
+
+  it("passe : t=0 le ballon est à l'origine, t=1 à destination, inFlight=true", () => {
+    const a = { x: 100, y: 470 };
+    const b = { x: 500, y: 470 };
+    const r0 = computeBallFrame(a, b, true, 0);
+    const r1 = computeBallFrame(a, b, true, 1);
+    expect(r0.inFlight).toBe(true);
+    expect(r0.pos.x).toBeCloseTo(116, 1); // a + offsetX
+    expect(r0.pos.y).toBeCloseTo(454, 1); // a + offsetY
+    expect(r1.pos.x).toBeCloseTo(516, 1);
+    expect(r1.pos.y).toBeCloseTo(454, 1);
+  });
+
+  it("passe : à mi-trajet (t=0.5) le ballon est plus haut (y plus petit) qu'aux extrémités", () => {
+    const a = { x: 100, y: 470 };
+    const b = { x: 500, y: 470 };
+    const mid = computeBallFrame(a, b, true, 0.5);
+    // Repère SVG : y plus petit = plus haut. La parabole monte au milieu.
+    expect(mid.pos.y).toBeLessThan(454);
+  });
+
+  it("passe courte : la hauteur de l'arc est inférieure à la version longue", () => {
+    const aClose = { x: 280, y: 470 };
+    const bClose = { x: 320, y: 470 };
+    const aFar = { x: 100, y: 470 };
+    const bFar = { x: 500, y: 470 };
+    const midClose = computeBallFrame(aClose, bClose, true, 0.5);
+    const midFar = computeBallFrame(aFar, bFar, true, 0.5);
+    // Plus la passe est longue, plus la parabole est haute (y plus petit)
+    expect(midFar.pos.y).toBeLessThan(midClose.pos.y);
   });
 });

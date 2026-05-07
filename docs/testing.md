@@ -28,7 +28,7 @@ Les tests vivent à côté du code testé sous `__tests__/`. Le pattern d'inclus
 
 ## Couverture actuelle
 
-79 tests sur 7 modules de la logique défensive.
+84 tests sur 7 modules de la logique défensive.
 
 ### `engine.test.ts`
 - `getMatchupsAt` : matchups de base, application d'un switch, cumul de plusieurs switches sur étapes successives, immuabilité de `baseMatchups`.
@@ -62,6 +62,8 @@ Les tests vivent à côté du code testé sous `__tests__/`. Le pattern d'inclus
 
 ### `geometry.test.ts`
 - `pickBlockingObstacle` : retourne null sans obstacle bloquant ; retourne l'unique obstacle bloquant ; staggered screens : préfère l'obstacle de pénétration max ; ignore les obstacles hors segment ; gère le segment de longueur nulle.
+- `pickBlockingCluster` : 1 obstacle = parité avec pickBlockingObstacle ; 2+ fusionnés en super-cluster (centroid + rayon couvrant) ; ignore les non-bloquants ; null si aucun bloqueur.
+- `computeBallFrame` : porteur inchangé → suit avec offset (16, -16) ; en mouvement → interpolation linéaire ; passe → t=0/t=1 aux extrémités, mi-trajet plus haut (parabole), arc plus haut quand la distance est grande.
 
 ### Engine — attackingDirection
 Régression que `attackingDirection='up'` (default) place les défenseurs entre attaquants et HOOP top, et que `attackingDirection='down'` (avec positions miroir en bas) les place entre attaquants et HOOP_OPPOSITE.

@@ -62,6 +62,8 @@ Les panneaux ont une ombre douce `0 1px 3px + 0 8px 24px` rgba(15, 23, 42, 0.04)
 - **Strong-side denial actif** : ring cyan pointillé `#0EA5A8` (différencié du ring violet `#534AB7` qui désigne l'aide weak-side classique)
 - **Defender en retard (`late`)** : contour épais rouge `#E24B4A`
 - **Defender du porteur** : contour jaune `#FAC775`
+- **Ballon en main** : cercle orange `#BA7517` r=7 avec contour foncé, offset (+16, -16) au-dessus du porteur
+- **Ballon en vol (passe en cours)** : cercle r=8 avec contour blanc épais + ombre projetée elliptique en-dessous (effet de hauteur). Trajectoire parabolique, hauteur proportionnelle à la distance (cap 80px).
 
 ## Conventions de tracé d'annotations
 

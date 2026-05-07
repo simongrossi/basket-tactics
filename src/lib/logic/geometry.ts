@@ -197,6 +197,54 @@ export function curveAroundObstacle(
 }
 
 /**
+ * Position du ballon entre deux étapes, en respectant deux cas :
+ *
+ * 1. Si le porteur n'a pas changé : le ballon suit le porteur (interpolation
+ *    linéaire de sa position avec un offset constant pour qu'il flotte au-dessus
+ *    de la main).
+ *
+ * 2. Si le porteur a changé (passe entrante) : le ballon décrit une parabole
+ *    (Bezier quadratique avec un point de contrôle élevé au-dessus du segment)
+ *    de l'ancien porteur vers le nouveau. La hauteur de l'arc est
+ *    proportionnelle à la distance, plafonnée à 80px.
+ *
+ * `inFlight` permet au rendu de différencier visuellement le ballon en main
+ * du ballon en l'air (taille, contour).
+ */
+export function computeBallFrame(
+  prevCarrier: Point,
+  nextCarrier: Point,
+  carrierChanged: boolean,
+  localT: number
+): { pos: Point; inFlight: boolean } {
+  const offsetX = 16;
+  const offsetY = -16;
+
+  if (!carrierChanged) {
+    const x = prevCarrier.x + (nextCarrier.x - prevCarrier.x) * localT + offsetX;
+    const y = prevCarrier.y + (nextCarrier.y - prevCarrier.y) * localT + offsetY;
+    return { pos: { x, y }, inFlight: false };
+  }
+
+  const start = { x: prevCarrier.x + offsetX, y: prevCarrier.y + offsetY };
+  const end = { x: nextCarrier.x + offsetX, y: nextCarrier.y + offsetY };
+  const dist = Math.hypot(end.x - start.x, end.y - start.y);
+  // Hauteur de l'arc proportionnelle à la distance, plafonnée. Soustraction
+  // sur Y car le repère SVG a Y vers le bas — l'arc monte vers le haut.
+  const lift = Math.min(80, dist * 0.28);
+  const ctrlX = (start.x + end.x) / 2;
+  const ctrlY = (start.y + end.y) / 2 - lift;
+  const omt = 1 - localT;
+  return {
+    pos: {
+      x: omt * omt * start.x + 2 * omt * localT * ctrlX + localT * localT * end.x,
+      y: omt * omt * start.y + 2 * omt * localT * ctrlY + localT * localT * end.y,
+    },
+    inFlight: true,
+  };
+}
+
+/**
  * Sélectionne l'obstacle le plus bloquant pour le segment start→end.
  * "Le plus bloquant" = celui dont la pénétration dans le segment est la plus
  * profonde (rayon - distance à la ligne, parmi les obstacles entre start et end).

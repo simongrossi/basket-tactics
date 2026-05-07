@@ -205,20 +205,37 @@ export function Player({
 }
 
 interface BallProps {
-  carrierPos: Point | undefined;
+  /** Position du ballon (déjà calculée — incluant offset main ou trajectoire en l'air) */
+  pos?: Point;
+  /** Pour rétrocompat : position du porteur, on applique l'offset main ici. Ignoré si `pos` est fourni. */
+  carrierPos?: Point;
+  /** True quand le ballon est en l'air (passe en cours). Visuel renforcé. */
+  inFlight?: boolean;
 }
 
-export function Ball({ carrierPos }: BallProps) {
-  if (!carrierPos) return null;
+export function Ball({ pos, carrierPos, inFlight }: BallProps) {
+  const p = pos ?? (carrierPos ? { x: carrierPos.x + 16, y: carrierPos.y - 16 } : undefined);
+  if (!p) return null;
   return (
-    <circle
-      cx={carrierPos.x + 16}
-      cy={carrierPos.y - 16}
-      r={7}
-      fill="#BA7517"
-      stroke="#412402"
-      strokeWidth={2}
-      pointerEvents="none"
-    />
+    <g pointerEvents="none">
+      {inFlight && (
+        // Ombre projetée sous la parabole pour donner une impression de hauteur
+        <ellipse
+          cx={p.x}
+          cy={p.y + 14}
+          rx={6}
+          ry={1.5}
+          fill="rgba(0,0,0,0.25)"
+        />
+      )}
+      <circle
+        cx={p.x}
+        cy={p.y}
+        r={inFlight ? 8 : 7}
+        fill="#BA7517"
+        stroke={inFlight ? '#fff' : '#412402'}
+        strokeWidth={inFlight ? 2.5 : 2}
+      />
+    </g>
   );
 }
