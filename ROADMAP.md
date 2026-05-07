@@ -131,14 +131,10 @@ Implémenté dans `useAppState` : pile `historyRef` (past/future) cap à 50, wra
 
 **Découpage suggéré** : (a) sélection visible + marquee, (b) drag groupé, (c) édition groupée des règles. 3 commits.
 
-#### ⚪ Mode présentation
-**Quoi.** Un bouton "🎬 présentation" qui masque les deux panneaux orange/bleu, étend le terrain plein écran, ne laisse visible que les contrôles de lecture (play/pause/step/scrub) sur une barre flottante. Idéal pour montrer une tactique sur tablette en bord de terrain.
+#### 🟢 Mode présentation (v1)
+Implémenté : bouton **"🎬 plein écran"** dans le header. Toggle local `presentMode`. Quand activé : panneaux Attack et Defense masqués (rendu conditionnel `{!presentMode && <Panel>}`), `layout-grid` passe en 1-colonne (`grid-template-columns: 1fr`), le terrain occupe toute la largeur. Sortie via le même bouton (devient "✕ quitter") ou touche `Échap`.
 
-**Implémentation.** Nouveau `state.presentationMode: boolean` (UI-only, peut être persisté ou non). Dans `page.tsx`, conditionner le rendu : si `presentationMode`, layout passe à 1 colonne, panels masqués. Barre de contrôle compacte en overlay `position: fixed` en bas avec play/pause/prev/next + bouton "fermer". Sortie via touche `Échap`. Optionnel : passer en plein écran navigateur via `document.documentElement.requestFullscreen()`.
-
-**Effort** ~45min · **Risque** 🟢 · **Valeur** haut (tablette).
-
-**Tradeoff.** Plein écran natif demande l'accord de l'utilisateur la première fois. À gérer proprement (try/catch + fallback gracieux). Sur iPad, le plein écran navigateur a des particularités (mode PWA recommandé pour vraiment tout cacher la barre Safari).
+⚪ **À venir v2** : plein écran navigateur natif via `document.documentElement.requestFullscreen()` pour cacher la barre d'onglets aussi (utile sur tablette pour vraiment tout libérer).
 
 ---
 

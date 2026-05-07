@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useAppState } from '@/hooks/useAppState';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { OffensePanel } from '@/components/OffensePanel';
@@ -20,6 +20,7 @@ export default function Page() {
   const [playbackT, setPlaybackT] = useState<number | null>(null);
   const [showPlaybook, setShowPlaybook] = useState(false);
   const [scrubT, setScrubT] = useState<number | null>(null);
+  const [presentMode, setPresentMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const metrics = useMemo(() => {
@@ -33,6 +34,16 @@ export default function Page() {
     setIsPlaying((p) => !p);
     setPlaybackT(null);
   }, []);
+
+  // Échap quitte le mode présentation
+  useEffect(() => {
+    if (!presentMode) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPresentMode(false);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [presentMode]);
 
   useKeyboardShortcuts({
     onPlayPause: handlePlayToggle,
@@ -104,6 +115,13 @@ export default function Page() {
           🏀 Simulateur tactique basket
         </h1>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setPresentMode((p) => !p)}
+            style={{ ...btnStyle, background: presentMode ? '#1e40af' : '#fff', color: presentMode ? '#fff' : '#334155', borderColor: presentMode ? '#1e40af' : '#e2e8f0' }}
+            title="Masque les panneaux pour donner toute la place au terrain (Échap pour quitter)"
+          >
+            {presentMode ? '✕ quitter plein écran' : '🎬 plein écran'}
+          </button>
           <button onClick={() => setShowPlaybook(true)} style={btnStyle}>📄 playbook PDF</button>
           <button onClick={handleExport} style={btnStyle}>exporter JSON</button>
           <button onClick={handleImport} style={btnStyle}>importer JSON</button>
@@ -111,8 +129,8 @@ export default function Page() {
         </div>
       </header>
 
-      <div className="layout-grid">
-        <OffensePanel
+      <div className={presentMode ? 'layout-grid presenting' : 'layout-grid'}>
+        {!presentMode && <OffensePanel
           state={app.state}
           onSetActiveStep={app.setActiveStep}
           onAddStep={app.addStep}
@@ -133,7 +151,7 @@ export default function Page() {
           onSetTool={app.setTool}
           playbackSpeed={playbackSpeed}
           onSetPlaybackSpeed={setPlaybackSpeed}
-        />
+        />}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, minHeight: 0 }}>
           <CourtView
@@ -168,7 +186,7 @@ export default function Page() {
           {metrics && <MetricsBar metrics={metrics} />}
         </div>
 
-        <DefensePanel
+        {!presentMode && <DefensePanel
           state={app.state}
           onSetScreenRule={app.setScreenRule}
           onResetSwitches={app.resetSwitches}
@@ -177,7 +195,7 @@ export default function Page() {
           onSetDefenseSystem={app.setDefenseSystem}
           onUpdateZoneConfig={app.updateZoneConfig}
           onApplyDefensePreset={app.applyDefensePreset}
-        />
+        />}
       </div>
 
       <input
@@ -199,8 +217,11 @@ export default function Page() {
           flex: 1;
           min-height: 0;
         }
+        .layout-grid.presenting {
+          grid-template-columns: 1fr;
+        }
         @media (max-width: 1100px) {
-          .layout-grid { grid-template-columns: 240px 1fr 280px; }
+          .layout-grid:not(.presenting) { grid-template-columns: 240px 1fr 280px; }
         }
         @media (max-width: 900px) {
           main { height: auto !important; max-height: none !important; overflow: auto !important; }

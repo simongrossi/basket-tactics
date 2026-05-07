@@ -278,7 +278,7 @@ export function DefensePanel(props: DefensePanelProps) {
             </Button>
           </Section>
 
-          <Section theme="defense" label="Écran non-porteur">
+          <Section theme="defense" label="Écran non-porteur" open>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }}>consigne</span>
               <select
@@ -377,37 +377,39 @@ export function DefensePanel(props: DefensePanelProps) {
         </>
       )}
 
-      <Section theme="defense" label="Visualisation">
-        <CheckboxLine
-          checked={state.showHelpLines}
-          label="lignes d'aide"
-          onChange={(v) => props.onPatch({ showHelpLines: v })}
-        />
-        <CheckboxLine
-          checked={state.showMatchups}
-          label="matchups (traits)"
-          onChange={(v) => props.onPatch({ showMatchups: v })}
-        />
-        <CheckboxLine
-          checked={state.showPassLanes}
-          label="lignes de passe"
-          onChange={(v) => props.onPatch({ showPassLanes: v })}
-        />
-        <CheckboxLine
-          checked={!!state.showGhosts}
-          label="mode fantôme (ghost N-1)"
-          onChange={(v) => props.onPatch({ showGhosts: v })}
-        />
-        <CheckboxLine
-          checked={!!state.showActionOrder}
-          label="numéroter les actions (1, 2, 3…)"
-          onChange={(v) => props.onPatch({ showActionOrder: v })}
-        />
-        <CheckboxLine
-          checked={state.fullCourt}
-          label="terrain complet"
-          onChange={(v) => props.onPatch({ fullCourt: v })}
-        />
+      <Section theme="defense" label="Visualisation" open>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 8px' }}>
+          <CheckboxLine
+            checked={state.showHelpLines}
+            label="aide"
+            onChange={(v) => props.onPatch({ showHelpLines: v })}
+          />
+          <CheckboxLine
+            checked={state.showMatchups}
+            label="matchups"
+            onChange={(v) => props.onPatch({ showMatchups: v })}
+          />
+          <CheckboxLine
+            checked={state.showPassLanes}
+            label="lignes passe"
+            onChange={(v) => props.onPatch({ showPassLanes: v })}
+          />
+          <CheckboxLine
+            checked={!!state.showGhosts}
+            label="ghost N-1"
+            onChange={(v) => props.onPatch({ showGhosts: v })}
+          />
+          <CheckboxLine
+            checked={!!state.showActionOrder}
+            label="num. actions"
+            onChange={(v) => props.onPatch({ showActionOrder: v })}
+          />
+          <CheckboxLine
+            checked={state.fullCourt}
+            label="terrain complet"
+            onChange={(v) => props.onPatch({ fullCourt: v })}
+          />
+        </div>
         <button
           onClick={() => props.onPatch({
             attackingDirection: state.attackingDirection === 'down' ? 'up' : 'down',

@@ -182,6 +182,15 @@ Astuce : **clic-droit** sur un défenseur sur le terrain ouvre un menu compact a
 | **numéroter les actions (1, 2, 3…)** | Affiche des badges noirs numérotés au pied du joueur initiateur de chaque annotation de l'étape active, dans l'ordre des annotations. Inactif pendant la lecture et le scrubbing. Apparaît aussi automatiquement dans les vignettes du playbook PDF. |
 | **↻ sens d'attaque** | Bascule `attackingDirection` entre `up` et `down`. Disponible uniquement en terrain complet. La logique défensive (man + zone) suit le panier ciblé : positions, layouts de zone (polygones miroir), triggers, trap, metrics, rotations. |
 
+## Header (boutons)
+
+| Bouton | Effet |
+|--------|-------|
+| **🎬 plein écran** | Toggle qui masque les panneaux Attack et Defense pour donner toute la largeur au terrain. Idéal sur tablette ou écran serré. Re-clic ou touche `Échap` pour quitter. |
+| **📄 playbook PDF** | Ouvre la vue playbook (vignettes par étape) prête à imprimer en PDF. |
+| **exporter / importer JSON** | Sauvegarde / chargement du système au format JSON. |
+| **reset complet** | Vide localStorage et restaure l'état initial. |
+
 ## Menu contextuel (clic-droit)
 
 Le clic-droit ouvre un menu différent selon le joueur ciblé.
