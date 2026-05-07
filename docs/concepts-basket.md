@@ -128,8 +128,14 @@ Convention de coordonnées : `y=20` = ligne de fond (proche du panier), `y=540` 
 
 ### Algorithme par défenseur (tracking continu)
 
-Pour chaque zone, on calcule un **engagement** ∈ [0, 1] basé sur la distance au homePos :
-1. Trouver l'attaquant primaire = le plus proche du `homePos` dans un **rayon de responsabilité étendu** (200px). Préférence pour le porteur si dans le rayon.
+Pour chaque zone, on sélectionne l'attaquant primaire par **scoring tactique** = `priority × engagement` :
+1. **Priority** :
+   - `3` si l'attaquant est le matchup naturel du défenseur (D1↔O1, D2↔O2…) ET dans son polygone
+   - `2.5` si dans le polygone (non-naturel — extension/rotation)
+   - `2` si naturel mais hors polygone (matchup qui suit)
+   - `1` sinon
+   
+   Garantit que D3 colle à O3 (son ailier) même si O5 est à un poil plus proche du homePos. Et qu'un défenseur prend un attaquant non-attitré qui entre dans sa zone si le naturel a disparu trop loin.
 2. Si aucun attaquant dans le rayon → défenseur reste au home shifté vers le ballon (pondéré par `ballPressure`). Engagement = 0.
 3. Sinon `engagement = 1 - dist(primary, homePos) / 200` — plus l'attaquant est proche, plus le défenseur sort.
 4. Calculer `trackedPos` :

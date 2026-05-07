@@ -10,6 +10,7 @@ import type {
 import { HOOP } from '../data/court';
 import { distance } from './geometry';
 import { manTarget, carrierDefenderTarget } from './manDefense';
+import { baseMatchups } from '../data/initial';
 
 export function pointInPolygon(point: Point, polygon: Point[]): boolean {
   let inside = false;
@@ -99,18 +100,35 @@ export function computeZoneTargets(
         }
       : homePos;
 
-    // Trouve l'attaquant primaire à suivre : toujours le strict plus proche
-    // du homePos. Plus de "préférence porteur" (qui faisait sauter le wing
-    // defender sur le ballon dès que c'était à peine plus proche). Si le
-    // porteur entre dans la zone d'un défenseur, il devient naturellement
-    // le plus proche → primary.
+    // Sélection du primary par scoring tactique :
+    //   priority × engagement, où
+    //   - priority = 3 si l'attaquant est notre matchup naturel ET dans le
+    //     polygone, 2.5 si dans le polygone (non-naturel), 2 si naturel
+    //     hors polygone, 1 sinon.
+    //   - engagement = 1 - (dist/(radius*1.5))² (continu, falloff doux).
+    // Cela garantit que D3 colle à O3 (son ailier) même si O5 est à un poil
+    // plus proche du homePos, mais permet aussi à un défenseur de prendre
+    // un attaquant non-attitré qui rentre dans sa zone si le naturel a
+    // disparu loin.
+    const naturalAtt = baseMatchups[zone.assignedTo];
     let primaryAttacker: AttackerId | null = null;
     let primaryDist = Infinity;
+    let bestScore = -Infinity;
     (Object.entries(off) as [AttackerId, Point][]).forEach(([oId, pos]) => {
+      const inPoly = pointInPolygon(pos, zone.polygon);
+      const isNatural = oId === naturalAtt;
       const d = distance(pos, homePos);
-      if (d < primaryDist) {
-        primaryDist = d;
+      const eng = Math.max(0, 1 - (d / (radius * 1.5)) ** 2);
+      let priority: number;
+      if (isNatural && inPoly) priority = 3;
+      else if (inPoly) priority = 2.5;
+      else if (isNatural) priority = 2;
+      else priority = 1;
+      const score = priority * eng;
+      if (score > bestScore) {
+        bestScore = score;
         primaryAttacker = oId;
+        primaryDist = d;
       }
     });
 
