@@ -1,16 +1,21 @@
 'use client';
 
 import type { DefensiveMetrics } from '@/lib/logic/metrics';
-import type { AttackerThreat } from '@/lib/logic/threats';
+import type { OffensiveAction } from '@/lib/logic/offense';
 
 interface MetricsBarProps {
   metrics: DefensiveMetrics;
-  /** Meilleure option offensive (Phase A simulation). Affichée comme pill
-   *  séparée à droite si fournie. */
-  bestOption?: AttackerThreat | null;
+  /** Meilleure action offensive (Phase B). Affichée comme pill à droite. */
+  bestAction?: OffensiveAction | null;
 }
 
-export function MetricsBar({ metrics, bestOption }: MetricsBarProps) {
+const ACTION_LABELS: Record<OffensiveAction['type'], string> = {
+  shoot: 'tir',
+  drive: 'drive',
+  'pass-shoot': 'passe',
+};
+
+export function MetricsBar({ metrics, bestAction }: MetricsBarProps) {
   return (
     <div
       style={{
@@ -67,12 +72,12 @@ export function MetricsBar({ metrics, bestOption }: MetricsBarProps) {
         }
         title={`Depuis le porteur : ${metrics.openPasses} ouvertes · ${metrics.contestedPasses} contestées · ${metrics.blockedPasses} bloquées`}
       />
-      {bestOption && (
+      {bestAction && (
         <Pill
-          label="meilleure option"
-          value={`${bestOption.attackerId} ${Math.round(bestOption.score * 100)}%`}
-          tone={bestOption.score >= 0.40 ? 'bad' : bestOption.score >= 0.25 ? 'warn' : 'good'}
-          title={`Modèle de menace : ${bestOption.attackerId} a la meilleure proba de marquer (${Math.round(bestOption.shotQuality * 100)}% qualité × ${Math.round(bestOption.receivability * 100)}% receivability, zone ${bestOption.zone}, contesté à ${bestOption.contestDist}px)`}
+          label="meilleure action"
+          value={`${ACTION_LABELS[bestAction.type]}${bestAction.targetId ? ' ' + bestAction.targetId : ''} · ${bestAction.expectedPoints.toFixed(2)} pts`}
+          tone={bestAction.expectedPoints >= 1.2 ? 'bad' : bestAction.expectedPoints >= 0.7 ? 'warn' : 'good'}
+          title={`EV = succès ${Math.round(bestAction.successRate * 100)}% × FG% ${Math.round(bestAction.scoreProbability * 100)}% × ${bestAction.shotPoints} pts. Activez 'meilleure action' dans Visu/Légende pour voir la flèche dorée sur le terrain.`}
         />
       )}
     </div>

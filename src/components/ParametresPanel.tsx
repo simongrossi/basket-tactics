@@ -64,6 +64,12 @@ export function ParametresPanel({ state, onPatch }: ParametresPanelProps) {
           sample="ring-solid" color="#10b981"
           onChange={(v) => onPatch({ showThreats: v })}
         />
+        <LegendCheckboxLine
+          checked={!!state.showBestAction}
+          label="meilleure action"
+          sample="ring-solid" color="#fbbf24"
+          onChange={(v) => onPatch({ showBestAction: v })}
+        />
         <CheckboxLine
           checked={state.fullCourt}
           label="terrain complet"

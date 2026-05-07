@@ -33,7 +33,9 @@ import { ContextMenu } from './ContextMenu';
 import { ActionOrderBadges } from './ActionOrderBadges';
 import { HeatmapOverlay } from './HeatmapOverlay';
 import { ThreatOverlay } from './ThreatOverlay';
-import { computeAttackerThreats, bestOffensiveOption } from '@/lib/logic/threats';
+import { BestActionOverlay } from './BestActionOverlay';
+import { computeAttackerThreats } from '@/lib/logic/threats';
+import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offense';
 
 interface CourtViewProps {
   state: AppState;
@@ -632,15 +634,14 @@ export function CourtView(props: CourtViewProps) {
         {state.showThreats && (() => {
           const carrier = state.steps[frame.stepIdx]?.ballCarrier ?? 'O1';
           const threats = computeAttackerThreats(frame.off, frame.defPos, carrier);
-          const best = bestOffensiveOption(threats);
-          return (
-            <ThreatOverlay
-              off={frame.off}
-              threats={threats}
-              bestId={best?.attackerId}
-              show
-            />
-          );
+          return <ThreatOverlay off={frame.off} threats={threats} show />;
+        })()}
+        {state.showBestAction && (() => {
+          const carrier = state.steps[frame.stepIdx]?.ballCarrier ?? 'O1';
+          const actions = evaluateOffensiveOptions(frame.off, frame.defPos, carrier);
+          const best = bestOffensiveAction(actions);
+          if (!best) return null;
+          return <BestActionOverlay off={frame.off} carrier={carrier} best={best} show />;
         })()}
         {state.showGhosts && state.activeStep > 0 && !props.isPlaying && props.scrubT == null && (
           <GhostLayer state={state} stepIdx={state.activeStep - 1} />

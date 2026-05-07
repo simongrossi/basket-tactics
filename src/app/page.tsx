@@ -14,7 +14,7 @@ import { PlaybookView } from '@/components/PlaybookView';
 import { MetricsBar } from '@/components/MetricsBar';
 import { effectiveDefensePositions, getDefenseHoop } from '@/lib/logic/engine';
 import { computeMetrics } from '@/lib/logic/metrics';
-import { computeAttackerThreats, bestOffensiveOption } from '@/lib/logic/threats';
+import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offense';
 import type { AppState } from '@/lib/types';
 
 export default function Page() {
@@ -34,12 +34,12 @@ export default function Page() {
     return computeMetrics(step.off, defPos, step.ballCarrier, getDefenseHoop(app.state));
   }, [app.state]);
 
-  const bestOption = useMemo(() => {
+  const bestAction = useMemo(() => {
     const step = app.state.steps[app.state.activeStep];
     if (!step) return null;
     const defPos = effectiveDefensePositions(app.state, app.state.activeStep);
-    const threats = computeAttackerThreats(step.off, defPos, step.ballCarrier, getDefenseHoop(app.state));
-    return bestOffensiveOption(threats);
+    const actions = evaluateOffensiveOptions(step.off, defPos, step.ballCarrier, getDefenseHoop(app.state));
+    return bestOffensiveAction(actions);
   }, [app.state]);
 
   const handlePlayToggle = useCallback(() => {
@@ -183,7 +183,7 @@ export default function Page() {
             playbackSpeed={playbackSpeed}
             onSetPlaybackSpeed={setPlaybackSpeed}
           />
-          {metrics && <MetricsBar metrics={metrics} bestOption={bestOption} />}
+          {metrics && <MetricsBar metrics={metrics} bestAction={bestAction} />}
         </div>
 
         {!presentMode && (

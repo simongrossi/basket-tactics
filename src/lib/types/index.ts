@@ -243,6 +243,9 @@ export interface AppState {
    *  son score de menace (probabilité de marquer s'il devient l'option
    *  offensive). Phase A de la simulation Monte Carlo. */
   showThreats?: boolean;
+  /** Affiche la meilleure action offensive (tir / drive / passe) calculée
+   *  par évaluation des EV. Phase B. Indépendant de showThreats. */
+  showBestAction?: boolean;
   /** Toggles fine-grained sur les indicateurs auto. Default true partout —
    *  ces visuels sont normalement utiles. Le coach peut désactiver pour
    *  alléger la vue (ex : présentation, capture playbook). */

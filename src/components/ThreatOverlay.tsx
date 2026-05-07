@@ -4,9 +4,6 @@ import type { AttackerThreat } from '@/lib/logic/threats';
 interface ThreatOverlayProps {
   off: AttackerPositions;
   threats: Record<AttackerId, AttackerThreat>;
-  /** Id de l'attaquant avec le meilleur score (couronne dorée). Null = on
-   *  n'affiche pas le marqueur de "meilleure option". */
-  bestId?: AttackerId | null;
   show: boolean;
 }
 
@@ -18,7 +15,7 @@ interface ThreatOverlayProps {
  * Le score combine qualité du tir (zone + contest) et receivability
  * (passe ouverte / contestée / bloquée). Voir `lib/logic/threats.ts`.
  */
-export function ThreatOverlay({ off, threats, bestId, show }: ThreatOverlayProps) {
+export function ThreatOverlay({ off, threats, show }: ThreatOverlayProps) {
   if (!show) return null;
   return (
     <g pointerEvents="none">
@@ -28,7 +25,6 @@ export function ThreatOverlay({ off, threats, bestId, show }: ThreatOverlayProps
         const pos = off[oId];
         const color = scoreColor(t.score);
         const pct = Math.round(t.score * 100);
-        const isBest = oId === bestId;
         return (
           <g key={oId}>
             {/* Anneau de menace autour du joueur */}
@@ -42,18 +38,6 @@ export function ThreatOverlay({ off, threats, bestId, show }: ThreatOverlayProps
               strokeOpacity={0.85}
               strokeDasharray={t.isCarrier ? undefined : '5 3'}
             />
-            {/* Couronne dorée si meilleure option */}
-            {isBest && (
-              <circle
-                cx={pos.x}
-                cy={pos.y}
-                r={30}
-                fill="none"
-                stroke="#fbbf24"
-                strokeWidth={2}
-                strokeOpacity={0.7}
-              />
-            )}
             {/* Badge % en bas-droite */}
             <g transform={`translate(${pos.x + 18}, ${pos.y + 14})`}>
               <rect
