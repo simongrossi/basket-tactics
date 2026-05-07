@@ -123,14 +123,16 @@ export function computeDefenseTargets(
     let helpFactor = 0;
     let denying = false;
 
+    // Override de distance individuel (rule.distance) > global
+    const dist = rule.distance ?? state.defenseDistance;
     if (isCarrierDefender) {
-      target = carrierDefenderTarget(rule.vsCarrier, att, state.defenseDistance, hoop) || state.defenseInitial[dId];
+      target = carrierDefenderTarget(rule.vsCarrier, att, dist, hoop) || state.defenseInitial[dId];
     } else {
       const stance = rule.offBallStance ?? 'sag';
       const stancePos =
         stance !== 'sag'
-          ? offBallStanceTarget(att, carrierPos, state.defenseDistance, stance, hoop) || state.defenseInitial[dId]
-          : manTarget(att, state.defenseDistance, hoop) || state.defenseInitial[dId];
+          ? offBallStanceTarget(att, carrierPos, dist, stance, hoop) || state.defenseInitial[dId]
+          : manTarget(att, dist, hoop) || state.defenseInitial[dId];
       target = stancePos;
       // Le help bias n'est appliqué qu'avec la stance "sag" — les stances
       // dirigées (deny-3q, fronting, behind) sont des positions absolues.

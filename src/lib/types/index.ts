@@ -57,6 +57,10 @@ export interface DefenderRule {
   /** Override individuel de `state.denyAggressiveness`. Undefined = global.
    *  Range 0–1. */
   denyAggressiveness?: number;
+  /** Override individuel de `state.defenseDistance` (distance défenseur
+   *  ↔ son homme). Undefined = global. Permet d'avoir un défenseur
+   *  collant (10) et un autre plus distant (60). */
+  distance?: number;
 }
 
 export type DefenderRules = Record<DefenderId, DefenderRule>;

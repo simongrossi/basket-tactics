@@ -226,6 +226,16 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
         </select>
       </Row>
       <OverrideSliderRow
+        label="distance"
+        min={20}
+        max={80}
+        step={2}
+        value={rule.distance}
+        onChange={(v) => onUpdate({ distance: v })}
+        onReset={() => onUpdate({ distance: undefined })}
+        title="Override individuel de la distance défenseur ↔ son homme (px)"
+      />
+      <OverrideSliderRow
         label="closeout ×"
         min={1}
         max={2}
