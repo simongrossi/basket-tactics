@@ -80,5 +80,6 @@ export function makeInitialState(): AppState {
     showPassLanes: false,
     attackingDirection: 'up',
     showGhosts: false,
+    showActionOrder: false,
   };
 }

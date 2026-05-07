@@ -85,8 +85,9 @@ Implémenté dans `hooks/useKeyboardShortcuts.ts`. Skip auto si le focus est dan
 
 ### Visualisation & feedback
 
-#### 🟢 Numérotation des étapes (v1)
-Implémenté dans `StepThumbnail.tsx` (composant `ActionOrderBadges`). Pour chaque annotation de l'étape, un petit rond noir numéroté est posé en bas-gauche du joueur initiateur (`fromId`), dans l'ordre des annotations. Si un même joueur initie plusieurs actions, les badges s'empilent horizontalement. Visible uniquement sur les vignettes playbook PDF.
+#### 🟢 Numérotation des étapes (v2 — playbook PDF + édition)
+v1 : composant `ActionOrderBadges` rendu dans les vignettes `StepThumbnail` du playbook PDF.
+**v2** : extrait dans [`ActionOrderBadges.tsx`](src/components/ActionOrderBadges.tsx) (réutilisable). Toggle `state.showActionOrder` dans le panneau défense (Visualisation). Quand actif et hors lecture/scrub, les badges s'affichent aussi dans `CourtView` à l'édition. Le coach voit l'ordre des actions sur l'étape active sans switcher entre les étapes.
 
 #### 🟢 Mode fantôme (ghosting) (v1)
 Implémenté : toggle `state.showGhosts`. Quand actif (et `activeStep > 0` et hors lecture/scrub), `GhostLayer` dans `CourtView` affiche les positions de l'étape N-1 en cercles pointillés (orange pour attaquants, bleu pour défenseurs) à 35% d'opacité, sans label. Visualise le vecteur de déplacement entre les deux étapes.

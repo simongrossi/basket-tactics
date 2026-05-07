@@ -26,6 +26,7 @@ import { getZoneLayout, mirrorZoneLayout } from '@/lib/data/zones';
 import { COURT, PLAYER_RADIUS, FULL_COURT_HEIGHT, FULL_COURT_INNER_MAX_Y } from '@/lib/data/court';
 import { clamp, distance, curveAroundObstacle, resolvePlayerCollisions, makeCluster, pickBlockingCluster, computeBallFrame } from '@/lib/logic/geometry';
 import { ContextMenu } from './ContextMenu';
+import { ActionOrderBadges } from './ActionOrderBadges';
 
 interface CourtViewProps {
   state: AppState;
@@ -629,6 +630,9 @@ export function CourtView(props: CourtViewProps) {
           })()}
         />
         <OffBallScreenIndicator screens={frame.offBallScreens} off={frame.off} />
+        {state.showActionOrder && !props.isPlaying && props.scrubT == null && state.steps[state.activeStep] && (
+          <ActionOrderBadges step={state.steps[state.activeStep]} />
+        )}
         <Ball pos={frame.ballPos} inFlight={frame.ballInFlight} />
       </svg>
       {props.isPlaying && (

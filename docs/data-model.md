@@ -45,6 +45,7 @@ interface AppState {
   fullCourt: boolean;
   attackingDirection?: 'up' | 'down';   // sens d'attaque (panier visé). Default 'up'.
   showGhosts?: boolean;                 // mode fantôme : affiche l'étape N-1 en transparence
+  showActionOrder?: boolean;            // badges numérotés sur les actions de l'étape active
 }
 ```
 

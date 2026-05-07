@@ -381,6 +381,11 @@ export function DefensePanel(props: DefensePanelProps) {
           onChange={(v) => props.onPatch({ showGhosts: v })}
         />
         <CheckboxLine
+          checked={!!state.showActionOrder}
+          label="numéroter les actions (1, 2, 3…)"
+          onChange={(v) => props.onPatch({ showActionOrder: v })}
+        />
+        <CheckboxLine
           checked={state.fullCourt}
           label="terrain complet"
           onChange={(v) => props.onPatch({ fullCourt: v })}
