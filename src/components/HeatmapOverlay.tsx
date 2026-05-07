@@ -18,26 +18,27 @@ const INFLUENCE_RADIUS = 110;
  *  plus de cellules à rendre. 30px est un bon compromis lisible/perf. */
 const CELL_SIZE = 30;
 
-/** Seuil minimal d'"ouverture" pour rendre une cellule visible. Évite un
- *  voile uniforme sur tout le terrain quand la défense est partout. */
-const OPENNESS_THRESHOLD = 0.35;
+/** Pression au-delà de laquelle on sature en rouge (bien défendu). Valeurs
+ *  pratiques : ≈0.7 = défenseur proche → presque rouge. */
+const PRESSURE_NORM = 1.2;
 
 /**
- * Calque heatmap qui met en évidence les zones non-défendues. Plus une
- * zone est rouge, plus elle est ouverte (faible pression défensive). Les
- * zones bien défendues sont laissées transparentes (pas d'overlay = vue
- * propre du terrain).
+ * Calque heatmap "feu tricolore" : couleurs traffic-light pastel pour
+ * différencier instantanément les zones libres / contestables / défendues.
+ *
+ *   pression faible  → vert pastel  (zone libre, opportunité de tir/passe)
+ *   pression moyenne → jaune pastel (zone contestable)
+ *   pression haute   → rouge pastel (zone bien défendue)
  *
  * Algo :
  *   pression(P) = Σ_i max(0, R - distance(P, D_i)) / R   pour chaque défenseur
- *   ouverture(P) = max(0, 1 - pression(P) / NORM)
- *   on rend les cellules dont ouverture > seuil
+ *   t = clamp(pression / PRESSURE_NORM, 0, 1)
+ *   teinte HSL = 120° (vert) à t=0 → 60° (jaune) à t=0.5 → 0° (rouge) à t=1
  *
- * NORM = 1.5 → un défenseur très près donne ~1, deux défenseurs proches
- * saturent à 1 (rien d'ouvert). Une seule influence à mi-portée donne ~0.3
- * → ouverture ≈ 0.8 (bien visible).
+ * Couleurs pastel (saturation 60%, lightness 65%) + opacité 0.22-0.32 pour
+ * ne pas masquer le terrain.
  */
-export function HeatmapOverlay({ defPos, off, fullCourt, show }: HeatmapOverlayProps) {
+export function HeatmapOverlay({ defPos, off: _off, fullCourt, show }: HeatmapOverlayProps) {
   if (!show) return null;
 
   const yMax = fullCourt ? FULL_COURT_HEIGHT - 20 : COURT.innerMaxY;
@@ -46,10 +47,9 @@ export function HeatmapOverlay({ defPos, off, fullCourt, show }: HeatmapOverlayP
   const xMax = COURT.innerMaxX;
 
   const defenders = Object.values(defPos);
-  const attackers = Object.values(off);
   if (defenders.length === 0) return null;
 
-  const cells: { x: number; y: number; openness: number; isAttacker: boolean }[] = [];
+  const cells: { x: number; y: number; t: number }[] = [];
 
   for (let y = yMin; y < yMax; y += CELL_SIZE) {
     for (let x = xMin; x < xMax; x += CELL_SIZE) {
@@ -65,35 +65,22 @@ export function HeatmapOverlay({ defPos, off, fullCourt, show }: HeatmapOverlayP
           pressure += (INFLUENCE_RADIUS - dist) / INFLUENCE_RADIUS;
         }
       }
-      const openness = Math.max(0, 1 - pressure / 1.5);
-
-      // Filtre : on n'affiche pas les cellules trop défendues
-      if (openness < OPENNESS_THRESHOLD) continue;
-
-      // Bonus visuel : si un attaquant est dans la cellule, on rehausse
-      // l'opacité (zone "exploitable" puisqu'occupée par un offensif).
-      let isAttacker = false;
-      for (const a of attackers) {
-        if (a.x >= x && a.x < x + CELL_SIZE && a.y >= y && a.y < y + CELL_SIZE) {
-          isAttacker = true;
-          break;
-        }
-      }
-
-      cells.push({ x, y, openness, isAttacker });
+      // t ∈ [0, 1] : 0 = totalement libre, 1 = saturé en pression
+      const t = Math.min(1, pressure / PRESSURE_NORM);
+      cells.push({ x, y, t });
     }
   }
 
   return (
     <g pointerEvents="none">
       {cells.map((c, i) => {
-        // Mapping ouverture → couleur : jaune pâle (0.35) → orange (0.6) → rouge intense (1)
-        const intensity = (c.openness - OPENNESS_THRESHOLD) / (1 - OPENNESS_THRESHOLD);
-        // Couleur : interpolation jaune → orange → rouge
-        const r = 220 + Math.round(intensity * 30); // 220 → 250
-        const g = Math.round(180 - intensity * 130); // 180 → 50
-        const b = Math.round(30 + intensity * 10); // ~30
-        const opacity = (0.15 + intensity * 0.35) * (c.isAttacker ? 1.4 : 1);
+        // Hue : 120° (vert) à 0° (rouge) en passant par 60° (jaune)
+        const hue = Math.round((1 - c.t) * 120);
+        // Pastel : haute lightness, saturation modérée
+        const fill = `hsl(${hue}, 60%, 65%)`;
+        // Opacité : un peu plus marquée sur les rouges et les verts francs,
+        // un peu moins sur le jaune intermédiaire pour éviter une bouillie.
+        const opacity = 0.22 + Math.abs(c.t - 0.5) * 0.2;
         return (
           <rect
             key={i}
@@ -101,10 +88,9 @@ export function HeatmapOverlay({ defPos, off, fullCourt, show }: HeatmapOverlayP
             y={c.y}
             width={CELL_SIZE}
             height={CELL_SIZE}
-            fill={`rgb(${r}, ${g}, ${b})`}
-            opacity={Math.min(0.65, opacity)}
-            // Léger flou pour fondre les cellules entre elles
-            style={{ filter: 'blur(6px)' }}
+            fill={fill}
+            opacity={opacity}
+            style={{ filter: 'blur(8px)' }}
           />
         );
       })}

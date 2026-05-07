@@ -181,7 +181,7 @@ Section unifiée. Chaque toggle est précédé de son **swatch visuel** (mini-ap
 | **terrain complet** | Étend le terrain à 1080 de hauteur avec second panier (active aussi le bouton "↻ sens d'attaque") |
 | **lignes de passe** | Lignes colorées (vert / orange / rouge) depuis le porteur vers chaque cible selon ouverture/contestation/blocage |
 | **mode fantôme (ghost N-1)** | Affiche en transparence les positions de l'étape précédente pour visualiser les vecteurs de déplacement. Inactif pendant la lecture et le scrubbing. |
-| **heatmap zones** | Calque qui surligne en jaune/orange/rouge les zones du terrain où la pression défensive cumulée est faible. Permet de voir d'un coup d'œil les espaces ouverts pour passe ou tir. Plus la couleur est rouge, plus la zone est ouverte. Les zones bien défendues restent transparentes. |
+| **heatmap zones** | Calque "feu tricolore" pastel sur tout le terrain. **Vert** = zone libre (peu de pression défensive, opportunité). **Jaune** = contestable. **Rouge** = bien défendue. Couleurs claires pour rester lisible avec le terrain. |
 
 #### Indicateurs auto (toggleables)
 

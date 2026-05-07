@@ -162,8 +162,9 @@ function Swatch({ color, sample }: { color: string; sample: LegendSample }) {
         <>
           <defs>
             <linearGradient id="hm-grad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0" stopColor="#facc15" stopOpacity="0.7" />
-              <stop offset="1" stopColor="#dc2626" stopOpacity="0.85" />
+              <stop offset="0" stopColor="hsl(120, 60%, 65%)" stopOpacity="0.7" />
+              <stop offset="0.5" stopColor="hsl(60, 60%, 65%)" stopOpacity="0.7" />
+              <stop offset="1" stopColor="hsl(0, 60%, 65%)" stopOpacity="0.7" />
             </linearGradient>
           </defs>
           <rect x="1" y="2" width="20" height="8" fill="url(#hm-grad)" rx="1" />

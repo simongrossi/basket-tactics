@@ -90,7 +90,7 @@ Les panneaux ont une ombre douce `0 1px 3px + 0 8px 24px` rgba(15, 23, 42, 0.04)
 - **Strong-side denial actif** : ring cyan pointillé `#0EA5A8` (différencié du ring violet `#534AB7` qui désigne l'aide weak-side classique)
 - **Panier visé (mode inversion + fullCourt)** : anneau orange pointillé `#F97316` autour du rim + label `🎯 visé`
 - **Panier protégé (mode inversion + fullCourt)** : cercle bleu sobre `#3b82f6` (50% opacité) + label `🛡 protégé`
-- **Heatmap zones ouvertes** : grille de cellules 30×30 colorées du **jaune pâle** `rgb(220, 180, 30)` (légèrement ouvert) au **rouge intense** `rgb(250, 50, 30)` (très ouvert), avec `filter: blur(6px)` pour fondre les cellules. Opacité 0.15-0.65 selon ouverture. Cellules contenant un attaquant rehaussées (×1.4). Zones bien défendues (ouverture < 0.35) laissées transparentes pour ne pas masquer le terrain.
+- **Heatmap pression défensive** : grille de cellules 30×30 colorées en **traffic-light pastel** — vert `hsl(120, 60%, 65%)` (zone libre, peu défendue) → jaune `hsl(60, 60%, 65%)` (contestable) → rouge `hsl(0, 60%, 65%)` (bien défendue). Couleurs HSL pastel (saturation 60%, lightness 65%), opacité 0.22-0.32 (un peu plus marquée aux extrémités vert et rouge), `filter: blur(8px)` pour fondre. Toutes les cellules sont colorées (pas de seuil) — la teinte verte sur le tiers libre rassure visuellement, la teinte rouge sur le tiers défendu signale les zones impossibles.
 - **Defender en retard (`late`)** : contour épais rouge `#E24B4A`
 - **Defender du porteur** : contour jaune `#FAC775`
 - **Ballon en main** : cercle orange `#BA7517` r=7 avec contour foncé, offset (+16, -16) au-dessus du porteur
