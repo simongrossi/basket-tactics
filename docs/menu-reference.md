@@ -243,6 +243,7 @@ Cinq réglages :
 - **closeout ×** : override individuel du multiplicateur de vitesse en closeout. Affiche "global" si non override (slider grisé, suit `state.closeoutBoost`). Bouton ↻ pour revenir au global.
 - **denial agr.** : override individuel de l'intensité du strong-side denial. Comportement identique : "global" par défaut, ↻ pour reset.
 - **vit. max** : distance max parcourue par étape (range 40–200px). **Défauts par poste** : D1 meneur 145 · D2 arrière 130 · D3 ailier 110 · D4 ailier fort 90 · D5 pivot 75. Modélise la mobilité réelle du joueur : un pivot atteint rarement les rotations d'aide longue distance, un meneur les atteint quasi toujours. ↻ revient au global (`state.defenseMaxSpeed`) si on veut effacer le profil par poste.
+- **orientation** : pose des bras / direction que le défenseur force. `square` (symétrique, défaut), `force gauche` (bras droit extended, ferme le côté droit), `force droite` (mirror), `mauvaise main` (= force gauche par défaut, droitier supposé). Purement visuel/mnémotechnique pour l'instant — n'affecte pas le calcul de position. Pour un effet tactique, combiner avec `vs porteur: topside/baseline`.
 
 **Toggle placement Auto / Manuel** en haut du menu (juste sous la barre d'outils) indique le mode courant pour ce défenseur sur cette étape :
 - **⚙ auto** (gris) : le moteur calcule la position d'après les règles d'aide, l'écran, le strong-side denial. C'est le mode par défaut.

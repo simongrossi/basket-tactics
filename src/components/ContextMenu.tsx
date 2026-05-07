@@ -296,6 +296,21 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
         </select>
       </Row>
       <Row
+        label="orientation"
+        title="Pose des bras / direction que ce défenseur force. 'square' = stance neutre, bras symétriques. 'force gauche' = bras droit extended, ferme le côté droit, pousse le porteur à gauche. 'force droite' = mirror. 'mauvaise main' = pousse vers la main faible (gauche par défaut, droitier supposé)."
+      >
+        <select
+          value={rule.stance ?? 'square'}
+          onChange={(e) => onUpdate({ stance: e.target.value as DefenderRule['stance'] })}
+          style={{ flex: 1 }}
+        >
+          <option value="square">square (symétrique)</option>
+          <option value="force-left">force gauche</option>
+          <option value="force-right">force droite</option>
+          <option value="force-weak">mauvaise main</option>
+        </select>
+      </Row>
+      <Row
         label="vs écran"
         title="Réaction de ce défenseur sur un écran porteur. 'auto' = utilise la règle globale. 'over' = passe par-dessus l'écran. 'under' = passe en dessous (laisse le tir 3pts). 'switch' = échange avec le coéquipier qui a posé l'écran. 'hedge' = show & recover. 'drop' = recule sous l'écran. 'blitz' = prise à deux."
       >

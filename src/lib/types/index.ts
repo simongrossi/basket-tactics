@@ -50,6 +50,13 @@ export type HelpMode = 'auto' | 'aggressive' | 'passive' | 'disabled';
 /** Override individuel de la règle d'écran porteur. 'auto' suit la règle globale. */
 export type OnScreenNav = 'auto' | 'over' | 'under' | 'switch' | 'hedge' | 'drop' | 'blitz';
 
+/** Orientation du défenseur (pose des bras / direction qu'il force).
+ *  - 'square' (default) : stance neutre, bras symétriques
+ *  - 'force-left' : bras droit extended → ferme le côté droit, pousse le porteur à gauche
+ *  - 'force-right' : bras gauche extended → mirror, pousse à droite
+ *  - 'force-weak' : pousse vers la main faible (par défaut = gauche, droitier supposé) */
+export type DefenderStance = 'square' | 'force-left' | 'force-right' | 'force-weak';
+
 export interface DefenderRule {
   helpPct: number;
   priority: HelpPriority;
@@ -74,6 +81,8 @@ export interface DefenderRule {
   maxSpeed?: number;
   /** Comportement d'aide du défenseur. Default 'auto'. Voir `HelpMode`. */
   helpMode?: HelpMode;
+  /** Orientation / pose des bras. Default 'square'. Voir `DefenderStance`. */
+  stance?: DefenderStance;
 }
 
 export type DefenderRules = Record<DefenderId, DefenderRule>;
