@@ -17,6 +17,7 @@ interface OffensePanelProps {
   onSetStepLabel: (idx: number, label: string) => void;
   onSetBallCarrier: (carrier: AttackerId) => void;
   onLoadTemplate: (template: Template) => void;
+  onDeleteAnnotation: (idx: number) => void;
   onPlayToggle: () => void;
   onStop: () => void;
   isPlaying: boolean;
@@ -25,6 +26,13 @@ interface OffensePanelProps {
   playbackSpeed: number;
   onSetPlaybackSpeed: (s: number) => void;
 }
+
+const ANNOTATION_LABELS: Record<'pass' | 'dribble' | 'cut' | 'screen', { label: string; symbol: string }> = {
+  pass: { label: 'passe', symbol: '⇢' },
+  dribble: { label: 'dribble', symbol: '∿' },
+  cut: { label: 'course', symbol: '→' },
+  screen: { label: 'écran', symbol: '⊥' },
+};
 
 const TOOLS: { value: Tool; label: string }[] = [
   { value: 'move', label: 'déplacer' },
@@ -207,6 +215,65 @@ export function OffensePanel(props: OffensePanelProps) {
                   )}
                   <span style={{ marginLeft: 'auto' }}>{s.annotations.length} annot.</span>
                 </div>
+                {/* Liste des annotations supprimables — visible seulement sur l'étape active */}
+                {isActive && s.annotations.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4 }}>
+                    {s.annotations.map((a, ai) => {
+                      const meta = ANNOTATION_LABELS[a.type];
+                      return (
+                        <div
+                          key={ai}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            fontSize: 10,
+                            padding: '2px 4px',
+                            borderRadius: 3,
+                            background: '#fff',
+                            border: '1px solid #fed7aa',
+                          }}
+                        >
+                          <span style={{ color: c.accent, fontWeight: 700, minWidth: 12, textAlign: 'center' }}>
+                            {ai + 1}
+                          </span>
+                          <span style={{ fontSize: 11 }}>{meta.symbol}</span>
+                          <span style={{ flex: 1, color: '#57534e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {meta.label} {a.fromId}
+                            {a.toId ? ` → ${a.toId}` : ''}
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              props.onDeleteAnnotation(ai);
+                            }}
+                            title="Supprimer cette action"
+                            style={{
+                              border: 'none',
+                              background: 'transparent',
+                              color: '#dc2626',
+                              cursor: 'pointer',
+                              fontSize: 13,
+                              fontWeight: 700,
+                              padding: '0 4px',
+                              lineHeight: 1,
+                              borderRadius: 3,
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#fee2e2';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'transparent';
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}

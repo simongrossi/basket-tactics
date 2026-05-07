@@ -226,6 +226,19 @@ export function useAppState() {
     });
   }, []);
 
+  const deleteAnnotation = useCallback((idx: number) => {
+    setStateWithHistory((s) => {
+      const cur = s.steps[s.activeStep];
+      if (!cur || idx < 0 || idx >= cur.annotations.length) return s;
+      const steps = [...s.steps];
+      steps[s.activeStep] = {
+        ...cur,
+        annotations: cur.annotations.filter((_, i) => i !== idx),
+      };
+      return { ...s, steps };
+    });
+  }, []);
+
   const setTool = useCallback((tool: Tool) => {
     setStateWithHistory((s) => ({ ...s, tool }));
   }, []);
@@ -392,6 +405,7 @@ export function useAppState() {
     moveDefender,
     addAnnotation,
     deleteLastAnnotation,
+    deleteAnnotation,
     setForcedScreener,
     clearAnnotationsFor,
     setTool,

@@ -121,6 +121,7 @@ export default function Page() {
           onSetStepLabel={app.setStepLabel}
           onSetBallCarrier={app.setBallCarrier}
           onLoadTemplate={app.loadTemplate}
+          onDeleteAnnotation={app.deleteAnnotation}
           onPlayToggle={handlePlayToggle}
           onStop={() => {
             setIsPlaying(false);

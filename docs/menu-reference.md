@@ -199,6 +199,15 @@ Cinq réglages :
 
 Si une position manuelle (override drag) est active, un bouton "↻ ré-auto-positionner" apparaît en bas du menu.
 
+### Suppression d'une action
+
+Sur l'étape active dans le panneau Attaque (section Étapes), la liste des annotations s'affiche avec un `×` rouge à droite de chaque ligne. Trois chemins disponibles selon la situation :
+
+- **Une annotation précise au milieu** → cliquer son `×` dans la liste de l'étape
+- **La dernière annotation** → touche `Suppr` ou `Backspace` (raccourci global)
+- **Toutes les annotations d'un joueur** → clic-droit sur l'attaquant → "effacer ses annotations"
+- **Tout annuler** → `Ctrl/Cmd+Z` (undo)
+
 ### Sur un attaquant (orange)
 
 Trois actions :
