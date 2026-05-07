@@ -75,45 +75,140 @@ export function Timeline({
 
   const hasControls = onPlayToggle && onStop && onSetPlaybackSpeed && playbackSpeed != null;
 
+  const trackEl = (
+    <div
+      ref={trackRef}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      style={{
+        position: 'relative',
+        height: 28,
+        background: '#f1f5f9',
+        borderRadius: 8,
+        cursor: total > 1 ? (dragging ? 'grabbing' : 'grab') : 'default',
+        border: '1px solid #e2e8f0',
+        padding: '0 14px',
+        touchAction: 'none',
+        userSelect: 'none',
+        flex: '1 1 auto',
+        minWidth: 0,
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: 14,
+          right: 14,
+          height: 4,
+          background: '#cbd5e1',
+          borderRadius: 2,
+          transform: 'translateY(-50%)',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: 14,
+          width: `calc((100% - 28px) * ${ratio})`,
+          height: 4,
+          background: isPlaying ? '#1e40af' : '#D85A30',
+          borderRadius: 2,
+          transform: 'translateY(-50%)',
+          transition: dragging || isPlaying ? 'none' : 'width 200ms',
+        }}
+      />
+      {state.steps.map((s, i) => {
+        const stepRatio = total > 1 ? i / (total - 1) : 0.5;
+        const isCurrent = i === currentStepIdx;
+        return (
+          <div
+            key={i}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!dragging) onSetActiveStep(i);
+            }}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: `calc(14px + (100% - 28px) * ${stepRatio})`,
+              width: 14,
+              height: 14,
+              borderRadius: 7,
+              background: isCurrent ? '#D85A30' : '#fff',
+              border: `2px solid ${isCurrent ? '#9a3412' : '#94a3b8'}`,
+              transform: 'translate(-50%, -50%)',
+              cursor: 'pointer',
+              pointerEvents: 'auto',
+            }}
+            title={`Étape ${i + 1}${s.label ? ' — ' + s.label : ''}`}
+          />
+        );
+      })}
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: `calc(14px + (100% - 28px) * ${ratio})`,
+          width: 18,
+          height: 18,
+          borderRadius: 9,
+          background: isPlaying ? '#1e40af' : '#D85A30',
+          border: '2px solid #fff',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: 'none',
+          transition: dragging || isPlaying ? 'none' : 'left 200ms',
+        }}
+      />
+    </div>
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 0, flex: '0 0 auto' }}>
-      {hasControls && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            onClick={onPlayToggle}
-            style={{
-              fontSize: 12,
-              padding: '5px 10px',
-              borderRadius: 6,
-              border: `1px solid ${isPlaying ? '#9a3412' : '#fed7aa'}`,
-              background: isPlaying ? '#D85A30' : '#fff',
-              color: isPlaying ? '#fff' : '#7c2d12',
-              cursor: 'pointer',
-              fontWeight: 500,
-              flex: '0 0 auto',
-              minWidth: 70,
-            }}
-          >
-            {isPlaying ? '⏸ pause' : '▶ play'}
-          </button>
-          <button
-            onClick={onStop}
-            style={{
-              fontSize: 12,
-              padding: '5px 10px',
-              borderRadius: 6,
-              border: '1px solid #fed7aa',
-              background: '#fff',
-              color: '#7c2d12',
-              cursor: 'pointer',
-              fontWeight: 500,
-              flex: '0 0 auto',
-            }}
-          >
-            ■ stop
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
-            <span style={{ fontSize: 11, color: '#57534e' }}>vitesse</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {hasControls && (
+          <>
+            <button
+              onClick={onPlayToggle}
+              style={{
+                fontSize: 12,
+                padding: '4px 10px',
+                borderRadius: 6,
+                border: `1px solid ${isPlaying ? '#9a3412' : '#fed7aa'}`,
+                background: isPlaying ? '#D85A30' : '#fff',
+                color: isPlaying ? '#fff' : '#7c2d12',
+                cursor: 'pointer',
+                fontWeight: 500,
+                flex: '0 0 auto',
+                minWidth: 60,
+              }}
+            >
+              {isPlaying ? '⏸' : '▶'}
+            </button>
+            <button
+              onClick={onStop}
+              style={{
+                fontSize: 12,
+                padding: '4px 10px',
+                borderRadius: 6,
+                border: '1px solid #fed7aa',
+                background: '#fff',
+                color: '#7c2d12',
+                cursor: 'pointer',
+                fontWeight: 500,
+                flex: '0 0 auto',
+              }}
+            >
+              ■
+            </button>
+          </>
+        )}
+        {trackEl}
+        {hasControls && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: '0 0 auto' }}>
             <input
               type="range"
               min={0.3}
@@ -121,103 +216,14 @@ export function Timeline({
               step={0.1}
               value={playbackSpeed}
               onChange={(e) => onSetPlaybackSpeed?.(parseFloat(e.target.value))}
-              style={{ width: 110 }}
+              title={`vitesse : ${playbackSpeed!.toFixed(1)}×`}
+              style={{ width: 70 }}
             />
-            <span style={{ fontSize: 11, minWidth: 30, textAlign: 'right' }}>
-              {playbackSpeed.toFixed(1)}×
+            <span style={{ fontSize: 10, minWidth: 28, textAlign: 'right', color: '#57534e' }}>
+              {playbackSpeed!.toFixed(1)}×
             </span>
           </div>
-        </div>
-      )}
-      <div
-        ref={trackRef}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        style={{
-          position: 'relative',
-          height: 28,
-          background: '#f1f5f9',
-          borderRadius: 8,
-          cursor: total > 1 ? (dragging ? 'grabbing' : 'grab') : 'default',
-          border: '1px solid #e2e8f0',
-          padding: '0 14px',
-          touchAction: 'none',
-          userSelect: 'none',
-        }}
-      >
-        {/* Track */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: 14,
-            right: 14,
-            height: 4,
-            background: '#cbd5e1',
-            borderRadius: 2,
-            transform: 'translateY(-50%)',
-          }}
-        />
-        {/* Filled portion */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: 14,
-            width: `calc((100% - 28px) * ${ratio})`,
-            height: 4,
-            background: isPlaying ? '#1e40af' : '#D85A30',
-            borderRadius: 2,
-            transform: 'translateY(-50%)',
-            transition: dragging || isPlaying ? 'none' : 'width 200ms',
-          }}
-        />
-        {/* Step markers */}
-        {state.steps.map((s, i) => {
-          const stepRatio = total > 1 ? i / (total - 1) : 0.5;
-          const isCurrent = i === currentStepIdx;
-          return (
-            <div
-              key={i}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!dragging) onSetActiveStep(i);
-              }}
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: `calc(14px + (100% - 28px) * ${stepRatio})`,
-                width: 14,
-                height: 14,
-                borderRadius: 7,
-                background: isCurrent ? '#D85A30' : '#fff',
-                border: `2px solid ${isCurrent ? '#9a3412' : '#94a3b8'}`,
-                transform: 'translate(-50%, -50%)',
-                cursor: 'pointer',
-                pointerEvents: 'auto',
-              }}
-              title={`Étape ${i + 1}${s.label ? ' — ' + s.label : ''}`}
-            />
-          );
-        })}
-        {/* Playhead */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: `calc(14px + (100% - 28px) * ${ratio})`,
-            width: 18,
-            height: 18,
-            borderRadius: 9,
-            background: isPlaying ? '#1e40af' : '#D85A30',
-            border: '2px solid #fff',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-            transform: 'translate(-50%, -50%)',
-            pointerEvents: 'none',
-            transition: dragging || isPlaying ? 'none' : 'left 200ms',
-          }}
-        />
+        )}
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#64748b', lineHeight: 1.2 }}>
         <span>
