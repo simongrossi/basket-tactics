@@ -91,6 +91,23 @@ describe('computeHelpTarget — strong-side denial', () => {
     expect(r.helpFactor).toBeCloseTo(0.5 * 0.35, 2);
   });
 
+  it("denyAggressiveness=0 désactive complètement le denial automatique", () => {
+    const att = { x: 470, y: 380 };
+    const manPos = { x: 470, y: 300 };
+    const r = computeHelpTarget(manPos, ruleSag(20), noTriggers, carrier, att, 1, undefined, undefined, 0);
+    expect(r.helpFactor).toBe(0);
+    expect(r.denying).toBeFalsy();
+    expect(r.target).toEqual(manPos);
+  });
+
+  it("denyAggressiveness=0.7 produit un pull plus fort que la valeur défaut 0.45", () => {
+    const att = { x: 470, y: 380 };
+    const manPos = { x: 470, y: 300 };
+    const rDefault = computeHelpTarget(manPos, ruleSag(20), noTriggers, carrier, att, 1, undefined, undefined, 0.45);
+    const rStrong = computeHelpTarget(manPos, ruleSag(20), noTriggers, carrier, att, 1, undefined, undefined, 0.7);
+    expect(rStrong.helpFactor).toBeGreaterThan(rDefault.helpFactor);
+  });
+
   it("pas de denial pour un défenseur weak-side (l'attaquant est de l'autre côté)", () => {
     const attWeak = { x: 130, y: 380 };
     const manPos = { x: 130, y: 300 };

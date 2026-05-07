@@ -194,6 +194,22 @@ export function DefensePanel(props: DefensePanelProps) {
               value={state.defenseMaxSpeed}
               onChange={(v) => props.onPatch({ defenseMaxSpeed: v })}
             />
+            <Slider
+              label="closeout ×"
+              min={1}
+              max={2}
+              step={0.1}
+              value={state.closeoutBoost ?? 1.4}
+              onChange={(v) => props.onPatch({ closeoutBoost: v })}
+            />
+            <Slider
+              label="denial agr."
+              min={0}
+              max={1}
+              step={0.05}
+              value={state.denyAggressiveness ?? 0.45}
+              onChange={(v) => props.onPatch({ denyAggressiveness: v })}
+            />
             <div style={{ fontSize: 11, fontWeight: 500, color: c.accentText, marginTop: 4 }}>Triggers d'aide</div>
             <CheckboxLine
               checked={state.triggers.drive}

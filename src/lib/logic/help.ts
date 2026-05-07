@@ -19,7 +19,10 @@ export function computeHelpTarget(
   attPos: Point,
   ballSide: -1 | 0 | 1,
   allOff?: AttackerPositions,
-  hoop: Point = HOOP
+  hoop: Point = HOOP,
+  /** Intensité max du strong-side denial automatique. 0 = désactivé.
+   *  Default 0.45 = comportement v1. */
+  denyAggressiveness: number = 0.45
 ): HelpResult {
   const myAttSide = Math.sign(attPos.x - hoop.x) || 0;
 
@@ -50,7 +53,8 @@ export function computeHelpTarget(
       rule.priority !== 'paint' &&
       ballSide !== 0 &&
       myAttSide !== 0 &&
-      myAttSide === ballSide
+      myAttSide === ballSide &&
+      denyAggressiveness > 0
     ) {
       const distAttBall = distance(attPos, carrierPos);
       if (distAttBall < 250) {
@@ -59,7 +63,7 @@ export function computeHelpTarget(
           y: attPos.y + (carrierPos.y - attPos.y) * 0.35,
         };
         const proximity = 1 - distAttBall / 250; // 1 (collé) → 0 (à la limite)
-        const denyFactor = 0.45 * proximity;
+        const denyFactor = denyAggressiveness * proximity;
         return {
           target: {
             x: manPos.x + (denyAim.x - manPos.x) * denyFactor,

@@ -176,6 +176,12 @@ export interface AppState {
   /** Affiche les badges numérotés 1/2/3… sur les actions de l'étape active
    *  (vue d'édition). Utile pour lire la séquence sans switcher d'étape. */
   showActionOrder?: boolean;
+  /** Multiplicateur de vitesse appliqué au défenseur du nouveau porteur en
+   *  closeout. 1 = closeout désactivé, 1.4 = défaut, 2 = très agressif. */
+  closeoutBoost?: number;
+  /** Intensité max du strong-side denial automatique. 0 = désactivé,
+   *  0.45 = défaut, 0.7 = très agressif (full denial assumé). */
+  denyAggressiveness?: number;
   /** Sens d'attaque : 'up' (panier visé = HOOP top, défaut) ou 'down' (panier
    *  visé = HOOP_OPPOSITE bottom). Utile en mode fullCourt pour modéliser le
    *  repli/contre-attaque. La défense de zone n'est pas encore directionnelle. */

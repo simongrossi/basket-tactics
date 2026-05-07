@@ -122,6 +122,8 @@ Choix entre **homme** et **zone**. Bascule masque/affiche les sections suivantes
 |---------|---------|-------|
 | **distance** | 20–80 | Distance par défaut défenseur ↔ son homme |
 | **vit. max** | 40–200 | Distance max parcourue par étape — au-delà : `late` |
+| **closeout ×** | 1.0–2.0 | Multiplicateur de vitesse du défenseur du nouveau porteur sur transition. 1.0 = closeout désactivé, 1.4 = défaut, 2.0 = très agressif. |
+| **denial agr.** | 0–1 | Intensité max du strong-side denial automatique. 0 = désactivé, 0.45 = défaut, 0.7+ = full denial agressif. |
 
 #### Triggers d'aide
 

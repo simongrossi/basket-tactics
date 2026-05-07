@@ -321,6 +321,24 @@ describe('effectiveDefensePositions — closeout dynamique', () => {
     expect(out.D2.overClosed).toBeFalsy();
   });
 
+  it("closeoutBoost configurable : valeur 2 fait avancer le défenseur encore plus loin que 1.4", () => {
+    const setup = (boost: number) => {
+      const s = cloneState();
+      s.closeoutBoost = boost;
+      // O2 reçoit le ballon, position légèrement déplacée pour forcer le mouvement
+      const off2 = { ...s.steps[0].off, O2: { x: 130, y: 380 } };
+      s.steps = [s.steps[0], makeStep(off2, 'O2', [])];
+      s.defenseMaxSpeed = 30;
+      return s;
+    };
+    const out14 = effectiveDefensePositions(setup(1.4), 1);
+    const out20 = effectiveDefensePositions(setup(2.0), 1);
+    const start = setup(1.4).defenseInitial.D2;
+    const dist14 = Math.hypot(out14.D2.x - start.x, out14.D2.y - start.y);
+    const dist20 = Math.hypot(out20.D2.x - start.x, out20.D2.y - start.y);
+    expect(dist20).toBeGreaterThanOrEqual(dist14);
+  });
+
   it("ne marque pas de closeout en défense de zone (le concept est man-only)", () => {
     const s = cloneState();
     s.defenseSystem = 'zone';

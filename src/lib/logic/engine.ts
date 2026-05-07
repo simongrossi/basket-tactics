@@ -33,11 +33,10 @@ export function getDefenseHoop(state: AppState): Point {
 
 const DEFENDER_IDS: DefenderId[] = ['D1', 'D2', 'D3', 'D4', 'D5'];
 
-/** Facteur multiplicatif appliqué à `defenseMaxSpeed` pour le défenseur du
- *  nouveau porteur quand le ballon vient d'arriver sur lui (passe entrante).
- *  Modélise l'urgence du closeout : on accélère pour fermer la distance
- *  avant que l'attaquant ne tire ou ne drive. */
-const CLOSEOUT_SPEED_FACTOR = 1.4;
+/** Facteur par défaut (utilisé si `state.closeoutBoost` est absent) : le
+ *  défenseur du nouveau porteur accélère pour fermer la distance avant
+ *  tir/drive. Tunable via `state.closeoutBoost`. */
+const DEFAULT_CLOSEOUT_SPEED_FACTOR = 1.4;
 
 /**
  * Calcule les matchups en vigueur AU DÉBUT d'une étape donnée
@@ -136,7 +135,10 @@ export function computeDefenseTargets(
       // Le help bias n'est appliqué qu'avec la stance "sag" — les stances
       // dirigées (deny-3q, fronting, behind) sont des positions absolues.
       if (stance === 'sag' && att && carrierPos) {
-        const help = computeHelpTarget(stancePos, rule, triggers, carrierPos, att, side, off, hoop);
+        const help = computeHelpTarget(
+          stancePos, rule, triggers, carrierPos, att, side, off, hoop,
+          state.denyAggressiveness ?? 0.45
+        );
         target = help.target;
         helpFactor = help.helpFactor;
         denying = !!help.denying;
@@ -327,7 +329,8 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     // Closeout : le défenseur du nouveau porteur bénéficie d'un bump de vitesse.
     const closingOut = isCloseoutTransition && targets[dId].isCarrierDefender;
     const overClosed = isOverClosedTransition && targets[dId].isCarrierDefender;
-    const maxSpeed = closingOut ? baseMaxSpeed * CLOSEOUT_SPEED_FACTOR : baseMaxSpeed;
+    const closeoutBoost = state.closeoutBoost ?? DEFAULT_CLOSEOUT_SPEED_FACTOR;
+    const maxSpeed = closingOut ? baseMaxSpeed * closeoutBoost : baseMaxSpeed;
 
     // À l'étape 0, on considère que les défenseurs SONT à leur position idéale
     // (le step 0 est un setup, pas une transition). La contrainte de vitesse

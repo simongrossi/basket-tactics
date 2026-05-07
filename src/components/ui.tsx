@@ -121,6 +121,8 @@ interface SliderProps {
 }
 
 export function Slider({ label, min, max, step, value, onChange }: SliderProps) {
+  // Affichage : entier si step >= 1, sinon une décimale (suffisant pour 0.1 step).
+  const display = step < 1 ? value.toFixed(step < 0.1 ? 2 : 1) : String(Math.round(value));
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
       <span style={{ fontSize: 11, color: '#475569', minWidth: 70 }}>{label}</span>
@@ -130,10 +132,10 @@ export function Slider({ label, min, max, step, value, onChange }: SliderProps) 
         max={max}
         step={step}
         value={value}
-        onChange={(e) => onChange(parseInt(e.target.value))}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
         style={{ flex: 1 }}
       />
-      <span style={{ fontSize: 11, color: '#475569', minWidth: 28, textAlign: 'right' }}>{value}</span>
+      <span style={{ fontSize: 11, color: '#475569', minWidth: 28, textAlign: 'right' }}>{display}</span>
     </div>
   );
 }

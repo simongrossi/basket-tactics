@@ -36,10 +36,14 @@ Implémenté : quand `ballCarrier` change entre étape N-1 et N, le défenseur d
 
 🟢 **v2 (over-closeout)** : `overClosed` sur `ComputedDefender` quand closeout ET le nouveau porteur a drive vers le panier (delta distance > 25, dans les 250px du panier). Anneau **rouge** `#DC2626` au lieu de l'orange + petit ⚠ à côté du joueur. Tests : 2 cas (avec/sans drive).
 
+🟢 **v3 (tunable)** : `state.closeoutBoost` (default 1.4, range 1–2 step 0.1). Slider "closeout ×" dans le panneau défense → Paramètres globaux. Permet de désactiver le boost (×1.0) ou de le pousser à fond (×2.0).
+
 ### 🟢 Strong-side denial (v1 — automatique)
 Implémenté dans `help.ts` : quand pas de trigger actif + défenseur strong-side + attaquant à <250px du ballon + `priority !== 'paint'`, glissement vers la ligne de passe avec intensité proportionnelle à la proximité (`denyFactor` jusqu'à 0.45). Détails : [docs/logique-defensive.md § Strong-side denial automatique](docs/logique-defensive.md#strong-side-denial-automatique).
 
-🟢 **v2 (ring dédié)** : `HelpResult.denying` propagé jusqu'à `ComputedDefender.denying`. Player affiche un ring **cyan pointillé** (`#0EA5A8`, dasharray `4 3`) quand `denying`, à la place du ring violet plein "help". Tunable `denyAggressiveness` reste à venir en v3.
+🟢 **v2 (ring dédié)** : `HelpResult.denying` propagé jusqu'à `ComputedDefender.denying`. Player affiche un ring **cyan pointillé** (`#0EA5A8`, dasharray `4 3`) quand `denying`, à la place du ring violet plein "help".
+
+🟢 **v3 (tunable)** : `state.denyAggressiveness` (default 0.45, range 0–1 step 0.05). Slider "denial agr." dans le panneau défense → Paramètres globaux. 0 désactive complètement le strong-side denial automatique ; 0.7+ donne un comportement très agressif (proche du full denial assumé).
 
 ### 🟢 Staggered screens (v2)
 v1 : `pickBlockingObstacle` (geometry.ts) sélectionne l'obstacle de plus profonde pénétration dans le segment.
@@ -198,7 +202,7 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 - **Trap** : gestion explicite quand un écran est aussi détecté simultanément (aujourd'hui le trap est skip si screen ≠ null)
 - **Staggered** : double courbe Bezier réelle pour weave entre 2 écrans très espacés
 - **Inversion HOOP** : rendu visuel distinct du panier "actif" vs "protégé"
-- **Closeout / Denial** : tunables d'agressivité par règle (`denyAggressiveness`, `closeoutBoost`)
+- **Closeout / Denial** : ✅ tunables globaux livrés en v3. Reste : tunables **par règle individuelle** (each defender his own aggressiveness) si besoin futur.
 - **Undo/Redo** : coalescing pendant un drag continu (1 entrée pile au lieu de N)
 
 ---
