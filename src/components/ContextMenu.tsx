@@ -225,6 +225,26 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
           <option value="blitz">blitz (piège)</option>
         </select>
       </Row>
+      <OverrideSliderRow
+        label="closeout ×"
+        min={1}
+        max={2}
+        step={0.1}
+        value={rule.closeoutBoost}
+        onChange={(v) => onUpdate({ closeoutBoost: v })}
+        onReset={() => onUpdate({ closeoutBoost: undefined })}
+        title="Override individuel du multiplicateur de vitesse en closeout"
+      />
+      <OverrideSliderRow
+        label="denial agr."
+        min={0}
+        max={1}
+        step={0.05}
+        value={rule.denyAggressiveness}
+        onChange={(v) => onUpdate({ denyAggressiveness: v })}
+        onReset={() => onUpdate({ denyAggressiveness: undefined })}
+        title="Override individuel de l'intensité du strong-side denial"
+      />
       {hasOverride && (
         <div
           style={{
@@ -266,6 +286,63 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
       <span style={{ fontSize: 12, color: '#666', width: 88 }}>{label}</span>
       {children}
+    </div>
+  );
+}
+
+/**
+ * Ligne slider qui peut être en mode "global" (value undefined → reprend le
+ * réglage global) ou en mode "override" (value définie). Indicateur visuel
+ * quand override actif + bouton ↻ pour revenir au global.
+ */
+function OverrideSliderRow({
+  label, min, max, step, value, onChange, onReset, title,
+}: {
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number | undefined;
+  onChange: (v: number) => void;
+  onReset: () => void;
+  title?: string;
+}) {
+  const overridden = value !== undefined;
+  const display = overridden ? value!.toFixed(step < 1 ? 2 : 0) : 'global';
+  return (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }} title={title}>
+      <span style={{ fontSize: 12, color: overridden ? '#9a3412' : '#666', width: 88, fontWeight: overridden ? 600 : 400 }}>
+        {label}
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value ?? (min + max) / 2}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        style={{ flex: 1, opacity: overridden ? 1 : 0.55 }}
+      />
+      <span style={{ fontSize: 11, color: overridden ? '#9a3412' : '#94a3b8', minWidth: 36, textAlign: 'right', fontWeight: overridden ? 600 : 400 }}>
+        {display}
+      </span>
+      {overridden && (
+        <button
+          onClick={onReset}
+          title="Revenir au réglage global"
+          style={{
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            color: '#94a3b8',
+            fontSize: 13,
+            padding: '0 2px',
+            lineHeight: 1,
+          }}
+        >
+          ↻
+        </button>
+      )}
     </div>
   );
 }

@@ -88,6 +88,8 @@ interface DefenderRule {
   vsCarrier: CarrierBehavior;           // si on défend le porteur
   offBallStance?: OffBallStance;        // si on défend hors-ballon
   screenNav?: OnScreenNav;              // override individuel vs écran
+  closeoutBoost?: number;               // override individuel de state.closeoutBoost (range 1-2)
+  denyAggressiveness?: number;          // override individuel de state.denyAggressiveness (range 0-1)
 }
 
 type CarrierBehavior =

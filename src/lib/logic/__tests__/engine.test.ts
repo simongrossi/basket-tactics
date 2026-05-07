@@ -321,6 +321,24 @@ describe('effectiveDefensePositions — closeout dynamique', () => {
     expect(out.D2.overClosed).toBeFalsy();
   });
 
+  it("closeoutBoost individuel (rule.closeoutBoost) override le global", () => {
+    const setup = (ruleBoost: number | undefined, globalBoost: number) => {
+      const s = cloneState();
+      s.closeoutBoost = globalBoost;
+      s.rules.D2 = { ...s.rules.D2, closeoutBoost: ruleBoost };
+      const off2 = { ...s.steps[0].off, O2: { x: 130, y: 380 } };
+      s.steps = [s.steps[0], makeStep(off2, 'O2', [])];
+      s.defenseMaxSpeed = 30;
+      return s;
+    };
+    // Global ×1.0 (closeout désactivé) MAIS rule override ×2.0
+    const out = effectiveDefensePositions(setup(2.0, 1.0), 1);
+    const start = setup(2.0, 1.0).defenseInitial.D2;
+    const dist = Math.hypot(out.D2.x - start.x, out.D2.y - start.y);
+    // Avec maxSpeed 30 × 2 = 60, D2 doit avoir parcouru jusqu'à 60px
+    expect(dist).toBeGreaterThan(30);
+  });
+
   it("closeoutBoost configurable : valeur 2 fait avancer le défenseur encore plus loin que 1.4", () => {
     const setup = (boost: number) => {
       const s = cloneState();

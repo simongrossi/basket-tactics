@@ -198,6 +198,8 @@ Cinq réglages :
 - **vs porteur** : 6 valeurs (cf. tableau)
 - **hors-ballon** : 5 stances (sag / derrière / stunt / 3/4 deny / devant)
 - **vs écran** : auto + 6 règles d'écran (override individuel)
+- **closeout ×** : override individuel du multiplicateur de vitesse en closeout. Affiche "global" si non override (slider grisé, suit `state.closeoutBoost`). Bouton ↻ pour revenir au global.
+- **denial agr.** : override individuel de l'intensité du strong-side denial. Comportement identique : "global" par défaut, ↻ pour reset.
 
 Si une position manuelle (override drag) est active, un bouton "↻ ré-auto-positionner" apparaît en bas du menu.
 

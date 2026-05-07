@@ -135,9 +135,11 @@ export function computeDefenseTargets(
       // Le help bias n'est appliqué qu'avec la stance "sag" — les stances
       // dirigées (deny-3q, fronting, behind) sont des positions absolues.
       if (stance === 'sag' && att && carrierPos) {
+        // Override par défenseur > global > défaut (0.45)
+        const denyAggressiveness = rule.denyAggressiveness ?? state.denyAggressiveness ?? 0.45;
         const help = computeHelpTarget(
           stancePos, rule, triggers, carrierPos, att, side, off, hoop,
-          state.denyAggressiveness ?? 0.45
+          denyAggressiveness
         );
         target = help.target;
         helpFactor = help.helpFactor;
@@ -329,7 +331,9 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     // Closeout : le défenseur du nouveau porteur bénéficie d'un bump de vitesse.
     const closingOut = isCloseoutTransition && targets[dId].isCarrierDefender;
     const overClosed = isOverClosedTransition && targets[dId].isCarrierDefender;
-    const closeoutBoost = state.closeoutBoost ?? DEFAULT_CLOSEOUT_SPEED_FACTOR;
+    // Override par défenseur > global > défaut.
+    const ruleBoost = state.rules[dId]?.closeoutBoost;
+    const closeoutBoost = ruleBoost ?? state.closeoutBoost ?? DEFAULT_CLOSEOUT_SPEED_FACTOR;
     const maxSpeed = closingOut ? baseMaxSpeed * closeoutBoost : baseMaxSpeed;
 
     // À l'étape 0, on considère que les défenseurs SONT à leur position idéale

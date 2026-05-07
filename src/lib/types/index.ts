@@ -50,6 +50,13 @@ export interface DefenderRule {
   vsCarrier: CarrierBehavior;
   offBallStance?: OffBallStance;
   screenNav?: OnScreenNav;
+  /** Override individuel de `state.closeoutBoost`. Undefined = utilise le
+   *  réglage global. Permet d'avoir un D5 qui closeout mou (×1.1) et un D1
+   *  qui closeout agressif (×1.8). Range 1–2. */
+  closeoutBoost?: number;
+  /** Override individuel de `state.denyAggressiveness`. Undefined = global.
+   *  Range 0–1. */
+  denyAggressiveness?: number;
 }
 
 export type DefenderRules = Record<DefenderId, DefenderRule>;
