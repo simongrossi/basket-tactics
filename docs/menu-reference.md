@@ -242,7 +242,7 @@ Cinq réglages :
 - **distance** : override individuel de la distance défenseur ↔ son homme (range 20–80px). Default "global" (suit `state.defenseDistance`). Permet d'avoir un D5 à distance large (60) et un D1 collant (25). ↻ pour reset.
 - **closeout ×** : override individuel du multiplicateur de vitesse en closeout. Affiche "global" si non override (slider grisé, suit `state.closeoutBoost`). Bouton ↻ pour revenir au global.
 - **denial agr.** : override individuel de l'intensité du strong-side denial. Comportement identique : "global" par défaut, ↻ pour reset.
-- **vit. max** : override individuel de la distance max parcourue par étape (range 40–200px). Default "global" (suit `state.defenseMaxSpeed`). Modélise la vitesse réelle du joueur — un pivot lent (60-80) sera souvent en retard sur les rotations d'aide, un meneur rapide (130-160) atteint sa cible plus souvent à temps. Utile pour réduire l'effet "téléportation" sur les aides en réglant chaque défenseur selon son archétype.
+- **vit. max** : distance max parcourue par étape (range 40–200px). **Défauts par poste** : D1 meneur 145 · D2 arrière 130 · D3 ailier 110 · D4 ailier fort 90 · D5 pivot 75. Modélise la mobilité réelle du joueur : un pivot atteint rarement les rotations d'aide longue distance, un meneur les atteint quasi toujours. ↻ revient au global (`state.defenseMaxSpeed`) si on veut effacer le profil par poste.
 
 Si une position manuelle (override drag) est active, un bouton "↻ ré-auto-positionner" apparaît en bas du menu.
 

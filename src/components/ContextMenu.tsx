@@ -293,7 +293,7 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
         value={rule.maxSpeed}
         onChange={(v) => onUpdate({ maxSpeed: v })}
         onReset={() => onUpdate({ maxSpeed: undefined })}
-        title="Vitesse max individuelle de ce défenseur (px/étape). Petit nombre (60-80) = pivot lent, souvent en retard sur les rotations d'aide. Grand nombre (130-160) = meneur rapide, atteint sa cible plus souvent à temps. Réduit l'effet 'téléportation' sur les aides."
+        title="Vitesse max individuelle de ce défenseur (px/étape). Défauts par poste : D1 meneur 145 · D2 arrière 130 · D3 ailier 110 · D4 ailier fort 90 · D5 pivot 75. Petit nombre = lent, souvent en retard sur les rotations d'aide. Grand nombre = rapide, atteint sa cible plus souvent à temps."
       />
       {hasOverride && (
         <div

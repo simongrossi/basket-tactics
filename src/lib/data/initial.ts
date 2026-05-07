@@ -32,12 +32,15 @@ export const baseMatchups: Matchups = {
   D5: 'O5',
 };
 
+// Vitesses par poste (px/étape) — modélise la mobilité réelle du joueur :
+// meneur le plus rapide, pivot le plus lent. Réduit l'effet "téléportation"
+// sur les rotations d'aide tout en restant ajustable individuellement.
 export const defaultRules: DefenderRules = {
-  D1: { helpPct: 20, priority: 'man', vsCarrier: 'coller' },
-  D2: { helpPct: 50, priority: 'paint', vsCarrier: 'coller' },
-  D3: { helpPct: 50, priority: 'paint', vsCarrier: 'coller' },
-  D4: { helpPct: 75, priority: 'paint', vsCarrier: 'bumper' },
-  D5: { helpPct: 75, priority: 'paint', vsCarrier: 'bumper' },
+  D1: { helpPct: 20, priority: 'man', vsCarrier: 'coller', maxSpeed: 145 },   // meneur
+  D2: { helpPct: 50, priority: 'paint', vsCarrier: 'coller', maxSpeed: 130 }, // arrière
+  D3: { helpPct: 50, priority: 'paint', vsCarrier: 'coller', maxSpeed: 110 }, // ailier
+  D4: { helpPct: 75, priority: 'paint', vsCarrier: 'bumper', maxSpeed: 90 },  // ailier fort
+  D5: { helpPct: 75, priority: 'paint', vsCarrier: 'bumper', maxSpeed: 75 },  // pivot
 };
 
 export function makeStep(
