@@ -221,6 +221,8 @@ Trois actions :
 
 Se ferme au clic en dehors. Si la cible DOM est un poseur d'écran (rendu au-dessus dans la pile SVG, masque le `data-id` du joueur en dessous), fallback automatique sur la recherche du joueur le plus proche du point cliqué.
 
+**Repositionnement automatique** : si le menu déborderait du conteneur du terrain (côté droit ou bas — typiquement un clic-droit sur un joueur près du panneau bleu), le menu s'ouvre vers la gauche / vers le haut au lieu de chevaucher la zone hors-court. Calculé après mount via `useLayoutEffect` (synchrone, sans flash visible).
+
 ## Vue playbook (overlay)
 
 Ouverte par le bouton "📄 playbook PDF" du header.

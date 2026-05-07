@@ -1,7 +1,34 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { AttackerId, DefenderId, DefenderRule, Tool } from '@/lib/types';
+
+/**
+ * Repositionne un menu contextuel pour qu'il ne déborde pas du conteneur
+ * parent (le wrap du SVG). Si le menu déborderait à droite, on l'ouvre vers
+ * la gauche du clic ; idem en bas. Marge 8px du bord. Mesuré après mount
+ * via useLayoutEffect (synchrone, sans flash visible).
+ */
+function useClampedPosition(initialX: number, initialY: number, ref: React.RefObject<HTMLDivElement | null>) {
+  const [pos, setPos] = useState({ x: initialX, y: initialY });
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const parent = el.parentElement;
+    if (!parent) return;
+    const rect = el.getBoundingClientRect();
+    const parentRect = parent.getBoundingClientRect();
+    let nx = initialX;
+    let ny = initialY;
+    const overflowRight = initialX + rect.width - (parentRect.width - 8);
+    if (overflowRight > 0) nx = Math.max(8, initialX - rect.width);
+    const overflowBottom = initialY + rect.height - (parentRect.height - 8);
+    if (overflowBottom > 0) ny = Math.max(8, initialY - rect.height);
+    if (nx !== pos.x || ny !== pos.y) setPos({ x: nx, y: ny });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialX, initialY]);
+  return pos;
+}
 
 interface ToolBarProps {
   tool: Tool;
@@ -96,6 +123,7 @@ export function ContextMenu(props: ContextMenuProps) {
 
 function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate, onClearOverride, onClose }: DefenderMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const pos = useClampedPosition(x, y, ref);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -111,8 +139,8 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
       ref={ref}
       style={{
         position: 'absolute',
-        left: x,
-        top: y,
+        left: pos.x,
+        top: pos.y,
         background: '#fff',
         border: '1px solid #ddd',
         borderRadius: 8,
@@ -248,6 +276,7 @@ function AttackerMenu({
   onMakeCarrier, onForceScreener, onClearForcedScreener, onClearAnnotations, onClose,
 }: AttackerMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const pos = useClampedPosition(x, y, ref);
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (!ref.current) return;
@@ -285,8 +314,8 @@ function AttackerMenu({
       ref={ref}
       style={{
         position: 'absolute',
-        left: x,
-        top: y,
+        left: pos.x,
+        top: pos.y,
         background: '#fff',
         border: '1px solid #ddd',
         borderRadius: 8,
