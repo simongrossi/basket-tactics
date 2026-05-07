@@ -359,7 +359,7 @@ export function DefensePanel(props: DefensePanelProps) {
         </>
       )}
 
-      <Section theme="defense" label="Visualisation">
+      <Section theme="defense" label="Visualisation" open>
         <CheckboxLine
           checked={state.showHelpLines}
           label="lignes d'aide"

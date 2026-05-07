@@ -77,6 +77,83 @@ export function OffensePanel(props: OffensePanelProps) {
 
   return (
     <Panel theme="offense" title="⚪ Attaque">
+      {/* Bibliothèque en carte distincte tout en haut. Visuellement séparée
+          des Sections (background tinté, bord coloré) pour signaler qu'on
+          charge un système clé en main, pas un simple réglage. */}
+      <div
+        style={{
+          background: c.bg,
+          border: `1px solid ${c.border}`,
+          borderLeft: `3px solid ${c.accent}`,
+          borderRadius: 8,
+          padding: 8,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: c.accentText, letterSpacing: '0.02em' }}>
+          📚 BIBLIOTHÈQUE — {TEMPLATES.length} systèmes
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+          {TEMPLATES.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => {
+                if (state.steps.length > 1 || state.steps[0].annotations.length > 0) {
+                  if (!confirm(`Charger "${t.name}" ? Le travail en cours sera remplacé.`)) return;
+                }
+                props.onLoadTemplate(t);
+              }}
+              title={t.description}
+              style={{
+                textAlign: 'left',
+                padding: '5px 7px',
+                fontSize: 11,
+                borderRadius: 5,
+                border: `1px solid ${c.border}`,
+                background: '#fff',
+                cursor: 'pointer',
+                display: 'flex',
+                gap: 6,
+                alignItems: 'center',
+                lineHeight: 1.2,
+                transition: 'border-color 120ms, background 120ms',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = c.accent;
+                e.currentTarget.style.background = c.bgSubtle;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = c.border;
+                e.currentTarget.style.background = '#fff';
+              }}
+            >
+              <div
+                style={{
+                  width: 18,
+                  height: 18,
+                  flex: '0 0 18px',
+                  borderRadius: 4,
+                  background: c.accent,
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 10,
+                  fontWeight: 700,
+                }}
+              >
+                {t.steps.length}
+              </div>
+              <div style={{ flex: 1, minWidth: 0, fontWeight: 600, color: c.accentText, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {t.name}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <Section theme="offense" label="Outils" open>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
           {TOOLS.map((t) => {
@@ -106,68 +183,6 @@ export function OffensePanel(props: OffensePanelProps) {
               </button>
             );
           })}
-        </div>
-      </Section>
-
-      <Section theme="offense" label="Bibliothèque systèmes">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {TEMPLATES.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => {
-                if (state.steps.length > 1 || state.steps[0].annotations.length > 0) {
-                  if (!confirm(`Charger "${t.name}" ? Le travail en cours sera remplacé.`)) return;
-                }
-                props.onLoadTemplate(t);
-              }}
-              title={t.description}
-              style={{
-                textAlign: 'left',
-                padding: '8px 10px',
-                fontSize: 11,
-                borderRadius: 8,
-                border: `1px solid ${c.border}`,
-                background: '#fff',
-                cursor: 'pointer',
-                display: 'flex',
-                gap: 8,
-                alignItems: 'flex-start',
-                transition: 'border-color 120ms, background 120ms, transform 120ms',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = c.accent;
-                e.currentTarget.style.background = c.bg;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = c.border;
-                e.currentTarget.style.background = '#fff';
-              }}
-            >
-              <div
-                style={{
-                  width: 28,
-                  height: 28,
-                  flex: '0 0 28px',
-                  borderRadius: 6,
-                  background: c.accent,
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 11,
-                  fontWeight: 700,
-                }}
-              >
-                {t.steps.length}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, color: c.accentText, fontSize: 12 }}>{t.name}</div>
-                <div style={{ fontSize: 10, color: '#78716c', marginTop: 2, lineHeight: 1.35 }}>
-                  {t.description}
-                </div>
-              </div>
-            </button>
-          ))}
         </div>
       </Section>
 

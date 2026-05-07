@@ -11,13 +11,14 @@ export function MetricsBar({ metrics }: MetricsBarProps) {
     <div
       style={{
         display: 'flex',
-        gap: 6,
-        padding: '6px 8px',
+        gap: 4,
+        padding: '4px 6px',
         background: '#fff',
         border: '1px solid #e2e8f0',
-        borderRadius: 8,
+        borderRadius: 6,
         flexWrap: 'wrap',
         boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+        flex: '0 0 auto',
       }}
     >
       <Pill
@@ -93,14 +94,15 @@ function Pill({
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 5,
+        gap: 4,
         background: s.bg,
         border: `1px solid ${s.border}`,
-        borderRadius: 6,
-        padding: '3px 8px',
-        fontSize: 11,
+        borderRadius: 5,
+        padding: '2px 6px',
+        fontSize: 10,
         color: s.fg,
         cursor: title ? 'help' : 'default',
+        lineHeight: 1.4,
       }}
     >
       <span style={{ opacity: 0.7 }}>{label}</span>

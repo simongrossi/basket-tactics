@@ -42,11 +42,11 @@ export function Panel({ theme, title, children }: PanelProps) {
       style={{
         background: '#fff',
         border: `1px solid ${c.border}`,
-        borderRadius: 12,
-        padding: 12,
+        borderRadius: 10,
+        padding: 10,
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
+        gap: 8,
         minHeight: 0,
         overflow: 'hidden',
         boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04)',
@@ -57,14 +57,14 @@ export function Panel({ theme, title, children }: PanelProps) {
           display: 'flex',
           alignItems: 'center',
           gap: 8,
-          paddingBottom: 8,
+          paddingBottom: 6,
           borderBottom: `1px solid ${c.border}`,
         }}
       >
-        <div style={{ width: 4, height: 18, background: accent, borderRadius: 2 }} />
+        <div style={{ width: 4, height: 16, background: accent, borderRadius: 2 }} />
         <div
           style={{
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: 700,
             letterSpacing: '-0.01em',
             color: 'accentText' in c ? c.accentText : c.text,
@@ -73,7 +73,7 @@ export function Panel({ theme, title, children }: PanelProps) {
           {title}
         </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, overflow: 'auto', minHeight: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, overflow: 'auto', minHeight: 0 }}>
         {children}
       </div>
     </aside>
@@ -90,7 +90,7 @@ interface SectionProps {
 export function Section({ theme, label, open, children }: SectionProps) {
   const c = COLORS[theme];
   return (
-    <details open={open} style={{ borderTop: `1px solid ${c.border}`, paddingTop: 8 }}>
+    <details open={open} style={{ borderTop: `1px solid ${c.border}`, paddingTop: 6 }}>
       <summary
         style={{
           fontSize: 11,
@@ -106,7 +106,7 @@ export function Section({ theme, label, open, children }: SectionProps) {
       >
         {label}
       </summary>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>{children}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>{children}</div>
     </details>
   );
 }

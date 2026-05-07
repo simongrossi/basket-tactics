@@ -84,10 +84,10 @@ export default function Page() {
         maxHeight: '100vh',
         overflow: 'hidden',
         background: 'linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%)',
-        padding: '10px 14px 14px',
+        padding: '8px 12px 10px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
+        gap: 8,
       }}
     >
       <header
@@ -100,7 +100,7 @@ export default function Page() {
           flex: '0 0 auto',
         }}
       >
-        <h1 style={{ fontSize: 18, fontWeight: 600, color: '#0f172a', margin: 0, letterSpacing: '-0.01em' }}>
+        <h1 style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', margin: 0, letterSpacing: '-0.01em' }}>
           🏀 Simulateur tactique basket
         </h1>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -134,7 +134,7 @@ export default function Page() {
           onSetPlaybackSpeed={setPlaybackSpeed}
         />
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0, minHeight: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, minHeight: 0 }}>
           <CourtView
             state={app.state}
             onMoveAttacker={app.moveAttacker}
@@ -212,8 +212,8 @@ export default function Page() {
 
 const btnStyle: React.CSSProperties = {
   fontSize: 12,
-  padding: '7px 12px',
-  borderRadius: 8,
+  padding: '5px 10px',
+  borderRadius: 6,
   border: '1px solid #e2e8f0',
   background: '#fff',
   cursor: 'pointer',

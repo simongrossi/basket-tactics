@@ -7,6 +7,12 @@ Choix visuels et conventions appliqués dans l'application.
 ### Desktop (≥ 1100px)
 
 Layout 3 colonnes en grid CSS :
+### Bibliothèque systèmes (callout en haut de l'OffensePanel)
+
+Bloc visuellement distinct des `<Section>` ordinaires : background tinté `bg` orange clair, bordure gauche accent `#D85A30` (3px), titre court `📚 BIBLIOTHÈQUE — N systèmes` en majuscules. Toujours visible (pas de toggle), grille 2 colonnes de boutons compacts (badge nombre d'étapes + nom). Signale visuellement qu'on charge un système clé en main, distinct des réglages affinés des autres sections.
+
+### Layout 3 colonnes
+
 - **280px** : panneau attaque (gauche, orange)
 - **1fr** : zone centrale (terrain + timeline)
 - **320px** : panneau défense (droit, bleu)
