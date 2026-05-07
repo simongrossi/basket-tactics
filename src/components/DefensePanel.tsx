@@ -11,6 +11,7 @@ import type {
 } from '@/lib/types';
 import { Panel, Section, Slider, CheckboxLine, Button, COLORS } from './ui';
 import { DEFENSE_PRESETS, type DefensePreset } from '@/lib/data/defensePresets';
+import { SimulationSection } from './SimulationSection';
 
 interface DefensePanelProps {
   state: AppState;
@@ -423,6 +424,8 @@ export function DefensePanel(props: DefensePanelProps) {
           </Section>
         </>
       )}
+
+      <SimulationSection state={state} />
 
     </Panel>
   );
