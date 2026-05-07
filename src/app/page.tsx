@@ -188,7 +188,6 @@ export default function Page() {
               onSetDefenseSystem={app.setDefenseSystem}
               onUpdateZoneConfig={app.updateZoneConfig}
               onApplyDefensePreset={app.applyDefensePreset}
-              onApplyDefenderProfile={app.applyDefenderProfile}
               onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
             />
             <ParametresPanel state={app.state} onPatch={app.patch} />

@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import type {
   AppState,
   DefenderId,
@@ -12,9 +11,6 @@ import type {
 } from '@/lib/types';
 import { Panel, Section, Slider, CheckboxLine, Button, COLORS } from './ui';
 import { DEFENSE_PRESETS, type DefensePreset } from '@/lib/data/defensePresets';
-import { DEFENDER_PROFILES, type DefenderProfile } from '@/lib/data/defenderProfiles';
-
-const DEFENDER_IDS_LIST: DefenderId[] = ['D1', 'D2', 'D3', 'D4', 'D5'];
 
 interface DefensePanelProps {
   state: AppState;
@@ -25,7 +21,6 @@ interface DefensePanelProps {
   onSetDefenseSystem: (s: DefenseSystem) => void;
   onUpdateZoneConfig: (p: Partial<ZoneConfig>) => void;
   onApplyDefensePreset: (preset: DefensePreset) => void;
-  onApplyDefenderProfile: (dId: DefenderId, profile: DefenderProfile) => void;
   onClearAllDefenseOverrides: () => void;
 }
 
@@ -33,8 +28,6 @@ export function DefensePanel(props: DefensePanelProps) {
   const { state } = props;
   const c = COLORS.defense;
   const isMan = state.defenseSystem === 'man';
-  // Cible courante pour l'application d'un profil individuel ('all' = tous)
-  const [profileTarget, setProfileTarget] = useState<DefenderId | 'all'>('D1');
 
   return (
     <Panel theme="defense" title="🛡 Défense" fill>
@@ -46,95 +39,6 @@ export function DefensePanel(props: DefensePanelProps) {
               onClick={() => {
                 if (confirm(`Appliquer "${p.name}" ?\n\n${p.description}`)) {
                   props.onApplyDefensePreset(p);
-                }
-              }}
-              title={p.description}
-              style={{
-                textAlign: 'left',
-                padding: '6px 8px',
-                fontSize: 11,
-                borderRadius: 6,
-                border: `1px solid ${c.border}`,
-                background: '#fff',
-                cursor: 'pointer',
-                transition: 'border-color 120ms, background 120ms',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = c.accent;
-                e.currentTarget.style.background = c.bg;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = c.border;
-                e.currentTarget.style.background = '#fff';
-              }}
-            >
-              <div style={{ fontWeight: 600, color: c.accentText, fontSize: 12 }}>{p.name}</div>
-              <div style={{ fontSize: 10, color: '#475569', marginTop: 2, lineHeight: 1.35 }}>
-                {p.description}
-              </div>
-            </button>
-          ))}
-        </div>
-      </Section>
-
-      <Section theme="defense" label="Profils individuels">
-        <div style={{ fontSize: 10, color: '#475569', marginBottom: 6, lineHeight: 1.4 }}>
-          Applique un rôle à un défenseur (ou à tous). Merge — préserve les overrides individuels existants.
-        </div>
-        {/* Sélecteur de cible */}
-        <div style={{ display: 'flex', gap: 3, marginBottom: 6 }}>
-          {DEFENDER_IDS_LIST.map((dId) => {
-            const active = profileTarget === dId;
-            return (
-              <button
-                key={dId}
-                onClick={() => setProfileTarget(dId)}
-                style={{
-                  flex: 1,
-                  fontSize: 11,
-                  padding: '4px 0',
-                  borderRadius: 4,
-                  border: `1px solid ${active ? c.accent : c.border}`,
-                  background: active ? c.accent : '#fff',
-                  color: active ? '#fff' : c.accentText,
-                  cursor: 'pointer',
-                  fontWeight: active ? 600 : 500,
-                }}
-              >
-                {dId}
-              </button>
-            );
-          })}
-          <button
-            onClick={() => setProfileTarget('all')}
-            style={{
-              flex: 1.2,
-              fontSize: 11,
-              padding: '4px 0',
-              borderRadius: 4,
-              border: `1px solid ${profileTarget === 'all' ? c.accent : c.border}`,
-              background: profileTarget === 'all' ? c.accent : '#fff',
-              color: profileTarget === 'all' ? '#fff' : c.accentText,
-              cursor: 'pointer',
-              fontWeight: profileTarget === 'all' ? 600 : 500,
-            }}
-          >
-            tous
-          </button>
-        </div>
-        {/* Liste des profils */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {DEFENDER_PROFILES.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => {
-                const targetLabel = profileTarget === 'all' ? 'tous les défenseurs' : profileTarget;
-                if (confirm(`Appliquer "${p.name}" à ${targetLabel} ?\n\n${p.description}`)) {
-                  if (profileTarget === 'all') {
-                    DEFENDER_IDS_LIST.forEach((dId) => props.onApplyDefenderProfile(dId, p));
-                  } else {
-                    props.onApplyDefenderProfile(profileTarget, p);
-                  }
                 }
               }}
               title={p.description}
