@@ -582,6 +582,9 @@ export function CourtView(props: CourtViewProps) {
                 onMoveHomePos={(regionId, pos) =>
                   props.onSetZoneOverride(regionId, { homePos: { x: Math.round(pos.x), y: Math.round(pos.y) } })
                 }
+                onUpdatePolygon={(regionId, polygon) =>
+                  props.onSetZoneOverride(regionId, { polygon })
+                }
                 onSelectRegion={(regionId, e) => {
                   const wrap = svgRef.current?.parentElement?.getBoundingClientRect();
                   if (!wrap) return;

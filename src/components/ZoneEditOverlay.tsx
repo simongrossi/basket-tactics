@@ -11,6 +11,9 @@ interface ZoneEditOverlayProps {
   toCourtPoint: (clientX: number, clientY: number) => Point | null;
   onMoveHomePos: (regionId: string, pos: Point) => void;
   onSelectRegion: (regionId: string, e: React.MouseEvent) => void;
+  /** Sauvegarde le polygone modifié d'une région (drag d'un sommet, ajout
+   *  ou suppression). Le caller wrappe vers `setZoneOverride({ polygon })`. */
+  onUpdatePolygon: (regionId: string, polygon: Point[]) => void;
 }
 
 /**
@@ -29,27 +32,73 @@ export function ZoneEditOverlay({
   toCourtPoint,
   onMoveHomePos,
   onSelectRegion,
+  onUpdatePolygon,
 }: ZoneEditOverlayProps) {
-  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [draggingHome, setDraggingHome] = useState<string | null>(null);
+  const [draggingVertex, setDraggingVertex] = useState<{ regionId: string; index: number } | null>(null);
 
-  const onPointerDown = (e: React.PointerEvent, regionId: string) => {
+  const onHomeDown = (e: React.PointerEvent, regionId: string) => {
     e.stopPropagation();
     e.preventDefault();
     (e.target as Element).setPointerCapture(e.pointerId);
-    setDraggingId(regionId);
+    setDraggingHome(regionId);
+  };
+
+  const onVertexDown = (e: React.PointerEvent, regionId: string, index: number) => {
+    e.stopPropagation();
+    e.preventDefault();
+    // Shift+clic = supprimer le sommet (si min 4 → reste 3 après suppression)
+    if (e.shiftKey) {
+      const region = layout.find((r) => r.id === regionId);
+      if (region && region.polygon.length > 3) {
+        const newPoly = region.polygon.filter((_, i) => i !== index);
+        onUpdatePolygon(regionId, newPoly);
+      }
+      return;
+    }
+    (e.target as Element).setPointerCapture(e.pointerId);
+    setDraggingVertex({ regionId, index });
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!draggingId) return;
-    const pt = toCourtPoint(e.clientX, e.clientY);
-    if (!pt) return;
-    onMoveHomePos(draggingId, pt);
+    if (draggingHome) {
+      const pt = toCourtPoint(e.clientX, e.clientY);
+      if (pt) onMoveHomePos(draggingHome, pt);
+      return;
+    }
+    if (draggingVertex) {
+      const pt = toCourtPoint(e.clientX, e.clientY);
+      if (!pt) return;
+      const region = layout.find((r) => r.id === draggingVertex.regionId);
+      if (!region) return;
+      const newPoly = region.polygon.map((p, i) =>
+        i === draggingVertex.index ? { x: Math.round(pt.x), y: Math.round(pt.y) } : p
+      );
+      onUpdatePolygon(draggingVertex.regionId, newPoly);
+    }
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
-    if (!draggingId) return;
-    (e.target as Element).releasePointerCapture(e.pointerId);
-    setDraggingId(null);
+    if (draggingHome) {
+      (e.target as Element).releasePointerCapture(e.pointerId);
+      setDraggingHome(null);
+    }
+    if (draggingVertex) {
+      (e.target as Element).releasePointerCapture(e.pointerId);
+      setDraggingVertex(null);
+    }
+  };
+
+  const onEdgeClick = (e: React.MouseEvent, regionId: string, edgeIndex: number) => {
+    // Insert un nouveau sommet au point cliqué, à l'index edgeIndex+1
+    e.stopPropagation();
+    const pt = toCourtPoint(e.clientX, e.clientY);
+    if (!pt) return;
+    const region = layout.find((r) => r.id === regionId);
+    if (!region) return;
+    const newPoly = [...region.polygon];
+    newPoly.splice(edgeIndex + 1, 0, { x: Math.round(pt.x), y: Math.round(pt.y) });
+    onUpdatePolygon(regionId, newPoly);
   };
 
   return (
@@ -58,7 +107,7 @@ export function ZoneEditOverlay({
         const color = REGION_COLORS[i % REGION_COLORS.length];
         const points = zone.polygon.map((p) => `${p.x},${p.y}`).join(' ');
         const radius = zone.radius ?? 200;
-        const isDragging = draggingId === zone.id;
+        const isDragging = draggingHome === zone.id;
         return (
           <g key={zone.id}>
             {/* Fill coloré semi-transparent — la "couleur" de responsabilité.
@@ -112,6 +161,43 @@ export function ZoneEditOverlay({
                 {zone.label} → {zone.assignedTo}
               </text>
             </g>
+            {/* Arêtes invisibles cliquables : ajout de sommet au clic */}
+            {zone.polygon.map((p, i) => {
+              const next = zone.polygon[(i + 1) % zone.polygon.length];
+              return (
+                <line
+                  key={`edge-${i}`}
+                  x1={p.x}
+                  y1={p.y}
+                  x2={next.x}
+                  y2={next.y}
+                  stroke="transparent"
+                  strokeWidth={14}
+                  style={{ cursor: 'copy' }}
+                  onClick={(e) => onEdgeClick(e, zone.id, i)}
+                />
+              );
+            })}
+            {/* Sommets draggables (drag = reshape, shift+clic = supprimer) */}
+            {zone.polygon.map((p, i) => {
+              const isDragV =
+                draggingVertex?.regionId === zone.id && draggingVertex?.index === i;
+              return (
+                <circle
+                  key={`vertex-${i}`}
+                  cx={p.x}
+                  cy={p.y}
+                  r={isDragV ? 7 : 5}
+                  fill="#fff"
+                  stroke={color}
+                  strokeWidth={2}
+                  style={{ cursor: 'grab' }}
+                  onPointerDown={(e) => onVertexDown(e, zone.id, i)}
+                  onPointerMove={onPointerMove}
+                  onPointerUp={onPointerUp}
+                />
+              );
+            })}
             {/* Handle draggable au homePos */}
             <circle
               cx={zone.homePos.x}
@@ -121,7 +207,7 @@ export function ZoneEditOverlay({
               stroke="#fff"
               strokeWidth={2}
               style={{ cursor: 'grab' }}
-              onPointerDown={(e) => onPointerDown(e, zone.id)}
+              onPointerDown={(e) => onHomeDown(e, zone.id)}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
             />
@@ -157,7 +243,7 @@ interface ZoneRegionMenuProps {
   region: ZoneRegion;
   x: number;
   y: number;
-  onUpdate: (patch: { radius?: number; mode?: ZoneRegionMode }) => void;
+  onUpdate: (patch: { radius?: number; mode?: ZoneRegionMode; polygon?: Point[] }) => void;
   onReset: () => void;
   onClose: () => void;
 }

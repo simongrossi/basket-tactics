@@ -133,6 +133,10 @@ export interface ZoneRegionOverride {
   homePos?: Point;
   radius?: number;
   mode?: ZoneRegionMode;
+  /** Polygone redessiné (drag des sommets, ajout/suppression). Liste de
+   *  points ordonnés. Si défini, remplace complètement le polygone par
+   *  défaut. Min 3 sommets. */
+  polygon?: Point[];
 }
 
 export type ZoneOverrides = Record<string, ZoneRegionOverride>;

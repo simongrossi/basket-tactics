@@ -340,6 +340,7 @@ export function applyZoneOverrides(
       homePos: o.homePos ?? r.homePos,
       radius: o.radius ?? r.radius,
       mode: o.mode ?? r.mode,
+      polygon: o.polygon ?? r.polygon,
     };
   });
 }

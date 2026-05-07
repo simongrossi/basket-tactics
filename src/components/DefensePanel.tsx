@@ -177,7 +177,7 @@ export function DefensePanel(props: DefensePanelProps) {
               checked={!!state.zoneEditMode}
               label="✎ mode édition zones"
               onChange={(v) => props.onPatch({ zoneEditMode: v })}
-              title="Active l'overlay interactif : régions colorées, drag des homePos pour repositionner les ancrages, clic sur les labels pour ouvrir le menu (mode + rayon de responsabilité par région)."
+              title="Active l'overlay interactif : régions colorées, drag des homePos (rond coloré) pour repositionner les ancrages. Drag des sommets blancs pour reshaper le polygone librement. Clic sur une arête pour ajouter un sommet. Shift+clic sur un sommet pour le supprimer. Clic sur le label pour ouvrir le menu (mode + rayon)."
             />
           </div>
         </Section>

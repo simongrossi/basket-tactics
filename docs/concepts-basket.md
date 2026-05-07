@@ -147,6 +147,7 @@ Toggle `✎ mode édition zones` dans le panneau Défense (zone uniquement). Act
 - **Régions colorées** : chaque zone reçoit un fill semi-transparent vif (5 couleurs distinctes) avec contour plein
 - **Cercle de rayon de responsabilité** : visible en pointillé autour de chaque homePos — montre où le défenseur sortira sur un attaquant
 - **Handle draggable** au homePos : repositionne l'ancrage. **Drag du défenseur lui-même** = même chose (le défenseur et son ancrage sont liés en mode édition). L'override est stocké dans `state.zoneOverrides[regionId].homePos` et persiste jusqu'au changement de type de zone (qui efface tout)
+- **Sommets blancs** sur le contour des polygones : draggables pour reshaper la zone librement. **Clic sur une arête** = ajoute un nouveau sommet au point cliqué. **Shift+clic sur un sommet** = supprime le sommet (min 3 conservés). Le polygone modifié est stocké dans `state.zoneOverrides[regionId].polygon` et survit aux re-renders. Affecte la rotation (mapAttackersToZones utilise pointInPolygon) et la visualisation
 - **Label cliquable** (`Top G → D2`) : ouvre un popup par région avec :
   - **mode** : `auto` (standard) / `agressif` (engagement +50%) / `passif` (engagement ×0.5) / `trap` (full track sur le porteur, stance bumper)
   - **rayon** : slider 80–350px (default 200) pour étendre ou restreindre la zone d'influence
