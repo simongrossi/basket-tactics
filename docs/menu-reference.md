@@ -73,6 +73,7 @@ Pills colorées affichées en temps réel selon l'étape active. Voir `lib/logic
 | **en retard** | Nb de défenseurs `late: true` | — |
 | **aide** | Somme des `helpFactor` | Intensité d'aide globale |
 | **passes** | `ouvertes / total` depuis le porteur | Détail ouvertes/contestées/bloquées |
+| **meilleure action** | Phase B simulation : meilleure option offensive (tir / drive / passe OX) avec son EV en points (`X.XX pts`). Tone vert ≤ 0.7 (défense ferme), jaune ≤ 1.2, rouge ≥ 1.2 (système troué). Voir [simulation.md](simulation.md). |
 
 Code couleur des pills : vert (bon), orange (alerte), rouge (mauvais), gris (neutre).
 
@@ -170,6 +171,18 @@ Tableau 5 lignes (D1–D5) × 6 colonnes :
 
 Astuce : **clic-droit** sur un défenseur sur le terrain ouvre un menu compact avec les mêmes réglages.
 
+### Simulation (Monte Carlo)
+
+Section en bas du panneau Défense — toujours visible (en man comme en zone). Trois boutons preset : `▶ 50 runs / ▶ 200 runs / ▶ 1000 runs`. Cliquer lance une simulation de N possessions stochastiques depuis l'état courant.
+
+Affiche après le lancement :
+- **PPP** (points per possession) — métrique reine. Vert ≤ 0.85, jaune, rouge ≥ 1.10
+- **eFG%** — effective field goal % (pondère 3pts à 1.5 vs 2pts à 1.0)
+- **score%** — % de possessions qui finissent en tir réussi
+- Distribution détaillée : tirs réussis, tirs manqués, pertes (passe / drive), tirs forcés (24s violation émulée)
+
+Le modèle, les limites et les formules sont détaillés dans [simulation.md](simulation.md). 200 runs = retour quasi-immédiat (~50-100ms), 1000 runs = ~200-500ms.
+
 ### Visu & légende
 
 Section unifiée. Chaque toggle est précédé de son **swatch visuel** (mini-aperçu de la couleur/forme correspondante sur le terrain) — la section sert à la fois de panneau de contrôle ET de légende. En bas, sous une ligne pointillée, les **indicateurs auto** (visuels qui s'affichent contextuellement, pas de toggle) sont listés en grille 2 colonnes pour rester sous les yeux.
@@ -182,6 +195,8 @@ Section unifiée. Chaque toggle est précédé de son **swatch visuel** (mini-ap
 | **lignes de passe** | Lignes colorées (vert / orange / rouge) depuis le porteur vers chaque cible selon ouverture/contestation/blocage |
 | **mode fantôme (ghost N-1)** | Affiche en transparence les positions de l'étape précédente pour visualiser les vecteurs de déplacement. Inactif pendant la lecture et le scrubbing. |
 | **heatmap zones** | Calque "feu tricolore" pastel sur tout le terrain. **Vert** = zone libre (peu de pression défensive, opportunité). **Jaune** = contestable. **Rouge** = bien défendue. Couleurs claires pour rester lisible avec le terrain. |
+| **menace attaquants** | Phase A simulation. Anneau coloré + badge % autour de chaque attaquant indiquant son score de menace (proba de marquer s'il devient l'option). Vert = open, rouge = locked. Porteur en anneau plein, non-porteurs en pointillé. Voir [simulation.md](simulation.md). |
+| **meilleure action** | Phase B simulation. Flèche dorée sur le terrain pointant la meilleure action offensive calculée (tir / drive / passe vers OX) avec son EV en points. Couronne dorée sur le porteur si tir direct, ring doré sur le receveur si passe. |
 
 #### Indicateurs auto (toggleables)
 

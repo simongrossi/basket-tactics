@@ -12,6 +12,23 @@ effectiveDefensePositions(state, stepIdx) : ComputedDefense
 
 C'est le seul point d'entrée appelé par le rendu. Tout le reste est interne.
 
+## Modules
+
+| Fichier | Rôle |
+|---------|------|
+| `engine.ts` | Pipeline principal. `effectiveDefensePositions`, `computeDefenseTargets`, dispatch man/zone, switches/écrans. |
+| `manDefense.ts` | Cibles individuelles : `manTarget`, `carrierDefenderTarget`, `offBallStanceTarget`, offset latéral selon orientation. |
+| `zoneDefense.ts` | Cibles en zone : tracking continu basé sur homePos + scoring (matchup naturel, polygone, engagement). |
+| `help.ts` | Calcul de l'aide weak-side / strong-side denial / sag. |
+| `screens.ts` | Détection écrans porteur (`detectScreen`) et non-porteur (`detectOffBallScreens`). |
+| `triggers.ts` | Conditions qui activent l'aide (drive, post, paint, trap). |
+| `trap.ts` | Choix du défenseur qui vient au piège quand un trap-zone est déclenché. |
+| `geometry.ts` | Helpers `distance`, `clamp`, courbes Bezier pour évitement d'écran. |
+| `metrics.ts` | Métriques défensives temps réel (gap, paint coverage, passes…). |
+| `threats.ts` | **Phase A simulation** : score de menace par attaquant. Voir [simulation.md](simulation.md). |
+| `offense.ts` | **Phase B simulation** : EV des actions offensives + meilleure action. |
+| `simulator.ts` | **Phase C simulation** : Monte Carlo de possessions (PPP, eFG%). |
+
 ## Pipeline de calcul
 
 ```

@@ -28,7 +28,7 @@ Les tests vivent à côté du code testé sous `__tests__/`. Le pattern d'inclus
 
 ## Couverture actuelle
 
-93 tests sur 7 modules de la logique défensive.
+109 tests sur 10 modules de la logique défensive et de la simulation.
 
 ### `engine.test.ts`
 - `getMatchupsAt` : matchups de base, application d'un switch, cumul de plusieurs switches sur étapes successives, immuabilité de `baseMatchups`.
@@ -69,6 +69,16 @@ Les tests vivent à côté du code testé sous `__tests__/`. Le pattern d'inclus
 
 ### Engine — attackingDirection
 Régression que `attackingDirection='up'` (default) place les défenseurs entre attaquants et HOOP top, et que `attackingDirection='down'` (avec positions miroir en bas) les place entre attaquants et HOOP_OPPOSITE.
+
+### `threats.test.ts` (Phase A simulation)
+- `shotZoneFor` : classification correcte des 5 zones (rim, paint, mid, three, deep) selon distance au panier.
+- `computeAttackerThreats` : porteur a `receivability=1`, défenseur collé contestera fortement le tir (shotQuality réduite), O5 sous le panier (rim) > O1 deep en shotQuality, `bestOffensiveOption` renvoie l'attaquant avec le score max.
+
+### `offense.test.ts` (Phase B simulation)
+- `evaluateOffensiveOptions` : inclut shoot + 4 passes (un par coéquipier), inclut un drive si carrier > 60px du panier, exclut le drive si déjà au rim, choisit `pass-shoot` vers le meilleur shooter ouvert plutôt que tir loin contesté, actions triées par EV décroissant.
+
+### `simulator.test.ts` (Phase C simulation Monte Carlo)
+- `simulatePossessions` : PPP cohérent dans [0, 3], défense lockdown produit un PPP plus faible que défense absente (régression de cohérence du modèle), somme des outcomes = N runs, `runs=0` retourne ppp=0 sans crash, **reproductibilité avec RNG seedé** (deux runs avec la même seed donnent un PPP identique — utilisation de mulberry32).
 
 ## Conventions
 

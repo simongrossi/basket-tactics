@@ -10,6 +10,7 @@ Cette documentation couvre tous les aspects du projet, de l'architecture à la s
 | [data-model.md](data-model.md) | Forme de l'`AppState`, types, persistance |
 | [concepts-basket.md](concepts-basket.md) | Vocabulaire basket : écrans, défense de zone, denial, switch… |
 | [logique-defensive.md](logique-defensive.md) | Comment le moteur calcule les positions des défenseurs |
+| [simulation.md](simulation.md) | Modèle de menace, EV des actions, Monte Carlo possessions (PPP/eFG%) |
 | [ui-design.md](ui-design.md) | Choix visuels, layout 3 colonnes, codes couleur, conventions de tracé |
 | [menu-reference.md](menu-reference.md) | Référence exhaustive de chaque réglage du panneau |
 | [bibliotheque-systemes.md](bibliotheque-systemes.md) | Templates fournis, format pour en ajouter |

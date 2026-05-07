@@ -47,6 +47,8 @@ interface AppState {
   showGhosts?: boolean;                 // mode fantôme : affiche l'étape N-1 en transparence
   showActionOrder?: boolean;            // badges numérotés sur les actions de l'étape active
   showHeatmap?: boolean;                // calque heatmap des zones non-défendues (jaune/orange/rouge)
+  showThreats?: boolean;                // anneau + badge % score de menace par attaquant (Phase A simu)
+  showBestAction?: boolean;             // flèche dorée sur la meilleure option offensive (Phase B simu)
   showSwitchMatchups?: boolean;         // surligne en orange le matchup post-switch (default true)
   showScreenIndicators?: boolean;       // cercles violet/vert sur les poseurs d'écran (default true)
   showStateRings?: boolean;             // anneaux carrier/late/closeout/denial sur défenseurs (default true)

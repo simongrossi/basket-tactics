@@ -52,6 +52,11 @@ src/
     │   ├── triggers.ts       # détection drive / post-up / paint
     │   ├── screens.ts        # détection + ajustement écrans (porteur + non-porteur)
     │   ├── zoneDefense.ts    # logique de zone (mapping, rotation)
+    │   ├── trap.ts           # choix du défenseur en aide-trap
+    │   ├── metrics.ts        # métriques défensives (gap, paint coverage, passes)
+    │   ├── threats.ts        # Phase A simu : score de menace par attaquant
+    │   ├── offense.ts        # Phase B simu : EV des actions offensives
+    │   ├── simulator.ts      # Phase C simu : Monte Carlo de possessions (PPP)
     │   └── geometry.ts       # utilitaires : distance, clamp, lerp, ballSide
     └── types/
         └── index.ts          # tous les types
@@ -96,7 +101,7 @@ L'utilisateur peut **drag** un défenseur sur le terrain → la position est éc
 Toute la logique défensive (engine.ts, screens.ts, etc.) est **pure** : entrée = `AppState`, sortie = positions. Aucun hook React, aucun localStorage, aucun side-effect.
 
 Avantages :
-- Testable isolément (cf. [testing.md](testing.md) — 79 tests Vitest sur engine, screens, metrics, help, trap, manDefense, geometry)
+- Testable isolément (cf. [testing.md](testing.md) — 109 tests Vitest sur engine, screens, metrics, help, trap, manDefense, geometry, threats, offense, simulator)
 - Réutilisable en SSR / export PDF / preview
 - Le rendu peut s'appuyer dessus sans gérer d'état intermédiaire
 
