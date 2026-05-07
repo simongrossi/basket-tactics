@@ -18,13 +18,8 @@ interface OffensePanelProps {
   onSetBallCarrier: (carrier: AttackerId) => void;
   onLoadTemplate: (template: Template) => void;
   onDeleteAnnotation: (idx: number) => void;
-  onPlayToggle: () => void;
-  onStop: () => void;
-  isPlaying: boolean;
   tool: Tool;
   onSetTool: (t: Tool) => void;
-  playbackSpeed: number;
-  onSetPlaybackSpeed: (s: number) => void;
 }
 
 const ANNOTATION_LABELS: Record<'pass' | 'dribble' | 'cut' | 'screen', { label: string; symbol: string }> = {
@@ -87,7 +82,7 @@ export function OffensePanel(props: OffensePanelProps) {
   const [libraryOpen, setLibraryOpen] = useState(false);
 
   return (
-    <Panel theme="offense" title="⚪ Attaque" fill>
+    <Panel theme="offense" title="⚪ Attaque">
       {/* Bouton compact qui ouvre la bibliothèque en modal — descriptions
           visibles, pas de friction sur l'espace du panel. */}
       <button
@@ -282,28 +277,6 @@ export function OffensePanel(props: OffensePanelProps) {
           <Button theme="offense" onClick={props.onAddStep}>+ étape</Button>
           <Button theme="offense" onClick={props.onDuplicateStep}>dup.</Button>
           <Button theme="offense" onClick={props.onDeleteStep}>suppr.</Button>
-        </div>
-      </Section>
-
-      <Section theme="offense" label="Lecture" open>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <Button theme="offense" variant={props.isPlaying ? 'solid' : 'outline'} onClick={props.onPlayToggle}>
-            {props.isPlaying ? '⏸ pause' : '▶ play'}
-          </Button>
-          <Button theme="offense" onClick={props.onStop}>■ stop</Button>
-        </div>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4 }}>
-          <span style={{ fontSize: 11, color: '#57534e', minWidth: 50 }}>vitesse</span>
-          <input
-            type="range"
-            min={0.3}
-            max={2}
-            step={0.1}
-            value={props.playbackSpeed}
-            onChange={(e) => props.onSetPlaybackSpeed(parseFloat(e.target.value))}
-            style={{ flex: 1 }}
-          />
-          <span style={{ fontSize: 11, minWidth: 30, textAlign: 'right' }}>{props.playbackSpeed.toFixed(1)}×</span>
         </div>
       </Section>
     </Panel>

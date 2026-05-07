@@ -116,17 +116,8 @@ export default function Page() {
               onSetBallCarrier={app.setBallCarrier}
               onLoadTemplate={app.loadTemplate}
               onDeleteAnnotation={app.deleteAnnotation}
-              onPlayToggle={handlePlayToggle}
-              onStop={() => {
-                setIsPlaying(false);
-                setPlaybackT(null);
-                app.setActiveStep(0);
-              }}
-              isPlaying={isPlaying}
               tool={app.state.tool}
               onSetTool={app.setTool}
-              playbackSpeed={playbackSpeed}
-              onSetPlaybackSpeed={setPlaybackSpeed}
             />
             <ActionsPanel
               presentMode={presentMode}
@@ -169,6 +160,14 @@ export default function Page() {
             isPlaying={isPlaying}
             scrubT={scrubT}
             playbackT={playbackT}
+            onPlayToggle={handlePlayToggle}
+            onStop={() => {
+              setIsPlaying(false);
+              setPlaybackT(null);
+              app.setActiveStep(0);
+            }}
+            playbackSpeed={playbackSpeed}
+            onSetPlaybackSpeed={setPlaybackSpeed}
           />
           {metrics && <MetricsBar metrics={metrics} />}
         </div>

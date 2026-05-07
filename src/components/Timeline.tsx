@@ -10,15 +10,25 @@ interface TimelineProps {
   isPlaying: boolean;
   scrubT: number | null;
   playbackT?: number | null;
+  /** Contrôles de lecture rendus à côté du scrub track. Optionnels pour
+   *  rester rétro-compatible avec d'éventuels usages sans contrôles. */
+  onPlayToggle?: () => void;
+  onStop?: () => void;
+  playbackSpeed?: number;
+  onSetPlaybackSpeed?: (s: number) => void;
 }
 
 /**
- * Timeline des étapes avec scrubbing fluide.
+ * Timeline des étapes avec scrubbing fluide + contrôles de lecture inline.
  * - clic sur un marqueur = activeStep
  * - clic-glisser = scrubbing fluide entre les étapes (callback onScrub)
  * - relâcher = snap à l'étape entière la plus proche
+ * - barre top : ▶/⏸/■ et slider de vitesse à côté du scrub track
  */
-export function Timeline({ state, onSetActiveStep, onScrub, isPlaying, scrubT, playbackT }: TimelineProps) {
+export function Timeline({
+  state, onSetActiveStep, onScrub, isPlaying, scrubT, playbackT,
+  onPlayToggle, onStop, playbackSpeed, onSetPlaybackSpeed,
+}: TimelineProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const total = state.steps.length;
@@ -63,8 +73,62 @@ export function Timeline({ state, onSetActiveStep, onScrub, isPlaying, scrubT, p
   const currentStepIdx = Math.round(displayT);
   const currentStep = state.steps[currentStepIdx];
 
+  const hasControls = onPlayToggle && onStop && onSetPlaybackSpeed && playbackSpeed != null;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 0, flex: '0 0 auto' }}>
+      {hasControls && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={onPlayToggle}
+            style={{
+              fontSize: 12,
+              padding: '5px 10px',
+              borderRadius: 6,
+              border: `1px solid ${isPlaying ? '#9a3412' : '#fed7aa'}`,
+              background: isPlaying ? '#D85A30' : '#fff',
+              color: isPlaying ? '#fff' : '#7c2d12',
+              cursor: 'pointer',
+              fontWeight: 500,
+              flex: '0 0 auto',
+              minWidth: 70,
+            }}
+          >
+            {isPlaying ? '⏸ pause' : '▶ play'}
+          </button>
+          <button
+            onClick={onStop}
+            style={{
+              fontSize: 12,
+              padding: '5px 10px',
+              borderRadius: 6,
+              border: '1px solid #fed7aa',
+              background: '#fff',
+              color: '#7c2d12',
+              cursor: 'pointer',
+              fontWeight: 500,
+              flex: '0 0 auto',
+            }}
+          >
+            ■ stop
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+            <span style={{ fontSize: 11, color: '#57534e' }}>vitesse</span>
+            <input
+              type="range"
+              min={0.3}
+              max={2}
+              step={0.1}
+              value={playbackSpeed}
+              onChange={(e) => onSetPlaybackSpeed?.(parseFloat(e.target.value))}
+              style={{ width: 110 }}
+            />
+            <span style={{ fontSize: 11, minWidth: 30, textAlign: 'right' }}>
+              {playbackSpeed.toFixed(1)}×
+            </span>
+          </div>
+        </div>
+      )}
       <div
         ref={trackRef}
         onPointerDown={onPointerDown}

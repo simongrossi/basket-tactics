@@ -198,6 +198,15 @@ Les autres entrées de la légende (`zone tracké`, `passe contestée/bloquée`,
 | **numéroter les actions (1, 2, 3…)** | Affiche des badges noirs numérotés au pied du joueur initiateur de chaque annotation de l'étape active, dans l'ordre des annotations. Inactif pendant la lecture et le scrubbing. Apparaît aussi automatiquement dans les vignettes du playbook PDF. |
 | **↻ sens d'attaque** | Bascule `attackingDirection` entre `up` et `down`. Disponible uniquement en terrain complet. La logique défensive (man + zone) suit le panier ciblé : positions, layouts de zone (polygones miroir), triggers, trap, metrics, rotations. |
 
+## Contrôles de lecture (au-dessus de la timeline)
+
+Une barre compacte au-dessus du scrub track contient :
+- **▶ play / ⏸ pause** (bouton orange quand actif, bordure foncée)
+- **■ stop** (revient à l'étape 0 et coupe la lecture)
+- **vitesse** : slider 0.3× à 2× (default 1×) avec affichage de la valeur
+
+Anciennement dans une section "Lecture" du panneau Attaque ; déplacé pour gagner de la place dans le panel et regrouper toutes les commandes de lecture au même endroit que la timeline.
+
 ## Panneau Actions (bas de la colonne gauche)
 
 5 boutons compacts empilés en pleine largeur, anciennement dans le header.
