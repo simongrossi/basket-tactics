@@ -18,9 +18,11 @@ const INFLUENCE_RADIUS = 110;
  *  plus de cellules à rendre. 30px est un bon compromis lisible/perf. */
 const CELL_SIZE = 30;
 
-/** Pression au-delà de laquelle on sature en rouge (bien défendu). Valeurs
- *  pratiques : ≈0.7 = défenseur proche → presque rouge. */
-const PRESSURE_NORM = 1.2;
+/** Pression au-delà de laquelle on sature en rouge (bien défendu). Plus la
+ *  valeur est basse, plus la heatmap penche côté défense (un seul défenseur
+ *  à mi-portée fait déjà virer au rouge). 0.7 ≈ un défenseur dans les 30px
+ *  d'une cellule la marque rouge. */
+const PRESSURE_NORM = 0.7;
 
 /**
  * Calque heatmap "feu tricolore" : couleurs traffic-light pastel pour
