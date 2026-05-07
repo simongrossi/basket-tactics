@@ -81,6 +81,7 @@ export function makeInitialState(): AppState {
     attackingDirection: 'up',
     showGhosts: false,
     showActionOrder: false,
+    showHeatmap: false,
     closeoutBoost: 1.4,
     denyAggressiveness: 0.45,
   };

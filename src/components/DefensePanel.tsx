@@ -405,6 +405,11 @@ export function DefensePanel(props: DefensePanelProps) {
             onChange={(v) => props.onPatch({ showActionOrder: v })}
           />
           <CheckboxLine
+            checked={!!state.showHeatmap}
+            label="heatmap zones"
+            onChange={(v) => props.onPatch({ showHeatmap: v })}
+          />
+          <CheckboxLine
             checked={state.fullCourt}
             label="terrain complet"
             onChange={(v) => props.onPatch({ fullCourt: v })}

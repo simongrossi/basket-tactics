@@ -183,6 +183,10 @@ export interface AppState {
   /** Affiche les badges numérotés 1/2/3… sur les actions de l'étape active
    *  (vue d'édition). Utile pour lire la séquence sans switcher d'étape. */
   showActionOrder?: boolean;
+  /** Calque heatmap qui surligne en jaune/orange/rouge les zones non-défendues
+   *  (faible pression défensive cumulée). Aide à voir d'un coup d'œil les
+   *  espaces ouverts pour passe ou tir. */
+  showHeatmap?: boolean;
   /** Multiplicateur de vitesse appliqué au défenseur du nouveau porteur en
    *  closeout. 1 = closeout désactivé, 1.4 = défaut, 2 = très agressif. */
   closeoutBoost?: number;

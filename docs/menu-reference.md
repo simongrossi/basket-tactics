@@ -179,6 +179,7 @@ Astuce : **clic-droit** sur un défenseur sur le terrain ouvre un menu compact a
 | **terrain complet** | Étend le terrain à 1080 de hauteur avec second panier (active aussi le bouton "↻ sens d'attaque") |
 | **lignes de passe** | Lignes colorées (vert / orange / rouge) depuis le porteur vers chaque cible selon ouverture/contestation/blocage |
 | **mode fantôme (ghost N-1)** | Affiche en transparence les positions de l'étape précédente pour visualiser les vecteurs de déplacement. Inactif pendant la lecture et le scrubbing. |
+| **heatmap zones** | Calque qui surligne en jaune/orange/rouge les zones du terrain où la pression défensive cumulée est faible. Permet de voir d'un coup d'œil les espaces ouverts pour passe ou tir. Plus la couleur est rouge, plus la zone est ouverte. Les zones bien défendues restent transparentes. |
 | **numéroter les actions (1, 2, 3…)** | Affiche des badges noirs numérotés au pied du joueur initiateur de chaque annotation de l'étape active, dans l'ordre des annotations. Inactif pendant la lecture et le scrubbing. Apparaît aussi automatiquement dans les vignettes du playbook PDF. |
 | **↻ sens d'attaque** | Bascule `attackingDirection` entre `up` et `down`. Disponible uniquement en terrain complet. La logique défensive (man + zone) suit le panier ciblé : positions, layouts de zone (polygones miroir), triggers, trap, metrics, rotations. |
 
@@ -214,9 +215,10 @@ Si une position manuelle (override drag) est active, un bouton "↻ ré-auto-pos
 
 ### Suppression d'une action
 
-Sur l'étape active dans le panneau Attaque (section Étapes), la liste des annotations s'affiche avec un `×` rouge à droite de chaque ligne. Trois chemins disponibles selon la situation :
+Quatre chemins disponibles selon la situation :
 
-- **Une annotation précise au milieu** → cliquer son `×` dans la liste de l'étape
+- **Clic-droit sur la flèche** sur le terrain → suppression directe de cette annotation (le plus rapide pour cibler une action visible)
+- **Liste de l'étape active** dans le panneau Attaque → cliquer le `×` rouge à droite de la ligne
 - **La dernière annotation** → touche `Suppr` ou `Backspace` (raccourci global)
 - **Toutes les annotations d'un joueur** → clic-droit sur l'attaquant → "effacer ses annotations"
 - **Tout annuler** → `Ctrl/Cmd+Z` (undo)

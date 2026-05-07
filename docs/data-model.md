@@ -46,6 +46,7 @@ interface AppState {
   attackingDirection?: 'up' | 'down';   // sens d'attaque (panier visé). Default 'up'.
   showGhosts?: boolean;                 // mode fantôme : affiche l'étape N-1 en transparence
   showActionOrder?: boolean;            // badges numérotés sur les actions de l'étape active
+  showHeatmap?: boolean;                // calque heatmap des zones non-défendues (jaune/orange/rouge)
   closeoutBoost?: number;               // multiplicateur vit. max du défenseur en closeout (default 1.4)
   denyAggressiveness?: number;          // intensité max du strong-side denial automatique (default 0.45)
 }

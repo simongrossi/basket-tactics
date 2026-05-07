@@ -30,6 +30,7 @@ import {
 } from '@/lib/logic/geometry';
 import { ContextMenu } from './ContextMenu';
 import { ActionOrderBadges } from './ActionOrderBadges';
+import { HeatmapOverlay } from './HeatmapOverlay';
 
 interface CourtViewProps {
   state: AppState;
@@ -41,6 +42,7 @@ interface CourtViewProps {
   onSetBallCarrier: (oId: AttackerId) => void;
   onSetForcedScreener: (oId: AttackerId | null) => void;
   onClearAnnotationsFor: (oId: AttackerId) => void;
+  onDeleteAnnotation: (idx: number) => void;
   onSetTool: (t: Tool) => void;
   isPlaying: boolean;
   playbackSpeed: number;
@@ -474,6 +476,15 @@ export function CourtView(props: CourtViewProps) {
   };
 
   const onContextMenu = (e: React.MouseEvent) => {
+    // Annotation : suppression directe au clic-droit sur la flèche
+    const annotationG = (e.target as Element).closest('g[data-annotation-idx]');
+    const annoIdxStr = annotationG?.getAttribute('data-annotation-idx');
+    if (annoIdxStr !== null && annoIdxStr !== undefined) {
+      e.preventDefault();
+      props.onDeleteAnnotation(parseInt(annoIdxStr, 10));
+      return;
+    }
+
     const target = (e.target as Element).closest('g[data-id]');
     const domId = target?.getAttribute('data-id');
 
@@ -562,6 +573,12 @@ export function CourtView(props: CourtViewProps) {
         })() : (
           <Matchups off={frame.off} defPos={frame.defPos} show={state.showMatchups} />
         )}
+        <HeatmapOverlay
+          defPos={frame.defPos}
+          off={frame.off}
+          fullCourt={state.fullCourt}
+          show={!!state.showHeatmap}
+        />
         <HelpLines off={frame.off} defPos={frame.defPos} defenseDistance={state.defenseDistance} show={state.showHelpLines} />
         {state.showGhosts && state.activeStep > 0 && !props.isPlaying && props.scrubT == null && (
           <GhostLayer state={state} stepIdx={state.activeStep - 1} />
@@ -621,7 +638,20 @@ export function CourtView(props: CourtViewProps) {
         </g>
         <g>
           {state.steps[frame.stepIdx]?.annotations.map((a, i) => (
-            <AnnotationView key={i} annotation={a} />
+            <g key={i} data-annotation-idx={i} style={{ cursor: 'context-menu' }}>
+              <AnnotationView annotation={a} />
+              {/* Hit-test invisible : élargit la zone de clic-droit pour
+                  la suppression depuis le terrain. */}
+              <line
+                x1={a.from.x}
+                y1={a.from.y}
+                x2={a.to.x}
+                y2={a.to.y}
+                stroke="transparent"
+                strokeWidth={14}
+                strokeLinecap="round"
+              />
+            </g>
           ))}
           {pending && pending.from && <AnnotationView annotation={pending as Annotation} preview />}
         </g>

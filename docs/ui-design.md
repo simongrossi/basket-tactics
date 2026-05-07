@@ -76,6 +76,7 @@ Les panneaux ont une ombre douce `0 1px 3px + 0 8px 24px` rgba(15, 23, 42, 0.04)
 - **Strong-side denial actif** : ring cyan pointillé `#0EA5A8` (différencié du ring violet `#534AB7` qui désigne l'aide weak-side classique)
 - **Panier visé (mode inversion + fullCourt)** : anneau orange pointillé `#F97316` autour du rim + label `🎯 visé`
 - **Panier protégé (mode inversion + fullCourt)** : cercle bleu sobre `#3b82f6` (50% opacité) + label `🛡 protégé`
+- **Heatmap zones ouvertes** : grille de cellules 30×30 colorées du **jaune pâle** `rgb(220, 180, 30)` (légèrement ouvert) au **rouge intense** `rgb(250, 50, 30)` (très ouvert), avec `filter: blur(6px)` pour fondre les cellules. Opacité 0.15-0.65 selon ouverture. Cellules contenant un attaquant rehaussées (×1.4). Zones bien défendues (ouverture < 0.35) laissées transparentes pour ne pas masquer le terrain.
 - **Defender en retard (`late`)** : contour épais rouge `#E24B4A`
 - **Defender du porteur** : contour jaune `#FAC775`
 - **Ballon en main** : cercle orange `#BA7517` r=7 avec contour foncé, offset (+16, -16) au-dessus du porteur

@@ -127,7 +127,7 @@ export function OffensePanel(props: OffensePanelProps) {
         />
       )}
 
-      <Section theme="offense" label="Outils" open>
+      <Section theme="offense" label="Actions" open>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
           {TOOLS.map((t) => {
             const active = props.tool === t.value;
