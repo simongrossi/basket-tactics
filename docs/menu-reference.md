@@ -184,6 +184,10 @@ Astuce : **clic-droit** sur un défenseur sur le terrain ouvre un menu compact a
 
 Le clic-droit ouvre un menu différent selon le joueur ciblé.
 
+### Outils (commun aux deux menus)
+
+Une barre compacte en haut de chaque menu permet de **changer l'outil** courant sans aller chercher le panneau gauche : `déplacer / passe / dribble / course / écran`. L'outil est un état global, pas lié au joueur survolé. Les outils non-applicables aux défenseurs (passe/dribble/course/écran — qui dessinent depuis un attaquant) sont grisés visuellement dans le menu défenseur mais restent cliquables : ils définissent le mode pour les prochaines interactions sur les attaquants.
+
 ### Sur un défenseur (bleu)
 
 Cinq réglages :

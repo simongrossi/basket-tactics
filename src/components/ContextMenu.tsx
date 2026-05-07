@@ -1,7 +1,60 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { AttackerId, DefenderId, DefenderRule } from '@/lib/types';
+import type { AttackerId, DefenderId, DefenderRule, Tool } from '@/lib/types';
+
+interface ToolBarProps {
+  tool: Tool;
+  onSetTool: (t: Tool) => void;
+  /** Si true (défenseur), on grise les outils qui ne s'appliquent pas (passe/dribble/course/écran).
+   *  L'outil reste cliquable car il définit le mode global pour les prochaines actions sur les attaquants. */
+  defenderContext?: boolean;
+}
+
+const TOOL_DEFS: { value: Tool; label: string; symbol: string }[] = [
+  { value: 'move', label: 'déplacer', symbol: '✥' },
+  { value: 'pass', label: 'passe', symbol: '⇢' },
+  { value: 'dribble', label: 'dribble', symbol: '∿' },
+  { value: 'cut', label: 'course', symbol: '→' },
+  { value: 'screen', label: 'écran', symbol: '⊥' },
+];
+
+function ToolBar({ tool, onSetTool, defenderContext }: ToolBarProps) {
+  return (
+    <div style={{ display: 'flex', gap: 3, marginBottom: 8 }}>
+      {TOOL_DEFS.map((t) => {
+        const active = tool === t.value;
+        const greyed = defenderContext && t.value !== 'move';
+        return (
+          <button
+            key={t.value}
+            onClick={() => onSetTool(t.value)}
+            title={t.label + (greyed ? ' — applicable aux attaquants seulement' : '')}
+            style={{
+              flex: '1 1 auto',
+              fontSize: 10,
+              padding: '4px 2px',
+              borderRadius: 4,
+              border: `1px solid ${active ? '#9a3412' : '#e2e8f0'}`,
+              background: active ? '#D85A30' : '#fff',
+              color: active ? '#fff' : (greyed ? '#cbd5e1' : '#7c2d12'),
+              cursor: 'pointer',
+              fontWeight: 500,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 1,
+              lineHeight: 1.1,
+            }}
+          >
+            <span style={{ fontSize: 12 }}>{t.symbol}</span>
+            <span>{t.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 interface DefenderMenuProps {
   kind: 'defender';
@@ -10,6 +63,8 @@ interface DefenderMenuProps {
   y: number;
   rule: DefenderRule;
   hasOverride: boolean;
+  tool: Tool;
+  onSetTool: (t: Tool) => void;
   onUpdate: (patch: Partial<DefenderRule>) => void;
   onClearOverride: () => void;
   onClose: () => void;
@@ -23,6 +78,8 @@ interface AttackerMenuProps {
   isCarrier: boolean;
   isForcedScreener: boolean;
   hasAnnotations: boolean;
+  tool: Tool;
+  onSetTool: (t: Tool) => void;
   onMakeCarrier: () => void;
   onForceScreener: () => void;
   onClearForcedScreener: () => void;
@@ -37,7 +94,7 @@ export function ContextMenu(props: ContextMenuProps) {
   return <DefenderMenu {...props} />;
 }
 
-function DefenderMenu({ dId, x, y, rule, hasOverride, onUpdate, onClearOverride, onClose }: DefenderMenuProps) {
+function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate, onClearOverride, onClose }: DefenderMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -74,6 +131,7 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, onUpdate, onClearOverride,
           ×
         </span>
       </div>
+      <ToolBar tool={tool} onSetTool={onSetTool} defenderContext />
       <Row label="aide %">
         <input
           type="range"
@@ -186,6 +244,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 function AttackerMenu({
   oId, x, y, isCarrier, isForcedScreener, hasAnnotations,
+  tool, onSetTool,
   onMakeCarrier, onForceScreener, onClearForcedScreener, onClearAnnotations, onClose,
 }: AttackerMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -246,6 +305,7 @@ function AttackerMenu({
           ×
         </span>
       </div>
+      <ToolBar tool={tool} onSetTool={onSetTool} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <Item
           label={isCarrier ? '✓ porteur (étape active)' : 'marquer comme porteur'}

@@ -668,6 +668,8 @@ export function CourtView(props: CourtViewProps) {
           y={ctxMenu.y}
           rule={state.rules[ctxMenu.dId]}
           hasOverride={!!state.steps[state.activeStep]?.defenseOverrides?.[ctxMenu.dId]}
+          tool={state.tool}
+          onSetTool={props.onSetTool}
           onUpdate={(p) => props.onUpdateRule(ctxMenu.dId, p)}
           onClearOverride={() => props.onClearDefenseOverride(ctxMenu.dId)}
           onClose={() => setCtxMenu(null)}
@@ -685,6 +687,8 @@ export function CourtView(props: CourtViewProps) {
             isCarrier={cur?.ballCarrier === oId}
             isForcedScreener={cur?.forcedScreener === oId}
             hasAnnotations={(cur?.annotations ?? []).some((a) => a.fromId === oId)}
+            tool={state.tool}
+            onSetTool={props.onSetTool}
             onMakeCarrier={() => props.onSetBallCarrier(oId)}
             onForceScreener={() => props.onSetForcedScreener(oId)}
             onClearForcedScreener={() => props.onSetForcedScreener(null)}
