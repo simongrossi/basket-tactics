@@ -170,6 +170,8 @@ interface ComputedDefender {
   zoneId?: string;              // si zone
   isRotating?: boolean;         // si en rotation zone
   closingOut?: boolean;         // closeout actif sur cette transition (anneau orange)
+  overClosed?: boolean;         // closeout + drive subi par l'attaquant (anneau rouge + ⚠)
+  denying?: boolean;            // strong-side denial actif (ring cyan pointillé)
 }
 
 interface DetectedScreen {

@@ -79,15 +79,19 @@ Ajoutés à la bibliothèque : Spain PNR (PNR + back-screen sur D5), UCLA cut (p
 
 Encore à ajouter : Iverson cut, Hammer action, PNR aile / step-up / step-back, Princeton chin, Pistol, Stagger.
 
-### Tests unitaires logique pure (FAIT v1 — 33 tests)
-Vitest installé, 33 tests passants couvrant les 3 modules critiques :
-- `engine.computeDefenseTargets` + `getMatchupsAt` + `effectiveDefensePositions` (man + zone, lateness, overrides)
-- `screens.detectScreen` / `detectOffBallScreens` / `applyScreenAdjustment` / `applySwitch`
-- `metrics.computeMetrics` (paint coverage, mostFreeAttacker, lateCount, classification passes)
+### Tests unitaires logique pure (FAIT — 79 tests)
+Vitest installé, 79 tests passants sur 7 modules :
+- `engine` (computeDefenseTargets man + zone, getMatchupsAt, effectiveDefensePositions, closeout, over-closeout, attackingDirection, trap)
+- `screens` (detectScreen + forcedScreener, detectOffBallScreens, applyScreenAdjustment drop shallow/deep, applySwitch / applySwitchOffBall)
+- `metrics` (paint coverage, mostFreeAttacker, lateCount, classification passes)
+- `help` (sag baseline weak-side, strong-side denial avec proximité, désactivation paint/trigger/weak-side)
+- `trap` (zones coins fond + sidelines mi-terrain, picker, target)
+- `manDefense` (stance stunt — blend 0.4)
+- `geometry` (pickBlockingObstacle, pickBlockingCluster super-cluster)
 
 Doc : [docs/testing.md](docs/testing.md). Lancer : `npm test`.
 
-À ajouter plus tard : `triggers.detectTriggers`, `zoneDefense.pointInPolygon` + `mapAttackersToZones`, `help.computeHelpTarget`, `geometry`.
+À ajouter plus tard : `triggers.detectTriggers` (cas drive/post/paint isolés), `zoneDefense.pointInPolygon` + `mapAttackersToZones` (cas limites), `help.computeHelpTarget` priorité passlane et paint avec blockTarget.
 
 ### Menu contextuel attaquant (FAIT)
 Clic-droit sur un attaquant ouvre un menu avec :

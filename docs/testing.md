@@ -28,7 +28,7 @@ Les tests vivent à côté du code testé sous `__tests__/`. Le pattern d'inclus
 
 ## Couverture actuelle
 
-70 tests sur 7 modules de la logique défensive.
+79 tests sur 7 modules de la logique défensive.
 
 ### `engine.test.ts`
 - `getMatchupsAt` : matchups de base, application d'un switch, cumul de plusieurs switches sur étapes successives, immuabilité de `baseMatchups`.

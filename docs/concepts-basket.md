@@ -31,10 +31,11 @@ Quand un défenseur ne défend PAS le porteur, sa stance détermine où il se ti
 |------|-------------|----------|
 | `sag` (défaut) | Position d'aide classique avec sag baseline weak-side | manTarget + biais d'aide |
 | `behind` | Strict entre attaquant et panier, pas d'aide | manTarget pur |
+| `stunt` | Fake d'aide vers le ballon, recover à l'étape suivante | 40% entre behind et fronting |
 | `deny-3q` | 3/4 deny, pied dans la ligne de passe | 75% entre behind et fronting |
 | `fronting` | Full denial / face guard | Entre attaquant et ballon |
 
-Géométriquement, `deny-3q` et `fronting` interpolent entre le point « behind » (sur la ligne attaquant-panier) et le point « fronting » (sur la ligne attaquant-ballon).
+Géométriquement, `stunt`, `deny-3q` et `fronting` interpolent entre le point « behind » (sur la ligne attaquant-panier) et le point « fronting » (sur la ligne attaquant-ballon) avec un blend croissant (0.4 / 0.75 / 1).
 
 Quand la stance est dirigée (≠ sag), les triggers d'aide sont **ignorés** : la position est absolue, pas modulée.
 
@@ -153,13 +154,34 @@ Le défenseur "voit" donc tous les joueurs dont il a la charge à un instant don
 
 ## Triggers d'aide (homme à homme)
 
-Trois conditions activent l'aide globale (par-dessus le sag baseline) :
+Quatre conditions activent un comportement automatique :
 
 - **`drive`** : porteur en mouvement vers le panier — différence de distance au panier > 25px entre l'étape précédente et l'actuelle, ET dans les 250px du panier
-- **`post`** : porteur en poste bas — `y > HOOP.y + 45` ET déplacement < 30px (stationnaire)
+- **`post`** : porteur en poste bas — `yIntoCourt > 45` (depuis le panier) ET déplacement < 30px (stationnaire)
 - **`paint`** : porteur dans la raquette
+- **`trap`** : porteur dans une zone de trappe (4 bboxes — coins fond gauche/droit, sidelines mi-terrain) → le défenseur le plus proche vient verrouiller le côté opposé pour fermer la cage à deux
 
-Quand au moins un trigger est actif, le `helpFactor` est calculé selon le `helpPct`, la stance, le côté ballon, et la priorité.
+Quand au moins un trigger d'aide est actif (drive/post/paint), le `helpFactor` est calculé selon le `helpPct`, la stance, le côté ballon, et la priorité. Le trigger trap est indépendant : il override la position d'un seul défenseur.
+
+## Comportements automatiques sans trigger
+
+Indépendamment des triggers, deux comportements s'appliquent en permanence :
+
+### Sag baseline (weak-side)
+Tout défenseur weak-side (côté opposé au ballon) avec `helpPct > 0` glisse d'environ 50% × helpPct vers la ligne d'aide ball-you-man. Désactivé si `priority === 'man'`.
+
+### Strong-side denial automatique
+Sans trigger actif, un défenseur **strong-side** dont l'homme est à <250px du ballon (≈ une passe) glisse vers la ligne de passe entre son homme et le porteur. Intensité jusqu'à 0.45, modulée par la proximité du ballon. Désactivé si `priority === 'paint'` (les protecteurs gardent la raquette). Visuel : ring **cyan pointillé** distinct du ring violet de l'aide weak-side.
+
+## Closeout dynamique
+
+Quand le ballon change de mains entre l'étape N-1 et N (passe entrante détectée par changement de `ballCarrier`), le défenseur du **nouveau** porteur reçoit `defenseMaxSpeed × 1.4` sur la transition + flag `closingOut`. Visuel : double anneau orange.
+
+Si le nouveau porteur en a profité pour **driver** vers le panier (delta distance > 25, dans les 250px du panier), c'est un **over-closeout** : le défenseur arrivé trop fort se fait déborder. Visuel : double anneau **rouge** + ⚠.
+
+## Inversion du sens d'attaque
+
+`state.attackingDirection: 'up' | 'down'` permet d'inverser le panier de référence (HOOP top vs HOOP_OPPOSITE bottom). Toute la logique défensive (man + zone) suit le panier ciblé : positions, layouts de zone (polygones miroir autour de y=540), triggers, trap, métriques. Bouton "↻ sens d'attaque" gated sur `fullCourt`.
 
 ## Vitesse maximale (lateness)
 

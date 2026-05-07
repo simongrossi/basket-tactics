@@ -7,7 +7,7 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 ## Livré récemment (mai 2026)
 
 - 🟢 **Raccourcis clavier** — [docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md)
-- 🟢 **Tests unitaires Vitest** — 48 tests sur engine / screens / metrics / help, [docs/testing.md](docs/testing.md)
+- 🟢 **Tests unitaires Vitest** — 79 tests sur engine / screens / metrics / help / trap / manDefense / geometry, [docs/testing.md](docs/testing.md)
 - 🟢 **Closeout dynamique v1** — bump de vitesse ×1.4 + flag `closingOut` + anneau orange sur le défenseur du nouveau porteur. Cf. [docs/logique-defensive.md § Closeout dynamique](docs/logique-defensive.md#closeout-dynamique)
 - 🟢 **Menu contextuel attaquant** — clic-droit sur un attaquant : marquer porteur, forcer comme poseur d'écran (override `detectScreen`), effacer ses annotations. Cadenas violet sur le joueur quand forcé.
 - 🟢 **Strong-side denial automatique** — sans trigger, un défenseur strong-side proche du ballon glisse vers la ligne de passe (denial passif), intensité proportionnelle à la proximité. Cf. [docs/logique-defensive.md § Strong-side denial](docs/logique-defensive.md#strong-side-denial-automatique)
@@ -57,7 +57,13 @@ Objectif : réduire la friction lors de la création de systèmes complexes.
 ### Interactivité & raccourcis
 
 #### ⚪ Saisie numérique sur les sliders
-Input numérique en regard des curseurs (distance, maxSpeed, dropDepth) pour saisir une valeur précise sans tâtonner.
+**Quoi.** Un `<input type="number">` à côté de chaque `<Slider>` (distance défense, maxSpeed, screenRadius, helpPct par défenseur, ballPressure / rotationSpeed / verticalOffset zone). Permet de taper `42` au lieu de viser au curseur.
+
+**Implémentation.** Modifier le composant `Slider` dans [`src/components/ui.tsx`](src/components/ui.tsx) pour ajouter un input contrôlé qui partage la même valeur. Quand on tape, on appelle le `onChange` du slider. Garde-fou : clamp dans `[min, max]` au blur. Le slider et l'input restent synchrones.
+
+**Effort** ~30min · **Risque** 🟢 · **Valeur** moyen.
+
+**Tradeoff.** Risque visuel : ajout d'un champ peut serrer le layout des panneaux. À tester avec le panneau défense qui est déjà chargé.
 
 #### 🟢 Raccourcis clavier
 - `Espace` : play/pause
@@ -68,7 +74,13 @@ Input numérique en regard des curseurs (distance, maxSpeed, dropDepth) pour sai
 Implémenté dans `hooks/useKeyboardShortcuts.ts`. Skip auto si le focus est dans un input/textarea/select/contenteditable, ou si une modif (Ctrl/Cmd/Alt) est enfoncée.
 
 #### ⚪ Snap-to-grid
-Magnétisme `Ctrl+drag` sur les lignes clés du terrain (ligne 3pt, raquette, blocs bas, homepos zone).
+**Quoi.** Pendant le drag d'un joueur, si `Ctrl` est enfoncé, sa position se "magnétise" sur les lignes clés du terrain : ligne 3pts (rayon 250 depuis HOOP), raquette (rectangle PAINT), blocs bas (`HOOP.x ± 70, HOOP.y + 80`), homepos des zones, ligne médiane.
+
+**Implémentation.** Dans [`CourtView.onPointerMove`](src/components/CourtView.tsx), quand `e.ctrlKey && dragging`, après calcul de la position, passer par un helper `snapToGrid(pt, lines, threshold)` qui retourne la ligne la plus proche si distance < seuil (e.g. 8px). Le helper vit dans `geometry.ts`. Visuel optionnel : afficher la ligne magnétisée en surbrillance pendant le drag.
+
+**Effort** ~45min · **Risque** 🟢 · **Valeur** moyen.
+
+**Tradeoff.** Le seuil de snap doit être conservateur sinon le drag devient frustrant. Sur tablette pas de Ctrl → le snap n'est accessible qu'au desktop, ce qui est OK pour v1.
 
 ### Visualisation & feedback
 
@@ -79,7 +91,13 @@ Implémenté dans `StepThumbnail.tsx` (composant `ActionOrderBadges`). Pour chaq
 Implémenté : toggle `state.showGhosts`. Quand actif (et `activeStep > 0` et hors lecture/scrub), `GhostLayer` dans `CourtView` affiche les positions de l'étape N-1 en cercles pointillés (orange pour attaquants, bleu pour défenseurs) à 35% d'opacité, sans label. Visualise le vecteur de déplacement entre les deux étapes.
 
 #### ⚪ Graphique de métriques
-Mini-graphique sous la timeline montrant l'évolution de la dangerosité (gap max) ou de la protection de raquette au fil du système. La fonction pure `metrics.ts` est déjà là, il "suffit" de l'évaluer pour chaque step.
+**Quoi.** Un mini-graphe ligne sous la `Timeline` montrant l'évolution d'une métrique au fil des étapes : "gap max" (attaquant le plus libre), "paint coverage" (défenseurs proches du panier), ou "late count". Permet de voir d'un coup d'œil quelles étapes sont les plus dangereuses.
+
+**Implémentation.** Nouveau composant `MetricsChart` qui prend `state` et calcule `computeMetrics(off, defPos, carrier, hoop)` pour chaque step (les fonctions sont déjà pures). Dessine un SVG path depuis l'array de valeurs, un point par étape, ligne reliant les points. Petite lib SVG faite main (pas de Chart.js — overkill pour un mini-graphe). Toggle dans le DefensePanel pour choisir quelle métrique afficher (gap max / paint / late count).
+
+**Effort** ~1h · **Risque** 🟢 · **Valeur** haut.
+
+**Tradeoff.** Le calcul à chaque render de toutes les étapes peut être coûteux (~10 étapes × `effectiveDefensePositions` + `computeMetrics`). À memoiser sur `state` via `useMemo`. Si lent, batch le calcul dans un effect dédié.
 
 ### Édition avancée
 
@@ -89,23 +107,90 @@ Implémenté dans `useAppState` : pile `historyRef` (past/future) cap à 50, wra
 ⚪ **À venir v2** : coalescing pendant le drag (un drag continu = une entrée dans la pile, pas une par mouvement de pointeur).
 
 #### ⚪ Sélection multiple
-Pouvoir déplacer un groupe de joueurs en une fois, ou modifier le `helpPct` (ou autre champ) de plusieurs défenseurs simultanément. Marquage `Shift+clic` ou marquee.
+**Quoi.** Pouvoir sélectionner plusieurs défenseurs avec `Shift+clic` ou un marquee (rectangle de sélection au drag dans le vide). Ensuite : drag groupé qui les déplace ensemble, ou modification de `helpPct` / `priority` qui s'applique à tous.
+
+**Implémentation.** Nouveau state `selectedDefenders: DefenderId[]` dans `useAppState` (ou local CourtView). Modifier `Player` pour afficher un highlight (contour épais cyan) quand sélectionné. Marquee : `onPointerDown` sur le terrain hors d'un joueur démarre un rectangle de sélection rendu en SVG, `onPointerUp` finalise et collecte les défenseurs dans la zone. Action groupée : nouveau menu "actions sur sélection" ou un panneau qui apparaît quand `selected.length > 1`. `Shift+drag` sur un joueur sélectionné déplace tous ensemble (delta appliqué à chacun).
+
+**Effort** ~2h · **Risque** 🟡 · **Valeur** haut.
+
+**Tradeoffs.** Nouvelles touches qui peuvent entrer en conflit (Shift+clic est aujourd'hui inutilisé, OK ; Shift+drag aussi). Pour l'undo/redo, les actions groupées doivent être un seul commit dans la pile (`setStateWithHistory` une fois, pas N fois) — penser à coalescer via une nouvelle méthode `moveDefenderGroup` ou un wrapper qui désactive temporairement le push.
+
+**Découpage suggéré** : (a) sélection visible + marquee, (b) drag groupé, (c) édition groupée des règles. 3 commits.
 
 #### ⚪ Mode présentation
-Bouton plein écran qui masque les panneaux orange/bleu, ne laisse que le terrain et les contrôles de lecture. Idéal sur tablette en bord de terrain.
+**Quoi.** Un bouton "🎬 présentation" qui masque les deux panneaux orange/bleu, étend le terrain plein écran, ne laisse visible que les contrôles de lecture (play/pause/step/scrub) sur une barre flottante. Idéal pour montrer une tactique sur tablette en bord de terrain.
+
+**Implémentation.** Nouveau `state.presentationMode: boolean` (UI-only, peut être persisté ou non). Dans `page.tsx`, conditionner le rendu : si `presentationMode`, layout passe à 1 colonne, panels masqués. Barre de contrôle compacte en overlay `position: fixed` en bas avec play/pause/prev/next + bouton "fermer". Sortie via touche `Échap`. Optionnel : passer en plein écran navigateur via `document.documentElement.requestFullscreen()`.
+
+**Effort** ~45min · **Risque** 🟢 · **Valeur** haut (tablette).
+
+**Tradeoff.** Plein écran natif demande l'accord de l'utilisateur la première fois. À gérer proprement (try/catch + fallback gracieux). Sur iPad, le plein écran navigateur a des particularités (mode PWA recommandé pour vraiment tout cacher la barre Safari).
 
 ---
 
 ## 3. Produit (export & partage)
 
 ### ⚪ Export vidéo / GIF
-Au-delà du PDF statique (déjà livré), capturer l'animation fluide pour partage sur réseaux sociaux ou messageries. Piste : `canvas` + `MediaRecorder`, ou `gif.js` côté client.
+**Quoi.** Capturer l'animation fluide du système (lecture complète) en GIF ou vidéo MP4 téléchargeable. Permet de partager sur Slack/WhatsApp/X sans demander à quelqu'un d'ouvrir l'app.
+
+**Implémentation.** Deux pistes complémentaires :
+
+- **GIF** via [`gif.js`](https://github.com/jnordberg/gif.js) (~20kB gzipped). On lit le SVG frame par frame, on le convertit en canvas (via serialize → `Image` → `drawImage`), on push chaque frame dans `gif.js`. Avantage : portable, fonctionne partout. Inconvénient : taille de fichier lourde (3-10 MB pour 5s d'anim), qualité moyenne, encodage long.
+- **MP4 / WebM** via `MediaRecorder` sur un canvas. On render le SVG dans un canvas via `OffscreenCanvas` à 30fps, on capture le stream avec `canvas.captureStream()`. Avantage : taille petite (~500kB pour 5s), encodage rapide. Inconvénient : support Safari capricieux historiquement (OK depuis 2023 mais à tester).
+
+Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix du format dans une modal.
+
+**Effort** ~3h pour une v1 GIF, ~4h pour MP4. Le SVG → canvas conversion est le point délicat (foreignObject ou serialization XML).
+
+**Risque** 🟡 · **Valeur** très haut (partage).
+
+**Tradeoff.** `gif.js` ajoute du poids au bundle. Alternative : faire tourner l'encodage sur un Web Worker. Pour MP4 c'est natif, zéro dépendance, mais le support est plus capricieux. **Pragmatique** : commencer par GIF, ajouter MP4 plus tard en option utilisateur ("format : GIF / MP4").
 
 ### ⚪ Templates utilisateurs (presets perso)
-Permettre à l'utilisateur de sauvegarder ses propres combos de règles défensives comme presets réutilisables (en plus des 6 presets globaux déjà livrés). Stockage localStorage, format identique à `defensePresets.ts`.
+**Quoi.** 6 presets défensifs sont aujourd'hui fournis dans [`defensePresets.ts`](src/lib/data/defensePresets.ts). Permettre à l'utilisateur de sauvegarder ses propres combos (snapshot de `screenRule + offBallScreenRule + dropDepth + triggers + 5 DefenderRule + offBallStance par défenseur`) sous un nom, et les recharger. Idem côté offensif (templates de système : steps + ballCarrier + initial pos + label).
+
+**Implémentation.** Nouveau état `state.userPresets: { defense: UserDefensePreset[]; offense: UserOffenseTemplate[] }` (sérialisé localStorage, donc dans la sauvegarde existante). Format identique à `DefensePreset` mais avec un `id` UUID + `name` + `createdAt`. Boutons "💾 sauvegarder ce preset" sous le panneau défense (et dans la section bibliothèque côté offense), "🗑 supprimer" dans le menu de chaque preset perso. Distinction visuelle : presets globaux en bleu, presets perso en vert avec icône utilisateur.
+
+**Effort** ~1h30 · **Risque** 🟢 · **Valeur** haut.
+
+**Tradeoff.** Le localStorage a une limite ~5MB. Avec des templates offensifs riches (5 étapes × 5 attaquants × annotations), ~50 templates max raisonnable. Pas un blocker à court terme. **À ajouter plus loin** : export/import individuel (JSON file) pour partager entre utilisateurs ou sauvegarder hors localStorage.
 
 ### ⚪ Annotations textuelles libres
-Placer des notes de coach n'importe où sur le terrain pour expliquer une intention spécifique ("ici on force baseline", "trap si le 5 monte"). Nouvelle annotation type `text` à ajouter dans le modèle.
+**Quoi.** Pouvoir déposer une note texte n'importe où sur le terrain ("trap si le 5 monte", "force baseline", "skip pass option"). Distincte des flèches d'action — c'est du commentaire libre, pour expliquer l'intention.
+
+**Implémentation.** Étendre `AnnotationType` avec `'text'` dans `lib/types/index.ts`. Nouveau champ optionnel `text?: string` dans `Annotation`. Le `from` représente l'ancrage (point sur le terrain), `to` est ignoré. Nouvel outil `T` (Text) à côté de `M / P / D / R / E` dans `OffensePanel`. Au clic sur le terrain en mode texte, prompt inline : un `<foreignObject>` SVG affiche un `<input>` qui devient un `<text>` au blur. Rendu dans `Annotations.tsx` : un `<text>` avec fond blanc semi-opaque (rectangle de fond + label centré). Edit/delete au clic sur le texte (réouvre l'input).
+
+**Effort** ~2h · **Risque** 🟡 · **Valeur** haut.
+
+**Tradeoffs.** `<foreignObject>` a des bugs historiques sur Safari (rendu, scroll, focus). **Plan B** : édition via une modal/popup en HTML standard au lieu d'inline. Moins fluide mais plus robuste. Si on prend le plan B, on peut remplacer l'input inline par un `prompt()` ou une vraie modal. Décider au moment de l'implémentation après un essai foreignObject sur Safari.
+
+**Découpage suggéré** : (a) ajout du type + outil + rendu, (b) édition inline ou modal, (c) édition/suppression d'une annotation existante.
+
+---
+
+## Synthèse priorisation (chantiers ⚪ restants)
+
+| # | Chantier | Effort | Risque | Valeur |
+|---|---|---|---|---|
+| 1 | Saisie numérique sliders | 30min | 🟢 | Moyen |
+| 2 | Snap-to-grid | 45min | 🟢 | Moyen |
+| 3 | Graphique métriques | 1h | 🟢 | Haut |
+| 4 | Sélection multiple | 2h | 🟡 | Haut |
+| 5 | Mode présentation | 45min | 🟢 | Haut (tablette) |
+| 6 | Export GIF/vidéo | 3-4h | 🟡 | **Très haut** (partage) |
+| 7 | Templates utilisateurs | 1h30 | 🟢 | Haut |
+| 8 | Annotations texte libres | 2h | 🟡 | Haut |
+
+**Total restant** : ~12-13h en restant sur des v1 simples.
+
+**Ordre conseillé pour enchaîner** : 1 → 5 → 7 → 3 → 2 → 8 → 4 → 6 (du moins risqué au plus risqué, valeur croissante). Le bloc (1 + 5 + 7) est ~3h pour 3 quick wins très visibles. (3 + 2) ajoute 2h pour deux UX impactants. (8 + 4) sont les plus complexes côté UX. (6) est le plus impactant pour la diffusion mais le plus délicat techniquement — à garder pour la fin.
+
+**Limites v3 documentées sur les chantiers déjà v2** :
+- **Trap** : gestion explicite quand un écran est aussi détecté simultanément (aujourd'hui le trap est skip si screen ≠ null)
+- **Staggered** : double courbe Bezier réelle pour weave entre 2 écrans très espacés
+- **Inversion HOOP** : rendu visuel distinct du panier "actif" vs "protégé"
+- **Closeout / Denial** : tunables d'agressivité par règle (`denyAggressiveness`, `closeoutBoost`)
+- **Undo/Redo** : coalescing pendant un drag continu (1 entrée pile au lieu de N)
 
 ---
 

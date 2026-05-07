@@ -96,7 +96,7 @@ L'utilisateur peut **drag** un défenseur sur le terrain → la position est éc
 Toute la logique défensive (engine.ts, screens.ts, etc.) est **pure** : entrée = `AppState`, sortie = positions. Aucun hook React, aucun localStorage, aucun side-effect.
 
 Avantages :
-- Testable isolément (cf. [testing.md](testing.md) — 33 tests Vitest sur engine / screens / metrics)
+- Testable isolément (cf. [testing.md](testing.md) — 79 tests Vitest sur engine, screens, metrics, help, trap, manDefense, geometry)
 - Réutilisable en SSR / export PDF / preview
 - Le rendu peut s'appuyer dessus sans gérer d'état intermédiaire
 

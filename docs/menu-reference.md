@@ -113,7 +113,7 @@ Choix entre **homme** et **zone**. Bascule masque/affiche les sections suivantes
 | **type** | 2-3, 1-3-1, 3-2, match-up | Layout de la zone |
 | **pression bal.** | 0–100 | Attraction des défenseurs vers le ballon |
 | **vit. rotation** | 40–200 | Vitesse max des rotations en zone |
-| **trap en coin** | bool | Active le piège sur les attaques de coin (placeholder) |
+| **trap en coin** | bool | (zone-only) toggle pour la défense de zone — voir `zoneConfig.trapCorners`. Ne pas confondre avec `triggers.trap` qui régit le trap automatique en défense individuelle. |
 | **extension 3pts** | bool | Étend la couverture au-delà de la ligne (placeholder) |
 
 ### Paramètres globaux (visible si système = homme)
