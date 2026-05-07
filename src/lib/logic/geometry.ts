@@ -337,6 +337,123 @@ export function pickBlockingCluster(
 }
 
 /**
+ * Détecte une paire d'écrans staggered (en série) sur le segment, sur des
+ * **côtés opposés** par rapport à la trajectoire directe. Utile pour
+ * différencier le cas "deux écrans côte à côte" (super-cluster, un seul
+ * détour large) du cas "deux écrans en quinconce" (weave réel, courbe
+ * en S qui passe entre les deux).
+ *
+ * Retourne la paire ordonnée par projection le long du segment (le premier
+ * écran rencontré en premier), ou null si :
+ *  - moins de 2 écrans bloquent réellement le segment
+ *  - tous les écrans bloquants sont du même côté (super-cluster suffit)
+ */
+export function pickStaggeredPair(
+  start: Point,
+  end: Point,
+  obstacles: { center: Point; radius: number }[]
+): [{ center: Point; radius: number }, { center: Point; radius: number }] | null {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.01) return null;
+  const ux = dx / len;
+  const uy = dy / len;
+  const perpX = -uy;
+  const perpY = ux;
+
+  // Filtre les bloqueurs réels et les annote (projection + côté signé)
+  const blockers: { obs: { center: Point; radius: number }; proj: number; side: number }[] = [];
+  for (const obs of obstacles) {
+    const ox = obs.center.x - start.x;
+    const oy = obs.center.y - start.y;
+    const proj = ox * ux + oy * uy;
+    if (proj < 0 || proj > len) continue;
+    const closestX = start.x + proj * ux;
+    const closestY = start.y + proj * uy;
+    const distToLine = Math.hypot(obs.center.x - closestX, obs.center.y - closestY);
+    if (distToLine >= obs.radius) continue;
+    const cross = ox * perpX + oy * perpY;
+    blockers.push({ obs, proj, side: Math.sign(cross) });
+  }
+
+  if (blockers.length < 2) return null;
+
+  // Doit y avoir au moins un bloqueur de chaque côté
+  const hasLeft = blockers.some((b) => b.side > 0);
+  const hasRight = blockers.some((b) => b.side < 0);
+  if (!hasLeft || !hasRight) return null;
+
+  // Pour chaque côté, prend le bloqueur le plus précoce (proj le plus petit)
+  const left = blockers.filter((b) => b.side > 0).sort((a, b) => a.proj - b.proj)[0];
+  const right = blockers.filter((b) => b.side < 0).sort((a, b) => a.proj - b.proj)[0];
+
+  // Renvoie ordonné par projection (front-to-back le long du segment)
+  return left.proj <= right.proj ? [left.obs, right.obs] : [right.obs, left.obs];
+}
+
+/**
+ * Position interpolée le long d'une courbe Bezier cubique qui weave entre
+ * deux écrans staggered. Chaque point de contrôle est positionné à la
+ * projection de l'écran sur le segment, poussé **perpendiculairement du
+ * côté opposé** à l'écran (pour le contourner). Le résultat est une
+ * courbe en S qui passe à droite de l'écran A, à gauche de l'écran B
+ * (ou inversement).
+ *
+ * Pré-condition : les deux écrans sont sur des côtés opposés du segment
+ * direct (cf. `pickStaggeredPair`).
+ */
+export function curveAroundStaggeredPair(
+  start: Point,
+  end: Point,
+  obs1: { center: Point; radius: number },
+  obs2: { center: Point; radius: number },
+  t: number
+): Point {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.01) return start;
+  const ux = dx / len;
+  const uy = dy / len;
+  const perpX = -uy;
+  const perpY = ux;
+
+  // Pour chaque obstacle : projection sur le segment, côté signé,
+  // point de contrôle poussé du côté OPPOSÉ.
+  const ctrlFor = (obs: { center: Point; radius: number }) => {
+    const ox = obs.center.x - start.x;
+    const oy = obs.center.y - start.y;
+    const proj = ox * ux + oy * uy;
+    const closestX = start.x + proj * ux;
+    const closestY = start.y + proj * uy;
+    const distToLine = Math.hypot(obs.center.x - closestX, obs.center.y - closestY);
+    const penetration = obs.radius - distToLine;
+    const peak = Math.max(penetration + 8, 14);
+    const cross = ox * perpX + oy * perpY;
+    const sign = cross >= 0 ? -1 : 1; // pousse du côté opposé
+    return {
+      x: closestX + perpX * peak * sign,
+      y: closestY + perpY * peak * sign,
+    };
+  };
+
+  const ctrl1 = ctrlFor(obs1);
+  const ctrl2 = ctrlFor(obs2);
+
+  // Cubic Bezier : (1-t)³·P0 + 3(1-t)²·t·P1 + 3(1-t)·t²·P2 + t³·P3
+  const omt = 1 - t;
+  const omt2 = omt * omt;
+  const omt3 = omt2 * omt;
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return {
+    x: omt3 * start.x + 3 * omt2 * t * ctrl1.x + 3 * omt * t2 * ctrl2.x + t3 * end.x,
+    y: omt3 * start.y + 3 * omt2 * t * ctrl1.y + 3 * omt * t2 * ctrl2.y + t3 * end.y,
+  };
+}
+
+/**
  * Calcule un cluster (centre + rayon) à partir d'un noyau central et
  * d'éventuels obstacles voisins (à moins de `linkDist` du noyau).
  * Utile pour traiter "poseur d'écran + son défenseur" comme une seule

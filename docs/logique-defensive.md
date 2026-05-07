@@ -89,9 +89,9 @@ Pendant le playback et le scrubbing, `CourtView` utilise `curveAroundObstacle` p
 
 `pickBlockingObstacle(start, end, obstacles)` (geometry.ts) sélectionne l'obstacle de **plus profonde pénétration** dans le segment du défenseur (`pen = radius - distance_to_line`).
 
-**v2 — super-cluster** : `pickBlockingCluster(start, end, obstacles)` fusionne tous les obstacles bloquants en une seule masse (centroid des centres + rayon couvrant l'enveloppe). Le défenseur contourne alors les écrans en chaîne d'un seul mouvement large plutôt que de slalomer. C'est ce que CourtView utilise désormais. `pickBlockingObstacle` reste exporté pour les cas où l'on veut explicitement le seul "vrai" bloqueur.
+**v2 — super-cluster** : `pickBlockingCluster(start, end, obstacles)` fusionne tous les obstacles bloquants en une seule masse (centroid des centres + rayon couvrant l'enveloppe). Le défenseur contourne alors les écrans en chaîne d'un seul mouvement large plutôt que de slalomer.
 
-**Limite v2** : pas de double courbe Bezier réelle. Quand les écrans sont très espacés, le super-cluster donne un détour large (équivalent à un seul gros écran). Pour un weave authentique entre deux écrans distants, v3 ajoutera un chaînage de courbes.
+**v3 — weave réel** : `pickStaggeredPair(start, end, obstacles)` détecte deux écrans positionnés sur des **côtés opposés** du segment direct (cas en quinconce, type stagger qui force vraiment à zigzaguer). Quand la paire existe, `curveAroundStaggeredPair` calcule une **cubic Bezier** avec deux points de contrôle (un par obstacle, poussé perpendiculairement du côté opposé). Le résultat est une courbe en S qui passe à droite de A puis à gauche de B (ou inversement). Sinon (un seul écran, ou tous du même côté) on retombe sur le super-cluster v2. CourtView priorise le weave dans `playFrame` et `scrubFrame`.
 
 ## Inversion du panier de référence (`attackingDirection`)
 

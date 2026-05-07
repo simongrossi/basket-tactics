@@ -19,7 +19,7 @@ Autres commandes utiles :
 
 ```bash
 npm run type-check   # tsc --noEmit
-npm test             # Vitest — 84 tests sur la logique pure
+npm test             # Vitest — 93 tests sur la logique pure
 npm run test:watch   # Vitest en mode watch
 npm run build        # build de production statique
 ```

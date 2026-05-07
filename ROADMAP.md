@@ -45,9 +45,10 @@ Implémenté dans `help.ts` : quand pas de trigger actif + défenseur strong-sid
 
 🟢 **v3 (tunable)** : `state.denyAggressiveness` (default 0.45, range 0–1 step 0.05). Slider "denial agr." dans le panneau défense → Paramètres globaux. 0 désactive complètement le strong-side denial automatique ; 0.7+ donne un comportement très agressif (proche du full denial assumé).
 
-### 🟢 Staggered screens (v2)
+### 🟢 Staggered screens (v3)
 v1 : `pickBlockingObstacle` (geometry.ts) sélectionne l'obstacle de plus profonde pénétration dans le segment.
-**v2** : `pickBlockingCluster` fusionne tous les obstacles bloquants en super-cluster (centroid des centres + rayon couvrant l'enveloppe). `curveAroundObstacle` contourne alors les écrans en chaîne d'un seul mouvement large plutôt que de slalomer entre eux. CourtView utilise `pickBlockingCluster` à la place de `pickBlockingObstacle`. ⚪ **v3** : double courbe Bezier réelle pour weave entre deux écrans très espacés (le super-cluster reste équivalent à un détour quand ils sont proches).
+v2 : `pickBlockingCluster` fusionne tous les obstacles bloquants en super-cluster (centroid + rayon couvrant) → courbe simple autour de l'enveloppe.
+**v3** : `pickStaggeredPair` détecte deux écrans sur des **côtés opposés** du segment direct (cas en quinconce). Si paire détectée → `curveAroundStaggeredPair` calcule une **cubic Bezier** avec deux points de contrôle (un par obstacle, poussé du côté opposé) → vraie courbe en S qui weave entre les deux écrans. Sinon (un seul ou tous du même côté) → fallback super-cluster v2. CourtView priorise le weave si applicable.
 
 ### 🟢 Stunt and recover (v1)
 Implémenté : nouvelle `OffBallStance: 'stunt'` avec blend 0.4 dans `offBallStanceTarget`. Position intermédiaire entre behind et fronting, biaisée vers le ballon — le "recover" est naturel via le retour à `'sag'` à l'étape suivante.
@@ -200,7 +201,7 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 
 **Limites v3 documentées sur les chantiers déjà v2** :
 - **Trap** : gestion explicite quand un écran est aussi détecté simultanément (aujourd'hui le trap est skip si screen ≠ null)
-- **Staggered** : double courbe Bezier réelle pour weave entre 2 écrans très espacés
+- **Staggered** : ✅ double courbe Bezier réelle livrée en v3 (`pickStaggeredPair` + `curveAroundStaggeredPair`).
 - **Inversion HOOP** : rendu visuel distinct du panier "actif" vs "protégé"
 - **Closeout / Denial** : ✅ tunables globaux livrés en v3. Reste : tunables **par règle individuelle** (each defender his own aggressiveness) si besoin futur.
 - **Undo/Redo** : coalescing pendant un drag continu (1 entrée pile au lieu de N)

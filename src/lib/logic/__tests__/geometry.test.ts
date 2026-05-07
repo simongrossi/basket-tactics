@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickBlockingObstacle, pickBlockingCluster, computeBallFrame } from '../geometry';
+import { pickBlockingObstacle, pickBlockingCluster, computeBallFrame, pickStaggeredPair, curveAroundStaggeredPair } from '../geometry';
 
 describe('pickBlockingObstacle', () => {
   it("retourne null s'il n'y a aucun obstacle qui traverse le segment", () => {
@@ -136,5 +136,88 @@ describe('computeBallFrame', () => {
     const midFar = computeBallFrame(aFar, bFar, true, 0.5);
     // Plus la passe est longue, plus la parabole est haute (y plus petit)
     expect(midFar.pos.y).toBeLessThan(midClose.pos.y);
+  });
+});
+
+describe('pickStaggeredPair', () => {
+  it("renvoie null si moins de 2 obstacles bloquent réellement", () => {
+    const r = pickStaggeredPair(
+      { x: 0, y: 100 },
+      { x: 200, y: 100 },
+      [{ center: { x: 100, y: 105 }, radius: 20 }]
+    );
+    expect(r).toBeNull();
+  });
+
+  it("renvoie null si tous les bloqueurs sont du même côté (super-cluster suffit)", () => {
+    // Les deux obstacles à y=80 (même côté que la ligne y=100)
+    const r = pickStaggeredPair(
+      { x: 0, y: 100 },
+      { x: 200, y: 100 },
+      [
+        { center: { x: 60, y: 85 }, radius: 20 },
+        { center: { x: 140, y: 88 }, radius: 20 },
+      ]
+    );
+    expect(r).toBeNull();
+  });
+
+  it("détecte une paire staggered (obstacles sur côtés opposés du segment)", () => {
+    // y=100 segment, A en haut (y=85), B en bas (y=115) → quinconce
+    const a = { center: { x: 60, y: 85 }, radius: 20 };
+    const b = { center: { x: 140, y: 115 }, radius: 20 };
+    const r = pickStaggeredPair(
+      { x: 0, y: 100 },
+      { x: 200, y: 100 },
+      [a, b]
+    );
+    expect(r).not.toBeNull();
+    // Ordonné par projection le long du segment : A (proj=60) avant B (proj=140)
+    expect(r![0]).toBe(a);
+    expect(r![1]).toBe(b);
+  });
+
+  it("inverse l'ordre quand l'obstacle de droite est rencontré en premier", () => {
+    const a = { center: { x: 140, y: 85 }, radius: 20 };
+    const b = { center: { x: 60, y: 115 }, radius: 20 };
+    const r = pickStaggeredPair(
+      { x: 0, y: 100 },
+      { x: 200, y: 100 },
+      [a, b]
+    );
+    expect(r).not.toBeNull();
+    // B en premier (proj=60), puis A (proj=140)
+    expect(r![0]).toBe(b);
+    expect(r![1]).toBe(a);
+  });
+});
+
+describe('curveAroundStaggeredPair', () => {
+  it("t=0 retourne start, t=1 retourne end", () => {
+    const start = { x: 0, y: 100 };
+    const end = { x: 200, y: 100 };
+    const obs1 = { center: { x: 60, y: 85 }, radius: 20 };
+    const obs2 = { center: { x: 140, y: 115 }, radius: 20 };
+    const r0 = curveAroundStaggeredPair(start, end, obs1, obs2, 0);
+    const r1 = curveAroundStaggeredPair(start, end, obs1, obs2, 1);
+    expect(r0.x).toBeCloseTo(0, 1);
+    expect(r0.y).toBeCloseTo(100, 1);
+    expect(r1.x).toBeCloseTo(200, 1);
+    expect(r1.y).toBeCloseTo(100, 1);
+  });
+
+  it("la courbe passe du côté opposé à chaque obstacle (forme en S)", () => {
+    // Obstacle A en haut (y < 100) → courbe doit dévier en bas (y > 100) à proximité de A
+    // Obstacle B en bas (y > 100) → courbe doit dévier en haut (y < 100) à proximité de B
+    const start = { x: 0, y: 100 };
+    const end = { x: 200, y: 100 };
+    const obs1 = { center: { x: 60, y: 85 }, radius: 20 };
+    const obs2 = { center: { x: 140, y: 115 }, radius: 20 };
+    const nearA = curveAroundStaggeredPair(start, end, obs1, obs2, 0.3);
+    const nearB = curveAroundStaggeredPair(start, end, obs1, obs2, 0.7);
+    // Près de A : courbe dévie en bas (côté opposé à A qui est en haut)
+    expect(nearA.y).toBeGreaterThan(100);
+    // Près de B : courbe dévie en haut (côté opposé à B qui est en bas)
+    expect(nearB.y).toBeLessThan(100);
   });
 });

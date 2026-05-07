@@ -24,7 +24,10 @@ import type { DetectedOffBallScreen } from '@/lib/types';
 import { detectTriggers } from '@/lib/logic/triggers';
 import { getZoneLayout, mirrorZoneLayout } from '@/lib/data/zones';
 import { COURT, PLAYER_RADIUS, FULL_COURT_HEIGHT, FULL_COURT_INNER_MAX_Y } from '@/lib/data/court';
-import { clamp, distance, curveAroundObstacle, resolvePlayerCollisions, makeCluster, pickBlockingCluster, computeBallFrame } from '@/lib/logic/geometry';
+import {
+  clamp, distance, curveAroundObstacle, resolvePlayerCollisions, makeCluster,
+  pickBlockingCluster, pickStaggeredPair, curveAroundStaggeredPair, computeBallFrame,
+} from '@/lib/logic/geometry';
 import { ContextMenu } from './ContextMenu';
 import { ActionOrderBadges } from './ActionOrderBadges';
 
@@ -181,13 +184,19 @@ export function CourtView(props: CourtViewProps) {
           x: defA[id].x + (defB[id].x - defA[id].x) * localT,
           y: defA[id].y + (defB[id].y - defA[id].y) * localT,
         };
-        // Staggered screens : plusieurs poseurs sur le chemin → on contourne
-        // celui qui est LE PLUS BLOQUANT (pénétration dans le segment la plus
-        // profonde), pas le premier de la liste.
+        // Staggered screens : si 2 écrans en quinconce (côtés opposés du
+        // segment) → courbe en S réelle (pickStaggeredPair + cubic Bezier).
+        // Sinon (un seul ou tous du même côté) → super-cluster + courbe
+        // simple (pickBlockingCluster).
         const candidates = screenerObstacles.filter((o) => id !== o.defenderToSkip);
-        const blocking = pickBlockingCluster(defA[id], defB[id], candidates);
-        if (blocking) {
-          p = curveAroundObstacle(defA[id], defB[id], blocking.center, blocking.radius, localT);
+        const pair = pickStaggeredPair(defA[id], defB[id], candidates);
+        if (pair) {
+          p = curveAroundStaggeredPair(defA[id], defB[id], pair[0], pair[1], localT);
+        } else {
+          const blocking = pickBlockingCluster(defA[id], defB[id], candidates);
+          if (blocking) {
+            p = curveAroundObstacle(defA[id], defB[id], blocking.center, blocking.radius, localT);
+          }
         }
         defPos[id] = {
           x: p.x,
@@ -323,9 +332,14 @@ export function CourtView(props: CourtViewProps) {
         y: defA[id].y + (defB[id].y - defA[id].y) * localT,
       };
       const candidates = screenerObstacles.filter((o) => id !== o.defenderToSkip);
-      const blocking = pickBlockingCluster(defA[id], defB[id], candidates);
-      if (blocking) {
-        p = curveAroundObstacle(defA[id], defB[id], blocking.center, blocking.radius, localT);
+      const pair = pickStaggeredPair(defA[id], defB[id], candidates);
+      if (pair) {
+        p = curveAroundStaggeredPair(defA[id], defB[id], pair[0], pair[1], localT);
+      } else {
+        const blocking = pickBlockingCluster(defA[id], defB[id], candidates);
+        if (blocking) {
+          p = curveAroundObstacle(defA[id], defB[id], blocking.center, blocking.radius, localT);
+        }
       }
       defPos[id] = {
         x: p.x,
