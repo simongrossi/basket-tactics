@@ -1,10 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import type { AppState, AttackerId, Tool } from '@/lib/types';
-import { TEMPLATES, type Template } from '@/lib/data/templates';
 import { Panel, Section, Button, COLORS } from './ui';
-import { TemplateLibraryModal } from './TemplateLibraryModal';
 
 const ATTACKER_IDS: AttackerId[] = ['O1', 'O2', 'O3', 'O4', 'O5'];
 
@@ -16,7 +13,6 @@ interface OffensePanelProps {
   onDeleteStep: () => void;
   onSetStepLabel: (idx: number, label: string) => void;
   onSetBallCarrier: (carrier: AttackerId) => void;
-  onLoadTemplate: (template: Template) => void;
   onDeleteAnnotation: (idx: number) => void;
   tool: Tool;
   onSetTool: (t: Tool) => void;
@@ -79,49 +75,9 @@ function ToolIcon({ tool, color }: { tool: Tool; color: string }) {
 export function OffensePanel(props: OffensePanelProps) {
   const { state } = props;
   const c = COLORS.offense;
-  const [libraryOpen, setLibraryOpen] = useState(false);
 
   return (
     <Panel theme="offense" title="⚪ Attaque">
-      {/* Bouton compact qui ouvre la bibliothèque en modal — descriptions
-          visibles, pas de friction sur l'espace du panel. */}
-      <button
-        onClick={() => setLibraryOpen(true)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 8,
-          padding: '8px 10px',
-          borderRadius: 8,
-          border: `1px solid ${c.border}`,
-          borderLeft: `3px solid ${c.accent}`,
-          background: c.bg,
-          cursor: 'pointer',
-          fontSize: 12,
-          fontWeight: 600,
-          color: c.accentText,
-          transition: 'background 120ms, border-color 120ms',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = c.bgSubtle;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = c.bg;
-        }}
-        title="Ouvrir la bibliothèque de systèmes prêts à l'emploi"
-      >
-        <span>📚 Bibliothèque ({TEMPLATES.length} systèmes)</span>
-        <span style={{ fontSize: 10, color: c.accent, opacity: 0.7 }}>cliquer pour ouvrir →</span>
-      </button>
-      {libraryOpen && (
-        <TemplateLibraryModal
-          hasWorkInProgress={state.steps.length > 1 || state.steps[0].annotations.length > 0}
-          onLoad={props.onLoadTemplate}
-          onClose={() => setLibraryOpen(false)}
-        />
-      )}
-
       <Section theme="offense" label="Actions" open>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
           {TOOLS.map((t) => {

@@ -27,7 +27,10 @@ Le choix du modal sépare clairement "charger un système clé en main" du reste
 
 Pas de header. Toute la hauteur viewport est exploitée. Chaque colonne latérale empile 2 panneaux :
 
-- **Colonne gauche (260px)** : `OffensePanel` (orange, fill l'espace restant) en haut, `ActionsPanel` (compact, 5 boutons globaux : plein écran, playbook PDF, exporter/importer JSON, reset) en-dessous.
+- **Colonne gauche (260px)** : 3 panneaux empilés :
+  - `OffensePanel` (orange, fill) — Attaque (Actions, Étapes)
+  - `LibraryPanel` (compact) — un seul bouton qui ouvre la modal `TemplateLibraryModal`
+  - `ActionsPanel` (compact) — 5 boutons globaux (plein écran, playbook PDF, exporter/importer JSON, reset)
 - **Colonne centrale** : terrain + timeline + métriques (`grid-template-rows: minmax(0, 1fr) auto auto`).
 - **Colonne droite (300px)** : `DefensePanel` (bleu, fill l'espace restant) au-dessus, `ParametresPanel` (compact, options d'affichage) en-dessous.
 

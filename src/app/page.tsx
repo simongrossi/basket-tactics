@@ -7,6 +7,7 @@ import { OffensePanel } from '@/components/OffensePanel';
 import { DefensePanel } from '@/components/DefensePanel';
 import { ActionsPanel } from '@/components/ActionsPanel';
 import { ParametresPanel } from '@/components/ParametresPanel';
+import { LibraryPanel } from '@/components/LibraryPanel';
 import { Timeline } from '@/components/Timeline';
 import { CourtView } from '@/components/CourtView';
 import { PlaybookView } from '@/components/PlaybookView';
@@ -114,11 +115,11 @@ export default function Page() {
               onDeleteStep={app.deleteStep}
               onSetStepLabel={app.setStepLabel}
               onSetBallCarrier={app.setBallCarrier}
-              onLoadTemplate={app.loadTemplate}
               onDeleteAnnotation={app.deleteAnnotation}
               tool={app.state.tool}
               onSetTool={app.setTool}
             />
+            <LibraryPanel state={app.state} onLoadTemplate={app.loadTemplate} />
             <ActionsPanel
               presentMode={presentMode}
               onTogglePresentMode={() => setPresentMode((p) => !p)}
