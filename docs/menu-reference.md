@@ -198,14 +198,20 @@ Les autres entrées de la légende (`zone tracké`, `passe contestée/bloquée`,
 | **numéroter les actions (1, 2, 3…)** | Affiche des badges noirs numérotés au pied du joueur initiateur de chaque annotation de l'étape active, dans l'ordre des annotations. Inactif pendant la lecture et le scrubbing. Apparaît aussi automatiquement dans les vignettes du playbook PDF. |
 | **↻ sens d'attaque** | Bascule `attackingDirection` entre `up` et `down`. Disponible uniquement en terrain complet. La logique défensive (man + zone) suit le panier ciblé : positions, layouts de zone (polygones miroir), triggers, trap, metrics, rotations. |
 
-## Header (boutons)
+## Panneau Actions (haut de la colonne gauche)
+
+5 boutons compacts empilés en pleine largeur, anciennement dans le header.
 
 | Bouton | Effet |
 |--------|-------|
-| **🎬 plein écran** | Toggle qui masque les panneaux Attack et Defense pour donner toute la largeur au terrain. Idéal sur tablette ou écran serré. Re-clic ou touche `Échap` pour quitter. |
+| **🎬 plein écran** | Toggle qui masque les 4 panneaux latéraux pour donner toute la largeur au terrain. Idéal sur tablette ou écran serré. Re-clic ou touche `Échap` pour quitter. |
 | **📄 playbook PDF** | Ouvre la vue playbook (vignettes par étape) prête à imprimer en PDF. |
 | **exporter / importer JSON** | Sauvegarde / chargement du système au format JSON. |
 | **reset complet** | Vide localStorage et restaure l'état initial. |
+
+## Panneau Paramètres (bas de la colonne droite)
+
+Toutes les options d'affichage regroupées : Visu & légende (toggles avec swatches visuels), bouton de sens d'attaque, indicateurs auto (4 toggles), légende informative. Détails dans la section "Visu & légende" ci-dessous.
 
 ## Menu contextuel (clic-droit)
 

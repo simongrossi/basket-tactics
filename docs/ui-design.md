@@ -23,9 +23,19 @@ Bouton compact en haut de l'OffensePanel : `📚 Bibliothèque (N systèmes)` av
 
 Le choix du modal sépare clairement "charger un système clé en main" du reste des contrôles (édition fine), libère de l'espace dans le panel pour les Outils/Étapes/Lecture, et permet d'afficher les descriptions complètes sans contrainte de largeur.
 
-### Layout 3 colonnes
+### Layout 3 colonnes × 2 lignes
 
-- **280px** : panneau attaque (gauche, orange)
+Pas de header. Toute la hauteur viewport est exploitée. Chaque colonne latérale empile 2 panneaux :
+
+- **Colonne gauche (260px)** : `ActionsPanel` (compact, 5 boutons globaux : plein écran, playbook PDF, exporter/importer JSON, reset) au-dessus, `OffensePanel` (orange, fill l'espace restant) en-dessous.
+- **Colonne centrale** : terrain + timeline + métriques (`grid-template-rows: minmax(0, 1fr) auto auto`).
+- **Colonne droite (300px)** : `DefensePanel` (bleu, fill l'espace restant) au-dessus, `ParametresPanel` (compact, options d'affichage) en-dessous.
+
+Les panneaux "fill" (OffensePanel, DefensePanel) prennent `flex: 1 1 0` ; les panneaux "compact" (ActionsPanel, ParametresPanel) prennent `flex: 0 0 auto` (hauteur de leur contenu). Géré par la prop `fill` du composant `Panel`.
+
+### Largeurs colonnes
+
+- **260px** : panneau attaque (gauche, orange)
 - **1fr** : zone centrale (terrain + timeline)
 - **320px** : panneau défense (droit, bleu)
 

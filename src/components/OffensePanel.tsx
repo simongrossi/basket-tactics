@@ -87,7 +87,7 @@ export function OffensePanel(props: OffensePanelProps) {
   const [libraryOpen, setLibraryOpen] = useState(false);
 
   return (
-    <Panel theme="offense" title="⚪ Attaque">
+    <Panel theme="offense" title="⚪ Attaque" fill>
       {/* Bouton compact qui ouvre la bibliothèque en modal — descriptions
           visibles, pas de friction sur l'espace du panel. */}
       <button

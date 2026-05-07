@@ -5,6 +5,8 @@ import { useAppState } from '@/hooks/useAppState';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { OffensePanel } from '@/components/OffensePanel';
 import { DefensePanel } from '@/components/DefensePanel';
+import { ActionsPanel } from '@/components/ActionsPanel';
+import { ParametresPanel } from '@/components/ParametresPanel';
 import { Timeline } from '@/components/Timeline';
 import { CourtView } from '@/components/CourtView';
 import { PlaybookView } from '@/components/PlaybookView';
@@ -101,36 +103,18 @@ export default function Page() {
         gap: 8,
       }}
     >
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12,
-          flex: '0 0 auto',
-        }}
-      >
-        <h1 style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', margin: 0, letterSpacing: '-0.01em' }}>
-          🏀 Simulateur tactique basket
-        </h1>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setPresentMode((p) => !p)}
-            style={{ ...btnStyle, background: presentMode ? '#1e40af' : '#fff', color: presentMode ? '#fff' : '#334155', borderColor: presentMode ? '#1e40af' : '#e2e8f0' }}
-            title="Masque les panneaux pour donner toute la place au terrain (Échap pour quitter)"
-          >
-            {presentMode ? '✕ quitter plein écran' : '🎬 plein écran'}
-          </button>
-          <button onClick={() => setShowPlaybook(true)} style={btnStyle}>📄 playbook PDF</button>
-          <button onClick={handleExport} style={btnStyle}>exporter JSON</button>
-          <button onClick={handleImport} style={btnStyle}>importer JSON</button>
-          <button onClick={app.resetAll} style={{ ...btnStyle, color: '#b91c1c' }}>reset complet</button>
-        </div>
-      </header>
-
       <div className={presentMode ? 'layout-grid presenting' : 'layout-grid'}>
-        {!presentMode && <OffensePanel
+        {!presentMode && (
+          <div className="side-col">
+            <ActionsPanel
+              presentMode={presentMode}
+              onTogglePresentMode={() => setPresentMode((p) => !p)}
+              onOpenPlaybook={() => setShowPlaybook(true)}
+              onExport={handleExport}
+              onImport={handleImport}
+              onReset={app.resetAll}
+            />
+            <OffensePanel
           state={app.state}
           onSetActiveStep={app.setActiveStep}
           onAddStep={app.addStep}
@@ -151,7 +135,9 @@ export default function Page() {
           onSetTool={app.setTool}
           playbackSpeed={playbackSpeed}
           onSetPlaybackSpeed={setPlaybackSpeed}
-        />}
+            />
+          </div>
+        )}
 
         <div className="center-col">
           <CourtView
@@ -187,16 +173,21 @@ export default function Page() {
           {metrics && <MetricsBar metrics={metrics} />}
         </div>
 
-        {!presentMode && <DefensePanel
-          state={app.state}
-          onSetScreenRule={app.setScreenRule}
-          onResetSwitches={app.resetSwitches}
-          onPatch={app.patch}
-          onUpdateRule={app.updateRule}
-          onSetDefenseSystem={app.setDefenseSystem}
-          onUpdateZoneConfig={app.updateZoneConfig}
-          onApplyDefensePreset={app.applyDefensePreset}
-        />}
+        {!presentMode && (
+          <div className="side-col">
+            <DefensePanel
+              state={app.state}
+              onSetScreenRule={app.setScreenRule}
+              onResetSwitches={app.resetSwitches}
+              onPatch={app.patch}
+              onUpdateRule={app.updateRule}
+              onSetDefenseSystem={app.setDefenseSystem}
+              onUpdateZoneConfig={app.updateZoneConfig}
+              onApplyDefensePreset={app.applyDefensePreset}
+            />
+            <ParametresPanel state={app.state} onPatch={app.patch} />
+          </div>
+        )}
       </div>
 
       <input
@@ -215,9 +206,9 @@ export default function Page() {
           __html: `
         .layout-grid {
           display: grid;
-          grid-template-columns: 280px 1fr 320px;
+          grid-template-columns: 260px 1fr 300px;
           grid-template-rows: minmax(0, 1fr);
-          gap: 12px;
+          gap: 10px;
           flex: 1;
           min-height: 0;
         }
@@ -232,12 +223,21 @@ export default function Page() {
           min-height: 0;
           overflow: hidden;
         }
+        .side-col {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          min-width: 0;
+          min-height: 0;
+          overflow: hidden;
+        }
         @media (max-width: 1100px) {
-          .layout-grid:not(.presenting) { grid-template-columns: 240px 1fr 280px; }
+          .layout-grid:not(.presenting) { grid-template-columns: 220px 1fr 260px; }
         }
         @media (max-width: 900px) {
           main { height: auto !important; max-height: none !important; overflow: auto !important; }
           .layout-grid { grid-template-columns: 1fr; grid-template-rows: auto; }
+          .side-col { flex-direction: row; flex-wrap: wrap; }
         }
       `,
         }}
@@ -246,15 +246,3 @@ export default function Page() {
   );
 }
 
-const btnStyle: React.CSSProperties = {
-  fontSize: 12,
-  padding: '5px 10px',
-  borderRadius: 6,
-  border: '1px solid #e2e8f0',
-  background: '#fff',
-  cursor: 'pointer',
-  color: '#334155',
-  fontWeight: 500,
-  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-  transition: 'border-color 120ms, background 120ms',
-};

@@ -32,9 +32,13 @@ interface PanelProps {
   theme: Theme;
   title: string;
   children: ReactNode;
+  /** Permet d'imposer un flex/min-height au Panel quand il vit dans une
+   *  colonne flex (ex : ActionsPanel veut sa hauteur naturelle, OffensePanel
+   *  veut occuper l'espace restant). */
+  fill?: boolean;
 }
 
-export function Panel({ theme, title, children }: PanelProps) {
+export function Panel({ theme, title, children, fill }: PanelProps) {
   const c = COLORS[theme];
   const accent = 'accent' in c ? c.accent : '#94a3b8';
   return (
@@ -49,6 +53,7 @@ export function Panel({ theme, title, children }: PanelProps) {
         gap: 8,
         minHeight: 0,
         overflow: 'hidden',
+        flex: fill ? '1 1 0' : '0 0 auto',
         boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04)',
       }}
     >
