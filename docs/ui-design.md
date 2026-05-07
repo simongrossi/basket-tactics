@@ -74,6 +74,8 @@ Les panneaux ont une ombre douce `0 1px 3px + 0 8px 24px` rgba(15, 23, 42, 0.04)
 - **Closeout actif** : double anneau orange `#F97316` autour du défenseur du nouveau porteur (apparition pendant la transition où le ballon change de mains)
 - **Over-closeout** : double anneau rouge `#DC2626` + ⚠ — closeout actif ET le porteur en a profité pour driver vers le panier (s'est fait déborder)
 - **Strong-side denial actif** : ring cyan pointillé `#0EA5A8` (différencié du ring violet `#534AB7` qui désigne l'aide weak-side classique)
+- **Panier visé (mode inversion + fullCourt)** : anneau orange pointillé `#F97316` autour du rim + label `🎯 visé`
+- **Panier protégé (mode inversion + fullCourt)** : cercle bleu sobre `#3b82f6` (50% opacité) + label `🛡 protégé`
 - **Defender en retard (`late`)** : contour épais rouge `#E24B4A`
 - **Defender du porteur** : contour jaune `#FAC775`
 - **Ballon en main** : cercle orange `#BA7517` r=7 avec contour foncé, offset (+16, -16) au-dessus du porteur

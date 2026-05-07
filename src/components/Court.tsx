@@ -1,6 +1,7 @@
 import {
   COURT,
   HOOP,
+  HOOP_OPPOSITE,
   HOOP_RADIUS,
   PAINT,
   FT_LINE_Y,
@@ -19,6 +20,11 @@ import {
 
 interface CourtBackgroundProps {
   fullCourt?: boolean;
+  /** Sens d'attaque. Quand 'down' et fullCourt, un indicateur visuel
+   *  (anneau orange + label "🎯 visé") est posé autour du panier visé,
+   *  et un indicateur bleu sobre autour du panier protégé. Sans effet
+   *  en demi-terrain (le panier est toujours en haut). */
+  attackingDirection?: 'up' | 'down';
 }
 
 const LINE_COLOR = '#FFFFFF';
@@ -135,9 +141,11 @@ function HalfCourt() {
   );
 }
 
-export function CourtBackground({ fullCourt = false }: CourtBackgroundProps) {
+export function CourtBackground({ fullCourt = false, attackingDirection = 'up' }: CourtBackgroundProps) {
   const totalHeight = fullCourt ? FULL_COURT_HEIGHT : COURT.height;
   const totalInner = fullCourt ? FULL_COURT_HEIGHT - 40 : 520;
+  const attackedHoop = attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP;
+  const protectedHoop = attackingDirection === 'down' ? HOOP : HOOP_OPPOSITE;
   return (
     <>
       {/* Fond du SVG */}
@@ -179,6 +187,51 @@ export function CourtBackground({ fullCourt = false }: CourtBackgroundProps) {
             stroke={LINE_COLOR}
             strokeWidth={LINE_WIDTH}
           />
+          {/* Indicateurs panier actif (visé par l'attaque) vs protégé (côté défense).
+              Anneau orange autour du panier visé + label "🎯 visé".
+              Petit cercle bleu sobre autour du panier protégé + label "🛡 protégé". */}
+          <g pointerEvents="none">
+            <circle
+              cx={attackedHoop.x}
+              cy={attackedHoop.y}
+              r={HOOP_RADIUS + 8}
+              fill="none"
+              stroke="#F97316"
+              strokeWidth={2.5}
+              strokeDasharray="4 3"
+              opacity={0.85}
+            />
+            <text
+              x={attackedHoop.x}
+              y={attackedHoop.y + (attackedHoop.y < 540 ? -22 : 28)}
+              textAnchor="middle"
+              fontSize={11}
+              fontWeight={700}
+              fill="#9a3412"
+            >
+              🎯 visé
+            </text>
+            <circle
+              cx={protectedHoop.x}
+              cy={protectedHoop.y}
+              r={HOOP_RADIUS + 5}
+              fill="none"
+              stroke="#3b82f6"
+              strokeWidth={1.5}
+              opacity={0.55}
+            />
+            <text
+              x={protectedHoop.x}
+              y={protectedHoop.y + (protectedHoop.y < 540 ? -18 : 24)}
+              textAnchor="middle"
+              fontSize={9}
+              fontWeight={600}
+              fill="#1e40af"
+              opacity={0.75}
+            >
+              🛡 protégé
+            </text>
+          </g>
         </>
       ) : (
         <>

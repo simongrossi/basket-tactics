@@ -545,7 +545,7 @@ export function CourtView(props: CourtViewProps) {
         onPointerUp={onPointerUp}
       >
         <ArrowMarkers />
-        <CourtBackground fullCourt={state.fullCourt} />
+        <CourtBackground fullCourt={state.fullCourt} attackingDirection={state.attackingDirection} />
         {state.defenseSystem === 'zone' && (() => {
           const base = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
           const zoneLayout = state.attackingDirection === 'down' ? mirrorZoneLayout(base) : base;

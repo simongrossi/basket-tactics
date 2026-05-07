@@ -56,10 +56,10 @@ Implémenté : nouvelle `OffBallStance: 'stunt'` avec blend 0.4 dans `offBallSta
 ### 🟢 Trap en corner / sideline (v2)
 Implémenté dans `lib/logic/trap.ts` (polygones, helper picker, position cible) + trigger `state.triggers.trap` + override appliqué dans `engine.computeDefenseTargets`. **v2** : 4 zones au lieu de 2 — coins baseline (gauche/droite, y < 200) + sidelines mi-terrain (gauche/droite, y ∈ [200, 460]). ⚪ **À venir v3** : gestion explicite quand un écran est aussi détecté simultanément (aujourd'hui le trap est désactivé si screen ≠ null).
 
-### 🟢 Inversion HOOP (v2, man + zone)
-v1 : `state.attackingDirection: 'up' | 'down'` + threading `hoop?: Point` dans manDefense / help / screens / triggers / metrics / trap / geometry. Bouton "↻ sens d'attaque" gated sur fullCourt.
-**v2 — zone defense directionnelle** : `computeZoneTargets` accepte `hoop` et le passe à `manTarget` / `carrierDefenderTarget` / sortings internes. Nouveau helper `mirrorZoneLayout(layout)` qui miroite polygones et homePos autour de y=540. Engine miroite le layout en mode 'down' (pour les positions calculées ET les positions `prevPositions` au step 0). CourtView et StepThumbnail rendent le `ZoneOverlay` et `ZoneCoverage` avec le layout adapté au sens d'attaque.
-⚪ **v3** : rendu visuel distinct de la "second hoop" comme panier actif quand inversion (badge ou couleur différente sur le panneau visé vs panneau protégé).
+### 🟢 Inversion HOOP (v3, man + zone + visuel)
+v1 : `state.attackingDirection: 'up' | 'down'` + threading `hoop?: Point` dans manDefense / help / screens / triggers / metrics / trap / geometry.
+v2 : zone defense directionnelle (`computeZoneTargets` accepte `hoop`, `mirrorZoneLayout(layout)` miroite polygones et homePos autour de y=540).
+**v3 — distinction visuelle des paniers** : en mode fullCourt, anneau orange pointillé (`#F97316`) + label "🎯 visé" autour du panier ciblé par l'attaque, et petit cercle bleu sobre (`#3b82f6`) + "🛡 protégé" autour du panier défendu. Suit `state.attackingDirection`. Pas d'effet en demi-terrain (le panier est toujours en haut). Implémenté dans `CourtBackground`, propagé depuis `CourtView` et `StepThumbnail`.
 
 ---
 
@@ -202,7 +202,7 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 **Limites v3 documentées sur les chantiers déjà v2** :
 - **Trap** : gestion explicite quand un écran est aussi détecté simultanément (aujourd'hui le trap est skip si screen ≠ null)
 - **Staggered** : ✅ double courbe Bezier réelle livrée en v3 (`pickStaggeredPair` + `curveAroundStaggeredPair`).
-- **Inversion HOOP** : rendu visuel distinct du panier "actif" vs "protégé"
+- **Inversion HOOP** : ✅ rendu visuel "🎯 visé" / "🛡 protégé" livré en v3.
 - **Closeout / Denial** : ✅ tunables globaux livrés en v3. Reste : tunables **par règle individuelle** (each defender his own aggressiveness) si besoin futur.
 - **Undo/Redo** : coalescing pendant un drag continu (1 entrée pile au lieu de N)
 

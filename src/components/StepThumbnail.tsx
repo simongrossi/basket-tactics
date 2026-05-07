@@ -41,7 +41,7 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
       style={{ width: '100%', height: 'auto', display: 'block' }}
     >
       <ArrowMarkers />
-      <CourtBackground fullCourt={state.fullCourt} />
+      <CourtBackground fullCourt={state.fullCourt} attackingDirection={state.attackingDirection} />
       {state.defenseSystem === 'zone' && showDefense && (() => {
         const base = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
         const layout = state.attackingDirection === 'down' ? mirrorZoneLayout(base) : base;
