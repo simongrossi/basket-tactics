@@ -21,6 +21,7 @@ interface DefensePanelProps {
   onSetDefenseSystem: (s: DefenseSystem) => void;
   onUpdateZoneConfig: (p: Partial<ZoneConfig>) => void;
   onApplyDefensePreset: (preset: DefensePreset) => void;
+  onClearAllDefenseOverrides: () => void;
 }
 
 export function DefensePanel(props: DefensePanelProps) {
@@ -179,6 +180,31 @@ export function DefensePanel(props: DefensePanelProps) {
               onChange={(v) => props.onPatch({ zoneEditMode: v })}
               title="Active l'overlay interactif : régions colorées, drag des homePos (rond coloré) pour repositionner les ancrages. Drag des sommets blancs pour reshaper le polygone librement. Clic sur une arête pour ajouter un sommet. Shift+clic sur un sommet pour le supprimer. Clic sur le label pour ouvrir le menu (mode + rayon)."
             />
+            {(() => {
+              const cur = state.steps[state.activeStep];
+              const overrideCount = cur?.defenseOverrides ? Object.keys(cur.defenseOverrides).length : 0;
+              return (
+                <button
+                  onClick={props.onClearAllDefenseOverrides}
+                  disabled={overrideCount === 0}
+                  title="Libère tous les défenseurs en placement manuel (✋) sur cette étape — repassent en auto/zone. Le drag d'un défenseur en mode édition ne crée plus de manuel, mais ce bouton sert à nettoyer un état hérité."
+                  style={{
+                    marginTop: 6,
+                    width: '100%',
+                    fontSize: 11,
+                    padding: '5px 8px',
+                    borderRadius: 4,
+                    border: '1px solid #cbd5e1',
+                    background: overrideCount === 0 ? '#f8fafc' : '#fff',
+                    color: overrideCount === 0 ? '#94a3b8' : '#1e3a8a',
+                    cursor: overrideCount === 0 ? 'default' : 'pointer',
+                    fontWeight: 500,
+                  }}
+                >
+                  ↻ tout en auto {overrideCount > 0 ? `(${overrideCount})` : ''}
+                </button>
+              );
+            })()}
           </div>
         </Section>
       )}

@@ -99,11 +99,11 @@ export function computeZoneTargets(
         }
       : homePos;
 
-    // Trouve l'attaquant primaire à suivre : toujours le plus proche du
-    // homePos (sans coupure dure). On lit le rayon comme un "rayon de
-    // responsabilité forte" — l'engagement décroît au-delà mais ne tombe
-    // pas à zéro brutalement. Permet au défenseur d'accompagner un attaquant
-    // qui sort un peu de sa zone, sans téléportation.
+    // Trouve l'attaquant primaire à suivre : toujours le strict plus proche
+    // du homePos. Plus de "préférence porteur" (qui faisait sauter le wing
+    // defender sur le ballon dès que c'était à peine plus proche). Si le
+    // porteur entre dans la zone d'un défenseur, il devient naturellement
+    // le plus proche → primary.
     let primaryAttacker: AttackerId | null = null;
     let primaryDist = Infinity;
     (Object.entries(off) as [AttackerId, Point][]).forEach(([oId, pos]) => {
@@ -113,15 +113,6 @@ export function computeZoneTargets(
         primaryAttacker = oId;
       }
     });
-    // Préférence porteur : s'il est raisonnablement proche du primary
-    // (≤ +60px), il prend la priorité.
-    if (ballCarrier && off[ballCarrier]) {
-      const carrierDist = distance(off[ballCarrier], homePos);
-      if (carrierDist < primaryDist + 60) {
-        primaryAttacker = ballCarrier;
-        primaryDist = carrierDist;
-      }
-    }
 
     if (!primaryAttacker) {
       targets[dId] = {

@@ -397,6 +397,18 @@ export function useAppState() {
     setStateWithHistory((s) => ({ ...s, zoneEditMode: on }));
   }, []);
 
+  const clearAllDefenseOverridesActiveStep = useCallback(() => {
+    setStateWithHistory((s) => {
+      const cur = s.steps[s.activeStep];
+      if (!cur?.defenseOverrides || Object.keys(cur.defenseOverrides).length === 0) return s;
+      const steps = [...s.steps];
+      const next = { ...cur };
+      delete next.defenseOverrides;
+      steps[s.activeStep] = next;
+      return { ...s, steps };
+    });
+  }, []);
+
   const updateZoneConfig = useCallback((zPatch: Partial<ZoneConfig>) => {
     setStateWithHistory((s) => {
       const newConfig = { ...s.zoneConfig, ...zPatch };
@@ -476,6 +488,7 @@ export function useAppState() {
     setZoneOverride,
     clearZoneOverride,
     setZoneEditMode,
+    clearAllDefenseOverridesActiveStep,
     setStepLabel,
     setBallCarrier,
     loadTemplate,
