@@ -67,6 +67,11 @@ export interface DefenderRule {
    *  ↔ son homme). Undefined = global. Permet d'avoir un défenseur
    *  collant (10) et un autre plus distant (60). */
   distance?: number;
+  /** Override individuel de `state.defenseMaxSpeed` (distance max parcourue
+   *  par étape). Undefined = global. Modélise la vitesse réelle du joueur :
+   *  un pivot lent (60-80) sera souvent en retard sur les rotations, un
+   *  meneur rapide (130-160) atteint sa cible plus souvent à temps. */
+  maxSpeed?: number;
   /** Comportement d'aide du défenseur. Default 'auto'. Voir `HelpMode`. */
   helpMode?: HelpMode;
 }

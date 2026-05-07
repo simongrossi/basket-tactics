@@ -285,6 +285,16 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
         onReset={() => onUpdate({ denyAggressiveness: undefined })}
         title="Force du marquage en avant sur la ligne de passe quand son homme est côté ballon. 0 = ignore, 0.45 = par défaut, 1 = full denial assumé."
       />
+      <OverrideSliderRow
+        label="vit. max"
+        min={40}
+        max={200}
+        step={5}
+        value={rule.maxSpeed}
+        onChange={(v) => onUpdate({ maxSpeed: v })}
+        onReset={() => onUpdate({ maxSpeed: undefined })}
+        title="Vitesse max individuelle de ce défenseur (px/étape). Petit nombre (60-80) = pivot lent, souvent en retard sur les rotations d'aide. Grand nombre (130-160) = meneur rapide, atteint sa cible plus souvent à temps. Réduit l'effet 'téléportation' sur les aides."
+      />
       {hasOverride && (
         <div
           style={{

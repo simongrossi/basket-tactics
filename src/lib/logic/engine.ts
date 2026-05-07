@@ -340,7 +340,11 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     // Override par défenseur > global > défaut.
     const ruleBoost = state.rules[dId]?.closeoutBoost;
     const closeoutBoost = ruleBoost ?? state.closeoutBoost ?? DEFAULT_CLOSEOUT_SPEED_FACTOR;
-    const maxSpeed = closingOut ? baseMaxSpeed * closeoutBoost : baseMaxSpeed;
+    // Vitesse max individuelle (rule.maxSpeed) > globale (en zone, on garde la rotation)
+    const indivMaxSpeed = state.defenseSystem === 'man'
+      ? (state.rules[dId]?.maxSpeed ?? baseMaxSpeed)
+      : baseMaxSpeed;
+    const maxSpeed = closingOut ? indivMaxSpeed * closeoutBoost : indivMaxSpeed;
 
     // À l'étape 0, on considère que les défenseurs SONT à leur position idéale
     // (le step 0 est un setup, pas une transition). La contrainte de vitesse
