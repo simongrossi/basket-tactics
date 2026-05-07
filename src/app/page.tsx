@@ -153,7 +153,7 @@ export default function Page() {
           onSetPlaybackSpeed={setPlaybackSpeed}
         />}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, minHeight: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
           <CourtView
             state={app.state}
             onMoveAttacker={app.moveAttacker}
@@ -213,9 +213,14 @@ export default function Page() {
         .layout-grid {
           display: grid;
           grid-template-columns: 280px 1fr 320px;
+          grid-template-rows: minmax(0, 1fr);
           gap: 12px;
           flex: 1;
           min-height: 0;
+        }
+        .layout-grid > * {
+          min-height: 0;
+          min-width: 0;
         }
         .layout-grid.presenting {
           grid-template-columns: 1fr;
@@ -225,7 +230,7 @@ export default function Page() {
         }
         @media (max-width: 900px) {
           main { height: auto !important; max-height: none !important; overflow: auto !important; }
-          .layout-grid { grid-template-columns: 1fr; }
+          .layout-grid { grid-template-columns: 1fr; grid-template-rows: auto; }
         }
       `}</style>
     </main>

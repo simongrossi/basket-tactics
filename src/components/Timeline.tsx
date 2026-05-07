@@ -64,7 +64,7 @@ export function Timeline({ state, onSetActiveStep, onScrub, isPlaying, scrubT, p
   const currentStep = state.steps[currentStepIdx];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 0, flex: '0 0 auto' }}>
       <div
         ref={trackRef}
         onPointerDown={onPointerDown}
@@ -72,7 +72,7 @@ export function Timeline({ state, onSetActiveStep, onScrub, isPlaying, scrubT, p
         onPointerUp={onPointerUp}
         style={{
           position: 'relative',
-          height: 36,
+          height: 28,
           background: '#f1f5f9',
           borderRadius: 8,
           cursor: total > 1 ? (dragging ? 'grabbing' : 'grab') : 'default',
@@ -155,7 +155,7 @@ export function Timeline({ state, onSetActiveStep, onScrub, isPlaying, scrubT, p
           }}
         />
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748b' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#64748b', lineHeight: 1.2 }}>
         <span>
           Étape {currentStepIdx + 1} / {total}
           {currentStep?.label ? ` — ${currentStep.label}` : ''}
