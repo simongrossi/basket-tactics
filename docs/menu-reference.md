@@ -244,7 +244,11 @@ Cinq réglages :
 - **denial agr.** : override individuel de l'intensité du strong-side denial. Comportement identique : "global" par défaut, ↻ pour reset.
 - **vit. max** : distance max parcourue par étape (range 40–200px). **Défauts par poste** : D1 meneur 145 · D2 arrière 130 · D3 ailier 110 · D4 ailier fort 90 · D5 pivot 75. Modélise la mobilité réelle du joueur : un pivot atteint rarement les rotations d'aide longue distance, un meneur les atteint quasi toujours. ↻ revient au global (`state.defenseMaxSpeed`) si on veut effacer le profil par poste.
 
-Si une position manuelle (override drag) est active, un bouton "↻ ré-auto-positionner" apparaît en bas du menu.
+**Toggle placement Auto / Manuel** en haut du menu (juste sous la barre d'outils) indique le mode courant pour ce défenseur sur cette étape :
+- **⚙ auto** (gris) : le moteur calcule la position d'après les règles d'aide, l'écran, le strong-side denial. C'est le mode par défaut.
+- **✋ manuel** (orange) : la position est figée à l'endroit où tu as drag ce défenseur. Le moteur respecte cette position et n'essaie plus de la recalculer pour cette étape.
+
+Drag un défenseur sur le terrain → bascule automatiquement en Manuel. Clic sur "auto" dans le toggle → libère le pin et repasse en Auto. Le badge ✋ jaune sur le défenseur reste le repère visuel sur le terrain.
 
 ### Suppression d'une action
 

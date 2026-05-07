@@ -160,6 +160,64 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
         </span>
       </div>
       <ToolBar tool={tool} onSetTool={onSetTool} defenderContext />
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          marginBottom: 10,
+          padding: '4px 6px',
+          borderRadius: 5,
+          background: hasOverride ? '#fef3c7' : '#f1f5f9',
+          border: `1px solid ${hasOverride ? '#fcd34d' : '#e2e8f0'}`,
+        }}
+        title={
+          hasOverride
+            ? 'Position manuelle figée sur cette étape : le moteur respecte la position où tu as drag ce défenseur. Bascule en Auto pour que le moteur recalcule.'
+            : "Position calculée par le moteur d'après les règles d'aide, l'écran, le strong-side denial. Drag le défenseur pour passer en Manuel."
+        }
+      >
+        <span style={{ fontSize: 11, color: '#475569', fontWeight: 500 }}>placement</span>
+        <div style={{ display: 'flex', flex: 1, gap: 2, marginLeft: 4 }}>
+          <button
+            onClick={() => {
+              if (hasOverride) {
+                onClearOverride();
+                onClose();
+              }
+            }}
+            style={{
+              flex: 1,
+              fontSize: 11,
+              padding: '3px 4px',
+              borderRadius: 3,
+              border: `1px solid ${!hasOverride ? '#0284c7' : '#cbd5e1'}`,
+              background: !hasOverride ? '#0284c7' : '#fff',
+              color: !hasOverride ? '#fff' : '#475569',
+              cursor: hasOverride ? 'pointer' : 'default',
+              fontWeight: !hasOverride ? 600 : 400,
+            }}
+          >
+            ⚙ auto
+          </button>
+          <button
+            disabled
+            style={{
+              flex: 1,
+              fontSize: 11,
+              padding: '3px 4px',
+              borderRadius: 3,
+              border: `1px solid ${hasOverride ? '#d97706' : '#cbd5e1'}`,
+              background: hasOverride ? '#f59e0b' : '#fff',
+              color: hasOverride ? '#fff' : '#94a3b8',
+              cursor: 'default',
+              fontWeight: hasOverride ? 600 : 400,
+            }}
+          >
+            ✋ manuel
+          </button>
+        </div>
+      </div>
       <Row
         label="aide %"
         title="Intensité de l'aide ce défenseur quand un trigger est actif (drive/post/raquette). 0 = ne quitte jamais son homme. 100 = bouge complètement vers la cible d'aide."
@@ -295,38 +353,6 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
         onReset={() => onUpdate({ maxSpeed: undefined })}
         title="Vitesse max individuelle de ce défenseur (px/étape). Défauts par poste : D1 meneur 145 · D2 arrière 130 · D3 ailier 110 · D4 ailier fort 90 · D5 pivot 75. Petit nombre = lent, souvent en retard sur les rotations d'aide. Grand nombre = rapide, atteint sa cible plus souvent à temps."
       />
-      {hasOverride && (
-        <div
-          style={{
-            marginTop: 8,
-            paddingTop: 8,
-            borderTop: '1px solid #e2e8f0',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 4,
-          }}
-        >
-          <div style={{ fontSize: 11, color: '#92400e', background: '#fef3c7', padding: '4px 6px', borderRadius: 4 }}>
-            Position manuelle active sur cette étape.
-          </div>
-          <button
-            onClick={() => {
-              onClearOverride();
-              onClose();
-            }}
-            style={{
-              fontSize: 11,
-              padding: '5px 8px',
-              borderRadius: 4,
-              border: '1px solid #cbd5e1',
-              background: '#fff',
-              cursor: 'pointer',
-            }}
-          >
-            ↻ ré-auto-positionner
-          </button>
-        </div>
-      )}
     </div>
   );
 }

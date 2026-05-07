@@ -14,7 +14,6 @@ import type {
   Point,
 } from '@/lib/types';
 import { makeInitialState, makeStep, initialOff, initialDef } from '@/lib/data/initial';
-import { getMatchupsAt } from '@/lib/logic/engine';
 import { getZoneLayout } from '@/lib/data/zones';
 import type { Template } from '@/lib/data/templates';
 import type { DefensePreset } from '@/lib/data/defensePresets';
@@ -147,18 +146,6 @@ export function useAppState() {
       const steps = [...s.steps];
       const cur = { ...steps[s.activeStep] };
       cur.off = { ...cur.off, [id]: { x, y } };
-      // Si le défenseur matché à cet attaquant avait un override manuel sur
-      // cette étape, on le libère : la position pinnée correspondait à
-      // l'ancienne position de l'attaquant, elle est désormais obsolète.
-      if (cur.defenseOverrides) {
-        const matchups = getMatchupsAt(s.steps, s.activeStep);
-        const matchedDef = (Object.entries(matchups) as [DefenderId, AttackerId][])
-          .find(([, oId]) => oId === id)?.[0];
-        if (matchedDef && cur.defenseOverrides[matchedDef]) {
-          const { [matchedDef]: _, ...rest } = cur.defenseOverrides;
-          cur.defenseOverrides = Object.keys(rest).length > 0 ? rest : undefined;
-        }
-      }
       steps[s.activeStep] = cur;
       return { ...s, steps };
     });
