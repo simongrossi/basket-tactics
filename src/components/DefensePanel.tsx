@@ -211,26 +211,28 @@ export function DefensePanel(props: DefensePanelProps) {
               onChange={(v) => props.onPatch({ denyAggressiveness: v })}
             />
             <div style={{ fontSize: 11, fontWeight: 500, color: c.accentText, marginTop: 4 }}>Triggers d'aide</div>
-            <CheckboxLine
-              checked={state.triggers.drive}
-              label="aide sur drive"
-              onChange={(v) => props.onPatch({ triggers: { ...state.triggers, drive: v } })}
-            />
-            <CheckboxLine
-              checked={state.triggers.post}
-              label="aide sur post-up"
-              onChange={(v) => props.onPatch({ triggers: { ...state.triggers, post: v } })}
-            />
-            <CheckboxLine
-              checked={state.triggers.paint}
-              label="aide si porteur dans raquette"
-              onChange={(v) => props.onPatch({ triggers: { ...state.triggers, paint: v } })}
-            />
-            <CheckboxLine
-              checked={!!state.triggers.trap}
-              label="trap si porteur en coin fond"
-              onChange={(v) => props.onPatch({ triggers: { ...state.triggers, trap: v } })}
-            />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 6px' }}>
+              <CheckboxLine
+                checked={state.triggers.drive}
+                label="drive"
+                onChange={(v) => props.onPatch({ triggers: { ...state.triggers, drive: v } })}
+              />
+              <CheckboxLine
+                checked={state.triggers.post}
+                label="post-up"
+                onChange={(v) => props.onPatch({ triggers: { ...state.triggers, post: v } })}
+              />
+              <CheckboxLine
+                checked={state.triggers.paint}
+                label="raquette"
+                onChange={(v) => props.onPatch({ triggers: { ...state.triggers, paint: v } })}
+              />
+              <CheckboxLine
+                checked={!!state.triggers.trap}
+                label="trap coin/sideline"
+                onChange={(v) => props.onPatch({ triggers: { ...state.triggers, trap: v } })}
+              />
+            </div>
           </Section>
 
           <Section theme="defense" label="Écran porteur" open>
@@ -375,7 +377,7 @@ export function DefensePanel(props: DefensePanelProps) {
         </>
       )}
 
-      <Section theme="defense" label="Visualisation" open>
+      <Section theme="defense" label="Visualisation">
         <CheckboxLine
           checked={state.showHelpLines}
           label="lignes d'aide"

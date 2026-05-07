@@ -134,7 +134,7 @@ Conditions qui activent l'aide automatique :
 | **aide sur drive** | Porteur s'approche du panier (delta > 25px / 250px du panier) |
 | **aide sur post-up** | Porteur en poste bas, stationnaire |
 | **aide si porteur dans raquette** | Porteur dans la peinture |
-| **trap si porteur en coin fond** | Porteur dans la zone coin gauche/droit fond → le défenseur le plus proche vient verrouiller le côté opposé pour fermer la cage |
+| **trap coin/sideline** | Porteur dans une zone de trappe (coin gauche/droit fond OU sideline gauche/droite mi-terrain) → le défenseur le plus proche vient verrouiller le côté opposé pour fermer la cage |
 
 Indépendants des triggers :
 - **sag baseline weak-side** toujours actif (défenseurs avec `helpPct > 0` côté faible)
