@@ -126,13 +126,19 @@ Convention de coordonnées : `y=20` = ligne de fond (proche du panier), `y=540` 
 - **2-1-2** (losange) : 2 fronts perimeter (y=320..540, splittés G/D), 1 cœur de raquette (y=160..320 full width), 2 lows presque au niveau panier (y=20..160, splittés G/D).
 - **match-up** : mêmes polygones que le 2-3 mais marquage individuel à l'intérieur de la zone.
 
-### Algorithme par défenseur
+### Algorithme par défenseur (tracking continu)
 
-Pour chaque zone :
-1. Si **0 attaquant** dans la zone → shift de homePos vers le ballon (pondéré par `ballPressure`)
-2. Si **1 attaquant** → position style man-target sur lui
-3. Si **2+ attaquants** → on garde le plus proche du panier, on déclenche une rotation
-4. Si le **porteur est dans la zone** → comportement « contester »
+Pour chaque zone, on calcule un **engagement** ∈ [0, 1] basé sur la distance au homePos :
+1. Trouver l'attaquant primaire = le plus proche du `homePos` dans un **rayon de responsabilité étendu** (200px). Préférence pour le porteur si dans le rayon.
+2. Si aucun attaquant dans le rayon → défenseur reste au home shifté vers le ballon (pondéré par `ballPressure`). Engagement = 0.
+3. Sinon `engagement = 1 - dist(primary, homePos) / 200` — plus l'attaquant est proche, plus le défenseur sort.
+4. Calculer `trackedPos` :
+   - Porteur → `carrierDefenderTarget('contester')`
+   - Match-up → `manTarget` à distance standard
+   - Zone classique → `manTarget` à distance étendue (×1.2) avec léger shift vers le ballon
+5. Position finale = `lerp(homeShifted, trackedPos, engagement)` — interpolation continue.
+
+**Conséquence** : pas de saut quand un attaquant traverse une frontière de polygone. Le défenseur l'accompagne progressivement à mesure qu'il se rapproche du homePos. Les polygones ne sont plus utilisés pour l'assignation, juste pour la rotation (cas 2+ attaquants strictement dans une zone).
 
 ### Rotation
 
