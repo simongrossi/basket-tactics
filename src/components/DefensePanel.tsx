@@ -377,36 +377,42 @@ export function DefensePanel(props: DefensePanelProps) {
         </>
       )}
 
-      <Section theme="defense" label="Visualisation" open>
+      <Section theme="defense" label="Visu & légende" open>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 8px' }}>
-          <CheckboxLine
+          <LegendCheckboxLine
             checked={state.showHelpLines}
             label="aide"
+            sample="dashed" color="#534AB7"
             onChange={(v) => props.onPatch({ showHelpLines: v })}
           />
-          <CheckboxLine
+          <LegendCheckboxLine
             checked={state.showMatchups}
             label="matchups"
+            sample="line" color="#888780"
             onChange={(v) => props.onPatch({ showMatchups: v })}
           />
-          <CheckboxLine
+          <LegendCheckboxLine
             checked={state.showPassLanes}
             label="lignes passe"
+            sample="dashed" color="#10b981"
             onChange={(v) => props.onPatch({ showPassLanes: v })}
           />
-          <CheckboxLine
+          <LegendCheckboxLine
             checked={!!state.showGhosts}
             label="ghost N-1"
+            sample="circle-dashed" color="#D85A30"
             onChange={(v) => props.onPatch({ showGhosts: v })}
           />
-          <CheckboxLine
+          <LegendCheckboxLine
             checked={!!state.showActionOrder}
             label="num. actions"
+            sample="num" color="#1e293b"
             onChange={(v) => props.onPatch({ showActionOrder: v })}
           />
-          <CheckboxLine
+          <LegendCheckboxLine
             checked={!!state.showHeatmap}
             label="heatmap zones"
+            sample="gradient" color=""
             onChange={(v) => props.onPatch({ showHeatmap: v })}
           />
           <CheckboxLine
@@ -435,51 +441,100 @@ export function DefensePanel(props: DefensePanelProps) {
         >
           ↻ sens d'attaque : {state.attackingDirection === 'down' ? 'vers le bas' : 'vers le haut'}
         </button>
-        <details style={{ marginTop: 6 }}>
-          <summary style={{ cursor: 'pointer', fontSize: 11, color: c.accentText, fontWeight: 500 }}>
-            Légende couleurs
-          </summary>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 6 }}>
-            <LegendRow color="#534AB7" sample="dashed" label="ligne d'aide (weak-side)" />
-            <LegendRow color="#888780" sample="line" label="matchup défenseur ↔ son homme" />
-            <LegendRow color="#BA7517" sample="dashed" label="matchup après un switch" />
-            <LegendRow color="#7c3aed" sample="line-thick" label="zone : attaquant tracké" />
-            <LegendRow color="#10b981" sample="dashed-thin" label="zone : autre attaquant en zone / passe ouverte" />
+        {/* Légende auto : indicateurs visuels qui s'affichent automatiquement
+            selon le contexte (pas de toggle). Affichés en grille 2-col compacte
+            pour rester sous les yeux sans dépliage. */}
+        <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px dashed ${c.border}` }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: c.accentText, marginBottom: 4, opacity: 0.8 }}>
+            Indicateurs auto
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 6px' }}>
+            <LegendRow color="#BA7517" sample="dashed" label="matchup switch" />
+            <LegendRow color="#7c3aed" sample="line-thick" label="zone tracké" />
             <LegendRow color="#f59e0b" sample="dashed" label="passe contestée" />
             <LegendRow color="#dc2626" sample="dashed-thin" label="passe bloquée" />
-            <LegendRow color="#534AB7" sample="circle" label="indicateur écran porteur" />
-            <LegendRow color="#16a34a" sample="circle" label="indicateur écran non-porteur" />
-            <LegendRow color="#FAC775" sample="ring" label="contour défenseur du porteur" />
-            <LegendRow color="#E24B4A" sample="ring" label="contour défenseur en retard" />
-            <LegendRow color="#fbbf24" sample="dot" label="cadenas — position manuelle" />
+            <LegendRow color="#534AB7" sample="circle" label="écran porteur" />
+            <LegendRow color="#16a34a" sample="circle" label="écran non-porteur" />
+            <LegendRow color="#FAC775" sample="ring" label="déf. du porteur" />
+            <LegendRow color="#E24B4A" sample="ring" label="déf. en retard" />
+            <LegendRow color="#F97316" sample="ring" label="closeout actif" />
+            <LegendRow color="#0EA5A8" sample="circle" label="strong-side denial" />
+            <LegendRow color="#fbbf24" sample="dot" label="position manuelle" />
+            <LegendRow color="#a78bfa" sample="dot" label="poseur d'écran forcé" />
           </div>
-        </details>
+        </div>
       </Section>
     </Panel>
   );
 }
 
-type LegendSample = 'line' | 'line-thick' | 'dashed' | 'dashed-thin' | 'circle' | 'ring' | 'dot';
+type LegendSample =
+  | 'line' | 'line-thick' | 'dashed' | 'dashed-thin'
+  | 'circle' | 'circle-dashed' | 'ring' | 'dot' | 'num' | 'gradient';
+
+function Swatch({ color, sample }: { color: string; sample: LegendSample }) {
+  return (
+    <svg width="22" height="12" viewBox="0 0 22 12" style={{ flex: '0 0 22px' }}>
+      {sample === 'line' && <line x1="1" y1="6" x2="21" y2="6" stroke={color} strokeWidth="1.4" />}
+      {sample === 'line-thick' && <line x1="1" y1="6" x2="21" y2="6" stroke={color} strokeWidth="2.4" />}
+      {sample === 'dashed' && (
+        <line x1="1" y1="6" x2="21" y2="6" stroke={color} strokeWidth="1.6" strokeDasharray="4 3" />
+      )}
+      {sample === 'dashed-thin' && (
+        <line x1="1" y1="6" x2="21" y2="6" stroke={color} strokeWidth="1.2" strokeDasharray="3 3" />
+      )}
+      {sample === 'circle' && (
+        <circle cx="11" cy="6" r="4" fill="none" stroke={color} strokeWidth="1.6" strokeDasharray="3 2" />
+      )}
+      {sample === 'circle-dashed' && (
+        <circle cx="11" cy="6" r="4" fill="none" stroke={color} strokeWidth="1.4" strokeDasharray="2 2" />
+      )}
+      {sample === 'ring' && <circle cx="11" cy="6" r="4" fill="none" stroke={color} strokeWidth="2.2" />}
+      {sample === 'dot' && <circle cx="11" cy="6" r="3" fill={color} stroke="#92400e" strokeWidth="0.8" />}
+      {sample === 'num' && (
+        <>
+          <circle cx="11" cy="6" r="4.5" fill={color} />
+          <text x="11" y="8.6" textAnchor="middle" fontSize="6" fontWeight="700" fill="#fff">1</text>
+        </>
+      )}
+      {sample === 'gradient' && (
+        <>
+          <defs>
+            <linearGradient id="hm-grad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stopColor="#facc15" stopOpacity="0.7" />
+              <stop offset="1" stopColor="#dc2626" stopOpacity="0.85" />
+            </linearGradient>
+          </defs>
+          <rect x="1" y="2" width="20" height="8" fill="url(#hm-grad)" rx="1" />
+        </>
+      )}
+    </svg>
+  );
+}
 
 function LegendRow({ color, sample, label }: { color: string; sample: LegendSample; label: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10, color: '#475569' }}>
-      <svg width="32" height="14" viewBox="0 0 32 14" style={{ flex: '0 0 32px' }}>
-        {sample === 'line' && <line x1="2" y1="7" x2="30" y2="7" stroke={color} strokeWidth="1.4" />}
-        {sample === 'line-thick' && <line x1="2" y1="7" x2="30" y2="7" stroke={color} strokeWidth="2.4" />}
-        {sample === 'dashed' && (
-          <line x1="2" y1="7" x2="30" y2="7" stroke={color} strokeWidth="1.6" strokeDasharray="4 3" />
-        )}
-        {sample === 'dashed-thin' && (
-          <line x1="2" y1="7" x2="30" y2="7" stroke={color} strokeWidth="1.2" strokeDasharray="3 3" />
-        )}
-        {sample === 'circle' && (
-          <circle cx="16" cy="7" r="5" fill="none" stroke={color} strokeWidth="1.6" strokeDasharray="3 2" />
-        )}
-        {sample === 'ring' && <circle cx="16" cy="7" r="5" fill="none" stroke={color} strokeWidth="2.5" />}
-        {sample === 'dot' && <circle cx="16" cy="7" r="3.5" fill={color} stroke="#92400e" strokeWidth="0.8" />}
-      </svg>
-      <span>{label}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#475569', lineHeight: 1.2 }}>
+      <Swatch color={color} sample={sample} />
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
     </div>
+  );
+}
+
+function LegendCheckboxLine({
+  checked, label, color, sample, onChange,
+}: {
+  checked: boolean;
+  label: string;
+  color: string;
+  sample: LegendSample;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label style={{ display: 'flex', gap: 5, alignItems: 'center', fontSize: 12, color: '#1f2937', cursor: 'pointer' }}>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <Swatch color={color} sample={sample} />
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+    </label>
   );
 }

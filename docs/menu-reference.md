@@ -170,10 +170,12 @@ Tableau 5 lignes (D1–D5) × 6 colonnes :
 
 Astuce : **clic-droit** sur un défenseur sur le terrain ouvre un menu compact avec les mêmes réglages.
 
-### Visualisation
+### Visu & légende
 
-| Toggle | Effet |
-|--------|-------|
+Section unifiée. Chaque toggle est précédé de son **swatch visuel** (mini-aperçu de la couleur/forme correspondante sur le terrain) — la section sert à la fois de panneau de contrôle ET de légende. En bas, sous une ligne pointillée, les **indicateurs auto** (visuels qui s'affichent contextuellement, pas de toggle) sont listés en grille 2 colonnes pour rester sous les yeux.
+
+| Toggle | Swatch | Effet |
+|--------|--------|-------|
 | **lignes d'aide** | Affiche les lignes pointillées violettes entre la position d'aide et la position de marquage homme |
 | **matchups (traits)** | Trait gris entre chaque défenseur et son attaquant (orange si switch) |
 | **terrain complet** | Étend le terrain à 1080 de hauteur avec second panier (active aussi le bouton "↻ sens d'attaque") |

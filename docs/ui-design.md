@@ -7,6 +7,10 @@ Choix visuels et conventions appliqués dans l'application.
 ### Desktop (≥ 1100px)
 
 Layout 3 colonnes en grid CSS :
+### Visu & légende fusionnés
+
+L'ancienne section "Visualisation" et l'ancienne `<details>` "Légende couleurs" sont fusionnées en **une seule section** "Visu & légende" toujours ouverte. Chaque toggle inclut un mini-swatch SVG (22×12px) à côté du label montrant la couleur/forme exacte de l'indicateur sur le terrain : ligne pleine, pointillée, cercle pointillé, ring plein, dot rempli, badge numéroté, gradient horizontal pour la heatmap. En bas, séparé par une bordure pointillée, la rangée "Indicateurs auto" liste en grille 2-col les cues visuels non-toggleables (matchup switch, zones de tracking en zone defense, écrans, closeout, denial, override drag, poseur forcé). Tout est visible d'un coup d'œil — plus besoin de déplier.
+
 ### Bibliothèque systèmes (modal)
 
 Bouton compact en haut de l'OffensePanel : `📚 Bibliothèque (N systèmes)` avec background tinté orange et bordure gauche accent. Le clic ouvre une **modal centrée** ([`TemplateLibraryModal.tsx`](../src/components/TemplateLibraryModal.tsx)) :
