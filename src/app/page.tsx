@@ -106,6 +106,28 @@ export default function Page() {
       <div className={presentMode ? 'layout-grid presenting' : 'layout-grid'}>
         {!presentMode && (
           <div className="side-col">
+            <OffensePanel
+              state={app.state}
+              onSetActiveStep={app.setActiveStep}
+              onAddStep={app.addStep}
+              onDuplicateStep={app.duplicateStep}
+              onDeleteStep={app.deleteStep}
+              onSetStepLabel={app.setStepLabel}
+              onSetBallCarrier={app.setBallCarrier}
+              onLoadTemplate={app.loadTemplate}
+              onDeleteAnnotation={app.deleteAnnotation}
+              onPlayToggle={handlePlayToggle}
+              onStop={() => {
+                setIsPlaying(false);
+                setPlaybackT(null);
+                app.setActiveStep(0);
+              }}
+              isPlaying={isPlaying}
+              tool={app.state.tool}
+              onSetTool={app.setTool}
+              playbackSpeed={playbackSpeed}
+              onSetPlaybackSpeed={setPlaybackSpeed}
+            />
             <ActionsPanel
               presentMode={presentMode}
               onTogglePresentMode={() => setPresentMode((p) => !p)}
@@ -113,28 +135,6 @@ export default function Page() {
               onExport={handleExport}
               onImport={handleImport}
               onReset={app.resetAll}
-            />
-            <OffensePanel
-          state={app.state}
-          onSetActiveStep={app.setActiveStep}
-          onAddStep={app.addStep}
-          onDuplicateStep={app.duplicateStep}
-          onDeleteStep={app.deleteStep}
-          onSetStepLabel={app.setStepLabel}
-          onSetBallCarrier={app.setBallCarrier}
-          onLoadTemplate={app.loadTemplate}
-          onDeleteAnnotation={app.deleteAnnotation}
-          onPlayToggle={handlePlayToggle}
-          onStop={() => {
-            setIsPlaying(false);
-            setPlaybackT(null);
-            app.setActiveStep(0);
-          }}
-          isPlaying={isPlaying}
-          tool={app.state.tool}
-          onSetTool={app.setTool}
-          playbackSpeed={playbackSpeed}
-          onSetPlaybackSpeed={setPlaybackSpeed}
             />
           </div>
         )}

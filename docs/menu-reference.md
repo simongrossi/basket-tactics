@@ -198,7 +198,7 @@ Les autres entrées de la légende (`zone tracké`, `passe contestée/bloquée`,
 | **numéroter les actions (1, 2, 3…)** | Affiche des badges noirs numérotés au pied du joueur initiateur de chaque annotation de l'étape active, dans l'ordre des annotations. Inactif pendant la lecture et le scrubbing. Apparaît aussi automatiquement dans les vignettes du playbook PDF. |
 | **↻ sens d'attaque** | Bascule `attackingDirection` entre `up` et `down`. Disponible uniquement en terrain complet. La logique défensive (man + zone) suit le panier ciblé : positions, layouts de zone (polygones miroir), triggers, trap, metrics, rotations. |
 
-## Panneau Actions (haut de la colonne gauche)
+## Panneau Actions (bas de la colonne gauche)
 
 5 boutons compacts empilés en pleine largeur, anciennement dans le header.
 
