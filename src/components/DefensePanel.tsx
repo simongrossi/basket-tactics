@@ -185,6 +185,7 @@ export function DefensePanel(props: DefensePanelProps) {
               step={2}
               value={state.defenseDistance}
               onChange={(v) => props.onPatch({ defenseDistance: v })}
+              title="Distance par défaut entre chaque défenseur et son attaquant marqué (en pixels). Petite distance = défense collante, grande distance = laisse de l'espace pour aider. Override-able par défenseur via le clic-droit."
             />
             <Slider
               label="vit. max"
@@ -193,6 +194,7 @@ export function DefensePanel(props: DefensePanelProps) {
               step={5}
               value={state.defenseMaxSpeed}
               onChange={(v) => props.onPatch({ defenseMaxSpeed: v })}
+              title="Distance maximale qu'un défenseur peut parcourir entre deux étapes (en pixels). Au-delà, le défenseur est marqué 'en retard' (contour rouge). Modélise la réalité physique : un défenseur ne peut pas se téléporter."
             />
             <Slider
               label="closeout ×"
@@ -201,6 +203,7 @@ export function DefensePanel(props: DefensePanelProps) {
               step={0.1}
               value={state.closeoutBoost ?? 1.4}
               onChange={(v) => props.onPatch({ closeoutBoost: v })}
+              title="Multiplicateur global de vitesse pour le défenseur du nouveau porteur quand le ballon arrive sur lui (passe entrante). 1 = pas de boost, 2 = très agressif. Modélise l'urgence du closeout."
             />
             <Slider
               label="denial agr."
@@ -209,28 +212,38 @@ export function DefensePanel(props: DefensePanelProps) {
               step={0.05}
               value={state.denyAggressiveness ?? 0.45}
               onChange={(v) => props.onPatch({ denyAggressiveness: v })}
+              title="Force globale du marquage en avant côté ballon (strong-side denial automatique). 0 = ignore, 0.45 = par défaut, 1 = full denial assumé partout. Override-able par défenseur."
             />
-            <div style={{ fontSize: 11, fontWeight: 500, color: c.accentText, marginTop: 4 }}>Triggers d'aide</div>
+            <div
+              style={{ fontSize: 11, fontWeight: 500, color: c.accentText, marginTop: 4 }}
+              title="Conditions qui déclenchent l'aide automatique de la défense. Quand un trigger est actif, les défenseurs avec aide% > 0 quittent leur homme pour combler le danger. Sans trigger, ils restent en marquage classique (un peu de sag baseline weak-side)."
+            >
+              Triggers d'aide
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 6px' }}>
               <CheckboxLine
                 checked={state.triggers.drive}
                 label="drive"
                 onChange={(v) => props.onPatch({ triggers: { ...state.triggers, drive: v } })}
+                title="Déclenche l'aide quand le porteur attaque le panier (s'en rapproche de >25px entre 2 étapes, ou se trouve à <250px sur l'étape 0)."
               />
               <CheckboxLine
                 checked={state.triggers.post}
                 label="post-up"
                 onChange={(v) => props.onPatch({ triggers: { ...state.triggers, post: v } })}
+                title="Déclenche l'aide quand le porteur joue en poste bas (lateral 80-160px du panier, profondeur 45-145px, à l'arrêt)."
               />
               <CheckboxLine
                 checked={state.triggers.paint}
                 label="raquette"
                 onChange={(v) => props.onPatch({ triggers: { ...state.triggers, paint: v } })}
+                title="Déclenche l'aide quand le porteur entre dans la raquette ou est à <80px du panier (couvre les drives, runners, floaters près du panier)."
               />
               <CheckboxLine
                 checked={!!state.triggers.trap}
                 label="trap coin/sideline"
                 onChange={(v) => props.onPatch({ triggers: { ...state.triggers, trap: v } })}
+                title="Active la prise à deux automatique quand le porteur entre dans une zone de trappe : coin fond gauche/droit ou sideline mi-terrain. Le défenseur le plus proche vient verrouiller le côté opposé."
               />
             </div>
           </Section>

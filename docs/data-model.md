@@ -95,6 +95,8 @@ interface DefenderRule {
   screenNav?: OnScreenNav;              // override individuel vs écran
   closeoutBoost?: number;               // override individuel de state.closeoutBoost (range 1-2)
   denyAggressiveness?: number;          // override individuel de state.denyAggressiveness (range 0-1)
+  distance?: number;                    // override individuel de state.defenseDistance (range 20-80)
+  helpMode?: 'auto' | 'aggressive' | 'passive' | 'disabled'; // comportement d'aide individuel
 }
 
 type CarrierBehavior =

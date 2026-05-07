@@ -123,14 +123,28 @@ interface SliderProps {
   step: number;
   value: number;
   onChange: (v: number) => void;
+  /** Tooltip affiché au survol du label (texte d'aide en français pour
+   *  expliquer le réglage à un utilisateur non-technicien). */
+  title?: string;
 }
 
-export function Slider({ label, min, max, step, value, onChange }: SliderProps) {
+export function Slider({ label, min, max, step, value, onChange, title }: SliderProps) {
   // Affichage : entier si step >= 1, sinon une décimale (suffisant pour 0.1 step).
   const display = step < 1 ? value.toFixed(step < 0.1 ? 2 : 1) : String(Math.round(value));
   return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-      <span style={{ fontSize: 11, color: '#475569', minWidth: 70 }}>{label}</span>
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }} title={title}>
+      <span
+        style={{
+          fontSize: 11,
+          color: '#475569',
+          minWidth: 70,
+          textDecoration: title ? 'underline dotted #cbd5e1' : undefined,
+          textUnderlineOffset: 3,
+          cursor: title ? 'help' : 'default',
+        }}
+      >
+        {label}
+      </span>
       <input
         type="range"
         min={min}
@@ -149,13 +163,20 @@ interface CheckboxLineProps {
   checked: boolean;
   label: string;
   onChange: (v: boolean) => void;
+  /** Tooltip d'aide en français au survol. */
+  title?: string;
 }
 
-export function CheckboxLine({ checked, label, onChange }: CheckboxLineProps) {
+export function CheckboxLine({ checked, label, onChange, title }: CheckboxLineProps) {
   return (
-    <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, color: '#1f2937', cursor: 'pointer' }}>
+    <label
+      style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, color: '#1f2937', cursor: 'pointer' }}
+      title={title}
+    >
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      {label}
+      <span style={{ textDecoration: title ? 'underline dotted #cbd5e1' : undefined, textUnderlineOffset: 3 }}>
+        {label}
+      </span>
     </label>
   );
 }

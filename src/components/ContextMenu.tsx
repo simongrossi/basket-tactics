@@ -160,7 +160,10 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
         </span>
       </div>
       <ToolBar tool={tool} onSetTool={onSetTool} defenderContext />
-      <Row label="aide %">
+      <Row
+        label="aide %"
+        title="Intensité de l'aide ce défenseur quand un trigger est actif (drive/post/raquette). 0 = ne quitte jamais son homme. 100 = bouge complètement vers la cible d'aide."
+      >
         <input
           type="range"
           min={0}
@@ -172,7 +175,25 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
         />
         <span style={{ fontSize: 12, minWidth: 32 }}>{rule.helpPct}%</span>
       </Row>
-      <Row label="priorité">
+      <Row
+        label="comport. aide"
+        title="Comportement d'aide individuel. 'auto' = standard (aide weak-side, garde son homme strong-side). 'toujours aider' = ignore le côté du ballon, aide à fond partout. 'passif' = aide molle, garde son homme plus longtemps. 'désactivé' = ce défenseur n'aide jamais, même sur trigger."
+      >
+        <select
+          value={rule.helpMode ?? 'auto'}
+          onChange={(e) => onUpdate({ helpMode: e.target.value as DefenderRule['helpMode'] })}
+          style={{ flex: 1 }}
+        >
+          <option value="auto">auto (selon côté ballon)</option>
+          <option value="aggressive">toujours aider</option>
+          <option value="passive">passif (garde son homme)</option>
+          <option value="disabled">désactivé (n'aide jamais)</option>
+        </select>
+      </Row>
+      <Row
+        label="priorité"
+        title="Cible quand ce défenseur aide. 'protéger raquette' = vise le bloc bas le plus chargé. 'rester sur homme' = aide légère, reste à 30% du chemin vers le panier. 'ligne de passe' = se rabat sur la passe entre son homme et le porteur."
+      >
         <select
           value={rule.priority}
           onChange={(e) => onUpdate({ priority: e.target.value as DefenderRule['priority'] })}
@@ -183,34 +204,43 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
           <option value="passlane">ligne de passe</option>
         </select>
       </Row>
-      <Row label="vs porteur">
+      <Row
+        label="vs porteur"
+        title="Comportement quand ce défenseur défend le porteur. 'coller' = pression rapprochée. 'bumper' = entre porteur et panier. 'contester' = recule actif au tir. 'reculer' = drop profond. 'topside' = force vers le milieu. 'baseline' = force vers la ligne de fond."
+      >
         <select
           value={rule.vsCarrier}
           onChange={(e) => onUpdate({ vsCarrier: e.target.value as DefenderRule['vsCarrier'] })}
           style={{ flex: 1 }}
         >
           <option value="coller">coller (pression)</option>
-          <option value="bumper">bumper (entre lui & panier)</option>
+          <option value="bumper">bumper (entre lui &amp; panier)</option>
           <option value="contester">contester (recul actif)</option>
           <option value="reculer">reculer (drop)</option>
           <option value="topside">topside (force milieu)</option>
           <option value="baseline">baseline (force ligne de fond)</option>
         </select>
       </Row>
-      <Row label="hors-ballon">
+      <Row
+        label="hors-ballon"
+        title="Position quand ce défenseur ne défend pas le porteur. 'sag' = position d'aide classique. 'derrière' = entre son homme et le panier, sans aide. 'stunt' = fait mine d'aider vers le ballon (fake). '3/4 deny' = pied dans la ligne de passe. 'devant' = devant son homme face au ballon (full denial)."
+      >
         <select
           value={rule.offBallStance ?? 'sag'}
           onChange={(e) => onUpdate({ offBallStance: e.target.value as DefenderRule['offBallStance'] })}
           style={{ flex: 1 }}
         >
           <option value="sag">sag (aide raquette)</option>
-          <option value="behind">derrière (entre lui & panier)</option>
+          <option value="behind">derrière (entre lui &amp; panier)</option>
           <option value="stunt">stunt (fake d'aide)</option>
           <option value="deny-3q">3/4 deny (pied dans la passe)</option>
           <option value="fronting">devant (full denial)</option>
         </select>
       </Row>
-      <Row label="vs écran">
+      <Row
+        label="vs écran"
+        title="Réaction de ce défenseur sur un écran porteur. 'auto' = utilise la règle globale. 'over' = passe par-dessus l'écran. 'under' = passe en dessous (laisse le tir 3pts). 'switch' = échange avec le coéquipier qui a posé l'écran. 'hedge' = show & recover. 'drop' = recule sous l'écran. 'blitz' = prise à deux."
+      >
         <select
           value={rule.screenNav ?? 'auto'}
           onChange={(e) => onUpdate({ screenNav: e.target.value as DefenderRule['screenNav'] })}
@@ -220,7 +250,7 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
           <option value="over">over (par-dessus)</option>
           <option value="under">under (en dessous)</option>
           <option value="switch">switch (échange)</option>
-          <option value="hedge">hedge (show & recover)</option>
+          <option value="hedge">hedge (show &amp; recover)</option>
           <option value="drop">drop (recul)</option>
           <option value="blitz">blitz (piège)</option>
         </select>
@@ -233,7 +263,7 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
         value={rule.distance}
         onChange={(v) => onUpdate({ distance: v })}
         onReset={() => onUpdate({ distance: undefined })}
-        title="Override individuel de la distance défenseur ↔ son homme (px)"
+        title="Distance individuelle défenseur ↔ son homme (en pixels). Override le réglage global. Petit nombre = défenseur collant ; grand nombre = laisse de l'espace."
       />
       <OverrideSliderRow
         label="closeout ×"
@@ -243,7 +273,7 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
         value={rule.closeoutBoost}
         onChange={(v) => onUpdate({ closeoutBoost: v })}
         onReset={() => onUpdate({ closeoutBoost: undefined })}
-        title="Override individuel du multiplicateur de vitesse en closeout"
+        title="Multiplicateur de vitesse pour ce défenseur quand le ballon arrive sur son homme (closeout sur passe entrante). 1 = pas de boost, 2 = très agressif. Modélise l'urgence de fermer la distance avant tir."
       />
       <OverrideSliderRow
         label="denial agr."
@@ -253,7 +283,7 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
         value={rule.denyAggressiveness}
         onChange={(v) => onUpdate({ denyAggressiveness: v })}
         onReset={() => onUpdate({ denyAggressiveness: undefined })}
-        title="Override individuel de l'intensité du strong-side denial"
+        title="Force du marquage en avant sur la ligne de passe quand son homme est côté ballon. 0 = ignore, 0.45 = par défaut, 1 = full denial assumé."
       />
       {hasOverride && (
         <div
@@ -291,10 +321,21 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({ label, children, title }: { label: string; children: React.ReactNode; title?: string }) {
   return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-      <span style={{ fontSize: 12, color: '#666', width: 88 }}>{label}</span>
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }} title={title}>
+      <span
+        style={{
+          fontSize: 12,
+          color: '#666',
+          width: 88,
+          textDecoration: title ? 'underline dotted #cbd5e1' : undefined,
+          textUnderlineOffset: 3,
+          cursor: title ? 'help' : 'default',
+        }}
+      >
+        {label}
+      </span>
       {children}
     </div>
   );

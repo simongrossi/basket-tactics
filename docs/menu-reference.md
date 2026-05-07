@@ -238,6 +238,7 @@ Cinq réglages :
 - **vs porteur** : 6 valeurs (cf. tableau)
 - **hors-ballon** : 5 stances (sag / derrière / stunt / 3/4 deny / devant)
 - **vs écran** : auto + 6 règles d'écran (override individuel)
+- **comport. aide** : `auto` (standard, sideFactor selon côté) / `toujours aider` (ignore le côté, sideFactor=1 partout) / `passif` (sideFactor × 0.5) / `désactivé` (n'aide jamais). Permet d'avoir un D5 qui aide tout le temps même côté ballon, et un D2 qui ne quitte jamais son homme.
 - **distance** : override individuel de la distance défenseur ↔ son homme (range 20–80px). Default "global" (suit `state.defenseDistance`). Permet d'avoir un D5 à distance large (60) et un D1 collant (25). ↻ pour reset.
 - **closeout ×** : override individuel du multiplicateur de vitesse en closeout. Affiche "global" si non override (slider grisé, suit `state.closeoutBoost`). Bouton ↻ pour revenir au global.
 - **denial agr.** : override individuel de l'intensité du strong-side denial. Comportement identique : "global" par défaut, ↻ pour reset.

@@ -41,6 +41,12 @@ export interface Step {
 export type HelpPriority = 'paint' | 'man' | 'passlane';
 export type CarrierBehavior = 'coller' | 'bumper' | 'contester' | 'reculer' | 'topside' | 'baseline';
 export type OffBallStance = 'sag' | 'deny-3q' | 'fronting' | 'behind' | 'stunt';
+/** Comportement d'aide individuel.
+ *  - 'auto' (default) : sideFactor standard (1 weak-side, 0.7 neutre, 0.35 strong-side)
+ *  - 'aggressive' : ignore le côté (sideFactor toujours 1, aide même strong-side)
+ *  - 'passive' : sideFactor × 0.5 (aide molle, garde son homme plus longtemps)
+ *  - 'disabled' : n'aide jamais (helpFactor=0, ignore aussi le sag baseline) */
+export type HelpMode = 'auto' | 'aggressive' | 'passive' | 'disabled';
 /** Override individuel de la règle d'écran porteur. 'auto' suit la règle globale. */
 export type OnScreenNav = 'auto' | 'over' | 'under' | 'switch' | 'hedge' | 'drop' | 'blitz';
 
@@ -61,6 +67,8 @@ export interface DefenderRule {
    *  ↔ son homme). Undefined = global. Permet d'avoir un défenseur
    *  collant (10) et un autre plus distant (60). */
   distance?: number;
+  /** Comportement d'aide du défenseur. Default 'auto'. Voir `HelpMode`. */
+  helpMode?: HelpMode;
 }
 
 export type DefenderRules = Record<DefenderId, DefenderRule>;

@@ -29,6 +29,11 @@ export function computeHelpTarget(
    *  Default 0.45 = comportement v1. */
   denyAggressiveness: number = 0.45
 ): HelpResult {
+  // helpMode 'disabled' : court-circuit, le défenseur n'aide jamais
+  // (ni triggers, ni sag baseline, ni denial)
+  if (rule.helpMode === 'disabled') {
+    return { target: manPos, helpFactor: 0 };
+  }
   const myAttSide = Math.sign(attPos.x - hoop.x) || 0;
 
   if (!triggers.any || rule.helpPct === 0) {
@@ -84,9 +89,17 @@ export function computeHelpTarget(
   }
 
   let sideFactor: number;
-  if (ballSide === 0 || myAttSide === 0) sideFactor = 0.7;
-  else if (myAttSide !== ballSide) sideFactor = 1;
-  else sideFactor = 0.35;
+  if (rule.helpMode === 'aggressive') {
+    // Toujours aider à fond, indépendamment du côté
+    sideFactor = 1;
+  } else {
+    if (ballSide === 0 || myAttSide === 0) sideFactor = 0.7;
+    else if (myAttSide !== ballSide) sideFactor = 1;
+    else sideFactor = 0.35;
+  }
+  if (rule.helpMode === 'passive') {
+    sideFactor *= 0.5;
+  }
 
   const helpFactor = (rule.helpPct / 100) * sideFactor;
 
