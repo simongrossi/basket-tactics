@@ -5,6 +5,7 @@ interface ThreatOverlayProps {
   off: AttackerPositions;
   threats: Record<AttackerId, AttackerThreat>;
   show: boolean;
+  layer?: 'all' | 'rings' | 'badges';
 }
 
 /**
@@ -15,8 +16,11 @@ interface ThreatOverlayProps {
  * Le score combine qualité du tir (zone + contest) et receivability
  * (passe ouverte / contestée / bloquée). Voir `lib/logic/threats.ts`.
  */
-export function ThreatOverlay({ off, threats, show }: ThreatOverlayProps) {
+export function ThreatOverlay({ off, threats, show, layer = 'all' }: ThreatOverlayProps) {
   if (!show) return null;
+  const showRings = layer === 'all' || layer === 'rings';
+  const showBadges = layer === 'all' || layer === 'badges';
+
   return (
     <g pointerEvents="none">
       {(Object.keys(off) as AttackerId[]).map((oId) => {
@@ -28,40 +32,44 @@ export function ThreatOverlay({ off, threats, show }: ThreatOverlayProps) {
         return (
           <g key={oId}>
             {/* Anneau de menace autour du joueur */}
-            <circle
-              cx={pos.x}
-              cy={pos.y}
-              r={26}
-              fill="none"
-              stroke={color}
-              strokeWidth={2.5}
-              strokeOpacity={0.85}
-              strokeDasharray={t.isCarrier ? undefined : '5 3'}
-            />
-            {/* Badge % en bas-droite */}
-            <g transform={`translate(${pos.x + 18}, ${pos.y + 14})`}>
-              <rect
-                x={-13}
-                y={-7}
-                width={26}
-                height={14}
-                rx={3}
-                fill={color}
-                fillOpacity={0.95}
-                stroke="#fff"
-                strokeWidth={1}
+            {showRings && (
+              <circle
+                cx={pos.x}
+                cy={pos.y}
+                r={26}
+                fill="none"
+                stroke={color}
+                strokeWidth={2.5}
+                strokeOpacity={0.85}
+                strokeDasharray={t.isCarrier ? undefined : '5 3'}
               />
-              <text
-                x={0}
-                y={3}
-                textAnchor="middle"
-                fill="#fff"
-                fontSize={9}
-                fontWeight={700}
-              >
-                {pct}%
-              </text>
-            </g>
+            )}
+            {/* Badge % en bas-droite */}
+            {showBadges && (
+              <g transform={`translate(${pos.x + 18}, ${pos.y + 14})`}>
+                <rect
+                  x={-13}
+                  y={-7}
+                  width={26}
+                  height={14}
+                  rx={3}
+                  fill={color}
+                  fillOpacity={0.95}
+                  stroke="#fff"
+                  strokeWidth={1}
+                />
+                <text
+                  x={0}
+                  y={3}
+                  textAnchor="middle"
+                  fill="#fff"
+                  fontSize={9}
+                  fontWeight={700}
+                >
+                  {pct}%
+                </text>
+              </g>
+            )}
           </g>
         );
       })}

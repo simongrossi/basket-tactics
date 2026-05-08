@@ -393,6 +393,9 @@ export function CourtView(props: CourtViewProps) {
   }, [props.scrubT, state]);
 
   const frame = playFrame ?? scrubFrame ?? staticFrame;
+  const threatData = state.showThreats
+    ? computeAttackerThreats(frame.off, frame.defPos, state.steps[frame.stepIdx]?.ballCarrier ?? frame.carrier)
+    : null;
 
   // Pointer events
   const svgPoint = useCallback((evt: React.PointerEvent | PointerEvent): Point => {
@@ -631,11 +634,7 @@ export function CourtView(props: CourtViewProps) {
           show={!!state.showHeatmap}
         />
         <HelpLines off={frame.off} defPos={frame.defPos} defenseDistance={state.defenseDistance} show={state.showHelpLines} />
-        {state.showThreats && (() => {
-          const carrier = state.steps[frame.stepIdx]?.ballCarrier ?? 'O1';
-          const threats = computeAttackerThreats(frame.off, frame.defPos, carrier);
-          return <ThreatOverlay off={frame.off} threats={threats} show />;
-        })()}
+        {threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="rings" />}
         {state.showBestAction && (() => {
           const carrier = state.steps[frame.stepIdx]?.ballCarrier ?? 'O1';
           const actions = evaluateOffensiveOptions(frame.off, frame.defPos, carrier);
@@ -747,6 +746,7 @@ export function CourtView(props: CourtViewProps) {
           <ActionOrderBadges step={state.steps[state.activeStep]} />
         )}
         <Ball pos={frame.ballPos} inFlight={frame.ballInFlight} />
+        {threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="badges" />}
       </svg>
       {props.isPlaying && (
         <div
