@@ -12,6 +12,7 @@ import { HOOP } from '../data/court';
 import { distance } from './geometry';
 import { manTarget, carrierDefenderTarget } from './manDefense';
 import { baseMatchups } from '../data/initial';
+import { detectOverload, findCriticalZoneAttackers } from './zoneSituations';
 
 export function pointInPolygon(point: Point, polygon: Point[]): boolean {
   let inside = false;
@@ -205,11 +206,21 @@ export function computeZoneTargets(
   const ballPos = off[ballCarrier];
   const ballPressureFactor = config.ballPressure / 100;
 
-  // Pré-calcul du homePos shifté ball-side pour chaque zone.
+  // P3 — Situations tactiques de zone :
+  //  - overload côté ballon (3+ attaquants) → boost le glissement collectif.
+  //  - short corner / high post → boost le claim sur ces attaquants pour
+  //    forcer la couverture de ces "trous" classiques de zone.
+  const overload = detectOverload(off, ballCarrier, hoop);
+  const effectiveBallSideHelp =
+    tactic.ballSideHelp * (1 + overload.intensity * 0.6);
+  const criticalAttackers = findCriticalZoneAttackers(off, hoop);
+  const criticalIds = new Set(criticalAttackers.map((c) => c.attackerId));
+
+  // Pré-calcul du homePos shifté ball-side pour chaque zone (avec boost overload).
   const shiftedHomes = new Map<DefenderId, Point>();
   layout.forEach((zone) => {
     const home = ballPos
-      ? ballSideShifted(zone.homePos, ballPos, tactic.ballSideHelp)
+      ? ballSideShifted(zone.homePos, ballPos, effectiveBallSideHelp)
       : zone.homePos;
     shiftedHomes.set(zone.assignedTo, home);
   });
@@ -228,7 +239,13 @@ export function computeZoneTargets(
       const proximity = Math.exp(-Math.pow(d / reach, 2));
       const naturalMult = oId === naturalAtt ? tactic.naturalBonus : 1.0;
       const carrierMult = oId === ballCarrier ? tactic.carrierBonus : 1.0;
-      dClaims.set(oId, proximity * naturalMult * carrierMult);
+      // P3 — Boost critique : un attaquant en short-corner ou high-post
+      // est attractif pour TOUS les défenseurs nearby (pas seulement le
+      // matchup naturel). Multiplie le claim de chaque défenseur sur cet
+      // attaquant. Effet : la zone rotate vraiment pour fermer ces spots
+      // au lieu d'attendre que le matchup naturel arrive.
+      const criticalMult = criticalIds.has(oId) ? 1.4 : 1.0;
+      dClaims.set(oId, proximity * naturalMult * carrierMult * criticalMult);
     });
     claims.set(dId, dClaims);
   });

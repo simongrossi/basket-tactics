@@ -20,6 +20,11 @@ import {
   actionBreaksCoverage,
 } from './screenAction';
 import { computeAttackerThreats } from './threats';
+import {
+  detectOverload,
+  findCriticalZoneAttackers,
+  detectSkipPass,
+} from './zoneSituations';
 
 /** Étiquette courte du profil pour insérer dans les phrases coach. */
 function profileTag(profile?: OffensiveProfile): string {
@@ -358,6 +363,102 @@ export function computeCoachDiagnostics(
         defenders: [screen.carrierDef, screen.screenerDef],
         attackers: [screen.carrier, screen.screener],
       });
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // 3bis. Diagnostics spécifiques à la défense de zone (P3) :
+  //   - overload côté ballon
+  //   - short corner / high post non couverts
+  //   - skip pass : rotation en retard détectée
+  // --------------------------------------------------------------------------
+  if (state.defenseSystem === 'zone') {
+    const overload = detectOverload(off, carrier, hoop);
+    if (overload.intensity > 0) {
+      const sideLabel = overload.side === -1 ? 'gauche' : 'droite';
+      out.push({
+        id: 'zone-overload',
+        severity: overload.intensity >= 1 ? 'warning' : 'info',
+        message: `Overload côté ${sideLabel} (${overload.count} attaquants) — la zone doit glisser fort`,
+        tag: 'zone-overload',
+        defenders: [],
+        attackers: [],
+      });
+    }
+
+    // Short corner / high post couverture.
+    const critical = findCriticalZoneAttackers(off, hoop);
+    critical.forEach((c) => {
+      // Trouve le défenseur le plus proche.
+      let nearestDef: DefenderId | null = null as DefenderId | null;
+      let nearestDist = Infinity;
+      DEFENDER_IDS.forEach((dId) => {
+        const d = defPos[dId];
+        const dd = distance({ x: d.x, y: d.y }, c.pos);
+        if (dd < nearestDist) {
+          nearestDist = dd;
+          nearestDef = dId;
+        }
+      });
+      const oLabel = withProfile(c.attackerId, profiles?.[c.attackerId]);
+      const zoneLabel = c.zone === 'short-corner' ? 'short corner' : 'high post';
+      if (nearestDist > 100) {
+        out.push({
+          id: `critical-zone-${c.attackerId}`,
+          severity: 'critical',
+          message: `${zoneLabel} ouvert : ${oLabel} sans défenseur proche (${Math.round(nearestDist)}px)`,
+          tag: c.zone === 'short-corner' ? 'short-corner-open' : 'high-post-open',
+          defenders: nearestDef ? [nearestDef] : [],
+          attackers: [c.attackerId],
+        });
+      } else if (nearestDist > 60) {
+        out.push({
+          id: `critical-zone-soft-${c.attackerId}`,
+          severity: 'warning',
+          message: `${zoneLabel} : ${oLabel} mou couvert par ${nearestDef ?? '?'} (${Math.round(nearestDist)}px)`,
+          tag: c.zone === 'short-corner' ? 'short-corner-soft' : 'high-post-soft',
+          defenders: nearestDef ? [nearestDef] : [],
+          attackers: [c.attackerId],
+        });
+      }
+    });
+
+    // Skip pass : entre prev step et current.
+    const prevStep = stepIdx > 0 ? state.steps[stepIdx - 1] : null;
+    const skip = prevStep
+      ? detectSkipPass(prevStep.off, off, prevStep.ballCarrier, carrier, hoop)
+      : null;
+    if (skip) {
+      // Y a-t-il des défenseurs late ? La rotation est en retard si oui.
+      const lateCount = DEFENDER_IDS.filter((dId) => defPos[dId]?.late).length;
+      if (lateCount >= 2) {
+        out.push({
+          id: 'skip-rotation-late',
+          severity: 'critical',
+          message: `Skip pass — ${lateCount} défenseurs en retard sur la rotation`,
+          tag: 'skip-rotation-late',
+          defenders: DEFENDER_IDS.filter((dId) => defPos[dId]?.late),
+          attackers: [carrier],
+        });
+      } else if (lateCount === 1) {
+        out.push({
+          id: 'skip-rotation-soft',
+          severity: 'warning',
+          message: `Skip pass — 1 défenseur en retard, fermer la ligne suivante`,
+          tag: 'skip-rotation-soft',
+          defenders: DEFENDER_IDS.filter((dId) => defPos[dId]?.late),
+          attackers: [carrier],
+        });
+      } else {
+        out.push({
+          id: 'skip-rotation-ok',
+          severity: 'good',
+          message: `Skip pass : zone tournée à temps`,
+          tag: 'skip-rotation-ok',
+          defenders: [],
+          attackers: [carrier],
+        });
+      }
     }
   }
 
