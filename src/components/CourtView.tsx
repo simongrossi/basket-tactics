@@ -49,6 +49,7 @@ interface CourtViewProps {
   onSetForcedScreener: (oId: AttackerId | null) => void;
   onClearAnnotationsFor: (oId: AttackerId) => void;
   onSetAttackerHand: (oId: AttackerId, hand: 'right' | 'left') => void;
+  onSetAttackerProfile: (oId: AttackerId, profile: import('@/lib/types').OffensiveProfile) => void;
   onSetZoneOverride: (regionId: string, override: Partial<import('@/lib/types').ZoneRegionOverride>) => void;
   onClearZoneOverride: (regionId: string) => void;
   onDeleteAnnotation: (idx: number) => void;
@@ -631,18 +632,6 @@ export function CourtView(props: CourtViewProps) {
           show={!!state.showHeatmap}
         />
         <HelpLines off={frame.off} defPos={frame.defPos} defenseDistance={state.defenseDistance} show={state.showHelpLines} />
-        {state.showThreats && (() => {
-          const carrier = state.steps[frame.stepIdx]?.ballCarrier ?? 'O1';
-          const threats = computeAttackerThreats(frame.off, frame.defPos, carrier);
-          return <ThreatOverlay off={frame.off} threats={threats} show />;
-        })()}
-        {state.showBestAction && (() => {
-          const carrier = state.steps[frame.stepIdx]?.ballCarrier ?? 'O1';
-          const actions = evaluateOffensiveOptions(frame.off, frame.defPos, carrier);
-          const best = bestOffensiveAction(actions);
-          if (!best) return null;
-          return <BestActionOverlay off={frame.off} carrier={carrier} best={best} show />;
-        })()}
         {state.showGhosts && state.activeStep > 0 && !props.isPlaying && props.scrubT == null && (
           <GhostLayer state={state} stepIdx={state.activeStep - 1} />
         )}
@@ -704,6 +693,23 @@ export function CourtView(props: CourtViewProps) {
             );
           })()}
         </g>
+        {/* Threat / best-action overlays rendus APRÈS les joueurs : les badges
+            % et les flèches doivent passer AU-DESSUS des icônes pour rester
+            lisibles, sinon le sprite joueur les masque (~17px de rayon). */}
+        {state.showThreats && (() => {
+          const carrier = state.steps[frame.stepIdx]?.ballCarrier ?? 'O1';
+          const threats = computeAttackerThreats(
+            frame.off, frame.defPos, carrier, undefined, state.attackerProfiles
+          );
+          return <ThreatOverlay off={frame.off} threats={threats} show />;
+        })()}
+        {state.showBestAction && (() => {
+          const carrier = state.steps[frame.stepIdx]?.ballCarrier ?? 'O1';
+          const actions = evaluateOffensiveOptions(frame.off, frame.defPos, carrier, undefined, state.attackerProfiles);
+          const best = bestOffensiveAction(actions);
+          if (!best) return null;
+          return <BestActionOverlay off={frame.off} carrier={carrier} best={best} show />;
+        })()}
         <g>
           {state.steps[frame.stepIdx]?.annotations.map((a, i) => (
             <g key={i} data-annotation-idx={i} style={{ cursor: 'context-menu' }}>
@@ -802,6 +808,7 @@ export function CourtView(props: CourtViewProps) {
             isForcedScreener={cur?.forcedScreener === oId}
             hasAnnotations={(cur?.annotations ?? []).some((a) => a.fromId === oId)}
             dominantHand={state.attackerHands?.[oId] ?? 'right'}
+            offensiveProfile={state.attackerProfiles?.[oId] ?? 'creator'}
             tool={state.tool}
             onSetTool={props.onSetTool}
             onMakeCarrier={() => props.onSetBallCarrier(oId)}
@@ -809,6 +816,7 @@ export function CourtView(props: CourtViewProps) {
             onClearForcedScreener={() => props.onSetForcedScreener(null)}
             onClearAnnotations={() => props.onClearAnnotationsFor(oId)}
             onSetDominantHand={(h) => props.onSetAttackerHand(oId, h)}
+            onSetOffensiveProfile={(p) => props.onSetAttackerProfile(oId, p)}
             onClose={() => setCtxMenu(null)}
           />
         );

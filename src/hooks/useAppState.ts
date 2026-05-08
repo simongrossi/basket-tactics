@@ -11,7 +11,6 @@ import type {
   DefenderRule,
   DefenseSystem,
   ZoneConfig,
-  Point,
 } from '@/lib/types';
 import { makeInitialState, makeStep, initialOff, initialDef } from '@/lib/data/initial';
 import { getZoneLayout, mirrorZoneLayout } from '@/lib/data/zones';
@@ -283,6 +282,21 @@ export function useAppState() {
     }));
   }, []);
 
+  const setAttackerProfile = useCallback(
+    (oId: AttackerId, profile: import('@/lib/types').OffensiveProfile) => {
+      setStateWithHistory((s) => {
+        const defaults: import('@/lib/types').AttackerProfiles = {
+          O1: 'creator', O2: 'shooter', O3: 'shooter', O4: 'rim-roller', O5: 'stretch-big',
+        };
+        return {
+          ...s,
+          attackerProfiles: { ...(s.attackerProfiles ?? defaults), [oId]: profile },
+        };
+      });
+    },
+    []
+  );
+
   const setScreenRule = useCallback((rule: ScreenRule) => {
     setStateWithHistory((s) => {
       const steps = s.steps.map((st) => {
@@ -424,24 +438,20 @@ export function useAppState() {
     setStateWithHistory((s) => {
       const newConfig = { ...s.zoneConfig, ...zPatch };
       let next: AppState = { ...s, zoneConfig: newConfig };
-      // Si on change le TYPE de zone, on snap tous les défenseurs aux nouvelles
-      // home positions et on efface les overrides — l'utilisateur s'attend à
-      // voir la formation par défaut quand il sélectionne un layout.
+      // Si on change le TYPE de zone, on resnap defenseInitial aux nouveaux
+      // homePos et on efface tous les overrides : on laisse le moteur de
+      // zone (computeZoneTargets) calculer dynamiquement les positions.
+      // Forcer des overrides au homePos figerait les défenseurs et
+      // désactiverait le tracking — exactement l'inverse de ce qu'on veut.
       if (zPatch.type && zPatch.type !== s.zoneConfig.type) {
         const layout = getZoneLayout(newConfig.type, newConfig.verticalOffset ?? 0);
         const newDefenseInitial = {} as DefenderPositions;
-        const overrides: Partial<Record<DefenderId, Point>> = {};
         layout.forEach((z) => {
           newDefenseInitial[z.assignedTo] = { ...z.homePos };
-          overrides[z.assignedTo] = { ...z.homePos };
         });
-        const cleanedSteps = s.steps.map((st, i) => {
+        const cleanedSteps = s.steps.map((st) => {
           const c = { ...st };
           delete c.defenseOverrides;
-          // On force les overrides sur l'étape active uniquement, pour que
-          // l'utilisateur voie la formation par défaut sans qu'elles ne
-          // polluent les autres étapes.
-          if (i === s.activeStep) c.defenseOverrides = overrides;
           return c;
         });
         next = {
@@ -490,6 +500,7 @@ export function useAppState() {
     updateRule,
     applyDefenderProfile,
     setAttackerHand,
+    setAttackerProfile,
     setScreenRule,
     resetSwitches,
     resetAll,

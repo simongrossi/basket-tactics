@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { AttackerId, DefenderId, DefenderRule, DominantHand, Tool } from '@/lib/types';
+import type { AttackerId, DefenderId, DefenderRule, DominantHand, OffensiveProfile, Tool } from '@/lib/types';
 import { DEFENDER_PROFILES, type DefenderProfile } from '@/lib/data/defenderProfiles';
 
 /**
@@ -108,6 +108,7 @@ interface AttackerMenuProps {
   isForcedScreener: boolean;
   hasAnnotations: boolean;
   dominantHand: DominantHand;
+  offensiveProfile: OffensiveProfile;
   tool: Tool;
   onSetTool: (t: Tool) => void;
   onMakeCarrier: () => void;
@@ -115,6 +116,7 @@ interface AttackerMenuProps {
   onClearForcedScreener: () => void;
   onClearAnnotations: () => void;
   onSetDominantHand: (h: DominantHand) => void;
+  onSetOffensiveProfile: (p: OffensiveProfile) => void;
   onClose: () => void;
 }
 
@@ -493,10 +495,20 @@ function OverrideSliderRow({
   );
 }
 
+const PROFILE_LABELS: Record<OffensiveProfile, string> = {
+  creator:      'créateur (meneur)',
+  shooter:      'tireur (3pts fiable)',
+  slasher:      'slasher (drive)',
+  'rim-roller': 'rim-roller (5/4 rouleur)',
+  'stretch-big':'stretch big (4 shooter)',
+  'non-shooter':'non-shooter (laisser)',
+};
+
 function AttackerMenu({
-  oId, x, y, isCarrier, isForcedScreener, hasAnnotations, dominantHand,
+  oId, x, y, isCarrier, isForcedScreener, hasAnnotations, dominantHand, offensiveProfile,
   tool, onSetTool,
-  onMakeCarrier, onForceScreener, onClearForcedScreener, onClearAnnotations, onSetDominantHand, onClose,
+  onMakeCarrier, onForceScreener, onClearForcedScreener, onClearAnnotations,
+  onSetDominantHand, onSetOffensiveProfile, onClose,
 }: AttackerMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
   const pos = useClampedPosition(x, y, ref);
@@ -581,6 +593,30 @@ function AttackerMenu({
           alignItems: 'center',
           gap: 8,
           marginTop: 8,
+          padding: '5px 6px',
+          borderRadius: 4,
+          background: '#fff7ed',
+          border: '1px solid #fed7aa',
+        }}
+        title="Profil offensif. Module la qualité de tir (un shooter tire mieux), l'aide adverse (un défenseur ne quitte pas un shooter mais peut sagger un non-shooter) et le closeout (plus rapide sur un shooter). Visible aussi dans les diagnostics coach."
+      >
+        <span style={{ fontSize: 11, color: '#9a3412', width: 88, fontWeight: 500 }}>profil off.</span>
+        <select
+          value={offensiveProfile}
+          onChange={(e) => onSetOffensiveProfile(e.target.value as OffensiveProfile)}
+          style={{ flex: 1, fontSize: 11 }}
+        >
+          {(Object.keys(PROFILE_LABELS) as OffensiveProfile[]).map((p) => (
+            <option key={p} value={p}>{PROFILE_LABELS[p]}</option>
+          ))}
+        </select>
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          marginTop: 6,
           padding: '5px 6px',
           borderRadius: 4,
           background: '#fff7ed',
