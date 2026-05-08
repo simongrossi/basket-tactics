@@ -23,6 +23,8 @@ interface PlayerProps {
   showStateRings?: boolean;
   /** Master switch pour les badges cadenas (override drag + forcedScreener). Default true. */
   showLockBadges?: boolean;
+  /** Rôle PnR (P1) — affiche un anneau distinct selon la rotation. */
+  pnrRole?: 'tag' | 'x-out' | 'stunt';
 }
 
 export function Player({
@@ -42,6 +44,7 @@ export function Player({
   orientation = 0,
   showStateRings = true,
   showLockBadges = true,
+  pnrRole,
 }: PlayerProps) {
   const fill = isAttacker ? '#D85A30' : '#378ADD';
 
@@ -133,6 +136,31 @@ export function Player({
           opacity={0.4 + helpFactor! * 0.5}
           pointerEvents="none"
         />
+      )}
+      {pnrRole && !isAttacker && showStateRings && (
+        <g pointerEvents="none">
+          {/* Anneau PnR : tag = doré pointillé, x-out = magenta, stunt = bleu pâle. */}
+          <circle
+            cx={pos.x}
+            cy={pos.y}
+            r={r + 6}
+            fill="none"
+            stroke={pnrRole === 'tag' ? '#F59E0B' : pnrRole === 'x-out' ? '#A855F7' : '#60A5FA'}
+            strokeWidth={2.2}
+            strokeDasharray={pnrRole === 'tag' ? '4 3' : undefined}
+            opacity={0.85}
+          />
+          <text
+            x={pos.x - r - 4}
+            y={pos.y - r - 4}
+            fontSize={8}
+            fontWeight={700}
+            fill={pnrRole === 'tag' ? '#92400e' : pnrRole === 'x-out' ? '#6B21A8' : '#1E3A8A'}
+            textAnchor="end"
+          >
+            {pnrRole === 'tag' ? 'TAG' : pnrRole === 'x-out' ? 'X' : 'STUNT'}
+          </text>
+        </g>
       )}
       {closingOut && !isAttacker && showStateRings && (
         <g pointerEvents="none">

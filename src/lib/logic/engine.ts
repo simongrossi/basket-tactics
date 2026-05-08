@@ -22,6 +22,7 @@ import {
 } from './screens';
 import { computeZoneTargets } from './zoneDefense';
 import { detectScreenAction, type DetectedScreenAction } from './screenAction';
+import { computePnRRotations } from './pnrRotations';
 import {
   ballSide,
   distance,
@@ -77,7 +78,7 @@ export function computeDefenseTargets(
   state: AppState,
   stepIdx: number,
   mutateStepForSwitch: boolean = true
-): { positions: Record<DefenderId, { x: number; y: number; helpFactor: number; isCarrierDefender: boolean; matchedTo: AttackerId; onScreen: boolean; switchedThisStep: boolean; denying?: boolean; helpTriggered?: boolean }>; matchupsApplied: Matchups } {
+): { positions: Record<DefenderId, { x: number; y: number; helpFactor: number; isCarrierDefender: boolean; matchedTo: AttackerId; onScreen: boolean; switchedThisStep: boolean; denying?: boolean; helpTriggered?: boolean; pnrRole?: 'tag' | 'x-out' | 'stunt' }>; matchupsApplied: Matchups } {
   if (state.defenseSystem === 'zone') {
     return computeZoneDefenseTargets(state, stepIdx);
   }
@@ -188,6 +189,37 @@ export function computeDefenseTargets(
       helpTriggered: helpTriggered || undefined,
     };
   });
+
+  // ---------------------------------------------------------------------
+  // P1 — Rotations PnR : low-man tag + X-out + nail stunt.
+  // S'applique seulement si un écran porteur est détecté ET que l'action
+  // implique un mouvement vers le panier (roll / short-roll / slip). Pas
+  // appliqué en cas de switch (matchups déjà inversés, défense déjà
+  // recalibrée). Pas appliqué si défenseur a un override manuel — celui-ci
+  // gagne dans effectiveDefensePositions.
+  // ---------------------------------------------------------------------
+  if (screen && effectiveScreenRule !== 'switch') {
+    const prevOff = stepIdx > 0 ? state.steps[stepIdx - 1].off : null;
+    const prevPrevOff = stepIdx > 1 ? state.steps[stepIdx - 2].off : null;
+    const action = detectScreenAction(off, prevOff, screen, null, prevPrevOff, hoop);
+    const currentTargets = {} as Record<DefenderId, Point>;
+    DEFENDER_IDS.forEach((dId) => {
+      currentTargets[dId] = { x: positions[dId].x, y: positions[dId].y };
+    });
+    const overrides = computePnRRotations(
+      off, matchups, screen, action, currentTargets, hoop, state.defenseInitial
+    );
+    for (const ov of overrides) {
+      positions[ov.defender].x = Math.round(ov.target.x);
+      positions[ov.defender].y = Math.round(ov.target.y);
+      positions[ov.defender].pnrRole = ov.role;
+      // Marque comme aide active pour que HelpLines distingue ces rotations.
+      if (ov.role === 'tag' || ov.role === 'x-out') {
+        positions[ov.defender].helpFactor = Math.max(positions[ov.defender].helpFactor, 0.6);
+        positions[ov.defender].helpTriggered = true;
+      }
+    }
+  }
 
   const offBallScreens = detectOffBallScreens(off, ballCarrier, matchups, prevDefenderPositions, state.screenRadius);
   for (const obs of offBallScreens) {
@@ -425,6 +457,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
         switchedThisStep: targets[dId].switchedThisStep,
         denying: targets[dId].denying,
         helpTriggered: targets[dId].helpTriggered,
+        pnrRole: targets[dId].pnrRole,
       };
       return;
     }
@@ -500,6 +533,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
         overClosed: overClosed || undefined,
         denying: targets[dId].denying,
         helpTriggered: targets[dId].helpTriggered,
+        pnrRole: targets[dId].pnrRole,
       };
     } else {
       const r = effectiveMaxSpeed / pathLen;
@@ -516,6 +550,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
         overClosed: overClosed || undefined,
         denying: targets[dId].denying,
         helpTriggered: targets[dId].helpTriggered,
+        pnrRole: targets[dId].pnrRole,
       };
     }
   });

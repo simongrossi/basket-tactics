@@ -181,36 +181,60 @@ export function computeCoachDiagnostics(
     const carrierLabel = withProfile(screen.carrier, profiles?.[screen.carrier]);
 
     if (actionRequiresLowManTag(action.kind)) {
-      // Low-man = défenseur le plus proche du poseur, hors carrierDef/screenerDef.
-      const screenerPos = off[screen.screener];
-      let lowMan: DefenderId | null = null;
-      let lowManDist = Infinity;
-      DEFENDER_IDS.forEach((dId) => {
-        if (dId === screen.carrierDef || dId === screen.screenerDef) return;
-        const d = defPos[dId];
-        const dd = distance({ x: d.x, y: d.y }, screenerPos);
-        if (dd < lowManDist) {
-          lowManDist = dd;
-          lowMan = dId;
+      // Avec les rotations P1, l'engine assigne déjà pnrRole='tag' au low-man
+      // identifié. On lit ce flag pour savoir QUI doit tagger, et on regarde
+      // s'il est `late` pour savoir si le tag est compromis.
+      const tagger = (Object.entries(defPos) as [DefenderId, ComputedDefense[DefenderId]][])
+        .find(([, p]) => p.pnrRole === 'tag');
+      if (tagger) {
+        const [tDef, tInfo] = tagger;
+        if (tInfo.late) {
+          out.push({
+            id: `tag-late-${tDef}`,
+            severity: 'critical',
+            message: `${screenActionLabel(action.kind)} de ${screenerLabel} : ${tDef} en retard pour tagger`,
+            tag: 'low-man-tag-late',
+            defenders: [tDef],
+            attackers: [screen.screener],
+          });
+        } else {
+          out.push({
+            id: `tag-ok-${tDef}`,
+            severity: 'good',
+            message: `${tDef} tag bien le ${screenActionLabel(action.kind)} de ${screenerLabel}`,
+            tag: 'low-man-tag-ok',
+            defenders: [tDef],
+            attackers: [screen.screener],
+          });
         }
-      });
-      if (lowMan && lowManDist > 130) {
+      } else {
+        // Pas de défenseur assigné : aucun candidat valable (ex. carrierDef et
+        // screenerDef sont les seuls disponibles). Anomalie tactique — le
+        // roller part en 1c0.
         out.push({
-          id: `tag-missing-${lowMan}`,
+          id: 'tag-none',
           severity: 'critical',
-          message: `${screenActionLabel(action.kind)} de ${screenerLabel} : ${lowMan} doit tagger — actuellement à ${Math.round(lowManDist)}px`,
-          tag: 'low-man-tag',
-          defenders: [lowMan],
+          message: `${screenActionLabel(action.kind)} de ${screenerLabel} : aucun low-man disponible — roller libre`,
+          tag: 'low-man-tag-none',
+          defenders: [],
           attackers: [screen.screener],
         });
-      } else if (lowMan && lowManDist > 90) {
+      }
+    }
+
+    // X-out : vérifier l'état du défenseur en rotation X-out.
+    const xOuter = (Object.entries(defPos) as [DefenderId, ComputedDefense[DefenderId]][])
+      .find(([, p]) => p.pnrRole === 'x-out');
+    if (xOuter) {
+      const [xDef, xInfo] = xOuter;
+      if (xInfo.late) {
         out.push({
-          id: `tag-soft-${lowMan}`,
+          id: `xout-late-${xDef}`,
           severity: 'warning',
-          message: `Tag mou de ${lowMan} sur le ${screenActionLabel(action.kind)} de ${screenerLabel}`,
-          tag: 'low-man-tag-soft',
-          defenders: [lowMan],
-          attackers: [screen.screener],
+          message: `X-out de ${xDef} en retard — passe skip ouverte`,
+          tag: 'x-out-late',
+          defenders: [xDef],
+          attackers: [xInfo.matchedTo],
         });
       }
     }

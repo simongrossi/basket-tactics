@@ -226,6 +226,12 @@ export interface ComputedDefender {
   /** L'aide vient d'un trigger actif (drive/post/paint), par opposition au
    *  sag baseline weak-side passif. Permet à HelpLines de différencier visuellement. */
   helpTriggered?: boolean;
+  /** Rôle de rotation PnR à cette étape (P1) :
+   *  - `tag` : low-man qui tag le roller
+   *  - `x-out` : défenseur qui couvre l'homme du low-man parti tagger
+   *  - `stunt` : faux mouvement vers le porteur depuis le nail
+   *  Permet de tracer un anneau spécifique pour le coach. */
+  pnrRole?: 'tag' | 'x-out' | 'stunt';
 }
 
 export type ComputedDefense = Record<DefenderId, ComputedDefender>;
