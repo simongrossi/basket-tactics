@@ -77,6 +77,24 @@ Pills colorées affichées en temps réel selon l'étape active. Voir `lib/logic
 
 Code couleur des pills : vert (bon), orange (alerte), rouge (mauvais), gris (neutre).
 
+## Lecture coach (sous la MetricsBar)
+
+Bandeau de phrases courtes en vocabulaire métier, alimenté par `lib/logic/coachDiagnostics.ts`. Trié par sévérité (critical → warning → info → good). Les phrases consomment l'état défensif courant (late, helpFactor, switches, écrans détectés) et les profils offensifs des attaquants pour escalader la sévérité (un shooter abandonné en corner = critical).
+
+| Tag                | Phrase type                                                                              | Quand              |
+|--------------------|------------------------------------------------------------------------------------------|--------------------|
+| `over-closeout`    | "{D} se fait déborder — over-closeout sur {O}"                                           | drive après closeout |
+| `closeout-long`    | "Closeout long : {D} en retard sur {O}" / "tir 3 ouvert" si shooter                       | late + closingOut  |
+| `late`             | "{D} en retard sur {O}"                                                                  | late simple        |
+| `switch-mismatch`  | "Switch : {D} sur {O (profil)} — mismatch potentiel à attaquer"                          | switchedThisStep   |
+| `low-man-tag`      | "Low man tag absent : {D} laisse {O (rim-roller)} rouler vers le panier"                  | écran + screener proche panier |
+| `low-man-tag-soft` | "Tag mou : {D} pas assez agressif sur le roll de {O}"                                    | low-man entre 90-130px |
+| `corner-open`      | "Corner faible abandonné : {O (tireur)} libre — skip 3pts critique"                       | corner faible non couvert |
+| `corner-help`      | "Ne quitte pas {O (tireur)} en corner faible — skip 3 cher"                              | corner faible mou (shooter) |
+| `pass-open`        | "Passe ouverte vers {O (tireur)} (61%) — fermer la ligne"                                | threats receivable + score>0.42 |
+| `paint-no-help`    | "Pénétration sans aide — raquette ouverte sur {O}"                                       | porteur in paint sans aide |
+| `all-good`         | "Couverture propre : porteur pressé, aide en place, corners tenus"                        | aucun problème     |
+
 ## Timeline
 
 Sous le terrain. Permet de naviguer dans les étapes.
@@ -292,7 +310,8 @@ Trois actions :
 - **forcer comme poseur d'écran** — pose `Step.forcedScreener` sur l'étape active. Le moteur saute l'auto-detection de proximité et utilise cet attaquant directement comme poseur. Cadenas violet 🔒 affiché sur le joueur. Bouton "↻ libérer" pour annuler.
 - **effacer ses annotations** — supprime toutes les annotations dont `fromId === oId` sur l'étape active
 
-Plus un réglage permanent :
+Plus deux réglages permanents :
+- **profil off.** : profil offensif de l'attaquant — `créateur`, `tireur`, `slasher`, `rim-roller (5/4 rouleur)`, `stretch big`, `non-shooter`. Le moteur module la qualité de tir, le coût de quitter cet attaquant pour aider, et la vitesse de closeout. Aussi consommé par les diagnostics coach pour escalader la sévérité (un corner abandonné devient critical sur un tireur). Défauts : O1=créateur, O2/O3=tireurs, O4=rim-roller, O5=stretch big.
 - **main dom.** : main dominante (droitier / gaucher, default droitier). Utilisée par les défenseurs en stance `mauvaise main` pour décider quel côté fermer (droitier → on le pousse à gauche, gaucher → à droite).
 
 ### Comportement commun

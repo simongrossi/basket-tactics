@@ -78,7 +78,8 @@ export function evaluateOffensiveOptions(
   off: AttackerPositions,
   defPos: ComputedDefense,
   carrier: AttackerId,
-  hoop: Point = HOOP
+  hoop: Point = HOOP,
+  profiles?: import('../types').AttackerProfiles
 ): OffensiveAction[] {
   const actions: OffensiveAction[] = [];
   const carrierPos = off[carrier];
@@ -125,7 +126,7 @@ export function evaluateOffensiveOptions(
   }
 
   // === Option 3 : Passe vers chaque coéquipier puis tir ===
-  const threats = computeAttackerThreats(off, defPos, carrier, hoop);
+  const threats = computeAttackerThreats(off, defPos, carrier, hoop, profiles);
   (Object.keys(off) as AttackerId[]).forEach((oId) => {
     if (oId === carrier) return;
     const t = threats[oId];

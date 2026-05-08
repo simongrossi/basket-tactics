@@ -454,6 +454,74 @@ export function curveAroundStaggeredPair(
 }
 
 /**
+ * Longueur d'arc approximative de la trajectoire start→end qui contourne
+ * `obstacle` via curveAroundObstacle, par échantillonnage uniforme en t.
+ * Si aucun obstacle ne bloque, retourne la distance euclidienne directe.
+ *
+ * Sert à pénaliser le coût-temps d'un détour : un défenseur qui doit
+ * faire le tour d'un pick-and-roll parcourt plus de pixels que la ligne
+ * droite, donc épuise plus vite son budget de vitesse maximum.
+ */
+export function pathArcLength(
+  start: Point,
+  end: Point,
+  obstacle: { center: Point; radius: number } | null,
+  samples: number = 12
+): number {
+  if (!obstacle) return distance(start, end);
+  let len = 0;
+  let prev = curveAroundObstacle(start, end, obstacle.center, obstacle.radius, 0);
+  for (let i = 1; i <= samples; i++) {
+    const t = i / samples;
+    const p = curveAroundObstacle(start, end, obstacle.center, obstacle.radius, t);
+    len += distance(prev, p);
+    prev = p;
+  }
+  return len;
+}
+
+/**
+ * Friction de proximité : retourne un multiplicateur de vitesse ∈ [floor, 1]
+ * basé sur la distance minimum atteinte entre le segment start→end et tous
+ * les points `nearby` (échantillonné).
+ *
+ * - distance min ≥ threshold → 1.0 (pas de friction)
+ * - distance min = 0         → floor (friction max, mais pas zéro :
+ *   un défenseur ne s'arrête pas, il ralentit)
+ * - linéaire entre les deux
+ *
+ * Modélise le contact "épaule" hors écran formel : frôler un attaquant non-
+ * matché coûte un peu de vitesse même sans déclencher la logique d'écran.
+ */
+export function proximityFriction(
+  start: Point,
+  end: Point,
+  nearby: Point[],
+  threshold: number = 30,
+  floor: number = 0.6,
+  samples: number = 8
+): number {
+  if (nearby.length === 0) return 1;
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.01) return 1;
+  let minDist = Infinity;
+  for (let i = 0; i <= samples; i++) {
+    const t = i / samples;
+    const px = start.x + dx * t;
+    const py = start.y + dy * t;
+    for (const o of nearby) {
+      const d = Math.hypot(o.x - px, o.y - py);
+      if (d < minDist) minDist = d;
+    }
+  }
+  if (minDist >= threshold) return 1;
+  const tFriction = Math.max(0, minDist) / threshold;
+  return floor + (1 - floor) * tFriction;
+}
+
+/**
  * Calcule un cluster (centre + rayon) à partir d'un noyau central et
  * d'éventuels obstacles voisins (à moins de `linkDist` du noyau).
  * Utile pour traiter "poseur d'écran + son défenseur" comme une seule

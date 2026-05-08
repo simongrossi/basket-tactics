@@ -4,9 +4,44 @@ import type {
   AttackerId,
   DefenderId,
   Point,
+  AttackerProfiles,
+  OffensiveProfile,
 } from '../types';
 import { HOOP } from '../data/court';
 import { distance } from './geometry';
+
+/**
+ * Multiplicateur de qualité de tir selon le profil offensif et la zone.
+ * Modélise les forces typées d'un joueur :
+ *  - shooter / stretch-big tirent mieux à l'extérieur, moins bien au cercle ;
+ *  - rim-roller / slasher inversement : finissent bien, tirent mal de loin ;
+ *  - creator a un profil neutre, légèrement biaisé vers le mid (pull-up) ;
+ *  - non-shooter pénalisé partout (mais moins en paint, où il finit encore).
+ *
+ * Bornes [0.55, 1.30] pour rester réaliste — pas de "100% à 3pts" sur shooter.
+ */
+function profileShotMultiplier(
+  profile: OffensiveProfile | undefined,
+  zone: ShotZone
+): number {
+  if (!profile) return 1;
+  switch (profile) {
+    case 'shooter':
+      return zone === 'three' || zone === 'mid' ? 1.20 : zone === 'rim' ? 0.90 : 0.95;
+    case 'stretch-big':
+      return zone === 'three' ? 1.15 : zone === 'mid' ? 1.05 : zone === 'rim' ? 0.95 : 1.0;
+    case 'slasher':
+      return zone === 'rim' || zone === 'paint' ? 1.18 : zone === 'three' ? 0.85 : 1.0;
+    case 'rim-roller':
+      return zone === 'rim' ? 1.30 : zone === 'paint' ? 1.10 : zone === 'three' ? 0.65 : 0.85;
+    case 'creator':
+      return zone === 'mid' ? 1.05 : 1.0;
+    case 'non-shooter':
+      return zone === 'rim' ? 0.95 : zone === 'paint' ? 0.85 : 0.65;
+    default:
+      return 1;
+  }
+}
 
 /**
  * Score de menace par attaquant — Phase A de la simulation.
@@ -78,7 +113,8 @@ export function computeAttackerThreats(
   off: AttackerPositions,
   defPos: ComputedDefense,
   carrier: AttackerId,
-  hoop: Point = HOOP
+  hoop: Point = HOOP,
+  profiles?: AttackerProfiles
 ): Record<AttackerId, AttackerThreat> {
   const result = {} as Record<AttackerId, AttackerThreat>;
   const carrierPos = off[carrier];
@@ -96,7 +132,8 @@ export function computeAttackerThreats(
       const dd = distance({ x: d.x, y: d.y }, pos);
       if (dd < contestDist) contestDist = dd;
     });
-    const shotQuality = baseQuality * contestMultiplier(contestDist);
+    const profileMult = profileShotMultiplier(profiles?.[oId], zone);
+    const shotQuality = baseQuality * contestMultiplier(contestDist) * profileMult;
 
     // Receivability — si non porteur, dépend de l'ouverture de la ligne de passe
     let receivability = 1;

@@ -11,7 +11,7 @@ import { baseMatchups } from '../data/initial';
 import { getZoneLayout, mirrorZoneLayout, applyZoneOverrides } from '../data/zones';
 import { detectTriggers } from './triggers';
 import { manTarget, carrierDefenderTarget, offBallStanceTarget, orientationLateralOffset } from './manDefense';
-import { computeHelpTarget } from './help';
+import { computeHelpTarget, leaveAttackerCostMultiplier, closeoutProfileBonus } from './help';
 import {
   detectScreen,
   applyScreenAdjustment,
@@ -21,7 +21,16 @@ import {
   applySwitchOffBall,
 } from './screens';
 import { computeZoneTargets } from './zoneDefense';
-import { ballSide, distance, resolvePlayerCollisions } from './geometry';
+import {
+  ballSide,
+  distance,
+  resolvePlayerCollisions,
+  pathArcLength,
+  proximityFriction,
+  pickBlockingCluster,
+  makeCluster,
+  pushOutOfMany,
+} from './geometry';
 import { HOOP, HOOP_OPPOSITE, PLAYER_RADIUS } from '../data/court';
 import type { Point } from '../types';
 import { isInTrapZone, pickTrapHelper, trapTarget } from './trap';
@@ -140,9 +149,12 @@ export function computeDefenseTargets(
       if (stance === 'sag' && att && carrierPos) {
         // Override par défenseur > global > défaut (0.45)
         const denyAggressiveness = rule.denyAggressiveness ?? state.denyAggressiveness ?? 0.45;
+        // Coût tactique de quitter cet attaquant : on aide moins fort si on
+        // marque un shooter, plus fort si on marque un non-shooter.
+        const leaveMult = leaveAttackerCostMultiplier(state.attackerProfiles?.[oId]);
         const help = computeHelpTarget(
           stancePos, rule, triggers, carrierPos, att, side, off, hoop,
-          denyAggressiveness
+          denyAggressiveness, leaveMult
         );
         target = help.target;
         helpFactor = help.helpFactor;
@@ -321,6 +333,36 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
   const overrides = state.steps[stepIdx]?.defenseOverrides;
   const offAtStep = state.steps[stepIdx]?.off ?? {};
 
+  // Construit les clusters d'écran à contourner (poseur + son défenseur, fusionnés
+  // en une seule masse). Seulement en défense individuelle — la zone n'a pas de
+  // détection d'écran formelle. Mirroite la logique de CourtView pour que la
+  // physique du moteur et le rendu du scrub utilisent les MÊMES obstacles.
+  const screenerObstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
+  if (state.defenseSystem === 'man' && stepIdx > 0) {
+    const cur = state.steps[stepIdx];
+    const matchupsForScreen = getMatchupsAt(state.steps, stepIdx - 1);
+    const screen = detectScreen(
+      cur.off, cur.ballCarrier, matchupsForScreen, prevPositions, state.screenRadius, cur.forcedScreener
+    );
+    const offBallScreens = detectOffBallScreens(
+      cur.off, cur.ballCarrier, matchupsForScreen, prevPositions, state.screenRadius
+    );
+    const linkDist = PLAYER_RADIUS * 4;
+    const baseR = PLAYER_RADIUS + 4;
+    if (screen) {
+      const sPos = cur.off[screen.screener];
+      const sDef = prevPositions[screen.screenerDef];
+      const c = makeCluster(sPos, [sDef], linkDist, baseR);
+      screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: screen.screenerDef });
+    }
+    offBallScreens.forEach((s) => {
+      const sPos = cur.off[s.screener];
+      const sDef = prevPositions[s.screenerDef];
+      const c = makeCluster(sPos, [sDef], linkDist, baseR);
+      screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: s.screenerDef });
+    });
+  }
+
   const out = {} as ComputedDefense;
   DEFENDER_IDS.forEach((dId) => {
     // Override manuel utilisateur : prend toujours le pas sur le calcul.
@@ -342,28 +384,79 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     }
 
     const from = prevPositions[dId];
-    const to = targets[dId];
-    const d = distance(from, to);
+    const rawTarget = targets[dId];
+    const matched = rawTarget.matchedTo;
+
+    // Lever C — Pré-relaxation de la cible : si la cible idéale chevauche un
+    // attaquant non-matché, on la repousse à l'écart. Évite que la contrainte
+    // de vitesse compare une distance qui mène DANS un autre joueur.
+    const nonMatchedAttackerPositions: Point[] = [];
+    (Object.entries(offAtStep) as [AttackerId, Point][]).forEach(([oId, pos]) => {
+      if (oId !== matched) nonMatchedAttackerPositions.push(pos);
+    });
+    const minClearance = PLAYER_RADIUS * 2 + 2;
+    const relaxed = pushOutOfMany(
+      { x: rawTarget.x, y: rawTarget.y },
+      nonMatchedAttackerPositions,
+      minClearance
+    );
+    const to = { x: relaxed.x, y: relaxed.y };
+
+    // Lever A — Longueur d'arc : si le segment from→to traverse un cluster
+    // d'écran, on calcule la longueur de la trajectoire courbe Bezier (celle
+    // que CourtView trace pendant le scrub). Le défenseur "paie" le détour.
+    const candidates = screenerObstacles.filter((o) => dId !== o.defenderToSkip);
+    const blocking = pickBlockingCluster(from, to, candidates);
+    const pathLen = pathArcLength(from, to, blocking);
+
+    // Lever B — Friction de proximité : si le trajet frôle un joueur non-
+    // matché (attaquant non visé OU autre défenseur), on baisse la vitesse
+    // max. Modélise le contact "épaule" hors écran formel.
+    const frictionObstacles: Point[] = [...nonMatchedAttackerPositions];
+    DEFENDER_IDS.forEach((other) => {
+      if (other !== dId) frictionObstacles.push(prevPositions[other]);
+    });
+    const friction = proximityFriction(from, to, frictionObstacles);
 
     // Closeout : le défenseur du nouveau porteur bénéficie d'un bump de vitesse.
     const closingOut = isCloseoutTransition && targets[dId].isCarrierDefender;
     const overClosed = isOverClosedTransition && targets[dId].isCarrierDefender;
-    // Override par défenseur > global > défaut.
+    // Override par défenseur > global > défaut, modulé par le profil offensif
+    // du porteur sur lequel on closeoute (shooter → +15%, non-shooter → -15%).
     const ruleBoost = state.rules[dId]?.closeoutBoost;
-    const closeoutBoost = ruleBoost ?? state.closeoutBoost ?? DEFAULT_CLOSEOUT_SPEED_FACTOR;
+    const carrierForCloseout = state.steps[stepIdx].ballCarrier;
+    const profileBonus = closingOut
+      ? closeoutProfileBonus(state.attackerProfiles?.[carrierForCloseout])
+      : 1;
+    const closeoutBoost = (ruleBoost ?? state.closeoutBoost ?? DEFAULT_CLOSEOUT_SPEED_FACTOR) * profileBonus;
     // Vitesse max individuelle (rule.maxSpeed) > globale (en zone, on garde la rotation)
     const indivMaxSpeed = state.defenseSystem === 'man'
       ? (state.rules[dId]?.maxSpeed ?? baseMaxSpeed)
       : baseMaxSpeed;
     const maxSpeed = closingOut ? indivMaxSpeed * closeoutBoost : indivMaxSpeed;
+    // Vitesse effective = vitesse théorique × friction de proximité.
+    const effectiveMaxSpeed = maxSpeed * friction;
 
     // À l'étape 0, on considère que les défenseurs SONT à leur position idéale
     // (le step 0 est un setup, pas une transition). La contrainte de vitesse
     // ne s'applique qu'entre les étapes suivantes.
-    if (stepIdx === 0 || d <= maxSpeed) {
-      out[dId] = { ...to, late: false, closingOut: closingOut || undefined, overClosed: overClosed || undefined, helpTriggered: targets[dId].helpTriggered };
+    if (stepIdx === 0 || pathLen <= effectiveMaxSpeed) {
+      out[dId] = {
+        x: to.x,
+        y: to.y,
+        late: false,
+        helpFactor: targets[dId].helpFactor,
+        isCarrierDefender: targets[dId].isCarrierDefender,
+        matchedTo: targets[dId].matchedTo,
+        onScreen: targets[dId].onScreen,
+        switchedThisStep: targets[dId].switchedThisStep,
+        closingOut: closingOut || undefined,
+        overClosed: overClosed || undefined,
+        denying: targets[dId].denying,
+        helpTriggered: targets[dId].helpTriggered,
+      };
     } else {
-      const r = maxSpeed / d;
+      const r = effectiveMaxSpeed / pathLen;
       out[dId] = {
         x: Math.round(from.x + (to.x - from.x) * r),
         y: Math.round(from.y + (to.y - from.y) * r),

@@ -55,8 +55,30 @@ interface AppState {
   showLockBadges?: boolean;             // cadenas position manuelle (jaune) + forcedScreener (violet) (default true)
   closeoutBoost?: number;               // multiplicateur vit. max du défenseur en closeout (default 1.4)
   denyAggressiveness?: number;          // intensité max du strong-side denial automatique (default 0.45)
+  attackerHands?: AttackerHands;        // main dominante par attaquant ('right' | 'left')
+  attackerProfiles?: AttackerProfiles;  // profil offensif par attaquant — module aide / closeout / shotQuality
 }
 ```
+
+### Profils joueurs offensifs
+
+```typescript
+type OffensiveProfile =
+  | 'creator'      // meneur/créateur (handle, vision)
+  | 'shooter'      // tireur extérieur (3pts fiable)
+  | 'slasher'      // pénétrant (drive, finition)
+  | 'rim-roller'   // pivot rouleur (5/4 classique)
+  | 'stretch-big'  // intérieur shooter (4 stretch)
+  | 'non-shooter'; // tireur médiocre, à laisser
+type AttackerProfiles = Record<AttackerId, OffensiveProfile>;
+```
+
+Le profil module trois branches du moteur :
+- **`threats.ts`** : `profileShotMultiplier(profile, zone)` ajuste la qualité de tir (shooter ×1.20 à 3pts, rim-roller ×1.30 au cercle, non-shooter ×0.65 à 3pts).
+- **`help.ts`** : `leaveAttackerCostMultiplier(profile)` réduit le `helpFactor` quand on quitte un shooter (×0.55) et l'augmente sur un non-shooter (×1.30).
+- **`engine.ts`** (closeout) : `closeoutProfileBonus(profile)` boost de vitesse +15% sur shooter, -15% sur non-shooter.
+
+Défauts par défaut (modifiables via clic-droit sur l'attaquant) : `O1=creator, O2=shooter, O3=shooter, O4=rim-roller, O5=stretch-big`.
 
 ## Step
 

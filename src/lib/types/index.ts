@@ -17,6 +17,28 @@ export type DefenderPositions = Record<DefenderId, Point>;
 export type DominantHand = 'right' | 'left';
 export type AttackerHands = Record<AttackerId, DominantHand>;
 
+/**
+ * Profil offensif de l'attaquant. Sert au moteur pour moduler les décisions
+ * défensives basées sur la dangerosité réelle (un shooter qu'on quitte coûte
+ * cher ; un non-shooter qu'on laisse libère un défenseur pour la raquette).
+ *
+ * - `creator`     : meneur/créateur (handle, vision). Tirs corrects, surtout pénétration.
+ * - `shooter`     : tireur extérieur (3pts fiable). À NE PAS quitter sur skip pass.
+ * - `slasher`     : pénétrant (drive, finition). Tirs intérieurs > extérieurs.
+ * - `rim-roller`  : pivot rouleur (5/4 classique). Menace = course au cercle après écran.
+ * - `stretch-big` : intérieur shooter (4 stretch). Doit être suivi à 3pts.
+ * - `non-shooter` : tireur médiocre/limité. On peut sagger, le laisser ouvert à 3pts.
+ */
+export type OffensiveProfile =
+  | 'creator'
+  | 'shooter'
+  | 'slasher'
+  | 'rim-roller'
+  | 'stretch-big'
+  | 'non-shooter';
+
+export type AttackerProfiles = Record<AttackerId, OffensiveProfile>;
+
 export type AnnotationType = 'pass' | 'dribble' | 'cut' | 'screen';
 
 export interface Annotation {
@@ -267,6 +289,10 @@ export interface AppState {
    *  scouting pour le coach — le moteur ne la consomme pas pour l'instant.
    *  Utile pour décider manuellement de l'orientation des défenseurs. */
   attackerHands?: AttackerHands;
+  /** Profil offensif de chaque attaquant. Module la qualité de tir, la
+   *  receivability et le comportement défensif (closeout, aide, diagnostics).
+   *  Default : O1=creator, O2/O3=shooter, O4=rim-roller, O5=stretch-big. */
+  attackerProfiles?: AttackerProfiles;
   /** Overrides par région de zone (homePos déplacé, radius, mode). Keyed
    *  par region.id. Persistant à travers les types de zone. */
   zoneOverrides?: ZoneOverrides;

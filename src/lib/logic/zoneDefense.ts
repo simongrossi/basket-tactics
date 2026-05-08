@@ -6,6 +6,7 @@ import type {
   ZoneLayout,
   ZoneConfig,
   ZoneRegion,
+  ZoneType,
 } from '../types';
 import { HOOP } from '../data/court';
 import { distance } from './geometry';
@@ -24,6 +25,16 @@ export function pointInPolygon(point: Point, polygon: Point[]): boolean {
   return inside;
 }
 
+/**
+ * Mapping diagnostic : pour chaque zone, liste les attaquants présents dans
+ * son polygone (avec fallback "homePos le plus proche" si l'attaquant n'est
+ * dans aucun polygone). Utilisé par la visu de couverture (ZoneCoverage.tsx)
+ * — ce n'est PLUS la base du calcul des positions défensives.
+ *
+ * Le moteur (computeZoneTargets) raisonne maintenant en ownership continu
+ * basé sur la distance aux homePos, ce qui élimine les téléportations aux
+ * frontières de polygone.
+ */
 export function mapAttackersToZones(
   off: AttackerPositions,
   layout: ZoneLayout
@@ -62,16 +73,126 @@ export interface ZoneDefenderTarget {
 }
 
 /**
- * Rayon de "responsabilité étendue" autour du homePos d'une zone : un
- * défenseur de zone partagera son attention sur les attaquants à moins de
- * cette distance de son ancrage. Au-delà → 0% engagement (il reste à son
- * homePos). En deçà → engagement croissant linéairement (100% à 0px).
- *
- * Conséquence : pas de saut quand un attaquant traverse la frontière du
- * polygone — le défenseur l'accompagne progressivement.
+ * Portée gaussienne de référence (px). À cette distance du homePos, un
+ * attaquant produit ~37% du claim max. À 2× cette distance → ~2%.
+ * Au-delà, le défenseur est en pratique désengagé. Surchargeable par
+ * région via `ZoneRegion.radius`.
  */
-const ZONE_RESPONSIBILITY_RADIUS = 200;
+const BASE_REACH = 200;
 
+/** Largeur du demi-terrain (px). Centre vertical = COURT_CENTER_X. */
+const COURT_CENTER_X = 300;
+
+/**
+ * Paramètres tactiques par type de zone. Pondèrent le calcul des "claims"
+ * (intérêt d'un défenseur pour chaque attaquant) selon les principes
+ * spécifiques à chaque formation. Tout le moteur reste générique : seules
+ * ces 4 valeurs changent par type, et c'est suffisant pour différencier
+ * 2-3 (back-3 protègent, top-2 pression) de 1-3-1 (point top, baseline
+ * rotative) de match-up (man-like dans la zone).
+ */
+interface ZoneTactic {
+  /** Bonus pour le matchup naturel (D3↔O3). 1.0 = neutre, >1 = préfère */
+  naturalBonus: number;
+  /** Bonus quand l'attaquant est le porteur (pression ballon globale). */
+  carrierBonus: number;
+  /** Force du shift ball-side appliqué au homePos. 0 = pas d'aide,
+   *  0.5 = aide forte. Le défenseur faible-côté reçoit le shift complet,
+   *  le fort-côté seulement 30%, le central 60%. */
+  ballSideHelp: number;
+  /** Multiplicateur sur BASE_REACH. >1 = défenseurs plus élastiques. */
+  reachMultiplier: number;
+}
+
+const DEFAULT_TACTIC: ZoneTactic = {
+  naturalBonus: 1.2,
+  carrierBonus: 1.4,
+  ballSideHelp: 0.4,
+  reachMultiplier: 1.0,
+};
+
+const TACTICS: Record<ZoneType, ZoneTactic> = {
+  // 2-3 : front-2 pressent dehors, back-3 protègent la peinture avec
+  // glissement ball-side. Reach standard, aide ball-side soutenue.
+  'zone-2-3': {
+    naturalBonus: 1.2,
+    carrierBonus: 1.5,
+    ballSideHelp: 0.5,
+    reachMultiplier: 1.0,
+  },
+  // 3-2 : front-3 sur le périmètre (pression à l'arc), back-2 protègent
+  // la raquette. Reach légèrement compressé pour rester serré ; ball-side
+  // help discret car le top-3 couvre déjà la rotation horizontale.
+  'zone-3-2': {
+    naturalBonus: 1.3,
+    carrierBonus: 1.6,
+    ballSideHelp: 0.35,
+    reachMultiplier: 0.95,
+  },
+  // 1-3-1 : point-top fait la pression seule, le milieu doit beaucoup
+  // glisser ball-side, et la baseline pivote fortement. Aide élevée.
+  'zone-1-3-1': {
+    naturalBonus: 1.15,
+    carrierBonus: 1.4,
+    ballSideHelp: 0.6,
+    reachMultiplier: 1.05,
+  },
+  // 2-1-2 : front-2 + post haut + back-2. Comportement proche de 2-3 mais
+  // avec un défenseur central qui ferme le high-post.
+  'zone-2-1-2': {
+    naturalBonus: 1.2,
+    carrierBonus: 1.5,
+    ballSideHelp: 0.5,
+    reachMultiplier: 1.0,
+  },
+  // Match-up : hybride zone/individuelle. Bonus naturel très fort —
+  // chaque défenseur "colle" son joueur tant qu'il reste à portée.
+  'zone-matchup': {
+    naturalBonus: 2.0,
+    carrierBonus: 1.3,
+    ballSideHelp: 0.25,
+    reachMultiplier: 1.0,
+  },
+};
+
+/**
+ * Décale le homePos vers le côté du ballon. Asymétrique : le défenseur
+ * faible-côté glisse beaucoup (× 1.0), le fort-côté peu (× 0.3) — il est
+ * déjà près du ballon —, le central modérément (× 0.6). Plafonné à 80px
+ * pour ne pas sortir un défenseur de sa zone.
+ */
+function ballSideShifted(home: Point, ballPos: Point, helpFactor: number): Point {
+  const ballOffset = ballPos.x - COURT_CENTER_X;
+  const homeOffset = home.x - COURT_CENTER_X;
+  const homeIsCenter = Math.abs(homeOffset) < 30;
+  let sideMult: number;
+  if (homeIsCenter) sideMult = 0.6;
+  else if (Math.sign(homeOffset) === Math.sign(ballOffset)) sideMult = 0.3;
+  else sideMult = 1.0;
+  const shiftX = Math.max(-80, Math.min(80, ballOffset * helpFactor * 0.4 * sideMult));
+  return { x: home.x + shiftX, y: home.y };
+}
+
+/**
+ * Calcule les positions cibles des défenseurs en zone, avec un moteur
+ * 100% continu (zéro seuil binaire) :
+ *
+ * 1. Pour chaque (défenseur, attaquant), un "claim" gaussien :
+ *      claim = exp(-(d/reach)²) × naturalBonus × carrierBonus
+ *    Plus de pointInPolygon → plus de saut de priorité aux frontières.
+ *
+ * 2. Pour chaque attaquant, on normalise les claims des 5 défenseurs en
+ *    parts d'ownership (sommant à 1). C'est la "compétition" pour cet
+ *    attaquant : si deux défenseurs sont équidistants, ils ont 0.5/0.5.
+ *
+ * 3. Chaque défenseur prend pour primary l'attaquant qu'il possède le
+ *    plus, et son engagement = sa part. Contesté = engagement modéré,
+ *    dominant = engagement fort. Pas de seuil → pas de téléportation.
+ *
+ * Les paramètres tactiques (TACTICS) modulent ces claims selon le type
+ * de zone : un 1-3-1 sage davantage ball-side qu'un match-up, un 3-2
+ * pressente plus le porteur qu'un 2-3, etc.
+ */
 export function computeZoneTargets(
   off: AttackerPositions,
   ballCarrier: AttackerId,
@@ -80,59 +201,86 @@ export function computeZoneTargets(
   defenseDistance: number,
   hoop: Point = HOOP
 ): Record<DefenderId, ZoneDefenderTarget> {
-  const zoneAttackers = mapAttackersToZones(off, layout);
+  const tactic = TACTICS[config.type] ?? DEFAULT_TACTIC;
   const ballPos = off[ballCarrier];
   const ballPressureFactor = config.ballPressure / 100;
 
+  // Pré-calcul du homePos shifté ball-side pour chaque zone.
+  const shiftedHomes = new Map<DefenderId, Point>();
+  layout.forEach((zone) => {
+    const home = ballPos
+      ? ballSideShifted(zone.homePos, ballPos, tactic.ballSideHelp)
+      : zone.homePos;
+    shiftedHomes.set(zone.assignedTo, home);
+  });
+
+  // Étape 1 — Claims continus.
+  const claims = new Map<DefenderId, Map<AttackerId, number>>();
+  layout.forEach((zone) => {
+    const dId = zone.assignedTo;
+    const home = shiftedHomes.get(dId)!;
+    const naturalAtt = baseMatchups[dId];
+    const reach = (zone.radius ?? BASE_REACH) * tactic.reachMultiplier;
+
+    const dClaims = new Map<AttackerId, number>();
+    (Object.entries(off) as [AttackerId, Point][]).forEach(([oId, pos]) => {
+      const d = distance(pos, home);
+      const proximity = Math.exp(-Math.pow(d / reach, 2));
+      const naturalMult = oId === naturalAtt ? tactic.naturalBonus : 1.0;
+      const carrierMult = oId === ballCarrier ? tactic.carrierBonus : 1.0;
+      dClaims.set(oId, proximity * naturalMult * carrierMult);
+    });
+    claims.set(dId, dClaims);
+  });
+
+  // Étape 2 — Ownership normalisée par attaquant. Epsilon stabilise le
+  // dénominateur quand tous les claims sont quasi-nuls (attaquant isolé).
+  const ownership = new Map<DefenderId, Map<AttackerId, number>>();
+  layout.forEach((z) => ownership.set(z.assignedTo, new Map()));
+  (Object.keys(off) as AttackerId[]).forEach((oId) => {
+    const totalClaim = layout.reduce(
+      (sum, z) => sum + (claims.get(z.assignedTo)!.get(oId) ?? 0),
+      0
+    );
+    const denom = totalClaim + 1e-6;
+    layout.forEach((z) => {
+      const c = claims.get(z.assignedTo)!.get(oId) ?? 0;
+      ownership.get(z.assignedTo)!.set(oId, c / denom);
+    });
+  });
+
+  // Étape 3 — Pour chaque défenseur, position cible = blend(home, tracking)
+  // pondéré par sa part d'ownership sur le primary. Continu, pas de saut.
   const targets = {} as Record<DefenderId, ZoneDefenderTarget>;
 
   layout.forEach((zone) => {
     const dId = zone.assignedTo;
-    const homePos = zone.homePos;
-    const radius = zone.radius ?? ZONE_RESPONSIBILITY_RADIUS;
+    const home = shiftedHomes.get(dId)!;
     const mode = zone.mode ?? 'auto';
 
-    // Position de "home shifté vers le ballon" — base quand pas d'engagement.
+    // Pression ballon globale additionnelle (le slider config.ballPressure
+    // s'ajoute au ball-side help tactique). Tire le home vers le porteur.
     const homeShifted = ballPos
       ? {
-          x: homePos.x + (ballPos.x - homePos.x) * ballPressureFactor * 0.3,
-          y: homePos.y + (ballPos.y - homePos.y) * ballPressureFactor * 0.15,
+          x: home.x + (ballPos.x - home.x) * ballPressureFactor * 0.15,
+          y: home.y + (ballPos.y - home.y) * ballPressureFactor * 0.10,
         }
-      : homePos;
+      : home;
 
-    // Sélection du primary par scoring tactique :
-    //   priority × engagement, où
-    //   - priority = 3 si l'attaquant est notre matchup naturel ET dans le
-    //     polygone, 2.5 si dans le polygone (non-naturel), 2 si naturel
-    //     hors polygone, 1 sinon.
-    //   - engagement = 1 - (dist/(radius*1.5))² (continu, falloff doux).
-    // Cela garantit que D3 colle à O3 (son ailier) même si O5 est à un poil
-    // plus proche du homePos, mais permet aussi à un défenseur de prendre
-    // un attaquant non-attitré qui rentre dans sa zone si le naturel a
-    // disparu loin.
-    const naturalAtt = baseMatchups[zone.assignedTo];
+    // Sélection du primary par max ownership.
     let primaryAttacker: AttackerId | null = null;
-    let primaryDist = Infinity;
-    let bestScore = -Infinity;
-    (Object.entries(off) as [AttackerId, Point][]).forEach(([oId, pos]) => {
-      const inPoly = pointInPolygon(pos, zone.polygon);
-      const isNatural = oId === naturalAtt;
-      const d = distance(pos, homePos);
-      const eng = Math.max(0, 1 - (d / (radius * 1.5)) ** 2);
-      let priority: number;
-      if (isNatural && inPoly) priority = 3;
-      else if (inPoly) priority = 2.5;
-      else if (isNatural) priority = 2;
-      else priority = 1;
-      const score = priority * eng;
-      if (score > bestScore) {
-        bestScore = score;
+    let primaryShare = 0;
+    (Object.keys(off) as AttackerId[]).forEach((oId) => {
+      const share = ownership.get(dId)!.get(oId) ?? 0;
+      if (share > primaryShare) {
+        primaryShare = share;
         primaryAttacker = oId;
-        primaryDist = d;
       }
     });
 
-    if (!primaryAttacker) {
+    // Seuil minimum d'engagement pour bouger : si on possède très peu
+    // d'attaquants (tous les attaquants sont loin), on reste au home.
+    if (!primaryAttacker || primaryShare < 0.15) {
       targets[dId] = {
         x: Math.round(homeShifted.x),
         y: Math.round(homeShifted.y),
@@ -143,49 +291,27 @@ export function computeZoneTargets(
       return;
     }
 
-    // Engagement avec falloff quadratique doux : reste élevé dans la zone
-    // d'influence puis décroît rapidement au-delà du rayon × 1.5.
-    //   dist = 0          → 1.00 (full track)
-    //   dist = radius/2   → 0.89
-    //   dist = radius     → 0.56 (l'attaquant est à la limite de la zone)
-    //   dist = radius×1.5 → 0    (full home)
-    // Permet au défenseur d'accompagner un attaquant sur la majorité de sa
-    // zone, sans téléportation au franchissement de frontière.
-    const normDist = primaryDist / (radius * 1.5);
-    let engagement = Math.max(0, 1 - normDist * normDist);
+    let engagement = primaryShare;
     // Modulation par mode :
-    // - agressif : engagement boosté (+50%, capé à 1) → sortir vite et fort
-    // - passif : engagement réduit ×0.5 → reste près du home
-    // - trap : full track si le porteur est dans la région (engagement = 1)
+    // - agressif : +50% (capé à 1) → sortir vite et fort
+    // - passif : ×0.5 → reste près du home
+    // - trap : full track sur le porteur
     if (mode === 'agressif') engagement = Math.min(1, engagement * 1.5);
     else if (mode === 'passif') engagement *= 0.5;
     else if (mode === 'trap' && primaryAttacker === ballCarrier) engagement = 1;
 
-    const attPos = off[primaryAttacker];
+    const primary: AttackerId = primaryAttacker;
+    const attPos = off[primary];
     let trackedPos: Point;
-
-    if (primaryAttacker === ballCarrier) {
-      // En mode trap, on adopte un comportement bumper (corps entre porteur
-      // et panier, plus rapproché) pour matérialiser le piège.
+    if (primary === ballCarrier) {
       const stance = mode === 'trap' ? 'bumper' : 'contester';
-      const carrierTarget = carrierDefenderTarget(stance, attPos, defenseDistance, hoop);
-      trackedPos = carrierTarget || homePos;
+      trackedPos = carrierDefenderTarget(stance, attPos, defenseDistance, hoop) || home;
     } else if (config.type === 'zone-matchup') {
-      trackedPos = manTarget(attPos, defenseDistance, hoop) || homePos;
+      trackedPos = manTarget(attPos, defenseDistance, hoop) || home;
     } else {
-      const manPos = manTarget(attPos, defenseDistance * 1.2, hoop);
-      if (manPos && ballPos) {
-        const ballShift = ballPressureFactor * 0.15;
-        trackedPos = {
-          x: manPos.x + (ballPos.x - manPos.x) * ballShift,
-          y: manPos.y + (ballPos.y - manPos.y) * ballShift,
-        };
-      } else {
-        trackedPos = manPos || homePos;
-      }
+      trackedPos = manTarget(attPos, defenseDistance * 1.2, hoop) || home;
     }
 
-    // Blend continu home-shifté ↔ tracking selon l'engagement.
     const blended = {
       x: homeShifted.x + (trackedPos.x - homeShifted.x) * engagement,
       y: homeShifted.y + (trackedPos.y - homeShifted.y) * engagement,
@@ -196,87 +322,11 @@ export function computeZoneTargets(
       y: Math.round(blended.y),
       zoneId: zone.id,
       isRotating: false,
-      // Marque comme tracké seulement si engagement significatif (> 50%) —
-      // évite d'afficher un matchup qui clignote sur les frontières.
-      trackedAttacker: engagement > 0.5 ? primaryAttacker : null,
+      // Affiche le matchup uniquement quand l'engagement est franc, pour
+      // éviter les lignes qui clignotent sur les zones contestées.
+      trackedAttacker: engagement > 0.4 ? primary : null,
     };
   });
 
-  applyZoneRotation(targets, zoneAttackers, layout, off, config, hoop);
-
   return targets;
-}
-
-function applyZoneRotation(
-  targets: Record<DefenderId, ZoneDefenderTarget>,
-  zoneAttackers: Map<string, AttackerId[]>,
-  layout: ZoneLayout,
-  off: AttackerPositions,
-  _config: ZoneConfig,
-  hoop: Point = HOOP
-): void {
-  const overloaded: string[] = [];
-  const empty: string[] = [];
-
-  layout.forEach((zone) => {
-    const count = (zoneAttackers.get(zone.id) || []).length;
-    if (count >= 2) overloaded.push(zone.id);
-    if (count === 0) empty.push(zone.id);
-  });
-
-  if (overloaded.length === 0 || empty.length === 0) return;
-
-  // Pour chaque zone surchargée, on prend la zone vide la plus proche disponible
-  // et on lui assigne le 2e attaquant (secondaire). Une zone vide "consommée"
-  // n'est pas réutilisée → on évite que plusieurs défenseurs convergent vers
-  // le même attaquant.
-  const consumedEmpty = new Set<string>();
-
-  // Tri des surchargées par "criticité" : celles près du panier d'abord (plus
-  // dangereuses), pour qu'elles aient priorité sur l'aide.
-  const sortedOverloaded = [...overloaded].sort((a, b) => {
-    const za = layout.find((z) => z.id === a)!;
-    const zb = layout.find((z) => z.id === b)!;
-    return distance(za.homePos, hoop) - distance(zb.homePos, hoop);
-  });
-
-  for (const overZoneId of sortedOverloaded) {
-    const overZone = layout.find((z) => z.id === overZoneId)!;
-
-    // Trouve la zone vide la plus proche encore disponible
-    let closestEmptyId: string | null = null;
-    let closestDist = Infinity;
-    for (const emptyId of empty) {
-      if (consumedEmpty.has(emptyId)) continue;
-      const emptyZone = layout.find((z) => z.id === emptyId)!;
-      const d = distance(emptyZone.homePos, overZone.homePos);
-      if (d < closestDist) {
-        closestDist = d;
-        closestEmptyId = emptyId;
-      }
-    }
-    if (!closestEmptyId) continue;
-    consumedEmpty.add(closestEmptyId);
-
-    // Trouve l'attaquant secondaire (différent du primary tracked)
-    const overAttackers = zoneAttackers.get(overZoneId) || [];
-    if (overAttackers.length < 2) continue;
-    const primary = targets[overZone.assignedTo].trackedAttacker;
-    const secondary = overAttackers.find((a) => a !== primary);
-    if (!secondary) continue;
-
-    // Place le défenseur de la zone vide entre le secondaire et le panier
-    const emptyZone = layout.find((z) => z.id === closestEmptyId)!;
-    const emptyDef = emptyZone.assignedTo;
-    const shiftTarget = manTarget(off[secondary], 50, hoop);
-    if (shiftTarget) {
-      targets[emptyDef] = {
-        x: Math.round(shiftTarget.x),
-        y: Math.round(shiftTarget.y),
-        zoneId: closestEmptyId,
-        isRotating: true,
-        trackedAttacker: secondary,
-      };
-    }
-  }
 }

@@ -1,6 +1,53 @@
-import type { Point, DefenderRule, DetectedTriggers, AttackerPositions, AttackerId } from '../types';
+import type {
+  Point,
+  DefenderRule,
+  DetectedTriggers,
+  AttackerPositions,
+  AttackerId,
+  OffensiveProfile,
+} from '../types';
 import { HOOP } from '../data/court';
 import { distance } from './geometry';
+
+/**
+ * Coefficient appliqué au helpFactor selon le profil de l'attaquant que le
+ * défenseur QUITTE pour aider. Quitter un shooter pour aider en raquette =
+ * cher (skip 3pts ouvert) → on réduit l'aide. Quitter un non-shooter = quasi
+ * gratuit → on autorise même un sag plus marqué.
+ *
+ * Volontairement bornés [0.5, 1.3] : ce coefficient module mais ne supprime
+ * jamais l'aide, ni ne la double — sinon le coach perdrait la prévisibilité.
+ */
+export function leaveAttackerCostMultiplier(profile?: OffensiveProfile): number {
+  switch (profile) {
+    case 'shooter':     return 0.55;
+    case 'stretch-big': return 0.65;
+    case 'creator':     return 0.85;
+    case 'slasher':     return 0.85;
+    case 'rim-roller':  return 0.95;
+    case 'non-shooter': return 1.30;
+    default:            return 1.0;
+  }
+}
+
+/**
+ * Boost de vitesse du défenseur lors d'un closeout selon le profil du porteur.
+ * On accélère plus fort sur un shooter / stretch-big (le 3pts est imminent),
+ * normalement sur un creator/slasher, et on relâche un peu sur un non-shooter
+ * (autant ne pas se faire déborder en sur-réagissant). Multiplie le
+ * `closeoutBoost` global existant.
+ */
+export function closeoutProfileBonus(profile?: OffensiveProfile): number {
+  switch (profile) {
+    case 'shooter':     return 1.15;
+    case 'stretch-big': return 1.10;
+    case 'creator':     return 1.0;
+    case 'slasher':     return 1.0;
+    case 'rim-roller':  return 0.95;
+    case 'non-shooter': return 0.85;
+    default:            return 1.0;
+  }
+}
 
 export interface HelpResult {
   target: Point;
@@ -27,7 +74,11 @@ export function computeHelpTarget(
   hoop: Point = HOOP,
   /** Intensité max du strong-side denial automatique. 0 = désactivé.
    *  Default 0.45 = comportement v1. */
-  denyAggressiveness: number = 0.45
+  denyAggressiveness: number = 0.45,
+  /** Coût de quitter l'attaquant marqué pour aider. 1.0 = neutre, <1 réduit
+   *  l'aide (ne pas quitter un shooter), >1 augmente (sag franc sur un
+   *  non-shooter). Calculé en amont via leaveAttackerCostMultiplier(profile). */
+  leaveMultiplier: number = 1
 ): HelpResult {
   // helpMode 'disabled' : court-circuit, le défenseur n'aide jamais
   // (ni triggers, ni sag baseline, ni denial)
@@ -38,7 +89,7 @@ export function computeHelpTarget(
 
   if (!triggers.any || rule.helpPct === 0) {
     if (rule.helpPct > 0 && ballSide !== 0 && myAttSide !== 0 && myAttSide !== ballSide) {
-      const sagFactor = (rule.helpPct / 100) * 0.5;
+      const sagFactor = (rule.helpPct / 100) * 0.5 * leaveMultiplier;
       const sign = hoop.y > 540 ? -1 : 1; // sens panier→milieu (sag pousse vers le milieu)
       const aim = {
         x: (manPos.x + hoop.x) / 2 + (carrierPos.x - hoop.x) * 0.2,
@@ -101,7 +152,7 @@ export function computeHelpTarget(
     sideFactor *= 0.5;
   }
 
-  const helpFactor = (rule.helpPct / 100) * sideFactor;
+  const helpFactor = (rule.helpPct / 100) * sideFactor * leaveMultiplier;
 
   let aim: Point;
   switch (rule.priority) {

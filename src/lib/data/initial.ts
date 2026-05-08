@@ -92,5 +92,14 @@ export function makeInitialState(): AppState {
     closeoutBoost: 1.4,
     denyAggressiveness: 0.45,
     attackerHands: { O1: 'right', O2: 'right', O3: 'right', O4: 'right', O5: 'right' },
+    // Profils offensifs par défaut : 1-2-2 classique avec un meneur, deux ailiers
+    // shooters, un 4 stretch et un 5 rouleur. Le coach ajuste via clic-droit.
+    attackerProfiles: {
+      O1: 'creator',
+      O2: 'shooter',
+      O3: 'shooter',
+      O4: 'rim-roller',
+      O5: 'stretch-big',
+    },
   };
 }

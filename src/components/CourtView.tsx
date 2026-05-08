@@ -49,6 +49,7 @@ interface CourtViewProps {
   onSetForcedScreener: (oId: AttackerId | null) => void;
   onClearAnnotationsFor: (oId: AttackerId) => void;
   onSetAttackerHand: (oId: AttackerId, hand: 'right' | 'left') => void;
+  onSetAttackerProfile: (oId: AttackerId, profile: import('@/lib/types').OffensiveProfile) => void;
   onSetZoneOverride: (regionId: string, override: Partial<import('@/lib/types').ZoneRegionOverride>) => void;
   onClearZoneOverride: (regionId: string) => void;
   onDeleteAnnotation: (idx: number) => void;
@@ -394,7 +395,13 @@ export function CourtView(props: CourtViewProps) {
 
   const frame = playFrame ?? scrubFrame ?? staticFrame;
   const threatData = state.showThreats
-    ? computeAttackerThreats(frame.off, frame.defPos, state.steps[frame.stepIdx]?.ballCarrier ?? frame.carrier)
+    ? computeAttackerThreats(
+        frame.off,
+        frame.defPos,
+        state.steps[frame.stepIdx]?.ballCarrier ?? frame.carrier,
+        undefined,
+        state.attackerProfiles
+      )
     : null;
 
   // Pointer events
@@ -634,14 +641,9 @@ export function CourtView(props: CourtViewProps) {
           show={!!state.showHeatmap}
         />
         <HelpLines off={frame.off} defPos={frame.defPos} defenseDistance={state.defenseDistance} show={state.showHelpLines} />
+        {/* Anneaux de menace — rendus AVANT les sprites pour que les icônes
+            joueur passent par-dessus l'anneau (visuel plus propre). */}
         {threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="rings" />}
-        {state.showBestAction && (() => {
-          const carrier = state.steps[frame.stepIdx]?.ballCarrier ?? 'O1';
-          const actions = evaluateOffensiveOptions(frame.off, frame.defPos, carrier);
-          const best = bestOffensiveAction(actions);
-          if (!best) return null;
-          return <BestActionOverlay off={frame.off} carrier={carrier} best={best} show />;
-        })()}
         {state.showGhosts && state.activeStep > 0 && !props.isPlaying && props.scrubT == null && (
           <GhostLayer state={state} stepIdx={state.activeStep - 1} />
         )}
@@ -703,6 +705,16 @@ export function CourtView(props: CourtViewProps) {
             );
           })()}
         </g>
+        {/* Badges % de menace + flèche meilleure action — rendus APRÈS les
+            joueurs pour passer AU-DESSUS des icônes (~17px de rayon). */}
+        {threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="badges" />}
+        {state.showBestAction && (() => {
+          const carrier = state.steps[frame.stepIdx]?.ballCarrier ?? 'O1';
+          const actions = evaluateOffensiveOptions(frame.off, frame.defPos, carrier, undefined, state.attackerProfiles);
+          const best = bestOffensiveAction(actions);
+          if (!best) return null;
+          return <BestActionOverlay off={frame.off} carrier={carrier} best={best} show />;
+        })()}
         <g>
           {state.steps[frame.stepIdx]?.annotations.map((a, i) => (
             <g key={i} data-annotation-idx={i} style={{ cursor: 'context-menu' }}>
@@ -802,6 +814,7 @@ export function CourtView(props: CourtViewProps) {
             isForcedScreener={cur?.forcedScreener === oId}
             hasAnnotations={(cur?.annotations ?? []).some((a) => a.fromId === oId)}
             dominantHand={state.attackerHands?.[oId] ?? 'right'}
+            offensiveProfile={state.attackerProfiles?.[oId] ?? 'creator'}
             tool={state.tool}
             onSetTool={props.onSetTool}
             onMakeCarrier={() => props.onSetBallCarrier(oId)}
@@ -809,6 +822,7 @@ export function CourtView(props: CourtViewProps) {
             onClearForcedScreener={() => props.onSetForcedScreener(null)}
             onClearAnnotations={() => props.onClearAnnotationsFor(oId)}
             onSetDominantHand={(h) => props.onSetAttackerHand(oId, h)}
+            onSetOffensiveProfile={(p) => props.onSetAttackerProfile(oId, p)}
             onClose={() => setCtxMenu(null)}
           />
         );
