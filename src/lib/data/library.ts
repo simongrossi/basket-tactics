@@ -1,0 +1,275 @@
+import type { AppState, Step, DefenderPositions, ZoneConfig, ScreenRule, OffBallScreenRule, DefenderRules, AttackerHands, AttackerProfiles, DefenseSystem, DropDepth } from '../types';
+
+/**
+ * Bibliothèque utilisateur — gestion locale de systèmes sauvegardés
+ * dans des dossiers personnels (U13, U15, attaque zone, fin de match…).
+ *
+ * Persistée dans localStorage à la clé LIBRARY_STORAGE_KEY. Indépendante
+ * du AppState courant (basket-tactics-state-v1) — un système chargé
+ * est copié dans AppState au moment du clic, mais la bibliothèque
+ * survit indépendamment.
+ */
+
+const LIBRARY_STORAGE_KEY = 'basket-tactics-library-v1';
+
+/** Snapshot complet d'un système : tactique + défense + profils. */
+export interface SavedSystem {
+  id: string;
+  name: string;
+  description?: string;
+  /** Champs tactiques sauvegardés depuis AppState. */
+  steps: Step[];
+  defenseInitial: DefenderPositions;
+  rules: DefenderRules;
+  attackerHands?: AttackerHands;
+  attackerProfiles?: AttackerProfiles;
+  defenseSystem: DefenseSystem;
+  zoneConfig: ZoneConfig;
+  screenRule: ScreenRule;
+  dropDepth: DropDepth;
+  offBallScreenRule: OffBallScreenRule;
+  defenseDistance: number;
+  defenseMaxSpeed: number;
+  triggers: AppState['triggers'];
+  closeoutBoost?: number;
+  denyAggressiveness?: number;
+  /** Timestamps Unix ms. */
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Dossier personnel contenant des systèmes. */
+export interface SavedFolder {
+  id: string;
+  name: string;
+  systems: SavedSystem[];
+  createdAt: number;
+}
+
+export interface UserLibrary {
+  folders: SavedFolder[];
+  /** Version du schéma — sert pour migrations futures. */
+  version: 1;
+}
+
+function uid(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Charge la bibliothèque depuis localStorage. Retourne une bibliothèque
+ *  vide (avec un dossier "Mes systèmes" par défaut) si absente. */
+export function loadLibrary(): UserLibrary {
+  if (typeof window === 'undefined') return defaultLibrary();
+  try {
+    const raw = window.localStorage.getItem(LIBRARY_STORAGE_KEY);
+    if (!raw) return defaultLibrary();
+    const parsed = JSON.parse(raw) as UserLibrary;
+    if (!parsed.folders || !Array.isArray(parsed.folders)) return defaultLibrary();
+    return parsed;
+  } catch {
+    return defaultLibrary();
+  }
+}
+
+export function saveLibrary(lib: UserLibrary): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(lib));
+  } catch {
+    /* quota exceeded — ignore silently */
+  }
+}
+
+function defaultLibrary(): UserLibrary {
+  return {
+    version: 1,
+    folders: [
+      {
+        id: uid('folder'),
+        name: 'Mes systèmes',
+        systems: [],
+        createdAt: Date.now(),
+      },
+    ],
+  };
+}
+
+/** Capture l'état tactique courant en SavedSystem. UI state non sauvé. */
+export function snapshotFromAppState(
+  state: AppState,
+  name: string,
+  description?: string
+): SavedSystem {
+  const now = Date.now();
+  return {
+    id: uid('sys'),
+    name,
+    description,
+    steps: structuredClone(state.steps),
+    defenseInitial: structuredClone(state.defenseInitial),
+    rules: structuredClone(state.rules),
+    attackerHands: state.attackerHands ? structuredClone(state.attackerHands) : undefined,
+    attackerProfiles: state.attackerProfiles ? structuredClone(state.attackerProfiles) : undefined,
+    defenseSystem: state.defenseSystem,
+    zoneConfig: structuredClone(state.zoneConfig),
+    screenRule: state.screenRule,
+    dropDepth: state.dropDepth,
+    offBallScreenRule: state.offBallScreenRule,
+    defenseDistance: state.defenseDistance,
+    defenseMaxSpeed: state.defenseMaxSpeed,
+    triggers: { ...state.triggers },
+    closeoutBoost: state.closeoutBoost,
+    denyAggressiveness: state.denyAggressiveness,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/** Applique un système sauvegardé sur un AppState (preserve activeStep + UI). */
+export function applySavedSystem(state: AppState, sys: SavedSystem): AppState {
+  return {
+    ...state,
+    steps: structuredClone(sys.steps),
+    activeStep: 0,
+    defenseInitial: structuredClone(sys.defenseInitial),
+    rules: structuredClone(sys.rules),
+    attackerHands: sys.attackerHands ? structuredClone(sys.attackerHands) : state.attackerHands,
+    attackerProfiles: sys.attackerProfiles ? structuredClone(sys.attackerProfiles) : state.attackerProfiles,
+    defenseSystem: sys.defenseSystem,
+    zoneConfig: structuredClone(sys.zoneConfig),
+    screenRule: sys.screenRule,
+    dropDepth: sys.dropDepth,
+    offBallScreenRule: sys.offBallScreenRule,
+    defenseDistance: sys.defenseDistance,
+    defenseMaxSpeed: sys.defenseMaxSpeed,
+    triggers: { ...sys.triggers },
+    closeoutBoost: sys.closeoutBoost ?? state.closeoutBoost,
+    denyAggressiveness: sys.denyAggressiveness ?? state.denyAggressiveness,
+  };
+}
+
+// ============================================================
+// CRUD pures (modifient une UserLibrary, retournent une nouvelle copie)
+// ============================================================
+
+export function addSystemToFolder(
+  lib: UserLibrary,
+  folderId: string,
+  sys: SavedSystem
+): UserLibrary {
+  return {
+    ...lib,
+    folders: lib.folders.map((f) =>
+      f.id === folderId ? { ...f, systems: [...f.systems, sys] } : f
+    ),
+  };
+}
+
+export function deleteSystem(lib: UserLibrary, systemId: string): UserLibrary {
+  return {
+    ...lib,
+    folders: lib.folders.map((f) => ({
+      ...f,
+      systems: f.systems.filter((s) => s.id !== systemId),
+    })),
+  };
+}
+
+export function renameSystem(
+  lib: UserLibrary,
+  systemId: string,
+  newName: string
+): UserLibrary {
+  return {
+    ...lib,
+    folders: lib.folders.map((f) => ({
+      ...f,
+      systems: f.systems.map((s) =>
+        s.id === systemId ? { ...s, name: newName, updatedAt: Date.now() } : s
+      ),
+    })),
+  };
+}
+
+export function moveSystem(
+  lib: UserLibrary,
+  systemId: string,
+  targetFolderId: string
+): UserLibrary {
+  let movedSystem: SavedSystem | null = null;
+  const folders = lib.folders.map((f) => {
+    const idx = f.systems.findIndex((s) => s.id === systemId);
+    if (idx >= 0) {
+      movedSystem = f.systems[idx];
+      return { ...f, systems: f.systems.filter((s) => s.id !== systemId) };
+    }
+    return f;
+  });
+  if (!movedSystem) return lib;
+  const sys: SavedSystem = movedSystem;
+  return {
+    ...lib,
+    folders: folders.map((f) =>
+      f.id === targetFolderId ? { ...f, systems: [...f.systems, sys] } : f
+    ),
+  };
+}
+
+export function createFolder(lib: UserLibrary, name: string): UserLibrary {
+  return {
+    ...lib,
+    folders: [
+      ...lib.folders,
+      { id: uid('folder'), name, systems: [], createdAt: Date.now() },
+    ],
+  };
+}
+
+export function renameFolder(
+  lib: UserLibrary,
+  folderId: string,
+  newName: string
+): UserLibrary {
+  return {
+    ...lib,
+    folders: lib.folders.map((f) => (f.id === folderId ? { ...f, name: newName } : f)),
+  };
+}
+
+export function deleteFolder(lib: UserLibrary, folderId: string): UserLibrary {
+  // Refuse de supprimer le dernier dossier — toujours en garder au moins 1.
+  if (lib.folders.length <= 1) return lib;
+  return { ...lib, folders: lib.folders.filter((f) => f.id !== folderId) };
+}
+
+// ============================================================
+// Import / Export d'un dossier au format JSON
+// ============================================================
+
+/** Sérialise un dossier (avec ses systèmes) en JSON pour partage. */
+export function exportFolderJSON(folder: SavedFolder): string {
+  return JSON.stringify({ folder, exportedAt: Date.now(), version: 1 }, null, 2);
+}
+
+/** Parse un JSON exporté et l'ajoute comme nouveau dossier. Tolère les
+ *  IDs dupliqués en re-générant les ids du dossier et de ses systèmes. */
+export function importFolderJSON(lib: UserLibrary, json: string): UserLibrary {
+  const data = JSON.parse(json) as { folder?: SavedFolder };
+  if (!data.folder || !data.folder.systems) {
+    throw new Error('JSON invalide : champ folder manquant');
+  }
+  const imported: SavedFolder = {
+    id: uid('folder'),
+    name: data.folder.name + ' (importé)',
+    createdAt: Date.now(),
+    systems: data.folder.systems.map((s) => ({
+      ...s,
+      id: uid('sys'),
+      createdAt: s.createdAt ?? Date.now(),
+      updatedAt: Date.now(),
+    })),
+  };
+  return { ...lib, folders: [...lib.folders, imported] };
+}
+
+export const __libraryStorageKey = LIBRARY_STORAGE_KEY;

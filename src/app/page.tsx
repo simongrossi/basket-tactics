@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useAppState } from '@/hooks/useAppState';
+import { useLibrary } from '@/hooks/useLibrary';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { OffensePanel } from '@/components/OffensePanel';
 import { DefensePanel } from '@/components/DefensePanel';
@@ -21,6 +22,7 @@ import type { AppState } from '@/lib/types';
 
 export default function Page() {
   const app = useAppState();
+  const lib = useLibrary();
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [playbackT, setPlaybackT] = useState<number | null>(null);
@@ -142,7 +144,23 @@ export default function Page() {
               tool={app.state.tool}
               onSetTool={app.setTool}
             />
-            <LibraryPanel state={app.state} onLoadTemplate={app.loadTemplate} />
+            <LibraryPanel
+              state={app.state}
+              library={lib.library}
+              onLoadTemplate={app.loadTemplate}
+              onLoadSavedSystem={(sys) => app.importState(lib.loadSystem(app.state, sys))}
+              onSaveSystem={(folderId, name, description) =>
+                lib.saveSystem(app.state, folderId, name, description)
+              }
+              onRenameSystem={lib.renameSystem}
+              onDeleteSystem={lib.deleteSystem}
+              onMoveSystem={lib.moveSystem}
+              onCreateFolder={lib.createFolder}
+              onRenameFolder={lib.renameFolder}
+              onDeleteFolder={lib.deleteFolder}
+              onExportFolder={lib.exportFolder}
+              onImportFolder={lib.importFolder}
+            />
             <ActionsPanel
               presentMode={presentMode}
               onTogglePresentMode={() => setPresentMode((p) => !p)}

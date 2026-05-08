@@ -29,6 +29,10 @@ C'est le seul point d'entrée appelé par le rendu. Tout le reste est interne.
 | `offense.ts` | **Phase B simulation** : EV des actions offensives + meilleure action. |
 | `simulator.ts` | **Phase C simulation** : Monte Carlo de possessions (PPP, eFG%). |
 | `coachDiagnostics.ts` | Phrases coach automatiques (closeout long, low man tag, corner abandonné…) — vocabulaire métier basé sur l'état défensif. |
+| `screenAction.ts` | **P0** — Détection du type d'action sur écran porteur (roll/pop/slip/short-roll/ghost/reject/snake/re-screen). |
+| `pnrRotations.ts` | **P1** — Calcule les rotations PnR : low-man tag du roller, X-out, nail stunt. Override la cible des défenseurs concernés et tag `pnrRole`. |
+| `zoneSituations.ts` | **P3** — Détection des situations zone (overload, short corner, high post, skip pass) qui modulent le moteur ownership. |
+| `tacticalReads.ts` | **P5** — Lectures offensives auto : map la couverture défense → opportunité offensive en vocabulaire coach. |
 
 ## Pipeline de calcul
 

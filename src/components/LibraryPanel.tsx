@@ -3,23 +3,38 @@
 import { useState } from 'react';
 import type { AppState } from '@/lib/types';
 import { TEMPLATES, type Template } from '@/lib/data/templates';
+import type { UserLibrary, SavedSystem } from '@/lib/data/library';
 import { Panel, COLORS } from './ui';
-import { TemplateLibraryModal } from './TemplateLibraryModal';
+import { LibraryModal } from './LibraryModal';
 
 interface LibraryPanelProps {
   state: AppState;
+  library: UserLibrary;
   onLoadTemplate: (template: Template) => void;
+  onLoadSavedSystem: (sys: SavedSystem) => void;
+  onSaveSystem: (folderId: string, name: string, description?: string) => void;
+  onRenameSystem: (systemId: string, newName: string) => void;
+  onDeleteSystem: (systemId: string) => void;
+  onMoveSystem: (systemId: string, targetFolderId: string) => void;
+  onCreateFolder: (name: string) => void;
+  onRenameFolder: (folderId: string, newName: string) => void;
+  onDeleteFolder: (folderId: string) => void;
+  onExportFolder: (folderId: string) => string | null;
+  onImportFolder: (json: string) => void;
 }
 
 /**
- * Bloc dédié à la bibliothèque de systèmes : un seul bouton qui ouvre la
- * modal complète. Sorti d'OffensePanel pour être un panneau autonome
- * dans la colonne gauche, entre "Attaque" et "Actions".
+ * Bloc dédié à la bibliothèque : un bouton qui ouvre la modal complète,
+ * + un raccourci "sauvegarder l'état courant" si l'utilisateur a un
+ * dossier personnel disponible.
  */
-export function LibraryPanel({ state, onLoadTemplate }: LibraryPanelProps) {
+export function LibraryPanel(props: LibraryPanelProps) {
   const c = COLORS.offense;
   const [open, setOpen] = useState(false);
+  const { state, library } = props;
   const hasWork = state.steps.length > 1 || state.steps[0].annotations.length > 0;
+  const userSystemCount = library.folders.reduce((sum, f) => sum + f.systems.length, 0);
+  const totalCount = TEMPLATES.length + userSystemCount;
 
   return (
     <Panel theme="offense" title="📚 Bibliothèque">
@@ -41,21 +56,28 @@ export function LibraryPanel({ state, onLoadTemplate }: LibraryPanelProps) {
           color: c.accentText,
           transition: 'background 120ms, border-color 120ms',
         }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = c.bgSubtle;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = c.bg;
-        }}
-        title="Ouvrir la bibliothèque de systèmes prêts à l'emploi"
+        onMouseEnter={(e) => { e.currentTarget.style.background = c.bgSubtle; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = c.bg; }}
+        title={`${TEMPLATES.length} systèmes classiques + ${userSystemCount} sauvegardés`}
       >
-        <span>📚 {TEMPLATES.length} systèmes prêts</span>
+        <span>📚 {totalCount} systèmes ({TEMPLATES.length} classiques + {userSystemCount} mes systèmes)</span>
         <span style={{ fontSize: 10, color: c.accent, opacity: 0.7 }}>ouvrir →</span>
       </button>
       {open && (
-        <TemplateLibraryModal
+        <LibraryModal
           hasWorkInProgress={hasWork}
-          onLoad={onLoadTemplate}
+          library={library}
+          onLoadTemplate={props.onLoadTemplate}
+          onLoadSavedSystem={props.onLoadSavedSystem}
+          onSaveCurrent={props.onSaveSystem}
+          onRenameSystem={props.onRenameSystem}
+          onDeleteSystem={props.onDeleteSystem}
+          onMoveSystem={props.onMoveSystem}
+          onCreateFolder={props.onCreateFolder}
+          onRenameFolder={props.onRenameFolder}
+          onDeleteFolder={props.onDeleteFolder}
+          onExportFolder={props.onExportFolder}
+          onImportFolder={props.onImportFolder}
           onClose={() => setOpen(false)}
         />
       )}

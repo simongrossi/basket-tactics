@@ -468,6 +468,63 @@ const FLOPPY: Template = {
 };
 
 // ============================================================
+// HAMMER (backscreen baseline pour 3pts corner faible sur drive)
+// ============================================================
+const hammerSetup: AttackerPositions = {
+  O1: { x: 480, y: 380 },  // porteur côté droit
+  O2: { x: 130, y: 380 },  // ailier côté faible
+  O3: { x: 130, y: 100 },  // shooter dans le coin gauche faible
+  O4: { x: 380, y: 200 },  // intérieur côté ballon
+  O5: { x: 220, y: 165 },  // intérieur côté faible (futur screener)
+};
+const hammerDrive: AttackerPositions = {
+  ...hammerSetup,
+  O1: { x: 420, y: 240 },  // O1 drive baseline-middle
+};
+const hammerScreen: AttackerPositions = {
+  ...hammerDrive,
+  O5: { x: 165, y: 110 },  // O5 descend backscreen sur D3
+};
+const hammerCatch: AttackerPositions = {
+  ...hammerScreen,
+  O3: { x: 120, y: 130 },  // O3 lift slightly pour catch
+};
+const HAMMER: Template = {
+  id: 'hammer',
+  name: 'Hammer',
+  description: "Drive baseline d'O1, O5 vient poser un backscreen baseline sur le défenseur de O3 → skip pass corner faible pour tir 3.",
+  defenseInitial: defaultDef(hammerSetup),
+  steps: [
+    { label: 'Setup', off: hammerSetup, ballCarrier: 'O1', annotations: [] },
+    {
+      label: 'O1 drive baseline',
+      off: hammerDrive,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'dribble', fromId: 'O1', toId: null, from: hammerSetup.O1, to: hammerDrive.O1 } as Annotation,
+      ],
+    },
+    {
+      label: 'O5 backscreen sur D3',
+      off: hammerScreen,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'cut', fromId: 'O5', toId: null, from: hammerSetup.O5, to: hammerScreen.O5 } as Annotation,
+        { type: 'screen', fromId: 'O5', toId: null, from: hammerScreen.O5, to: { x: hammerScreen.O5.x - 18, y: hammerScreen.O5.y } } as Annotation,
+      ],
+    },
+    {
+      label: 'Skip → O3 corner pour tir 3',
+      off: hammerCatch,
+      ballCarrier: 'O3',
+      annotations: [
+        { type: 'pass', fromId: 'O1', toId: 'O3', from: hammerDrive.O1, to: hammerCatch.O3 } as Annotation,
+      ],
+    },
+  ],
+};
+
+// ============================================================
 // EXPORT
 // ============================================================
 export const TEMPLATES: Template[] = [
@@ -477,6 +534,7 @@ export const TEMPLATES: Template[] = [
   SPAIN_PNR,
   UCLA_CUT,
   FLOPPY,
+  HAMMER,
 ];
 
 export function findTemplate(id: string): Template | undefined {
