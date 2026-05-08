@@ -2,11 +2,16 @@
 
 import type { DefensiveMetrics } from '@/lib/logic/metrics';
 import type { OffensiveAction } from '@/lib/logic/offense';
+import type { DetectedScreenAction } from '@/lib/logic/screenAction';
+import { screenActionLabel } from '@/lib/logic/screenAction';
 
 interface MetricsBarProps {
   metrics: DefensiveMetrics;
   /** Meilleure action offensive (Phase B). Affichée comme pill à droite. */
   bestAction?: OffensiveAction | null;
+  /** Action PnR détectée à l'étape courante (P0). Pill informative entre
+   *  les métriques et la meilleure action. */
+  screenAction?: DetectedScreenAction | null;
 }
 
 const ACTION_LABELS: Record<OffensiveAction['type'], string> = {
@@ -15,7 +20,7 @@ const ACTION_LABELS: Record<OffensiveAction['type'], string> = {
   'pass-shoot': 'passe',
 };
 
-export function MetricsBar({ metrics, bestAction }: MetricsBarProps) {
+export function MetricsBar({ metrics, bestAction, screenAction }: MetricsBarProps) {
   return (
     <div
       style={{
@@ -72,6 +77,18 @@ export function MetricsBar({ metrics, bestAction }: MetricsBarProps) {
         }
         title={`Depuis le porteur : ${metrics.openPasses} ouvertes · ${metrics.contestedPasses} contestées · ${metrics.blockedPasses} bloquées`}
       />
+      {screenAction && (
+        <Pill
+          label="action PnR"
+          value={screenActionLabel(screenAction.kind)}
+          tone={
+            screenAction.kind === 'reject' || screenAction.kind === 'snake' ? 'warn' :
+            screenAction.kind === 're-screen' ? 'neutral' :
+            screenAction.confidence >= 0.7 ? 'good' : 'neutral'
+          }
+          title={`${screenAction.reason} · confiance ${Math.round(screenAction.confidence * 100)}%`}
+        />
+      )}
       {bestAction && (
         <Pill
           label="meilleure action"

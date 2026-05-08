@@ -21,6 +21,7 @@ import {
   applySwitchOffBall,
 } from './screens';
 import { computeZoneTargets } from './zoneDefense';
+import { detectScreenAction, type DetectedScreenAction } from './screenAction';
 import {
   ballSide,
   distance,
@@ -280,6 +281,51 @@ function extractPositions(
     D4: { x: positions.D4.x, y: positions.D4.y },
     D5: { x: positions.D5.x, y: positions.D5.y },
   };
+}
+
+/**
+ * Détecte l'écran porteur ET le type d'action (roll/pop/slip/short-roll/ghost/
+ * reject/snake/re-screen) pour une étape donnée. Retourne null si aucun écran
+ * n'est détecté à cette étape.
+ *
+ * Glue qui rassemble : matchups courants, positions défensives précédentes
+ * (pour `detectScreen`), écran de l'étape précédente (pour `re-screen`), et
+ * positions attaquantes des deux étapes précédentes (pour `snake`).
+ */
+export function detectStepScreenAction(
+  state: AppState,
+  stepIdx: number
+): { screen: import('../types').DetectedScreen; action: DetectedScreenAction } | null {
+  if (state.defenseSystem !== 'man') return null;
+  const cur = state.steps[stepIdx];
+  if (!cur) return null;
+  const matchups = getMatchupsAt(state.steps, stepIdx - 1);
+  const prevDef =
+    stepIdx === 0
+      ? structuredClone(state.defenseInitial)
+      : extractPositions(computeDefenseTargets(state, stepIdx - 1, false).positions);
+  const screen = detectScreen(
+    cur.off, cur.ballCarrier, matchups, prevDef, state.screenRadius, cur.forcedScreener
+  );
+  if (!screen) return null;
+  const prevOff = stepIdx > 0 ? state.steps[stepIdx - 1].off : null;
+  const prevPrevOff = stepIdx > 1 ? state.steps[stepIdx - 2].off : null;
+  let prevScreen: import('../types').DetectedScreen | null = null;
+  if (stepIdx > 0) {
+    const prevStep = state.steps[stepIdx - 1];
+    const prevMatchups = getMatchupsAt(state.steps, stepIdx - 2);
+    const prevPrevDef =
+      stepIdx === 1
+        ? structuredClone(state.defenseInitial)
+        : extractPositions(computeDefenseTargets(state, stepIdx - 2, false).positions);
+    prevScreen = detectScreen(
+      prevStep.off, prevStep.ballCarrier, prevMatchups, prevPrevDef, state.screenRadius, prevStep.forcedScreener
+    );
+  }
+  const action = detectScreenAction(
+    cur.off, prevOff, screen, prevScreen, prevPrevOff, getDefenseHoop(state)
+  );
+  return { screen, action };
 }
 
 /**

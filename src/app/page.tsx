@@ -13,7 +13,7 @@ import { CourtView } from '@/components/CourtView';
 import { PlaybookView } from '@/components/PlaybookView';
 import { MetricsBar } from '@/components/MetricsBar';
 import { CoachDiagnostics } from '@/components/CoachDiagnostics';
-import { effectiveDefensePositions, getDefenseHoop } from '@/lib/logic/engine';
+import { effectiveDefensePositions, getDefenseHoop, detectStepScreenAction } from '@/lib/logic/engine';
 import { computeMetrics } from '@/lib/logic/metrics';
 import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offense';
 import { computeCoachDiagnostics } from '@/lib/logic/coachDiagnostics';
@@ -50,6 +50,11 @@ export default function Page() {
     () => computeCoachDiagnostics(app.state, app.state.activeStep),
     [app.state]
   );
+
+  const screenAction = useMemo(() => {
+    const detected = detectStepScreenAction(app.state, app.state.activeStep);
+    return detected?.action ?? null;
+  }, [app.state]);
 
   const handlePlayToggle = useCallback(() => {
     setIsPlaying((p) => !p);
@@ -193,7 +198,7 @@ export default function Page() {
             playbackSpeed={playbackSpeed}
             onSetPlaybackSpeed={setPlaybackSpeed}
           />
-          {metrics && <MetricsBar metrics={metrics} bestAction={bestAction} />}
+          {metrics && <MetricsBar metrics={metrics} bestAction={bestAction} screenAction={screenAction} />}
           <CoachDiagnostics diagnostics={coachDiagnostics} />
         </div>
 

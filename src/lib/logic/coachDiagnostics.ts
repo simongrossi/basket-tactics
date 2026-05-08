@@ -8,8 +8,17 @@ import type {
   Point,
 } from '../types';
 import { distance } from './geometry';
-import { effectiveDefensePositions, getDefenseHoop, getMatchupsAt } from './engine';
-import { detectScreen } from './screens';
+import {
+  effectiveDefensePositions,
+  getDefenseHoop,
+  detectStepScreenAction,
+} from './engine';
+import {
+  screenActionLabel,
+  actionRequiresLowManTag,
+  actionRequiresPopRecover,
+  actionBreaksCoverage,
+} from './screenAction';
 import { computeAttackerThreats } from './threats';
 
 /** Étiquette courte du profil pour insérer dans les phrases coach. */
@@ -156,60 +165,97 @@ export function computeCoachDiagnostics(
   });
 
   // --------------------------------------------------------------------------
-  // 3. Low-man tag manquant en pick-and-roll
-  //    Si écran sur porteur détecté, le poseur d'écran est candidat au "roll"
-  //    (mouvement vers le panier). Le low-man (défenseur back-side faible) doit
-  //    le tagger. Si aucun défenseur ≠ screenerDef ≠ carrierDef à <130px du
-  //    poseur ET côté faible, le tag est manquant.
+  // 3. Pick-and-roll : action détectée + diagnostic adapté
+  //    On utilise detectStepScreenAction qui retourne {screen, action} avec
+  //    action.kind ∈ {roll, pop, slip, short-roll, ghost, reject, snake, re-screen}.
+  //    Selon le type d'action, le diagnostic change :
+  //      - roll/short-roll/slip → low-man tag exigé
+  //      - pop/ghost            → recover du défenseur du screener (drop = ouvert)
+  //      - reject/snake         → couverture cassée (basculer la lecture)
+  //      - re-screen            → ne pas se déclasser, second écran à venir
   // --------------------------------------------------------------------------
-  if (state.defenseSystem === 'man' && stepIdx >= 0) {
-    const matchups = getMatchupsAt(state.steps, stepIdx - 1);
-    const prevDef = (() => {
-      const prev = {} as Record<DefenderId, Point>;
-      DEFENDER_IDS.forEach((d) => {
-        prev[d] = { x: defPos[d].x, y: defPos[d].y };
-      });
-      return prev;
-    })();
-    const screen = detectScreen(off, carrier, matchups, prevDef, state.screenRadius, cur.forcedScreener);
-    if (screen) {
+  const detected = detectStepScreenAction(state, stepIdx);
+  if (detected) {
+    const { screen, action } = detected;
+    const screenerLabel = withProfile(screen.screener, profiles?.[screen.screener]);
+    const carrierLabel = withProfile(screen.carrier, profiles?.[screen.carrier]);
+
+    if (actionRequiresLowManTag(action.kind)) {
+      // Low-man = défenseur le plus proche du poseur, hors carrierDef/screenerDef.
       const screenerPos = off[screen.screener];
-      // Le poseur "roule" si proche du panier (≤180px) ou plus proche que le porteur.
-      const screenerNearHoop = distance(screenerPos, hoop) < 180;
-      if (screenerNearHoop) {
-        // Trouve le défenseur le plus proche du poseur, hors carrierDef et screenerDef.
-        let lowMan: DefenderId | null = null;
-        let lowManDist = Infinity;
-        DEFENDER_IDS.forEach((dId) => {
-          if (dId === screen.carrierDef || dId === screen.screenerDef) return;
-          const d = defPos[dId];
-          const dd = distance({ x: d.x, y: d.y }, screenerPos);
-          if (dd < lowManDist) {
-            lowManDist = dd;
-            lowMan = dId;
-          }
-        });
-        const screenerLabel = withProfile(screen.screener, profiles?.[screen.screener]);
-        if (lowMan && lowManDist > 130) {
-          out.push({
-            id: `tag-missing-${lowMan}`,
-            severity: 'critical',
-            message: `Low man tag absent : ${lowMan} laisse ${screenerLabel} rouler vers le panier`,
-            tag: 'low-man-tag',
-            defenders: [lowMan],
-            attackers: [screen.screener],
-          });
-        } else if (lowMan && lowManDist > 90) {
-          out.push({
-            id: `tag-soft-${lowMan}`,
-            severity: 'warning',
-            message: `Tag mou : ${lowMan} pas assez agressif sur le roll de ${screenerLabel}`,
-            tag: 'low-man-tag-soft',
-            defenders: [lowMan],
-            attackers: [screen.screener],
-          });
+      let lowMan: DefenderId | null = null;
+      let lowManDist = Infinity;
+      DEFENDER_IDS.forEach((dId) => {
+        if (dId === screen.carrierDef || dId === screen.screenerDef) return;
+        const d = defPos[dId];
+        const dd = distance({ x: d.x, y: d.y }, screenerPos);
+        if (dd < lowManDist) {
+          lowManDist = dd;
+          lowMan = dId;
         }
+      });
+      if (lowMan && lowManDist > 130) {
+        out.push({
+          id: `tag-missing-${lowMan}`,
+          severity: 'critical',
+          message: `${screenActionLabel(action.kind)} de ${screenerLabel} : ${lowMan} doit tagger — actuellement à ${Math.round(lowManDist)}px`,
+          tag: 'low-man-tag',
+          defenders: [lowMan],
+          attackers: [screen.screener],
+        });
+      } else if (lowMan && lowManDist > 90) {
+        out.push({
+          id: `tag-soft-${lowMan}`,
+          severity: 'warning',
+          message: `Tag mou de ${lowMan} sur le ${screenActionLabel(action.kind)} de ${screenerLabel}`,
+          tag: 'low-man-tag-soft',
+          defenders: [lowMan],
+          attackers: [screen.screener],
+        });
       }
+    }
+
+    if (actionRequiresPopRecover(action.kind)) {
+      const screenerPos = off[screen.screener];
+      const sDef = defPos[screen.screenerDef];
+      const distScreenerToDef = distance({ x: sDef.x, y: sDef.y }, screenerPos);
+      // Pop ou ghost : le défenseur du screener doit être à distance de contest
+      // (≤80px ≈ closeout). Au-delà, le 3pts est ouvert.
+      const isShooter = isOutsideThreat(profiles?.[screen.screener]);
+      if (distScreenerToDef > 80) {
+        out.push({
+          id: `pop-recover-${screen.screenerDef}`,
+          severity: isShooter ? 'critical' : 'warning',
+          message: isShooter
+            ? `${screenActionLabel(action.kind)} de ${screenerLabel} — ${screen.screenerDef} à ${Math.round(distScreenerToDef)}px, tir 3 ouvert`
+            : `${screenActionLabel(action.kind)} de ${screenerLabel} — ${screen.screenerDef} doit recover plus vite`,
+          tag: 'pop-recover-late',
+          defenders: [screen.screenerDef],
+          attackers: [screen.screener],
+        });
+      }
+    }
+
+    if (actionBreaksCoverage(action.kind)) {
+      out.push({
+        id: `coverage-broken-${action.kind}`,
+        severity: 'warning',
+        message: `${screenActionLabel(action.kind)} de ${carrierLabel} — couverture initiale cassée, défense à relire`,
+        tag: 'coverage-broken',
+        defenders: [screen.carrierDef, screen.screenerDef],
+        attackers: [screen.carrier, screen.screener],
+      });
+    }
+
+    if (action.kind === 're-screen') {
+      out.push({
+        id: 're-screen',
+        severity: 'info',
+        message: `${screenerLabel} repose un écran sur ${carrierLabel} — ne pas relâcher la couverture`,
+        tag: 're-screen',
+        defenders: [screen.carrierDef, screen.screenerDef],
+        attackers: [screen.carrier, screen.screener],
+      });
     }
   }
 
