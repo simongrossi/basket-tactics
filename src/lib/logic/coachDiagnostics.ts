@@ -27,6 +27,7 @@ import {
   detectSkipPass,
 } from './zoneSituations';
 import { detectOffBallScreens } from './screens';
+import { computeTacticalReads } from './tacticalReads';
 
 /** Étiquette courte du profil pour insérer dans les phrases coach. */
 function profileTag(profile?: OffensiveProfile): string {
@@ -648,7 +649,15 @@ export function computeCoachDiagnostics(
   }
 
   // --------------------------------------------------------------------------
-  // 7. Bonne couverture si rien à signaler — feedback positif explicite
+  // 7. Lectures offensives auto (P5) — opportunités à exploiter selon la
+  //    couverture détectée. Préfixées "→" et tag "read-*" pour distinction
+  //    visuelle. Concaténées au tableau principal.
+  // --------------------------------------------------------------------------
+  const reads = computeTacticalReads(state, stepIdx, defPos);
+  out.push(...reads);
+
+  // --------------------------------------------------------------------------
+  // 8. Bonne couverture si rien à signaler — feedback positif explicite
   // --------------------------------------------------------------------------
   if (out.length === 0) {
     out.push({
