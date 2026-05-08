@@ -18,16 +18,17 @@ C'est le seul point d'entrée appelé par le rendu. Tout le reste est interne.
 |---------|------|
 | `engine.ts` | Pipeline principal. `effectiveDefensePositions`, `computeDefenseTargets`, dispatch man/zone, switches/écrans. |
 | `manDefense.ts` | Cibles individuelles : `manTarget`, `carrierDefenderTarget`, `offBallStanceTarget`, offset latéral selon orientation. |
-| `zoneDefense.ts` | Cibles en zone : tracking continu basé sur homePos + scoring (matchup naturel, polygone, engagement). |
+| `zoneDefense.ts` | Cibles en zone : moteur ownership continu (claims gaussiens + parts normalisées par attaquant) + paramètres tactiques par type. |
 | `help.ts` | Calcul de l'aide weak-side / strong-side denial / sag. |
 | `screens.ts` | Détection écrans porteur (`detectScreen`) et non-porteur (`detectOffBallScreens`). |
 | `triggers.ts` | Conditions qui activent l'aide (drive, post, paint, trap). |
 | `trap.ts` | Choix du défenseur qui vient au piège quand un trap-zone est déclenché. |
-| `geometry.ts` | Helpers `distance`, `clamp`, courbes Bezier pour évitement d'écran. |
+| `geometry.ts` | Helpers `distance`, `clamp`, Bezier de contournement, `pathArcLength` (longueur d'arc), `proximityFriction` (friction de contact), solveur de collisions, makeCluster. |
 | `metrics.ts` | Métriques défensives temps réel (gap, paint coverage, passes…). |
 | `threats.ts` | **Phase A simulation** : score de menace par attaquant. Voir [simulation.md](simulation.md). |
 | `offense.ts` | **Phase B simulation** : EV des actions offensives + meilleure action. |
 | `simulator.ts` | **Phase C simulation** : Monte Carlo de possessions (PPP, eFG%). |
+| `coachDiagnostics.ts` | Phrases coach automatiques (closeout long, low man tag, corner abandonné…) — vocabulaire métier basé sur l'état défensif. |
 
 ## Pipeline de calcul
 
@@ -354,44 +355,178 @@ Avant : priority='man' → `aim = manPos` → aucun mouvement même avec helpPct
 
 Si **un seul** trigger est activé ET la config user le permet, `triggers.any === true`.
 
-## Défense de zone
+## Défense de zone — moteur ownership continu
 
-Pipeline distinct (pas de matchups, pas de récursion sur les écrans) :
+Pipeline 100% continu, **sans seuil binaire** (plus de `pointInPolygon` qui flippe la priorité, plus de hand-off threshold, plus de `applyZoneRotation` qui réécrit la cible). Trois étapes :
 
 ```
 computeZoneTargets(off, carrier, layout, config, defenseDistance)
   │
-  ├── zoneAttackers = mapAttackersToZones(off, layout)
-  ├── pour chaque zone z:
-  │     attackers = zoneAttackers[z]
-  │     if (0 attaquants) → shift homePos vers ballon * ballPressure
-  │     elif (1 attaquant) → man-style target sur lui
-  │     elif (2+ attaquants) → garde le plus proche du panier
-  │     if (carrier in attackers) → comportement carrier
+  ├── tactic = TACTICS[config.type] ?? DEFAULT_TACTIC
+  │     (paramètres par type : zone-2-3, zone-3-2, zone-1-3-1, zone-2-1-2, zone-matchup)
   │
-  └── applyZoneRotation():
-        repère zones surchargées (2+) et zones vides
-        rapproche le défenseur d'une zone vide vers l'attaquant secondaire
+  ├── pour chaque zone, homeShifted = ballSideShifted(homePos, ballPos, tactic.ballSideHelp)
+  │     (asymétrique : weak-side glisse 100%, strong-side 30%, central 60%, ±80px max)
+  │
+  ├── Étape 1 — claims gaussiens
+  │     pour chaque (défenseur D, attaquant A):
+  │       proximity = exp(-(distance(A, homeShifted_D) / reach)²)
+  │       claim(D, A) = proximity × naturalBonus(D, A) × carrierBonus(A)
+  │
+  ├── Étape 2 — ownership normalisée
+  │     pour chaque attaquant A:
+  │       ownership(D, A) = claim(D, A) / Σ_D' claim(D', A)
+  │     (somme à 1 sur les défenseurs ; epsilon=1e-6 stabilise quand A est isolé)
+  │
+  └── Étape 3 — primary + engagement = part d'ownership
+        pour chaque défenseur D:
+          primary(D) = argmax_A ownership(D, A)
+          engagement = ownership(D, primary(D))   ∈ [0, 1]
+          mode (auto/agressif/passif/trap) module engagement
+          tracked = manTarget ou carrierDefenderTarget selon le rôle
+          position = lerp(homeShifted, tracked, engagement)
 ```
 
-## Vitesse maximale et `late`
+### Pourquoi c'est continu
 
-Dans `effectiveDefensePositions`:
+- Quand un attaquant traverse une bordure de polygone, sa proximité aux homePos varie de quelques pixels → claims des défenseurs varient continûment → ownership glisse → engagement n'a pas de saut.
+- 50/50 contesté donne naturellement engagement = 0.5 → défenseur reste à mi-chemin (pas de téléportation).
+- Hand-off émerge tout seul : quand A se rapproche de D₂ et s'éloigne de D₁, l'ownership de A bascule progressivement de D₁ vers D₂. Pas de seuil dur.
+- Surcharge gérée par compétition d'ownership : si 2 attaquants partagent la même zone, les défenseurs voisins se distribuent. Pas besoin d'`applyZoneRotation`.
+
+### Paramètres tactiques par type ([zoneDefense.ts:99-147](../src/lib/logic/zoneDefense.ts))
+
+| Type | naturalBonus | carrierBonus | ballSideHelp | reachMult |
+|------|--------------|--------------|--------------|-----------|
+| zone-2-3 | 1.2 | 1.5 | 0.5 | 1.0 |
+| zone-3-2 | 1.3 | 1.6 | 0.35 | 0.95 |
+| zone-1-3-1 | 1.15 | 1.4 | 0.6 | 1.05 |
+| zone-2-1-2 | 1.2 | 1.5 | 0.5 | 1.0 |
+| zone-matchup | 2.0 | 1.3 | 0.25 | 1.0 |
+
+- **`naturalBonus`** : multiplicateur de claim quand `assignedTo[D] === baseMatchups[A]` (ex. D3↔O3). Match-up zone très haut → comportement man-like.
+- **`carrierBonus`** : multiplicateur quand `A === ballCarrier`. 3-2 (1.6) pressente plus que match-up (1.3).
+- **`ballSideHelp`** : amplitude du shift `homePos.x → ballPos.x` côté faible. 1-3-1 (0.6) sage beaucoup, match-up (0.25) garde la discipline.
+- **`reachMult`** : multiplicateur du rayon gaussien (default 200px). 3-2 (0.95) plus serré, 1-3-1 (1.05) plus élastique.
+
+### Bascule individuelle ↔ zone
+
+`updateZoneConfig` (useAppState.ts) NE force PLUS d'overrides au changement de type. Comportement : recalcule `defenseInitial` aux nouveaux homePos, supprime tous les overrides existants, laisse le moteur calculer dynamiquement. Sinon les défenseurs étaient figés au homePos sur l'étape active, désactivant le tracking.
+
+## Vitesse maximale, `late`, physique du déplacement
+
+Dans `effectiveDefensePositions`, le coût d'un déplacement n'est plus la distance euclidienne mais la **longueur d'arc effective** corrigée par la **friction de proximité**. Trois leviers cumulés :
+
+### Lever C — Pré-relaxation de la cible
+
+Avant tout calcul de vitesse, la cible idéale est repoussée hors des attaquants non-matchés (`pushOutOfMany` sur `nonMatchedAttackerPositions`, clearance `2 × PLAYER_RADIUS + 2`). Évite que la contrainte de vitesse compare une distance qui mène DANS un autre joueur.
+
+### Lever A — Longueur d'arc autour des écrans
+
+Si le segment from→to traverse un cluster d'écran, on remplace `d = distance(from, to)` par la longueur réelle de la trajectoire courbe Bezier que CourtView trace au scrub :
 
 ```
-maxSpeed = state.defenseSystem === 'zone' ? rotationSpeed : defenseMaxSpeed
+pathArcLength(from, to, blocking, samples=12):
+  pour i=1..samples: somme distance entre points consécutifs sur la courbe
+  return total
+```
+
+Le moteur construit les **mêmes screener clusters que CourtView** (poseur + son défenseur fusionnés via `makeCluster`, `linkDist=4×PLAYER_RADIUS`), filtre les candidats avec `pickBlockingCluster` pour que chaque défenseur ignore le cluster dont il fait partie. Conséquence : le défenseur du porteur en pick-and-roll **paie le détour**. Plus besoin de `dropDepth` pour modéliser le retard, c'est dans la mécanique.
+
+### Lever B — Friction de proximité
+
+```
+proximityFriction(from, to, nearby, threshold=30, floor=0.6, samples=8):
+  minDist = min sur i, j de distance(point_i_sur_segment, nearby_j)
+  if minDist >= threshold: return 1
+  return floor + (1 - floor) × (minDist / threshold)
+```
+
+`nearby` = tous les attaquants non-matchés + tous les autres défenseurs. Frôler quelqu'un à <30px coûte jusqu'à 40% de vitesse (floor 0.6). Modélise le contact "épaule" hors écran formel.
+
+### Mise en équation
+
+```
+maxSpeed = (closingOut ? indivMax × closeoutBoost : indivMax)
+effectiveMaxSpeed = maxSpeed × friction
+
 pour chaque défenseur:
-  d = distance(from, target)
-  if (stepIdx === 0 OR d <= maxSpeed):
-    out[dId] = target  (late: false)
+  to = pushOutOfMany(target, nonMatchedAttackers, ...)            // C
+  blocking = pickBlockingCluster(from, to, screenerObstacles)
+  pathLen = pathArcLength(from, to, blocking)                      // A
+  friction = proximityFriction(from, to, allOtherPlayers)          // B
+  if (stepIdx === 0 OR pathLen <= effectiveMaxSpeed):
+    out[dId] = to (late: false)
   else:
-    r = maxSpeed / d
-    out[dId] = lerp(from, target, r)  (late: true)
+    r = effectiveMaxSpeed / pathLen
+    out[dId] = lerp(from, to, r) (late: true)
 ```
 
-Le défenseur en retard est rendu avec un contour rouge.
+Le défenseur en retard reste interpolé linéairement le long de from→to (la courbe visuelle est tracée par CourtView au scrub indépendamment), avec contour rouge.
 
-**Important** : à l'étape 0 (setup initial), la contrainte de vitesse ne s'applique PAS — les défenseurs sont à leur position idéale d'entrée. La lateness ne joue qu'entre les étapes suivantes (transitions). Sinon, repositionner un attaquant en mode édition donnerait l'illusion que le défenseur "ne défend plus" (en réalité il était en retard depuis `defenseInitial`).
+**Important** : à l'étape 0 (setup initial), la contrainte de vitesse ne s'applique PAS — les défenseurs sont à leur position idéale d'entrée. Sinon, repositionner un attaquant en mode édition donnerait l'illusion que le défenseur "ne défend plus" (en réalité il était en retard depuis `defenseInitial`).
+
+À la fin du calcul, le solveur strict `resolvePlayerCollisions` repousse les défenseurs hors des autres joueurs (sauf matchedTo) — voir section dédiée plus bas.
+
+## Profils joueurs offensifs (impact moteur)
+
+Chaque attaquant porte un `OffensiveProfile` (`creator`, `shooter`, `slasher`, `rim-roller`, `stretch-big`, `non-shooter`) — voir [data-model.md](data-model.md#profils-joueurs-offensifs). Trois leviers du moteur sont modulés par le profil :
+
+### 1. Qualité de tir — `threats.ts`
+
+`profileShotMultiplier(profile, zone)` multiplie le `shotQuality` (qui sert au scoring de menace ET à l'EV des actions offensives). Bornes [0.55, 1.30] :
+
+| Profil       | rim  | paint | mid  | three | deep |
+|--------------|------|-------|------|-------|------|
+| shooter      | 0.90 | 0.95  | 1.20 | 1.20  | 0.95 |
+| stretch-big  | 0.95 | 1.00  | 1.05 | 1.15  | 1.00 |
+| slasher      | 1.18 | 1.18  | 1.00 | 0.85  | 1.00 |
+| rim-roller   | 1.30 | 1.10  | 0.85 | 0.65  | 0.85 |
+| creator      | 1.00 | 1.00  | 1.05 | 1.00  | 1.00 |
+| non-shooter  | 0.95 | 0.85  | 0.65 | 0.65  | 0.65 |
+
+### 2. Coût de quitter — `help.ts`
+
+`leaveAttackerCostMultiplier(profile)` modifie le helpFactor quand le défenseur de cet attaquant l'abandonne pour aider :
+- shooter 0.55, stretch-big 0.65 → on aide moins fort (skip 3pts trop cher)
+- creator 0.85, slasher 0.85 → légère retenue
+- rim-roller 0.95 → quasi neutre
+- non-shooter 1.30 → sag franc autorisé
+
+Multiplie le sagFactor (baseline) ET le helpFactor (aide active). Le strong-side denial n'est pas modulé (c'est une décision sur la passe d'entrée, pas sur l'aide).
+
+### 3. Closeout boost — `engine.ts`
+
+`closeoutProfileBonus(profile)` multiplie le `closeoutBoost` (vitesse de fermeture sur le nouveau porteur) :
+- shooter 1.15, stretch-big 1.10 → fermer vite, le 3pts est imminent
+- creator/slasher 1.0 → neutre
+- rim-roller 0.95, non-shooter 0.85 → relâcher (drive moins dangereux qu'un tir)
+
+## Auto-diagnostics coach — `coachDiagnostics.ts`
+
+Convertit l'état défensif calculé en phrases courtes de vocabulaire coach. Appelé dans `page.tsx` via `useMemo`, affiché dans le bandeau `<CoachDiagnostics />` sous la `MetricsBar`.
+
+```
+computeCoachDiagnostics(state, stepIdx) : CoachDiagnostic[]
+```
+
+Détections actuelles (tag stable + sévérité) :
+
+| Tag                | Trigger                                                  | Sévérité       |
+|--------------------|----------------------------------------------------------|----------------|
+| `over-closeout`    | `overClosed === true` sur défenseur du porteur          | critical       |
+| `closeout-long`    | `late + closingOut` sur porteur                          | warning/critical (si shooter) |
+| `late`             | `late` simple                                            | warning        |
+| `switch-mismatch`  | `switchedThisStep === true`                              | warning        |
+| `low-man-tag`      | écran détecté + screener à <180px panier + low-man >130px du screener | critical |
+| `low-man-tag-soft` | écran détecté + low-man entre 90-130px                  | warning        |
+| `corner-open`      | corner faible + nearest def >180px                       | critical       |
+| `corner-help`      | corner faible + nearest def 130-180px                    | warning/critical (si shooter) |
+| `pass-open`        | threats.receivability=1 + score>0.42 (non-corner)        | warning/critical (>0.55) |
+| `paint-no-help`    | porteur in paint + helpFactor total <0.6                 | critical       |
+| `all-good`         | aucun problème détecté                                   | good           |
+
+Les profils joueurs sont lus pour enrichir le message ("Closeout long sur O1 (créateur)") et **escalader la sévérité** quand un shooter/stretch-big est concerné (un corner faible avec un shooter devient critical au lieu de warning).
 
 ## Points d'extension
 
@@ -401,6 +536,6 @@ Pour ajouter un nouveau comportement défensif :
 2. **Nouvelle stance off-ball** : étendre `OffBallStance` (types) + case dans `offBallStanceTarget()`
 3. **Nouvelle règle d'écran** : étendre `ScreenRule` + case dans `applyScreenAdjustment()`
 4. **Nouveau trigger** : étendre `DefenseTriggers` + condition dans `detectTriggers()`
-5. **Nouveau type de zone** : étendre `ZoneType` + layout dans `zones.ts`
+5. **Nouveau type de zone** : étendre `ZoneType` + layout dans `zones.ts` + entrée dans `TACTICS` (zoneDefense.ts) pour préciser naturalBonus, carrierBonus, ballSideHelp, reachMultiplier — sinon le moteur retombe sur `DEFAULT_TACTIC`
 
 Tous les changements doivent passer le type-check (`tsc --noEmit`) — TypeScript force l'exhaustivité des switches.
