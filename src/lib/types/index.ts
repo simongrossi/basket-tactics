@@ -186,7 +186,14 @@ export interface ZoneConfig {
 
 // --- Écrans non-porteur (Palier 4) ---
 
-export type OffBallScreenType = 'pindown' | 'flare' | 'backscreen';
+export type OffBallScreenType =
+  | 'pindown'      // écran descendant (screener au-dessus du cutter)
+  | 'flare'        // écran latéral, cutter sort vers l'extérieur
+  | 'backscreen'   // screener sous le cutter, cutter coupe vers le panier
+  | 'stagger'      // 2 écrans descendants alignés (enchaînement)
+  | 'elevator'     // 2 screeners qui se referment derrière le cutter
+  | 'flex'         // backscreen baseline, cutter va corner→corner
+  | 'hammer';      // cutter baseline arrière (de l'autre côté du ballon)
 
 export interface DetectedOffBallScreen {
   type: OffBallScreenType;
@@ -196,9 +203,20 @@ export interface DetectedOffBallScreen {
   cutterDef: DefenderId;
   screenerPos: Point;
   cutterPos: Point;
+  /** Pour stagger/elevator : second poseur d'écran fusionné. Présent
+   *  uniquement si l'enchaînement est détecté. */
+  secondScreener?: AttackerId;
+  secondScreenerDef?: DefenderId;
+  secondScreenerPos?: Point;
 }
 
-export type OffBallScreenRule = 'over' | 'under' | 'switch' | 'bump';
+export type OffBallScreenRule =
+  | 'over'      // défenseur passe par-dessus l'écran
+  | 'under'     // défenseur passe en dessous (laisse le tir)
+  | 'switch'    // les deux défenseurs échangent d'homme
+  | 'bump'      // défenseur du screener bumpe le cutter
+  | 'top-lock'  // défenseur saute par-dessus + contact préventif côté ballon
+  | 'chase';    // défenseur reste collé au cutter en suiveur (jamais sous)
 
 export interface DetectedScreen {
   screener: AttackerId;

@@ -341,6 +341,8 @@ export function DefensePanel(props: DefensePanelProps) {
                 <option value="under">under (en dessous)</option>
                 <option value="switch">switch (échange)</option>
                 <option value="bump">bump (blocage)</option>
+                <option value="top-lock">top-lock (force côté ballon)</option>
+                <option value="chase">chase / trail (suit le shooter)</option>
               </select>
             </div>
           </Section>

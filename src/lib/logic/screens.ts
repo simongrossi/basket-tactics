@@ -355,7 +355,107 @@ export function detectOffBallScreens(
     }
   }
 
-  return results;
+  // ---------------------------------------------------------------------
+  // P4 — Reconnaissance d'enchaînements : stagger, elevator, hammer, flex.
+  // On fusionne plusieurs écrans simples en un seul écran "structurel"
+  // pour que les diagnostics et la couverture soient adaptés.
+  // ---------------------------------------------------------------------
+  return upgradeOffBallScreens(results, off, ballCarrier, HOOP);
+}
+
+/**
+ * Détecte les enchaînements parmi les écrans non-porteur simples :
+ *
+ * - **stagger** : 2 pindowns sur le même cutter avec screeners alignés
+ *   (l'un devant l'autre vers le panier). On garde un seul écran de
+ *   type stagger avec second screener.
+ * - **elevator** : 2 screeners très proches l'un de l'autre (à <55px),
+ *   formant un "couloir" derrière le cutter. Détection : 2 screens sur
+ *   le même cutter, screeners à <55px l'un de l'autre.
+ * - **flex** : backscreen baseline (cutter passe derrière le screener
+ *   à <80px du panier verticalement, large latéralement).
+ * - **hammer** : cutter qui coupe baseline du côté OPPOSÉ au ballon vers
+ *   le coin (utilisé pour libérer un tir de coin sur drive). Détecté
+ *   comme un backscreen dont le cutter va vers le coin faible.
+ */
+function upgradeOffBallScreens(
+  results: DetectedOffBallScreen[],
+  off: AttackerPositions,
+  ballCarrier: AttackerId,
+  hoop: Point
+): DetectedOffBallScreen[] {
+  if (results.length === 0) return results;
+  const ballPos = off[ballCarrier];
+  // 1. Stagger / Elevator : groupe les screens par cutter.
+  const byCutter = new Map<AttackerId, DetectedOffBallScreen[]>();
+  results.forEach((s) => {
+    const list = byCutter.get(s.cutter) ?? [];
+    list.push(s);
+    byCutter.set(s.cutter, list);
+  });
+
+  const consumed = new Set<DetectedOffBallScreen>();
+  const upgraded: DetectedOffBallScreen[] = [];
+
+  byCutter.forEach((screensForCutter) => {
+    if (screensForCutter.length < 2) return;
+    // On ne traite que les pindowns pour stagger/elevator.
+    const pindowns = screensForCutter.filter((s) => s.type === 'pindown');
+    if (pindowns.length < 2) return;
+    const [a, b] = pindowns;
+    const dist2screeners = Math.hypot(
+      a.screenerPos.x - b.screenerPos.x,
+      a.screenerPos.y - b.screenerPos.y
+    );
+    consumed.add(a);
+    consumed.add(b);
+    if (dist2screeners < 55) {
+      // Elevator : screeners très proches.
+      upgraded.push({
+        ...a,
+        type: 'elevator',
+        secondScreener: b.screener,
+        secondScreenerDef: b.screenerDef,
+        secondScreenerPos: b.screenerPos,
+      });
+    } else {
+      // Stagger : 2 pindowns alignés.
+      upgraded.push({
+        ...a,
+        type: 'stagger',
+        secondScreener: b.screener,
+        secondScreenerDef: b.screenerDef,
+        secondScreenerPos: b.screenerPos,
+      });
+    }
+  });
+
+  // 2. Flex / Hammer : backscreens baseline.
+  results.forEach((s) => {
+    if (consumed.has(s)) return;
+    if (s.type !== 'backscreen') return;
+    const cutterToBaseline = Math.abs(s.cutterPos.y - hoop.y);
+    if (cutterToBaseline > 100) return; // pas baseline
+    if (!ballPos) return;
+    const ballSideX = Math.sign(ballPos.x - hoop.x) || 0;
+    const cutterSideX = Math.sign(s.cutterPos.x - hoop.x) || 0;
+    if (ballSideX !== 0 && cutterSideX !== 0 && ballSideX !== cutterSideX) {
+      // Cutter va vers le côté FAIBLE (opposé du ballon) → hammer.
+      consumed.add(s);
+      upgraded.push({ ...s, type: 'hammer' });
+    } else if (ballSideX !== 0 && cutterSideX === ballSideX) {
+      // Cutter reste côté fort → flex.
+      consumed.add(s);
+      upgraded.push({ ...s, type: 'flex' });
+    }
+  });
+
+  // 3. Tous les autres restent tels quels.
+  results.forEach((s) => {
+    if (!consumed.has(s)) upgraded.push(s);
+  });
+
+  return upgraded;
 }
 
 export function applyOffBallScreenAdjustment(
@@ -395,6 +495,34 @@ export function applyOffBallScreenAdjustment(
       x: screenerPos.x + perpX * 12 * sideOfCutter,
       y: screenerPos.y + perpY * 12 * sideOfCutter,
     };
+  }
+
+  // TOP-LOCK : défenseur du shooter saute du côté ballon (côté opposé au
+  // déplacement attendu) et fait contact préventif avec le screener. La
+  // cible est entre le cutter et le ballon, agressive sur l'épaule du
+  // cutter du côté ballon. Très utile sur pindown vers shooter d'élite.
+  if (rule === 'top-lock' && isCutterDef) {
+    const ballPos = off[Object.keys(off)[0] as AttackerId]; // placeholder, will be overridden
+    // En pratique, la "side" ball-side du cutter dépend du porteur, mais on
+    // n'a pas le carrier ici. Approximation : top-lock = se mettre 18px du
+    // côté du screener (= côté ballon en pindown classique), un peu en
+    // avant. Cible = baseTarget shifté vers le screener.
+    void ballPos;
+    return pushOutOfScreener(
+      { x: baseTarget.x + cx * 14, y: baseTarget.y + cy * 14 },
+      screenerPos
+    );
+  }
+
+  // CHASE / TRAIL : le défenseur du shooter reste COLLÉ derrière le cutter
+  // (pas sous l'écran). Différent d'un over standard : amplitude plus
+  // marquée vers le cutter, jamais en retrait. Pour shooter qui sort de
+  // pindown ou stagger.
+  if (rule === 'chase' && isCutterDef) {
+    return pushOutOfScreener(
+      { x: baseTarget.x + cx * 24, y: baseTarget.y + cy * 24 },
+      screenerPos
+    );
   }
 
   return baseTarget;
