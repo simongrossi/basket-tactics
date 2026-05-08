@@ -372,6 +372,9 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
           <option value="hedge">hedge (show &amp; recover)</option>
           <option value="drop">drop (recul)</option>
           <option value="blitz">blitz (piège)</option>
+          <option value="ice">ice / no-middle</option>
+          <option value="weak">weak (under léger)</option>
+          <option value="peel-switch">peel switch</option>
         </select>
       </Row>
       <OverrideSliderRow

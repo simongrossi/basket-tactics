@@ -180,6 +180,84 @@ export function computeCoachDiagnostics(
     const screenerLabel = withProfile(screen.screener, profiles?.[screen.screener]);
     const carrierLabel = withProfile(screen.carrier, profiles?.[screen.carrier]);
 
+    // Couverture appliquée à cet écran — règle globale ou override individuel.
+    const carrierDefRule = state.rules[screen.carrierDef];
+    const coverage =
+      carrierDefRule?.screenNav && carrierDefRule.screenNav !== 'auto'
+        ? carrierDefRule.screenNav
+        : state.screenRule;
+
+    // Diagnostics spécifiques par couverture.
+    if (coverage === 'ice') {
+      // Ice efficace = porteur forcé baseline (drive vers le coin/sideline,
+      // pas vers le middle). Détection : à l'étape suivante, le porteur a
+      // bougé latéralement vers l'extérieur (loin de l'axe panier).
+      const nextStep = state.steps[stepIdx + 1];
+      if (nextStep) {
+        const carrierThis = off[screen.carrier];
+        const carrierNext = nextStep.off[screen.carrier];
+        if (carrierThis && carrierNext) {
+          const wentBaseline =
+            Math.abs(carrierNext.x - hoop.x) > Math.abs(carrierThis.x - hoop.x) + 20;
+          const wentMiddle =
+            Math.abs(carrierNext.x - hoop.x) < Math.abs(carrierThis.x - hoop.x) - 20;
+          if (wentMiddle) {
+            out.push({
+              id: 'ice-failed',
+              severity: 'critical',
+              message: `Ice cassé : ${carrierLabel} prend le middle malgré la consigne no-middle`,
+              tag: 'ice-failed',
+              defenders: [screen.carrierDef],
+              attackers: [screen.carrier],
+            });
+          } else if (wentBaseline) {
+            out.push({
+              id: 'ice-ok',
+              severity: 'good',
+              message: `Ice tenu : ${carrierLabel} forcé baseline`,
+              tag: 'ice-ok',
+              defenders: [screen.carrierDef],
+              attackers: [screen.carrier],
+            });
+          }
+        }
+      }
+    }
+
+    if (coverage === 'weak') {
+      // Weak vs un porteur shooter = trou tactique. Le coach a choisi de
+      // laisser le porteur shooter pour rester sur le screener.
+      if (isOutsideThreat(profiles?.[screen.carrier])) {
+        out.push({
+          id: 'weak-vs-shooter',
+          severity: 'warning',
+          message: `Weak sur ${carrierLabel} — choix risqué vs un tireur`,
+          tag: 'weak-vs-shooter',
+          defenders: [screen.carrierDef],
+          attackers: [screen.carrier],
+        });
+      }
+    }
+
+    if (coverage === 'peel-switch') {
+      // Si le switch a été déclenché à cette étape, le porteur a passé.
+      const fired =
+        cur.switches?.some(([d1, d2]) =>
+          (d1 === screen.carrierDef && d2 === screen.screenerDef) ||
+          (d2 === screen.carrierDef && d1 === screen.screenerDef)
+        ) ?? false;
+      if (fired) {
+        out.push({
+          id: 'peel-fired',
+          severity: 'info',
+          message: `Peel switch déclenché : ${screen.screenerDef} prend ${carrierLabel}, ${screen.carrierDef} peel sur ${screenerLabel}`,
+          tag: 'peel-fired',
+          defenders: [screen.carrierDef, screen.screenerDef],
+          attackers: [screen.carrier, screen.screener],
+        });
+      }
+    }
+
     if (actionRequiresLowManTag(action.kind)) {
       // Avec les rotations P1, l'engine assigne déjà pnrRole='tag' au low-man
       // identifié. On lit ce flag pour savoir QUI doit tagger, et on regarde

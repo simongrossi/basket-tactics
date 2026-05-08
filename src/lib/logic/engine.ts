@@ -19,6 +19,7 @@ import {
   detectOffBallScreens,
   applyOffBallScreenAdjustment,
   applySwitchOffBall,
+  peelSwitchShouldFire,
 } from './screens';
 import { computeZoneTargets } from './zoneDefense';
 import { detectScreenAction, type DetectedScreenAction } from './screenAction';
@@ -113,6 +114,18 @@ export function computeDefenseTargets(
     switchedThisStep = true;
     if (mutateStepForSwitch && !cur.switches) {
       cur.switches = [[screen.carrierDef, screen.screenerDef]];
+    }
+  }
+  // PEEL-SWITCH : couverture commence en drop, mais si le porteur a dépassé
+  // le défenseur du screener à cette étape, le switch se déclenche.
+  if (screen && effectiveScreenRule === 'peel-switch' && !switchedThisStep) {
+    const sDefPos = prevDefenderPositions[screen.screenerDef];
+    if (sDefPos && peelSwitchShouldFire(off, screen, sDefPos, getDefenseHoop(state))) {
+      matchups = applySwitch(matchups, screen);
+      switchedThisStep = true;
+      if (mutateStepForSwitch && !cur.switches) {
+        cur.switches = [[screen.carrierDef, screen.screenerDef]];
+      }
     }
   }
 

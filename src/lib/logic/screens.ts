@@ -207,7 +207,80 @@ export function applyScreenAdjustment(
     };
   }
 
+  // ICE / no-middle : force le porteur vers la baseline. Le défenseur du
+  // porteur saute du côté OPPOSÉ à where over l'aurait placé — il se met
+  // entre le porteur et l'écran pour fermer le middle. Le défenseur du
+  // screener drop plus profond pour protéger le drive baseline.
+  if (rule === 'ice' && isCarrierDef) {
+    const screenTightness = 1 - Math.min(distance(screenerPos, baseTarget), screenRadius) / screenRadius;
+    const amplitude = 18 + screenTightness * 16;
+    let target = {
+      // Note le -sideOfCarrier (vs +sideOfCarrier dans 'over') : on coupe
+      // la trajectoire vers le middle au lieu de pousser dessus.
+      x: baseTarget.x + perpX * amplitude * (-sideOfCarrier),
+      y: baseTarget.y + perpY * amplitude * (-sideOfCarrier),
+    };
+    target = pushOutOfScreener(target, screenerPos);
+    return target;
+  }
+  if (rule === 'ice' && isScreenerDef) {
+    // Drop plus profond que medium (45px vs 35) pour absorber le drive baseline.
+    return { x: screenerPos.x + nx * 45, y: screenerPos.y + ny * 45 };
+  }
+
+  // WEAK : variante d'under. Le défenseur du porteur passe sous mais reste
+  // au niveau de l'écran (22px vs 36px) pour recover vite sur le shooter
+  // après screen. Le défenseur du screener fait un drop léger (recover si pop).
+  if (rule === 'weak' && isCarrierDef) {
+    let target = { x: baseTarget.x + nx * 22, y: baseTarget.y + ny * 22 };
+    target = pushOutOfScreener(target, screenerPos);
+    return target;
+  }
+  if (rule === 'weak' && isScreenerDef) {
+    return { x: screenerPos.x + nx * 22, y: screenerPos.y + ny * 22 };
+  }
+
+  // PEEL-SWITCH : géométriquement traité comme `drop` ici. Le déclenchement
+  // du switch effectif (quand le porteur dépasse screenerDef) est géré
+  // par engine.ts qui appelle applySwitch en plus.
+  if (rule === 'peel-switch' && isScreenerDef) {
+    const depthPx = dropDepth === 'shallow' ? 18 : dropDepth === 'deep' ? 55 : 35;
+    return { x: screenerPos.x + nx * depthPx, y: screenerPos.y + ny * depthPx };
+  }
+  if (rule === 'peel-switch' && isCarrierDef) {
+    return pushOutOfScreener(
+      {
+        x: baseTarget.x + perpX * 14 * sideOfCarrier,
+        y: baseTarget.y + perpY * 14 * sideOfCarrier,
+      },
+      screenerPos
+    );
+  }
+
   return baseTarget;
+}
+
+/**
+ * Détermine si peel-switch doit basculer en switch effectif à cette étape.
+ * Critère : le porteur est passé "devant" le défenseur du screener — il a
+ * franchi sa hauteur sur l'axe screener→panier ET continue vers le cercle.
+ * À ce moment précis, le screenerDef "lâche" le screener pour peeler vers
+ * le porteur (le carrierDef, qui s'est fait écranter, prend le screener).
+ */
+export function peelSwitchShouldFire(
+  off: AttackerPositions,
+  screen: DetectedScreen,
+  screenerDefPos: Point,
+  hoop: Point = HOOP
+): boolean {
+  const carrierPos = off[screen.carrier];
+  if (!carrierPos) return false;
+  // Distance du porteur au panier vs distance du screenerDef au panier.
+  // Si le porteur est nettement plus proche du panier (≥30px), il a
+  // dépassé l'écran et le switch a du sens.
+  const dCarrierHoop = distance(carrierPos, hoop);
+  const dScreenerDefHoop = distance(screenerDefPos, hoop);
+  return dCarrierHoop + 30 < dScreenerDefHoop;
 }
 
 /**

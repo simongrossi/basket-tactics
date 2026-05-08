@@ -122,7 +122,16 @@ export interface DetectedTriggers extends DefenseTriggers {
   any: boolean;
 }
 
-export type ScreenRule = 'over' | 'under' | 'switch' | 'hedge' | 'drop' | 'blitz';
+export type ScreenRule =
+  | 'over'           // défenseur passe par-dessus l'écran (chase shooter)
+  | 'under'          // défenseur passe sous l'écran (laisser tirer mid)
+  | 'switch'         // les deux défenseurs échangent d'homme
+  | 'hedge'          // défenseur du screener montre puis recover
+  | 'drop'           // défenseur du screener tient en retrait, protège raquette
+  | 'blitz'          // les deux défenseurs forment un piège sur le porteur
+  | 'ice'            // force le porteur baseline (no-middle, side PnR)
+  | 'weak'           // under léger, recover vite sur shooter (vs non-shooter handler)
+  | 'peel-switch';   // drop initial puis switch quand porteur dépasse screenerDef
 export type DropDepth = 'shallow' | 'medium' | 'deep';
 
 // --- Défense de zone (Palier 3-C) ---

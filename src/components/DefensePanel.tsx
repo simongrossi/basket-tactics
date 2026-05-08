@@ -297,6 +297,9 @@ export function DefensePanel(props: DefensePanelProps) {
                 <option value="hedge">hedge (show & recover)</option>
                 <option value="drop">drop (recul)</option>
                 <option value="blitz">blitz (piège)</option>
+                <option value="ice">ice / no-middle (force baseline)</option>
+                <option value="weak">weak (under léger, recover shooter)</option>
+                <option value="peel-switch">peel switch (drop puis switch)</option>
               </select>
             </div>
             <Slider
@@ -307,7 +310,7 @@ export function DefensePanel(props: DefensePanelProps) {
               value={state.screenRadius}
               onChange={(v) => props.onPatch({ screenRadius: v })}
             />
-            {state.screenRule === 'drop' && (
+            {(state.screenRule === 'drop' || state.screenRule === 'peel-switch') && (
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }}>profondeur</span>
                 <select
