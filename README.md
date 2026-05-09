@@ -4,7 +4,7 @@ Simulateur tactique de basket-ball pour visualiser des systèmes offensifs et ob
 
 > Pas de backend, pas de compte, pas de tracking. Tu lances `npm run dev`, c'est joué.
 
-**Version actuelle : 0.6.0** (2026-05-09) — cycle "fidélité basket" : orientation calculée des joueurs, anti-téléportation, rim protection sur drive, vue debug aide, refactor `physics.ts` centralisé. Voir [CHANGELOG.md](CHANGELOG.md).
+**Version actuelle : 0.7.0** (2026-05-09) — cycle "pictogramme + champ de vision + overrides manuels" : convention B asymétrique, invariants anatomiques (regard ∈ ±60° du corps), champ de vision en cônes heatmap (cyan défenseurs / orange attaquants), sliders manuels corps + regard, Paramètres en pop-up. Voir [CHANGELOG.md](CHANGELOG.md).
 
 ---
 

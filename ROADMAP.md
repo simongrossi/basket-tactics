@@ -10,6 +10,15 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
 ## Livré récemment (mai 2026)
 
+- 🟢 **0.7.0 — cycle "pictogramme + champ de vision + overrides manuels"** (2026-05-09) :
+  - Convention B asymétrique pour le calcul d'orientation (corps en open stance, regard, 2 cibles de bras par rôle).
+  - Invariants anatomiques inviolables : regard ∈ ±60° du corps (cône de vision), aucun bras dans le dos.
+  - Champ de vision par joueur : cônes heatmap cyan (défenseurs) / orange (attaquants), 120° d'ouverture, jusqu'aux limites du terrain. 3 toggles globaux dans Paramètres + clic-droit individuel par défenseur. Heatmap croisée par superposition.
+  - Sliders manuels orientation corps + regard via clic-droit, pour défenseurs ET attaquants. Override absolu 0–360° (regard clampé à ±60° du corps en aval).
+  - Design des bras figé (Design F) après comparaison de 8 variantes via la page `/demo-arms`.
+  - UI : panneau Paramètres déplacé à gauche en pop-up modal (style LibraryPanel).
+  - Détail complet : [CHANGELOG.md § 0.7.0](CHANGELOG.md).
+
 - 🟢 **0.6.0 — cycle "fidélité basket"** (2026-05-09) :
   - Orientation des joueurs calculée auto (stance/ballon/homme/écran) + override manuel clampé. Module [`orientation.ts`](src/lib/logic/orientation.ts).
   - Anti-téléportation des attaquants : interpolation avec contournement d'obstacles + warning diagnostic si saut > 4 m.

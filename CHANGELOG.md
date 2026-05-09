@@ -6,6 +6,21 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+_Aucun changement non versionné pour l'instant._
+
+---
+
+## [0.7.0] — 2026-05-09
+
+**Cycle "pictogramme + champ de vision + overrides manuels"** : convention B asymétrique, invariants anatomiques, champ de vision en cône heatmap (3 toggles : tous / défenseurs / attaquants), sliders manuels corps + regard pour défenseurs ET attaquants, design des bras figé (Design F après comparaison de 8 candidats), Paramètres déplacés en pop-up à gauche.
+
+Highlights :
+- **Champ de vision** par joueur : cônes heatmap cyan (défenseurs) / orange (attaquants), 120° d'ouverture, jusqu'aux limites du terrain. Heatmap croisée par superposition. 3 toggles globaux + clic-droit individuel par défenseur.
+- **Invariants anatomiques inviolables** : regard ∈ ±60° du corps (= demi-ouverture du cône de vision), aucun bras dans le dos, porteur statique → panier (ou direction de dribble si > 30 px).
+- **Sliders manuels orientation corps + regard** dans le clic-droit, pour défenseurs ET attaquants.
+- **Design des bras figé** (Design F) après comparaison de 8 variantes via `/demo-arms`.
+- **UI** : panneau Paramètres déplacé à gauche en pop-up modal (style LibraryPanel).
+
 ### Changed — Pictogramme : retour aux bras stylisés FIBA STATIQUES
 - [`Player.tsx`](src/components/Player.tsx) : suppression du wrapper `transform="rotate(orientation, ...)"` autour des bras. Les arcs FIBA stylisés restent **toujours au-dessus du joueur**, identiques pour tous, peu importe stance ou orientation tactique.
 - La direction du **regard** reste matérialisée par le **triangle pointeur** (`facing`), avec son clamp anatomique `gaze ∈ ±90° du body` qui reste actif (impossible de regarder derrière la tête).
