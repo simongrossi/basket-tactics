@@ -810,27 +810,66 @@ export function CourtView(props: CourtViewProps) {
             if (frame.screen?.screener) screenerIds.add(frame.screen.screener);
             frame.offBallScreens.forEach((s) => screenerIds.add(s.screener));
             const forcedScreenerId = state.steps[state.activeStep]?.forcedScreener;
+
+            /**
+             * Retourne un gazeOrientation de remplacement (en degrés, convention
+             * horaire depuis le NORD) pour un attaquant poseur d'écran.
+             *
+             * Quand l'attaquant est en position d'écran ET que frame.screen est
+             * détecté, on oriente son regard vers le défenseur du porteur
+             * (carrierDef) — c'est la cible naturelle du poseur lors d'un pick.
+             *
+             * Retourne undefined si l'une des conditions n'est pas remplie (pas
+             * de screen détecté, positions manquantes), auquel le caller revient
+             * sur la valeur standard issue de attVisuals.
+             *
+             * Note clamp : Player.tsx applique gazeOrientation brut sans clamp
+             * interne. L'angle produit ici est géométriquement cohérent — le
+             * poseur est placé face au défenseur qu'il écran, donc l'angle
+             * résultant reste dans ±90° du corps. Pas de clamp explicite nécessaire.
+             */
+            const screenerGazeOverride = (id: AttackerId): number | undefined => {
+              if (!frame.attackerIsScreening?.[id]) return undefined;
+              if (!frame.screen) return undefined;
+              const carrierDefId = frame.screen.carrierDef;
+              const target = frame.defPos[carrierDefId];
+              if (!target) return undefined;
+              const screenerPos = frame.off[id];
+              if (!screenerPos) return undefined;
+              const dx = target.x - screenerPos.x;
+              const dy = target.y - screenerPos.y;
+              // atan2 donne l'angle trigonométrique (0=est, CCW). On convertit en
+              // convention horaire depuis le NORD : angle = atan2(dx, -dy) en degrés.
+              return (Math.atan2(dx, -dy) * 180) / Math.PI;
+            };
+
             return (
               <>
                 {(Object.entries(frame.off) as [AttackerId, Point][])
                   .filter(([id]) => !screenerIds.has(id))
-                  .map(([id, pos]) => (
-                    <Player
-                      key={id}
-                      id={id}
-                      pos={pos}
-                      isAttacker
-                      isForcedScreener={id === forcedScreenerId}
-                      showLockBadges={state.showLockBadges !== false}
-                      showForcedScreenerBadge={state.showForcedScreenerBadge !== false}
-                      orientation={frame.attVisuals[id]?.orientation}
-                      gazeOrientation={frame.attVisuals[id]?.gazeOrientation}
-                      facing={frame.attVisuals[id]?.facing}
-                      armBallSide={frame.attVisuals[id]?.armBallSide}
-                      armManSide={frame.attVisuals[id]?.armManSide}
-                      isScreening={frame.attackerIsScreening?.[id] === true}
-                    />
-                  ))}
+                  .map(([id, pos]) => {
+                    const gazeOverride = screenerGazeOverride(id);
+                    const finalGaze = gazeOverride !== undefined
+                      ? gazeOverride
+                      : frame.attVisuals[id]?.gazeOrientation;
+                    return (
+                      <Player
+                        key={id}
+                        id={id}
+                        pos={pos}
+                        isAttacker
+                        isForcedScreener={id === forcedScreenerId}
+                        showLockBadges={state.showLockBadges !== false}
+                        showForcedScreenerBadge={state.showForcedScreenerBadge !== false}
+                        orientation={frame.attVisuals[id]?.orientation}
+                        gazeOrientation={finalGaze}
+                        facing={frame.attVisuals[id]?.facing}
+                        armBallSide={frame.attVisuals[id]?.armBallSide}
+                        armManSide={frame.attVisuals[id]?.armManSide}
+                        isScreening={frame.attackerIsScreening?.[id] === true}
+                      />
+                    );
+                  })}
                 {(Object.entries(frame.defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(
                   ([id, p]) => (
                     <Player
@@ -860,8 +899,13 @@ export function CourtView(props: CourtViewProps) {
                     />
                   )
                 )}
-                {Array.from(screenerIds).map((id) =>
-                  frame.off[id] ? (
+                {Array.from(screenerIds).map((id) => {
+                  if (!frame.off[id]) return null;
+                  const gazeOverride = screenerGazeOverride(id);
+                  const finalGaze = gazeOverride !== undefined
+                    ? gazeOverride
+                    : frame.attVisuals[id]?.gazeOrientation;
+                  return (
                     <Player
                       key={`screener-${id}`}
                       id={id}
@@ -871,14 +915,14 @@ export function CourtView(props: CourtViewProps) {
                       showLockBadges={state.showLockBadges !== false}
                       showForcedScreenerBadge={state.showForcedScreenerBadge !== false}
                       orientation={frame.attVisuals[id]?.orientation}
-                      gazeOrientation={frame.attVisuals[id]?.gazeOrientation}
+                      gazeOrientation={finalGaze}
                       facing={frame.attVisuals[id]?.facing}
                       armBallSide={frame.attVisuals[id]?.armBallSide}
                       armManSide={frame.attVisuals[id]?.armManSide}
                       isScreening={frame.attackerIsScreening?.[id] === true}
                     />
-                  ) : null
-                )}
+                  );
+                })}
               </>
             );
           })()}
