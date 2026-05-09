@@ -92,6 +92,7 @@ function recompileScenarioSteps(state: AppState): AppState {
     initialBallCarrier: initial.ballCarrier,
     actions,
     existingSteps: state.steps,
+    playerCount: state.playerCount,
   });
   // Conserve activeStep dans les bornes du nouveau tableau.
   const activeStep = Math.min(state.activeStep, newSteps.length - 1);
