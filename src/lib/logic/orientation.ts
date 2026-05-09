@@ -68,14 +68,15 @@ export interface DefenderOrientationInput {
   pnrRole?: 'tag' | 'x-out' | 'stunt';
   /** Override manuel — corps en absolu (0–360°). Si défini, écrase l'auto. */
   manualBody?: number;
-  /** Override manuel — regard (sera clampé à ±90° du body). */
-  manualGaze?: number;
+  /** Verrouillage du regard sur une cible dynamique. Prioritaire sur la
+   *  logique stance. Le clamp anatomique ±60° reste appliqué après. */
+  gazeLock?: 'opponent' | 'ball-carrier' | 'both';
   /** Delta legacy du curseur orientation (±45°), ajouté au body auto. */
   manualDelta?: number;
 }
 
 export function computeDefenderOrientation(input: DefenderOrientationInput): OrientationResult {
-  const { defenderPos, manPos, ballPos, isCarrierDefender, stance, vsCarrier, pnrRole, manualBody, manualGaze, manualDelta } = input;
+  const { defenderPos, manPos, ballPos, isCarrierDefender, stance, vsCarrier, pnrRole, manualBody, gazeLock, manualDelta } = input;
 
   // ---------------------------------------------------------------------------
   // 1. Cibles des bras — par rôle/stance
@@ -153,10 +154,16 @@ export function computeDefenderOrientation(input: DefenderOrientationInput): Ori
   }
 
   // ---------------------------------------------------------------------------
-  // 3. Gaze (regard) — par rôle/stance, puis CLAMP au demi-cercle frontal.
+  // 3. Gaze (regard) — verrouillage explicite > stance auto, puis CLAMP.
   // ---------------------------------------------------------------------------
   let gazeTarget: Point;
-  if (isCarrierDefender) {
+  if (gazeLock === 'opponent') {
+    gazeTarget = manPos;
+  } else if (gazeLock === 'ball-carrier') {
+    gazeTarget = ballPos;
+  } else if (gazeLock === 'both') {
+    gazeTarget = { x: (manPos.x + ballPos.x) / 2, y: (manPos.y + ballPos.y) / 2 };
+  } else if (isCarrierDefender) {
     gazeTarget = manPos;
   } else if (pnrRole === 'tag' || pnrRole === 'x-out' || pnrRole === 'stunt') {
     gazeTarget = ballPos;
@@ -168,11 +175,8 @@ export function computeDefenderOrientation(input: DefenderOrientationInput): Ori
     gazeTarget = ballPos;
   }
 
-  let gazeAuto = angleFromNorth(defenderPos, gazeTarget);
-  if (typeof manualGaze === 'number') {
-    gazeAuto = normalizeAngle(manualGaze);
-  }
-  // Invariant #1 : clamp gaze à ±90° du corps.
+  const gazeAuto = angleFromNorth(defenderPos, gazeTarget);
+  // Invariant #1 : clamp gaze à ±60° du corps (cohérent avec FOV overlay).
   const gazeOrientation = clampGazeToFrontal(gazeAuto, bodyOrientation);
   const facing = projectFromAngle(defenderPos, gazeOrientation, 30);
 

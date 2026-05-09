@@ -31,6 +31,85 @@ function useClampedPosition(initialX: number, initialY: number, ref: React.RefOb
   return pos;
 }
 
+/**
+ * Rend le popup déplaçable à la souris depuis un drag handle. La position
+ * initiale (clamped) sert de point de départ ; le drag met à jour la
+ * position en suivant le pointer. Le clic-en-dehors qui ferme le popup
+ * doit être désactivé pendant le drag, d'où l'expose `isDragging`.
+ *
+ * Quand `initial` change (popup rouvert pour un autre joueur), la position
+ * revient à `initial` — on n'hérite pas de l'ancien emplacement.
+ */
+function useDraggablePopup(initial: { x: number; y: number }) {
+  const [pos, setPos] = useState(initial);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragOffset = useRef<{ x: number; y: number } | null>(null);
+
+  // Reset à la position initiale quand on ouvre pour un nouveau joueur.
+  useEffect(() => {
+    setPos(initial);
+  }, [initial.x, initial.y]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const onMove = (e: PointerEvent) => {
+      if (!dragOffset.current) return;
+      setPos({
+        x: e.clientX - dragOffset.current.x,
+        y: e.clientY - dragOffset.current.y,
+      });
+    };
+    const onUp = () => {
+      setIsDragging(false);
+      dragOffset.current = null;
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+  }, [isDragging]);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    // L'offset = clic - position actuelle (en coordonnées viewport, pas
+    // parent). Le popup est en `position: absolute` dans son parent ; on
+    // calcule la position parent->viewport pour obtenir un delta cohérent.
+    const parent = (e.currentTarget as HTMLElement).parentElement?.parentElement;
+    const parentRect = parent?.getBoundingClientRect();
+    const parentX = parentRect?.left ?? 0;
+    const parentY = parentRect?.top ?? 0;
+    dragOffset.current = {
+      x: e.clientX - (pos.x + parentX),
+      y: e.clientY - (pos.y + parentY),
+    };
+    setIsDragging(true);
+  };
+
+  return { pos, isDragging, onPointerDown };
+}
+
+function GazeLockButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        fontSize: 11,
+        padding: '3px 6px',
+        borderRadius: 3,
+        border: `1px solid ${active ? '#9a3412' : '#cbd5e1'}`,
+        background: active ? '#ea580c' : '#fff',
+        color: active ? '#fff' : '#475569',
+        cursor: 'pointer',
+        fontWeight: active ? 600 : 400,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
 interface ToolBarProps {
   tool: Tool;
   onSetTool: (t: Tool) => void;
@@ -91,6 +170,9 @@ interface DefenderMenuProps {
   y: number;
   rule: DefenderRule;
   hasOverride: boolean;
+  /** Vrai si ce défenseur marque le porteur de balle. Quand true, l'option
+   *  gazeLock="opponent" est masquée car identique à "ball-carrier". */
+  isCarrierDefender?: boolean;
   tool: Tool;
   onSetTool: (t: Tool) => void;
   onUpdate: (patch: Partial<DefenderRule>) => void;
@@ -131,26 +213,28 @@ export function ContextMenu(props: ContextMenuProps) {
   return <DefenderMenu {...props} />;
 }
 
-function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate, onApplyProfile, onClearOverride, onClose }: DefenderMenuProps) {
+function DefenderMenu({ dId, x, y, rule, hasOverride, isCarrierDefender, tool, onSetTool, onUpdate, onApplyProfile, onClearOverride, onClose }: DefenderMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const pos = useClampedPosition(x, y, ref);
+  const clamped = useClampedPosition(x, y, ref);
+  const drag = useDraggablePopup(clamped);
 
   useEffect(() => {
+    if (drag.isDragging) return;
     const handler = (e: MouseEvent) => {
       if (!ref.current) return;
       if (!ref.current.contains(e.target as Node)) onClose();
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [onClose]);
+  }, [onClose, drag.isDragging]);
 
   return (
     <div
       ref={ref}
       style={{
         position: 'absolute',
-        left: pos.x,
-        top: pos.y,
+        left: drag.pos.x,
+        top: drag.pos.y,
         background: '#fff',
         border: '1px solid #ddd',
         borderRadius: 8,
@@ -160,9 +244,20 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       }}
     >
-      <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>
+      <div
+        onPointerDown={drag.onPointerDown}
+        style={{
+          fontSize: 13,
+          fontWeight: 500,
+          marginBottom: 8,
+          cursor: drag.isDragging ? 'grabbing' : 'grab',
+          userSelect: 'none',
+          touchAction: 'none',
+        }}
+      >
         {dId}
         <span
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={onClose}
           style={{ float: 'right', cursor: 'pointer', color: '#999', fontSize: 14 }}
         >
@@ -399,31 +494,17 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
         )}
       </Row>
       <Row
-        label="orientation regard"
-        title="Override absolu de l'orientation du regard en degrés (0–360°). Sera CLAMPÉ à ±60° du corps effectif (= cône de champ de vision). Si défini, écrase le calcul auto."
+        label="regard"
+        title="Verrouillage du regard sur une cible dynamique (suit la cible étape par étape). Le clamp anatomique ±60° du corps reste prioritaire — si la cible est anatomiquement derrière, le regard est ramené au bord du cône."
       >
-        <input
-          type="range"
-          min={0}
-          max={359}
-          step={5}
-          value={rule.gazeOrientation ?? 0}
-          onChange={(e) => {
-            const v = parseInt(e.target.value);
-            onUpdate({ gazeOrientation: v });
-          }}
-          style={{ flex: 1 }}
-        />
-        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: rule.gazeOrientation !== undefined ? '#9a3412' : '#94a3b8', fontWeight: rule.gazeOrientation !== undefined ? 600 : 400 }}>
-          {rule.gazeOrientation !== undefined ? `${rule.gazeOrientation}°` : 'auto'}
-        </span>
-        {rule.gazeOrientation !== undefined && (
-          <button
-            onClick={() => onUpdate({ gazeOrientation: undefined })}
-            title="Revenir au calcul auto"
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
-          >↻</button>
-        )}
+        <div style={{ display: 'flex', flex: 1, gap: 2, flexWrap: 'wrap' }}>
+          <GazeLockButton label="auto" active={rule.gazeLock === undefined} onClick={() => onUpdate({ gazeLock: undefined })} />
+          {!isCarrierDefender && (
+            <GazeLockButton label="🔒 mon homme" active={rule.gazeLock === 'opponent'} onClick={() => onUpdate({ gazeLock: 'opponent' })} />
+          )}
+          <GazeLockButton label="🔒 le porteur" active={rule.gazeLock === 'ball-carrier'} onClick={() => onUpdate({ gazeLock: 'ball-carrier' })} />
+          <GazeLockButton label="🔒 les deux" active={rule.gazeLock === 'both'} onClick={() => onUpdate({ gazeLock: 'both' })} />
+        </div>
       </Row>
       <Row
         label="vs écran"

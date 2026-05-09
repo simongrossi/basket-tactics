@@ -228,9 +228,14 @@ export interface DefenderRule {
    *  Permet au coach de figer une posture spécifique pour un défenseur,
    *  indépendamment de la stance et de la position du ballon. */
   bodyOrientation?: number;
-  /** Override manuel du regard. Sera clampé à ±90° du `bodyOrientation`
-   *  effectif (règle anatomique inviolable : pas de regard derrière). */
-  gazeOrientation?: number;
+  /** Verrouillage du regard sur une cible dynamique. Le regard suit la
+   *  position courante de la cible étape par étape (vs un angle figé) :
+   *   - 'opponent'     : regard sur l'homme marqué (matchedTo)
+   *   - 'ball-carrier' : regard sur le porteur de balle
+   *   - 'both'         : regard sur le midpoint des deux (head-on-swivel)
+   *  Si non défini : comportement auto selon la stance.
+   *  Le clamp anatomique ±60° du corps reste prioritaire. */
+  gazeLock?: 'opponent' | 'ball-carrier' | 'both';
   /** Affiche un cône de champ de vision autour de ce défenseur (heatmap
    *  semi-transparente, ouverture 120° centrée sur le `gazeOrientation`).
    *  Activable individuellement via le menu contextuel. Default false. */

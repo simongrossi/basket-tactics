@@ -95,18 +95,46 @@ describe('computeDefenderOrientation — convention B + invariants anatomiques',
     expect(r.bodyOrientation).toBeCloseTo(45, 0);
   });
 
-  it("manualGaze respecte le clamp ±90° du body", () => {
+  it("gazeLock respecte le clamp ±60° du body même si la cible est derrière", () => {
     const r = computeDefenderOrientation({
       defenderPos: { x: 300, y: 300 },
-      manPos: { x: 100, y: 100 },
-      ballPos: { x: 500, y: 500 },
+      manPos: { x: 300, y: 100 },   // homme au nord
+      ballPos: { x: 300, y: 500 },  // ballon au sud (= derrière le corps)
       stance: 'sag',
-      manualBody: 0,    // body au nord
-      manualGaze: 200,  // user demande gaze au sud-sud-ouest (impossible anatomiquement)
+      manualBody: 0,                // body forcé au nord
+      gazeLock: 'ball-carrier',     // user veut regard au sud — impossible anatomiquement
     });
-    // Le gaze doit être clampé à 90° (limite frontale est).
+    // Le gaze doit être clampé à 60° max du body (= entre -60° et +60°).
     const diff = Math.abs(angleDiff(r.gazeOrientation, 0));
-    expect(diff).toBeLessThanOrEqual(90 + 0.01);
+    expect(diff).toBeLessThanOrEqual(60 + 0.01);
+  });
+
+  it("gazeLock='opponent' fait pointer le regard vers manPos quand la cible est dans le cône", () => {
+    const r = computeDefenderOrientation({
+      defenderPos: { x: 300, y: 300 },
+      manPos: { x: 400, y: 200 },   // homme au nord-est (~45°)
+      ballPos: { x: 100, y: 500 },  // ballon ailleurs
+      isCarrierDefender: false,
+      stance: 'sag',
+      manualBody: 45,               // corps déjà orienté NE
+      gazeLock: 'opponent',
+    });
+    // Sans clamp, le gaze auto pointerait vers ballPos (sag par défaut).
+    // Avec gazeLock='opponent', on force vers manPos (45°). Body=45°, donc clamp ne joue pas.
+    expect(Math.abs(angleDiff(r.gazeOrientation, 45))).toBeLessThan(1);
+  });
+
+  it("gazeLock='both' pointe le regard vers le midpoint man-ballon", () => {
+    const r = computeDefenderOrientation({
+      defenderPos: { x: 300, y: 300 },
+      manPos: { x: 400, y: 200 },
+      ballPos: { x: 200, y: 200 },
+      stance: 'sag',
+      manualBody: 0,                // body au nord
+      gazeLock: 'both',
+    });
+    // Midpoint = (300, 200), pile au nord du défenseur. Gaze doit être ~0°.
+    expect(Math.abs(angleDiff(r.gazeOrientation, 0))).toBeLessThan(1);
   });
 });
 
