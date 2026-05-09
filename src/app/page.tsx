@@ -153,6 +153,9 @@ export default function Page() {
               onDeleteAction={app.deleteScriptedAction}
               onMoveAction={app.moveScriptedAction}
               onClearAll={app.clearScriptedActions}
+              onAddDefensiveAction={app.addDefensiveAction}
+              onUpdateDefensiveAction={app.updateDefensiveAction}
+              onDeleteDefensiveAction={app.deleteDefensiveAction}
             />
             <LibraryPanel
               state={app.state}

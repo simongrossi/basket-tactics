@@ -1,14 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { AttackerId, ScriptedAction, OffensiveScriptedAction, ActionSide, DriveDirection } from '@/lib/types';
+import type {
+  AttackerId, ScriptedAction, OffensiveScriptedAction, ActionSide, DriveDirection,
+  DefensiveActionType, DefensiveActionParams, DefensiveScriptedAction,
+} from '@/lib/types';
 import {
   SCRIPTED_ACTIONS_CATALOG,
   SCRIPTED_ACTIONS_BY_CATEGORY,
   type ParamKind,
   type ScriptedActionDefinition,
 } from '@/lib/data/scriptedActionsCatalog';
+import { DEFENSIVE_ACTIONS_CATALOG } from '@/lib/data/defensiveActionsCatalog';
 import { newScriptedActionId } from '@/lib/logic/compileScenario';
+import { inferDefensiveDefaults } from '@/lib/logic/defensiveDefaults';
+import { AddCoverageModal } from './AddCoverageModal';
 import { Panel, Button, COLORS } from './ui';
 
 const ATTACKER_IDS: AttackerId[] = ['O1', 'O2', 'O3', 'O4', 'O5'];
@@ -39,11 +45,20 @@ interface ScenarioPanelProps {
   onDeleteAction: (id: string) => void;
   onMoveAction: (id: string, dir: 'up' | 'down') => void;
   onClearAll: () => void;
+  onAddDefensiveAction: (
+    type: DefensiveActionType,
+    params: DefensiveActionParams,
+    parentActionId?: string,
+    affectedSteps?: number[],
+  ) => void;
+  onUpdateDefensiveAction: (id: string, updated: DefensiveScriptedAction) => void;
+  onDeleteDefensiveAction: (id: string) => void;
 }
 
 export function ScenarioPanel(props: ScenarioPanelProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [addCoverageFor, setAddCoverageFor] = useState<string | null>(null);
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -180,18 +195,61 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                   >▼ descendre</button>
                 </div>
 
-                {/* Placeholder zone couvertures — implémenté Task 6 */}
-                <div style={{
-                  marginTop: 12, paddingTop: 10,
-                  borderTop: '1px dashed #e2e8f0',
-                }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#1e3a8a', marginBottom: 6 }}>
-                    🛡️ COUVERTURES DÉFENSIVES
-                  </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>
-                    (à implémenter Task 6)
-                  </div>
-                </div>
+                {/* Couvertures défensives attachées à cette offensive */}
+                {(() => {
+                  const attached = props.scriptedActions.filter(
+                    (a): a is DefensiveScriptedAction =>
+                      a.kind === 'defensive' && a.parentActionId === action.id,
+                  );
+                  return (
+                    <div style={{
+                      marginTop: 12, paddingTop: 10,
+                      borderTop: '1px dashed #e2e8f0',
+                    }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#1e3a8a', marginBottom: 6 }}>
+                        🛡️ COUVERTURES DÉFENSIVES
+                      </div>
+                      {attached.length === 0 ? (
+                        <div style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic', marginBottom: 6 }}>
+                          (aucune)
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 6 }}>
+                          {attached.map((cov) => {
+                            const cdef = DEFENSIVE_ACTIONS_CATALOG[cov.type];
+                            return (
+                              <div key={cov.id} style={{
+                                background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: 4,
+                                padding: '6px 8px', fontSize: 11, display: 'flex',
+                                alignItems: 'center', gap: 6,
+                              }}>
+                                <span style={{ fontWeight: 600, color: '#1e3a8a' }}>{cdef.label}</span>
+                                <span style={{ color: '#475569', flex: 1 }}>{cdef.reader(cov.params)}</span>
+                                <button
+                                  onClick={() => props.onDeleteDefensiveAction(cov.id)}
+                                  style={{
+                                    border: 'none', background: 'transparent', cursor: 'pointer',
+                                    fontSize: 12, color: '#dc2626',
+                                  }}
+                                  title="Supprimer la couverture"
+                                >✕</button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => setAddCoverageFor(action.id)}
+                        style={{
+                          fontSize: 11, padding: '5px 10px',
+                          border: '1px solid #1e3a8a', borderRadius: 4,
+                          background: '#fff', color: '#1e3a8a', cursor: 'pointer',
+                          fontWeight: 600,
+                        }}
+                      >+ ajouter une couverture</button>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -214,6 +272,21 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
       {showAddModal && (
         <AddActionModal onClose={() => setShowAddModal(false)} onPick={handlePickAction} />
       )}
+
+      {addCoverageFor && (() => {
+        const parent = props.scriptedActions.find((a) => a.id === addCoverageFor);
+        if (!parent || parent.kind !== 'offensive') return null;
+        return (
+          <AddCoverageModal
+            onClose={() => setAddCoverageFor(null)}
+            onPick={(type: DefensiveActionType) => {
+              const params = inferDefensiveDefaults(type, parent);
+              props.onAddDefensiveAction(type, params, parent.id);
+              setAddCoverageFor(null);
+            }}
+          />
+        );
+      })()}
     </Panel>
   );
 }

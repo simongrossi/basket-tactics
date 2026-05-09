@@ -12,13 +12,16 @@ import type {
   DefenderRule,
   DefenseSystem,
   ZoneConfig,
+  DefensiveActionType,
+  DefensiveActionParams,
+  DefensiveScriptedAction,
 } from '@/lib/types';
 import { makeInitialState, makeStep, initialOff, initialDef } from '@/lib/data/initial';
 import { getZoneLayout, mirrorZoneLayout } from '@/lib/data/zones';
 import type { Template } from '@/lib/data/templates';
 import type { DefensePreset } from '@/lib/data/defensePresets';
 import type { DefenderProfile } from '@/lib/data/defenderProfiles';
-import { compileScenario } from '@/lib/logic/compileScenario';
+import { compileScenario, newScriptedActionId } from '@/lib/logic/compileScenario';
 import { migrateScriptedActions } from '@/lib/logic/scriptedActionMigration';
 
 const STORAGE_KEY = 'basket-tactics-state-v1';
@@ -595,6 +598,47 @@ export function useAppState() {
     // existants restent intacts.
   }, []);
 
+  // ============================================================
+  // Actions défensives scriptées (Phase 3 — Task 6)
+  // ============================================================
+
+  const addDefensiveAction = useCallback((
+    type: DefensiveActionType,
+    params: DefensiveActionParams,
+    parentActionId?: string,
+    affectedSteps?: number[],
+  ) => {
+    const newAction: DefensiveScriptedAction = {
+      kind: 'defensive',
+      id: newScriptedActionId(),
+      type,
+      parentActionId,
+      affectedSteps,
+      params,
+    };
+    setStateWithHistory((s) => {
+      const next: AppState = {
+        ...s,
+        scriptedActions: [...(s.scriptedActions ?? []), newAction],
+      };
+      return recompileScenarioSteps(next);
+    });
+  }, []);
+
+  const updateDefensiveAction = useCallback((id: string, updated: DefensiveScriptedAction) => {
+    setStateWithHistory((s) => {
+      const list = (s.scriptedActions ?? []).map((a) => (a.id === id ? updated : a));
+      return recompileScenarioSteps({ ...s, scriptedActions: list });
+    });
+  }, []);
+
+  const deleteDefensiveAction = useCallback((id: string) => {
+    setStateWithHistory((s) => {
+      const list = (s.scriptedActions ?? []).filter((a) => a.id !== id);
+      return recompileScenarioSteps({ ...s, scriptedActions: list });
+    });
+  }, []);
+
   return {
     state,
     undo,
@@ -637,5 +681,8 @@ export function useAppState() {
     deleteScriptedAction,
     moveScriptedAction,
     clearScriptedActions,
+    addDefensiveAction,
+    updateDefensiveAction,
+    deleteDefensiveAction,
   };
 }
