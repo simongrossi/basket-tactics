@@ -61,4 +61,18 @@ describe('dribbleWavePath', () => {
     expect(d).toMatch(/^M 0 0/);
     expect(d).toMatch(/L 100 0$/);
   });
+
+  it('interior knots alternate sign with amplitude 5 (horizontal segment, segs=7)', () => {
+    // For from=(0,0), to=(100,0): len=100, segs = max(4, round(100/14)) = 7.
+    // Interior knots are at idx=1..6. Sign convention: idx%2===0 ? 1 : -1.
+    // Normal vector for horizontal segment is (0, 1), so y = sign * AMPLITUDE = ±5.
+    const d = dribbleWavePath({ x: 0, y: 0 }, { x: 100, y: 0 });
+    // Parse all "L x y" tokens after the initial "M".
+    const tokens = d.match(/L (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g) ?? [];
+    expect(tokens).toHaveLength(7); // 6 interior + final
+    const ys = tokens.map((t) => Number(t.split(' ')[2]));
+    // Interior 6 knots, then final at y=0.
+    const expected = [-5, 5, -5, 5, -5, 5, 0];
+    ys.forEach((y, i) => expect(y).toBeCloseTo(expected[i], 5));
+  });
 });

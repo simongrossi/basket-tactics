@@ -8,7 +8,7 @@ function geometry(from: Point, to: Point) {
   const dy = to.y - from.y;
   const len = Math.hypot(dx, dy) || 1;
   return {
-    dx, dy, len,
+    dx, dy,
     nx: -dy / len,
     ny: dx / len,
     segs: Math.max(4, Math.round(len / WAVELENGTH)),
