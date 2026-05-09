@@ -24,21 +24,22 @@ Helpers : `metersToPx(m)` et `pxToMeters(px)` pour les conversions.
 
 | Constante | Valeur | Sémantique |
 |---|---|---|
-| `DEFAULT_DEFENSE_MAX_SPEED_PX` | 110 px/étape | ≈ 3 m sur 1,5 s = **2 m/s**. Vitesse "tactique" (placement, pas sprint). Tunable via `state.defenseMaxSpeed`. |
+| `DEFAULT_DEFENSE_MAX_SPEED_PX` | 110 px/étape | ≈ 3 m sur 2 s = **1,5 m/s**. Vitesse "tactique" (placement, pas sprint). Tunable via `state.defenseMaxSpeed`. |
 | `DEFAULT_DEFENSE_DISTANCE_PX` | 40 px | ≈ 1,08 m. Distance défenseur ↔ son homme (à un bras). Tunable via `state.defenseDistance` ou `rule.distance` per-défenseur. |
 | `DEFAULT_CLOSEOUT_BOOST` | 1.4 | +40 % de vitesse pour le défenseur du nouveau porteur sur la transition de balle. Modulé par le profil offensif via `closeoutProfileBonus` (shooter ×1.15, non-shooter ×0.85). |
+| `PLAYBACK_STEP_DURATION_MS` | 2000 ms | Durée d'une étape en lecture à `playbackSpeed = 1×`. Le slider 0.3×–2× module via `stepDuration = BASE / speed` (de ~6,7 s à 1 s par étape). |
 
 ### Vitesses par poste
 
 `MAX_SPEED_BY_POSITION_PX` modélise la mobilité réelle :
 
-| Poste | px/étape | m/étape | m/s (à 1,5 s) | Profil |
+| Poste | px/étape | m/étape | m/s (à 2 s) | Profil |
 |---|---|---|---|---|
-| `guard` | 145 | 3,9 | 2,6 | meneur perimeter, mobile |
-| `shootingGuard` | 130 | 3,5 | 2,3 | arrière |
-| `wing` | 110 | 3,0 | 2,0 | ailier (= défaut moteur) |
-| `forward` | 90 | 2,4 | 1,6 | ailier fort |
-| `center` | 75 | 2,0 | 1,4 | pivot, raquette |
+| `guard` | 145 | 3,9 | 2,0 | meneur perimeter, mobile |
+| `shootingGuard` | 130 | 3,5 | 1,8 | arrière |
+| `wing` | 110 | 3,0 | 1,5 | ailier (= défaut moteur) |
+| `forward` | 90 | 2,4 | 1,2 | ailier fort |
+| `center` | 75 | 2,0 | 1,0 | pivot, raquette |
 
 Ces valeurs sont **sous-réelles** (un sprint NBA atteint 7 m/s). C'est volontaire : le simulateur travaille au pas tactique, pas au pas physique. Augmenter ces valeurs réduit l'effet "défense en retard" sur les rotations longues mais rend le moteur plus permissif.
 

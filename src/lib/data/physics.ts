@@ -55,7 +55,7 @@ export const MIN_PLAYER_CLEARANCE_PX = PLAYER_RADIUS * 2 + 2;
 
 /**
  * Vitesse max par défaut d'un défenseur en px/étape (sans override par
- * `rule.maxSpeed`). 110 px ≈ 3 m, soit ~2 m/s à 1.5 s/étape — c'est de
+ * `rule.maxSpeed`). 110 px ≈ 3 m, soit ~1.5 m/s à 2 s/étape — c'est de
  * la position tactique, pas du sprint absolu.
  */
 export const DEFAULT_DEFENSE_MAX_SPEED_PX = 110;
@@ -96,7 +96,8 @@ export const DEFAULT_DENY_AGGRESSIVENESS = 0.45;
  *  - ailier fort (D4) : ~2.4 m/étape
  *  - pivot (D5) : ~2.0 m/étape (lent, raquette)
  *
- * Conversion : valeur_px / PX_PER_M = mètres parcourus en 1.5 s.
+ * Conversion : valeur_px / PX_PER_M = mètres parcourus en 2 s (cf.
+ * `PLAYBACK_STEP_DURATION_MS`).
  */
 export const MAX_SPEED_BY_POSITION_PX = {
   guard: 145,        // D1 — meneur
@@ -127,3 +128,21 @@ export const DEFAULT_SCREEN_RADIUS_PX = 35;
  * pivot sur drive (entre la raquette et le rim).
  */
 export const RIM_PROTECTION_DROP_ZONE_PX = 75;
+
+// =============================================================
+// Lecture / animation
+// =============================================================
+
+/**
+ * Durée d'une étape en lecture à `playbackSpeed = 1×`, en millisecondes.
+ * Le slider de vitesse (0.3× → 2×) module cette base : `stepDuration = BASE / speed`.
+ *
+ * 2000 ms = 2 s par étape à 1×, soit ~2 m/s pour un cut moyen de 4 m. C'est
+ * volontairement lent — le but est de **lire** la tactique (qui bouge où,
+ * dans quel ordre), pas de simuler la vitesse réelle d'un joueur (≈ 7 m/s
+ * en sprint). Pour une lecture rapide, le slider 2× ramène à 1 s par étape.
+ *
+ * Cohérence : `MAX_SPEED_BY_POSITION_PX` est calibré pour cette base (cf.
+ * conversion px/étape → m/s dans la JSDoc de la constante).
+ */
+export const PLAYBACK_STEP_DURATION_MS = 2000;

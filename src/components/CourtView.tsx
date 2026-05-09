@@ -34,6 +34,7 @@ import { detectTriggers } from '@/lib/logic/triggers';
 import { getZoneLayout, mirrorZoneLayout, applyZoneOverrides } from '@/lib/data/zones';
 import { ZoneEditOverlay, ZoneRegionMenu } from './ZoneEditOverlay';
 import { COURT, PLAYER_RADIUS, FULL_COURT_HEIGHT, FULL_COURT_INNER_MAX_Y } from '@/lib/data/court';
+import { PLAYBACK_STEP_DURATION_MS } from '@/lib/data/physics';
 import {
   clamp, distance, curveAroundObstacle, resolvePlayerCollisions, makeCluster,
   pickBlockingCluster, pickStaggeredPair, curveAroundStaggeredPair, computeBallFrame,
@@ -144,7 +145,7 @@ export function CourtView(props: CourtViewProps) {
       setPlayFrame(null);
       return;
     }
-    const stepDuration = 1500 / props.playbackSpeed;
+    const stepDuration = PLAYBACK_STEP_DURATION_MS / props.playbackSpeed;
     // Décale playStart en arrière pour que `elapsed = now - playStart` reflète
     // déjà l'instant t demandé. Permet de reprendre depuis la pause au lieu
     // de redémarrer du début.
@@ -153,7 +154,7 @@ export function CourtView(props: CourtViewProps) {
     const tick = () => {
       const cur = stateRef.current;
       const elapsed = performance.now() - playStart.current;
-      const stepDuration = 1500 / props.playbackSpeed;
+      const stepDuration = PLAYBACK_STEP_DURATION_MS / props.playbackSpeed;
       const totalSteps = cur.steps.length - 1;
       if (totalSteps <= 0) {
         window.clearInterval(intervalId);

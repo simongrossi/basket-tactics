@@ -201,7 +201,7 @@ La cinématique : comment un joueur passe d'un point A à un point B, à quelle 
 
 #### Joueurs
 - `PLAYER_RADIUS = 16` px ≈ **43 cm** — rayon du cercle joueur (silhouette épaule à épaule).
-- Vitesses max par défaut (`defaultRules`) en px/étape : meneur 145, arrière 130, ailier 110, ailier fort 90, pivot 75. À 30 fps × 1500 ms par étape (`stepDuration`), le meneur couvre ~145 px ≈ **3,9 m/étape ≈ 2,6 m/s** (volontairement bas — c'est de la position tactique, pas du sprint).
+- Vitesses max par défaut (`defaultRules`) en px/étape : meneur 145, arrière 130, ailier 110, ailier fort 90, pivot 75. À 30 fps × 2000 ms par étape (`PLAYBACK_STEP_DURATION_MS`), le meneur couvre ~145 px ≈ **3,9 m/étape ≈ 2,0 m/s** (volontairement bas — c'est de la position tactique, pas du sprint).
 - `closeoutBoost = 1.4` × `closeoutProfileBonus` (1.15 sur shooter, 0.85 sur non-shooter).
 - Borné par `proximityFriction` qui multiplie la vitesse par un facteur ∈ [0, 1] selon la proximité d'obstacles non-matchés.
 
