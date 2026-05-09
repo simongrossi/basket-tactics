@@ -1,10 +1,38 @@
 import type { Annotation, Point } from '@/lib/types';
 import { dribbleWavePath } from '@/lib/logic/dribbleWave';
 import { polylinePath } from '@/lib/logic/polyline';
+import { PLAYER_RADIUS } from '@/lib/data/court';
 
 interface AnnotationProps {
   annotation: Annotation;
   preview?: boolean;
+}
+
+/** Marge en plus du rayon joueur pour que la pointe de flèche reste lisible
+ *  juste avant le cercle, sans toucher le badge. */
+const ARROW_END_PADDING = PLAYER_RADIUS + 4;
+
+/** Raccourcit `to` de `amount` px le long de la direction `from → to`, pour
+ *  que la pointe de flèche s'affiche AVANT le cercle joueur cible (sinon le
+ *  cercle masque la pointe puisqu'il est rendu par-dessus les annotations). */
+function shrinkEnd(from: Point, to: Point, amount: number): Point {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const d = Math.hypot(dx, dy);
+  if (d <= amount) return { ...to };
+  const k = (d - amount) / d;
+  return { x: from.x + dx * k, y: from.y + dy * k };
+}
+
+/** Comme `shrinkEnd` mais sur le dernier segment d'une polyline (pour les
+ *  trajectoires courbes via waypoints). Préserve les autres points. */
+function shrinkPolylineEnd(points: Point[], amount: number): Point[] {
+  if (points.length < 2) return points;
+  const out = points.slice(0, -1);
+  const last = points[points.length - 1];
+  const before = points[points.length - 2];
+  out.push(shrinkEnd(before, last, amount));
+  return out;
 }
 
 function annotationPoints(ann: Annotation): Point[] {
@@ -16,6 +44,14 @@ function annotationPoints(ann: Annotation): Point[] {
 export function AnnotationView({ annotation, preview }: AnnotationProps) {
   const { type, from, to } = annotation;
   const hasWaypoints = !!annotation.waypoints && annotation.waypoints.length > 0;
+
+  // Cible visuelle de la pointe de flèche : raccourcie pour ne pas être
+  // masquée par le cercle du joueur d'arrivée. Pas appliqué au screen (la
+  // barre en T se positionne sur `to` réel).
+  const visualTo = type === 'screen' ? to : shrinkEnd(from, to, ARROW_END_PADDING);
+  const visualPoints = hasWaypoints
+    ? shrinkPolylineEnd(annotationPoints(annotation), ARROW_END_PADDING)
+    : null;
 
   if (type === 'screen') {
     const dx = to.x - from.x;
@@ -53,9 +89,9 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
   if (type === 'dribble') {
     // Avec waypoints : path lisse via Catmull-Rom (la wave standard ne s'applique
     // pas à une polyline, l'utilisateur a dessiné explicitement la trajectoire).
-    const d = hasWaypoints
-      ? polylinePath(annotationPoints(annotation))
-      : dribbleWavePath(from, to);
+    const d = hasWaypoints && visualPoints
+      ? polylinePath(visualPoints)
+      : dribbleWavePath(from, visualTo);
     return (
       <path
         d={d}
@@ -73,8 +109,8 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
       <line
         x1={from.x}
         y1={from.y}
-        x2={to.x}
-        y2={to.y}
+        x2={visualTo.x}
+        y2={visualTo.y}
         stroke="#D85A30"
         strokeWidth={2.5}
         strokeDasharray="3 5"
@@ -85,10 +121,10 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
   }
 
   // cut (et fallback)
-  if (hasWaypoints) {
+  if (hasWaypoints && visualPoints) {
     return (
       <path
-        d={polylinePath(annotationPoints(annotation))}
+        d={polylinePath(visualPoints)}
         fill="none"
         stroke="#5F5E5A"
         strokeWidth={2.5}
@@ -101,8 +137,8 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
     <line
       x1={from.x}
       y1={from.y}
-      x2={to.x}
-      y2={to.y}
+      x2={visualTo.x}
+      y2={visualTo.y}
       stroke="#5F5E5A"
       strokeWidth={2.5}
       markerEnd="url(#arrow-gray)"
