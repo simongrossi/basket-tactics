@@ -25,6 +25,12 @@ import type { DefenderProfile } from '@/lib/data/defenderProfiles';
 import { compileScenario, newScriptedActionId } from '@/lib/logic/compileScenario';
 import { migrateScriptedActions } from '@/lib/logic/scriptedActionMigration';
 import { normalizePlayerCount, normalizeStateForPlayerCount } from '@/lib/logic/players';
+import {
+  setPlayerPositionAt,
+  upsertMovementAnnotation,
+  upsertPassAnnotation,
+  removeAnnotation as removeAnnotationFromSteps,
+} from '@/lib/logic/stepMutations';
 
 const STORAGE_KEY = 'basket-tactics-state-v1';
 
@@ -191,13 +197,13 @@ export function useAppState() {
 
   const moveAttacker = useCallback((id: AttackerId, x: number, y: number) => {
     setStateWithHistory((s) => {
-      const steps = [...s.steps];
-      const cur = { ...steps[s.activeStep] };
-      cur.off = { ...cur.off, [id]: { x, y } };
-      // Si ce step provient du scénario, on le marque comme édité manuellement
-      // pour qu'il survive à la prochaine recompile.
-      if (s.activeStep > 0 && cur.generatedBy) cur.manualOverride = true;
-      steps[s.activeStep] = cur;
+      const steps = setPlayerPositionAt(s.steps, s.activeStep, id, { x, y });
+      // Préserver la sémantique manualOverride si le step venait du scénario.
+      if (s.activeStep > 0 && steps[s.activeStep].generatedBy) {
+        const next = [...steps];
+        next[s.activeStep] = { ...next[s.activeStep], manualOverride: true };
+        return { ...s, steps: next };
+      }
       return { ...s, steps };
     });
   }, []);
@@ -250,14 +256,23 @@ export function useAppState() {
 
   const addAnnotation = useCallback((annotation: Annotation) => {
     setStateWithHistory((s) => {
-      const steps = [...s.steps];
-      const cur = { ...steps[s.activeStep] };
-      cur.annotations = [...cur.annotations, annotation];
-      if (annotation.type === 'pass' && annotation.toId) {
-        cur.ballCarrier = annotation.toId;
+      let steps: Step[];
+      if (annotation.type === 'pass') {
+        steps = upsertPassAnnotation(s.steps, s.activeStep, annotation);
+        // Conserver l'effet de bord existant : passe → ballCarrier change
+        if (annotation.toId) {
+          steps = steps.map((st, i) =>
+            i === s.activeStep ? { ...st, ballCarrier: annotation.toId! } : st,
+          );
+        }
+      } else {
+        steps = upsertMovementAnnotation(s.steps, s.activeStep, annotation);
       }
-      if (s.activeStep > 0 && cur.generatedBy) cur.manualOverride = true;
-      steps[s.activeStep] = cur;
+      if (s.activeStep > 0 && steps[s.activeStep].generatedBy) {
+        const next = [...steps];
+        next[s.activeStep] = { ...next[s.activeStep], manualOverride: true };
+        return { ...s, steps: next };
+      }
       return { ...s, steps };
     });
   }, []);
@@ -275,10 +290,17 @@ export function useAppState() {
 
   const clearAnnotationsFor = useCallback((oId: AttackerId) => {
     setStateWithHistory((s) => {
-      const steps = [...s.steps];
-      const cur = { ...steps[s.activeStep] };
-      cur.annotations = cur.annotations.filter((a) => a.fromId !== oId);
-      steps[s.activeStep] = cur;
+      let steps = s.steps;
+      const cur = steps[s.activeStep];
+      if (!cur) return s;
+      // Supprimer en partant de la fin pour préserver les indices
+      const indices = cur.annotations
+        .map((a, i) => (a.fromId === oId ? i : -1))
+        .filter((i) => i >= 0)
+        .reverse();
+      for (const idx of indices) {
+        steps = removeAnnotationFromSteps(steps, s.activeStep, idx);
+      }
       return { ...s, steps };
     });
   }, []);
@@ -287,8 +309,7 @@ export function useAppState() {
     setStateWithHistory((s) => {
       const cur = s.steps[s.activeStep];
       if (!cur || cur.annotations.length === 0) return s;
-      const steps = [...s.steps];
-      steps[s.activeStep] = { ...cur, annotations: cur.annotations.slice(0, -1) };
+      const steps = removeAnnotationFromSteps(s.steps, s.activeStep, cur.annotations.length - 1);
       return { ...s, steps };
     });
   }, []);
@@ -297,11 +318,7 @@ export function useAppState() {
     setStateWithHistory((s) => {
       const cur = s.steps[s.activeStep];
       if (!cur || idx < 0 || idx >= cur.annotations.length) return s;
-      const steps = [...s.steps];
-      steps[s.activeStep] = {
-        ...cur,
-        annotations: cur.annotations.filter((_, i) => i !== idx),
-      };
+      const steps = removeAnnotationFromSteps(s.steps, s.activeStep, idx);
       return { ...s, steps };
     });
   }, []);
