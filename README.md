@@ -4,7 +4,7 @@ Simulateur tactique de basket-ball pour visualiser des systèmes offensifs et ob
 
 > Pas de backend, pas de compte, pas de tracking. Tu lances `npm run dev`, c'est joué.
 
-**Version actuelle : 0.7.0** (2026-05-09) — cycle "pictogramme + champ de vision + overrides manuels" : convention B asymétrique, invariants anatomiques (regard ∈ ±60° du corps), champ de vision en cônes heatmap (cyan défenseurs / orange attaquants), sliders manuels corps + regard, Paramètres en pop-up. Voir [CHANGELOG.md](CHANGELOG.md).
+**Version actuelle : 0.8.0** (2026-05-10) — cycle **"lecture animée fidèle"** : trajectoires courbes (V-cut, L-cut, dribble curviligne via Shift+drag freehand, spline Catmull-Rom reparamétrée en longueur d'arc), suivi temps-réel des défenseurs sur les courbes (`followDefendersAtFrame`), `hedge` complet (D1 over the top + D5 show), regard auto distance-based (basculement ballon↔homme selon proximité), pause/reprise depuis l'instant t, dribble en wave Q-Bezier lisse, base de lecture ralentie à 2 s/étape. Voir [CHANGELOG.md](CHANGELOG.md). Précédente version : 0.7.0 (2026-05-09) — cycle "pictogramme + champ de vision + overrides manuels".
 
 ---
 
@@ -21,7 +21,7 @@ Autres commandes utiles :
 
 ```bash
 npm run type-check   # tsc --noEmit
-npm test             # Vitest — 188 tests sur la logique pure
+npm test             # Vitest — 302 tests sur la logique pure
 npm run test:watch   # Vitest en mode watch
 npm run build        # build de production statique
 ```
