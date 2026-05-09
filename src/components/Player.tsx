@@ -121,7 +121,7 @@ export function Player({
            * matérialisant que le joueur "voit" tout ce qui est entre ses bras.
            */}
           <path
-            d={`M ${pos.x - r * 0.4} ${pos.y + r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
+            d={`M ${pos.x - r * 0.7} ${pos.y} Q ${pos.x - r * 2.0} ${pos.y - r * 0.5} ${pos.x - r * 1.8} ${pos.y - r * 1.4}`}
             fill="none"
             stroke={stroke}
             strokeWidth={isAttacker ? 1.8 : 2.5}
@@ -129,7 +129,7 @@ export function Player({
             opacity={isAttacker ? 0.7 : 1}
           />
           <path
-            d={`M ${pos.x + r * 0.4} ${pos.y + r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
+            d={`M ${pos.x + r * 0.7} ${pos.y} Q ${pos.x + r * 2.0} ${pos.y - r * 0.5} ${pos.x + r * 1.8} ${pos.y - r * 1.4}`}
             fill="none"
             stroke={stroke}
             strokeWidth={isAttacker ? 1.8 : 2.5}
