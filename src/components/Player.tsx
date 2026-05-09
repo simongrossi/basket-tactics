@@ -40,6 +40,13 @@ interface PlayerProps {
   showForcedScreenerBadge?: boolean;
   /** Rôle PnR (P1) — affiche un anneau distinct selon la rotation. */
   pnrRole?: 'tag' | 'x-out' | 'stunt';
+  /**
+   * Attaquant en position d'écran posé. Aucun rendu spécifique dans Player :
+   * le cue visuel est piloté en amont par CourtView via `gazeOrientation`
+   * (override vers le défenseur du porteur). Cette prop est conservée pour
+   * que d'éventuels overlays de debug puissent l'exploiter.
+   */
+  isScreening?: boolean;
 }
 
 export function Player({
@@ -67,6 +74,7 @@ export function Player({
   showDenyingRing = true,
   showForcedScreenerBadge = true,
   pnrRole,
+  isScreening: _isScreening,
 }: PlayerProps) {
   const fill = isAttacker ? '#D85A30' : '#378ADD';
 

@@ -4,9 +4,10 @@
 // main (`manualOverride: true`) en les réinjectant à leur position d'origine
 // dans le groupe de l'action qui les a générés.
 
-import type { AttackerPositions, AttackerId, DefensiveScriptedAction, ScriptedAction, Step } from '@/lib/types';
+import type { AttackerPositions, AttackerId, DefensiveScriptedAction, PlayerCount, ScriptedAction, Step } from '@/lib/types';
 import { SCRIPTED_GENERATORS } from './scriptedGenerators';
 import { applyDefensivePass, type ParentRangeMap } from './defensiveCompilation';
+import { ensureAnnotationsForMovement } from './migrateAnnotations';
 
 export interface CompileInput {
   initialOff: AttackerPositions;
@@ -15,6 +16,9 @@ export interface CompileInput {
   /** Steps existants (utilisés pour préserver les manualOverride par actionId
    *  + ordre relatif intra-action). */
   existingSteps?: Step[];
+  /** Nombre de joueurs actifs. Utilisé par la migration d'annotations pour
+   *  éviter de traiter des joueurs absents (ex. O5 en mode 4 joueurs). */
+  playerCount?: PlayerCount;
 }
 
 export function compileScenario(input: CompileInput): Step[] {
@@ -80,7 +84,7 @@ export function compileScenario(input: CompileInput): Step[] {
     applyDefensivePass(result, defensives, parentRanges);
   }
 
-  return result;
+  return ensureAnnotationsForMovement(result, input.playerCount ?? 5);
 }
 
 /** Convertit `crypto.randomUUID()` ou un fallback simple. */
