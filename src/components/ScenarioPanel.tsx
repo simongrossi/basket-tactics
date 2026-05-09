@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import type { AttackerId, ScriptedAction, ScriptedActionType, ActionSide, DriveDirection } from '@/lib/types';
+import { useState, useEffect } from 'react';
+import type { AttackerId, ScriptedAction, ActionSide, DriveDirection } from '@/lib/types';
 import {
   SCRIPTED_ACTIONS_CATALOG,
   SCRIPTED_ACTIONS_BY_CATEGORY,
@@ -9,7 +9,7 @@ import {
   type ScriptedActionDefinition,
 } from '@/lib/data/scriptedActionsCatalog';
 import { newScriptedActionId } from '@/lib/logic/compileScenario';
-import { Panel, Section, Button, COLORS } from './ui';
+import { Panel, Button, COLORS } from './ui';
 
 const ATTACKER_IDS: AttackerId[] = ['O1', 'O2', 'O3', 'O4', 'O5'];
 const SIDES: ActionSide[] = ['fort', 'faible', 'axe'];
@@ -42,9 +42,28 @@ interface ScenarioPanelProps {
 }
 
 export function ScenarioPanel(props: ScenarioPanelProps) {
-  const [adding, setAdding] = useState<ScriptedActionType | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const c = COLORS.offense;
+
+  // Échap ferme le modal
+  useEffect(() => {
+    if (!showAddModal) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowAddModal(false); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [showAddModal]);
+
+  const handlePickAction = (def: ScriptedActionDefinition) => {
+    const newAction: ScriptedAction = {
+      id: newScriptedActionId(),
+      type: def.type,
+      params: defaultParamsFor(def),
+    };
+    props.onAddAction(newAction);
+    setEditingId(newAction.id);
+    setShowAddModal(false);
+  };
 
   return (
     <Panel theme="offense" title="🎬 Scénario">
@@ -114,44 +133,10 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
         );
       })}
 
-      {/* Sélecteur d'ajout */}
-      <Section theme="offense" label="➕ Ajouter une action" open={adding === null && props.scriptedActions.length === 0}>
-        {Object.entries(SCRIPTED_ACTIONS_BY_CATEGORY).map(([category, defs]) => (
-          <div key={category} style={{ marginBottom: 6 }}>
-            <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', marginBottom: 3, letterSpacing: 0.5 }}>
-              {category}
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-              {defs.map((def) => (
-                <button
-                  key={def.type}
-                  onClick={() => {
-                    const newAction: ScriptedAction = {
-                      id: newScriptedActionId(),
-                      type: def.type,
-                      params: defaultParamsFor(def),
-                    };
-                    props.onAddAction(newAction);
-                    setEditingId(newAction.id);
-                  }}
-                  title={def.description}
-                  style={{
-                    fontSize: 11,
-                    padding: '4px 8px',
-                    borderRadius: 5,
-                    border: `1px solid ${c.border}`,
-                    background: '#fff',
-                    color: c.accentText,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {def.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-      </Section>
+      {/* Bouton d'ajout (déclenche le modal) */}
+      <Button theme="offense" variant="solid" fullWidth onClick={() => setShowAddModal(true)}>
+        ➕ Ajouter une action
+      </Button>
 
       {props.scriptedActions.length > 0 && (
         <Button theme="neutral" onClick={() => {
@@ -160,7 +145,149 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
           🗑 Effacer le scénario
         </Button>
       )}
+
+      {showAddModal && (
+        <AddActionModal onClose={() => setShowAddModal(false)} onPick={handlePickAction} />
+      )}
     </Panel>
+  );
+}
+
+// ============================================================
+// Modal popup d'ajout d'action
+// ============================================================
+
+interface AddActionModalProps {
+  onClose: () => void;
+  onPick: (def: ScriptedActionDefinition) => void;
+}
+
+function AddActionModal({ onClose, onPick }: AddActionModalProps) {
+  const c = COLORS.offense;
+  const [filter, setFilter] = useState('');
+  const filterLower = filter.trim().toLowerCase();
+
+  const matches = (def: ScriptedActionDefinition) =>
+    !filterLower ||
+    def.label.toLowerCase().includes(filterLower) ||
+    def.fibaTerm.toLowerCase().includes(filterLower) ||
+    def.description.toLowerCase().includes(filterLower);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(15, 23, 42, 0.45)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: 20,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#fff',
+          borderRadius: 12,
+          width: 'min(640px, 100%)',
+          maxHeight: '85vh',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 20px 60px rgba(15, 23, 42, 0.3)',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            padding: '14px 18px',
+            borderBottom: `1px solid ${c.border}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: 14, fontWeight: 700, color: c.accentText, flex: 1 }}>
+            🎬 Ajouter une action FIBA
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              fontSize: 13, padding: '4px 10px', borderRadius: 6,
+              border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', color: '#475569',
+            }}
+            title="Fermer (Échap)"
+          >✕</button>
+        </div>
+
+        <div style={{ padding: '10px 18px', borderBottom: `1px solid ${c.border}` }}>
+          <input
+            type="text"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Filtrer (ex : flare, drive, hammer…)"
+            autoFocus
+            style={{
+              width: '100%',
+              fontSize: 13,
+              padding: '7px 10px',
+              borderRadius: 6,
+              border: '1px solid #cbd5e1',
+              outline: 'none',
+            }}
+          />
+        </div>
+
+        <div style={{ overflow: 'auto', padding: '10px 18px 14px', flex: 1 }}>
+          {Object.entries(SCRIPTED_ACTIONS_BY_CATEGORY).map(([category, defs]) => {
+            const visible = defs.filter(matches);
+            if (visible.length === 0) return null;
+            return (
+              <div key={category} style={{ marginBottom: 14 }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: '#64748b',
+                    textTransform: 'uppercase',
+                    marginBottom: 6,
+                    letterSpacing: 0.5,
+                    fontWeight: 600,
+                  }}
+                >
+                  {category}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {visible.map((def) => (
+                    <button
+                      key={def.type}
+                      onClick={() => onPick(def)}
+                      title={def.fibaTerm}
+                      style={{
+                        textAlign: 'left',
+                        fontSize: 12,
+                        padding: '8px 10px',
+                        borderRadius: 6,
+                        border: `1px solid ${c.border}`,
+                        background: '#fff',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2,
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, color: c.accentText }}>{def.label}</span>
+                      <span style={{ fontSize: 11, color: '#64748b' }}>{def.description}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
 
