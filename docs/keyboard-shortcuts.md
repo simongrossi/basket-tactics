@@ -18,6 +18,15 @@ Implémentation : [`src/hooks/useKeyboardShortcuts.ts`](../src/hooks/useKeyboard
 | `Ctrl/Cmd+Z` | Undo — restaure l'état précédent (pile cap à 50) |
 | `Ctrl/Cmd+Shift+Z` ou `Ctrl/Cmd+Y` | Redo — re-applique l'état undone |
 
+## Modificateurs souris
+
+| Modificateur | Effet |
+|---|---|
+| **`Shift` + drag** sur un attaquant avec un outil annotation (`dribble`, `course`/cut, `écran`) | Enregistre la trajectoire freehand et crée une annotation avec `waypoints` (spline Catmull-Rom, vitesse perçue constante en lecture). Drag normal sans Shift = ligne droite ou wave dribble standard. Cf. [data-model.md > Trajectoire courbe](data-model.md#trajectoire-courbe-polyline--catmull-rom). |
+| **Clic-droit** sur un défenseur | Menu contextuel : profils, sliders globaux/individuels (distance, vit. max, closeout, denial), `vsCarrier`, `offBallStance`, `screenNav`, `bodyOrientationMode`, `gazeLock`, ré-auto-positionner. |
+| **Clic-droit** sur un attaquant | Menu contextuel : marquer comme porteur, forcer comme poseur d'écran (pose `forcedScreener`), effacer ses annotations, profil offensif, sliders d'orientation corps/regard. |
+| **Clic-droit** sur une annotation | Suppression directe de l'annotation. |
+
 ## Comportement
 
 - **Skip auto** quand le focus est dans un champ texte : `<input>`, `<textarea>`, `<select>`, ou élément `contenteditable`. Permet de taper des labels d'étape sans déclencher les raccourcis.

@@ -11,10 +11,16 @@ Sélection de l'outil actif pour interagir avec le terrain.
 | Outil | Comportement |
 |-------|--------------|
 | **déplacer** | Drag-and-drop pour repositionner les joueurs |
-| **passe** | Dessine une flèche pointillée orange ; change le porteur |
-| **dribble** | Dessine une flèche en zig-zag orange |
-| **course** | Dessine une flèche pleine grise (cut) |
-| **écran** | Dessine un trait + barre en T (manuel, indépendant de la détection) |
+| **passe** | Dessine une flèche pointillée orange ; change le porteur. Toujours rectiligne (pas de waypoints). |
+| **dribble** | Sans Shift : flèche en wave Q-Bezier orange ([`dribbleWavePath`](../src/lib/logic/dribbleWave.ts)). Avec Shift : trajectoire freehand lissée. |
+| **course** | Dessine une flèche pleine grise (cut). Sans Shift : ligne droite. Avec Shift : trajectoire freehand lissée. |
+| **écran** | Dessine un trait + barre en T (manuel, indépendant de la détection). |
+
+#### Shift + drag = trajectoires courbes (V-cut, L-cut, démarquage)
+
+Pour `dribble`, `course` et `écran`, maintenir **Shift pendant le drag** enregistre la trajectoire de la souris à main levée. À la fin du drag, le buffer brut est simplifié (Douglas-Peucker, tolérance 6 px) en 3–7 waypoints propres. La courbe est rendue en **spline Catmull-Rom** (cf. [data-model.md](data-model.md#trajectoire-courbe-polyline--catmull-rom)) et reparamétrée en **longueur d'arc** au playback → vitesse perçue constante quel que soit la courbure (le joueur ne ralentit pas dans les virages serrés). Cas couverts : V-cut aller-retour, L-cut, courbe de démarquage, dribble curviligne, slip d'écran.
+
+Drag normal sans Shift = comportement historique : ligne droite (cut/screen) ou wave standard (dribble).
 
 ### Bibliothèque systèmes
 
@@ -226,6 +232,16 @@ Une barre compacte au-dessus du scrub track contient :
 - **▶ play / ⏸ pause** (bouton orange quand actif, bordure foncée)
 - **■ stop** (revient à l'étape 0 et coupe la lecture)
 - **vitesse** : slider 0.3× à 2× (default 1×) avec affichage de la valeur
+
+Comportement précis du toggle play/pause/stop ([page.tsx](../src/app/page.tsx)) :
+
+| Action | Effet |
+|---|---|
+| **▶ depuis idle** | Démarre la lecture à `t = 0` (étape 0). |
+| **⏸ pendant lecture** | Fige l'instant `t` courant : `playbackT` est propagé dans `scrubT` qui pilote l'affichage via le `scrubFrame` existant. Permet de faire une capture sur cet instant précis. |
+| **▶ après pause** | Reprend depuis l'instant `t` pause : `playbackStartT = scrubT` est passé à CourtView, qui décale `playStart` en arrière de `T × stepDuration` pour que la boucle de lecture redémarre exactement là où elle a été arrêtée. |
+| **■ stop** | Reset complet : `isPlaying=false`, `playbackT=null`, `scrubT=null`, `playbackStartT=0`, `activeStep=0`. |
+| **fin naturelle (onPlaybackEnd)** | Idem que stop mais `activeStep` = dernière étape. |
 
 Anciennement dans une section "Lecture" du panneau Attaque ; déplacé pour gagner de la place dans le panel et regrouper toutes les commandes de lecture au même endroit que la timeline.
 

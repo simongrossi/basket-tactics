@@ -85,16 +85,22 @@ src/
     │   └── scriptedActionsCatalog.ts   # catalogue des actions offensives scriptées
     ├── logic/                # MOTEUR PUR (aucun React)
     │   │   — Cœur défensif —
-    │   ├── engine.ts                   # orchestration : appelle tous les autres
+    │   ├── engine.ts                   # orchestration : appelle tous les autres + suivi runtime (followDefendersAtFrame, recomputeDefenseFrameOrientations)
     │   ├── manDefense.ts               # marquage individuel + stances
     │   ├── help.ts                     # logique d'aide (sag baseline + triggers)
     │   ├── triggers.ts                 # détection drive / post-up / paint
-    │   ├── screens.ts                  # détection + ajustement écrans (porteur + non-porteur)
+    │   ├── screens.ts                  # détection + ajustement écrans (porteur + non-porteur). 'hedge' bouge D5 (show) ET D1 (over the top).
     │   ├── zoneDefense.ts              # logique de zone (mapping, rotation)
     │   ├── trap.ts                     # choix du défenseur en aide-trap
     │   ├── metrics.ts                  # métriques défensives (gap, paint coverage, passes)
-    │   ├── orientation.ts              # calcul des orientations O et D
+    │   ├── orientation.ts              # calcul des orientations O et D (corps + regard + bras)
+    │   ├── vision.ts                   # vision humaine : clamp ±60°, cône 120°, regard distance-based
     │   ├── geometry.ts                 # utilitaires : distance, clamp, lerp, ballSide
+    │   │
+    │   │   — Trajectoires et lecture —
+    │   ├── playbackTrajectory.ts       # position interpolée d'un attaquant à t selon ses annotations
+    │   ├── polyline.ts                 # spline Catmull-Rom (V-cut, freehand) : sample, path, simplify
+    │   ├── dribbleWave.ts              # wave Q-Bezier du dribble (sans waypoints)
     │   │
     │   │   — Actions défensives scriptées —
     │   ├── applyDirective.ts           # application d'une directive défensive à l'engine

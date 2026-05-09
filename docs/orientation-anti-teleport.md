@@ -35,10 +35,25 @@ Retourne `{ bodyOrientation, gazeOrientation, facing, armBallSide, armManSide }`
 Les angles sont horaires depuis le NORD (haut, y négatif). 0° = face haut, +90° = face droite.
 
 La logique de vision humaine vit dans [`src/lib/logic/vision.ts`](../src/lib/logic/vision.ts) :
-- tête clampée à ±60° du corps ;
-- champ de vision de 120° centré sur le regard ;
-- si homme + porteur peuvent entrer ensemble dans le cône, la cible secondaire reste en périphérie ;
+- tête clampée à ±60° du corps (`clampGazeToFrontal`) ;
+- champ de vision de 120° centré sur le regard (`FIELD_OF_VIEW_HALF_ANGLE_DEG = 60`) ;
+- si homme + porteur peuvent entrer ensemble dans le cône, la cible secondaire reste en périphérie (cône partagé via `resolveSharedGaze`) ;
 - si c'est physiquement impossible, la consigne prioritaire gagne sans fabriquer un regard dans le dos.
+
+### Regard auto distance-based (`PROXIMITY_GAZE_RATIO`)
+
+En stance `sag` / `behind` / défaut (sans `gazeLock` explicite), `resolveDefenderGaze` choisit dynamiquement la cible primaire selon la **distance** :
+
+```
+dMan  = distance(défenseur → homme marqué)
+dBall = distance(défenseur → ballon)
+si dMan < dBall × 0.65 → primary = homme (menace immédiate)
+sinon                  → primary = ballon (lecture d'aide, anticipation passe)
+```
+
+Avant ce comportement, le mode auto pointait quasi systématiquement vers le ballon — visuellement le triangle pivotait de quelques degrés à peine d'une étape à l'autre, ce qui donnait une impression de figé. Avec le ratio 0.65, le triangle saute franchement vers l'homme dès qu'il s'approche du défenseur (cut dans la raquette, démarquage proche), puis revient sur le ballon quand l'homme s'éloigne. Le secondary reste visible si la géométrie le permet (cône partagé 120°), et le clamp anatomique ±60° est inviolable.
+
+Cette logique ne s'applique qu'au mode auto. Les `gazeLock` explicites (`'opponent'`, `'ball-carrier'`, `'both'`) et les stances actives (`fronting`, `deny-3q`, `stunt`, rôles PnR `tag`/`x-out`/`stunt`) gardent leur cible déterministe.
 
 Le clic-droit défenseur expose aussi une consigne tactique de corps :
 
@@ -92,8 +107,13 @@ Avant : interpolation linéaire pure, traverse les obstacles. Maintenant, dans [
 1. Pour chaque attaquant, on construit la liste des obstacles : autres attaquants (position moyenne A-B) + défenseurs (position moyenne A-B).
 2. `pickBlockingCluster(from, to, obstacles)` détecte si un obstacle bloque le segment.
 3. Si oui, `curveAroundObstacle` génère une trajectoire Bezier qui contourne — exactement la même physique que celle déjà en place pour les défenseurs.
+4. La position est interpolée selon les annotations via [`attackerTrajectoryAt`](../src/lib/logic/playbackTrajectory.ts) : `cut` ligne droite, `dribble` wave Q-Bezier (`sampleDribbleWave`), `screen` vitesse double sur la première moitié puis hold, et **avec waypoints** : polyline lissée Catmull-Rom (`samplePolyline`) reparamétrée en longueur d'arc — vitesse perçue constante quel que soit la courbure.
 
 Les défenseurs gardent leur pipeline complet (longueur d'arc, `proximityFriction`, `maxSpeed` individuel par règle, `closeoutBoost`).
+
+### Suivi des défenseurs sur trajectoires courbes
+
+Avant le commit `fix(playback): tous les défenseurs suivent leurs attaquants`, l'interpolation défensive était purement linéaire entre `defA[id]` et `defB[id]`. Quand l'attaquant suivait un arc (wave dribble, V-cut, polyline freehand), le défenseur prenait la corde de l'arc et lâchait visuellement son homme. La fonction `followDefendersAtFrame` ([`engine.ts`](../src/lib/logic/engine.ts), documentée dans [logique-defensive.md](logique-defensive.md#suivi-temps-réel-des-défenseurs-en-lecture-followdefendersatframe)) résout le problème en réécrivant la position de marquage de chaque défenseur (carrier + off-ball) à chaque frame, à partir de la position courante de son attaquant marqué. Les overrides manuels (`defenseOverrides`) restent prioritaires.
 
 ## Diagnostic anti-téléportation
 

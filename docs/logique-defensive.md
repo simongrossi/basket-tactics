@@ -199,13 +199,25 @@ target = pushOutOfScreener(target)
 ```
 
 ### `hedge`
-Le défenseur du screener montre temporairement vers le porteur.
+
+**Défenseur du poseur (`isScreenerDef`)** — montre temporairement vers le porteur :
 
 ```
 showT = clamp((carrier-screener-distance - radius) / radius, 0, 1)
 showPos = (screener + carrier) / 2 - direction_panier * 6
 target = lerp(showPos, baseTarget, showT)  // recover quand le porteur s'éloigne
 ```
+
+**Défenseur du porteur (`isCarrierDef`)** — passe **over the top** de l'écran en restant tight sur le porteur (le couple D1/D5 ferme à la fois la pénétration et la rejection ; D1 doit pouvoir recover quand D5 rentre) :
+
+```
+tightness = 1 - min(distance(screener, baseTarget), screenRadius) / screenRadius
+amplitude = 8 + tightness * 8                         // 8–16 px (plus modéré qu'un 'over' pur)
+target += perp * amplitude * sideOfCarrier
+target = pushOutOfScreener(target, screener)
+```
+
+> Avant le commit `feat(screens): hedge — D1 passe over the top`, la règle `'hedge'` ne modifiait QUE la position de `screenerDef`. Le défenseur du porteur restait à sa position de base, donnant l'impression que la défense ne réagissait pas du tout à un écran posé en lecture.
 
 ### `drop`
 Le défenseur du screener reste en couverture derrière le screener.
@@ -225,6 +237,41 @@ Les deux défenseurs forment un V autour du porteur, à 45° de chaque côté.
 direction = porteur - screener
 target = porteur - dir * 14 + perp * 18 * (carrierDef ? 1 : -1)
 ```
+
+## Suivi temps-réel des défenseurs en lecture (`followDefendersAtFrame`)
+
+`effectiveDefensePositions(state, stepIdx)` calcule **une position par étape**. En lecture (playback ou scrubbing), CourtView interpolait linéairement entre `defA[id]` et `defB[id]` pour produire la frame intermédiaire. **Problème** : quand l'attaquant fait une trajectoire courbe (wave dribble, V-cut, polyline freehand), son défenseur prenait la **corde** de l'arc — il coupait au plus court pendant que son homme tournait, et lâchait son marquage le temps du segment.
+
+Solution : à chaque frame, **réécrire la position de marquage** des défenseurs en marquage individuel à partir de la position courante interpolée de leur attaquant.
+
+```
+followDefendersAtFrame(defPos, off, ballCarrier, state, idxA, idxB):
+  pour chaque défenseur dId :
+    si defenseOverrides[dId] sur idxA OU idxB → skip (placement manuel prime)
+    sinon si isCarrierDefender :
+      target = carrierDefenderTarget(rule.vsCarrier, off[ballCarrier], dist, hoop)
+    sinon (off-ball) :
+      target = stance ? offBallStanceTarget(matchedAtt, ball, dist, stance, hoop)
+                      : manTarget(matchedAtt, dist, hoop)
+    slot.x = round(target.x); slot.y = round(target.y)
+```
+
+| Champ écrasé | Champ préservé |
+|---|---|
+| `slot.x`, `slot.y` (position de marquage de base) | `helpFactor`, `helpAim`, `closingOut`, `denying`, `isCarrierDefender`, `matchedTo`, `pnrRole` (calculés aux étapes A/B et interpolés) |
+
+Appelée dans `CourtView.tsx` (playFrame ligne ~308 et scrubFrame ligne ~516) **avant** `resolvePlayerCollisions` et `recomputeDefenseFrameOrientations` — l'ordre garantit que :
+1. La cible "follow" est posée
+2. Les collisions résolues sur les nouvelles positions
+3. Le triangle d'orientation est recalculé depuis la position finale
+
+### Pourquoi `defenseOverrides` est respecté
+
+Quand l'utilisateur drag un défenseur sur une étape, sa position est imposée via `defenseOverrides[stepIdx][dId]`. `effectiveDefensePositions` lit cet override en priorité. Pour rester cohérent, `followDefendersAtFrame` **skip ce défenseur** si un override est posé sur l'étape A ou B du segment courant — l'interpolation linéaire entre override et l'autre extrémité reste active. Le placement manuel a ainsi toujours préséance sur le follow auto.
+
+### Approximation ball ≈ carrier
+
+`offBallStanceTarget` consomme une position de ballon (utilisée par `fronting`, `deny-3q`, `stunt`). Pendant la lecture, on passe `off[ballCarrier]` comme position du ballon — approximation acceptable hors passe en vol, où ces stances ne sont pas critiques visuellement (la passe est rectiligne et courte). Pas de visual artefact constaté.
 
 ## Garde anti-superposition (`pushOutOfScreener`)
 

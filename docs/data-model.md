@@ -256,14 +256,31 @@ interface Annotation {
   toId?: AttackerId | null;    // joueur cible (passe seulement)
   from: Point;                 // coord de départ
   to: Point;                   // coord d'arrivée
+  /** Points intermédiaires pour trajectoires non rectilignes (V-cut, L-cut,
+   *  démarquage aller-retour, courbe libre). Concaténés avec `from` et `to`
+   *  en polyline ordonnée et interpolés en spline Catmull-Rom à la lecture.
+   *  Absent ou vide = ligne droite (comportement historique). */
+  waypoints?: Point[];
 }
 ```
 
 Conventions de tracé (voir [ui-design.md](ui-design.md)) :
-- `pass` : ligne droite pointillée orange
-- `dribble` : zig-zag/vague orange
-- `cut` : ligne droite pleine grise
-- `screen` : trait + barre en T grise
+- `pass` : ligne droite pointillée orange (toujours rectiligne, pas de waypoints)
+- `dribble` : sans waypoints → wave Q-Bezier lisse (`dribbleWavePath` dans [`dribbleWave.ts`](../src/lib/logic/dribbleWave.ts)). Avec waypoints → polyline lissée Catmull-Rom (l'utilisateur a dessiné explicitement la courbe, on respecte sa trajectoire).
+- `cut` : ligne droite ou polyline lissée selon `waypoints`
+- `screen` : trait + barre en T grise. Avec waypoints le trail est courbe (rare en pratique).
+
+### Trajectoire courbe (polyline + Catmull-Rom)
+
+Module dédié [`src/lib/logic/polyline.ts`](../src/lib/logic/polyline.ts) :
+
+| Fonction | Rôle |
+|---|---|
+| `polylinePath(points)` | Génère le path SVG `M ... C ...` lissé : chaîne de courbes Bezier cubiques équivalentes exactes des segments Catmull-Rom (tension τ=0.5, uniforme). Aux extrémités, miroir des contrôles pour éviter l'aplatissement. |
+| `samplePolyline(points, t)` | Échantillonne la position à `t ∈ [0, 1]` le long de la spline. Reparamétrage en longueur d'arc via les distances euclidiennes des segments → vitesse perçue ~constante en lecture, indépendante de la courbure. Le résultat est rigoureusement sur la même courbe que celle dessinée par `polylinePath`. |
+| `simplifyPolyline(points, tolerance)` | Simplification Douglas-Peucker pour réduire un buffer freehand bruyant (50–200 points captés à la souris) en 3–7 waypoints propres. Préserve `from` et `to` (extrémités). Tolérance 6 px utilisée par défaut côté UI. |
+
+UX souris : maintenir **Shift pendant le drag** d'un outil annotation enregistre le tracé à main levée. Le buffer est échantillonné tous les ~6 px de mouvement (`onPointerMove`), et simplifié à la fin du drag (`onPointerUp`) en `waypoints`. Drag normal sans Shift = comportement historique (ligne droite, wave dribble, hold-at-mid pour screen).
 
 ## ZoneConfig
 

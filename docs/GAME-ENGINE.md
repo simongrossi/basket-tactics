@@ -64,9 +64,14 @@ Tout ce qui se décide à l'échelle d'**un défenseur** ou d'**une dyade** (dé
 |---|---|---|
 | [`manDefense.ts`](../src/lib/logic/manDefense.ts) | Position cible de marquage | `manTarget`, `carrierDefenderTarget`, `offBallStanceTarget`, `orientationLateralOffset` |
 | [`help.ts`](../src/lib/logic/help.ts) | Aide weak-side, denial strong-side, sag baseline | `computeHelpTarget`, `leaveAttackerCostMultiplier`, `closeoutProfileBonus` |
-| [`orientation.ts`](../src/lib/logic/orientation.ts) | Orientation et facing | `computeDefenderOrientation`, `computeAttackerOrientation`, `lerpAngleDeg` |
-| [`screens.ts`](../src/lib/logic/screens.ts) | Détection écran porteur / non-porteur, couvertures dyadiques | `detectScreen`, `detectOffBallScreens`, `applyScreenAdjustment`, `applyOffBallScreenAdjustment`, `hasScreenIntent` |
+| [`orientation.ts`](../src/lib/logic/orientation.ts) | Orientation et facing (corps, regard, bras) | `computeDefenderOrientation`, `computeAttackerOrientation`, `lerpAngleDeg`, `computeDefenderBodyOrientation` |
+| [`vision.ts`](../src/lib/logic/vision.ts) | Vision humaine : clamp ±60°, cône 120°, résolution dynamique de la cible primaire | `resolveDefenderGaze`, `clampGazeToFrontal`, constantes `HEAD_TURN_LIMIT_DEG`, `FIELD_OF_VIEW_HALF_ANGLE_DEG`, `PROXIMITY_GAZE_RATIO` (basculement ballon↔homme selon distance) |
+| [`screens.ts`](../src/lib/logic/screens.ts) | Détection écran porteur / non-porteur, couvertures dyadiques | `detectScreen`, `detectOffBallScreens`, `applyScreenAdjustment` (dont `'hedge'` D5 + D1 over-the-top), `applyOffBallScreenAdjustment`, `hasScreenIntent` |
 | [`screenAction.ts`](../src/lib/logic/screenAction.ts) | Type d'action sur écran (roll / pop / slip / short-roll / ghost / reject / snake / re-screen) | `detectScreenAction`, `actionRequiresLowManTag`, `actionRequiresPopRecover`, `actionBreaksCoverage` |
+| [`engine.ts`](../src/lib/logic/engine.ts) | Pipeline + suivi runtime | `effectiveDefensePositions`, `computeDefenseTargets`, `recomputeDefenseFrameOrientations`, `followDefendersAtFrame` (suivi temps-réel des défenseurs sur trajectoires courbes en lecture) |
+| [`playbackTrajectory.ts`](../src/lib/logic/playbackTrajectory.ts) | Position interpolée d'un attaquant à `t` selon ses annotations | `attackerTrajectoryAt` (cut/dribble/screen/idle, avec ou sans waypoints) |
+| [`polyline.ts`](../src/lib/logic/polyline.ts) | Trajectoires courbes (V-cut, L-cut, freehand) | `samplePolyline` (Catmull-Rom reparamétré en longueur d'arc), `polylinePath` (path SVG `M ... C ...`), `simplifyPolyline` (Douglas-Peucker pour drag freehand) |
+| [`dribbleWave.ts`](../src/lib/logic/dribbleWave.ts) | Wave de dribble (sans waypoints) | `sampleDribbleWave`, `dribbleWavePath` — chaîne de Bezier quadratiques avec jonctions C1, lissée (plus de zigzag dent-de-scie) |
 
 ### Comportements
 
@@ -219,6 +224,29 @@ Pour chaque défenseur, à chaque étape :
 5. **Solveur de collisions final** : `resolvePlayerCollisions` itère pour qu'aucun défenseur ne se superpose à un autre joueur (sauf son matchedTo).
 
 **Côté attaquants** (depuis P6) : pendant l'interpolation A→B dans [`CourtView.tsx`](../src/components/CourtView.tsx), `pickBlockingCluster` + `curveAroundObstacle` génèrent une trajectoire Bezier qui contourne les autres joueurs. Pas de `maxSpeed` (l'utilisateur garde la liberté de placement) ; un diagnostic warning s'affiche si saut > 4 m sur une étape.
+
+#### Trajectoires d'attaquants au playback (`attackerTrajectoryAt`)
+
+[`playbackTrajectory.ts`](../src/lib/logic/playbackTrajectory.ts) résout la position d'un attaquant à un instant `localT ∈ [0, 1]` selon l'annotation de mouvement présente sur l'étape :
+
+| Type d'annotation | Sans `waypoints` | Avec `waypoints` |
+|---|---|---|
+| `cut` | Lerp linéaire `from → to` | `samplePolyline([from, ...waypoints, to], t)` — Catmull-Rom reparamétré en longueur d'arc |
+| `dribble` | `sampleDribbleWave(from, to, t)` — wave Q-Bezier ([dribbleWave.ts](../src/lib/logic/dribbleWave.ts)) | `samplePolyline(...)` (la wave standard ne s'applique pas à une polyline ; l'utilisateur a dessiné explicitement la trajectoire) |
+| `screen` | Vitesse double sur la première moitié pour atteindre `to` à `t=0.5`, puis hold | Idem mais via `samplePolyline` sur la première moitié |
+| absent | idle (position constante = `step.off[id]`) | — |
+
+Le flag `isScreening: true` est posé à `t ≥ 0.5` pour `screen` — propagé à `Player.tsx` pour activer la posture d'écran (orientation perpendiculaire, regard vers le défenseur du porteur).
+
+#### Suivi temps-réel des défenseurs (`followDefendersAtFrame`)
+
+Sans cet override, l'interpolation défensive entre les positions calculées aux étapes A et B serait **strictement linéaire** — le défenseur prendrait la corde des arcs offensifs. La fonction réécrit la position de marquage de chaque défenseur en marquage individuel à chaque frame :
+
+- **Carrier defender** → `carrierDefenderTarget(rule.vsCarrier, off[carrier], dist, hoop)`
+- **Off-ball** → `offBallStanceTarget(matchedAtt, ball, dist, stance, hoop)` ou `manTarget(matchedAtt, dist, hoop)`
+- **Skip** si `defenseOverrides[dId]` posé sur idxA ou idxB (placement manuel prime)
+
+Appelée dans CourtView (playFrame + scrubFrame) avant `resolvePlayerCollisions` et `recomputeDefenseFrameOrientations`. Voir [logique-defensive.md > Suivi temps-réel](logique-defensive.md#suivi-temps-réel-des-défenseurs-en-lecture-followdefendersatframe).
 
 ---
 

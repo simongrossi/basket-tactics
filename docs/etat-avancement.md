@@ -2,9 +2,36 @@
 
 > Vue consolidée de **ce qui est fait**, **ce qui est en cours**, et **ce qui reste à faire**, pour ne rien oublier entre deux sessions de travail.
 >
-> Mise à jour : **2026-05-09**.
+> Mise à jour : **2026-05-10**.
 >
 > Pour la roadmap exhaustive des actions FIBA, voir [`fiba-actions-roadmap.md`](./fiba-actions-roadmap.md).
+
+---
+
+## 🆕 Travail récent — branche `simon/flamboyant-hodgkin-3a101f`
+
+Lot de corrections et d'améliorations livrées dans cette branche (cf. [CHANGELOG.md > Unreleased](../CHANGELOG.md)) :
+
+### Vision et orientation
+- **Regard auto distance-based** ([vision.ts](../src/lib/logic/vision.ts)) : en stance `sag`/`behind`/défaut sans `gazeLock`, la cible primaire bascule selon la distance (`PROXIMITY_GAZE_RATIO = 0.65`). Si l'homme est nettement plus proche que le ballon il devient primary, sinon le ballon reste primary. Le secondary reste visible si le cône 120° le permet, le clamp ±60° est préservé. Voir [orientation-anti-teleport.md](./orientation-anti-teleport.md#regard-auto-distance-based-proximity_gaze_ratio).
+
+### Trajectoires et lecture
+- **Tracé du dribble en wave Q-Bezier lisse** ([dribbleWave.ts](../src/lib/logic/dribbleWave.ts)) : remplace l'ancienne polyligne en dents de scie par une chaîne de courbes quadratiques Bezier avec jonctions C1 sur l'axe. `sampleDribbleWave` partage la géométrie pour que le joueur reste pixel-aligné avec le tracé.
+- **Annotations en courbe via Shift+drag freehand** ([polyline.ts](../src/lib/logic/polyline.ts)) : `Annotation.waypoints?: Point[]` permet des trajectoires V-cut, L-cut, démarquage en arc, dribble curviligne. Spline Catmull-Rom (τ=0.5, équivalent Bezier cubique exact en rendu), reparamétrage en longueur d'arc pour vitesse perçue constante, simplification Douglas-Peucker du buffer freehand. Voir [data-model.md > Trajectoire courbe](./data-model.md#trajectoire-courbe-polyline--catmull-rom).
+- **Tous les défenseurs suivent leurs attaquants en temps réel** ([engine.ts:followDefendersAtFrame](../src/lib/logic/engine.ts)) : carrier defender + off-ball recalculés à chaque frame depuis la position courante de leur attaquant marqué (`carrierDefenderTarget` / `offBallStanceTarget` / `manTarget`). Skip si placement manuel via `defenseOverrides`. Voir [logique-defensive.md > Suivi temps-réel](./logique-defensive.md#suivi-temps-réel-des-défenseurs-en-lecture-followdefendersatframe).
+
+### Défense
+- **`hedge` complet** ([screens.ts](../src/lib/logic/screens.ts)) : avant, seul `screenerDef` (D5) sortait en show. Désormais `carrierDef` (D1) passe **over the top** de l'écran avec un décalage latéral 8–16 px tight sur le porteur — le couple D1/D5 ferme à la fois la pénétration et la rejection.
+
+### UX playback
+- **⏸ fige l'instant courant** au lieu de retomber sur la frame statique : `playbackT` propagé dans `scrubT` ([page.tsx](../src/app/page.tsx)).
+- **▶ après pause reprend depuis l'instant pause** via la prop `playbackStartT` sur CourtView qui décale `playStart` en arrière. ⏹ reste distinct (reset à 0).
+
+### Tests
+- 14 nouveaux tests dans [polyline.test.ts](../src/lib/logic/__tests__/polyline.test.ts) : sample, path, simplify, V-cut.
+- 1 test ajouté dans [screens.test.ts](../src/lib/logic/__tests__/screens.test.ts) pour le mouvement de D1 en hedge.
+- Tests `dribbleWave.test.ts` mis à jour pour la wave Q-Bezier.
+- Suite totale : **302 tests verts**.
 
 ---
 
