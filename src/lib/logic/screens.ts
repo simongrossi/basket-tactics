@@ -212,6 +212,22 @@ export function applyScreenAdjustment(
     );
   }
 
+  if (rule === 'hedge' && isCarrierDef) {
+    // En hedge, D5 sort temporairement vers le porteur (show). D1 doit
+    // passer over the top de l'écran en restant tight sur le porteur, pour
+    // que le couple D1/D5 ferme à la fois la pénétration et la rejection.
+    // Amplitude plus modérée qu'un 'over' pur — le hedge reste temporaire
+    // et D1 doit pouvoir recover quand D5 rentre.
+    const tightness = 1 - Math.min(distance(screenerPos, baseTarget), screenRadius) / screenRadius;
+    const amplitude = 8 + tightness * 8;
+    let target = {
+      x: baseTarget.x + perpX * amplitude * sideOfCarrier,
+      y: baseTarget.y + perpY * amplitude * sideOfCarrier,
+    };
+    target = pushOutOfScreener(target, screenerPos);
+    return target;
+  }
+
   if (rule === 'drop' && isScreenerDef) {
     const depthPx = dropDepth === 'shallow' ? 18 : dropDepth === 'deep' ? 55 : 35;
     return { x: screenerPos.x + nx * depthPx, y: screenerPos.y + ny * depthPx };

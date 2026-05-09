@@ -186,6 +186,18 @@ describe('applyScreenAdjustment', () => {
     expect(out.y).toBeLessThan(screen.screenerPos.y);
   });
 
+  it('"hedge" fait passer le carrierDef over the top (décalage latéral du côté du porteur)', () => {
+    // D1 est juste derrière O1 (porteur), O2 (poseur) en (310, 390) à droite-au-dessus.
+    // sideOfCarrier = sign(O1.x - O2.x) = sign(300 - 310) = -1 → décalage à gauche.
+    const target = { x: 300, y: 460 };
+    const out = applyScreenAdjustment(target, screen, 'hedge', 'D1', off);
+    // Mouvement non nul (D1 doit bouger en hedge, contrairement au comportement
+    // historique où seul D5 réagissait).
+    const dx = out.x - target.x;
+    const dy = out.y - target.y;
+    expect(Math.hypot(dx, dy)).toBeGreaterThan(4);
+  });
+
   it('"drop" avec dropDepth="deep" recule plus que "shallow"', () => {
     const target = { x: 310, y: 310 };
     const shallow = applyScreenAdjustment(target, screen, 'drop', 'D2', off, 35, 'shallow');
