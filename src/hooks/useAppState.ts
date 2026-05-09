@@ -639,6 +639,14 @@ export function useAppState() {
     });
   }, []);
 
+  const toggleScriptedDefense = useCallback(() => {
+    setStateWithHistory((s) => ({
+      ...s,
+      defenseScriptedDirectivesEnabled:
+        s.defenseScriptedDirectivesEnabled === false ? true : false,
+    }));
+  }, []);
+
   return {
     state,
     undo,
@@ -684,5 +692,6 @@ export function useAppState() {
     addDefensiveAction,
     updateDefensiveAction,
     deleteDefensiveAction,
+    toggleScriptedDefense,
   };
 }

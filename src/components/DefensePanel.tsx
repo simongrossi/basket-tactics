@@ -23,6 +23,8 @@ interface DefensePanelProps {
   onUpdateZoneConfig: (p: Partial<ZoneConfig>) => void;
   onApplyDefensePreset: (preset: DefensePreset) => void;
   onClearAllDefenseOverrides: () => void;
+  scriptedDefenseEnabled?: boolean;
+  onToggleScriptedDefense: () => void;
 }
 
 export function DefensePanel(props: DefensePanelProps) {
@@ -32,6 +34,21 @@ export function DefensePanel(props: DefensePanelProps) {
 
   return (
     <Panel theme="defense" title="🛡 Défense" fill>
+      <div style={{
+        marginTop: 8, padding: 8,
+        border: '1px solid #dbeafe', borderRadius: 6, background: '#eff6ff',
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        <input
+          type="checkbox"
+          id="scripted-defense-toggle"
+          checked={props.scriptedDefenseEnabled !== false}
+          onChange={props.onToggleScriptedDefense}
+        />
+        <label htmlFor="scripted-defense-toggle" style={{ fontSize: 11, color: '#1e3a8a' }}>
+          Appliquer les directives défensives scriptées
+        </label>
+      </div>
       <Section theme="defense" label="Presets">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {DEFENSE_PRESETS.map((p) => (

@@ -186,24 +186,24 @@
 | 🛡️ | **Ice / Fan / Push down** | Force le porteur baseline. Déjà dans `ScreenRule` (ice). |
 | 🛡️ | **Weak (defense)** | Force la main faible. À ajouter. |
 | 🛡️ | **Peel switch** | Aide passe sur porteur, défenseur initial peel. Déjà partiellement dans le moteur. |
-| 🛡️ | **Pre-switch** | Échange anticipé avant l'écran. À ajouter. |
+| ✅ | **Pre-switch** | Échange anticipé avant l'écran. Phase 3 MVP : action scriptable (`assignmentOverrides`). |
 | 🛡️ | **Triple switch** | Double échange pour éviter mismatch. À ajouter. |
 | 🛡️ | **Steer switching** | Forcer le switch en poussant l'écran. À ajouter. |
 | 🛡️ | **Blitz to switch** | Trap puis switch. Composition. |
-| 🛡️ | **Tag** | Bump du roller par low-man. Déjà dans rotations PnR (`pnrRole='tag'`). |
+| ✅ | **Tag** | Bump du roller par low-man. Phase 3 MVP : directive scriptable + déjà dans rotations PnR (`pnrRole='tag'`). |
 
 ### 2.2 Couvertures hors-écran
 
 | Statut | Phase FIBA | Notes |
 |---|---|---|
-| 🛡️ | **Help and recover** | Base de la défense d'aide. Phase scriptée : sur step N, D2 quitte O2 pour aider sur drive O1, sur step N+1 retour. |
+| ✅ | **Help and recover** | Base de la défense d'aide. Phase 3 MVP : directive scriptable (engage/release par step). |
 | 🛡️ | **Closing out (full / smart)** | Sprint sur tir potentiel après passe. Déjà dans le moteur (closeout). |
 | 🛡️ | **Sag / Sagging man-to-man** | Défenseur descend dans la raquette. À paramétrer. |
 | 🛡️ | **Pack line defense** | Tous restent dans la pack line sauf défenseur du ballon. À ajouter comme préset. |
 | 🛡️ | **Pressure man-to-man** | Pression maximale. Préset. |
 | 🛡️ | **Double down** | 2e défenseur descend sur post bas. À ajouter. |
 | 🛡️ | **Double-teaming** | 2 défenseurs sur même attaquant. Action ponctuelle scriptable. |
-| 🛡️ | **Trap** | Trap en V. Déjà dans triggers (`trap`). À scripter par step. |
+| ✅ | **Trap** | Trap en V. Phase 3 MVP : directive scriptable par step + déjà dans triggers (`trap`). |
 | 🛡️ | **Stunt** | Faux help puis recovery. À ajouter comme directive temporaire. |
 | 🛡️ | **Dig hard / Yo-yo** | Aide agressive vs poste bas. À ajouter. |
 | 🛡️ | **Spy defense** | Pivot défensif au centre raquette. Préset. |

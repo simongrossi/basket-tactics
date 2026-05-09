@@ -254,6 +254,8 @@ export default function Page() {
               onUpdateZoneConfig={app.updateZoneConfig}
               onApplyDefensePreset={app.applyDefensePreset}
               onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
+              scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
+              onToggleScriptedDefense={app.toggleScriptedDefense}
             />
           </div>
         )}
