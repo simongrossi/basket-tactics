@@ -44,7 +44,12 @@ interface FieldOfViewOverlayProps {
  * son `gazeOrientation`).
  */
 const FOV_HALF_ANGLE_DEG = 60;       // 60° de chaque côté = 120° total
-const FOV_RADIUS_PX = 200;           // ~5,4 m de profondeur
+// Profondeur étendue au-delà des limites du demi-terrain canonique
+// (600×560 px) et du terrain complet (600×1080 px). Distance max
+// diagonale ≈ 1230 px depuis un coin opposé. Le cône est rendu jusqu'à
+// cette portée puis clippé visuellement par le viewBox SVG du terrain
+// (les zones hors-terrain sont simplement masquées).
+const FOV_RADIUS_PX = 1300;
 
 type ConeKind = 'def' | 'att';
 
