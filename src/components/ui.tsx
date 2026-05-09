@@ -33,7 +33,7 @@ interface PanelProps {
   title: string;
   children: ReactNode;
   /** Permet d'imposer un flex/min-height au Panel quand il vit dans une
-   *  colonne flex (ex : ActionsPanel veut sa hauteur naturelle, OffensePanel
+   *  colonne flex (ex : un Panel court veut sa hauteur naturelle, OffensePanel
    *  veut occuper l'espace restant). */
   fill?: boolean;
 }
