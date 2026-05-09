@@ -481,6 +481,12 @@ export interface AppState {
   /** Affiche les badges numérotés 1/2/3… sur les actions de l'étape active
    *  (vue d'édition). Utile pour lire la séquence sans switcher d'étape. */
   showActionOrder?: boolean;
+  /** Affiche le bandeau "Lecture coach" sous la timeline (warnings keyframes,
+   *  diagnostics tactiques, lectures offensives). Default `true`. Masqué via
+   *  Paramètres > VISU & LÉGENDE > "lecture coach" — utile pour stabiliser
+   *  le layout vertical (le bandeau grandit avec le nombre de warnings et
+   *  réduit la place du terrain). */
+  showCoachDiagnostics?: boolean;
   /** Calque heatmap qui surligne en jaune/orange/rouge les zones non-défendues
    *  (faible pression défensive cumulée). Aide à voir d'un coup d'œil les
    *  espaces ouverts pour passe ou tir. */

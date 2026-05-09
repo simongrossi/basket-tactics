@@ -129,6 +129,7 @@ function countActiveToggles(state: AppState): number {
   if (state.showPassLanes) n++;
   if (state.showGhosts) n++;
   if (state.showActionOrder) n++;
+  if (state.showCoachDiagnostics !== false) n++;
   if (state.showHeatmap) n++;
   if (state.showThreats) n++;
   if (state.showBestAction) n++;

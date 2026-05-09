@@ -271,7 +271,9 @@ export default function Page() {
             onSetPlaybackSpeed={setPlaybackSpeed}
           />
           {metrics && <MetricsBar metrics={metrics} bestAction={bestAction} screenAction={screenAction} />}
-          <CoachDiagnostics diagnostics={coachDiagnostics} />
+          {app.state.showCoachDiagnostics !== false && (
+            <CoachDiagnostics diagnostics={coachDiagnostics} />
+          )}
         </div>
 
         {!presentMode && (

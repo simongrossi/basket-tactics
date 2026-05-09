@@ -83,6 +83,12 @@ export function ParametresPanel({ state, onPatch, onSetPlayerCount }: Parametres
           onChange={(v) => onPatch({ showActionOrder: v })}
         />
         <LegendCheckboxLine
+          checked={state.showCoachDiagnostics !== false}
+          label="lecture coach"
+          sample="line" color="#92400e"
+          onChange={(v) => onPatch({ showCoachDiagnostics: v })}
+        />
+        <LegendCheckboxLine
           checked={!!state.showHeatmap}
           label="heatmap zones"
           sample="gradient" color=""
