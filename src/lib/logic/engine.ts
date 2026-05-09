@@ -80,7 +80,7 @@ export function computeDefenseTargets(
   state: AppState,
   stepIdx: number,
   mutateStepForSwitch: boolean = true
-): { positions: Record<DefenderId, { x: number; y: number; helpFactor: number; isCarrierDefender: boolean; matchedTo: AttackerId; onScreen: boolean; switchedThisStep: boolean; denying?: boolean; helpTriggered?: boolean; pnrRole?: 'tag' | 'x-out' | 'stunt'; orientation: number; facing: { x: number; y: number }; helpAim?: { x: number; y: number }; helpPriority?: import('../types').HelpPriority; helpKind?: 'sag-weakside' | 'denial-strongside' | 'active-help' | 'none' }>; matchupsApplied: Matchups } {
+): { positions: Record<DefenderId, { x: number; y: number; helpFactor: number; isCarrierDefender: boolean; matchedTo: AttackerId; onScreen: boolean; switchedThisStep: boolean; denying?: boolean; helpTriggered?: boolean; pnrRole?: 'tag' | 'x-out' | 'stunt'; orientation: number; gazeOrientation: number; facing: { x: number; y: number }; armBallSide: { x: number; y: number }; armManSide: { x: number; y: number }; helpAim?: { x: number; y: number }; helpPriority?: import('../types').HelpPriority; helpKind?: 'sag-weakside' | 'denial-strongside' | 'active-help' | 'none' }>; matchupsApplied: Matchups } {
   if (state.defenseSystem === 'zone') {
     return computeZoneDefenseTargets(state, stepIdx);
   }
@@ -199,10 +199,11 @@ export function computeDefenseTargets(
       target = { x: target.x + orientationLateralOffset(manualOrientationDelta), y: target.y };
     }
 
-    // Calcul auto orientation/facing : reflète la stance, le ballon, l'homme.
-    // Le delta manuel est ajouté (clampé à ±45°) pour respecter la consigne
-    // utilisateur sans permettre une posture aberrante (fronting tournant le
-    // dos au ballon, p. ex.).
+    // Calcul orientation Convention B (corps + regard + 2 cibles bras
+    // asymétriques) avec invariants anatomiques : regard ∈ ±90° du corps,
+    // bras jamais dans le dos. Le delta manuel (rule.orientation, ±45°) reste
+    // pris en compte. Les overrides absolus (bodyOrientation/gazeOrientation)
+    // priment quand définis.
     const orient = computeDefenderOrientation({
       defenderPos: target,
       manPos: att ?? target,
@@ -211,6 +212,8 @@ export function computeDefenseTargets(
       stance: rule.offBallStance,
       vsCarrier: rule.vsCarrier,
       manualDelta: manualOrientationDelta,
+      manualBody: rule.bodyOrientation,
+      manualGaze: rule.gazeOrientation,
     });
 
     positions[dId] = {
@@ -223,8 +226,11 @@ export function computeDefenseTargets(
       switchedThisStep: switchedThisStep && !!(screen && (dId === screen.carrierDef || dId === screen.screenerDef)),
       denying: denying || undefined,
       helpTriggered: helpTriggered || undefined,
-      orientation: orient.orientationDeg,
+      orientation: orient.bodyOrientation,
+      gazeOrientation: orient.gazeOrientation,
       facing: orient.facing,
+      armBallSide: orient.armBallSide,
+      armManSide: orient.armManSide,
       helpAim,
       helpPriority,
       helpKind,
@@ -325,9 +331,14 @@ export function computeDefenseTargets(
       vsCarrier: rule.vsCarrier,
       pnrRole: slot.pnrRole,
       manualDelta: rule.orientation ?? 0,
+      manualBody: rule.bodyOrientation,
+      manualGaze: rule.gazeOrientation,
     });
-    slot.orientation = recomputed.orientationDeg;
+    slot.orientation = recomputed.bodyOrientation;
+    slot.gazeOrientation = recomputed.gazeOrientation;
     slot.facing = recomputed.facing;
+    slot.armBallSide = recomputed.armBallSide;
+    slot.armManSide = recomputed.armManSide;
   });
 
   return { positions, matchupsApplied: matchups };
@@ -336,7 +347,7 @@ export function computeDefenseTargets(
 function computeZoneDefenseTargets(
   state: AppState,
   stepIdx: number
-): { positions: Record<DefenderId, { x: number; y: number; helpFactor: number; isCarrierDefender: boolean; matchedTo: AttackerId; onScreen: boolean; switchedThisStep: boolean; orientation: number; facing: { x: number; y: number }; helpAim?: { x: number; y: number }; helpPriority?: import('../types').HelpPriority; helpKind?: 'sag-weakside' | 'denial-strongside' | 'active-help' | 'none' }>; matchupsApplied: Matchups } {
+): { positions: Record<DefenderId, { x: number; y: number; helpFactor: number; isCarrierDefender: boolean; matchedTo: AttackerId; onScreen: boolean; switchedThisStep: boolean; orientation: number; gazeOrientation: number; facing: { x: number; y: number }; armBallSide: { x: number; y: number }; armManSide: { x: number; y: number }; helpAim?: { x: number; y: number }; helpPriority?: import('../types').HelpPriority; helpKind?: 'sag-weakside' | 'denial-strongside' | 'active-help' | 'none' }>; matchupsApplied: Matchups } {
   const cur = state.steps[stepIdx];
   const hoop = getDefenseHoop(state);
   const baseLayout = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
@@ -373,6 +384,8 @@ function computeZoneDefenseTargets(
       isCarrierDefender: trackedAttacker === cur.ballCarrier,
       stance: 'sag',
       manualDelta: state.rules[dId]?.orientation ?? 0,
+      manualBody: state.rules[dId]?.bodyOrientation,
+      manualGaze: state.rules[dId]?.gazeOrientation,
     });
     positions[dId] = {
       x,
@@ -382,8 +395,11 @@ function computeZoneDefenseTargets(
       matchedTo: trackedAttacker,
       onScreen: false,
       switchedThisStep: false,
-      orientation: orient.orientationDeg,
+      orientation: orient.bodyOrientation,
+      gazeOrientation: orient.gazeOrientation,
       facing: orient.facing,
+      armBallSide: orient.armBallSide,
+      armManSide: orient.armManSide,
     };
   });
 
@@ -479,8 +495,17 @@ export function computeAttackerVisuals(
       receiverPos,
       nextPos,
       screenTargetDefPos,
+      // Détection dribble pour le porteur (cf. règle métier dans
+      // orientation.ts : porteur statique → panier ; en dribble → mouvement).
+      prevPos: prev ? prev.off[id] : undefined,
     });
-    out[id] = { orientation: r.orientationDeg, facing: r.facing };
+    out[id] = {
+      orientation: r.bodyOrientation,
+      gazeOrientation: r.gazeOrientation,
+      facing: r.facing,
+      armBallSide: r.armBallSide,
+      armManSide: r.armManSide,
+    };
   });
 
   return out;
@@ -644,7 +669,10 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
         helpTriggered: targets[dId].helpTriggered,
         pnrRole: targets[dId].pnrRole,
         orientation: targets[dId].orientation,
+        gazeOrientation: targets[dId].gazeOrientation,
         facing: targets[dId].facing,
+        armBallSide: targets[dId].armBallSide,
+        armManSide: targets[dId].armManSide,
         helpAim: targets[dId].helpAim,
         helpPriority: targets[dId].helpPriority,
         helpKind: targets[dId].helpKind,
@@ -725,7 +753,10 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
         helpTriggered: targets[dId].helpTriggered,
         pnrRole: targets[dId].pnrRole,
         orientation: targets[dId].orientation,
+        gazeOrientation: targets[dId].gazeOrientation,
         facing: targets[dId].facing,
+        armBallSide: targets[dId].armBallSide,
+        armManSide: targets[dId].armManSide,
         helpAim: targets[dId].helpAim,
         helpPriority: targets[dId].helpPriority,
         helpKind: targets[dId].helpKind,
@@ -747,7 +778,10 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
         helpTriggered: targets[dId].helpTriggered,
         pnrRole: targets[dId].pnrRole,
         orientation: targets[dId].orientation,
+        gazeOrientation: targets[dId].gazeOrientation,
         facing: targets[dId].facing,
+        armBallSide: targets[dId].armBallSide,
+        armManSide: targets[dId].armManSide,
         helpAim: targets[dId].helpAim,
         helpPriority: targets[dId].helpPriority,
         helpKind: targets[dId].helpKind,

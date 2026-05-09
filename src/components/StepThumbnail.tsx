@@ -76,6 +76,8 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     isAttacker
                     orientation={attVisuals[id]?.orientation}
                     facing={attVisuals[id]?.facing}
+                    armBallSide={attVisuals[id]?.armBallSide}
+                    armManSide={attVisuals[id]?.armManSide}
                   />
                 ))}
               {showDefense &&
@@ -89,6 +91,8 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     onScreen={p.onScreen}
                     facing={p.facing}
                     orientation={p.orientation}
+                    armBallSide={p.armBallSide}
+                    armManSide={p.armManSide}
                   />
                 ))}
               {Array.from(screenerIds).map((id) =>
@@ -100,6 +104,8 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     isAttacker
                     orientation={attVisuals[id]?.orientation}
                     facing={attVisuals[id]?.facing}
+                    armBallSide={attVisuals[id]?.armBallSide}
+                    armManSide={attVisuals[id]?.armManSide}
                   />
                 ) : null
               )}

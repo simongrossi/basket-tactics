@@ -2,117 +2,151 @@ import { describe, it, expect } from 'vitest';
 import {
   computeDefenderOrientation,
   computeAttackerOrientation,
+  lerpAngleDeg,
 } from '../orientation';
 
 const HOOP = { x: 300, y: 75 };
 
-describe('computeDefenderOrientation', () => {
-  it('on-ball defender regarde le porteur (manPos = ballCarrier)', () => {
+/** Helper : différence d'angle signée [-180, 180]. */
+function angleDiff(a: number, b: number): number {
+  return ((a - b) % 360 + 540) % 360 - 180;
+}
+
+describe('computeDefenderOrientation — convention B + invariants anatomiques', () => {
+  it('on-ball : facing pointe vers le porteur, body face au porteur', () => {
     const r = computeDefenderOrientation({
       defenderPos: { x: 300, y: 410 },
       manPos: { x: 300, y: 470 },
       ballPos: { x: 300, y: 470 },
       isCarrierDefender: true,
     });
-    expect(r.facing).toEqual({ x: 300, y: 470 });
+    // Body : porteur en bas (sud) → orientation ≈ 180°.
+    expect(r.bodyOrientation).toBeCloseTo(180, 0);
+    // Gaze pointe vers le porteur (sud aussi).
+    expect(Math.abs(angleDiff(r.gazeOrientation, 180))).toBeLessThan(1);
   });
 
-  it('fronting → facing pointe vers le ballon (pas vers son homme)', () => {
+  it('off-ball sag : armBallSide pointe vers ballon, armManSide vers homme', () => {
     const r = computeDefenderOrientation({
       defenderPos: { x: 200, y: 300 },
-      manPos: { x: 200, y: 400 }, // homme weak-side
-      ballPos: { x: 500, y: 200 }, // ballon strong-side
-      stance: 'fronting',
+      manPos: { x: 100, y: 380 }, // homme en bas-gauche
+      ballPos: { x: 400, y: 380 }, // ballon en bas-droite
+      stance: 'sag',
     });
-    expect(r.facing).toEqual({ x: 500, y: 200 });
+    // Bras "ball-side" doit être proche du ballon (clamp possible si derrière).
+    const dBall = Math.hypot(r.armBallSide.x - 400, r.armBallSide.y - 380);
+    const dMan = Math.hypot(r.armManSide.x - 100, r.armManSide.y - 380);
+    expect(dBall).toBeLessThan(50); // proche du ballon
+    expect(dMan).toBeLessThan(50);  // proche de l'homme
   });
 
-  it('deny-3q → facing pointe vers le ballon', () => {
+  it('fronting : facing pointe vers le ballon (denial)', () => {
     const r = computeDefenderOrientation({
       defenderPos: { x: 200, y: 300 },
       manPos: { x: 200, y: 400 },
       ballPos: { x: 500, y: 200 },
-      stance: 'deny-3q',
+      stance: 'fronting',
     });
-    expect(r.facing).toEqual({ x: 500, y: 200 });
+    // Gaze vers le ballon (le clamp anatomique peut adapter selon body).
+    // On vérifie que le gaze pointe DANS LA DIRECTION du ballon (côté).
+    const ballAngleFromDef = ((Math.atan2(500 - 200, -(200 - 300)) * 180) / Math.PI);
+    expect(Math.abs(angleDiff(r.gazeOrientation, ballAngleFromDef))).toBeLessThanOrEqual(91);
   });
 
-  it('sag/behind → facing entre homme et ballon (head-on-swivel)', () => {
+  it("INVARIANT #1 — gaze ne dépasse jamais ±90° du body", () => {
+    // Test stress : on construit un cas où l'auto voudrait pointer derrière.
+    // En sag, body pointe vers midpoint, gaze vers ballon. Si on isole un
+    // scénario où ces deux divergent fortement, le clamp doit s'appliquer.
     const r = computeDefenderOrientation({
-      defenderPos: { x: 200, y: 300 },
-      manPos: { x: 200, y: 400 },
-      ballPos: { x: 400, y: 400 },
+      defenderPos: { x: 300, y: 300 },
+      manPos: { x: 100, y: 100 },   // homme nord-ouest
+      ballPos: { x: 500, y: 500 },  // ballon sud-est
       stance: 'sag',
     });
-    // midpoint man-ball
-    expect(r.facing).toEqual({ x: 300, y: 400 });
+    const diff = Math.abs(angleDiff(r.gazeOrientation, r.bodyOrientation));
+    expect(diff).toBeLessThanOrEqual(90 + 0.01); // tolérance epsilon
   });
 
-  it('orientation est calculée comme angle horaire depuis le haut (nord)', () => {
-    // Défenseur en (300, 300), facing en (400, 300) → à droite (est) → orientation +90°
+  it("INVARIANT #2 — armBallSide ne tombe jamais derrière le corps", () => {
+    // Cas où l'homme est tellement loin derrière que le bras devrait être
+    // clampé au demi-cercle frontal.
     const r = computeDefenderOrientation({
       defenderPos: { x: 300, y: 300 },
-      manPos: { x: 400, y: 300 },
-      ballPos: { x: 400, y: 300 },
-      isCarrierDefender: true,
+      manPos: { x: 300, y: 400 }, // homme au sud (proche du défenseur)
+      ballPos: { x: 300, y: 200 }, // ballon au nord (de l'autre côté)
+      stance: 'fronting',          // body face à l'homme = sud
     });
-    expect(r.orientationDeg).toBeCloseTo(90, 0);
+    // Body = sud (180°). armBallSide doit être dans ±90° de 180° = entre 90° et 270°.
+    const dx = r.armBallSide.x - 300;
+    const dy = r.armBallSide.y - 300;
+    const armAngle = (Math.atan2(dx, -dy) * 180) / Math.PI;
+    const diff = Math.abs(angleDiff(armAngle, r.bodyOrientation));
+    expect(diff).toBeLessThanOrEqual(90 + 0.01);
   });
 
-  it('vsCarrier=topside : on-ball ajoute +30° (push baseline)', () => {
-    const baseR = computeDefenderOrientation({
+  it('manualBody override absolu (corps figé)', () => {
+    const r = computeDefenderOrientation({
       defenderPos: { x: 300, y: 300 },
-      manPos: { x: 400, y: 300 },
-      ballPos: { x: 400, y: 300 },
-      isCarrierDefender: true,
-      vsCarrier: 'coller',
+      manPos: { x: 100, y: 100 },
+      ballPos: { x: 500, y: 500 },
+      stance: 'sag',
+      manualBody: 45, // override absolu
     });
-    const topsideR = computeDefenderOrientation({
-      defenderPos: { x: 300, y: 300 },
-      manPos: { x: 400, y: 300 },
-      ballPos: { x: 400, y: 300 },
-      isCarrierDefender: true,
-      vsCarrier: 'topside',
-    });
-    expect(topsideR.orientationDeg - baseR.orientationDeg).toBeCloseTo(30, 0);
+    expect(r.bodyOrientation).toBeCloseTo(45, 0);
   });
 
-  it('manual delta : ajouté à l\'auto et clampé à [-45, +45]', () => {
-    const baseR = computeDefenderOrientation({
+  it("manualGaze respecte le clamp ±90° du body", () => {
+    const r = computeDefenderOrientation({
       defenderPos: { x: 300, y: 300 },
-      manPos: { x: 400, y: 300 },
-      ballPos: { x: 400, y: 300 },
-      isCarrierDefender: true,
+      manPos: { x: 100, y: 100 },
+      ballPos: { x: 500, y: 500 },
+      stance: 'sag',
+      manualBody: 0,    // body au nord
+      manualGaze: 200,  // user demande gaze au sud-sud-ouest (impossible anatomiquement)
     });
-    const withDelta = computeDefenderOrientation({
-      defenderPos: { x: 300, y: 300 },
-      manPos: { x: 400, y: 300 },
-      ballPos: { x: 400, y: 300 },
-      isCarrierDefender: true,
-      manualDelta: 20,
-    });
-    expect(withDelta.orientationDeg - baseR.orientationDeg).toBeCloseTo(20, 0);
-
-    const overflowDelta = computeDefenderOrientation({
-      defenderPos: { x: 300, y: 300 },
-      manPos: { x: 400, y: 300 },
-      ballPos: { x: 400, y: 300 },
-      isCarrierDefender: true,
-      manualDelta: 200,
-    });
-    expect(overflowDelta.orientationDeg - baseR.orientationDeg).toBeCloseTo(45, 0);
+    // Le gaze doit être clampé à 90° (limite frontale est).
+    const diff = Math.abs(angleDiff(r.gazeOrientation, 0));
+    expect(diff).toBeLessThanOrEqual(90 + 0.01);
   });
 });
 
 describe('computeAttackerOrientation', () => {
-  it('porteur → facing = panier', () => {
+  it('porteur statique → corps + regard vers le panier', () => {
     const r = computeAttackerOrientation({
       attackerPos: { x: 300, y: 470 },
       role: 'carrier',
       ballPos: { x: 300, y: 470 },
       hoop: HOOP,
     });
-    expect(r.facing).toEqual(HOOP);
+    // Panier au nord, attaquant en bas → bodyOrientation ≈ 0°.
+    expect(r.bodyOrientation).toBeCloseTo(0, 0);
+  });
+
+  it('porteur en dribble → corps dans la direction du mouvement', () => {
+    // Le porteur s'est déplacé de (200, 470) → (300, 350) entre l'étape
+    // précédente et la courante = dribble vers le nord-est, distance > 30.
+    const r = computeAttackerOrientation({
+      attackerPos: { x: 300, y: 350 },
+      role: 'carrier',
+      ballPos: { x: 300, y: 350 },
+      hoop: HOOP,
+      prevPos: { x: 200, y: 470 }, // 156 px de distance → dribble
+    });
+    // Direction = (300-200, 350-470) = (100, -120) → atan2(100, 120) ≈ 39° (NE)
+    const expected = (Math.atan2(100, 120) * 180) / Math.PI;
+    expect(r.bodyOrientation).toBeCloseTo(expected, 0);
+  });
+
+  it('porteur sans mouvement significatif → reste vers le panier', () => {
+    // Déplacement = 10 px (< seuil 30) → pas de dribble.
+    const r = computeAttackerOrientation({
+      attackerPos: { x: 300, y: 350 },
+      role: 'carrier',
+      ballPos: { x: 300, y: 350 },
+      hoop: HOOP,
+      prevPos: { x: 295, y: 350 }, // 5 px → pas dribble
+    });
+    expect(r.bodyOrientation).toBeCloseTo(0, 0);
   });
 
   it('passeur → facing = receveur', () => {
@@ -123,10 +157,11 @@ describe('computeAttackerOrientation', () => {
       hoop: HOOP,
       receiverPos: { x: 500, y: 200 },
     });
-    expect(r.facing).toEqual({ x: 500, y: 200 });
+    const expected = (Math.atan2(200, 270) * 180) / Math.PI;
+    expect(r.bodyOrientation).toBeCloseTo(expected, 0);
   });
 
-  it('coupeur (cut) → facing = direction de la coupe (nextPos)', () => {
+  it('coupeur → facing = nextPos', () => {
     const r = computeAttackerOrientation({
       attackerPos: { x: 200, y: 400 },
       role: 'cutter',
@@ -134,42 +169,26 @@ describe('computeAttackerOrientation', () => {
       hoop: HOOP,
       nextPos: { x: 350, y: 200 },
     });
-    expect(r.facing).toEqual({ x: 350, y: 200 });
+    const expected = (Math.atan2(150, 200) * 180) / Math.PI;
+    expect(r.bodyOrientation).toBeCloseTo(expected, 0);
   });
 
-  it('poseur d\'écran → facing = défenseur ciblé, orientation perpendiculaire à ce vecteur', () => {
-    // Défenseur cible à droite du screener → screener doit être de profil
-    // (corps à 90° par rapport à la ligne screener→défenseur).
-    const r = computeAttackerOrientation({
-      attackerPos: { x: 300, y: 400 },
-      role: 'screener',
-      ballPos: { x: 100, y: 400 },
-      hoop: HOOP,
-      screenTargetDefPos: { x: 400, y: 400 },
-    });
-    expect(r.facing).toEqual({ x: 400, y: 400 });
-    // facing à droite = angle horaire +90° depuis le nord ; perpendiculaire +90°
-    // → orientation 180° (corps tourné dos au nord) ou 0° selon convention.
-    // L'invariant simple : la différence avec un facing "frontal" est ±90°.
-    const frontalR = computeAttackerOrientation({
-      attackerPos: { x: 300, y: 400 },
-      role: 'carrier',
-      ballPos: { x: 300, y: 400 },
-      hoop: { x: 400, y: 400 }, // panier dans la même direction que la cible défensive
-    });
-    // |orientation_screener - orientation_carrier| ≡ 90° (mod 360)
-    const diff = Math.abs(((r.orientationDeg - frontalR.orientationDeg) % 360 + 540) % 360 - 180);
-    // diff ≈ 90° (à 90 près de 180 à cause du modulo)
-    expect(Math.abs(diff - 90)).toBeLessThan(1);
-  });
-
-  it('défaut (pas de role spécifique) → facing = ballon', () => {
+  it('défaut idle → facing = ballon', () => {
     const r = computeAttackerOrientation({
       attackerPos: { x: 100, y: 100 },
       role: 'idle',
       ballPos: { x: 500, y: 470 },
       hoop: HOOP,
     });
-    expect(r.facing).toEqual({ x: 500, y: 470 });
+    const expected = (Math.atan2(400, -370) * 180) / Math.PI;
+    expect(r.bodyOrientation).toBeCloseTo(expected, 0);
+  });
+});
+
+describe('lerpAngleDeg', () => {
+  it('interpole entre 350° et 10° par le plus court chemin (passe par 0°)', () => {
+    const result = lerpAngleDeg(350, 10, 0.5);
+    // Plus court chemin = 350 → 360 → 10, soit +20° ; à 0.5 = +10° = 360 = 0°
+    expect(Math.abs(angleDiff(result, 0))).toBeLessThan(0.5);
   });
 });

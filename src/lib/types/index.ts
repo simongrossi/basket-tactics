@@ -103,8 +103,16 @@ export interface DefenderRule {
    *  0 = neutre (bras symétriques au-dessus, convention FIBA). Positif =
    *  rotation horaire (épaule droite avancée, ferme le côté droit).
    *  Négatif = anti-horaire. Applique aussi un petit offset latéral à la
-   *  position cible pour matérialiser le force. */
+   *  position cible pour matérialiser le force.
+   *  Conservé comme **delta legacy** (±45° clampé) ajouté au body auto. */
   orientation?: number;
+  /** Override manuel du corps en absolu (0–360°). Si défini, écrase l'auto.
+   *  Permet au coach de figer une posture spécifique pour un défenseur,
+   *  indépendamment de la stance et de la position du ballon. */
+  bodyOrientation?: number;
+  /** Override manuel du regard. Sera clampé à ±90° du `bodyOrientation`
+   *  effectif (règle anatomique inviolable : pas de regard derrière). */
+  gazeOrientation?: number;
 }
 
 export type DefenderRules = Record<DefenderId, DefenderRule>;
@@ -259,17 +267,21 @@ export interface ComputedDefender {
    *  - `stunt` : faux mouvement vers le porteur depuis le nail
    *  Permet de tracer un anneau spécifique pour le coach. */
   pnrRole?: 'tag' | 'x-out' | 'stunt';
-  /** Rotation horaire des bras FIBA en degrés depuis le NORD (haut, y négatif).
-   *  Calculée automatiquement par `computeDefenderOrientation` à partir de
-   *  la stance, du ballon et de la position de l'homme. La valeur de
-   *  `state.rules[id].orientation` est appliquée comme delta ajouté
-   *  (clampé à ±45°) — réglage manuel respecté sans casser la cohérence basket. */
+  /** Angle horaire du CORPS depuis le nord (0–360°). Calculé automatiquement
+   *  par `computeDefenderOrientation` à partir de la stance, du ballon, de
+   *  la position de l'homme. Override possible via `rule.bodyOrientation`. */
   orientation: number;
-  /** Point que le défenseur regarde (sert au triangle pointeur).
-   *  - on-ball : le porteur.
-   *  - off-ball deny/fronting : le ballon.
-   *  - off-ball sag : midpoint entre l'homme et le ballon (head-on-swivel). */
+  /** Angle horaire du REGARD depuis le nord. Contraint à ±90° du `orientation`
+   *  (corps) — règle anatomique inviolable : on ne peut pas regarder derrière
+   *  sa tête. */
+  gazeOrientation: number;
+  /** Point que le défenseur regarde (sert au triangle pointeur). Cohérent
+   *  avec `gazeOrientation` après clamp anatomique. */
   facing: Point;
+  /** Cible de la main "côté ballon" (convention B asymétrique). */
+  armBallSide: Point;
+  /** Cible de la main "côté homme" (convention B asymétrique). */
+  armManSide: Point;
   /** Cible "aim" brute de l'aide (avant blend par helpFactor). Pour debug :
    *  visualiser vers quoi le défenseur tend, indépendamment de l'intensité.
    *  Undefined si pas d'aide active ni denial. */
@@ -280,10 +292,13 @@ export interface ComputedDefender {
   helpKind?: 'sag-weakside' | 'denial-strongside' | 'active-help' | 'none';
 }
 
-/** Visuels d'attaquants calculés par étape (orientation + facing). */
+/** Visuels d'attaquants calculés par étape (convention B + invariants anatomiques). */
 export interface ComputedAttacker {
-  orientation: number;
+  orientation: number;       // body, 0–360°
+  gazeOrientation: number;   // regard, clampé ±90° du corps
   facing: Point;
+  armBallSide: Point;
+  armManSide: Point;
 }
 export type ComputedAttackerVisuals = Record<AttackerId, ComputedAttacker>;
 

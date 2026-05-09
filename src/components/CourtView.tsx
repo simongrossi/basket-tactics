@@ -265,9 +265,18 @@ export function CourtView(props: CourtViewProps) {
           denying: defB[id].denying,
           helpTriggered: defB[id].helpTriggered,
           orientation: lerpAngleDeg(defA[id].orientation, defB[id].orientation, localT),
+          gazeOrientation: lerpAngleDeg(defA[id].gazeOrientation, defB[id].gazeOrientation, localT),
           facing: {
             x: defA[id].facing.x + (defB[id].facing.x - defA[id].facing.x) * localT,
             y: defA[id].facing.y + (defB[id].facing.y - defA[id].facing.y) * localT,
+          },
+          armBallSide: {
+            x: defA[id].armBallSide.x + (defB[id].armBallSide.x - defA[id].armBallSide.x) * localT,
+            y: defA[id].armBallSide.y + (defB[id].armBallSide.y - defA[id].armBallSide.y) * localT,
+          },
+          armManSide: {
+            x: defA[id].armManSide.x + (defB[id].armManSide.x - defA[id].armManSide.x) * localT,
+            y: defA[id].armManSide.y + (defB[id].armManSide.y - defA[id].armManSide.y) * localT,
           },
         };
       });
@@ -440,6 +449,15 @@ export function CourtView(props: CourtViewProps) {
         switchedThisStep: defB[id].switchedThisStep,
         closingOut: defB[id].closingOut,
         orientation: lerpAngleDeg(defA[id].orientation, defB[id].orientation, localT),
+        gazeOrientation: lerpAngleDeg(defA[id].gazeOrientation, defB[id].gazeOrientation, localT),
+        armBallSide: {
+          x: defA[id].armBallSide.x + (defB[id].armBallSide.x - defA[id].armBallSide.x) * localT,
+          y: defA[id].armBallSide.y + (defB[id].armBallSide.y - defA[id].armBallSide.y) * localT,
+        },
+        armManSide: {
+          x: defA[id].armManSide.x + (defB[id].armManSide.x - defA[id].armManSide.x) * localT,
+          y: defA[id].armManSide.y + (defB[id].armManSide.y - defA[id].armManSide.y) * localT,
+        },
         facing: {
           x: defA[id].facing.x + (defB[id].facing.x - defA[id].facing.x) * localT,
           y: defA[id].facing.y + (defB[id].facing.y - defA[id].facing.y) * localT,
@@ -748,6 +766,8 @@ export function CourtView(props: CourtViewProps) {
                       showForcedScreenerBadge={state.showForcedScreenerBadge !== false}
                       orientation={frame.attVisuals[id]?.orientation}
                       facing={frame.attVisuals[id]?.facing}
+                      armBallSide={frame.attVisuals[id]?.armBallSide}
+                      armManSide={frame.attVisuals[id]?.armManSide}
                     />
                   ))}
                 {(Object.entries(frame.defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(
@@ -768,6 +788,8 @@ export function CourtView(props: CourtViewProps) {
                       denying={p.denying}
                       pnrRole={p.pnrRole}
                       orientation={p.orientation}
+                      armBallSide={p.armBallSide}
+                      armManSide={p.armManSide}
                       showStateRings={state.showStateRings !== false}
                       showLockBadges={state.showLockBadges !== false}
                       showLateRing={state.showLateRing !== false}
@@ -788,6 +810,8 @@ export function CourtView(props: CourtViewProps) {
                       showForcedScreenerBadge={state.showForcedScreenerBadge !== false}
                       orientation={frame.attVisuals[id]?.orientation}
                       facing={frame.attVisuals[id]?.facing}
+                      armBallSide={frame.attVisuals[id]?.armBallSide}
+                      armManSide={frame.attVisuals[id]?.armManSide}
                     />
                   ) : null
                 )}

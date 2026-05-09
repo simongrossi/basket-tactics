@@ -24,7 +24,10 @@ function makeDef(positions: Partial<Record<keyof ComputedDefense, { x: number; y
       onScreen: false,
       switchedThisStep: false,
       orientation: 0,
+      gazeOrientation: 0,
       facing: { x: 0, y: 0 },
+      armBallSide: { x: 0, y: 0 },
+      armManSide: { x: 0, y: 0 },
     };
   });
   return out;

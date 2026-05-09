@@ -114,16 +114,53 @@ describe('Invariants sur les playbooks de la bibliothèque', () => {
         }
       });
 
-      it("attackerVisuals : porteur regarde le panier, écran orienté vers défenseur", () => {
+      it("attackerVisuals : porteur regarde dans la direction du panier", () => {
         for (let stepIdx = 0; stepIdx < state.steps.length; stepIdx++) {
           const v = computeAttackerVisuals(state, stepIdx);
           const carrier = state.steps[stepIdx].ballCarrier;
-          // Carrier facing = panier (HOOP={x:300,y:75} dans makeInitialState attackingDirection='up')
-          expect(v[carrier].facing).toEqual({ x: 300, y: 75 });
+          const carrierPos = state.steps[stepIdx].off[carrier];
+          // Dribble entre étape précédente et courante : si le porteur s'est
+          // déplacé > 30 px, son orientation suit le mouvement (pas le panier).
+          // Ici on teste seulement les cas SANS dribble.
+          const prevPos = stepIdx > 0 ? state.steps[stepIdx - 1].off[carrier] : null;
+          const dribbled = prevPos
+            ? Math.hypot(prevPos.x - carrierPos.x, prevPos.y - carrierPos.y) > 30
+            : false;
+          if (!dribbled) {
+            // Vérifie que la direction joueur→facing est ALIGNÉE avec joueur→panier.
+            const HOOP = { x: 300, y: 75 };
+            const dHoopX = HOOP.x - carrierPos.x;
+            const dHoopY = HOOP.y - carrierPos.y;
+            const dFaceX = v[carrier].facing.x - carrierPos.x;
+            const dFaceY = v[carrier].facing.y - carrierPos.y;
+            const dotNormalized = (dHoopX * dFaceX + dHoopY * dFaceY) /
+              (Math.hypot(dHoopX, dHoopY) * Math.hypot(dFaceX, dFaceY) || 1);
+            // dot ≥ 0.99 = vecteurs quasi colinéaires dans le même sens.
+            expect(dotNormalized, `étape ${stepIdx} carrier=${carrier}`).toBeGreaterThanOrEqual(0.99);
+          }
           // Tous les facings valides
           ATT_IDS.forEach((id) => {
             expect(Number.isFinite(v[id].orientation), `${id} orientation finie`).toBe(true);
             expect(Number.isFinite(v[id].facing.x), `${id} facing.x fini`).toBe(true);
+          });
+        }
+      });
+
+      it("INVARIANT anatomique : gaze ∈ ±90° du body pour tous les défenseurs et attaquants", () => {
+        const angleDiff = (a: number, b: number) =>
+          Math.abs(((a - b) % 360 + 540) % 360 - 180);
+        for (let stepIdx = 0; stepIdx < state.steps.length; stepIdx++) {
+          const def = effectiveDefensePositions(state, stepIdx);
+          const v = computeAttackerVisuals(state, stepIdx);
+          DEF_IDS.forEach((dId) => {
+            const diff = angleDiff(def[dId].gazeOrientation, def[dId].orientation);
+            expect(diff, `${dId} étape ${stepIdx}: gaze ${def[dId].gazeOrientation}, body ${def[dId].orientation}`)
+              .toBeLessThanOrEqual(90 + 0.01);
+          });
+          ATT_IDS.forEach((id) => {
+            const diff = angleDiff(v[id].gazeOrientation, v[id].orientation);
+            expect(diff, `${id} étape ${stepIdx}: gaze ${v[id].gazeOrientation}, body ${v[id].orientation}`)
+              .toBeLessThanOrEqual(90 + 0.01);
           });
         }
       });

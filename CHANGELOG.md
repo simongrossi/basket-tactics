@@ -6,6 +6,26 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Added — Convention B : bras asymétriques + invariants anatomiques
+- **2 cibles distinctes** par joueur (`armBallSide` / `armManSide`) calculées par rôle dans [`orientation.ts`](src/lib/logic/orientation.ts) :
+  - Off-ball sag : un bras vers ballon, un vers homme (open stance).
+  - Fronting : 2 bras dans la ligne de passe homme→ballon.
+  - Deny-3q / stunt : un bras dans la ligne de passe (intercepter), un sur l'homme.
+  - PnR tag/x-out/stunt : un bras vers la zone de menace, un sur l'homme original.
+  - On-ball : 2 bras vers le porteur (contestation).
+  - Porteur statique : 2 bras vers le panier ; **en dribble (delta prev→cur > 30 px) → 2 bras vers la direction du mouvement**.
+  - Cutter : 2 bras vers la destination de coupe.
+  - Screener : 2 bras vers le défenseur ciblé (corps perpendiculaire pour bloquer la trajectoire).
+  - Idle : 2 bras vers le porteur (demande la passe).
+- **Invariants anatomiques inviolables** :
+  - Le `gaze` (regard) est CLAMPÉ à ±90° du `body` (corps) — impossible de regarder derrière sa tête.
+  - Aucune cible de bras ne tombe en dehors du demi-cercle frontal du corps — impossible d'avoir un bras dans le dos.
+  - Ces clamps priment sur tout calcul auto et tout override manuel.
+- `ComputedDefender` et `ComputedAttacker` étendus avec `gazeOrientation`, `armBallSide`, `armManSide`.
+- `Player.tsx` : nouveau rendu — 2 bras tracés depuis les épaules (perpendiculaires au regard) vers leurs cibles, avec courbure vers l'avant. Fallback sur les arcs FIBA symétriques si les cibles ne sont pas fournies.
+- 9 tests neufs (197/197 verts) dont l'invariant anatomique sur les 7 playbooks de la lib (gaze ∈ ±90° du body pour tous les joueurs à toutes les étapes).
+- `DefenderRule` étendu avec `bodyOrientation?` (override absolu corps 0–360°) et `gazeOrientation?` (clampé ±90° du corps). Le slider legacy `orientation` (delta ±45°) reste supporté.
+
 ### Fixed — Pictogramme joueur : convention FIBA respectée
 - [`Player.tsx`](src/components/Player.tsx) : bras stylisés **statiques** au-dessus du cercle, identiques pour attaquants et défenseurs. Suppression de la rotation `transform="rotate(orientation, ...)"` ajoutée en 0.6.0 qui faisait tourner les bras avec l'orientation calculée — convention non-FIBA, produisait des bras anatomiquement incohérents (impression de bras "dans le dos" du joueur, ou tous orientés vers le panier).
 - Référence : [FIBA Europe Basketball Terminology](https://www.fiba.com/) — les pictogrammes joueur conservent toujours la même posture quelle que soit l'action ; le sens du jeu se lit via les flèches d'action (passes / courses / écrans).
