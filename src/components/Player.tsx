@@ -108,7 +108,7 @@ export function Player({
          *
          * Si `gazeOrientation` n'est pas fourni (legacy), fallback sur
          * `orientation` (rétrocompat ancien API). */}
-        <g transform={`rotate(${-(gazeOrientation ?? orientation ?? 0)}, ${pos.x}, ${pos.y})`}>
+        <g transform={`rotate(${gazeOrientation ?? orientation ?? 0}, ${pos.x}, ${pos.y})`}>
           <path
             d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
             fill="none"
