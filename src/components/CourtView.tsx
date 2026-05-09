@@ -39,6 +39,12 @@ import { ThreatOverlay } from './ThreatOverlay';
 import { BestActionOverlay } from './BestActionOverlay';
 import { computeAttackerThreats } from '@/lib/logic/threats';
 import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offense';
+import {
+  activeBallCarrier,
+  activeOffense,
+  getActiveDefenderIds,
+  isActiveAttacker,
+} from '@/lib/logic/players';
 
 interface CourtViewProps {
   state: AppState;
@@ -138,6 +144,8 @@ export function CourtView(props: CourtViewProps) {
       const localT = globalT - idxA;
       const a = cur.steps[idxA];
       const b = cur.steps[idxB];
+      const offA = activeOffense(a.off, cur.playerCount);
+      const offB = activeOffense(b.off, cur.playerCount);
       const defA = effectiveDefensePositions(cur, idxA);
       const defB = effectiveDefensePositions(cur, idxB);
 
@@ -146,19 +154,19 @@ export function CourtView(props: CourtViewProps) {
       // et les défenseurs (position moyenne A-B). Évite qu'un attaquant
       // traverse un autre joueur entre deux étapes.
       const off = {} as AttackerPositions;
-      const attackerIds = Object.keys(a.off) as AttackerId[];
+      const attackerIds = Object.keys(offA) as AttackerId[];
       const defenderIds = Object.keys(defA) as DefenderId[];
       const radiusObstacle = PLAYER_RADIUS + 2;
       attackerIds.forEach((id) => {
-        const from = a.off[id];
-        const to = b.off[id];
+        const from = offA[id];
+        const to = offB[id];
         const obstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
         attackerIds.forEach((other) => {
           if (other === id) return;
           obstacles.push({
             center: {
-              x: (a.off[other].x + b.off[other].x) / 2,
-              y: (a.off[other].y + b.off[other].y) / 2,
+              x: (offA[other].x + offB[other].x) / 2,
+              y: (offA[other].y + offB[other].y) / 2,
             },
             radius: radiusObstacle,
             defenderToSkip: 'D1' as DefenderId, // valeur arbitraire, jamais filtrée car l'attaquant n'est pas un DefenderId
@@ -185,12 +193,14 @@ export function CourtView(props: CourtViewProps) {
         off[id] = p;
       });
 
-      const carrier = localT < 0.5 ? a.ballCarrier : b.ballCarrier;
+      const carrier = localT < 0.5
+        ? activeBallCarrier(a, cur.playerCount)
+        : activeBallCarrier(b, cur.playerCount);
       // Détection d'écran sur la frame en cours pour piloter l'évitement
       let screen: ReturnType<typeof detectScreen> = null;
       let offBallScreens: DetectedOffBallScreen[] = [];
       if (cur.defenseSystem === 'man') {
-        const matchups = getMatchupsAt(cur.steps, idxB - 1);
+        const matchups = getMatchupsAt(cur.steps, idxB - 1, cur.playerCount);
         const defPosLinear = {} as Record<DefenderId, Point>;
         (Object.keys(defA) as DefenderId[]).forEach((id) => {
           defPosLinear[id] = {
@@ -213,8 +223,8 @@ export function CourtView(props: CourtViewProps) {
       const linkDist = PLAYER_RADIUS * 4; // 64px : on lie poseur et son défenseur
       const baseR = PLAYER_RADIUS + 4; // 20px — clearance autour du cluster (tight)
       const midpointOff = (id: AttackerId): Point => ({
-        x: (a.off[id].x + b.off[id].x) / 2,
-        y: (a.off[id].y + b.off[id].y) / 2,
+        x: (offA[id].x + offB[id].x) / 2,
+        y: (offA[id].y + offB[id].y) / 2,
       });
       const midpointDef = (id: DefenderId): Point => ({
         x: (defA[id].x + defB[id].x) / 2,
@@ -292,9 +302,9 @@ export function CourtView(props: CourtViewProps) {
       );
 
       const ball = computeBallFrame(
-        a.off[a.ballCarrier],
-        b.off[b.ballCarrier],
-        a.ballCarrier !== b.ballCarrier,
+        offA[activeBallCarrier(a, cur.playerCount)],
+        offB[activeBallCarrier(b, cur.playerCount)],
+        activeBallCarrier(a, cur.playerCount) !== activeBallCarrier(b, cur.playerCount),
         localT
       );
       const attVisuals = computeAttackerVisuals(cur, idxB);
@@ -310,23 +320,25 @@ export function CourtView(props: CourtViewProps) {
   // Computed (static frame)
   const staticFrame = useMemo<PlaybackFrame>(() => {
     const cur = state.steps[state.activeStep];
+    const off = activeOffense(cur.off, state.playerCount);
+    const carrier = activeBallCarrier(cur, state.playerCount);
     const defPos = effectiveDefensePositions(state, state.activeStep);
     let screen: ReturnType<typeof detectScreen> = null;
     let offBallScreens: DetectedOffBallScreen[] = [];
     if (state.defenseSystem === 'man') {
-      const matchups = getMatchupsAt(state.steps, state.activeStep - 1);
+      const matchups = getMatchupsAt(state.steps, state.activeStep - 1, state.playerCount);
       const defPosExtracted = extractDefPositions(defPos);
-      screen = detectScreen(cur.off, cur.ballCarrier, matchups, defPosExtracted, state.screenRadius, cur.forcedScreener);
-      offBallScreens = detectOffBallScreens(cur.off, cur.ballCarrier, matchups, defPosExtracted, state.screenRadius);
+      screen = detectScreen(off, carrier, matchups, defPosExtracted, state.screenRadius, cur.forcedScreener);
+      offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosExtracted, state.screenRadius);
     }
-    const carrierPos = cur.off[cur.ballCarrier];
+    const carrierPos = off[carrier];
     const ballPos: Point = carrierPos
       ? { x: carrierPos.x + 16, y: carrierPos.y - 16 }
       : { x: 0, y: 0 };
     return {
-      off: cur.off,
+      off,
       defPos,
-      carrier: cur.ballCarrier,
+      carrier,
       screen,
       offBallScreens,
       stepIdx: state.activeStep,
@@ -347,21 +359,23 @@ export function CourtView(props: CourtViewProps) {
     const localT = t - idxA;
     const a = state.steps[idxA];
     const b = state.steps[idxB];
+    const offA = activeOffense(a.off, state.playerCount);
+    const offB = activeOffense(b.off, state.playerCount);
     const defA = effectiveDefensePositions(state, idxA);
     const defB = effectiveDefensePositions(state, idxB);
     // Interpolation des attaquants AVEC contournement (cf. playFrame).
     const off = {} as AttackerPositions;
-    const scrubAttIds = Object.keys(a.off) as AttackerId[];
+    const scrubAttIds = Object.keys(offA) as AttackerId[];
     const scrubDefIds = Object.keys(defA) as DefenderId[];
     const scrubObstacleR = PLAYER_RADIUS + 2;
     scrubAttIds.forEach((id) => {
-      const from = a.off[id];
-      const to = b.off[id];
+      const from = offA[id];
+      const to = offB[id];
       const obstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
       scrubAttIds.forEach((other) => {
         if (other === id) return;
         obstacles.push({
-          center: { x: (a.off[other].x + b.off[other].x) / 2, y: (a.off[other].y + b.off[other].y) / 2 },
+          center: { x: (offA[other].x + offB[other].x) / 2, y: (offA[other].y + offB[other].y) / 2 },
           radius: scrubObstacleR,
           defenderToSkip: 'D1' as DefenderId,
         });
@@ -383,11 +397,13 @@ export function CourtView(props: CourtViewProps) {
       }
       off[id] = p;
     });
-    const carrier = localT < 0.5 ? a.ballCarrier : b.ballCarrier;
+    const carrier = localT < 0.5
+      ? activeBallCarrier(a, state.playerCount)
+      : activeBallCarrier(b, state.playerCount);
     let screen: ReturnType<typeof detectScreen> = null;
     let offBallScreens: DetectedOffBallScreen[] = [];
     if (state.defenseSystem === 'man') {
-      const matchups = getMatchupsAt(state.steps, Math.max(0, idxB - 1));
+      const matchups = getMatchupsAt(state.steps, Math.max(0, idxB - 1), state.playerCount);
       const defPosLinear = {} as Record<DefenderId, Point>;
       (Object.keys(defA) as DefenderId[]).forEach((id) => {
         defPosLinear[id] = {
@@ -404,8 +420,8 @@ export function CourtView(props: CourtViewProps) {
     const linkDist = PLAYER_RADIUS * 4;
     const baseR = PLAYER_RADIUS + 4;
     const midpointOff = (id: AttackerId): Point => ({
-      x: (a.off[id].x + b.off[id].x) / 2,
-      y: (a.off[id].y + b.off[id].y) / 2,
+      x: (offA[id].x + offB[id].x) / 2,
+      y: (offA[id].y + offB[id].y) / 2,
     });
     const midpointDef = (id: DefenderId): Point => ({
       x: (defA[id].x + defB[id].x) / 2,
@@ -475,9 +491,9 @@ export function CourtView(props: CourtViewProps) {
     );
 
     const ball = computeBallFrame(
-      a.off[a.ballCarrier],
-      b.off[b.ballCarrier],
-      a.ballCarrier !== b.ballCarrier,
+      offA[activeBallCarrier(a, state.playerCount)],
+      offB[activeBallCarrier(b, state.playerCount)],
+      activeBallCarrier(a, state.playerCount) !== activeBallCarrier(b, state.playerCount),
       localT
     );
     return {
@@ -498,7 +514,7 @@ export function CourtView(props: CourtViewProps) {
     ? computeAttackerThreats(
         frame.off,
         frame.defPos,
-        state.steps[frame.stepIdx]?.ballCarrier ?? frame.carrier,
+        frame.carrier,
         undefined,
         state.attackerProfiles
       )
@@ -519,10 +535,13 @@ export function CourtView(props: CourtViewProps) {
   const findPlayerAt = useCallback(
     (pt: Point): PlayerId | null => {
       const cur = state.steps[state.activeStep];
-      for (const id in cur.off) {
-        if (distance(cur.off[id as AttackerId], pt) < PLAYER_RADIUS + 4) return id as AttackerId;
+      const off = activeOffense(cur.off, state.playerCount);
+      for (const id in off) {
+        if (distance(off[id as AttackerId], pt) < PLAYER_RADIUS + 4) return id as AttackerId;
       }
+      const activeDefenders = new Set(getActiveDefenderIds(state.playerCount));
       for (const id in state.defenseInitial) {
+        if (!activeDefenders.has(id as DefenderId)) continue;
         if (distance(state.defenseInitial[id as DefenderId], pt) < PLAYER_RADIUS + 4) return id as DefenderId;
       }
       return null;
@@ -676,9 +695,12 @@ export function CourtView(props: CourtViewProps) {
         <ArrowMarkers />
         <CourtBackground fullCourt={state.fullCourt} attackingDirection={state.attackingDirection} />
         {state.defenseSystem === 'zone' && (() => {
+          const activeDefenders = new Set(getActiveDefenderIds(state.playerCount));
           const base = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
           const oriented = state.attackingDirection === 'down' ? mirrorZoneLayout(base) : base;
-          const zoneLayout = applyZoneOverrides(oriented, state.zoneOverrides);
+          const zoneLayout = applyZoneOverrides(oriented, state.zoneOverrides).filter((z) =>
+            activeDefenders.has(z.assignedTo)
+          );
           if (state.zoneEditMode) {
             return (
               <ZoneEditOverlay
@@ -715,9 +737,12 @@ export function CourtView(props: CourtViewProps) {
           return <ZoneOverlay layout={zoneLayout} show />;
         })()}
         {state.defenseSystem === 'zone' ? (() => {
+          const activeDefenders = new Set(getActiveDefenderIds(state.playerCount));
           const base = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
           const oriented = state.attackingDirection === 'down' ? mirrorZoneLayout(base) : base;
-          const zoneLayout = applyZoneOverrides(oriented, state.zoneOverrides);
+          const zoneLayout = applyZoneOverrides(oriented, state.zoneOverrides).filter((z) =>
+            activeDefenders.has(z.assignedTo)
+          );
           return (
             <ZoneCoverage
               off={frame.off}
@@ -841,29 +866,35 @@ export function CourtView(props: CourtViewProps) {
             joueurs pour passer AU-DESSUS des icônes (~17px de rayon). */}
         {threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="badges" />}
         {state.showBestAction && (() => {
-          const carrier = state.steps[frame.stepIdx]?.ballCarrier ?? 'O1';
+          const carrier = frame.carrier;
           const actions = evaluateOffensiveOptions(frame.off, frame.defPos, carrier, undefined, state.attackerProfiles);
           const best = bestOffensiveAction(actions);
           if (!best) return null;
           return <BestActionOverlay off={frame.off} carrier={carrier} best={best} show />;
         })()}
         <g>
-          {state.steps[frame.stepIdx]?.annotations.map((a, i) => (
-            <g key={i} data-annotation-idx={i} style={{ cursor: 'context-menu' }}>
-              <AnnotationView annotation={a} />
-              {/* Hit-test invisible : élargit la zone de clic-droit pour
-                  la suppression depuis le terrain. */}
-              <line
-                x1={a.from.x}
-                y1={a.from.y}
-                x2={a.to.x}
-                y2={a.to.y}
-                stroke="transparent"
-                strokeWidth={14}
-                strokeLinecap="round"
-              />
-            </g>
-          ))}
+          {state.steps[frame.stepIdx]?.annotations
+            .map((annotation, index) => ({ annotation, index }))
+            .filter(({ annotation }) =>
+              isActiveAttacker(annotation.fromId, state.playerCount) &&
+              (!annotation.toId || isActiveAttacker(annotation.toId, state.playerCount))
+            )
+            .map(({ annotation: a, index }) => (
+              <g key={index} data-annotation-idx={index} style={{ cursor: 'context-menu' }}>
+                <AnnotationView annotation={a} />
+                {/* Hit-test invisible : élargit la zone de clic-droit pour
+                    la suppression depuis le terrain. */}
+                <line
+                  x1={a.from.x}
+                  y1={a.from.y}
+                  x2={a.to.x}
+                  y2={a.to.y}
+                  stroke="transparent"
+                  strokeWidth={14}
+                  strokeLinecap="round"
+                />
+              </g>
+            ))}
           {pending && pending.from && <AnnotationView annotation={pending as Annotation} preview />}
         </g>
         <PassLanesOverlay
@@ -891,9 +922,22 @@ export function CourtView(props: CourtViewProps) {
         {state.showScreenIndicators !== false && state.showOffBallScreenIndicator !== false && (
           <OffBallScreenIndicator screens={frame.offBallScreens} off={frame.off} />
         )}
-        {state.showActionOrder && !props.isPlaying && props.scrubT == null && state.steps[state.activeStep] && (
-          <ActionOrderBadges step={state.steps[state.activeStep]} />
-        )}
+        {state.showActionOrder && !props.isPlaying && props.scrubT == null && state.steps[state.activeStep] && (() => {
+          const step = state.steps[state.activeStep];
+          return (
+            <ActionOrderBadges
+              step={{
+                ...step,
+                off: frame.off,
+                ballCarrier: frame.carrier,
+                annotations: step.annotations.filter(
+                  (a) => isActiveAttacker(a.fromId, state.playerCount) &&
+                    (!a.toId || isActiveAttacker(a.toId, state.playerCount))
+                ),
+              }}
+            />
+          );
+        })()}
         <Ball pos={frame.ballPos} inFlight={frame.ballInFlight} />
         {threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="badges" />}
       </svg>
@@ -947,7 +991,7 @@ export function CourtView(props: CourtViewProps) {
             oId={oId}
             x={ctxMenu.x}
             y={ctxMenu.y}
-            isCarrier={cur?.ballCarrier === oId}
+            isCarrier={cur ? activeBallCarrier(cur, state.playerCount) === oId : false}
             isForcedScreener={cur?.forcedScreener === oId}
             hasAnnotations={(cur?.annotations ?? []).some((a) => a.fromId === oId)}
             dominantHand={state.attackerHands?.[oId] ?? 'right'}
@@ -971,7 +1015,10 @@ export function CourtView(props: CourtViewProps) {
       {zoneRegionMenu && state.defenseSystem === 'zone' && state.zoneEditMode && (() => {
         const base = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
         const oriented = state.attackingDirection === 'down' ? mirrorZoneLayout(base) : base;
-        const layout = applyZoneOverrides(oriented, state.zoneOverrides);
+        const activeDefenders = new Set(getActiveDefenderIds(state.playerCount));
+        const layout = applyZoneOverrides(oriented, state.zoneOverrides).filter((z) =>
+          activeDefenders.has(z.assignedTo)
+        );
         const region = layout.find((r) => r.id === zoneRegionMenu.regionId);
         if (!region) return null;
         return (
@@ -990,13 +1037,11 @@ export function CourtView(props: CourtViewProps) {
 }
 
 function extractDefPositions(defPos: ComputedDefense): Record<DefenderId, Point> {
-  return {
-    D1: { x: defPos.D1.x, y: defPos.D1.y },
-    D2: { x: defPos.D2.x, y: defPos.D2.y },
-    D3: { x: defPos.D3.x, y: defPos.D3.y },
-    D4: { x: defPos.D4.x, y: defPos.D4.y },
-    D5: { x: defPos.D5.x, y: defPos.D5.y },
-  };
+  const out = {} as Record<DefenderId, Point>;
+  (Object.entries(defPos) as [DefenderId, ComputedDefense[DefenderId]][]).forEach(([id, p]) => {
+    out[id] = { x: p.x, y: p.y };
+  });
+  return out;
 }
 
 /**
@@ -1007,11 +1052,12 @@ function extractDefPositions(defPos: ComputedDefense): Record<DefenderId, Point>
 function GhostLayer({ state, stepIdx }: { state: AppState; stepIdx: number }) {
   const step = state.steps[stepIdx];
   if (!step) return null;
+  const off = activeOffense(step.off, state.playerCount);
   const defPos = effectiveDefensePositions(state, stepIdx);
   const r = PLAYER_RADIUS;
   return (
     <g pointerEvents="none" opacity={0.35}>
-      {(Object.entries(step.off) as [AttackerId, Point][]).map(([id, pos]) => (
+      {(Object.entries(off) as [AttackerId, Point][]).map(([id, pos]) => (
         <circle
           key={`ghost-o-${id}`}
           cx={pos.x}

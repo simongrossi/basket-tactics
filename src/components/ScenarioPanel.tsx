@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import type {
   AttackerId, ScriptedAction, OffensiveScriptedAction, ActionSide, DriveDirection,
-  DefensiveActionType, DefensiveActionParams, DefensiveScriptedAction,
+  DefensiveActionType, DefensiveActionParams, DefensiveScriptedAction, PlayerCount,
 } from '@/lib/types';
+import { getActiveAttackerIds, getActiveDefenderIds } from '@/lib/logic/players';
 import {
   SCRIPTED_ACTIONS_CATALOG,
   SCRIPTED_ACTIONS_BY_CATEGORY,
@@ -21,7 +22,6 @@ import { AddCoverageModal } from './AddCoverageModal';
 import { DefensiveActionForm } from './DefensiveActionForm';
 import { Panel, Button, COLORS } from './ui';
 
-const ATTACKER_IDS: AttackerId[] = ['O1', 'O2', 'O3', 'O4', 'O5'];
 const SIDES: ActionSide[] = ['fort', 'faible', 'axe'];
 const DRIVE_DIRECTIONS: DriveDirection[] = ['panier', 'baseline', 'middle'];
 
@@ -57,6 +57,7 @@ interface ScenarioPanelProps {
   ) => void;
   onUpdateDefensiveAction: (id: string, updated: DefensiveScriptedAction) => void;
   onDeleteDefensiveAction: (id: string) => void;
+  playerCount: PlayerCount;
 }
 
 export function ScenarioPanel(props: ScenarioPanelProps) {
@@ -71,6 +72,8 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
     });
   };
   const c = COLORS.offense;
+  const attackerIds = getActiveAttackerIds(props.playerCount);
+  const defenderIds = getActiveDefenderIds(props.playerCount);
 
   // Échap ferme le modal
   useEffect(() => {
@@ -174,6 +177,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                 <ActionForm
                   action={action}
                   def={def}
+                  attackerIds={attackerIds}
                   onChange={(updated) => props.onUpdateAction(action.id, updated)}
                 />
                 <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
@@ -306,6 +310,8 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                     <div style={{ padding: 10, background: '#eff6ff' }}>
                       <DefensiveActionForm
                         action={act}
+                        defenderIds={defenderIds}
+                        attackerIds={attackerIds}
                         onChange={(updated) => props.onUpdateDefensiveAction(act.id, updated)}
                       />
                       <div style={{ marginTop: 8, fontSize: 10, fontWeight: 700, color: '#1e3a8a' }}>
@@ -569,10 +575,11 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
 interface ActionFormProps {
   action: OffensiveScriptedAction;
   def: ScriptedActionDefinition;
+  attackerIds: AttackerId[];
   onChange: (updated: OffensiveScriptedAction) => void;
 }
 
-function ActionForm({ action, def, onChange }: ActionFormProps) {
+function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
   const updateParam = (key: ParamKind, value: string) => {
     onChange({ ...action, params: { ...action.params, [key]: value } });
   };
@@ -590,7 +597,7 @@ function ActionForm({ action, def, onChange }: ActionFormProps) {
             style={{ fontSize: 11, padding: '2px 4px', flex: 1 }}
           >
             <option value="">—</option>
-            {paramOptionsFor(paramKey).map((opt) => (
+            {paramOptionsFor(paramKey, attackerIds).map((opt) => (
               <option key={opt} value={opt}>{opt}</option>
             ))}
           </select>
@@ -610,10 +617,10 @@ function ActionForm({ action, def, onChange }: ActionFormProps) {
   );
 }
 
-function paramOptionsFor(key: ParamKind): string[] {
+function paramOptionsFor(key: ParamKind, attackerIds: AttackerId[]): string[] {
   if (key === 'side') return SIDES;
   if (key === 'direction') return DRIVE_DIRECTIONS;
-  return ATTACKER_IDS;
+  return attackerIds;
 }
 
 function defaultParamsFor(def: ScriptedActionDefinition): OffensiveScriptedAction['params'] {
@@ -622,4 +629,3 @@ function defaultParamsFor(def: ScriptedActionDefinition): OffensiveScriptedActio
   if (def.optionalParams?.includes('direction')) params.direction = 'panier';
   return params;
 }
-

@@ -9,6 +9,7 @@ import type {
 import { detectStepScreenAction, getDefenseHoop } from './engine';
 import { detectOverload, findCriticalZoneAttackers } from './zoneSituations';
 import type { CoachDiagnostic, CoachSeverity } from './coachDiagnostics';
+import { activeBallCarrier, activeOffense } from './players';
 
 /**
  * Lectures offensives automatiques (P5) — module qui ne CRITIQUE pas la
@@ -86,8 +87,8 @@ export function computeTacticalReads(
 ): CoachDiagnostic[] {
   const cur = state.steps[stepIdx];
   if (!cur) return [];
-  const off = cur.off;
-  const carrier = cur.ballCarrier;
+  const off = activeOffense(cur.off, state.playerCount);
+  const carrier = activeBallCarrier(cur, state.playerCount);
   const profiles = state.attackerProfiles;
   const hoop = getDefenseHoop(state);
   const out: CoachDiagnostic[] = [];

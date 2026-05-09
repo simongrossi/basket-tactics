@@ -29,6 +29,7 @@ import {
 } from './zoneSituations';
 import { detectOffBallScreens } from './screens';
 import { computeTacticalReads } from './tacticalReads';
+import { activeBallCarrier, activeOffense, getActiveDefenderIds } from './players';
 
 /** Étiquette courte du profil pour insérer dans les phrases coach. */
 function profileTag(profile?: OffensiveProfile): string {
@@ -81,8 +82,6 @@ export interface CoachDiagnostic {
   attackers: AttackerId[];
 }
 
-const DEFENDER_IDS: DefenderId[] = ['D1', 'D2', 'D3', 'D4', 'D5'];
-
 /**
  * Côté terrain (-1 gauche, 0 centre, 1 droite) pour un point, basé sur la
  * coordonnée x du panier. Sert pour détecter "côté faible" / "côté ballon".
@@ -107,13 +106,15 @@ export function computeCoachDiagnostics(
 ): CoachDiagnostic[] {
   const cur = state.steps[stepIdx];
   if (!cur) return [];
-  const off: AttackerPositions = cur.off;
-  const carrier: AttackerId = cur.ballCarrier;
+  const off: AttackerPositions = activeOffense(cur.off, state.playerCount);
+  const carrier: AttackerId = activeBallCarrier(cur, state.playerCount);
   const carrierPos = off[carrier];
+  if (!carrierPos) return [];
   const defPos: ComputedDefense = effectiveDefensePositions(state, stepIdx);
   const hoop = getDefenseHoop(state);
   const carrierSide = sideOf(carrierPos, hoop);
   const profiles = state.attackerProfiles;
+  const defenderIds = getActiveDefenderIds(state.playerCount);
 
   const out: CoachDiagnostic[] = [];
 
@@ -160,7 +161,7 @@ export function computeCoachDiagnostics(
   // --------------------------------------------------------------------------
   // 2. Mismatch après switch
   // --------------------------------------------------------------------------
-  DEFENDER_IDS.forEach((dId) => {
+  defenderIds.forEach((dId) => {
     const p = defPos[dId];
     if (!p?.switchedThisStep) return;
     out.push({
@@ -181,10 +182,11 @@ export function computeCoachDiagnostics(
   //      simplement averti que la keyframe est suspecte.
   // --------------------------------------------------------------------------
   if (stepIdx > 0) {
-    const prev = state.steps[stepIdx - 1];
+      const prev = state.steps[stepIdx - 1];
+      const prevOff = activeOffense(prev.off, state.playerCount);
     const teleportPxThreshold = 4 * PX_PER_M; // 148 px
     (Object.keys(off) as AttackerId[]).forEach((id) => {
-      const prevP = prev.off[id];
+      const prevP = prevOff[id];
       const curP = off[id];
       if (!prevP || !curP) return;
       const d = distance(prevP, curP);
@@ -425,7 +427,7 @@ export function computeCoachDiagnostics(
       // Trouve le défenseur le plus proche.
       let nearestDef: DefenderId | null = null as DefenderId | null;
       let nearestDist = Infinity;
-      DEFENDER_IDS.forEach((dId) => {
+      defenderIds.forEach((dId) => {
         const d = defPos[dId];
         const dd = distance({ x: d.x, y: d.y }, c.pos);
         if (dd < nearestDist) {
@@ -457,20 +459,26 @@ export function computeCoachDiagnostics(
     });
 
     // Skip pass : entre prev step et current.
-    const prevStep = stepIdx > 0 ? state.steps[stepIdx - 1] : null;
-    const skip = prevStep
-      ? detectSkipPass(prevStep.off, off, prevStep.ballCarrier, carrier, hoop)
+      const prevStep = stepIdx > 0 ? state.steps[stepIdx - 1] : null;
+      const skip = prevStep
+      ? detectSkipPass(
+          activeOffense(prevStep.off, state.playerCount),
+          off,
+          activeBallCarrier(prevStep, state.playerCount),
+          carrier,
+          hoop
+        )
       : null;
     if (skip) {
       // Y a-t-il des défenseurs late ? La rotation est en retard si oui.
-      const lateCount = DEFENDER_IDS.filter((dId) => defPos[dId]?.late).length;
+      const lateCount = defenderIds.filter((dId) => defPos[dId]?.late).length;
       if (lateCount >= 2) {
         out.push({
           id: 'skip-rotation-late',
           severity: 'critical',
           message: `Skip pass — ${lateCount} défenseurs en retard sur la rotation`,
           tag: 'skip-rotation-late',
-          defenders: DEFENDER_IDS.filter((dId) => defPos[dId]?.late),
+          defenders: defenderIds.filter((dId) => defPos[dId]?.late),
           attackers: [carrier],
         });
       } else if (lateCount === 1) {
@@ -479,7 +487,7 @@ export function computeCoachDiagnostics(
           severity: 'warning',
           message: `Skip pass — 1 défenseur en retard, fermer la ligne suivante`,
           tag: 'skip-rotation-soft',
-          defenders: DEFENDER_IDS.filter((dId) => defPos[dId]?.late),
+          defenders: defenderIds.filter((dId) => defPos[dId]?.late),
           attackers: [carrier],
         });
       } else {
@@ -502,10 +510,10 @@ export function computeCoachDiagnostics(
   //   "stagger : prendre le 2ᵉ écran agressivement".
   // --------------------------------------------------------------------------
   if (state.defenseSystem === 'man') {
-    const matchupsAt = getMatchupsAt(state.steps, stepIdx - 1);
+    const matchupsAt = getMatchupsAt(state.steps, stepIdx - 1, state.playerCount);
     const prevDefMap = (() => {
       const m = {} as Record<DefenderId, Point>;
-      DEFENDER_IDS.forEach((d) => {
+      defenderIds.forEach((d) => {
         m[d] = { x: defPos[d].x, y: defPos[d].y };
       });
       return m;
@@ -599,7 +607,7 @@ export function computeCoachDiagnostics(
     // Distance au défenseur le plus proche.
     let nearestDist = Infinity;
     let nearestDef: DefenderId | null = null;
-    DEFENDER_IDS.forEach((dId) => {
+    defenderIds.forEach((dId) => {
       const d = defPos[dId];
       const dd = distance({ x: d.x, y: d.y }, pos);
       if (dd < nearestDist) {
@@ -663,7 +671,7 @@ export function computeCoachDiagnostics(
   if (carrierPos) {
     const distH = distance(carrierPos, hoop);
     if (distH < 90) {
-      const totalHelp = DEFENDER_IDS.reduce((s, d) => s + (defPos[d]?.helpFactor ?? 0), 0);
+      const totalHelp = defenderIds.reduce((s, d) => s + (defPos[d]?.helpFactor ?? 0), 0);
       // Aide insuffisante = total < 0.6 (chaque aide forte vaut ~0.4-0.7).
       if (totalHelp < 0.6) {
         out.push({

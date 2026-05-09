@@ -1,6 +1,7 @@
 export type PlayerId = 'O1' | 'O2' | 'O3' | 'O4' | 'O5' | 'D1' | 'D2' | 'D3' | 'D4' | 'D5';
 export type AttackerId = 'O1' | 'O2' | 'O3' | 'O4' | 'O5';
 export type DefenderId = 'D1' | 'D2' | 'D3' | 'D4' | 'D5';
+export type PlayerCount = 2 | 3 | 4 | 5;
 
 export interface Point {
   x: number;
@@ -430,6 +431,10 @@ export type Tool = 'move' | 'pass' | 'dribble' | 'cut' | 'screen';
 export interface AppState {
   steps: Step[];
   activeStep: number;
+  /** Format de jeu actif : 2x2, 3x3, 4x4 ou 5x5.
+   *  Les joueurs hors format restent en mémoire, mais le moteur, les rendus
+   *  et les contrôles les ignorent pour éviter tout comportement fantôme. */
+  playerCount: PlayerCount;
   defenseInitial: DefenderPositions;
   /** Phase 3 — active l'application des directives défensives scriptées
    *  (step.defensiveDirectives) par l'engine. Default true. */

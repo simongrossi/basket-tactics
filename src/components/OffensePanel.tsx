@@ -1,9 +1,8 @@
 'use client';
 
 import type { AppState, AttackerId, Tool } from '@/lib/types';
+import { activeBallCarrier, getActiveAttackerIds, isActiveAttacker } from '@/lib/logic/players';
 import { Panel, Section, Button, COLORS } from './ui';
-
-const ATTACKER_IDS: AttackerId[] = ['O1', 'O2', 'O3', 'O4', 'O5'];
 
 interface OffensePanelProps {
   state: AppState;
@@ -75,6 +74,7 @@ function ToolIcon({ tool, color }: { tool: Tool; color: string }) {
 export function OffensePanel(props: OffensePanelProps) {
   const { state } = props;
   const c = COLORS.offense;
+  const attackerIds = getActiveAttackerIds(state.playerCount);
 
   return (
     <Panel theme="offense" title="⚪ Attaque">
@@ -114,6 +114,13 @@ export function OffensePanel(props: OffensePanelProps) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 200, overflow: 'auto' }}>
           {state.steps.map((s, i) => {
             const isActive = i === state.activeStep;
+            const carrier = activeBallCarrier(s, state.playerCount);
+            const visibleAnnotations = s.annotations
+              .map((annotation, index) => ({ annotation, index }))
+              .filter(({ annotation }) =>
+                isActiveAttacker(annotation.fromId, state.playerCount) &&
+                (!annotation.toId || isActiveAttacker(annotation.toId, state.playerCount))
+              );
             return (
               <div
                 key={i}
@@ -152,24 +159,24 @@ export function OffensePanel(props: OffensePanelProps) {
                   <span>porteur</span>
                   {isActive ? (
                     <select
-                      value={s.ballCarrier}
+                      value={carrier}
                       onChange={(e) => props.onSetBallCarrier(e.target.value as AttackerId)}
                       onClick={(e) => e.stopPropagation()}
                       style={{ fontSize: 11 }}
                     >
-                      {ATTACKER_IDS.map((id) => (
+                      {attackerIds.map((id) => (
                         <option key={id} value={id}>{id}</option>
                       ))}
                     </select>
                   ) : (
-                    <span style={{ fontWeight: 500 }}>{s.ballCarrier}</span>
+                    <span style={{ fontWeight: 500 }}>{carrier}</span>
                   )}
-                  <span style={{ marginLeft: 'auto' }}>{s.annotations.length} annot.</span>
+                  <span style={{ marginLeft: 'auto' }}>{visibleAnnotations.length} annot.</span>
                 </div>
                 {/* Liste des annotations supprimables — visible seulement sur l'étape active */}
-                {isActive && s.annotations.length > 0 && (
+                {isActive && visibleAnnotations.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4 }}>
-                    {s.annotations.map((a, ai) => {
+                    {visibleAnnotations.map(({ annotation: a, index }, ai) => {
                       const meta = ANNOTATION_LABELS[a.type];
                       return (
                         <div
@@ -197,7 +204,7 @@ export function OffensePanel(props: OffensePanelProps) {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              props.onDeleteAnnotation(ai);
+                              props.onDeleteAnnotation(index);
                             }}
                             title="Supprimer cette action"
                             style={{

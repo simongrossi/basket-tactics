@@ -15,6 +15,7 @@ import type {
   DefensiveActionType,
   DefensiveActionParams,
   DefensiveScriptedAction,
+  PlayerCount,
 } from '@/lib/types';
 import { makeInitialState, makeStep, initialOff, initialDef } from '@/lib/data/initial';
 import { getZoneLayout, mirrorZoneLayout } from '@/lib/data/zones';
@@ -23,6 +24,7 @@ import type { DefensePreset } from '@/lib/data/defensePresets';
 import type { DefenderProfile } from '@/lib/data/defenderProfiles';
 import { compileScenario, newScriptedActionId } from '@/lib/logic/compileScenario';
 import { migrateScriptedActions } from '@/lib/logic/scriptedActionMigration';
+import { normalizePlayerCount, normalizeStateForPlayerCount } from '@/lib/logic/players';
 
 const STORAGE_KEY = 'basket-tactics-state-v1';
 
@@ -36,12 +38,13 @@ function loadFromStorage(): AppState | null {
     const scriptedActions = parsed.scriptedActions
       ? migrateScriptedActions(parsed.scriptedActions as unknown[])
       : parsed.scriptedActions;
-    return {
+    const merged = {
       ...defaults,
       ...parsed,
       zoneConfig: { ...defaults.zoneConfig, ...(parsed.zoneConfig || {}) },
       scriptedActions,
     } as AppState;
+    return normalizeStateForPlayerCount(merged, normalizePlayerCount(merged.playerCount));
   } catch {
     return null;
   }
@@ -544,11 +547,15 @@ export function useAppState() {
       ...next,
       zoneConfig: { ...defaults.zoneConfig, ...(next.zoneConfig || {}) },
     };
-    setStateWithHistory(merged);
+    setStateWithHistory(normalizeStateForPlayerCount(merged, normalizePlayerCount(merged.playerCount)));
   }, []);
 
   const patch = useCallback((p: Partial<AppState>) => {
     setStateWithHistory((s) => ({ ...s, ...p }));
+  }, []);
+
+  const setPlayerCount = useCallback((count: PlayerCount) => {
+    setStateWithHistory((s) => normalizeStateForPlayerCount(s, count));
   }, []);
 
   // ============================================================
@@ -673,6 +680,7 @@ export function useAppState() {
     resetAll,
     importState,
     patch,
+    setPlayerCount,
     setDefenseSystem,
     updateZoneConfig,
     setZoneOverride,
