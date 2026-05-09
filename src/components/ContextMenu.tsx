@@ -357,6 +357,17 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
         )}
       </Row>
       <Row
+        label="champ de vision"
+        title="Affiche un cône de vision autour de ce défenseur (heatmap cyan semi-transparente, ouverture 120° centrée sur son regard, profondeur ≈5,4 m). Permet de visualiser ce que voit le défenseur en plus du triangle pointeur."
+      >
+        <input
+          type="checkbox"
+          checked={!!rule.showFieldOfView}
+          onChange={(e) => onUpdate({ showFieldOfView: e.target.checked || undefined })}
+          style={{ marginLeft: 'auto' }}
+        />
+      </Row>
+      <Row
         label="vs écran"
         title="Réaction de ce défenseur sur un écran porteur. 'auto' = utilise la règle globale. 'over' = passe par-dessus l'écran. 'under' = passe en dessous (laisse le tir 3pts). 'switch' = échange avec le coéquipier qui a posé l'écran. 'hedge' = show & recover. 'drop' = recule sous l'écran. 'blitz' = prise à deux."
       >

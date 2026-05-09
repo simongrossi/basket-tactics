@@ -113,6 +113,10 @@ export interface DefenderRule {
   /** Override manuel du regard. Sera clampé à ±90° du `bodyOrientation`
    *  effectif (règle anatomique inviolable : pas de regard derrière). */
   gazeOrientation?: number;
+  /** Affiche un cône de champ de vision autour de ce défenseur (heatmap
+   *  semi-transparente, ouverture 120° centrée sur le `gazeOrientation`).
+   *  Activable individuellement via le menu contextuel. Default false. */
+  showFieldOfView?: boolean;
 }
 
 export type DefenderRules = Record<DefenderId, DefenderRule>;

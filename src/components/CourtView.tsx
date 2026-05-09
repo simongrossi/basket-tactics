@@ -19,6 +19,7 @@ import { Matchups, HelpLines, ScreenIndicator, ZoneOverlay, OffBallScreenIndicat
 import { ZoneCoverage } from './ZoneCoverage';
 import { PassLanesOverlay } from './PassLanesOverlay';
 import { HelpDebugOverlay } from './HelpDebugOverlay';
+import { FieldOfViewOverlay } from './FieldOfViewOverlay';
 import { effectiveDefensePositions, getMatchupsAt, computeAttackerVisuals } from '@/lib/logic/engine';
 import { lerpAngleDeg } from '@/lib/logic/orientation';
 import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
@@ -738,6 +739,9 @@ export function CourtView(props: CourtViewProps) {
           fullCourt={state.fullCourt}
           show={!!state.showHeatmap}
         />
+        {/* Champs de vision défenseurs — activés individuellement via clic-droit
+            (rule.showFieldOfView). Rendus AVANT les sprites joueur. */}
+        <FieldOfViewOverlay defPos={frame.defPos} rules={state.rules} />
         <HelpLines off={frame.off} defPos={frame.defPos} defenseDistance={state.defenseDistance} show={state.showHelpLines} />
         {/* Anneaux de menace — rendus AVANT les sprites pour que les icônes
             joueur passent par-dessus l'anneau (visuel plus propre). */}
