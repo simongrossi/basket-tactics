@@ -5,6 +5,8 @@ import { useAppState } from '@/hooks/useAppState';
 import { useLibrary } from '@/hooks/useLibrary';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { OffensePanel } from '@/components/OffensePanel';
+import { ScenarioPanel } from '@/components/ScenarioPanel';
+import { ScenarioReader } from '@/components/ScenarioReader';
 import { DefensePanel } from '@/components/DefensePanel';
 import { ActionsPanel } from '@/components/ActionsPanel';
 import { ParametresLauncher } from '@/components/ParametresLauncher';
@@ -144,6 +146,14 @@ export default function Page() {
               tool={app.state.tool}
               onSetTool={app.setTool}
             />
+            <ScenarioPanel
+              scriptedActions={app.state.scriptedActions ?? []}
+              onAddAction={app.addScriptedAction}
+              onUpdateAction={app.updateScriptedAction}
+              onDeleteAction={app.deleteScriptedAction}
+              onMoveAction={app.moveScriptedAction}
+              onClearAll={app.clearScriptedActions}
+            />
             <LibraryPanel
               state={app.state}
               library={lib.library}
@@ -202,6 +212,13 @@ export default function Page() {
               app.setActiveStep(app.state.steps.length - 1);
             }}
           />
+          {(app.state.scriptedActions?.length ?? 0) > 0 && (
+            <ScenarioReader
+              scriptedActions={app.state.scriptedActions ?? []}
+              activeStep={app.state.activeStep}
+              stepToActionId={app.state.steps.map((s) => s.generatedBy)}
+            />
+          )}
           <Timeline
             state={app.state}
             onSetActiveStep={app.setActiveStep}
