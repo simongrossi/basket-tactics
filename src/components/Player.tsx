@@ -79,29 +79,36 @@ export function Player({
   return (
     <g data-id={id} style={{ cursor: 'grab' }}>
       <g pointerEvents="none">
-        {/* Bras symétriques (convention FIBA), pivotés autour du centre du
-            joueur selon `orientation` (degrés). 0 = neutre. Affichés pour
-            défenseurs ET attaquants — tout le monde a un corps orientable.
-            Pour l'attaquant, les bras sont un peu plus discrets pour ne pas
-            confondre visuellement avec un défenseur. */}
-        <g transform={`rotate(${orientation}, ${pos.x}, ${pos.y})`}>
-          <path
-            d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
-            fill="none"
-            stroke={stroke}
-            strokeWidth={isAttacker ? 1.8 : 2.5}
-            strokeLinecap="round"
-            opacity={isAttacker ? 0.7 : 1}
-          />
-          <path
-            d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
-            fill="none"
-            stroke={stroke}
-            strokeWidth={isAttacker ? 1.8 : 2.5}
-            strokeLinecap="round"
-            opacity={isAttacker ? 0.7 : 1}
-          />
-        </g>
+        {/* Bras stylisés (convention FIBA) : deux arcs symétriques au-dessus
+         * du joueur, **statiques**, identiques pour attaquants et défenseurs.
+         *
+         * Référence : FIBA Europe Basketball Terminology, où les pictogrammes
+         * joueur conservent toujours la même posture quelle que soit
+         * l'action ou l'orientation tactique. Le sens du jeu se lit via les
+         * flèches d'action (passes / courses / écrans), pas via une rotation
+         * du corps.
+         *
+         * La direction du regard reste indiquée par le triangle pointeur
+         * (`facing`) ci-dessous — discret, pour debug et lecture coach.
+         *
+         * Attaquants : trait fin (1.8) et opacité 0.7 pour ne pas être
+         * confondus avec un défenseur. */}
+        <path
+          d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={isAttacker ? 1.8 : 2.5}
+          strokeLinecap="round"
+          opacity={isAttacker ? 0.7 : 1}
+        />
+        <path
+          d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={isAttacker ? 1.8 : 2.5}
+          strokeLinecap="round"
+          opacity={isAttacker ? 0.7 : 1}
+        />
         {facing && (() => {
           // Pointeur de "facing" : un petit triangle posé sur le bord du
           // cercle, dans la direction regardée. Indique l'orientation
