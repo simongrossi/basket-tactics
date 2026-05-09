@@ -31,6 +31,7 @@ export default function Page() {
   const [playbackT, setPlaybackT] = useState<number | null>(null);
   const [showPlaybook, setShowPlaybook] = useState(false);
   const [scrubT, setScrubT] = useState<number | null>(null);
+  const [playbackStartT, setPlaybackStartT] = useState(0);
   const [presentMode, setPresentMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -80,13 +81,14 @@ export default function Page() {
       setPlaybackT(null);
       setIsPlaying(false);
     } else {
-      // Reprend la lecture du début : efface scrubT pour ne pas figer la
-      // première frame, et reset playbackT.
+      // Reprend la lecture : si scrubT existe (pause précédente), reprendre
+      // depuis cet instant t ; sinon (depuis idle), démarrer du début.
+      setPlaybackStartT(scrubT ?? 0);
       setScrubT(null);
       setPlaybackT(null);
       setIsPlaying(true);
     }
-  }, [isPlaying, playbackT]);
+  }, [isPlaying, playbackT, scrubT]);
 
   // Échap quitte le mode présentation
   useEffect(() => {
@@ -225,10 +227,12 @@ export default function Page() {
               isPlaying={isPlaying}
               playbackSpeed={playbackSpeed}
               scrubT={scrubT}
+              playbackStartT={playbackStartT}
               onPlaybackTick={setPlaybackT}
               onPlaybackEnd={() => {
                 setIsPlaying(false);
                 setPlaybackT(null);
+                setPlaybackStartT(0);
                 app.setActiveStep(app.state.steps.length - 1);
               }}
             />
@@ -260,6 +264,7 @@ export default function Page() {
               setIsPlaying(false);
               setPlaybackT(null);
               setScrubT(null);
+              setPlaybackStartT(0);
               app.setActiveStep(0);
             }}
             playbackSpeed={playbackSpeed}

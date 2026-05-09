@@ -77,6 +77,10 @@ interface CourtViewProps {
   onPlaybackEnd?: () => void;
   onPlaybackTick?: (t: number) => void;
   scrubT?: number | null;
+  /** Instant t (en unités d'étapes fractionnaires) à partir duquel reprendre
+   *  la lecture quand `isPlaying` passe de false à true. 0 = du début. Lu
+   *  au démarrage de la lecture pour décaler `playStart` ; ignoré ensuite. */
+  playbackStartT?: number;
 }
 
 interface PendingAnnotation {
@@ -130,12 +134,21 @@ export function CourtView(props: CourtViewProps) {
   const onPlaybackEndRef = useRef(props.onPlaybackEnd);
   onPlaybackEndRef.current = props.onPlaybackEnd;
 
+  // Snapshot de `playbackStartT` lu au DERNIER passage de `isPlaying` à true,
+  // pour ne pas être affecté par un changement de prop pendant la lecture.
+  const playbackStartTRef = useRef(props.playbackStartT ?? 0);
+  playbackStartTRef.current = props.playbackStartT ?? 0;
+
   useEffect(() => {
     if (!props.isPlaying) {
       setPlayFrame(null);
       return;
     }
-    playStart.current = performance.now();
+    const stepDuration = 1500 / props.playbackSpeed;
+    // Décale playStart en arrière pour que `elapsed = now - playStart` reflète
+    // déjà l'instant t demandé. Permet de reprendre depuis la pause au lieu
+    // de redémarrer du début.
+    playStart.current = performance.now() - playbackStartTRef.current * stepDuration;
 
     const tick = () => {
       const cur = stateRef.current;
