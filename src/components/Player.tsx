@@ -109,16 +109,19 @@ export function Player({
          * Si `gazeOrientation` n'est pas fourni (legacy), fallback sur
          * `orientation` (rétrocompat ancien API). */}
         <g transform={`rotate(${gazeOrientation ?? orientation ?? 0}, ${pos.x}, ${pos.y})`}>
-          {/* Tracé conçu en posture neutre (regard nord, gaze=0°) :
-           *  - Départ (épaule) : BAS-côté du cercle (= dos du joueur).
-           *  - Fin (main) : HAUT-côté étiré (= devant, dans le champ de vision).
-           *  - Courbure : bombe latéralement vers l'EXTÉRIEUR (paume ouverte).
+          {/* Tracé conçu en posture neutre (regard "devant" = haut, gaze=0°) :
+           *  - Départ (épaule) : bas-côté du cercle (= dos du joueur).
+           *  - Fin (main) : à ±60° du regard, soit aux LIMITES du cône de
+           *    champ de vision (120° d'ouverture). Distance ~1.5r.
+           *  - Courbure : bombe doucement vers l'extérieur, alignée avec la
+           *    courbure du cône de vision.
            *
-           * Quand on rotate selon le regard, l'ensemble pivote en bloc :
-           * les bras suivent toujours "départ derrière, ouverture devant",
-           * matérialisant la posture défensive bras tendus en avant. */}
+           * Conséquence : les bras enveloppent visuellement le cône — la
+           * "courbure des bras" coïncide avec les bords du champ de vision,
+           * matérialisant que le joueur "voit" tout ce qui est entre ses bras.
+           */}
           <path
-            d={`M ${pos.x - r * 0.5} ${pos.y + r * 0.4} Q ${pos.x - r * 1.3} ${pos.y - r * 0.2} ${pos.x - r * 1.1} ${pos.y - r * 1.0}`}
+            d={`M ${pos.x - r * 0.5} ${pos.y + r * 0.3} Q ${pos.x - r * 0.9} ${pos.y - r * 0.3} ${pos.x - r * 1.3} ${pos.y - r * 0.75}`}
             fill="none"
             stroke={stroke}
             strokeWidth={isAttacker ? 1.8 : 2.5}
@@ -126,7 +129,7 @@ export function Player({
             opacity={isAttacker ? 0.7 : 1}
           />
           <path
-            d={`M ${pos.x + r * 0.5} ${pos.y + r * 0.4} Q ${pos.x + r * 1.3} ${pos.y - r * 0.2} ${pos.x + r * 1.1} ${pos.y - r * 1.0}`}
+            d={`M ${pos.x + r * 0.5} ${pos.y + r * 0.3} Q ${pos.x + r * 0.9} ${pos.y - r * 0.3} ${pos.x + r * 1.3} ${pos.y - r * 0.75}`}
             fill="none"
             stroke={stroke}
             strokeWidth={isAttacker ? 1.8 : 2.5}

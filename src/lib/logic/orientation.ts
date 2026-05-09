@@ -6,10 +6,12 @@ import type { Point, OffBallStance, CarrierBehavior } from '../types';
 // Les fonctions de ce module retournent body + gaze + 2 cibles d'armes.
 // Toute modification doit respecter ces 3 règles métier :
 //
-//   1. **Le regard NE PEUT JAMAIS pointer derrière la tête.** Le `gaze` est
-//      contraint dans le DEMI-CERCLE FRONTAL du corps : `|gaze - body| ≤ 90°`
-//      (modulo 360°). Si l'auto-calcul produit un gaze hors de ce demi-cercle,
-//      il est CLAMPÉ à l'angle limite frontal le plus proche.
+//   1. **Le regard NE PEUT JAMAIS sortir du CHAMP DE VISION.** Le cône de
+//      vision frontal a 120° d'ouverture (60° de chaque côté). Le `gaze` est
+//      donc contraint à `|gaze - body| ≤ 60°` (modulo 360°). Si l'auto-calcul
+//      produit un gaze hors de ce cône, il est CLAMPÉ à l'angle limite. Le
+//      triangle pointeur (visible dans Player.tsx) reste ainsi forcément à
+//      l'intérieur du cône de champ de vision rendu par FieldOfViewOverlay.
 //
 //   2. **Aucun bras ne peut pointer dans le dos.** Pareil : si une cible
 //      d'arme tombe derrière le joueur (angle > 90° du corps), on la ramène
@@ -335,13 +337,16 @@ function angleDiff(a: number, b: number): number {
 }
 
 /**
- * INVARIANT #1 — clamp gaze au demi-cercle frontal du corps.
- * Si |gaze - body| > 90°, ramène à la limite frontale (body ± 90°).
+ * INVARIANT #1 — clamp gaze au CÔNE DE CHAMP DE VISION (±60° du body).
+ * Le triangle de regard ne peut s'orienter QUE dans la zone visuellement
+ * couverte par les cônes (FieldOfViewOverlay). Si |gaze - body| > 60°,
+ * ramène à la limite du cône (body ± 60°).
  */
+const FOV_HALF_ANGLE_DEG = 60;
 function clampGazeToFrontal(gaze: number, body: number): number {
   const diff = angleDiff(gaze, body);
-  if (diff > 90) return normalizeAngle(body + 90);
-  if (diff < -90) return normalizeAngle(body - 90);
+  if (diff > FOV_HALF_ANGLE_DEG) return normalizeAngle(body + FOV_HALF_ANGLE_DEG);
+  if (diff < -FOV_HALF_ANGLE_DEG) return normalizeAngle(body - FOV_HALF_ANGLE_DEG);
   return normalizeAngle(gaze);
 }
 
