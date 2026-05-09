@@ -32,6 +32,11 @@ export function clampGazeToFrontal(gaze: number, body: number): number {
   return normalizeAngle(gaze);
 }
 
+/** Bascule auto : si l'homme est plus proche que le ballon par ce ratio, il
+ *  devient la menace immédiate à fixer. < 1 = bascule sensible vers l'homme
+ *  dès qu'il s'approche ; > 1 = bascule plus tardive, ballon dominant. */
+const PROXIMITY_GAZE_RATIO = 0.65;
+
 export function resolveDefenderGaze(input: DefenderGazeInput): number {
   const { defenderPos, manPos, ballPos, bodyOrientation, isCarrierDefender, stance, pnrRole, gazeLock } = input;
 
@@ -54,8 +59,16 @@ export function resolveDefenderGaze(input: DefenderGazeInput): number {
     return resolvePrimaryGaze(defenderPos, bodyOrientation, ballPos, manPos);
   }
 
-  // Sag / behind / défaut : priorité au ballon, mais on garde l'homme marqué
-  // dans le cône de vision si la géométrie humaine le permet.
+  // Sag / behind / défaut : la cible primaire bascule selon la distance.
+  // Quand l'homme marqué est nettement plus près du défenseur que le ballon,
+  // c'est lui la menace immédiate (cut, drive, démarquage proche) → primary.
+  // Sinon, le ballon reste primary (lecture d'aide, anticipation passe).
+  // Le secondary reste visible si la géométrie le permet (cône partagé 120°).
+  const dMan = Math.hypot(manPos.x - defenderPos.x, manPos.y - defenderPos.y);
+  const dBall = Math.hypot(ballPos.x - defenderPos.x, ballPos.y - defenderPos.y);
+  if (dMan < dBall * PROXIMITY_GAZE_RATIO) {
+    return resolvePrimaryGaze(defenderPos, bodyOrientation, manPos, ballPos);
+  }
   return resolvePrimaryGaze(defenderPos, bodyOrientation, ballPos, manPos);
 }
 
