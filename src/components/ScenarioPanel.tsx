@@ -11,10 +11,14 @@ import {
   type ParamKind,
   type ScriptedActionDefinition,
 } from '@/lib/data/scriptedActionsCatalog';
-import { DEFENSIVE_ACTIONS_CATALOG } from '@/lib/data/defensiveActionsCatalog';
+import {
+  DEFENSIVE_ACTIONS_CATALOG,
+  ALL_DEFENSIVE_ACTION_TYPES,
+} from '@/lib/data/defensiveActionsCatalog';
 import { newScriptedActionId } from '@/lib/logic/compileScenario';
 import { inferDefensiveDefaults } from '@/lib/logic/defensiveDefaults';
 import { AddCoverageModal } from './AddCoverageModal';
+import { DefensiveActionForm } from './DefensiveActionForm';
 import { Panel, Button, COLORS } from './ui';
 
 const ATTACKER_IDS: AttackerId[] = ['O1', 'O2', 'O3', 'O4', 'O5'];
@@ -256,6 +260,81 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
         );
       })}
 
+      {/* Actions défensives libres */}
+      {(() => {
+        const free = props.scriptedActions.filter(
+          (a): a is DefensiveScriptedAction =>
+            a.kind === 'defensive' && a.parentActionId === undefined,
+        );
+        if (free.length === 0) return null;
+        return (
+          <>
+            <div style={{
+              fontSize: 10, fontWeight: 700, color: '#1e3a8a',
+              marginTop: 8, marginBottom: 4, letterSpacing: 0.5,
+            }}>🛡️ DÉFENSE (LIBRE)</div>
+            {free.map((act) => {
+              const cdef = DEFENSIVE_ACTIONS_CATALOG[act.type];
+              const isExpanded = expandedIds.has(act.id);
+              return (
+                <div key={act.id} style={{
+                  border: '1px solid #dbeafe',
+                  borderLeft: '3px solid #1e3a8a',
+                  borderRadius: 6, background: '#fff', overflow: 'hidden',
+                }}>
+                  <div onClick={() => toggleExpand(act.id)} style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '8px 10px', cursor: 'pointer', userSelect: 'none',
+                  }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#1e3a8a' }}>🛡️</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#1f2937', flex: 1 }}>
+                      {cdef.label}
+                    </span>
+                    <span style={{ fontSize: 11, color: '#9ca3af' }}>{isExpanded ? '▲' : '▼'}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); props.onDeleteDefensiveAction(act.id); }}
+                      style={{
+                        border: 'none', background: 'transparent', cursor: 'pointer',
+                        fontSize: 13, color: '#dc2626', padding: '2px 6px',
+                      }}
+                    >✕</button>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#475569', padding: '0 10px 8px 28px' }}>
+                    {cdef.reader(act.params)} · steps : {(act.affectedSteps ?? []).join(',') || '—'}
+                  </div>
+                  {isExpanded && (
+                    <div style={{ padding: 10, background: '#eff6ff' }}>
+                      <DefensiveActionForm
+                        action={act}
+                        onChange={(updated) => props.onUpdateDefensiveAction(act.id, updated)}
+                      />
+                      <div style={{ marginTop: 8, fontSize: 10, fontWeight: 700, color: '#1e3a8a' }}>
+                        STEPS CIBLES
+                      </div>
+                      <input
+                        type="text"
+                        defaultValue={(act.affectedSteps ?? []).join(',')}
+                        onBlur={(e) => {
+                          const parsed = e.target.value
+                            .split(',').map((s) => parseInt(s.trim(), 10))
+                            .filter((n) => Number.isFinite(n) && n >= 0);
+                          props.onUpdateDefensiveAction(act.id, { ...act, affectedSteps: parsed });
+                        }}
+                        placeholder="ex: 1,2,3"
+                        style={{
+                          fontSize: 11, padding: '4px 8px', borderRadius: 4,
+                          border: '1px solid #cbd5e1', width: '100%',
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </>
+        );
+      })()}
+
       {/* Bouton d'ajout (déclenche le modal) */}
       <Button theme="offense" variant="solid" fullWidth onClick={() => setShowAddModal(true)}>
         ➕ Ajouter une action
@@ -270,7 +349,15 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
       )}
 
       {showAddModal && (
-        <AddActionModal onClose={() => setShowAddModal(false)} onPick={handlePickAction} />
+        <AddActionModal
+          onClose={() => setShowAddModal(false)}
+          onPick={handlePickAction}
+          onPickDefensive={(type) => {
+            // Action libre : defaults minimaux, l'user complète après
+            props.onAddDefensiveAction(type, { defenders: [] }, undefined, [0]);
+            setShowAddModal(false);
+          }}
+        />
       )}
 
       {addCoverageFor && (() => {
@@ -298,9 +385,10 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
 interface AddActionModalProps {
   onClose: () => void;
   onPick: (def: ScriptedActionDefinition) => void;
+  onPickDefensive: (type: DefensiveActionType) => void;
 }
 
-function AddActionModal({ onClose, onPick }: AddActionModalProps) {
+function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProps) {
   const c = COLORS.offense;
   const [filter, setFilter] = useState('');
   const filterLower = filter.trim().toLowerCase();
@@ -423,6 +511,51 @@ function AddActionModal({ onClose, onPick }: AddActionModalProps) {
               </div>
             );
           })}
+
+          {/* Catégorie défense — actions libres */}
+          {(() => {
+            const visibleDef = ALL_DEFENSIVE_ACTION_TYPES.filter((type) => {
+              const def = DEFENSIVE_ACTIONS_CATALOG[type];
+              if (!filterLower) return true;
+              return (
+                def.label.toLowerCase().includes(filterLower) ||
+                def.fibaTerm.toLowerCase().includes(filterLower) ||
+                def.description.toLowerCase().includes(filterLower)
+              );
+            });
+            if (visibleDef.length === 0) return null;
+            return (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{
+                  fontSize: 10, color: '#1e3a8a', textTransform: 'uppercase',
+                  marginBottom: 6, letterSpacing: 0.5, fontWeight: 600,
+                }}>
+                  🛡️ Défense (libre)
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {visibleDef.map((type) => {
+                    const def = DEFENSIVE_ACTIONS_CATALOG[type];
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => onPickDefensive(type)}
+                        title={def.fibaTerm}
+                        style={{
+                          textAlign: 'left', fontSize: 12,
+                          padding: '8px 10px',
+                          border: '1px solid #dbeafe', borderRadius: 6,
+                          background: '#fff', cursor: 'pointer',
+                        }}
+                      >
+                        <div style={{ fontWeight: 600, color: '#1e3a8a' }}>{def.label}</div>
+                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{def.description}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>
