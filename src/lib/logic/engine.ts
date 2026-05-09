@@ -865,6 +865,41 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
 }
 
 /**
+ * En lecture, le défenseur du porteur doit suivre EN TEMPS RÉEL la position
+ * courante du porteur (qui peut suivre une wave dribble ou une polyline
+ * courbe). Sinon, l'interpolation linéaire entre defA et defB le fait passer
+ * par une corde au lieu de la trajectoire réelle du porteur — il "coupe"
+ * tandis que le porteur fait son arc.
+ *
+ * Cette fonction écrase `slot.x/y` du carrier defender avec la cible calculée
+ * à partir de la position courante du porteur. Les défenseurs off-ball
+ * conservent leur interpolation linéaire (plus stable, moins coûteux, et
+ * leur attaquant marqué bouge en général en ligne droite via `cut`).
+ */
+export function followCarrierAtFrame(
+  defPos: ComputedDefense,
+  off: AttackerPositions,
+  ballCarrier: AttackerId,
+  state: AppState
+): void {
+  const carrierPos = off[ballCarrier];
+  if (!carrierPos) return;
+  const hoop = getDefenseHoop(state);
+  for (const dId of getActiveDefenderIds(state.playerCount)) {
+    const slot = defPos[dId];
+    if (!slot || !slot.isCarrierDefender) continue;
+    const rule = state.rules[dId];
+    if (!rule) continue;
+    const dist = rule.distance ?? state.defenseDistance;
+    const tgt = carrierDefenderTarget(rule.vsCarrier, carrierPos, dist, hoop);
+    if (tgt) {
+      slot.x = Math.round(tgt.x);
+      slot.y = Math.round(tgt.y);
+    }
+  }
+}
+
+/**
  * Recalcule body/gaze/facing depuis les positions réellement affichées.
  * À utiliser après vitesse, interpolation, contournement et collisions pour
  * que triangle + champ de vision partent toujours du joueur visible.

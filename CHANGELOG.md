@@ -6,6 +6,11 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Fixed — Le défenseur du porteur suit la trajectoire courbe en lecture
+- Pendant la lecture, le défenseur du porteur (D1 typiquement) interpolait linéairement entre sa position à l'étape A et sa position à l'étape B → il prenait la **corde** d'un arc pendant que le porteur faisait un dribble en wave ou un V-cut. Visuellement il "coupait au plus court" et lâchait son homme.
+- Désormais sa position est **recalculée à chaque frame** (playback + scrub) à partir de la position courante du porteur via `carrierDefenderTarget` — il colle à la trajectoire réelle, dribble courbe inclus. Implémentation : nouvelle fonction `followCarrierAtFrame` ([engine.ts](src/lib/logic/engine.ts)), appelée avant `resolvePlayerCollisions` et `recomputeDefenseFrameOrientations` dans [`CourtView.tsx`](src/components/CourtView.tsx) (playFrame + scrubFrame).
+- Les défenseurs off-ball gardent l'interpolation linéaire (suffisant tant que leur attaquant marqué se déplace en `cut` ligne droite — à étendre si besoin).
+
 ### Added — Annotations en courbe (Shift+drag freehand, V-cut/L-cut)
 - Les annotations `cut`, `dribble` et `screen` supportent maintenant un champ optionnel `waypoints?: Point[]` ([types/index.ts](src/lib/types/index.ts)). Avec waypoints, la trajectoire suit une **spline Catmull-Rom** (tension τ=0.5, équivalent Bezier cubique exact en rendu) au lieu d'une ligne droite.
 - **UX souris** : maintenir **Shift pendant le drag** d'une annotation enregistre le tracé à main levée. À la fin du drag, le buffer brut est simplifié via Douglas-Peucker (tolérance 6 px) en 3–7 waypoints propres. Drag normal sans Shift = comportement actuel inchangé (ligne droite, dribble en wave standard).
