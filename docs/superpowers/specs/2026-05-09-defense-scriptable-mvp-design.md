@@ -125,7 +125,7 @@ export function compileScenario(actions: ScriptedAction[]): Step[] {
   const defensives = actions.filter(isDefensive);
   const steps = compileOffensive(offensives);
 
-  // Chaque step porte déjà step.scenarioActionId (cf. types/index.ts ligne 67),
+  // Chaque step porte déjà step.generatedBy (cf. types/index.ts ligne 67),
   // ce qui permet de retrouver les steps d'une action offensive par son id.
 
   // Passe 2 — résolution des directives défensives
@@ -145,7 +145,7 @@ export function compileScenario(actions: ScriptedAction[]): Step[] {
 
 ### 3.1 `resolveTargetSteps`
 
-- **Couplée** (`parentActionId` défini) : récupère tous les steps avec `step.scenarioActionId === parentActionId`. Si `affectedSteps` est défini, filtre.
+- **Couplée** (`parentActionId` défini) : récupère tous les steps avec `step.generatedBy === parentActionId`. Si `affectedSteps` est défini, filtre.
 - **Libre** : `affectedSteps` est obligatoire (indices absolus dans la liste compilée).
 
 ### 3.2 `expandToDirectives` — règles d'expansion
