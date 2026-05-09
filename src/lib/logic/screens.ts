@@ -15,6 +15,34 @@ import { HOOP, PLAYER_RADIUS } from '../data/court';
 import { distance } from './geometry';
 
 /**
+ * Filtre d'intention pour la détection d'écran : un attaquant qui PASSE par
+ * hasard près du couple porteur/défenseur n'est pas un poseur. On compare
+ * sa distance à la cible (carrierDef ou cutterDef) entre l'étape précédente
+ * et l'étape courante :
+ *
+ *  - s'il s'EST RAPPROCHÉ ou est STATIQUE → intention plausible, on garde.
+ *  - s'il s'ÉLOIGNE (cur > prev) avec une velocity ≥ 5 px → écran fantôme
+ *    (croisement, pas pose), on rejette.
+ *
+ * Sans historique (`prevOff` absent), on accepte : on n'a pas de quoi juger.
+ */
+function hasScreenIntent(
+  attackerId: AttackerId,
+  curPos: Point,
+  targetPos: Point,
+  prevOff?: AttackerPositions
+): boolean {
+  if (!prevOff) return true;
+  const prev = prevOff[attackerId];
+  if (!prev) return true;
+  const speed = Math.hypot(curPos.x - prev.x, curPos.y - prev.y);
+  if (speed < 5) return true;
+  const prevDist = Math.hypot(targetPos.x - prev.x, targetPos.y - prev.y);
+  const curDist = Math.hypot(targetPos.x - curPos.x, targetPos.y - curPos.y);
+  return curDist <= prevDist;
+}
+
+/**
  * Garantit qu'un point cible n'est pas à l'intérieur du cercle du poseur d'écran
  * (deux joueurs ne peuvent pas se superposer physiquement). Si trop proche,
  * on pousse le point dans la direction opposée jusqu'à un dégagement minimum.
@@ -53,7 +81,12 @@ export function detectScreen(
   matchups: Matchups,
   defenderPositions: Record<DefenderId, Point>,
   screenRadius: number,
-  forcedScreener?: AttackerId
+  forcedScreener?: AttackerId,
+  /** Positions des attaquants à l'étape précédente. Si fourni, on filtre les
+   *  candidats par INTENTION : leur velocity doit avoir une composante non
+   *  négligeable vers le couple porteur/défenseur. Sans cet historique, on
+   *  retombe sur le critère de proximité pure (rétrocompat). */
+  prevOff?: AttackerPositions
 ): DetectedScreen | null {
   const carrier = off[ballCarrier];
   if (!carrier) return null;
@@ -92,6 +125,7 @@ export function detectScreen(
     if (dToCD > screenRadius) return;
     const dToCarrier = distance(p, carrier);
     if (dToCarrier > 80) return;
+    if (!hasScreenIntent(oId, p, cdPos, prevOff)) return;
     const score = dToCD + dToCarrier * 0.5;
     if (score < bestScore) {
       bestScore = score;
@@ -299,7 +333,9 @@ export function detectOffBallScreens(
   ballCarrier: AttackerId,
   matchups: Matchups,
   defenderPositions: Record<DefenderId, Point>,
-  screenRadius: number
+  screenRadius: number,
+  /** Positions à l'étape précédente — active le filtre d'intention. */
+  prevOff?: AttackerPositions
 ): DetectedOffBallScreen[] {
   const results: DetectedOffBallScreen[] = [];
   const nonCarriers = (Object.keys(off) as AttackerId[]).filter((id) => id !== ballCarrier);
@@ -320,6 +356,7 @@ export function detectOffBallScreens(
 
       if (distance(screenerPos, cutterDefPos) > screenRadius) continue;
       if (distance(screenerPos, cutterPos) > 80) continue;
+      if (!hasScreenIntent(screener, screenerPos, cutterDefPos, prevOff)) continue;
 
       let screenerDef: DefenderId | null = null;
       (Object.entries(matchups) as [DefenderId, AttackerId][]).forEach(([d, o]) => {
@@ -463,7 +500,8 @@ export function applyOffBallScreenAdjustment(
   screen: DetectedOffBallScreen,
   rule: OffBallScreenRule,
   defenderId: DefenderId,
-  off: AttackerPositions
+  off: AttackerPositions,
+  ballPos: Point
 ): Point {
   if (rule === 'switch') return baseTarget;
 
@@ -497,19 +535,22 @@ export function applyOffBallScreenAdjustment(
     };
   }
 
-  // TOP-LOCK : défenseur du shooter saute du côté ballon (côté opposé au
-  // déplacement attendu) et fait contact préventif avec le screener. La
-  // cible est entre le cutter et le ballon, agressive sur l'épaule du
-  // cutter du côté ballon. Très utile sur pindown vers shooter d'élite.
+  // TOP-LOCK : le défenseur du cutter se positionne du CÔTÉ BALLON pour
+  // empêcher la réception. Le côté ballon se calcule perpendiculairement
+  // à l'axe screener→cutter : on projette le vecteur (cutter→ballon) sur
+  // la perpendiculaire et on prend le signe. Le défenseur est aussi shifté
+  // d'une touche vers le screener (high side) pour matérialiser le contact.
   if (rule === 'top-lock' && isCutterDef) {
-    const ballPos = off[Object.keys(off)[0] as AttackerId]; // placeholder, will be overridden
-    // En pratique, la "side" ball-side du cutter dépend du porteur, mais on
-    // n'a pas le carrier ici. Approximation : top-lock = se mettre 18px du
-    // côté du screener (= côté ballon en pindown classique), un peu en
-    // avant. Cible = baseTarget shifté vers le screener.
-    void ballPos;
+    const perpX = -cy;
+    const perpY = cx;
+    const toBallX = ballPos.x - cutterPos.x;
+    const toBallY = ballPos.y - cutterPos.y;
+    const sideOfBall = Math.sign(perpX * toBallX + perpY * toBallY) || 1;
     return pushOutOfScreener(
-      { x: baseTarget.x + cx * 14, y: baseTarget.y + cy * 14 },
+      {
+        x: baseTarget.x + perpX * 16 * sideOfBall - cx * 4,
+        y: baseTarget.y + perpY * 16 * sideOfBall - cy * 4,
+      },
       screenerPos
     );
   }

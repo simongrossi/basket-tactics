@@ -1,0 +1,251 @@
+# Moteur de jeu
+
+Cartographie de toute la logique basket en place, organisée en **trois couches** : individuel, collectif, physique. Cette séparation est implicite dans le code (les modules existent déjà) ; ce document la rend explicite et donne un point d'entrée unique.
+
+> Pour le **pipeline d'orchestration** module-par-module (qui appelle qui), voir [logique-defensive.md § Pipeline de calcul](logique-defensive.md#pipeline-de-calcul).
+>
+> Pour le **vocabulaire basket** sans code, voir [concepts-basket.md](concepts-basket.md).
+>
+> Pour suivre les **évolutions de comportement**, voir [../CHANGELOG.md](../CHANGELOG.md).
+
+---
+
+## Vue d'ensemble
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  AppState (steps, rules, zoneConfig, triggers, profils, overrides…)  │
+└─────────────────────────────────┬────────────────────────────────────┘
+                                  │
+              ┌───────────────────┴───────────────────┐
+              │                                       │
+   ┌──────────▼──────────┐               ┌────────────▼────────────┐
+   │  MOTEUR INDIVIDUEL  │               │   MOTEUR COLLECTIF      │
+   │  (1v1 / dyade)      │               │   (rotations, zone)     │
+   ├─────────────────────┤               ├─────────────────────────┤
+   │ manDefense          │               │ pnrRotations            │
+   │ help                │               │ zoneDefense             │
+   │ orientation (def.)  │               │ zoneSituations          │
+   │ screenAction        │               │ trap                    │
+   │ orientation (att.)  │               │ tacticalReads           │
+   │ screens (détection) │               │ screens (couvertures)   │
+   └──────────┬──────────┘               └────────────┬────────────┘
+              │                                       │
+              └───────────────────┬───────────────────┘
+                                  │
+                       ┌──────────▼──────────┐
+                       │   MOTEUR PHYSIQUE   │
+                       │   (cinématique)     │
+                       ├─────────────────────┤
+                       │ geometry            │
+                       │ data/court          │
+                       │ rule.maxSpeed       │
+                       │ closeoutBoost       │
+                       │ proximityFriction   │
+                       └──────────┬──────────┘
+                                  │
+                       ┌──────────▼──────────┐
+                       │  ComputedDefense    │
+                       │  + AttackerVisuals  │
+                       └─────────────────────┘
+```
+
+L'orchestration est dans **[`engine.ts`](../src/lib/logic/engine.ts)** (`computeDefenseTargets`, `effectiveDefensePositions`, `computeAttackerVisuals`).
+
+---
+
+## Moteur individuel
+
+Tout ce qui se décide à l'échelle d'**un défenseur** ou d'**une dyade** (défenseur + son homme). Pas de connaissance des 4 autres défenseurs.
+
+### Modules
+
+| Module | Rôle | Fonctions clés |
+|---|---|---|
+| [`manDefense.ts`](../src/lib/logic/manDefense.ts) | Position cible de marquage | `manTarget`, `carrierDefenderTarget`, `offBallStanceTarget`, `orientationLateralOffset` |
+| [`help.ts`](../src/lib/logic/help.ts) | Aide weak-side, denial strong-side, sag baseline | `computeHelpTarget`, `leaveAttackerCostMultiplier`, `closeoutProfileBonus` |
+| [`orientation.ts`](../src/lib/logic/orientation.ts) | Orientation et facing | `computeDefenderOrientation`, `computeAttackerOrientation`, `lerpAngleDeg` |
+| [`screens.ts`](../src/lib/logic/screens.ts) | Détection écran porteur / non-porteur, couvertures dyadiques | `detectScreen`, `detectOffBallScreens`, `applyScreenAdjustment`, `applyOffBallScreenAdjustment`, `hasScreenIntent` |
+| [`screenAction.ts`](../src/lib/logic/screenAction.ts) | Type d'action sur écran (roll / pop / slip / short-roll / ghost / reject / snake / re-screen) | `detectScreenAction`, `actionRequiresLowManTag`, `actionRequiresPopRecover`, `actionBreaksCoverage` |
+
+### Comportements
+
+#### Défense sur porteur (`carrierDefenderTarget`)
+6 valeurs de `vsCarrier` qui modulent `baseRatio` (distance défenseur/homme proportionnelle à la distance homme/panier) :
+
+| Valeur | baseRatio | Effet |
+|---|---|---|
+| `coller` | 0.4 | défenseur très proche |
+| `bumper` | 0.25 | proche + bumpOffset 8 px vers le panier |
+| `contester` | 0.7 | distance moyenne, contestée |
+| `reculer` | 1.3 | sag, donne de l'espace |
+| `topside` | 0.4 | + lateralOffset +14 px (force baseline) |
+| `baseline` | 0.4 | + lateralOffset −14 px (force milieu) |
+
+Modulé par `pressureFactor = 1 + (1 − dist/THREE_POINT_RADIUS) × 0.8` (plus on est proche du panier, plus on serre).
+
+#### Stance off-ball (`offBallStanceTarget`)
+| Stance | Position | Description |
+|---|---|---|
+| `sag` (default) | sur la ligne homme-panier | head-on-swivel passif |
+| `behind` | strict entre homme et panier | sans biais d'aide |
+| `deny-3q` | blend 0.75 entre `behind` et `front` | un pied dans la ligne de passe |
+| `fronting` | blend 1.0 (full) | face-guard, dos au panier |
+| `stunt` | blend 0.4 | fake d'aide, recover à l'étape suivante |
+
+#### Aide (`computeHelpTarget`)
+4 régimes selon la priorité et la présence de trigger actif :
+
+1. **Sag baseline weak-side** (sans trigger) — `helpFactor = (helpPct/100) × 0.5 × leaveMult` si attaquant côté faible.
+2. **Strong-side denial** (sans trigger) — `helpFactor = denyAggressiveness × proximity` quand attaquant côté ballon à < 250 px du porteur. Glisse sur la ligne de passe (35 % du chemin).
+3. **Aide active** (trigger drive / post / paint) — `helpFactor = (helpPct/100) × sideFactor × leaveMult` × pondération de proximité paint (1.0 si dist ≤ 120 px → 0.4 à ≥ 280 px).
+4. **`helpMode='disabled'`** — court-circuit, retourne `manPos`.
+
+`leaveAttackerCostMultiplier(profile)` : 0.55 sur shooter (ne quitte pas) à 1.30 sur non-shooter (sag franc). Borné [0.5, 1.3].
+
+#### Orientation et facing
+Voir [orientation-anti-teleport.md](orientation-anti-teleport.md). Règles auto + override manuel clampé à ±45°.
+
+#### Détection d'écran
+- **Porteur** (`detectScreen`) : meilleur candidat parmi les attaquants à < `screenRadius` (default 35) du carrierDef ET < 80 px du porteur, scoré par `dToCD + 0.5 × dToCarrier`. Filtre d'intention via `hasScreenIntent` qui rejette les screeners s'éloignant du couple porteur/défenseur (delta de distance entre étapes).
+- **Off-ball** (`detectOffBallScreens`) : 6 types — pindown (`dy > 20`), backscreen (`dy < -20`), flare, et upgrade en stagger / elevator / hammer / flex via `upgradeOffBallScreens`.
+
+#### Couvertures d'écran
+8 règles porteur (`ScreenRule`) : `over`, `under`, `switch`, `hedge`, `drop` (3 profondeurs), `blitz`, `ice` (force baseline), `weak` (under léger), `peel-switch`. 4 règles off-ball (`OffBallScreenRule`) : `over`, `under`, `switch`, `bump`, `top-lock`, `chase`.
+
+Les règles `applyScreenAdjustment` et `applyOffBallScreenAdjustment` sont **dyadiques** : elles modifient uniquement la cible du défenseur du porteur et celle du défenseur du screener.
+
+---
+
+## Moteur collectif
+
+Ce qui ne peut se décider qu'avec une **vue globale des 5 défenseurs et des 5 attaquants** : rotations, glissements de zone, traps, lectures.
+
+### Modules
+
+| Module | Rôle | Fonctions clés |
+|---|---|---|
+| [`pnrRotations.ts`](../src/lib/logic/pnrRotations.ts) | Rotations PnR : low-man tag, X-out, nail stunt | `computePnRRotations` |
+| [`zoneDefense.ts`](../src/lib/logic/zoneDefense.ts) | Moteur ownership continu pour la zone | `computeZoneTargets`, `mapAttackersToZones`, `pointInPolygon` |
+| [`zoneSituations.ts`](../src/lib/logic/zoneSituations.ts) | Situations critiques de zone : overload, short-corner, high-post, skip | `detectOverload`, `isShortCorner`, `isHighPost`, `findCriticalZoneAttackers`, `detectSkipPass` |
+| [`trap.ts`](../src/lib/logic/trap.ts) | Trap zones (4 coins / sidelines) + helper | `isInTrapZone`, `pickTrapHelper`, `trapTarget` |
+| [`tacticalReads.ts`](../src/lib/logic/tacticalReads.ts) | Lectures offensives auto en vocabulaire coach | `computeTacticalReads` |
+| [`triggers.ts`](../src/lib/logic/triggers.ts) | Détection des triggers globaux (drive, post, paint) | `detectTriggers` |
+| [`coachDiagnostics.ts`](../src/lib/logic/coachDiagnostics.ts) | Phrases coach automatiques | `computeCoachDiagnostics` |
+
+### Comportements
+
+#### Rotations PnR (`computePnRRotations`)
+Déclenchées si l'action sur écran exige un tag (`actionRequiresLowManTag`). Trois rôles overridés :
+- **`tag`** (low-man) : weak-side ou central, le plus proche du panier hors carrierDef/screenerDef. Cible = 35 % du chemin roller→panier.
+- **`x-out`** : défenseur dont l'homme est le plus proche de l'orphelin du low-man. Cible = mi-chemin entre baseTarget et orphelin.
+- **`stunt`** : défenseur en zone high-post (lateral < 90, vert. 80–200). Cible = 25 % du chemin baseTarget→porteur.
+
+Le rôle est exposé dans `ComputedDefender.pnrRole` pour rendre un anneau dédié dans l'UI.
+
+#### Zone defense (`computeZoneTargets`)
+**Moteur ownership continu** plutôt que matching binaire :
+
+1. Pour chaque défenseur, calcul de `claim(attaquant) = exp(-(d/reach)²) × naturalBonus × carrierBonus × criticalMult` où `reach = zone.radius × tactic.reachMultiplier` (default 200 × 1.0 = 200 px).
+2. Normalisation par attaquant (somme des claims = 1) → **ownership** (parts).
+3. Primary = attaquant avec ownership max ; engagement = ownership max.
+4. Cible blend `homePos × (1−engagement) + trackedPos × engagement`. `homePos` est shifté ball-side via `ballSideShifted` (max ±80 px).
+
+Tactiques par type de zone (`TACTICS`) :
+| Type | naturalBonus | carrierBonus | ballSideHelp | reach× |
+|---|---|---|---|---|
+| 2-3 | 1.2 | 1.5 | 0.5 | 1.0 |
+| 3-2 | 1.3 | 1.6 | 0.35 | 0.95 |
+| 1-3-1 | 1.15 | 1.4 | 0.6 | 1.05 |
+| match-up | 1.4 | 1.3 | 0.4 | 1.0 |
+
+#### Situations zone (`zoneSituations.ts`)
+- `detectOverload` — 3+ attaquants côté ballon → boost `effectiveBallSideHelp = ballSideHelp × (1 + intensity × 0.6)`. Intensité 0.6 (3 joueurs) ou 1.0 (4+).
+- `isShortCorner` — bande baseline (`lateral > 130 ET vert. < 100 ET dHoop < 250`) → `criticalMult = 1.4`.
+- `isHighPost` — centré (`lateral < 60 ET vert. 130–200`) → `criticalMult = 1.4`.
+- `detectSkipPass` — porteur change ET côté change → marqué dans diagnostics.
+
+#### Trap (`trap.ts`)
+4 zones de trap (`isInTrapZone`) : deux coins fond + deux sidelines mi-terrain. Quand le porteur y entre ET `triggers.trap=true` ET pas d'écran actif, le défenseur le plus proche (hors carrierDef) vient à `trapTarget` côté opposé du carrierDef à 28 px.
+
+#### Lectures offensives (`tacticalReads.ts`)
+Map la couverture défensive détectée → opportunité offensive. Tag `read-*`, severity `info` ou `warning`. Exemples : drop coverage → pull-up, switch → mismatch, overload → skip pass faible-côté.
+
+---
+
+## Moteur physique
+
+La cinématique : comment un joueur passe d'un point A à un point B, à quelle vitesse, en évitant quoi.
+
+### Modules
+
+| Module | Rôle | Fonctions / constantes clés |
+|---|---|---|
+| [`geometry.ts`](../src/lib/logic/geometry.ts) | Math 2D + trajectoires | `distance`, `lerp`, `clamp`, `normalize`, `pushOutOfMany`, `resolvePlayerCollisions`, `curveAroundObstacle`, `pickBlockingCluster`, `pickStaggeredPair`, `curveAroundStaggeredPair`, `pathArcLength`, `proximityFriction`, `computeBallFrame`, `makeCluster` |
+| [`data/court.ts`](../src/lib/data/court.ts) | Dimensions du terrain | `PX_PER_M = 37`, `COURT 600×560`, `FULL_COURT_HEIGHT = 1080`, `HOOP {300,75}`, `HOOP_OPPOSITE`, `THREE_POINT_RADIUS = 250`, `PAINT`, `PLAYER_RADIUS = 16`, `BALL_RADIUS = 7` |
+| [`engine.ts`](../src/lib/logic/engine.ts) (section bas) | Application des contraintes | `effectiveDefensePositions` : path arc length, friction, maxSpeed, closeoutBoost |
+
+### Constantes physiques
+
+#### Échelle
+- `PX_PER_M = 37` — 1 mètre = 37 pixels. Dérivé du diamètre du cercle restrictif (1,25 m → 46 px).
+- Demi-terrain canonique : 600 × 560 px ≈ **15,0 m × 15,1 m** (proche FIBA 15×14 m).
+- Terrain complet : 600 × 1080 px ≈ **15 m × 28 m**.
+
+#### Joueurs
+- `PLAYER_RADIUS = 16` px ≈ **43 cm** — rayon du cercle joueur (silhouette épaule à épaule).
+- Vitesses max par défaut (`defaultRules`) en px/étape : meneur 145, arrière 130, ailier 110, ailier fort 90, pivot 75. À 30 fps × 1500 ms par étape (`stepDuration`), le meneur couvre ~145 px ≈ **3,9 m/étape ≈ 2,6 m/s** (volontairement bas — c'est de la position tactique, pas du sprint).
+- `closeoutBoost = 1.4` × `closeoutProfileBonus` (1.15 sur shooter, 0.85 sur non-shooter).
+- Borné par `proximityFriction` qui multiplie la vitesse par un facteur ∈ [0, 1] selon la proximité d'obstacles non-matchés.
+
+#### Ballon
+- `BALL_RADIUS = 7` px ≈ **19 cm**.
+- Trajectoire en parabole pendant les passes (`computeBallFrame`) — hauteur de l'arc proportionnelle à la distance.
+
+#### Écrans
+- `screenRadius = 35` px (default, configurable) ≈ **95 cm** — distance max screener ↔ carrierDef pour qu'un écran soit détecté.
+- `MIN_TARGET_DIST = PLAYER_RADIUS × 2 + 2 = 34` px ≈ **92 cm** — clearance minimale entre deux joueurs.
+
+### Pipeline de contrainte (`effectiveDefensePositions`)
+
+Pour chaque défenseur, à chaque étape :
+
+1. **Pré-relaxation** : si la cible idéale est à < `MIN_TARGET_DIST` d'un attaquant non-matché, on la repousse via `pushOutOfMany`.
+2. **Path arc length** : si le segment from→to traverse un cluster d'écran, on calcule la longueur de la courbe Bezier qui contourne. Le défenseur "paie" le détour.
+3. **Friction de proximité** : `proximityFriction(from, to, obstacles)` réduit la vitesse max si le trajet frôle un joueur non-matché. Modélise le contact épaule.
+4. **MaxSpeed** : `effectiveMaxSpeed = (rule.maxSpeed × closeoutBoost × profileBonus) × friction`. Si `pathLen > effectiveMaxSpeed`, le défenseur s'arrête en chemin et reçoit `late=true`.
+5. **Solveur de collisions final** : `resolvePlayerCollisions` itère pour qu'aucun défenseur ne se superpose à un autre joueur (sauf son matchedTo).
+
+**Côté attaquants** (depuis P6) : pendant l'interpolation A→B dans [`CourtView.tsx`](../src/components/CourtView.tsx), `pickBlockingCluster` + `curveAroundObstacle` génèrent une trajectoire Bezier qui contourne les autres joueurs. Pas de `maxSpeed` (l'utilisateur garde la liberté de placement) ; un diagnostic warning s'affiche si saut > 4 m sur une étape.
+
+---
+
+## Orchestration
+
+Le point d'entrée unique pour le rendu est :
+
+```ts
+effectiveDefensePositions(state: AppState, stepIdx: number) : ComputedDefense
+computeAttackerVisuals(state: AppState, stepIdx: number)   : ComputedAttackerVisuals
+```
+
+L'ordre interne (cf. [logique-defensive.md § Pipeline de calcul](logique-defensive.md#pipeline-de-calcul)) :
+
+1. **`computeDefenseTargets`** (man) calcule les **cibles individuelles** (manTarget / carrierDefenderTarget / offBallStanceTarget + help blend).
+2. Applique les **couvertures d'écran porteur** (`applyScreenAdjustment`).
+3. Applique les **rotations PnR collectives** (`computePnRRotations`).
+4. Applique les **couvertures off-ball** (`applyOffBallScreenAdjustment`).
+5. Applique les **traps** (`trapTarget`).
+6. **Recalcul d'orientation post-pass** avec position finale + pnrRole.
+7. **`effectiveDefensePositions`** applique le **moteur physique** (path arc, friction, maxSpeed, collisions).
+
+Pour la zone, étape 1 est remplacée par `computeZoneDefenseTargets` (ownership continu).
+
+---
+
+## Pour étendre
+
+- **Ajouter un comportement individuel** : nouveau cas dans `manDefense.ts` (stance) ou `help.ts` (régime), nouveau test ciblé, mise à jour du `ContextMenu` si visible côté UI.
+- **Ajouter une rotation collective** : module dédié style `pnrRotations.ts`, appel orchestré depuis `engine.ts`. Le rôle peut être tagué dans `ComputedDefender.pnrRole` (ou un nouveau champ).
+- **Tuner la physique** : modifier les valeurs dans `defaultRules` (vitesses), `closeoutBoost`, ou les seuils `screenRadius` / `screenRadius` / `proximityFriction`. Les tests d'invariants ([`invariants.test.ts`](../src/lib/logic/__tests__/invariants.test.ts)) attrapent les régressions globales.
+- **Centraliser la physique** (refactor à venir) : déplacer toutes les constantes physiques dans un `physics.ts` ou `data/physics.ts` unique. Aujourd'hui dispersées entre `data/court.ts`, `data/initial.ts` (defaultRules), et inlinées dans certains modules.

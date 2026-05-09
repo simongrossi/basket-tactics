@@ -259,7 +259,33 @@ export interface ComputedDefender {
    *  - `stunt` : faux mouvement vers le porteur depuis le nail
    *  Permet de tracer un anneau spécifique pour le coach. */
   pnrRole?: 'tag' | 'x-out' | 'stunt';
+  /** Rotation horaire des bras FIBA en degrés depuis le NORD (haut, y négatif).
+   *  Calculée automatiquement par `computeDefenderOrientation` à partir de
+   *  la stance, du ballon et de la position de l'homme. La valeur de
+   *  `state.rules[id].orientation` est appliquée comme delta ajouté
+   *  (clampé à ±45°) — réglage manuel respecté sans casser la cohérence basket. */
+  orientation: number;
+  /** Point que le défenseur regarde (sert au triangle pointeur).
+   *  - on-ball : le porteur.
+   *  - off-ball deny/fronting : le ballon.
+   *  - off-ball sag : midpoint entre l'homme et le ballon (head-on-swivel). */
+  facing: Point;
+  /** Cible "aim" brute de l'aide (avant blend par helpFactor). Pour debug :
+   *  visualiser vers quoi le défenseur tend, indépendamment de l'intensité.
+   *  Undefined si pas d'aide active ni denial. */
+  helpAim?: Point;
+  /** Priorité d'aide effective (paint / man / passlane). */
+  helpPriority?: HelpPriority;
+  /** Catégorie de la branche d'aide qui a produit le résultat (debug). */
+  helpKind?: 'sag-weakside' | 'denial-strongside' | 'active-help' | 'none';
 }
+
+/** Visuels d'attaquants calculés par étape (orientation + facing). */
+export interface ComputedAttacker {
+  orientation: number;
+  facing: Point;
+}
+export type ComputedAttackerVisuals = Record<AttackerId, ComputedAttacker>;
 
 export type ComputedDefense = Record<DefenderId, ComputedDefender>;
 
@@ -301,6 +327,12 @@ export interface AppState {
   /** Affiche la meilleure action offensive (tir / drive / passe) calculée
    *  par évaluation des EV. Phase B. Indépendant de showThreats. */
   showBestAction?: boolean;
+  /** Vue debug d'aide défensive : pour chaque défenseur dont helpFactor>0.10,
+   *  une flèche depuis sa position vers son `helpAim` avec un badge `xx%`
+   *  et un tag de priorité (paint/man/passlane). Inclut aussi les rotations
+   *  PnR (tag/x-out/stunt) avec couleur dédiée. Outil pour comprendre/debug
+   *  la logique défensive — pas un visuel coach. */
+  showHelpDebug?: boolean;
   /** Toggles fine-grained sur les indicateurs auto. Default true partout —
    *  ces visuels sont normalement utiles. Le coach peut désactiver pour
    *  alléger la vue (ex : présentation, capture playbook). */

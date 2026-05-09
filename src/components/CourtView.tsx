@@ -18,7 +18,9 @@ import { AnnotationView } from './Annotations';
 import { Matchups, HelpLines, ScreenIndicator, ZoneOverlay, OffBallScreenIndicator } from './Overlays';
 import { ZoneCoverage } from './ZoneCoverage';
 import { PassLanesOverlay } from './PassLanesOverlay';
-import { effectiveDefensePositions, getMatchupsAt } from '@/lib/logic/engine';
+import { HelpDebugOverlay } from './HelpDebugOverlay';
+import { effectiveDefensePositions, getMatchupsAt, computeAttackerVisuals } from '@/lib/logic/engine';
+import { lerpAngleDeg } from '@/lib/logic/orientation';
 import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
 import type { DetectedOffBallScreen } from '@/lib/types';
 import { detectTriggers } from '@/lib/logic/triggers';
@@ -78,6 +80,7 @@ interface PlaybackFrame {
   stepIdx: number;
   ballPos: Point;
   ballInFlight: boolean;
+  attVisuals: import('@/lib/types').ComputedAttackerVisuals;
 }
 
 export function CourtView(props: CourtViewProps) {
@@ -133,15 +136,52 @@ export function CourtView(props: CourtViewProps) {
       const localT = globalT - idxA;
       const a = cur.steps[idxA];
       const b = cur.steps[idxB];
-      const off = {} as AttackerPositions;
-      (Object.keys(a.off) as AttackerId[]).forEach((id) => {
-        off[id] = {
-          x: a.off[id].x + (b.off[id].x - a.off[id].x) * localT,
-          y: a.off[id].y + (b.off[id].y - a.off[id].y) * localT,
-        };
-      });
       const defA = effectiveDefensePositions(cur, idxA);
       const defB = effectiveDefensePositions(cur, idxB);
+
+      // Interpolation des attaquants AVEC contournement d'obstacles. Les
+      // obstacles considérés : les autres attaquants (position moyenne A-B)
+      // et les défenseurs (position moyenne A-B). Évite qu'un attaquant
+      // traverse un autre joueur entre deux étapes.
+      const off = {} as AttackerPositions;
+      const attackerIds = Object.keys(a.off) as AttackerId[];
+      const defenderIds = Object.keys(defA) as DefenderId[];
+      const radiusObstacle = PLAYER_RADIUS + 2;
+      attackerIds.forEach((id) => {
+        const from = a.off[id];
+        const to = b.off[id];
+        const obstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
+        attackerIds.forEach((other) => {
+          if (other === id) return;
+          obstacles.push({
+            center: {
+              x: (a.off[other].x + b.off[other].x) / 2,
+              y: (a.off[other].y + b.off[other].y) / 2,
+            },
+            radius: radiusObstacle,
+            defenderToSkip: 'D1' as DefenderId, // valeur arbitraire, jamais filtrée car l'attaquant n'est pas un DefenderId
+          });
+        });
+        defenderIds.forEach((dId) => {
+          obstacles.push({
+            center: {
+              x: (defA[dId].x + defB[dId].x) / 2,
+              y: (defA[dId].y + defB[dId].y) / 2,
+            },
+            radius: radiusObstacle,
+            defenderToSkip: 'D1' as DefenderId,
+          });
+        });
+        let p: Point = {
+          x: from.x + (to.x - from.x) * localT,
+          y: from.y + (to.y - from.y) * localT,
+        };
+        const blocking = pickBlockingCluster(from, to, obstacles);
+        if (blocking) {
+          p = curveAroundObstacle(from, to, blocking.center, blocking.radius, localT);
+        }
+        off[id] = p;
+      });
 
       const carrier = localT < 0.5 ? a.ballCarrier : b.ballCarrier;
       // Détection d'écran sur la frame en cours pour piloter l'évitement
@@ -224,6 +264,11 @@ export function CourtView(props: CourtViewProps) {
           overClosed: defB[id].overClosed,
           denying: defB[id].denying,
           helpTriggered: defB[id].helpTriggered,
+          orientation: lerpAngleDeg(defA[id].orientation, defB[id].orientation, localT),
+          facing: {
+            x: defA[id].facing.x + (defB[id].facing.x - defA[id].facing.x) * localT,
+            y: defA[id].facing.y + (defB[id].facing.y - defA[id].facing.y) * localT,
+          },
         };
       });
 
@@ -241,7 +286,8 @@ export function CourtView(props: CourtViewProps) {
         a.ballCarrier !== b.ballCarrier,
         localT
       );
-      setPlayFrame({ off, defPos, carrier, screen, offBallScreens, stepIdx: idxA, ballPos: ball.pos, ballInFlight: ball.inFlight });
+      const attVisuals = computeAttackerVisuals(cur, idxB);
+      setPlayFrame({ off, defPos, carrier, screen, offBallScreens, stepIdx: idxA, ballPos: ball.pos, ballInFlight: ball.inFlight, attVisuals });
     };
     // setInterval plus déterministe que requestAnimationFrame pour ce cas
     // (pas de soucis avec re-renders qui restartent la boucle).
@@ -275,6 +321,7 @@ export function CourtView(props: CourtViewProps) {
       stepIdx: state.activeStep,
       ballPos,
       ballInFlight: false,
+      attVisuals: computeAttackerVisuals(state, state.activeStep),
     };
   }, [state]);
 
@@ -289,15 +336,42 @@ export function CourtView(props: CourtViewProps) {
     const localT = t - idxA;
     const a = state.steps[idxA];
     const b = state.steps[idxB];
-    const off = {} as AttackerPositions;
-    (Object.keys(a.off) as AttackerId[]).forEach((id) => {
-      off[id] = {
-        x: a.off[id].x + (b.off[id].x - a.off[id].x) * localT,
-        y: a.off[id].y + (b.off[id].y - a.off[id].y) * localT,
-      };
-    });
     const defA = effectiveDefensePositions(state, idxA);
     const defB = effectiveDefensePositions(state, idxB);
+    // Interpolation des attaquants AVEC contournement (cf. playFrame).
+    const off = {} as AttackerPositions;
+    const scrubAttIds = Object.keys(a.off) as AttackerId[];
+    const scrubDefIds = Object.keys(defA) as DefenderId[];
+    const scrubObstacleR = PLAYER_RADIUS + 2;
+    scrubAttIds.forEach((id) => {
+      const from = a.off[id];
+      const to = b.off[id];
+      const obstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
+      scrubAttIds.forEach((other) => {
+        if (other === id) return;
+        obstacles.push({
+          center: { x: (a.off[other].x + b.off[other].x) / 2, y: (a.off[other].y + b.off[other].y) / 2 },
+          radius: scrubObstacleR,
+          defenderToSkip: 'D1' as DefenderId,
+        });
+      });
+      scrubDefIds.forEach((dId) => {
+        obstacles.push({
+          center: { x: (defA[dId].x + defB[dId].x) / 2, y: (defA[dId].y + defB[dId].y) / 2 },
+          radius: scrubObstacleR,
+          defenderToSkip: 'D1' as DefenderId,
+        });
+      });
+      let p: Point = {
+        x: from.x + (to.x - from.x) * localT,
+        y: from.y + (to.y - from.y) * localT,
+      };
+      const blocking = pickBlockingCluster(from, to, obstacles);
+      if (blocking) {
+        p = curveAroundObstacle(from, to, blocking.center, blocking.radius, localT);
+      }
+      off[id] = p;
+    });
     const carrier = localT < 0.5 ? a.ballCarrier : b.ballCarrier;
     let screen: ReturnType<typeof detectScreen> = null;
     let offBallScreens: DetectedOffBallScreen[] = [];
@@ -365,6 +439,11 @@ export function CourtView(props: CourtViewProps) {
         onScreen: defB[id].onScreen,
         switchedThisStep: defB[id].switchedThisStep,
         closingOut: defB[id].closingOut,
+        orientation: lerpAngleDeg(defA[id].orientation, defB[id].orientation, localT),
+        facing: {
+          x: defA[id].facing.x + (defB[id].facing.x - defA[id].facing.x) * localT,
+          y: defA[id].facing.y + (defB[id].facing.y - defA[id].facing.y) * localT,
+        },
       };
     });
 
@@ -390,6 +469,7 @@ export function CourtView(props: CourtViewProps) {
       stepIdx: Math.round(t),
       ballPos: ball.pos,
       ballInFlight: ball.inFlight,
+      attVisuals: computeAttackerVisuals(state, idxB),
     };
   }, [props.scrubT, state]);
 
@@ -665,6 +745,8 @@ export function CourtView(props: CourtViewProps) {
                       isAttacker
                       isForcedScreener={id === forcedScreenerId}
                       showLockBadges={state.showLockBadges !== false}
+                      orientation={frame.attVisuals[id]?.orientation}
+                      facing={frame.attVisuals[id]?.facing}
                     />
                   ))}
                 {(Object.entries(frame.defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(
@@ -678,13 +760,13 @@ export function CourtView(props: CourtViewProps) {
                       isLate={p.late}
                       onScreen={p.onScreen}
                       helpFactor={p.helpFactor}
-                      facing={frame.off[p.matchedTo]}
+                      facing={p.facing}
                       isOverridden={!!state.steps[state.activeStep]?.defenseOverrides?.[id]}
                       closingOut={p.closingOut}
                       overClosed={p.overClosed}
                       denying={p.denying}
                       pnrRole={p.pnrRole}
-                      orientation={state.rules[id]?.orientation}
+                      orientation={p.orientation}
                       showStateRings={state.showStateRings !== false}
                       showLockBadges={state.showLockBadges !== false}
                     />
@@ -699,6 +781,8 @@ export function CourtView(props: CourtViewProps) {
                       isAttacker
                       isForcedScreener={id === forcedScreenerId}
                       showLockBadges={state.showLockBadges !== false}
+                      orientation={frame.attVisuals[id]?.orientation}
+                      facing={frame.attVisuals[id]?.facing}
                     />
                   ) : null
                 )}
@@ -741,6 +825,9 @@ export function CourtView(props: CourtViewProps) {
           carrier={frame.carrier}
           show={state.showPassLanes}
         />
+        {state.showHelpDebug && (
+          <HelpDebugOverlay defPos={frame.defPos} />
+        )}
         {state.showScreenIndicators !== false && (
           <ScreenIndicator
             screen={frame.screen}

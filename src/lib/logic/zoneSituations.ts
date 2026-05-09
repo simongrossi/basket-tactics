@@ -58,16 +58,22 @@ export function detectOverload(
 
 /**
  * Short corner : zone entre le coin baseline et le bloc bas, hors raquette
- * mais très proche du panier. Tueur en zone car aucun défenseur n'a
- * naturellement ce poste dans une 2-3 ou 3-2.
+ * mais très proche de la ligne de fond. Tueur en zone car aucun défenseur
+ * n'a naturellement ce poste dans une 2-3 ou 3-2.
  *
- * Critère : distance au panier 60-130px ET latéralement >130px (hors raquette
- * qui fait ±100px de large autour du panier).
+ * Critère : latéralement >130px (hors raquette ±100px) ET dans une bande
+ * baseline (y proche du panier, |verticalFromHoop| < 100). dHoop est borné
+ * à 250px pour exclure les corners 3pt purs (au-delà du big block).
+ *
+ * Note historique : la version v1 utilisait `dHoop < 130 ET lateral > 130`,
+ * mathématiquement contradictoire (sqrt(lat² + vert²) ≥ lat), donc ne
+ * matchait jamais. Les tests d'invariants l'ont révélé.
  */
 export function isShortCorner(pos: Point, hoop: Point = HOOP): boolean {
-  const dHoop = Math.hypot(pos.x - hoop.x, pos.y - hoop.y);
   const lateral = Math.abs(pos.x - hoop.x);
-  return dHoop > 60 && dHoop < 130 && lateral > 130;
+  const verticalFromHoop = Math.abs(pos.y - hoop.y);
+  const dHoop = Math.hypot(lateral, verticalFromHoop);
+  return lateral > 130 && verticalFromHoop < 100 && dHoop < 250;
 }
 
 /**

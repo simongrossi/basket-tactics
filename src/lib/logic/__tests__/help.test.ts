@@ -119,3 +119,48 @@ describe('computeHelpTarget — strong-side denial', () => {
     expect(r.denying).toBeFalsy();
   });
 });
+
+describe('computeHelpTarget — paint helper pondéré par proximité', () => {
+  // Avec priority='paint' et un trigger drive, l'aide doit dépendre de la
+  // distance du défenseur courant à la cible d'aide. Un défenseur en coin
+  // opposé n'est pas censé peser autant qu'un wing strong-side proche.
+  const ruleP: DefenderRule = { helpPct: 100, priority: 'paint', vsCarrier: 'coller' };
+  const carrier = { x: 400, y: 470 };
+  // Attaquant dans la raquette pour activer la sélection de blockTarget
+  const offWithPaintThreat = {
+    O1: carrier,
+    O2: { x: 290, y: 130 }, // proche du low-block (HOOP est y=75)
+    O3: { x: 600, y: 0 },
+    O4: { x: 0, y: 500 },
+    O5: { x: 600, y: 500 },
+  };
+
+  it("un défenseur loin de la cible d'aide a un helpFactor réduit vs un défenseur proche", () => {
+    // Cas A : défenseur loin (coin opposé bas-gauche)
+    const manFar = { x: 50, y: 540 };
+    const attFar = { x: 50, y: 540 };
+    const rFar = computeHelpTarget(
+      manFar, ruleP, driveTriggers, carrier, attFar, 1, offWithPaintThreat, HOOP
+    );
+
+    // Cas B : défenseur proche de la raquette (wing weak-side à mi-distance)
+    const manNear = { x: 250, y: 200 };
+    const attNear = { x: 250, y: 200 };
+    const rNear = computeHelpTarget(
+      manNear, ruleP, driveTriggers, carrier, attNear, 1, offWithPaintThreat, HOOP
+    );
+
+    expect(rNear.helpFactor).toBeGreaterThan(rFar.helpFactor);
+  });
+
+  it("le défenseur déjà sur place (dist < 120) garde un helpFactor pleinement utile", () => {
+    const manClose = { x: 270, y: 150 }; // ~quasi sur le low-block
+    const attClose = { x: 270, y: 150 };
+    const r = computeHelpTarget(
+      manClose, ruleP, driveTriggers, carrier, attClose, 1, offWithPaintThreat, HOOP
+    );
+    // helpPct=100, sideFactor=1 (même côté ballon dans ce cas-ci) → helpFactor brut = 1
+    // proximité < 120 → coef = 1
+    expect(r.helpFactor).toBeGreaterThanOrEqual(0.95);
+  });
+});

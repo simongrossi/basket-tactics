@@ -115,7 +115,9 @@ Toute la doc technique vit dans [`docs/`](docs/) :
 | [`docs/architecture.md`](docs/architecture.md) | Stack, structure des dossiers, flux de données |
 | [`docs/data-model.md`](docs/data-model.md) | Forme de l'`AppState`, types, persistance |
 | [`docs/concepts-basket.md`](docs/concepts-basket.md) | Vocabulaire basket modélisé (stances, screens, switches, zone, triggers, lateness) |
+| [`docs/GAME-ENGINE.md`](docs/GAME-ENGINE.md) | **Cartographie complète du moteur** : individuel / collectif / physique |
 | [`docs/logique-defensive.md`](docs/logique-defensive.md) | Pipeline du moteur étape par étape, formules, points d'extension |
+| [`docs/orientation-anti-teleport.md`](docs/orientation-anti-teleport.md) | Orientation calculée des joueurs, anti-téléportation, fixes basket récents |
 | [`docs/ui-design.md`](docs/ui-design.md) | Choix visuels, layout, conventions de tracé |
 | [`docs/menu-reference.md`](docs/menu-reference.md) | Référence exhaustive de chaque réglage de l'interface |
 | [`docs/bibliotheque-systemes.md`](docs/bibliotheque-systemes.md) | Format des templates, comment en ajouter |
@@ -123,9 +125,9 @@ Toute la doc technique vit dans [`docs/`](docs/) :
 | [`docs/testing.md`](docs/testing.md) | Stack Vitest, couverture des tests, conventions |
 | [`docs/keyboard-shortcuts.md`](docs/keyboard-shortcuts.md) | Référence des raccourcis clavier |
 
-Pour reprendre le projet, lis dans cet ordre : `architecture.md` → `concepts-basket.md` → `logique-defensive.md`.
+Pour reprendre le projet, lis dans cet ordre : `architecture.md` → `concepts-basket.md` → `GAME-ENGINE.md` → `logique-defensive.md` (détail).
 
-Vision produit et chantiers à venir : [`ROADMAP.md`](ROADMAP.md). Backlog technique et historique des features : [`IDEAS.md`](IDEAS.md).
+Vision produit et chantiers à venir : [`ROADMAP.md`](ROADMAP.md). Historique des évolutions de comportement : [`CHANGELOG.md`](CHANGELOG.md). Backlog technique et notes au fil de l'eau : [`IDEAS.md`](IDEAS.md).
 
 ---
 

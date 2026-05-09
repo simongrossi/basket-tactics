@@ -11,7 +11,7 @@ import { CourtBackground, ArrowMarkers } from './Court';
 import { Player, Ball } from './Player';
 import { AnnotationView } from './Annotations';
 import { ActionOrderBadges } from './ActionOrderBadges';
-import { effectiveDefensePositions, getMatchupsAt } from '@/lib/logic/engine';
+import { effectiveDefensePositions, getMatchupsAt, computeAttackerVisuals } from '@/lib/logic/engine';
 import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
 import { getZoneLayout, mirrorZoneLayout } from '@/lib/data/zones';
 import { ZoneOverlay } from './Overlays';
@@ -32,6 +32,7 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
   const defPos: ComputedDefense = showDefense
     ? effectiveDefensePositions(state, stepIdx)
     : ({} as ComputedDefense);
+  const attVisuals = computeAttackerVisuals(state, stepIdx);
 
   const height = state.fullCourt ? FULL_COURT_HEIGHT : COURT.height;
 
@@ -68,7 +69,14 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
               {(Object.entries(step.off) as [AttackerId, Point][])
                 .filter(([id]) => !screenerIds.has(id))
                 .map(([id, pos]) => (
-                  <Player key={id} id={id} pos={pos} isAttacker />
+                  <Player
+                    key={id}
+                    id={id}
+                    pos={pos}
+                    isAttacker
+                    orientation={attVisuals[id]?.orientation}
+                    facing={attVisuals[id]?.facing}
+                  />
                 ))}
               {showDefense &&
                 (Object.entries(defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(([id, p]) => (
@@ -79,12 +87,20 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     isAttacker={false}
                     isCarrierDefender={p.isCarrierDefender}
                     onScreen={p.onScreen}
-                    facing={step.off[p.matchedTo]}
+                    facing={p.facing}
+                    orientation={p.orientation}
                   />
                 ))}
               {Array.from(screenerIds).map((id) =>
                 step.off[id] ? (
-                  <Player key={`screener-${id}`} id={id} pos={step.off[id]} isAttacker />
+                  <Player
+                    key={`screener-${id}`}
+                    id={id}
+                    pos={step.off[id]}
+                    isAttacker
+                    orientation={attVisuals[id]?.orientation}
+                    facing={attVisuals[id]?.facing}
+                  />
                 ) : null
               )}
             </>

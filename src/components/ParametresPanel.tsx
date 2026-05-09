@@ -75,6 +75,12 @@ export function ParametresPanel({ state, onPatch }: ParametresPanelProps) {
           label="terrain complet"
           onChange={(v) => onPatch({ fullCourt: v })}
         />
+        <LegendCheckboxLine
+          checked={!!state.showHelpDebug}
+          label="debug aide (flèches %)"
+          sample="dashed" color="#8b5cf6"
+          onChange={(v) => onPatch({ showHelpDebug: v })}
+        />
       </div>
       <button
         onClick={() => onPatch({

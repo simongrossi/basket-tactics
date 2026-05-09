@@ -28,7 +28,7 @@ Les tests vivent à côté du code testé sous `__tests__/`. Le pattern d'inclus
 
 ## Couverture actuelle
 
-109 tests sur 10 modules de la logique défensive et de la simulation.
+184 tests sur 14 modules de la logique défensive, de la simulation, de l'orientation et des invariants playbooks.
 
 ### `engine.test.ts`
 - `getMatchupsAt` : matchups de base, application d'un switch, cumul de plusieurs switches sur étapes successives, immuabilité de `baseMatchups`.
@@ -69,6 +69,30 @@ Les tests vivent à côté du code testé sous `__tests__/`. Le pattern d'inclus
 
 ### Engine — attackingDirection
 Régression que `attackingDirection='up'` (default) place les défenseurs entre attaquants et HOOP top, et que `attackingDirection='down'` (avec positions miroir en bas) les place entre attaquants et HOOP_OPPOSITE.
+
+### `orientation.test.ts`
+- `computeDefenderOrientation` : on-ball regarde le porteur, fronting/deny-3q regardent le ballon, sag = midpoint, angle horaire depuis le nord (cas est=+90°), modulation `vsCarrier='topside'` (+30°), delta manuel ajouté et clampé à ±45°.
+- `computeAttackerOrientation` : porteur→panier, passeur→receveur, coupeur→nextPos, poseur d'écran orienté perpendiculairement à la ligne vers le défenseur ciblé (différence ≈ 90° vs facing frontal), défaut→ballon.
+
+### `invariants.test.ts` (régression sur playbooks)
+Pour les 7 playbooks de la lib (PNR central, Horns flare, Pindown coin, Spain PNR, UCLA cut, Floppy, Hammer) :
+- aucun chevauchement aux étapes (att-att, def-def, def vs non-matched att) — tolérance 1px arrondi ;
+- vitesse défensive ≤ `maxSpeed × 1.65 + PLAYER_RADIUS×2 + 5` (couvre closeoutBoost × profileBonus + résolution de collisions) ;
+- saut attaquant ≤ 5,5 m par étape (limite physique sprint 1 s) ;
+- orientation et facing toujours valides (nombres finis) à toutes les étapes ;
+- porteur toujours orienté vers le panier dans `computeAttackerVisuals`.
+
+### `zoneDefense.test.ts`
+- `computeZoneTargets` : 5 cibles, au moins 2 défenseurs trackent (ownership continu), shift ball-side (centroïde glisse vers le ballon), front-2 pression le porteur en wing droit, overload côté ballon tire la zone plus fort.
+- `mapAttackersToZones` : Map indexée par `zone.id`, chaque attaquant attribué à exactement une zone.
+
+### `zoneSituations.test.ts`
+- `attackerSide` : -1 / 0 / +1 selon `x` vs panier (tolérance ±30 pour le centre).
+- `detectOverload` : count + intensity (0 / 0.6 / 1.0) selon le nombre d'attaquants côté ballon.
+- `isShortCorner` : bande baseline (lateral > 130, vertical < 100, dHoop < 250). Note : v1 cassée car `dHoop < 130 ET lateral > 130` mathématiquement impossible — cf. [orientation-anti-teleport.md](orientation-anti-teleport.md#isshortcorner-cassée--zonesituationsts).
+- `isHighPost` : centré (lateral < 60), 130–200 px du panier.
+- `findCriticalZoneAttackers` : retourne la liste avec le label de zone.
+- `detectSkipPass` : porteur change ET côté change ; null si même côté ou même porteur.
 
 ### `threats.test.ts` (Phase A simulation)
 - `shotZoneFor` : classification correcte des 5 zones (rim, paint, mid, three, deep) selon distance au panier.

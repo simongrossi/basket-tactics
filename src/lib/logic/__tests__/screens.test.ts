@@ -5,6 +5,7 @@ import {
   applySwitch,
   applySwitchOffBall,
   applyScreenAdjustment,
+  applyOffBallScreenAdjustment,
 } from '../screens';
 import { baseMatchups } from '../../data/initial';
 import type {
@@ -228,6 +229,145 @@ describe('detectOffBallScreens', () => {
     expect(obs).toBeDefined();
     // dy = screenerPos.y - cutterPos.y = 320 - 380 = -60 → backscreen
     expect(obs!.type).toBe('backscreen');
+  });
+});
+
+describe('detectScreen — filtre intention (velocity)', () => {
+  // Un attaquant peut se trouver près du carrierDef à un moment donné par
+  // pure coïncidence (il vient de PASSER à proximité). Si sa velocity le
+  // porte LOIN du couple porteur/défenseur, ce n'est pas un écran posé,
+  // c'est un croisement. Le filtre d'intention l'écarte.
+  it("ignore un attaquant qui s'éloigne du carrierDef (mauvaise intention)", () => {
+    const carrier = { x: 300, y: 470 };
+    const carrierDef = { x: 300, y: 410 };
+    // O2 était collé au carrierDef à l'étape précédente (305, 410, dist ~5px),
+    // et se déplace vers (305, 432) à l'étape courante (dist ~22px). Il passe
+    // donc par la zone de proximité MAIS s'en éloigne — c'est un croisement,
+    // pas une pose d'écran.
+    const prevOff: AttackerPositions = {
+      O1: { x: 290, y: 460 },
+      O2: { x: 305, y: 410 },
+      O3: { x: 600, y: 0 },
+      O4: { x: 0, y: 500 },
+      O5: { x: 600, y: 500 },
+    };
+    const off: AttackerPositions = {
+      O1: carrier,
+      O2: { x: 305, y: 432 },
+      O3: { x: 600, y: 0 },
+      O4: { x: 0, y: 500 },
+      O5: { x: 600, y: 500 },
+    };
+    const def = defAt(carrierDef);
+    // Sans prevOff (rétrocompat) : écran détecté (proximité pure).
+    const withoutPrev = detectScreen(off, 'O1', baseMatchups, def, 35);
+    expect(withoutPrev).not.toBeNull();
+    // Avec prevOff : O2 s'éloigne du carrierDef, donc pas un écran intentionnel.
+    const withPrev = detectScreen(off, 'O1', baseMatchups, def, 35, undefined, prevOff);
+    expect(withPrev).toBeNull();
+  });
+
+  it("conserve un attaquant qui se rapproche du carrierDef (bonne intention)", () => {
+    const carrier = { x: 300, y: 470 };
+    const carrierDef = { x: 300, y: 410 };
+    // O2 vient de l'extérieur (loin du couple) et se rapproche → écran posé.
+    const prevOff: AttackerPositions = {
+      O1: { x: 290, y: 460 },
+      O2: { x: 380, y: 460 },
+      O3: { x: 600, y: 0 },
+      O4: { x: 0, y: 500 },
+      O5: { x: 600, y: 500 },
+    };
+    const off: AttackerPositions = {
+      O1: carrier,
+      O2: { x: 305, y: 420 },
+      O3: { x: 600, y: 0 },
+      O4: { x: 0, y: 500 },
+      O5: { x: 600, y: 500 },
+    };
+    const def = defAt(carrierDef);
+    const result = detectScreen(off, 'O1', baseMatchups, def, 35, undefined, prevOff);
+    expect(result).not.toBeNull();
+    expect(result!.screener).toBe('O2');
+  });
+
+  it("respecte un forcedScreener même avec velocity opposée (override utilisateur prime)", () => {
+    const carrier = { x: 300, y: 470 };
+    const carrierDef = { x: 300, y: 410 };
+    const prevOff: AttackerPositions = {
+      O1: { x: 290, y: 460 },
+      O2: { x: 260, y: 380 }, // s'éloigne
+      O3: { x: 600, y: 0 },
+      O4: { x: 0, y: 500 },
+      O5: { x: 600, y: 500 },
+    };
+    const off: AttackerPositions = {
+      O1: carrier,
+      O2: { x: 305, y: 420 },
+      O3: { x: 600, y: 0 },
+      O4: { x: 0, y: 500 },
+      O5: { x: 600, y: 500 },
+    };
+    const def = defAt(carrierDef);
+    // Forced O2 → l'utilisateur décide, on ne filtre pas par velocity.
+    const result = detectScreen(off, 'O1', baseMatchups, def, 35, 'O2', prevOff);
+    expect(result).not.toBeNull();
+    expect(result!.screener).toBe('O2');
+  });
+});
+
+describe('applyOffBallScreenAdjustment — top-lock', () => {
+  // Le défenseur du cutter doit se positionner côté BALLON pour empêcher
+  // la réception, indépendamment de la direction screener→cutter.
+  it('place le défenseur du cutter côté ballon (ballon en haut, cutter horizontal)', () => {
+    const screen: DetectedOffBallScreen = {
+      type: 'pindown',
+      screener: 'O3',
+      screenerDef: 'D3',
+      cutter: 'O2',
+      cutterDef: 'D2',
+      screenerPos: { x: 300, y: 400 },
+      cutterPos: { x: 400, y: 400 },
+    };
+    const off: AttackerPositions = {
+      O1: { x: 500, y: 200 }, // porteur en haut-droite
+      O2: { x: 400, y: 400 },
+      O3: { x: 300, y: 400 },
+      O4: { x: 0, y: 500 },
+      O5: { x: 600, y: 500 },
+    };
+    const baseTarget = { x: 400, y: 380 }; // entre cutter et panier
+    const result = applyOffBallScreenAdjustment(
+      baseTarget, screen, 'top-lock', 'D2', off, off.O1
+    );
+    // Le ballon est plus haut (y=200 < 400) que le cutter, donc le défenseur
+    // doit être poussé vers le HAUT (y plus petit que baseTarget).
+    expect(result.y).toBeLessThan(baseTarget.y);
+  });
+
+  it('place le défenseur du cutter de l\'autre côté quand le ballon est en bas', () => {
+    const screen: DetectedOffBallScreen = {
+      type: 'pindown',
+      screener: 'O3',
+      screenerDef: 'D3',
+      cutter: 'O2',
+      cutterDef: 'D2',
+      screenerPos: { x: 300, y: 400 },
+      cutterPos: { x: 400, y: 400 },
+    };
+    const off: AttackerPositions = {
+      O1: { x: 500, y: 600 }, // porteur en bas-droite
+      O2: { x: 400, y: 400 },
+      O3: { x: 300, y: 400 },
+      O4: { x: 0, y: 500 },
+      O5: { x: 600, y: 500 },
+    };
+    const baseTarget = { x: 400, y: 380 };
+    const result = applyOffBallScreenAdjustment(
+      baseTarget, screen, 'top-lock', 'D2', off, off.O1
+    );
+    // Ballon en bas (y=600), donc le défenseur doit être poussé vers le BAS.
+    expect(result.y).toBeGreaterThan(baseTarget.y);
   });
 });
 

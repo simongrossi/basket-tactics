@@ -1,11 +1,16 @@
 # Roadmap
 
-Vision produit forward-looking. Pour le détail des changements déjà livrés et le backlog technique fin, voir [IDEAS.md](IDEAS.md).
+Vision produit forward-looking.
+
+- Pour l'**historique des évolutions de comportement** (livré, daté, structuré), voir [CHANGELOG.md](CHANGELOG.md).
+- Pour la **cartographie du moteur de jeu** (individuel / collectif / physique), voir [docs/GAME-ENGINE.md](docs/GAME-ENGINE.md).
+- Pour le **backlog technique fin et notes de développement**, voir [IDEAS.md](IDEAS.md).
 
 Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
 ## Livré récemment (mai 2026)
 
+- 🟢 **Orientation calculée + anti-téléportation attaquants** — module [`orientation.ts`](src/lib/logic/orientation.ts), corps des joueurs orientés selon la situation (porteur→panier, fronting→ballon, poseur d'écran perpendiculaire au défenseur ciblé), interpolation des attaquants avec contournement d'obstacles, diagnostic warning si saut > 4 m. Bugs basket corrigés : top-lock côté ballon (avant : ballon ignoré), paint helper pondéré par proximité, filtre d'intention sur les écrans, `isShortCorner` (logique mathématiquement impossible). Tests d'invariants rejouant les 7 playbooks. Cf. [docs/orientation-anti-teleport.md](docs/orientation-anti-teleport.md).
 - 🟢 **Raccourcis clavier** — [docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md)
 - 🟢 **Tests unitaires Vitest** — 84 tests sur engine / screens / metrics / help / trap / manDefense / geometry, [docs/testing.md](docs/testing.md)
 - 🟢 **Closeout dynamique v1** — bump de vitesse ×1.4 + flag `closingOut` + anneau orange sur le défenseur du nouveau porteur. Cf. [docs/logique-defensive.md § Closeout dynamique](docs/logique-defensive.md#closeout-dynamique)

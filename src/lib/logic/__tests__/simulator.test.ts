@@ -15,6 +15,8 @@ function makeDefPos(positions: Record<string, { x: number; y: number }>): Comput
       matchedTo: 'O1',
       onScreen: false,
       switchedThisStep: false,
+      orientation: 0,
+      facing: { x: 0, y: 0 },
     };
   });
   return out;

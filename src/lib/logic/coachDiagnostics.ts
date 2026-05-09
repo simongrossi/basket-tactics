@@ -8,6 +8,7 @@ import type {
   Point,
 } from '../types';
 import { distance } from './geometry';
+import { PX_PER_M } from '../data/court';
 import {
   effectiveDefensePositions,
   getDefenseHoop,
@@ -171,6 +172,35 @@ export function computeCoachDiagnostics(
       attackers: [p.matchedTo],
     });
   });
+
+  // --------------------------------------------------------------------------
+  // 2.b. Saut irréaliste d'attaquant entre étapes (téléportation utilisateur).
+  //      Un humain ne franchit pas 4m en une keyframe. Si la distance entre
+  //      l'étape précédente et l'étape courante dépasse 4m * PX_PER_M, on
+  //      pose un warning sans bloquer la simulation — l'utilisateur est
+  //      simplement averti que la keyframe est suspecte.
+  // --------------------------------------------------------------------------
+  if (stepIdx > 0) {
+    const prev = state.steps[stepIdx - 1];
+    const teleportPxThreshold = 4 * PX_PER_M; // 148 px
+    (Object.keys(off) as AttackerId[]).forEach((id) => {
+      const prevP = prev.off[id];
+      const curP = off[id];
+      if (!prevP || !curP) return;
+      const d = distance(prevP, curP);
+      if (d > teleportPxThreshold) {
+        const meters = (d / PX_PER_M).toFixed(1);
+        out.push({
+          id: `attacker-jump-${id}-${stepIdx}`,
+          severity: 'warning',
+          message: `Saut irréaliste de ${withProfile(id, profiles?.[id])} (${meters}m sur l'étape) — vérifie la keyframe`,
+          tag: 'attacker-jump',
+          defenders: [],
+          attackers: [id],
+        });
+      }
+    });
+  }
 
   // --------------------------------------------------------------------------
   // 3. Pick-and-roll : action détectée + diagnostic adapté

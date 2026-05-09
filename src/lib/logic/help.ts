@@ -61,6 +61,20 @@ export interface HelpResult {
    *  petite intensité. Utilisé par HelpLines pour rendre visible la
    *  différence entre "aide active maintenant" vs "sag passif". */
   triggered?: boolean;
+  /** Cible "aim" brute (avant blend par helpFactor). Utile pour debug :
+   *  visualiser vers quoi le défenseur est censé tendre, indépendamment
+   *  de l'intensité d'aide effective. Undefined si pas d'aide ni denial. */
+  aim?: Point;
+  /** Priorité d'aide effective au moment du calcul (paint / man / passlane).
+   *  Mirroite `rule.priority` mais explicite pour le rendu debug. */
+  priority?: import('../types').HelpPriority;
+  /** Catégorie du calcul, pour différencier visuellement :
+   *  - 'sag-weakside' : sag baseline passif, pas de trigger
+   *  - 'denial-strongside' : strong-side denial automatique
+   *  - 'active-help' : aide via trigger drive/post/paint
+   *  - 'none' : helpFactor=0 (helpMode disabled, ou aucune branche ne s'applique)
+   */
+  kind?: 'sag-weakside' | 'denial-strongside' | 'active-help' | 'none';
 }
 
 export function computeHelpTarget(
@@ -83,7 +97,7 @@ export function computeHelpTarget(
   // helpMode 'disabled' : court-circuit, le défenseur n'aide jamais
   // (ni triggers, ni sag baseline, ni denial)
   if (rule.helpMode === 'disabled') {
-    return { target: manPos, helpFactor: 0 };
+    return { target: manPos, helpFactor: 0, kind: 'none', priority: rule.priority };
   }
   const myAttSide = Math.sign(attPos.x - hoop.x) || 0;
 
@@ -101,6 +115,9 @@ export function computeHelpTarget(
           y: manPos.y + (aim.y - manPos.y) * sagFactor,
         },
         helpFactor: sagFactor,
+        aim,
+        priority: rule.priority,
+        kind: 'sag-weakside',
       };
     }
 
@@ -132,11 +149,14 @@ export function computeHelpTarget(
           },
           helpFactor: denyFactor,
           denying: true,
+          aim: denyAim,
+          priority: rule.priority,
+          kind: 'denial-strongside',
         };
       }
     }
 
-    return { target: manPos, helpFactor: 0 };
+    return { target: manPos, helpFactor: 0, kind: 'none', priority: rule.priority };
   }
 
   let sideFactor: number;
@@ -152,7 +172,7 @@ export function computeHelpTarget(
     sideFactor *= 0.5;
   }
 
-  const helpFactor = (rule.helpPct / 100) * sideFactor * leaveMultiplier;
+  let helpFactor = (rule.helpPct / 100) * sideFactor * leaveMultiplier;
 
   let aim: Point;
   switch (rule.priority) {
@@ -176,6 +196,16 @@ export function computeHelpTarget(
         });
       }
       aim = blockTarget ?? { x: hoop.x, y: hoop.y + 60 * intoCourtY };
+      // Pondération par proximité : un défenseur loin de la cible d'aide
+      // ne devrait pas peser autant qu'un voisin déjà sur place. Sans cela,
+      // un coin opposé est attiré aussi fortement vers la raquette qu'un
+      // wing strong-side, ce qui produit des rotations physiquement
+      // incohérentes (et un help-line traversant tout le terrain).
+      const dHelpToAim = distance(manPos, aim);
+      let proximityCoef = 1;
+      if (dHelpToAim > 280) proximityCoef = 0.4;
+      else if (dHelpToAim > 120) proximityCoef = 1.0 - ((dHelpToAim - 120) / 160) * 0.6;
+      helpFactor *= proximityCoef;
       break;
     }
     case 'passlane': {
@@ -209,5 +239,8 @@ export function computeHelpTarget(
     },
     helpFactor,
     triggered: true,
+    aim,
+    priority: rule.priority,
+    kind: 'active-help',
   };
 }

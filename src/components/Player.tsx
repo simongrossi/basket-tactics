@@ -69,49 +69,53 @@ export function Player({
 
   return (
     <g data-id={id} style={{ cursor: 'grab' }}>
-      {!isAttacker && (
-        <g pointerEvents="none">
-          {/* Bras symétriques (convention FIBA), pivotés autour du centre du
-              joueur selon `orientation` (degrés). 0 = neutre. */}
-          <g transform={`rotate(${orientation}, ${pos.x}, ${pos.y})`}>
-            <path
-              d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
-              fill="none"
-              stroke={stroke}
-              strokeWidth={2.5}
-              strokeLinecap="round"
-            />
-            <path
-              d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
-              fill="none"
-              stroke={stroke}
-              strokeWidth={2.5}
-              strokeLinecap="round"
-            />
-          </g>
-          {facing && (() => {
-            // Petit pointeur de "facing" : un triangle posé sur le bord du
-            // cercle, du côté de l'homme défendu. Indique l'orientation
-            // sans toucher aux bras.
-            const dx = facing.x - pos.x;
-            const dy = facing.y - pos.y;
-            const len = Math.hypot(dx, dy) || 1;
-            const ux = dx / len;
-            const uy = dy / len;
-            const tip = { x: pos.x + ux * (r + 6), y: pos.y + uy * (r + 6) };
-            const base = { x: pos.x + ux * r, y: pos.y + uy * r };
-            const px = -uy * 4;
-            const py = ux * 4;
-            return (
-              <polygon
-                points={`${tip.x},${tip.y} ${base.x + px},${base.y + py} ${base.x - px},${base.y - py}`}
-                fill={stroke}
-                opacity={0.9}
-              />
-            );
-          })()}
+      <g pointerEvents="none">
+        {/* Bras symétriques (convention FIBA), pivotés autour du centre du
+            joueur selon `orientation` (degrés). 0 = neutre. Affichés pour
+            défenseurs ET attaquants — tout le monde a un corps orientable.
+            Pour l'attaquant, les bras sont un peu plus discrets pour ne pas
+            confondre visuellement avec un défenseur. */}
+        <g transform={`rotate(${orientation}, ${pos.x}, ${pos.y})`}>
+          <path
+            d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={isAttacker ? 1.8 : 2.5}
+            strokeLinecap="round"
+            opacity={isAttacker ? 0.7 : 1}
+          />
+          <path
+            d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={isAttacker ? 1.8 : 2.5}
+            strokeLinecap="round"
+            opacity={isAttacker ? 0.7 : 1}
+          />
         </g>
-      )}
+        {facing && (() => {
+          // Pointeur de "facing" : un petit triangle posé sur le bord du
+          // cercle, dans la direction regardée. Indique l'orientation
+          // sans toucher aux bras (ex. on-ball regarde le porteur, off-ball
+          // sag = midpoint man-ballon, fronting = ballon).
+          const dx = facing.x - pos.x;
+          const dy = facing.y - pos.y;
+          const len = Math.hypot(dx, dy) || 1;
+          const ux = dx / len;
+          const uy = dy / len;
+          const tip = { x: pos.x + ux * (r + 6), y: pos.y + uy * (r + 6) };
+          const base = { x: pos.x + ux * r, y: pos.y + uy * r };
+          const px = -uy * 4;
+          const py = ux * 4;
+          return (
+            <polygon
+              points={`${tip.x},${tip.y} ${base.x + px},${base.y + py} ${base.x - px},${base.y - py}`}
+              fill={stroke}
+              opacity={isAttacker ? 0.7 : 0.9}
+            />
+          );
+        })()}
+      </g>
       <circle cx={pos.x} cy={pos.y} r={r} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
       <text
         x={pos.x}

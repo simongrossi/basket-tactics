@@ -33,6 +33,7 @@ C'est le seul point d'entrée appelé par le rendu. Tout le reste est interne.
 | `pnrRotations.ts` | **P1** — Calcule les rotations PnR : low-man tag du roller, X-out, nail stunt. Override la cible des défenseurs concernés et tag `pnrRole`. |
 | `zoneSituations.ts` | **P3** — Détection des situations zone (overload, short corner, high post, skip pass) qui modulent le moteur ownership. |
 | `tacticalReads.ts` | **P5** — Lectures offensives auto : map la couverture défense → opportunité offensive en vocabulaire coach. |
+| `orientation.ts` | **P6** — Calcul d'orientation et de facing pour défenseurs et attaquants. Voir [orientation-anti-teleport.md](orientation-anti-teleport.md). |
 
 ## Pipeline de calcul
 

@@ -23,6 +23,8 @@ function makeDef(positions: Partial<Record<keyof ComputedDefense, { x: number; y
       matchedTo: cfg?.matchedTo ?? matchupFallback[id],
       onScreen: false,
       switchedThisStep: false,
+      orientation: 0,
+      facing: { x: 0, y: 0 },
     };
   });
   return out;
