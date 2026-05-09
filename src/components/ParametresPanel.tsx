@@ -81,6 +81,12 @@ export function ParametresPanel({ state, onPatch }: ParametresPanelProps) {
           sample="dashed" color="#8b5cf6"
           onChange={(v) => onPatch({ showHelpDebug: v })}
         />
+        <LegendCheckboxLine
+          checked={!!state.showFieldOfViewAll}
+          label="champ de vision (tous)"
+          sample="circle" color="#06b6d4"
+          onChange={(v) => onPatch({ showFieldOfViewAll: v })}
+        />
       </div>
       <button
         onClick={() => onPatch({

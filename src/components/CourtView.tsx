@@ -739,9 +739,17 @@ export function CourtView(props: CourtViewProps) {
           fullCourt={state.fullCourt}
           show={!!state.showHeatmap}
         />
-        {/* Champs de vision défenseurs — activés individuellement via clic-droit
-            (rule.showFieldOfView). Rendus AVANT les sprites joueur. */}
-        <FieldOfViewOverlay defPos={frame.defPos} rules={state.rules} />
+        {/* Champs de vision joueurs — activables individuellement par défenseur
+            via clic-droit (rule.showFieldOfView), OU globalement sur tous les
+            joueurs (défenseurs + attaquants) via le toggle Paramètres
+            (state.showFieldOfViewAll). Heatmap croisée par superposition. */}
+        <FieldOfViewOverlay
+          defPos={frame.defPos}
+          off={frame.off}
+          attVisuals={frame.attVisuals}
+          rules={state.rules}
+          showAll={!!state.showFieldOfViewAll}
+        />
         <HelpLines off={frame.off} defPos={frame.defPos} defenseDistance={state.defenseDistance} show={state.showHelpLines} />
         {/* Anneaux de menace — rendus AVANT les sprites pour que les icônes
             joueur passent par-dessus l'anneau (visuel plus propre). */}
