@@ -8,7 +8,7 @@ import { OffensePanel } from '@/components/OffensePanel';
 import { ScenarioPanel } from '@/components/ScenarioPanel';
 import { ScenarioReader } from '@/components/ScenarioReader';
 import { DefensePanel } from '@/components/DefensePanel';
-import { ActionsPanel } from '@/components/ActionsPanel';
+import { FloatingActionsMenu } from '@/components/FloatingActionsMenu';
 import { ParametresLauncher } from '@/components/ParametresLauncher';
 import { LibraryPanel } from '@/components/LibraryPanel';
 import { Timeline } from '@/components/Timeline';
@@ -174,7 +174,41 @@ export default function Page() {
               onExportFolder={lib.exportFolder}
               onImportFolder={lib.importFolder}
             />
-            <ActionsPanel
+            <ParametresLauncher state={app.state} onPatch={app.patch} />
+          </div>
+        )}
+
+        <div className="center-col">
+          <div style={{ position: 'relative', minHeight: 0, overflow: 'hidden' }}>
+            <CourtView
+              state={app.state}
+              onMoveAttacker={app.moveAttacker}
+              onMoveDefender={app.moveDefender}
+              onAddAnnotation={app.addAnnotation}
+              onUpdateRule={app.updateRule}
+              onClearDefenseOverride={app.clearDefenseOverride}
+              onApplyDefenderProfile={app.applyDefenderProfile}
+              onSetBallCarrier={app.setBallCarrier}
+              onSetForcedScreener={app.setForcedScreener}
+              onClearAnnotationsFor={app.clearAnnotationsFor}
+              onSetAttackerHand={app.setAttackerHand}
+              onSetAttackerProfile={app.setAttackerProfile}
+              onSetAttackerOrientation={app.setAttackerOrientation}
+              onSetZoneOverride={app.setZoneOverride}
+              onClearZoneOverride={app.clearZoneOverride}
+              onDeleteAnnotation={app.deleteAnnotation}
+              onSetTool={app.setTool}
+              isPlaying={isPlaying}
+              playbackSpeed={playbackSpeed}
+              scrubT={scrubT}
+              onPlaybackTick={setPlaybackT}
+              onPlaybackEnd={() => {
+                setIsPlaying(false);
+                setPlaybackT(null);
+                app.setActiveStep(app.state.steps.length - 1);
+              }}
+            />
+            <FloatingActionsMenu
               presentMode={presentMode}
               onTogglePresentMode={() => setPresentMode((p) => !p)}
               onOpenPlaybook={() => setShowPlaybook(true)}
@@ -182,39 +216,7 @@ export default function Page() {
               onImport={handleImport}
               onReset={app.resetAll}
             />
-            <ParametresLauncher state={app.state} onPatch={app.patch} />
           </div>
-        )}
-
-        <div className="center-col">
-          <CourtView
-            state={app.state}
-            onMoveAttacker={app.moveAttacker}
-            onMoveDefender={app.moveDefender}
-            onAddAnnotation={app.addAnnotation}
-            onUpdateRule={app.updateRule}
-            onClearDefenseOverride={app.clearDefenseOverride}
-            onApplyDefenderProfile={app.applyDefenderProfile}
-            onSetBallCarrier={app.setBallCarrier}
-            onSetForcedScreener={app.setForcedScreener}
-            onClearAnnotationsFor={app.clearAnnotationsFor}
-            onSetAttackerHand={app.setAttackerHand}
-            onSetAttackerProfile={app.setAttackerProfile}
-            onSetAttackerOrientation={app.setAttackerOrientation}
-            onSetZoneOverride={app.setZoneOverride}
-            onClearZoneOverride={app.clearZoneOverride}
-            onDeleteAnnotation={app.deleteAnnotation}
-            onSetTool={app.setTool}
-            isPlaying={isPlaying}
-            playbackSpeed={playbackSpeed}
-            scrubT={scrubT}
-            onPlaybackTick={setPlaybackT}
-            onPlaybackEnd={() => {
-              setIsPlaying(false);
-              setPlaybackT(null);
-              app.setActiveStep(app.state.steps.length - 1);
-            }}
-          />
           {(app.state.scriptedActions?.length ?? 0) > 0 && (
             <ScenarioReader
               scriptedActions={app.state.scriptedActions ?? []}
