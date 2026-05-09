@@ -132,15 +132,55 @@ export function ParametresPanel({ state, onPatch }: ParametresPanelProps) {
             onChange={(v) => onPatch({ showLockBadges: v })}
           />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 6px', marginTop: 4, opacity: 0.7 }}>
-          <LegendRow color="#7c3aed" sample="line-thick" label="zone tracké" />
-          <LegendRow color="#f59e0b" sample="dashed" label="passe contestée" />
-          <LegendRow color="#dc2626" sample="dashed-thin" label="passe bloquée" />
-          <LegendRow color="#16a34a" sample="circle" label="écran non-porteur" />
-          <LegendRow color="#E24B4A" sample="ring" label="déf. en retard" />
-          <LegendRow color="#F97316" sample="ring" label="closeout actif" />
-          <LegendRow color="#0EA5A8" sample="circle" label="strong-side denial" />
-          <LegendRow color="#a78bfa" sample="dot" label="poseur forcé" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 6px', marginTop: 4 }}>
+          <LegendCheckboxLine
+            checked={state.showZoneTracking !== false}
+            label="zone tracké"
+            sample="line-thick" color="#7c3aed"
+            onChange={(v) => onPatch({ showZoneTracking: v })}
+          />
+          <LegendCheckboxLine
+            checked={state.showContestedPass !== false}
+            label="passe contestée"
+            sample="dashed" color="#f59e0b"
+            onChange={(v) => onPatch({ showContestedPass: v })}
+          />
+          <LegendCheckboxLine
+            checked={state.showBlockedPass !== false}
+            label="passe bloquée"
+            sample="dashed-thin" color="#dc2626"
+            onChange={(v) => onPatch({ showBlockedPass: v })}
+          />
+          <LegendCheckboxLine
+            checked={state.showOffBallScreenIndicator !== false}
+            label="écran non-porteur"
+            sample="circle" color="#16a34a"
+            onChange={(v) => onPatch({ showOffBallScreenIndicator: v })}
+          />
+          <LegendCheckboxLine
+            checked={state.showLateRing !== false}
+            label="déf. en retard"
+            sample="ring" color="#E24B4A"
+            onChange={(v) => onPatch({ showLateRing: v })}
+          />
+          <LegendCheckboxLine
+            checked={state.showCloseoutRing !== false}
+            label="closeout actif"
+            sample="ring" color="#F97316"
+            onChange={(v) => onPatch({ showCloseoutRing: v })}
+          />
+          <LegendCheckboxLine
+            checked={state.showDenyingRing !== false}
+            label="strong-side denial"
+            sample="circle" color="#0EA5A8"
+            onChange={(v) => onPatch({ showDenyingRing: v })}
+          />
+          <LegendCheckboxLine
+            checked={state.showForcedScreenerBadge !== false}
+            label="poseur forcé"
+            sample="dot" color="#a78bfa"
+            onChange={(v) => onPatch({ showForcedScreenerBadge: v })}
+          />
         </div>
       </div>
     </Panel>

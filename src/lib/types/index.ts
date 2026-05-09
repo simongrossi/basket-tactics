@@ -340,6 +340,18 @@ export interface AppState {
   showScreenIndicators?: boolean;
   showStateRings?: boolean;
   showLockBadges?: boolean;
+  /** Toggles fine sur les sous-visuels — chacun est combiné en ET logique
+   *  avec son master (par ex. `showLateRing && showStateRings`). Default
+   *  true partout pour préserver l'UX existante. Permettent au coach de
+   *  masquer un visuel précis sans tout couper. */
+  showZoneTracking?: boolean;
+  showContestedPass?: boolean;
+  showBlockedPass?: boolean;
+  showOffBallScreenIndicator?: boolean;
+  showLateRing?: boolean;
+  showCloseoutRing?: boolean;
+  showDenyingRing?: boolean;
+  showForcedScreenerBadge?: boolean;
   /** Multiplicateur de vitesse appliqué au défenseur du nouveau porteur en
    *  closeout. 1 = closeout désactivé, 1.4 = défaut, 2 = très agressif. */
   closeoutBoost?: number;

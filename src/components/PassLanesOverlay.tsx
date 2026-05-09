@@ -13,6 +13,10 @@ interface PassLanesOverlayProps {
   defPos: ComputedDefense;
   carrier: AttackerId;
   show: boolean;
+  /** Affiche les passes contestées (jaune). Default true. */
+  showContested?: boolean;
+  /** Affiche les passes bloquées (rouge). Default true. */
+  showBlocked?: boolean;
 }
 
 /**
@@ -33,7 +37,9 @@ function distancePointToSegment(p: Point, a: Point, b: Point): number {
  * Trace une ligne de passe par destinataire potentiel, colorée selon
  * l'ouverture (vert clair = nette, jaune = contestée, rouge = bloquée).
  */
-export function PassLanesOverlay({ off, defPos, carrier, show }: PassLanesOverlayProps) {
+export function PassLanesOverlay({
+  off, defPos, carrier, show, showContested = true, showBlocked = true,
+}: PassLanesOverlayProps) {
   if (!show) return null;
   const carrierPos = off[carrier];
   if (!carrierPos) return null;
@@ -58,6 +64,7 @@ export function PassLanesOverlay({ off, defPos, carrier, show }: PassLanesOverla
         let opacity = 0.85;
         let label = 'ouverte';
         let labelBg = '#10b981';
+        let category: 'open' | 'contested' | 'blocked' = 'open';
         if (minClearance < 18) {
           color = '#dc2626';
           strokeWidth = 1.8;
@@ -65,6 +72,7 @@ export function PassLanesOverlay({ off, defPos, carrier, show }: PassLanesOverla
           opacity = 0.7;
           label = 'bloquée';
           labelBg = '#dc2626';
+          category = 'blocked';
         } else if (minClearance < 35) {
           color = '#f59e0b';
           strokeWidth = 2.2;
@@ -72,7 +80,12 @@ export function PassLanesOverlay({ off, defPos, carrier, show }: PassLanesOverla
           opacity = 0.85;
           label = 'contestée';
           labelBg = '#f59e0b';
+          category = 'contested';
         }
+        // Filtres par catégorie : on peut masquer contestées et/ou bloquées
+        // sans toucher aux passes ouvertes (qui restent l'info la plus utile).
+        if (category === 'contested' && !showContested) return null;
+        if (category === 'blocked' && !showBlocked) return null;
 
         // Point milieu pour le badge
         const mx = (carrierPos.x + pos.x) / 2;

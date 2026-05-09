@@ -23,6 +23,11 @@ interface PlayerProps {
   showStateRings?: boolean;
   /** Master switch pour les badges cadenas (override drag + forcedScreener). Default true. */
   showLockBadges?: boolean;
+  /** Sous-toggles fine — combinés en ET avec leur master. Default true partout. */
+  showLateRing?: boolean;
+  showCloseoutRing?: boolean;
+  showDenyingRing?: boolean;
+  showForcedScreenerBadge?: boolean;
   /** Rôle PnR (P1) — affiche un anneau distinct selon la rotation. */
   pnrRole?: 'tag' | 'x-out' | 'stunt';
 }
@@ -44,6 +49,10 @@ export function Player({
   orientation = 0,
   showStateRings = true,
   showLockBadges = true,
+  showLateRing = true,
+  showCloseoutRing = true,
+  showDenyingRing = true,
+  showForcedScreenerBadge = true,
   pnrRole,
 }: PlayerProps) {
   const fill = isAttacker ? '#D85A30' : '#378ADD';
@@ -51,7 +60,7 @@ export function Player({
   let stroke = isAttacker ? '#4A1B0C' : '#042C53';
   let strokeWidth = 2;
   if (!isAttacker && showStateRings) {
-    if (isLate) {
+    if (isLate && showLateRing) {
       stroke = '#E24B4A';
       strokeWidth = 4;
     } else if (isCarrierDefender) {
@@ -128,7 +137,7 @@ export function Player({
       >
         {id}
       </text>
-      {showHelpRing && (
+      {showHelpRing && (denying ? showDenyingRing : true) && (
         <circle
           cx={pos.x}
           cy={pos.y}
@@ -166,7 +175,7 @@ export function Player({
           </text>
         </g>
       )}
-      {closingOut && !isAttacker && showStateRings && (
+      {closingOut && !isAttacker && showStateRings && showCloseoutRing && (
         <g pointerEvents="none">
           {/* Anneau orange (closeout normal) ou rouge (over-closeout, déborde). */}
           <circle
@@ -222,7 +231,7 @@ export function Player({
           </text>
         </g>
       )}
-      {isForcedScreener && isAttacker && showLockBadges && (
+      {isForcedScreener && isAttacker && showLockBadges && showForcedScreenerBadge && (
         <g pointerEvents="none">
           <circle
             cx={pos.x + r * 0.85}

@@ -703,7 +703,7 @@ export function CourtView(props: CourtViewProps) {
               off={frame.off}
               defPos={frame.defPos}
               layout={zoneLayout}
-              show={state.showMatchups}
+              show={state.showMatchups && state.showZoneTracking !== false}
             />
           );
         })() : (
@@ -745,6 +745,7 @@ export function CourtView(props: CourtViewProps) {
                       isAttacker
                       isForcedScreener={id === forcedScreenerId}
                       showLockBadges={state.showLockBadges !== false}
+                      showForcedScreenerBadge={state.showForcedScreenerBadge !== false}
                       orientation={frame.attVisuals[id]?.orientation}
                       facing={frame.attVisuals[id]?.facing}
                     />
@@ -769,6 +770,9 @@ export function CourtView(props: CourtViewProps) {
                       orientation={p.orientation}
                       showStateRings={state.showStateRings !== false}
                       showLockBadges={state.showLockBadges !== false}
+                      showLateRing={state.showLateRing !== false}
+                      showCloseoutRing={state.showCloseoutRing !== false}
+                      showDenyingRing={state.showDenyingRing !== false}
                     />
                   )
                 )}
@@ -781,6 +785,7 @@ export function CourtView(props: CourtViewProps) {
                       isAttacker
                       isForcedScreener={id === forcedScreenerId}
                       showLockBadges={state.showLockBadges !== false}
+                      showForcedScreenerBadge={state.showForcedScreenerBadge !== false}
                       orientation={frame.attVisuals[id]?.orientation}
                       facing={frame.attVisuals[id]?.facing}
                     />
@@ -824,6 +829,8 @@ export function CourtView(props: CourtViewProps) {
           defPos={frame.defPos}
           carrier={frame.carrier}
           show={state.showPassLanes}
+          showContested={state.showContestedPass !== false}
+          showBlocked={state.showBlockedPass !== false}
         />
         {state.showHelpDebug && (
           <HelpDebugOverlay defPos={frame.defPos} />
@@ -839,7 +846,7 @@ export function CourtView(props: CourtViewProps) {
             })()}
           />
         )}
-        {state.showScreenIndicators !== false && (
+        {state.showScreenIndicators !== false && state.showOffBallScreenIndicator !== false && (
           <OffBallScreenIndicator screens={frame.offBallScreens} off={frame.off} />
         )}
         {state.showActionOrder && !props.isPlaying && props.scrubT == null && state.steps[state.activeStep] && (
