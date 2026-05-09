@@ -27,6 +27,32 @@ describe('sampleDribbleWave', () => {
     const p = sampleDribbleWave({ x: 0, y: 0 }, { x: 0, y: 100 }, 0.25);
     expect(Math.abs(p.x)).toBeGreaterThan(0);
   });
+
+  it('sampled point at the first interior knot matches the rendered path direction', () => {
+    // For from=(0,0), to=(100,0): len=100, segs = max(4, round(100/14)) = 7.
+    // Knot at idx=1 (t=1/7): sign = 1%2===0 ? 1 : -1 = -1.
+    // For a horizontal segment, perpendicular is +y, so y at this knot = -5.
+    const segs = 7;
+    const t = 1 / segs;
+    const p = sampleDribbleWave({ x: 0, y: 0 }, { x: 100, y: 0 }, t);
+    expect(p.x).toBeCloseTo(100 / segs, 5);
+    expect(p.y).toBeCloseTo(-5, 5);
+  });
+
+  it('sampled point at the second interior knot has opposite sign', () => {
+    // Knot at idx=2: sign = 2%2===0 ? 1 : -1 = +1 → y = +5.
+    const segs = 7;
+    const t = 2 / segs;
+    const p = sampleDribbleWave({ x: 0, y: 0 }, { x: 100, y: 0 }, t);
+    expect(p.y).toBeCloseTo(5, 5);
+  });
+
+  it('sampled point between knots is the linear interpolation of the two knot offsets', () => {
+    // Mid-segment between knot 3 (sign=-1, y=-5) and knot 4 (sign=+1, y=+5) at t=0.5.
+    // segs=7, t=0.5 → seg = 3.5, subT=0.5, y = lerp(-5, +5, 0.5) = 0.
+    const p = sampleDribbleWave({ x: 0, y: 0 }, { x: 100, y: 0 }, 0.5);
+    expect(p.y).toBeCloseTo(0, 5);
+  });
 });
 
 describe('dribbleWavePath', () => {

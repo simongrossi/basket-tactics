@@ -23,13 +23,27 @@ export function sampleDribbleWave(from: Point, to: Point, t: number): Point {
   if (t <= 0) return { x: from.x, y: from.y };
   if (t >= 1) return { x: to.x, y: to.y };
   const { dx, dy, nx, ny, segs } = geometry(from, to);
+
+  const knotAt = (idx: number): Point => {
+    const tt = idx / segs;
+    const offset =
+      idx === 0 || idx === segs
+        ? 0
+        : AMPLITUDE * (idx % 2 === 0 ? 1 : -1);
+    return {
+      x: from.x + dx * tt + nx * offset,
+      y: from.y + dy * tt + ny * offset,
+    };
+  };
+
   const seg = t * segs;
   const i = Math.floor(seg);
-  const sign = i % 2 === 0 ? -1 : 1;
-  const amp = AMPLITUDE * sign;
+  const subT = seg - i;
+  const a = knotAt(i);
+  const b = knotAt(i + 1);
   return {
-    x: from.x + dx * t + nx * amp,
-    y: from.y + dy * t + ny * amp,
+    x: a.x + (b.x - a.x) * subT,
+    y: a.y + (b.y - a.y) * subT,
   };
 }
 
