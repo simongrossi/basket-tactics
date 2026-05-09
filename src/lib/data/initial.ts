@@ -7,6 +7,14 @@ import type {
   Step,
   Annotation,
 } from '../types';
+import {
+  DEFAULT_DEFENSE_DISTANCE_PX,
+  DEFAULT_DEFENSE_MAX_SPEED_PX,
+  DEFAULT_SCREEN_RADIUS_PX,
+  DEFAULT_CLOSEOUT_BOOST,
+  DEFAULT_DENY_AGGRESSIVENESS,
+  MAX_SPEED_BY_POSITION_PX,
+} from './physics';
 
 export const initialOff: AttackerPositions = {
   O1: { x: 300, y: 470 },
@@ -32,15 +40,14 @@ export const baseMatchups: Matchups = {
   D5: 'O5',
 };
 
-// Vitesses par poste (px/étape) — modélise la mobilité réelle du joueur :
-// meneur le plus rapide, pivot le plus lent. Réduit l'effet "téléportation"
-// sur les rotations d'aide tout en restant ajustable individuellement.
+// Vitesses par poste — modélise la mobilité réelle du joueur (cf. data/physics.ts).
+// Les valeurs en px/étape vivent dans MAX_SPEED_BY_POSITION_PX.
 export const defaultRules: DefenderRules = {
-  D1: { helpPct: 20, priority: 'man', vsCarrier: 'coller', maxSpeed: 145 },   // meneur
-  D2: { helpPct: 50, priority: 'paint', vsCarrier: 'coller', maxSpeed: 130 }, // arrière
-  D3: { helpPct: 50, priority: 'paint', vsCarrier: 'coller', maxSpeed: 110 }, // ailier
-  D4: { helpPct: 75, priority: 'paint', vsCarrier: 'bumper', maxSpeed: 90 },  // ailier fort
-  D5: { helpPct: 75, priority: 'paint', vsCarrier: 'bumper', maxSpeed: 75 },  // pivot
+  D1: { helpPct: 20, priority: 'man',   vsCarrier: 'coller', maxSpeed: MAX_SPEED_BY_POSITION_PX.guard },         // meneur
+  D2: { helpPct: 50, priority: 'paint', vsCarrier: 'coller', maxSpeed: MAX_SPEED_BY_POSITION_PX.shootingGuard }, // arrière
+  D3: { helpPct: 50, priority: 'paint', vsCarrier: 'coller', maxSpeed: MAX_SPEED_BY_POSITION_PX.wing },          // ailier
+  D4: { helpPct: 75, priority: 'paint', vsCarrier: 'bumper', maxSpeed: MAX_SPEED_BY_POSITION_PX.forward },       // ailier fort
+  D5: { helpPct: 75, priority: 'paint', vsCarrier: 'bumper', maxSpeed: MAX_SPEED_BY_POSITION_PX.center },        // pivot
 };
 
 export function makeStep(
@@ -60,12 +67,12 @@ export function makeInitialState(): AppState {
     steps: [makeStep(initialOff, 'O1', [])],
     activeStep: 0,
     defenseInitial: structuredClone(initialDef),
-    defenseDistance: 40,
-    defenseMaxSpeed: 110,
+    defenseDistance: DEFAULT_DEFENSE_DISTANCE_PX,
+    defenseMaxSpeed: DEFAULT_DEFENSE_MAX_SPEED_PX,
     triggers: { drive: true, post: false, paint: true, trap: false },
     rules: structuredClone(defaultRules),
     screenRule: 'hedge',
-    screenRadius: 35,
+    screenRadius: DEFAULT_SCREEN_RADIUS_PX,
     dropDepth: 'medium',
     showHelpLines: true,
     showMatchups: true,
@@ -89,8 +96,8 @@ export function makeInitialState(): AppState {
     showScreenIndicators: true,
     showStateRings: true,
     showLockBadges: true,
-    closeoutBoost: 1.4,
-    denyAggressiveness: 0.45,
+    closeoutBoost: DEFAULT_CLOSEOUT_BOOST,
+    denyAggressiveness: DEFAULT_DENY_AGGRESSIVENESS,
     attackerHands: { O1: 'right', O2: 'right', O3: 'right', O4: 'right', O5: 'right' },
     // Profils offensifs par défaut : 1-2-2 classique avec un meneur, deux ailiers
     // shooters, un 4 stretch et un 5 rouleur. Le coach ajuste via clic-droit.

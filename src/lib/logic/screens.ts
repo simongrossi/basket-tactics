@@ -11,7 +11,8 @@ import type {
   OffBallScreenRule,
   DropDepth,
 } from '../types';
-import { HOOP, PLAYER_RADIUS } from '../data/court';
+import { HOOP } from '../data/court';
+import { MIN_PLAYER_CLEARANCE_PX } from '../data/physics';
 import { distance } from './geometry';
 
 /**
@@ -48,7 +49,7 @@ function hasScreenIntent(
  * on pousse le point dans la direction opposée jusqu'à un dégagement minimum.
  */
 function pushOutOfScreener(target: Point, screenerPos: Point): Point {
-  const minClearance = PLAYER_RADIUS * 2 + 2;
+  const minClearance = MIN_PLAYER_CLEARANCE_PX;
   const dx = target.x - screenerPos.x;
   const dy = target.y - screenerPos.y;
   const d = Math.hypot(dx, dy);

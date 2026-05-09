@@ -116,6 +116,7 @@ Toute la doc technique vit dans [`docs/`](docs/) :
 | [`docs/data-model.md`](docs/data-model.md) | Forme de l'`AppState`, types, persistance |
 | [`docs/concepts-basket.md`](docs/concepts-basket.md) | Vocabulaire basket modélisé (stances, screens, switches, zone, triggers, lateness) |
 | [`docs/GAME-ENGINE.md`](docs/GAME-ENGINE.md) | **Cartographie complète du moteur** : individuel / collectif / physique |
+| [`docs/physics.md`](docs/physics.md) | Constantes physiques centralisées avec sémantique en mètres réels |
 | [`docs/logique-defensive.md`](docs/logique-defensive.md) | Pipeline du moteur étape par étape, formules, points d'extension |
 | [`docs/orientation-anti-teleport.md`](docs/orientation-anti-teleport.md) | Orientation calculée des joueurs, anti-téléportation, fixes basket récents |
 | [`docs/ui-design.md`](docs/ui-design.md) | Choix visuels, layout, conventions de tracé |

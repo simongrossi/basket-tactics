@@ -10,6 +10,7 @@ Cette documentation couvre tous les aspects du projet, de l'architecture à la s
 | [data-model.md](data-model.md) | Forme de l'`AppState`, types, persistance |
 | [concepts-basket.md](concepts-basket.md) | Vocabulaire basket : écrans, défense de zone, denial, switch… |
 | [GAME-ENGINE.md](GAME-ENGINE.md) | **Cartographie de tout le moteur** : individuel / collectif / physique, avec règles, constantes, pipeline |
+| [physics.md](physics.md) | Constantes physiques centralisées (`data/physics.ts`) avec sémantique en mètres réels et guide de tuning |
 | [logique-defensive.md](logique-defensive.md) | Comment le moteur calcule les positions des défenseurs (vue pipeline détaillée) |
 | [orientation-anti-teleport.md](orientation-anti-teleport.md) | Orientation calculée des joueurs, anti-téléportation, fixes top-lock / paint helper / écrans fantômes |
 | [../CHANGELOG.md](../CHANGELOG.md) | Historique des évolutions de comportement, structuré par milestones |

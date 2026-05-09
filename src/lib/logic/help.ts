@@ -7,6 +7,7 @@ import type {
   OffensiveProfile,
 } from '../types';
 import { HOOP } from '../data/court';
+import { RIM_PROTECTION_DROP_ZONE_PX } from '../data/physics';
 import { distance } from './geometry';
 
 /**
@@ -220,8 +221,8 @@ export function computeHelpTarget(
       // big : on quitte temporairement le post pour barrer la pénétration,
       // puis on récupère sur l'étape suivante.
       if (triggers.drive && carrierD2hoop > 0) {
-        // Drop zone = 75 px du panier sur la ligne porteur→panier.
-        const ratio = Math.max(0, 1 - 75 / carrierD2hoop);
+        // Drop zone = RIM_PROTECTION_DROP_ZONE_PX du panier sur la ligne porteur→panier.
+        const ratio = Math.max(0, 1 - RIM_PROTECTION_DROP_ZONE_PX / carrierD2hoop);
         aim = {
           x: carrierPos.x + (hoop.x - carrierPos.x) * ratio,
           y: carrierPos.y + (hoop.y - carrierPos.y) * ratio,

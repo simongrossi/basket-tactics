@@ -1,5 +1,6 @@
 import type { Point, CarrierBehavior, OffBallStance } from '../types';
-import { HOOP, THREE_POINT_RADIUS, PLAYER_RADIUS } from '../data/court';
+import { HOOP, THREE_POINT_RADIUS } from '../data/court';
+import { MIN_PLAYER_CLEARANCE_PX } from '../data/physics';
 import { clamp } from './geometry';
 
 /** Décalage latéral en x à appliquer à la position cible du défenseur selon
@@ -69,9 +70,9 @@ export function carrierDefenderTarget(
       break;
   }
 
-  // Distance minimale pour que les cercles ne se superposent pas visuellement.
-  const MIN_TARGET_DIST = PLAYER_RADIUS * 2 + 2;
-  const targetDist = Math.max(MIN_TARGET_DIST, (baseRatio * defenseDistance) / pressureFactor);
+  // Distance minimale pour que les cercles ne se superposent pas visuellement
+  // (cf. data/physics.ts : 2 × PLAYER_RADIUS + 2).
+  const targetDist = Math.max(MIN_PLAYER_CLEARANCE_PX, (baseRatio * defenseDistance) / pressureFactor);
 
   const ratio = Math.max(0, (dist - targetDist) / dist);
   // Décalage latéral : perpendiculaire à l'axe homme-panier, signé

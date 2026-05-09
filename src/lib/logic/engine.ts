@@ -13,6 +13,7 @@ import { getZoneLayout, mirrorZoneLayout, applyZoneOverrides } from '../data/zon
 import { detectTriggers } from './triggers';
 import { manTarget, carrierDefenderTarget, offBallStanceTarget, orientationLateralOffset } from './manDefense';
 import { computeDefenderOrientation, computeAttackerOrientation, type AttackerRole } from './orientation';
+import { DEFAULT_CLOSEOUT_BOOST, DEFAULT_DENY_AGGRESSIVENESS, MIN_PLAYER_CLEARANCE_PX } from '../data/physics';
 import { computeHelpTarget, leaveAttackerCostMultiplier, closeoutProfileBonus } from './help';
 import {
   detectScreen,
@@ -47,10 +48,8 @@ export function getDefenseHoop(state: AppState): Point {
 
 const DEFENDER_IDS: DefenderId[] = ['D1', 'D2', 'D3', 'D4', 'D5'];
 
-/** Facteur par défaut (utilisé si `state.closeoutBoost` est absent) : le
- *  défenseur du nouveau porteur accélère pour fermer la distance avant
- *  tir/drive. Tunable via `state.closeoutBoost`. */
-const DEFAULT_CLOSEOUT_SPEED_FACTOR = 1.4;
+// Facteur de closeout par défaut : centralisé dans data/physics.ts.
+const DEFAULT_CLOSEOUT_SPEED_FACTOR = DEFAULT_CLOSEOUT_BOOST;
 
 /**
  * Calcule les matchups en vigueur AU DÉBUT d'une étape donnée
@@ -169,8 +168,8 @@ export function computeDefenseTargets(
       // Le help bias n'est appliqué qu'avec la stance "sag" — les stances
       // dirigées (deny-3q, fronting, behind) sont des positions absolues.
       if (stance === 'sag' && att && carrierPos) {
-        // Override par défenseur > global > défaut (0.45)
-        const denyAggressiveness = rule.denyAggressiveness ?? state.denyAggressiveness ?? 0.45;
+        // Override par défenseur > global > défaut (cf. data/physics.ts).
+        const denyAggressiveness = rule.denyAggressiveness ?? state.denyAggressiveness ?? DEFAULT_DENY_AGGRESSIVENESS;
         // Coût tactique de quitter cet attaquant : on aide moins fort si on
         // marque un shooter, plus fort si on marque un non-shooter.
         const leaveMult = leaveAttackerCostMultiplier(state.attackerProfiles?.[oId]);
@@ -664,7 +663,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     (Object.entries(offAtStep) as [AttackerId, Point][]).forEach(([oId, pos]) => {
       if (oId !== matched) nonMatchedAttackerPositions.push(pos);
     });
-    const minClearance = PLAYER_RADIUS * 2 + 2;
+    const minClearance = MIN_PLAYER_CLEARANCE_PX;
     const relaxed = pushOutOfMany(
       { x: rawTarget.x, y: rawTarget.y },
       nonMatchedAttackerPositions,
@@ -758,7 +757,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
 
   // Solveur de collisions : aucun défenseur ne peut se superposer à un
   // autre joueur (sauf son matchedTo).
-  resolvePlayerCollisions(out as unknown as Record<string, ComputedDefense[DefenderId]>, offAtStep, PLAYER_RADIUS * 2 + 2);
+  resolvePlayerCollisions(out as unknown as Record<string, ComputedDefense[DefenderId]>, offAtStep, MIN_PLAYER_CLEARANCE_PX);
   // Re-arrondit après résolution
   DEFENDER_IDS.forEach((dId) => {
     out[dId].x = Math.round(out[dId].x);

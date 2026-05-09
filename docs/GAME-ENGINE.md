@@ -175,14 +175,15 @@ Map la couverture défensive détectée → opportunité offensive. Tag `read-*`
 
 ## Moteur physique
 
-La cinématique : comment un joueur passe d'un point A à un point B, à quelle vitesse, en évitant quoi.
+La cinématique : comment un joueur passe d'un point A à un point B, à quelle vitesse, en évitant quoi. **Toutes les constantes physiques sont centralisées** dans [`data/physics.ts`](../src/lib/data/physics.ts) — voir [physics.md](physics.md) pour la sémantique en mètres réels.
 
 ### Modules
 
 | Module | Rôle | Fonctions / constantes clés |
 |---|---|---|
+| [`data/physics.ts`](../src/lib/data/physics.ts) | **Constantes physiques centralisées** | `PX_PER_M`, `PLAYER_RADIUS`, `MIN_PLAYER_CLEARANCE_PX`, `DEFAULT_DEFENSE_MAX_SPEED_PX`, `DEFAULT_DEFENSE_DISTANCE_PX`, `DEFAULT_CLOSEOUT_BOOST`, `DEFAULT_DENY_AGGRESSIVENESS`, `MAX_SPEED_BY_POSITION_PX`, `DEFAULT_SCREEN_RADIUS_PX`, `RIM_PROTECTION_DROP_ZONE_PX`, helpers `metersToPx` / `pxToMeters` |
 | [`geometry.ts`](../src/lib/logic/geometry.ts) | Math 2D + trajectoires | `distance`, `lerp`, `clamp`, `normalize`, `pushOutOfMany`, `resolvePlayerCollisions`, `curveAroundObstacle`, `pickBlockingCluster`, `pickStaggeredPair`, `curveAroundStaggeredPair`, `pathArcLength`, `proximityFriction`, `computeBallFrame`, `makeCluster` |
-| [`data/court.ts`](../src/lib/data/court.ts) | Dimensions du terrain | `PX_PER_M = 37`, `COURT 600×560`, `FULL_COURT_HEIGHT = 1080`, `HOOP {300,75}`, `HOOP_OPPOSITE`, `THREE_POINT_RADIUS = 250`, `PAINT`, `PLAYER_RADIUS = 16`, `BALL_RADIUS = 7` |
+| [`data/court.ts`](../src/lib/data/court.ts) | Dimensions structurelles du terrain (FIBA) | `COURT 600×560`, `FULL_COURT_HEIGHT = 1080`, `HOOP {300,75}`, `HOOP_OPPOSITE`, `THREE_POINT_RADIUS = 250`, `PAINT`, `FT_LINE_Y`, `RESTRICTED_AREA_RADIUS`, `CENTER_CIRCLE_RADIUS`, etc. |
 | [`engine.ts`](../src/lib/logic/engine.ts) (section bas) | Application des contraintes | `effectiveDefensePositions` : path arc length, friction, maxSpeed, closeoutBoost |
 
 ### Constantes physiques
@@ -248,4 +249,4 @@ Pour la zone, étape 1 est remplacée par `computeZoneDefenseTargets` (ownership
 - **Ajouter un comportement individuel** : nouveau cas dans `manDefense.ts` (stance) ou `help.ts` (régime), nouveau test ciblé, mise à jour du `ContextMenu` si visible côté UI.
 - **Ajouter une rotation collective** : module dédié style `pnrRotations.ts`, appel orchestré depuis `engine.ts`. Le rôle peut être tagué dans `ComputedDefender.pnrRole` (ou un nouveau champ).
 - **Tuner la physique** : modifier les valeurs dans `defaultRules` (vitesses), `closeoutBoost`, ou les seuils `screenRadius` / `screenRadius` / `proximityFriction`. Les tests d'invariants ([`invariants.test.ts`](../src/lib/logic/__tests__/invariants.test.ts)) attrapent les régressions globales.
-- **Centraliser la physique** (refactor à venir) : déplacer toutes les constantes physiques dans un `physics.ts` ou `data/physics.ts` unique. Aujourd'hui dispersées entre `data/court.ts`, `data/initial.ts` (defaultRules), et inlinées dans certains modules.
+- **Tuner la physique** : tout est dans [`data/physics.ts`](../src/lib/data/physics.ts), un seul point d'entrée. Voir [physics.md](physics.md) pour les valeurs réelles (m/s, mètres) et le guide de tuning.
