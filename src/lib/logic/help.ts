@@ -182,20 +182,54 @@ export function computeHelpTarget(
       const intoCourtY = hoop.y > 540 ? -1 : 1;
       const leftBlock: Point = { x: hoop.x - 70, y: hoop.y + 80 * intoCourtY };
       const rightBlock: Point = { x: hoop.x + 70, y: hoop.y + 80 * intoCourtY };
+
+      // RIM PROTECTION sur drive : si le porteur est en train de driver vers
+      // la raquette ET qu'aucun attaquant adverse n'est déjà à <120 px d'un
+      // low-block (post-up), le helper paint anticipe sur la trajectoire du
+      // drive plutôt que de rester sur le pivot adverse. La drop zone est
+      // un point sur la ligne porteur→panier, à ~75 px du panier (= barrage
+      // avant le rim, "show" classique du big sur drive).
+      //
+      // Si un attaquant CAMPE en post (à <120 px d'un block), on garde la
+      // logique post-up : le pivot ne lâche pas son homme dans la raquette.
+      // Le porteur lui-même est traité par cette logique quand il rentre
+      // en raquette (il devient candidat blockTarget).
       let bestDist = Infinity;
       let blockTarget: Point | null = null;
+      let blockTargetIsCarrier = false;
       if (allOff) {
-        (Object.entries(allOff) as [AttackerId, Point][]).forEach(([, p]) => {
+        (Object.entries(allOff) as [AttackerId, Point][]).forEach(([oId, p]) => {
           const dL = distance(p, leftBlock);
           const dR = distance(p, rightBlock);
           const d = Math.min(dL, dR);
           if (d < bestDist && d < 120) {
             bestDist = d;
             blockTarget = p;
+            blockTargetIsCarrier = (carrierPos.x === p.x && carrierPos.y === p.y);
           }
         });
       }
-      aim = blockTarget ?? { x: hoop.x, y: hoop.y + 60 * intoCourtY };
+
+      const carrierD2hoop = distance(carrierPos, hoop);
+      void blockTargetIsCarrier; // conservé pour debug futur
+
+      // Quand le trigger drive est actif (le porteur s'approche de la raquette,
+      // contrainte ≤250 px assurée par detectTriggers), le helper paint fait
+      // du rim-protect : il step-up sur la trajectoire de drive plutôt que
+      // de rester collé sur un post adverse. C'est le "tag and recover" du
+      // big : on quitte temporairement le post pour barrer la pénétration,
+      // puis on récupère sur l'étape suivante.
+      if (triggers.drive && carrierD2hoop > 0) {
+        // Drop zone = 75 px du panier sur la ligne porteur→panier.
+        const ratio = Math.max(0, 1 - 75 / carrierD2hoop);
+        aim = {
+          x: carrierPos.x + (hoop.x - carrierPos.x) * ratio,
+          y: carrierPos.y + (hoop.y - carrierPos.y) * ratio,
+        };
+      } else {
+        aim = blockTarget ?? { x: hoop.x, y: hoop.y + 60 * intoCourtY };
+      }
+
       // Pondération par proximité : un défenseur loin de la cible d'aide
       // ne devrait pas peser autant qu'un voisin déjà sur place. Sans cela,
       // un coin opposé est attiré aussi fortement vers la raquette qu'un

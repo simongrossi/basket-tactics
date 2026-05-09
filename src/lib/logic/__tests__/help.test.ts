@@ -120,6 +120,76 @@ describe('computeHelpTarget — strong-side denial', () => {
   });
 });
 
+describe('computeHelpTarget — rim protection sur drive (priority paint)', () => {
+  // Scénario : porteur drive de top of arc vers la raquette, mais n'est pas
+  // encore arrivé. Le pivot adverse (O5) campe en strong high. Sans fix,
+  // le helper paint vise O5 (post threat) et reste passif sur le drive.
+  // Avec fix, l'aim glisse vers la ligne porteur→panier (drop zone) pour
+  // que le pivot step-up sur la trajectoire avant le rim.
+  const ruleP: DefenderRule = { helpPct: 75, priority: 'paint', vsCarrier: 'bumper' };
+  const carrier = { x: 350, y: 290 }; // entre arc et raquette, drive en cours
+  const off = {
+    O1: carrier,
+    O2: { x: 130, y: 380 },
+    O3: { x: 470, y: 380 },
+    O4: { x: 220, y: 230 },
+    O5: { x: 380, y: 230 }, // strong high, dans le seuil 120 d'un block
+  };
+  // D5 placé en stance manTarget classique sur O5 (~entre O5 et panier)
+  const manPos = { x: 362, y: 194 };
+  const att = off.O5;
+
+  it("helpAim DOIT être sur la ligne porteur→panier (rim protection)", () => {
+    const r = computeHelpTarget(manPos, ruleP, driveTriggers, carrier, att, 1, off, HOOP);
+    expect(r.aim).toBeDefined();
+    // Distance perpendiculaire helpAim → ligne carrier→hoop
+    const ax = HOOP.x - carrier.x;
+    const ay = HOOP.y - carrier.y;
+    const lenSq = ax * ax + ay * ay;
+    const t = ((r.aim!.x - carrier.x) * ax + (r.aim!.y - carrier.y) * ay) / lenSq;
+    const projX = carrier.x + ax * t;
+    const projY = carrier.y + ay * t;
+    const distToLine = Math.hypot(r.aim!.x - projX, r.aim!.y - projY);
+    expect(distToLine).toBeLessThan(20);
+  });
+
+  it("helpAim NE DOIT PAS être collé sur le pivot adverse (O5) sur drive actif", () => {
+    const r = computeHelpTarget(manPos, ruleP, driveTriggers, carrier, att, 1, off, HOOP);
+    expect(r.aim).toBeDefined();
+    const distToO5 = Math.hypot(r.aim!.x - off.O5.x, r.aim!.y - off.O5.y);
+    expect(distToO5).toBeGreaterThan(30);
+  });
+
+  it("helpAim DOIT être dans la drop zone (50–150 px du panier)", () => {
+    const r = computeHelpTarget(manPos, ruleP, driveTriggers, carrier, att, 1, off, HOOP);
+    expect(r.aim).toBeDefined();
+    const dHoop = Math.hypot(r.aim!.x - HOOP.x, r.aim!.y - HOOP.y);
+    expect(dHoop).toBeGreaterThanOrEqual(50);
+    expect(dHoop).toBeLessThanOrEqual(150);
+  });
+
+  it("sans drive trigger, le helper paint reste sur le post adverse (régression)", () => {
+    // Sans trigger, on tombe dans la branche sag/denial, pas dans rim-protect.
+    // L'aim peut être différent ou undefined ; ce qui compte : on ne triggere
+    // PAS la rim protection alors qu'il n'y a pas de menace de drive.
+    const r = computeHelpTarget(manPos, ruleP, noTriggers, carrier, att, 1, off, HOOP);
+    if (r.aim) {
+      const ax = HOOP.x - carrier.x;
+      const ay = HOOP.y - carrier.y;
+      const lenSq = ax * ax + ay * ay;
+      const t = ((r.aim.x - carrier.x) * ax + (r.aim.y - carrier.y) * ay) / lenSq;
+      const projX = carrier.x + ax * t;
+      const projY = carrier.y + ay * t;
+      const distToLine = Math.hypot(r.aim.x - projX, r.aim.y - projY);
+      // Sans drive, on n'exige PAS que aim soit sur la ligne — c'est juste
+      // une régression : on s'assure que la nouvelle logique drive ne
+      // pollue pas le cas sans trigger.
+      // Soit aim est ailleurs (ex. sur O5), soit `kind !== 'active-help'`.
+      expect(r.kind === 'active-help' && distToLine < 20).toBe(false);
+    }
+  });
+});
+
 describe('computeHelpTarget — paint helper pondéré par proximité', () => {
   // Avec priority='paint' et un trigger drive, l'aide doit dépendre de la
   // distance du défenseur courant à la cible d'aide. Un défenseur en coin
