@@ -15,14 +15,17 @@ interface PlayerProps {
   overClosed?: boolean;
   isForcedScreener?: boolean;
   denying?: boolean;
-  /** Angle horaire du corps depuis le NORD (0–360°). Définit l'orientation
-   *  des épaules : à 0° les épaules sont E-O (regard nord), à 90° elles
-   *  sont N-S (regard est), etc. */
+  /** Angle horaire du corps depuis le NORD (0–360°) — calculé en open stance
+   *  par convention B. Stocké pour usage futur (overlay debug, slider manuel)
+   *  mais non rendu directement sur les bras. */
   orientation?: number;
-  /** Convention B asymétrique : cibles géométriques des 2 mains. Si défini,
-   *  remplace le tracé symétrique FIBA par 2 bras distincts pointant vers
-   *  ces cibles (open stance, denial, etc.). Clampées à ±90° du body en
-   *  amont (cf. orientation.ts), donc jamais "dans le dos". */
+  /** Angle horaire du REGARD depuis le NORD. Pilote la rotation des bras :
+   *  les bras s'ouvrent dans la direction où le joueur regarde, partant des
+   *  épaules vers l'avant. Toujours clampé à ±90° du body (orientation.ts),
+   *  donc jamais derrière la tête. */
+  gazeOrientation?: number;
+  /** Convention B asymétrique : cibles géométriques des 2 mains. Stockées
+   *  dans le data model pour usage futur (overlay debug). Pas rendues. */
   armBallSide?: Point;
   armManSide?: Point;
   /** Master switch pour les anneaux d'état (carrier, late, closeout, denial, helpRing).
@@ -54,6 +57,7 @@ export function Player({
   isForcedScreener,
   denying,
   orientation = 0,
+  gazeOrientation,
   armBallSide,
   armManSide,
   showStateRings = true,
@@ -88,37 +92,40 @@ export function Player({
   return (
     <g data-id={id} style={{ cursor: 'grab' }}>
       <g pointerEvents="none">
-        {/* Pictogramme stylisé FIBA : 2 arcs symétriques courbés au-dessus
-         * du joueur, **STATIQUES** — identiques pour tous les rôles, peu
-         * importe l'orientation du corps. Convention non-négociable
-         * référencée par la doc FIBA Europe Basketball Terminology.
+        {/* Pictogramme stylisé FIBA : 2 arcs symétriques courbés.
          *
-         * Le **regard** est matérialisé par le triangle pointeur (`facing`)
-         * en dessous, qui pointe dans la direction du `gazeOrientation`
-         * (clampé ±90° du `bodyOrientation` — règle anatomique inviolable
-         * de orientation.ts : impossible de regarder derrière la tête).
+         * Les arcs sont dessinés "au-dessus" en posture neutre (à
+         * gazeOrientation=0°), puis le wrapper rotate les amène dans la
+         * direction du REGARD du joueur. Conséquence visuelle :
+         *  - regard nord → bras au-dessus, courbure vers le nord (= devant)
+         *  - regard est → bras à droite, courbure vers l'est (= devant)
+         *  - regard sud → bras en bas, courbure vers le sud (= devant)
          *
-         * Note : `bodyOrientation`, `gazeOrientation`, `armBallSide`,
-         * `armManSide` restent calculés et stockés dans le data model
-         * (computeDefenderOrientation / computeAttackerOrientation) pour
-         * usage futur (overlay debug, slider manuel, champ de vision).
-         */}
-        <path
-          d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
-          fill="none"
-          stroke={stroke}
-          strokeWidth={isAttacker ? 1.8 : 2.5}
-          strokeLinecap="round"
-          opacity={isAttacker ? 0.7 : 1}
-        />
-        <path
-          d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
-          fill="none"
-          stroke={stroke}
-          strokeWidth={isAttacker ? 1.8 : 2.5}
-          strokeLinecap="round"
-          opacity={isAttacker ? 0.7 : 1}
-        />
+         * Les bras s'ouvrent toujours DANS LA DIRECTION du regard (= vers
+         * l'avant), partant des épaules. Le `gazeOrientation` est clampé
+         * ±90° du `bodyOrientation` en amont (orientation.ts), donc les
+         * bras ne peuvent JAMAIS pointer dans le dos du joueur.
+         *
+         * Si `gazeOrientation` n'est pas fourni (legacy), fallback sur
+         * `orientation` (rétrocompat ancien API). */}
+        <g transform={`rotate(${gazeOrientation ?? orientation}, ${pos.x}, ${pos.y})`}>
+          <path
+            d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={isAttacker ? 1.8 : 2.5}
+            strokeLinecap="round"
+            opacity={isAttacker ? 0.7 : 1}
+          />
+          <path
+            d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={isAttacker ? 1.8 : 2.5}
+            strokeLinecap="round"
+            opacity={isAttacker ? 0.7 : 1}
+          />
+        </g>
         {facing && (() => {
           // Pointeur de "facing" : un petit triangle posé sur le bord du
           // cercle, dans la direction regardée. Indique l'orientation

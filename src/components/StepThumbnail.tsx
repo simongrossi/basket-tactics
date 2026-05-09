@@ -75,6 +75,7 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     pos={pos}
                     isAttacker
                     orientation={attVisuals[id]?.orientation}
+                    gazeOrientation={attVisuals[id]?.gazeOrientation}
                     facing={attVisuals[id]?.facing}
                     armBallSide={attVisuals[id]?.armBallSide}
                     armManSide={attVisuals[id]?.armManSide}
@@ -91,6 +92,7 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     onScreen={p.onScreen}
                     facing={p.facing}
                     orientation={p.orientation}
+                    gazeOrientation={p.gazeOrientation}
                     armBallSide={p.armBallSide}
                     armManSide={p.armManSide}
                   />
@@ -103,6 +105,7 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     pos={step.off[id]}
                     isAttacker
                     orientation={attVisuals[id]?.orientation}
+                    gazeOrientation={attVisuals[id]?.gazeOrientation}
                     facing={attVisuals[id]?.facing}
                     armBallSide={attVisuals[id]?.armBallSide}
                     armManSide={attVisuals[id]?.armManSide}

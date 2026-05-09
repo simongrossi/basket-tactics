@@ -769,6 +769,7 @@ export function CourtView(props: CourtViewProps) {
                       showLockBadges={state.showLockBadges !== false}
                       showForcedScreenerBadge={state.showForcedScreenerBadge !== false}
                       orientation={frame.attVisuals[id]?.orientation}
+                      gazeOrientation={frame.attVisuals[id]?.gazeOrientation}
                       facing={frame.attVisuals[id]?.facing}
                       armBallSide={frame.attVisuals[id]?.armBallSide}
                       armManSide={frame.attVisuals[id]?.armManSide}
@@ -792,6 +793,7 @@ export function CourtView(props: CourtViewProps) {
                       denying={p.denying}
                       pnrRole={p.pnrRole}
                       orientation={p.orientation}
+                      gazeOrientation={p.gazeOrientation}
                       armBallSide={p.armBallSide}
                       armManSide={p.armManSide}
                       showStateRings={state.showStateRings !== false}
@@ -813,6 +815,7 @@ export function CourtView(props: CourtViewProps) {
                       showLockBadges={state.showLockBadges !== false}
                       showForcedScreenerBadge={state.showForcedScreenerBadge !== false}
                       orientation={frame.attVisuals[id]?.orientation}
+                      gazeOrientation={frame.attVisuals[id]?.gazeOrientation}
                       facing={frame.attVisuals[id]?.facing}
                       armBallSide={frame.attVisuals[id]?.armBallSide}
                       armManSide={frame.attVisuals[id]?.armManSide}
