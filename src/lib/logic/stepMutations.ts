@@ -1,5 +1,6 @@
 import type { Annotation, AnnotationType, AttackerId, Point, Step } from '@/lib/types';
 
+// 'pass' exclu : une passe déplace le ballon, pas le corps du passeur.
 const MOVEMENT_TYPES = new Set<AnnotationType>(['cut', 'dribble', 'screen']);
 
 function isMovement(a: Annotation): boolean {
@@ -18,6 +19,11 @@ function findMovementIdx(annotations: Annotation[], playerId: AttackerId): numbe
  * - Étape ≥ 1 : crée/update annotation sur Step[N-1]. Type auto :
  *   `dribble` si porteur sur Step[N-1], `cut` sinon. Conserve un `screen` existant.
  * - Si Step[N] a une annotation de mouvement du joueur, recale son `from`.
+ *
+ * **Chaining contract** : ces helpers sont purs. Si le caller fait plusieurs
+ * mutations sur la même séquence, il doit passer le retour de chaque appel
+ * comme entrée du suivant. Réutiliser le `steps` original entre deux appels
+ * lit des positions périmées.
  */
 export function setPlayerPositionAt(
   steps: Step[],

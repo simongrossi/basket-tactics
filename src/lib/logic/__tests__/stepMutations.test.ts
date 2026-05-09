@@ -75,4 +75,14 @@ describe('setPlayerPositionAt', () => {
     expect(out[1].annotations[0].from).toEqual({ x: 130, y: 30 });
     expect(out[1].annotations[0].to).toEqual({ x: 200, y: 0 });
   });
+
+  it('stepIdx négatif : retourne les steps inchangés (référence identique)', () => {
+    const steps = [step({}), step({})];
+    expect(setPlayerPositionAt(steps, -1, 'O1', { x: 50, y: 50 })).toBe(steps);
+  });
+
+  it('stepIdx >= length : retourne les steps inchangés (référence identique)', () => {
+    const steps = [step({}), step({})];
+    expect(setPlayerPositionAt(steps, 5, 'O1', { x: 50, y: 50 })).toBe(steps);
+  });
 });
