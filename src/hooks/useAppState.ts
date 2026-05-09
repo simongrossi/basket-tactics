@@ -19,6 +19,7 @@ import type { Template } from '@/lib/data/templates';
 import type { DefensePreset } from '@/lib/data/defensePresets';
 import type { DefenderProfile } from '@/lib/data/defenderProfiles';
 import { compileScenario } from '@/lib/logic/compileScenario';
+import { migrateScriptedActions } from '@/lib/logic/scriptedActionMigration';
 
 const STORAGE_KEY = 'basket-tactics-state-v1';
 
@@ -29,10 +30,14 @@ function loadFromStorage(): AppState | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<AppState>;
     const defaults = makeInitialState();
+    const scriptedActions = parsed.scriptedActions
+      ? migrateScriptedActions(parsed.scriptedActions as unknown[])
+      : parsed.scriptedActions;
     return {
       ...defaults,
       ...parsed,
       zoneConfig: { ...defaults.zoneConfig, ...(parsed.zoneConfig || {}) },
+      scriptedActions,
     } as AppState;
   } catch {
     return null;

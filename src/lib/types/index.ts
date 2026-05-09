@@ -67,6 +67,13 @@ export interface Step {
   /** Id de la `ScriptedAction` qui a produit ce step. Trace de provenance
    *  utile à l'UI (badge "généré par pick-and-roll"). */
   generatedBy?: string;
+  /** Directives défensives pour ce step (Phase 3 défense scriptable).
+   *  Posées par compileScenario, consommées par engine.applyDirective. */
+  defensiveDirectives?: DefensiveDirective[];
+  /** Overrides d'assignation défenseur → attaquant pour ce step.
+   *  Posé par compileScenario quand un `pre-switch` swappe deux défenseurs ;
+   *  propagé sur tous les steps suivants du parent. */
+  assignmentOverrides?: Partial<Record<DefenderId, AttackerId>>;
 }
 
 // =============================================================
@@ -120,12 +127,57 @@ export interface ScriptedActionParams {
   direction?: DriveDirection;
 }
 
-export interface ScriptedAction {
+export interface OffensiveScriptedAction {
+  kind: 'offensive';
   id: string;
   type: ScriptedActionType;
   params: ScriptedActionParams;
   /** Override libre de la lecture FR auto-générée. */
   label?: string;
+}
+
+export type DefensiveActionType =
+  | 'help-and-recover'
+  | 'pre-switch'
+  | 'trap'
+  | 'tag';
+
+export interface DefensiveActionParams {
+  /** Défenseur(s) qui exécutent la directive. */
+  defenders: DefenderId[];
+  /** Attaquant ciblé (porteur trappé, cutter jammé, roller taggé...). */
+  target?: AttackerId;
+  /** Pour pre-switch uniquement : 2e défenseur qui échange. */
+  swapWith?: DefenderId;
+  /** Pour help-and-recover : steps de chaque phase. */
+  helpStep?: number;
+  recoverStep?: number;
+}
+
+export interface DefensiveScriptedAction {
+  kind: 'defensive';
+  id: string;
+  type: DefensiveActionType;
+  /** Si défini → couplée à une action offensive existante. Sinon → libre. */
+  parentActionId?: string;
+  /** Steps ciblés. Pour couplée, défaut = tous les steps du parent.
+   *  Pour libre, requis (indices absolus dans la liste compilée). */
+  affectedSteps?: number[];
+  params: DefensiveActionParams;
+  label?: string;
+}
+
+export type ScriptedAction = OffensiveScriptedAction | DefensiveScriptedAction;
+
+export interface DefensiveDirective {
+  type: DefensiveActionType;
+  defenders: DefenderId[];
+  target?: AttackerId;
+  swapWith?: DefenderId;
+  /** 'engage' = action active, 'release' = retour à la position standard. */
+  phase: 'engage' | 'release';
+  /** ID de l'action source (debug + UI traçabilité). */
+  sourceActionId: string;
 }
 
 export type HelpPriority = 'paint' | 'man' | 'passlane';

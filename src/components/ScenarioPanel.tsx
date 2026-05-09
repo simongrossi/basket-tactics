@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { AttackerId, ScriptedAction, ActionSide, DriveDirection } from '@/lib/types';
+import type { AttackerId, ScriptedAction, OffensiveScriptedAction, ActionSide, DriveDirection } from '@/lib/types';
 import {
   SCRIPTED_ACTIONS_CATALOG,
   SCRIPTED_ACTIONS_BY_CATEGORY,
@@ -55,7 +55,8 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
   }, [showAddModal]);
 
   const handlePickAction = (def: ScriptedActionDefinition) => {
-    const newAction: ScriptedAction = {
+    const newAction: OffensiveScriptedAction = {
+      kind: 'offensive',
       id: newScriptedActionId(),
       type: def.type,
       params: defaultParamsFor(def),
@@ -64,6 +65,13 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
     setEditingId(newAction.id);
     setShowAddModal(false);
   };
+
+  // Phase 3 défense scriptable : la liste peut contenir des actions défensives ;
+  // ce panneau ne gère pour l'instant que les offensives (la zone défensive
+  // sera ajoutée Task 6).
+  const offensiveActions = props.scriptedActions.filter(
+    (a): a is OffensiveScriptedAction => a.kind === 'offensive'
+  );
 
   return (
     <Panel theme="offense" title="🎬 Scénario">
@@ -74,13 +82,13 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
       </div>
 
       {/* Liste des actions */}
-      {props.scriptedActions.length === 0 && (
+      {offensiveActions.length === 0 && (
         <div style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic', padding: 8, textAlign: 'center' }}>
           Aucune action. Ajoute la première ci-dessous.
         </div>
       )}
 
-      {props.scriptedActions.map((action, idx) => {
+      {offensiveActions.map((action, idx) => {
         const def = SCRIPTED_ACTIONS_CATALOG[action.type];
         const isEditing = editingId === action.id;
         return (
@@ -104,8 +112,8 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
               >▲</button>
               <button
                 onClick={() => props.onMoveAction(action.id, 'down')}
-                disabled={idx === props.scriptedActions.length - 1}
-                style={iconBtn(idx === props.scriptedActions.length - 1)}
+                disabled={idx === offensiveActions.length - 1}
+                style={iconBtn(idx === offensiveActions.length - 1)}
                 title="Descendre"
               >▼</button>
               <button
@@ -138,7 +146,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
         ➕ Ajouter une action
       </Button>
 
-      {props.scriptedActions.length > 0 && (
+      {offensiveActions.length > 0 && (
         <Button theme="neutral" onClick={() => {
           if (window.confirm('Effacer tout le scénario ?')) props.onClearAll();
         }}>
@@ -296,9 +304,9 @@ function AddActionModal({ onClose, onPick }: AddActionModalProps) {
 // ============================================================
 
 interface ActionFormProps {
-  action: ScriptedAction;
+  action: OffensiveScriptedAction;
   def: ScriptedActionDefinition;
-  onChange: (updated: ScriptedAction) => void;
+  onChange: (updated: OffensiveScriptedAction) => void;
 }
 
 function ActionForm({ action, def, onChange }: ActionFormProps) {
@@ -345,8 +353,8 @@ function paramOptionsFor(key: ParamKind): string[] {
   return ATTACKER_IDS;
 }
 
-function defaultParamsFor(def: ScriptedActionDefinition): ScriptedAction['params'] {
-  const params: ScriptedAction['params'] = {};
+function defaultParamsFor(def: ScriptedActionDefinition): OffensiveScriptedAction['params'] {
+  const params: OffensiveScriptedAction['params'] = {};
   if (def.optionalParams?.includes('side')) params.side = 'fort';
   if (def.optionalParams?.includes('direction')) params.direction = 'panier';
   return params;

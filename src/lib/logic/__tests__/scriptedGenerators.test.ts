@@ -14,6 +14,7 @@ const initialStep: Step = {
 describe('Pick-and-roll generator', () => {
   it('produit 3 steps avec roller proche du panier au step final', () => {
     const action: ScriptedAction = {
+      kind: 'offensive',
       id: 'a1',
       type: 'pick-and-roll',
       params: { screener: 'O5', ballHandler: 'O1', side: 'fort' },
@@ -46,10 +47,12 @@ describe('Pick-and-roll generator', () => {
     // O1 part à x=300 (axe), donc 'fort' devrait pousser le screener à droite (sign=1 par défaut),
     // et 'faible' du côté opposé. Mais l'axe a sign=0 → on prend 1 par convention.
     const fortAction: ScriptedAction = {
+      kind: 'offensive',
       id: 'a-fort', type: 'pick-and-roll',
       params: { screener: 'O5', ballHandler, side: 'fort' },
     };
     const faibleAction: ScriptedAction = {
+      kind: 'offensive',
       id: 'a-faible', type: 'pick-and-roll',
       params: { screener: 'O5', ballHandler, side: 'faible' },
     };
@@ -66,6 +69,7 @@ describe('Pick-and-roll generator', () => {
 describe('Pin-down generator', () => {
   it('le cutter remonte (s\'éloigne du panier) après l\'écran', () => {
     const action: ScriptedAction = {
+      kind: 'offensive',
       id: 'pd1', type: 'pin-down',
       params: { screener: 'O4', cutter: 'O2' },
     };
@@ -81,6 +85,7 @@ describe('Pin-down generator', () => {
 describe('Give-and-go generator', () => {
   it('passe puis cutter rend la balle au passer après sa coupe', () => {
     const action: ScriptedAction = {
+      kind: 'offensive',
       id: 'gng1', type: 'give-and-go',
       params: { passer: 'O1', cutter: 'O2' },
     };
@@ -102,8 +107,8 @@ describe('Give-and-go generator', () => {
 describe('compileScenario', () => {
   it('produit un step initial "Départ" + les steps de chaque action en séquence', () => {
     const actions: ScriptedAction[] = [
-      { id: 'a1', type: 'pick-and-roll', params: { screener: 'O5', ballHandler: 'O1', side: 'fort' } },
-      { id: 'a2', type: 'shoot', params: { shooter: 'O1' } },
+      { kind: 'offensive', id: 'a1', type: 'pick-and-roll', params: { screener: 'O5', ballHandler: 'O1', side: 'fort' } },
+      { kind: 'offensive', id: 'a2', type: 'shoot', params: { shooter: 'O1' } },
     ];
     const out = compileScenario({
       initialOff,
@@ -119,7 +124,7 @@ describe('compileScenario', () => {
 
   it('préserve un step manualOverride entre deux recompiles', () => {
     const actions: ScriptedAction[] = [
-      { id: 'pnr', type: 'pick-and-roll', params: { screener: 'O5', ballHandler: 'O1', side: 'fort' } },
+      { kind: 'offensive', id: 'pnr', type: 'pick-and-roll', params: { screener: 'O5', ballHandler: 'O1', side: 'fort' } },
     ];
     const firstCompile = compileScenario({
       initialOff,

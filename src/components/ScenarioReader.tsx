@@ -1,6 +1,6 @@
 'use client';
 
-import type { ScriptedAction } from '@/lib/types';
+import type { OffensiveScriptedAction, ScriptedAction } from '@/lib/types';
 import { SCRIPTED_ACTIONS_CATALOG } from '@/lib/data/scriptedActionsCatalog';
 import { COLORS } from './ui';
 
@@ -15,7 +15,12 @@ interface ScenarioReaderProps {
 
 export function ScenarioReader({ scriptedActions, activeStep, stepToActionId }: ScenarioReaderProps) {
   const c = COLORS.offense;
-  if (scriptedActions.length === 0) return null;
+  // Phase 3 défense scriptable : la lecture FR ne couvre pour l'instant que
+  // les actions offensives (la défensive sera intégrée Task 6+).
+  const offensiveActions = scriptedActions.filter(
+    (a): a is OffensiveScriptedAction => a.kind === 'offensive'
+  );
+  if (offensiveActions.length === 0) return null;
 
   const activeActionId = stepToActionId[activeStep];
 
@@ -37,7 +42,7 @@ export function ScenarioReader({ scriptedActions, activeStep, stepToActionId }: 
       <span style={{ fontSize: 11, fontWeight: 700, color: c.accentText, marginRight: 4 }}>
         Système :
       </span>
-      {scriptedActions.map((action, idx) => {
+      {offensiveActions.map((action, idx) => {
         const def = SCRIPTED_ACTIONS_CATALOG[action.type];
         const text = action.label || def.reader(action.params);
         const isActive = action.id === activeActionId;

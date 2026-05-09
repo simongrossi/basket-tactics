@@ -9,8 +9,8 @@ import type {
   Annotation,
   AttackerId,
   AttackerPositions,
+  OffensiveScriptedAction,
   Point,
-  ScriptedAction,
   Step,
 } from '@/lib/types';
 import { HOOP, COURT } from '@/lib/data/court';
@@ -102,7 +102,7 @@ function annot(
 
 export type Generator = (
   prev: Step,
-  action: ScriptedAction
+  action: OffensiveScriptedAction
 ) => Step[];
 
 // ============================================================

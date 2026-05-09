@@ -47,6 +47,7 @@ export function compileScenario(input: CompileInput): Step[] {
   }
 
   for (const action of actions) {
+    if (action.kind !== 'offensive') continue;
     const gen = SCRIPTED_GENERATORS[action.type];
     if (!gen) continue;
     const generated = gen(prev, action);
