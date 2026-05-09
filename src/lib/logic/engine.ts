@@ -865,33 +865,58 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
 }
 
 /**
- * En lecture, le défenseur du porteur doit suivre EN TEMPS RÉEL la position
- * courante du porteur (qui peut suivre une wave dribble ou une polyline
- * courbe). Sinon, l'interpolation linéaire entre defA et defB le fait passer
- * par une corde au lieu de la trajectoire réelle du porteur — il "coupe"
- * tandis que le porteur fait son arc.
+ * En lecture, chaque défenseur en marquage individuel doit suivre EN TEMPS
+ * RÉEL la position courante de son attaquant (qui peut suivre une wave
+ * dribble, un V-cut, une polyline courbe). Sinon, l'interpolation linéaire
+ * entre defA et defB le fait passer par une corde au lieu de la trajectoire
+ * réelle de l'attaquant — il "coupe au plus court" et lâche son homme.
  *
- * Cette fonction écrase `slot.x/y` du carrier defender avec la cible calculée
- * à partir de la position courante du porteur. Les défenseurs off-ball
- * conservent leur interpolation linéaire (plus stable, moins coûteux, et
- * leur attaquant marqué bouge en général en ligne droite via `cut`).
+ * Comportement :
+ *  - Carrier defender → `carrierDefenderTarget` (vsCarrier, distance, hoop)
+ *  - Off-ball → `offBallStanceTarget` (stance, ball) ou `manTarget` (sag/behind)
+ *  - Skipped si l'utilisateur a posé un placement manuel (`defenseOverrides`)
+ *    sur l'une des deux étapes du segment — sa position imposée prime.
+ *
+ * NB : aide (`helpFactor`, `helpAim`), closeout, denying restent ceux calculés
+ * par `effectiveDefensePositions` aux étapes A/B et interpolés. Cette fonction
+ * réécrit uniquement la POSITION de marquage, pas les flags d'état.
  */
-export function followCarrierAtFrame(
+export function followDefendersAtFrame(
   defPos: ComputedDefense,
   off: AttackerPositions,
   ballCarrier: AttackerId,
-  state: AppState
+  state: AppState,
+  idxA: number,
+  idxB: number
 ): void {
   const carrierPos = off[ballCarrier];
-  if (!carrierPos) return;
   const hoop = getDefenseHoop(state);
+  const overridesA = state.steps[idxA]?.defenseOverrides ?? {};
+  const overridesB = state.steps[idxB]?.defenseOverrides ?? {};
+
   for (const dId of getActiveDefenderIds(state.playerCount)) {
     const slot = defPos[dId];
-    if (!slot || !slot.isCarrierDefender) continue;
+    if (!slot) continue;
+    // Placement manuel sur l'une des deux étapes → la position imposée prime,
+    // on garde l'interpolation linéaire entre override(A) et calc(B) ou inverse.
+    if (overridesA[dId] || overridesB[dId]) continue;
     const rule = state.rules[dId];
     if (!rule) continue;
     const dist = rule.distance ?? state.defenseDistance;
-    const tgt = carrierDefenderTarget(rule.vsCarrier, carrierPos, dist, hoop);
+
+    let tgt: Point | null = null;
+    if (slot.isCarrierDefender && carrierPos) {
+      tgt = carrierDefenderTarget(rule.vsCarrier, carrierPos, dist, hoop);
+    } else {
+      const att = off[slot.matchedTo];
+      if (!att) continue;
+      const stance = rule.offBallStance;
+      // Position du ballon ≈ position du porteur (approximation OK hors passe
+      // en vol, où les stances fronting/deny ne sont pas critiques visuellement).
+      tgt = stance && carrierPos
+        ? offBallStanceTarget(att, carrierPos, dist, stance, hoop)
+        : manTarget(att, dist, hoop);
+    }
     if (tgt) {
       slot.x = Math.round(tgt.x);
       slot.y = Math.round(tgt.y);

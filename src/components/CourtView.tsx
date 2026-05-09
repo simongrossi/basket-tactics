@@ -22,7 +22,7 @@ import { HelpDebugOverlay } from './HelpDebugOverlay';
 import { FieldOfViewOverlay } from './FieldOfViewOverlay';
 import {
   effectiveDefensePositions,
-  followCarrierAtFrame,
+  followDefendersAtFrame,
   getMatchupsAt,
   computeAttackerVisuals,
   recomputeDefenseFrameOrientations,
@@ -328,10 +328,11 @@ export function CourtView(props: CourtViewProps) {
         };
       });
 
-      // Le défenseur du porteur suit la position courante du porteur en
-      // temps réel (sinon il coupe la corde quand le porteur dribble en
-      // arc / V-cut au lieu de suivre la trajectoire réelle).
-      followCarrierAtFrame(defPos, off, carrier, cur);
+      // Chaque défenseur (carrier + off-ball) suit la position courante de
+      // son attaquant en temps réel (sinon il coupe la corde quand son homme
+      // fait un arc / V-cut au lieu de suivre la trajectoire réelle). Skip
+      // si placement manuel via defenseOverrides.
+      followDefendersAtFrame(defPos, off, carrier, cur, idxA, idxB);
 
       // Solveur de collisions strict : aucun défenseur ne se superpose
       // à un autre joueur (sauf son matchedTo).
@@ -532,9 +533,9 @@ export function CourtView(props: CourtViewProps) {
       };
     });
 
-    // Voir playFrame : le défenseur du porteur suit la position courante du
-    // porteur en temps réel pendant le scrub aussi.
-    followCarrierAtFrame(defPos, off, carrier, state);
+    // Voir playFrame : chaque défenseur suit la position courante de son
+    // attaquant pendant le scrub aussi (carrier + off-ball, sauf overrides).
+    followDefendersAtFrame(defPos, off, carrier, state, idxA, idxB);
 
     // Solveur de collisions strict
     resolvePlayerCollisions(

@@ -11,10 +11,14 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 - Cliquer sur ▶ après une pause **reprend depuis l'instant t pause** au lieu de redémarrer du début.
 - Implémentation : à la pause, `playbackT` est propagé dans `scrubT` qui pilote `scrubFrame` ([page.tsx](src/app/page.tsx)). Au play, `scrubT` est consommé comme offset via la nouvelle prop `playbackStartT` de CourtView ([CourtView.tsx](src/components/CourtView.tsx)) qui décale `playStart` en arrière de `T × stepDuration` au démarrage du tick. Stop (⏹) reste distinct et revient à l'étape 0.
 
-### Fixed — Le défenseur du porteur suit la trajectoire courbe en lecture
-- Pendant la lecture, le défenseur du porteur (D1 typiquement) interpolait linéairement entre sa position à l'étape A et sa position à l'étape B → il prenait la **corde** d'un arc pendant que le porteur faisait un dribble en wave ou un V-cut. Visuellement il "coupait au plus court" et lâchait son homme.
-- Désormais sa position est **recalculée à chaque frame** (playback + scrub) à partir de la position courante du porteur via `carrierDefenderTarget` — il colle à la trajectoire réelle, dribble courbe inclus. Implémentation : nouvelle fonction `followCarrierAtFrame` ([engine.ts](src/lib/logic/engine.ts)), appelée avant `resolvePlayerCollisions` et `recomputeDefenseFrameOrientations` dans [`CourtView.tsx`](src/components/CourtView.tsx) (playFrame + scrubFrame).
-- Les défenseurs off-ball gardent l'interpolation linéaire (suffisant tant que leur attaquant marqué se déplace en `cut` ligne droite — à étendre si besoin).
+### Fixed — Tous les défenseurs suivent leurs attaquants en temps réel (carrier + off-ball)
+- Pendant la lecture, chaque défenseur en marquage individuel interpolait linéairement entre sa position à l'étape A et sa position à l'étape B → il prenait la **corde** d'un arc pendant que son homme faisait un V-cut, un L-cut, un démarquage en arc ou un dribble en wave. Visuellement il coupait au plus court et lâchait son homme.
+- Désormais la position de **chaque défenseur** (carrier ET off-ball) est recalculée à chaque frame (playback + scrub) à partir de la position courante de son attaquant marqué :
+  - Carrier defender → `carrierDefenderTarget` (vsCarrier, distance, hoop)
+  - Off-ball → `offBallStanceTarget` (stance, ball) ou `manTarget` (sag/behind)
+- **Placement manuel respecté** : si l'utilisateur a posé un override de position via drag (`defenseOverrides`) sur l'une des deux étapes du segment, sa position imposée prime — pas de follow, l'interpolation linéaire est conservée.
+- Les flags d'état (`helpFactor`, `helpAim`, `closingOut`, `denying`) restent ceux calculés par `effectiveDefensePositions` aux étapes A/B et interpolés. Cette fonction réécrit uniquement la POSITION de marquage de base.
+- Implémentation : `followDefendersAtFrame` ([engine.ts](src/lib/logic/engine.ts)), appelée dans [`CourtView.tsx`](src/components/CourtView.tsx) (playFrame + scrubFrame) avant `resolvePlayerCollisions` et `recomputeDefenseFrameOrientations`.
 
 ### Added — Annotations en courbe (Shift+drag freehand, V-cut/L-cut)
 - Les annotations `cut`, `dribble` et `screen` supportent maintenant un champ optionnel `waypoints?: Point[]` ([types/index.ts](src/lib/types/index.ts)). Avec waypoints, la trajectoire suit une **spline Catmull-Rom** (tension τ=0.5, équivalent Bezier cubique exact en rendu) au lieu d'une ligne droite.
