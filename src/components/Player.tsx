@@ -109,16 +109,20 @@ export function Player({
          * Si `gazeOrientation` n'est pas fourni (legacy), fallback sur
          * `orientation` (rétrocompat ancien API). */}
         <g transform={`rotate(${gazeOrientation ?? orientation ?? 0}, ${pos.x}, ${pos.y})`}>
-          {/* Tracé conçu en posture neutre (regard "devant" = haut, gaze=0°) :
-           *  - Départ (épaule) : bas-côté du cercle (= dos du joueur).
-           *  - Fin (main) : à ±60° du regard, soit aux LIMITES du cône de
-           *    champ de vision (120° d'ouverture). Distance ~1.5r.
-           *  - Courbure : bombe doucement vers l'extérieur, alignée avec la
-           *    courbure du cône de vision.
+          {/* === DESIGN F — FIGÉ ===
+           * Tracé Bezier des bras choisi par l'utilisateur via la page de
+           * démo /demo-arms. NE PAS MODIFIER sans une demande explicite —
+           * le design a été testé et validé contre 7 alternatives.
            *
-           * Conséquence : les bras enveloppent visuellement le cône — la
-           * "courbure des bras" coïncide avec les bords du champ de vision,
-           * matérialisant que le joueur "voit" tout ce qui est entre ses bras.
+           * Caractéristiques (en posture neutre, gaze=0°) :
+           *  - Épaule (départ M) : niveau central du cercle (y=0), côté à ±0.7r.
+           *  - Main (fin Q) : ±1.8r en x, -1.4r en y → loin extérieure et haute.
+           *  - Control point : ±2.0r en x, -0.5r en y → courbure largement
+           *    ouverte vers l'extérieur, "bras grands ouverts".
+           *
+           * Le wrapper rotate(gazeOrientation) pivote l'ensemble en bloc selon
+           * le regard du joueur. Le clamp anatomique (±60° du body) reste
+           * appliqué en amont par orientation.ts.
            */}
           <path
             d={`M ${pos.x - r * 0.7} ${pos.y} Q ${pos.x - r * 2.0} ${pos.y - r * 0.5} ${pos.x - r * 1.8} ${pos.y - r * 1.4}`}
