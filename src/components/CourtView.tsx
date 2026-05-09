@@ -930,6 +930,7 @@ export function CourtView(props: CourtViewProps) {
           y={ctxMenu.y}
           rule={state.rules[ctxMenu.dId]}
           hasOverride={!!state.steps[state.activeStep]?.defenseOverrides?.[ctxMenu.dId]}
+          isCarrierDefender={frame.defPos[ctxMenu.dId]?.isCarrierDefender}
           tool={state.tool}
           onSetTool={props.onSetTool}
           onUpdate={(p) => props.onUpdateRule(ctxMenu.dId, p)}

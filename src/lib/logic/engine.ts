@@ -214,7 +214,7 @@ export function computeDefenseTargets(
       vsCarrier: rule.vsCarrier,
       manualDelta: manualOrientationDelta,
       manualBody: rule.bodyOrientation,
-      manualGaze: rule.gazeOrientation,
+      gazeLock: rule.gazeLock,
     });
 
     positions[dId] = {
@@ -353,7 +353,7 @@ export function computeDefenseTargets(
       pnrRole: slot.pnrRole,
       manualDelta: rule.orientation ?? 0,
       manualBody: rule.bodyOrientation,
-      manualGaze: rule.gazeOrientation,
+      gazeLock: rule.gazeLock,
     });
     slot.orientation = recomputed.bodyOrientation;
     slot.gazeOrientation = recomputed.gazeOrientation;
@@ -406,7 +406,7 @@ function computeZoneDefenseTargets(
       stance: 'sag',
       manualDelta: state.rules[dId]?.orientation ?? 0,
       manualBody: state.rules[dId]?.bodyOrientation,
-      manualGaze: state.rules[dId]?.gazeOrientation,
+      gazeLock: state.rules[dId]?.gazeLock,
     });
     positions[dId] = {
       x,
