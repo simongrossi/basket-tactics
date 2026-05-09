@@ -79,6 +79,7 @@ Cf [`fiba-actions-roadmap.md`](./fiba-actions-roadmap.md) section 3. Génère 1 
 
 ### Backlog UI / UX
 - Refonte `ScenarioPanel` en popup plein écran (cf "En cours")
+- **Popup timeline multi-pistes par joueur** : inspiré FastDraw — une popup affichant une timeline horizontale avec une piste par joueur (5 attaquants + 5 défenseurs), chaque piste montrant les segments de mouvement / passes / écrans avec leur durée précise. Permettrait au coach de voir d'un coup d'œil le découpage temporel de chaque joueur, qui bouge quand, et le synchronisme entre actions. À placer en plus de la timeline globale actuelle.
 - Import multi-fichiers JSON (drag & drop)
 - Édition inline du libellé d'étape sans cliquer (focus auto à la création)
 - Annotations textuelles libres sur le terrain (cf `Annotations.tsx`)
