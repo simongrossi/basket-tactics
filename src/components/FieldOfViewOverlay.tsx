@@ -43,14 +43,23 @@ interface FieldOfViewOverlayProps {
 const FOV_HALF_ANGLE_DEG = 60;       // 60° de chaque côté = 120° total
 const FOV_RADIUS_PX = 200;           // ~5,4 m de profondeur
 
+type ConeKind = 'def' | 'att';
+
+const CONE_STYLE: Record<ConeKind, { fill: string; stroke: string }> = {
+  // Défenseurs : cyan (cohérent avec les cercles bleus défense).
+  def: { fill: '#06b6d4', stroke: '#0891b2' },
+  // Attaquants : orange (cohérent avec les cercles orange attaque).
+  att: { fill: '#f97316', stroke: '#c2410c' },
+};
+
 export function FieldOfViewOverlay({ defPos, off, attVisuals, rules, showAll }: FieldOfViewOverlayProps) {
-  const cones: { id: string; cx: number; cy: number; gaze: number }[] = [];
+  const cones: { id: string; cx: number; cy: number; gaze: number; kind: ConeKind }[] = [];
 
   // Défenseurs : cône si toggle global OU toggle individuel.
   (Object.entries(defPos) as [DefenderId, ComputedDefense[DefenderId]][]).forEach(([id, p]) => {
     const enabled = showAll || rules[id]?.showFieldOfView === true;
     if (!enabled) return;
-    cones.push({ id: `def-${id}`, cx: p.x, cy: p.y, gaze: p.gazeOrientation });
+    cones.push({ id: `def-${id}`, cx: p.x, cy: p.y, gaze: p.gazeOrientation, kind: 'def' });
   });
 
   // Attaquants : cône si toggle global (pas de réglage individuel pour
@@ -60,7 +69,7 @@ export function FieldOfViewOverlay({ defPos, off, attVisuals, rules, showAll }: 
     (Object.entries(off) as [AttackerId, { x: number; y: number }][]).forEach(([id, pos]) => {
       const v = attVisuals[id];
       if (!v) return;
-      cones.push({ id: `att-${id}`, cx: pos.x, cy: pos.y, gaze: v.gazeOrientation });
+      cones.push({ id: `att-${id}`, cx: pos.x, cy: pos.y, gaze: v.gazeOrientation, kind: 'att' });
     });
   }
 
@@ -75,16 +84,18 @@ export function FieldOfViewOverlay({ defPos, off, attVisuals, rules, showAll }: 
           FOV_HALF_ANGLE_DEG,
           FOV_RADIUS_PX
         );
+        const style = CONE_STYLE[c.kind];
         return (
           <g key={c.id}>
-            {/* Remplissage cyan semi-transparent — l'opacité s'accumule
-             *  naturellement par superposition SVG (heatmap croisée). */}
-            <path d={sector} fill="#06b6d4" opacity={0.18} />
-            {/* Contour discret pour délimiter chaque cône individuellement. */}
+            {/* Remplissage semi-transparent — l'opacité s'accumule par
+             *  superposition SVG (heatmap croisée). Cyan = défenseurs,
+             *  orange = attaquants. Les zones où les deux teintes se
+             *  recouvrent matérialisent les ligne de passe / duels. */}
+            <path d={sector} fill={style.fill} opacity={0.18} />
             <path
               d={sector}
               fill="none"
-              stroke="#0891b2"
+              stroke={style.stroke}
               strokeWidth={1}
               strokeDasharray="3 3"
               opacity={0.4}
