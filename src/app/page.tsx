@@ -7,7 +7,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { OffensePanel } from '@/components/OffensePanel';
 import { DefensePanel } from '@/components/DefensePanel';
 import { ActionsPanel } from '@/components/ActionsPanel';
-import { ParametresPanel } from '@/components/ParametresPanel';
+import { ParametresLauncher } from '@/components/ParametresLauncher';
 import { LibraryPanel } from '@/components/LibraryPanel';
 import { Timeline } from '@/components/Timeline';
 import { CourtView } from '@/components/CourtView';
@@ -169,6 +169,7 @@ export default function Page() {
               onImport={handleImport}
               onReset={app.resetAll}
             />
+            <ParametresLauncher state={app.state} onPatch={app.patch} />
           </div>
         )}
 
@@ -233,7 +234,6 @@ export default function Page() {
               onApplyDefensePreset={app.applyDefensePreset}
               onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
             />
-            <ParametresPanel state={app.state} onPatch={app.patch} />
           </div>
         )}
       </div>

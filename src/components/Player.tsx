@@ -89,47 +89,36 @@ export function Player({
     <g data-id={id} style={{ cursor: 'grab' }}>
       <g pointerEvents="none">
         {/* Pictogramme stylisé FIBA : 2 arcs symétriques courbés au-dessus
-         * du joueur (= "épaules + bras levés"), avec ROTATION qui suit le
-         * `bodyOrientation` du corps.
+         * du joueur, **STATIQUES** — identiques pour tous les rôles, peu
+         * importe l'orientation du corps. Convention non-négociable
+         * référencée par la doc FIBA Europe Basketball Terminology.
          *
-         * Conséquence visuelle :
-         *  - À body=0° (regard nord) : arcs au-dessus.
-         *  - À body=90° (regard est) : arcs à droite (épaules orientées E-O).
-         *  - À body=180° (regard sud) : arcs en bas (face sud).
+         * Le **regard** est matérialisé par le triangle pointeur (`facing`)
+         * en dessous, qui pointe dans la direction du `gazeOrientation`
+         * (clampé ±90° du `bodyOrientation` — règle anatomique inviolable
+         * de orientation.ts : impossible de regarder derrière la tête).
          *
-         * `bodyOrientation` est calculé en open stance (perpendiculaire à
-         * l'axe homme-ballon) en convention B — donc les épaules tournent
-         * pour matérialiser que le défenseur "voit" homme et ballon.
-         *
-         * Le `gaze` (triangle pointeur ci-dessous) est calculé séparément et
-         * dessiné HORS du wrapper de rotation, pour pointer la direction du
-         * regard précis (clampé ±90° du body, jamais derrière).
-         *
-         * Note : `armBallSide` et `armManSide` sont conservés dans les types
-         * et le data model (computeAttackerOrientation / computeDefenderOrientation),
-         * mais ne servent plus au rendu. Ils restent disponibles pour un
-         * affichage futur (overlay debug par exemple).
+         * Note : `bodyOrientation`, `gazeOrientation`, `armBallSide`,
+         * `armManSide` restent calculés et stockés dans le data model
+         * (computeDefenderOrientation / computeAttackerOrientation) pour
+         * usage futur (overlay debug, slider manuel, champ de vision).
          */}
-        <g transform={`rotate(${orientation}, ${pos.x}, ${pos.y})`}>
-          <path
-            d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
-            fill="none"
-            stroke={stroke}
-            strokeWidth={isAttacker ? 1.8 : 2.5}
-            strokeLinecap="round"
-            opacity={isAttacker ? 0.7 : 1}
-          />
-          <path
-            d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
-            fill="none"
-            stroke={stroke}
-            strokeWidth={isAttacker ? 1.8 : 2.5}
-            strokeLinecap="round"
-            opacity={isAttacker ? 0.7 : 1}
-          />
-        </g>
-        {/* armBallSide / armManSide : conservés dans l'API (props) pour le
-         * data model et un futur overlay debug, mais non rendus ici. */}
+        <path
+          d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={isAttacker ? 1.8 : 2.5}
+          strokeLinecap="round"
+          opacity={isAttacker ? 0.7 : 1}
+        />
+        <path
+          d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={isAttacker ? 1.8 : 2.5}
+          strokeLinecap="round"
+          opacity={isAttacker ? 0.7 : 1}
+        />
         {facing && (() => {
           // Pointeur de "facing" : un petit triangle posé sur le bord du
           // cercle, dans la direction regardée. Indique l'orientation
