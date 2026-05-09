@@ -51,6 +51,7 @@ import {
   isActiveAttacker,
 } from '@/lib/logic/players';
 import { attackerTrajectoryAt, type MovementType } from '@/lib/logic/playbackTrajectory';
+import { simplifyPolyline } from '@/lib/logic/polyline';
 
 interface CourtViewProps {
   state: AppState;
@@ -83,6 +84,12 @@ interface PendingAnnotation {
   from: Point;
   to: Point;
   toId?: AttackerId | null;
+  /** Buffer brut du tracé freehand (Shift+drag), ~1 point par pointermove.
+   *  Simplifié à la fin du drag pour produire `waypoints`. */
+  freehandPath?: Point[];
+  /** Waypoints simplifiés affichés en preview pendant le drag (mis à jour
+   *  toutes les 40 ms environ pour suivre la souris sans saturer le DOM). */
+  waypoints?: Point[];
 }
 
 interface PlaybackFrame {
@@ -592,11 +599,17 @@ export function CourtView(props: CourtViewProps) {
 
     const fromId = (target?.getAttribute('data-id') as PlayerId | null) ?? findPlayerAt(pt);
     if (!fromId || !fromId.startsWith('O')) return;
+    const from = { ...state.steps[state.activeStep].off[fromId as AttackerId] };
+    // Shift+drag = tracé freehand : on enregistre la trajectoire de la souris
+    // pour produire une annotation avec waypoints (V-cut, L-cut, courbe libre).
+    // Pas applicable à `pass` (la passe reste rectiligne par convention).
+    const freehand = e.shiftKey && state.tool !== 'pass';
     setPending({
       type: state.tool,
       fromId: fromId as AttackerId,
-      from: { ...state.steps[state.activeStep].off[fromId as AttackerId] },
+      from,
       to: pt,
+      freehandPath: freehand ? [from] : undefined,
     });
     svgRef.current?.setPointerCapture(e.pointerId);
   };
@@ -615,7 +628,22 @@ export function CourtView(props: CourtViewProps) {
       const target = (e.target as Element).closest('g[data-id]');
       const overId = (target?.getAttribute('data-id') as PlayerId | null) ?? findPlayerAt(pt);
       const toId = overId && overId.startsWith('O') ? (overId as AttackerId) : null;
-      setPending({ ...pending, to: pt, toId });
+      if (pending.freehandPath) {
+        // Mode freehand : on échantillonne tous les ~6 px pour ne pas saturer
+        // le buffer (un drag long peut générer des centaines de points sinon).
+        const last = pending.freehandPath[pending.freehandPath.length - 1];
+        const sampled = distance(last, pt) >= 6
+          ? [...pending.freehandPath, pt]
+          : pending.freehandPath;
+        // Waypoints affichés en preview = polyline simplifiée intermédiaire
+        // (sans `from`/`to` finaux). Tolérance 5 px : équilibre lisibilité /
+        // fidélité au geste.
+        const simplified = simplifyPolyline([...sampled, pt], 5);
+        const waypoints = simplified.slice(1, -1);
+        setPending({ ...pending, to: pt, toId, freehandPath: sampled, waypoints });
+      } else {
+        setPending({ ...pending, to: pt, toId });
+      }
     }
   };
 
@@ -630,12 +658,22 @@ export function CourtView(props: CourtViewProps) {
         setPending(null);
         return;
       }
+      // Si freehand : simplifier le buffer brut → waypoints finaux. Tolérance
+      // 6 px = courbes franches préservées, micro-tremblements souris ignorés.
+      let waypoints: Point[] | undefined;
+      if (pending.freehandPath && pending.freehandPath.length > 2) {
+        const fullPath = [...pending.freehandPath, pending.to];
+        const simplified = simplifyPolyline(fullPath, 6);
+        const inner = simplified.slice(1, -1);
+        if (inner.length > 0) waypoints = inner;
+      }
       props.onAddAnnotation({
         type: pending.type as Annotation['type'],
         fromId: pending.fromId,
         toId: pending.toId ?? null,
         from: pending.from,
         to: pending.to,
+        ...(waypoints ? { waypoints } : {}),
       });
       setPending(null);
     }

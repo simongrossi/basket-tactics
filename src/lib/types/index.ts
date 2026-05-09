@@ -48,6 +48,11 @@ export interface Annotation {
   toId?: AttackerId | null;
   from: Point;
   to: Point;
+  /** Points intermédiaires (hors `from`/`to`) pour trajectoires non
+   *  rectilignes : V-cut, L-cut, démarquage aller-retour, courbe libre.
+   *  Concaténés avec `from` et `to` en polyline ordonnée et interpolés en
+   *  spline Catmull-Rom à la lecture. Absent ou vide = ligne droite. */
+  waypoints?: Point[];
 }
 
 export interface Step {

@@ -1,5 +1,12 @@
 import type { Annotation, AnnotationType, AttackerId, Point, Step } from '@/lib/types';
 import { sampleDribbleWave } from './dribbleWave';
+import { samplePolyline } from './polyline';
+
+function annotationPolyline(ann: Annotation): Point[] {
+  return ann.waypoints && ann.waypoints.length > 0
+    ? [ann.from, ...ann.waypoints, ann.to]
+    : [ann.from, ann.to];
+}
 
 export type MovementType = 'cut' | 'dribble' | 'screen' | 'idle';
 
@@ -50,15 +57,27 @@ export function attackerTrajectoryAt(
     return { position: { ...fallback }, movementType: 'idle', isScreening: false };
   }
   const t = Math.max(0, Math.min(1, localT));
+  const hasWaypoints = !!ann.waypoints && ann.waypoints.length > 0;
   if (ann.type === 'cut') {
-    return { position: lerp(ann.from, ann.to, t), movementType: 'cut', isScreening: false };
+    const position = hasWaypoints
+      ? samplePolyline(annotationPolyline(ann), t)
+      : lerp(ann.from, ann.to, t);
+    return { position, movementType: 'cut', isScreening: false };
   }
   if (ann.type === 'dribble') {
-    return { position: sampleDribbleWave(ann.from, ann.to, t), movementType: 'dribble', isScreening: false };
+    // Avec waypoints : trajectoire courbe lisse (l'utilisateur a explicitement
+    // dessiné le dribble, on suit sa polyline). Sans waypoints : wave standard.
+    const position = hasWaypoints
+      ? samplePolyline(annotationPolyline(ann), t)
+      : sampleDribbleWave(ann.from, ann.to, t);
+    return { position, movementType: 'dribble', isScreening: false };
   }
   if (ann.type === 'screen') {
     if (t < 0.5) {
-      return { position: lerp(ann.from, ann.to, t * 2), movementType: 'screen', isScreening: false };
+      const position = hasWaypoints
+        ? samplePolyline(annotationPolyline(ann), t * 2)
+        : lerp(ann.from, ann.to, t * 2);
+      return { position, movementType: 'screen', isScreening: false };
     }
     return { position: { ...ann.to }, movementType: 'screen', isScreening: true };
   }
