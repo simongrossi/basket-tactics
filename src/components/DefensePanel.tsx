@@ -20,6 +20,8 @@ interface DefensePanelProps {
   onResetSwitches: () => void;
   onPatch: (p: Partial<AppState>) => void;
   onUpdateRule: (dId: DefenderId, patch: Partial<AppState['rules'][DefenderId]>) => void;
+  onUpdateAllRules: (patch: Partial<AppState['rules'][DefenderId]>) => void;
+  onResetIndividualOverrides: () => void;
   onSetDefenseSystem: (s: DefenseSystem) => void;
   onUpdateZoneConfig: (p: Partial<ZoneConfig>) => void;
   onApplyDefensePreset: (preset: DefensePreset) => void;
@@ -366,6 +368,162 @@ export function DefensePanel(props: DefensePanelProps) {
                 <option value="top-lock">top-lock (force côté ballon)</option>
                 <option value="chase">chase / trail (suit le shooter)</option>
               </select>
+            </div>
+          </Section>
+
+          <Section theme="defense" label="Appliquer à tous les défenseurs">
+            <div style={{ fontSize: 10, color: '#64748b', marginBottom: 4 }}>
+              Pousse la même consigne sur les {defenderIds.length} défenseurs en un clic. Pratique pour aligner toute l'équipe sur un schéma.
+            </div>
+            {/* Ligne 1 : aide / priority / vsCarrier / offBallStance / screenNav (mêmes colonnes que la grille individuelle) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '64px 40px 1fr 1fr 1fr 1fr', gap: 3, fontSize: 10, color: '#64748b', marginBottom: 2 }}>
+              <span></span>
+              <span>aide</span>
+              <span>prio.</span>
+              <span>vs porteur</span>
+              <span>hors-bal.</span>
+              <span>écran</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '64px 40px 1fr 1fr 1fr 1fr', gap: 3, alignItems: 'center', fontSize: 11 }}>
+              <span style={{ fontWeight: 600, color: c.accentText }}>→ tous</span>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step={5}
+                placeholder="—"
+                onBlur={(e) => {
+                  const v = parseInt(e.target.value);
+                  if (!Number.isNaN(v)) props.onUpdateAllRules({ helpPct: Math.max(0, Math.min(100, v)) });
+                  e.target.value = '';
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                style={{ fontSize: 11, height: 22, padding: '0 3px' }}
+                title="Saisir une valeur 0-100 puis Enter / Tab pour appliquer à tous"
+              />
+              <select
+                defaultValue=""
+                onChange={(e) => { if (e.target.value) { props.onUpdateAllRules({ priority: e.target.value as any }); e.target.value = ''; } }}
+                style={{ fontSize: 11, height: 22 }}
+              >
+                <option value="">—</option>
+                <option value="paint">raquette</option>
+                <option value="man">homme</option>
+                <option value="passlane">passe</option>
+              </select>
+              <select
+                defaultValue=""
+                onChange={(e) => { if (e.target.value) { props.onUpdateAllRules({ vsCarrier: e.target.value as any }); e.target.value = ''; } }}
+                style={{ fontSize: 11, height: 22 }}
+              >
+                <option value="">—</option>
+                <option value="coller">coller</option>
+                <option value="bumper">bumper</option>
+                <option value="contester">contester</option>
+                <option value="reculer">reculer</option>
+                <option value="topside">topside</option>
+                <option value="baseline">baseline</option>
+              </select>
+              <select
+                defaultValue=""
+                onChange={(e) => { if (e.target.value) { props.onUpdateAllRules({ offBallStance: e.target.value as any }); e.target.value = ''; } }}
+                style={{ fontSize: 11, height: 22 }}
+              >
+                <option value="">—</option>
+                <option value="sag">sag</option>
+                <option value="behind">derrière</option>
+                <option value="stunt">stunt</option>
+                <option value="deny-3q">3/4 deny</option>
+                <option value="fronting">devant</option>
+              </select>
+              <select
+                defaultValue=""
+                onChange={(e) => { if (e.target.value) { props.onUpdateAllRules({ screenNav: e.target.value === 'auto' ? undefined : e.target.value as any }); e.target.value = ''; } }}
+                style={{ fontSize: 11, height: 22 }}
+              >
+                <option value="">—</option>
+                <option value="auto">auto (global)</option>
+                <option value="over">over</option>
+                <option value="under">under</option>
+                <option value="switch">switch</option>
+                <option value="hedge">hedge</option>
+                <option value="drop">drop</option>
+                <option value="blitz">blitz</option>
+              </select>
+            </div>
+            {/* Ligne 2 : helpMode / gazeLock / bodyOrientationMode — réglages clic-droit
+                avancés non présents dans la grille individuelle. */}
+            <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr 1fr 1fr', gap: 3, fontSize: 10, color: '#64748b', marginTop: 6, marginBottom: 2 }}>
+              <span></span>
+              <span>aide mode</span>
+              <span>regard</span>
+              <span>corps</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr 1fr 1fr', gap: 3, alignItems: 'center', fontSize: 11 }}>
+              <span style={{ fontWeight: 600, color: c.accentText }}>→ tous</span>
+              <select
+                defaultValue=""
+                onChange={(e) => { if (e.target.value) { props.onUpdateAllRules({ helpMode: e.target.value as any }); e.target.value = ''; } }}
+                style={{ fontSize: 11, height: 22 }}
+              >
+                <option value="">—</option>
+                <option value="auto">auto</option>
+                <option value="aggressive">agressif</option>
+                <option value="passive">passif</option>
+                <option value="disabled">désactivé</option>
+              </select>
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (!v) return;
+                  props.onUpdateAllRules({ gazeLock: v === 'auto' ? undefined : v as any });
+                  e.target.value = '';
+                }}
+                style={{ fontSize: 11, height: 22 }}
+              >
+                <option value="">—</option>
+                <option value="auto">auto</option>
+                <option value="opponent">🔒 mon homme</option>
+                <option value="ball-carrier">🔒 le porteur</option>
+                <option value="both">🔒 les deux</option>
+              </select>
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (!v) return;
+                  props.onUpdateAllRules({ bodyOrientationMode: v === 'auto' ? undefined : v as any });
+                  e.target.value = '';
+                }}
+                style={{ fontSize: 11, height: 22 }}
+              >
+                <option value="">—</option>
+                <option value="auto">auto</option>
+                <option value="open">ouvert (homme/ballon)</option>
+                <option value="face-man">face homme</option>
+                <option value="face-ball">face porteur</option>
+                <option value="pass-lane-flat">ligne passe à plat</option>
+                <option value="pass-lane-perp">ligne passe perp.</option>
+              </select>
+            </div>
+            <div style={{ marginTop: 6 }}>
+              <button
+                type="button"
+                onClick={props.onResetIndividualOverrides}
+                style={{
+                  fontSize: 10,
+                  padding: '4px 8px',
+                  borderRadius: 4,
+                  border: '1px solid #cbd5e1',
+                  background: '#fff',
+                  color: '#475569',
+                  cursor: 'pointer',
+                }}
+                title="Efface les overrides individuels (distance, vit. max, closeout, denial, screenNav). Tous retombent sur les sliders globaux ci-dessus."
+              >
+                Réinitialiser les overrides individuels
+              </button>
             </div>
           </Section>
 

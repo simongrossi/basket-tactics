@@ -284,6 +284,8 @@ export default function Page() {
               onResetSwitches={app.resetSwitches}
               onPatch={app.patch}
               onUpdateRule={app.updateRule}
+              onUpdateAllRules={app.updateAllRules}
+              onResetIndividualOverrides={app.resetIndividualOverrides}
               onSetDefenseSystem={app.setDefenseSystem}
               onUpdateZoneConfig={app.updateZoneConfig}
               onApplyDefensePreset={app.applyDefensePreset}

@@ -340,6 +340,38 @@ export function useAppState() {
     }));
   }, []);
 
+  /** Applique un patch à TOUS les défenseurs en une seule entrée d'historique.
+   *  Utile pour le pilotage en masse depuis le DefensePanel : changer une
+   *  consigne (offBallStance, gazeLock, helpMode, etc.) pour tout le monde. */
+  const updateAllRules = useCallback((patch: Partial<DefenderRule>) => {
+    setStateWithHistory((s) => {
+      const rules = { ...s.rules };
+      (Object.keys(rules) as DefenderId[]).forEach((id) => {
+        rules[id] = { ...rules[id], ...patch };
+      });
+      return { ...s, rules };
+    });
+  }, []);
+
+  /** Efface tous les overrides numériques individuels (distance, maxSpeed,
+   *  closeoutBoost, denyAggressiveness, screenNav). Tous les défenseurs
+   *  retombent sur les valeurs globales (`state.defenseDistance`, etc.). */
+  const resetIndividualOverrides = useCallback(() => {
+    setStateWithHistory((s) => {
+      const rules = { ...s.rules };
+      (Object.keys(rules) as DefenderId[]).forEach((id) => {
+        const r = { ...rules[id] };
+        delete r.distance;
+        delete r.maxSpeed;
+        delete r.closeoutBoost;
+        delete r.denyAggressiveness;
+        delete r.screenNav;
+        rules[id] = r;
+      });
+      return { ...s, rules };
+    });
+  }, []);
+
   const applyDefenderProfile = useCallback(
     (dId: DefenderId, profile: DefenderProfile) => {
       setStateWithHistory((s) => ({
@@ -698,6 +730,8 @@ export function useAppState() {
     clearAnnotationsFor,
     setTool,
     updateRule,
+    updateAllRules,
+    resetIndividualOverrides,
     applyDefenderProfile,
     setAttackerHand,
     setAttackerOrientation,
