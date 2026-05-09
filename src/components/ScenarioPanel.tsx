@@ -43,7 +43,14 @@ interface ScenarioPanelProps {
 
 export function ScenarioPanel(props: ScenarioPanelProps) {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const toggleExpand = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
   const c = COLORS.offense;
 
   // Échap ferme le modal
@@ -62,7 +69,11 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
       params: defaultParamsFor(def),
     };
     props.onAddAction(newAction);
-    setEditingId(newAction.id);
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      next.add(newAction.id);
+      return next;
+    });
     setShowAddModal(false);
   };
 
@@ -90,52 +101,98 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
 
       {offensiveActions.map((action, idx) => {
         const def = SCRIPTED_ACTIONS_CATALOG[action.type];
-        const isEditing = editingId === action.id;
+        if (!def) return null;
+        const isExpanded = expandedIds.has(action.id);
         return (
           <div
             key={action.id}
             style={{
-              border: `1px solid ${c.border}`,
+              border: '1px solid #fed7aa',
+              borderLeft: '3px solid #ea580c',
               borderRadius: 6,
-              padding: 6,
-              background: isEditing ? c.bg : '#fff',
+              background: '#fff',
+              overflow: 'hidden',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: c.accent, minWidth: 18 }}>{idx + 1}</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: c.accentText, flex: 1 }}>{def.label}</span>
+            {/* Header cliquable */}
+            <div
+              onClick={() => toggleExpand(action.id)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 10px',
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}
+            >
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#9a3412' }}>
+                #{(idx + 1).toString().padStart(2, '0')}
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#1f2937', flex: 1 }}>
+                {def.label}
+              </span>
+              <span style={{ fontSize: 11, color: '#9ca3af' }}>{isExpanded ? '▲' : '▼'}</span>
               <button
-                onClick={() => props.onMoveAction(action.id, 'up')}
-                disabled={idx === 0}
-                style={iconBtn(idx === 0)}
-                title="Monter"
-              >▲</button>
-              <button
-                onClick={() => props.onMoveAction(action.id, 'down')}
-                disabled={idx === offensiveActions.length - 1}
-                style={iconBtn(idx === offensiveActions.length - 1)}
-                title="Descendre"
-              >▼</button>
-              <button
-                onClick={() => setEditingId(isEditing ? null : action.id)}
-                style={iconBtn(false)}
-                title="Modifier"
-              >⚙</button>
-              <button
-                onClick={() => props.onDeleteAction(action.id)}
-                style={{ ...iconBtn(false), color: '#dc2626' }}
+                onClick={(e) => { e.stopPropagation(); props.onDeleteAction(action.id); }}
+                style={{
+                  border: 'none', background: 'transparent', cursor: 'pointer',
+                  fontSize: 13, color: '#dc2626', padding: '2px 6px',
+                }}
                 title="Supprimer"
               >✕</button>
             </div>
-            <div style={{ fontSize: 11, color: '#475569', marginTop: 2, marginLeft: 24 }}>
+            <div style={{ fontSize: 11, color: '#475569', padding: '0 10px 8px 28px' }}>
               {action.label || def.reader(action.params)}
             </div>
-            {isEditing && (
-              <ActionForm
-                action={action}
-                def={def}
-                onChange={(updated) => props.onUpdateAction(action.id, updated)}
-              />
+
+            {/* Panneau déplié */}
+            {isExpanded && (
+              <div style={{ borderTop: '1px solid #f3f4f6', padding: 10, background: '#fffbf5' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#9a3412', marginBottom: 6 }}>
+                  PARAMÈTRES
+                </div>
+                <ActionForm
+                  action={action}
+                  def={def}
+                  onChange={(updated) => props.onUpdateAction(action.id, updated)}
+                />
+                <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                  <button
+                    onClick={() => props.onMoveAction(action.id, 'up')}
+                    disabled={idx === 0}
+                    style={{
+                      flex: 1, padding: '6px 10px', fontSize: 11,
+                      border: '1px solid #cbd5e1', borderRadius: 4,
+                      background: idx === 0 ? '#f1f5f9' : '#fff',
+                      cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                    }}
+                  >▲ monter</button>
+                  <button
+                    onClick={() => props.onMoveAction(action.id, 'down')}
+                    disabled={idx === offensiveActions.length - 1}
+                    style={{
+                      flex: 1, padding: '6px 10px', fontSize: 11,
+                      border: '1px solid #cbd5e1', borderRadius: 4,
+                      background: idx === offensiveActions.length - 1 ? '#f1f5f9' : '#fff',
+                      cursor: idx === offensiveActions.length - 1 ? 'not-allowed' : 'pointer',
+                    }}
+                  >▼ descendre</button>
+                </div>
+
+                {/* Placeholder zone couvertures — implémenté Task 6 */}
+                <div style={{
+                  marginTop: 12, paddingTop: 10,
+                  borderTop: '1px dashed #e2e8f0',
+                }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#1e3a8a', marginBottom: 6 }}>
+                    🛡️ COUVERTURES DÉFENSIVES
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>
+                    (à implémenter Task 6)
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         );
@@ -360,15 +417,3 @@ function defaultParamsFor(def: ScriptedActionDefinition): OffensiveScriptedActio
   return params;
 }
 
-function iconBtn(disabled: boolean): React.CSSProperties {
-  return {
-    fontSize: 11,
-    padding: '2px 5px',
-    border: '1px solid #e2e8f0',
-    borderRadius: 4,
-    background: '#fff',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    color: disabled ? '#cbd5e1' : '#475569',
-    minWidth: 22,
-  };
-}
