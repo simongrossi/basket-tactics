@@ -8,7 +8,6 @@ import type {
   AttackerId,
   AttackerPositions,
 } from '../types';
-import { baseMatchups } from '../data/initial';
 import { getZoneLayout, mirrorZoneLayout, applyZoneOverrides } from '../data/zones';
 import { detectTriggers } from './triggers';
 import { manTarget, carrierDefenderTarget, offBallStanceTarget, orientationLateralOffset } from './manDefense';
@@ -41,13 +40,18 @@ import { HOOP, HOOP_OPPOSITE, PLAYER_RADIUS } from '../data/court';
 import type { Point } from '../types';
 import { isInTrapZone, pickTrapHelper, trapTarget } from './trap';
 import { applyDirective } from './applyDirective';
+import {
+  activeBallCarrier,
+  activeDefenseInitial,
+  activeMatchups,
+  activeOffense,
+  getActiveDefenderIds,
+} from './players';
 
 /** Panier de référence côté défense pour cet AppState (selon attackingDirection). */
 export function getDefenseHoop(state: AppState): Point {
   return state.attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP;
 }
-
-const DEFENDER_IDS: DefenderId[] = ['D1', 'D2', 'D3', 'D4', 'D5'];
 
 // Facteur de closeout par défaut : centralisé dans data/physics.ts.
 const DEFAULT_CLOSEOUT_SPEED_FACTOR = DEFAULT_CLOSEOUT_BOOST;
@@ -56,13 +60,16 @@ const DEFAULT_CLOSEOUT_SPEED_FACTOR = DEFAULT_CLOSEOUT_BOOST;
  * Calcule les matchups en vigueur AU DÉBUT d'une étape donnée
  * en cumulant tous les switches survenus dans les étapes précédentes.
  */
-export function getMatchupsAt(steps: Step[], stepIdx: number): Matchups {
-  let m: Matchups = { ...baseMatchups };
+export function getMatchupsAt(steps: Step[], stepIdx: number, playerCount: AppState['playerCount'] = 5): Matchups {
+  let m: Matchups = activeMatchups(playerCount);
+  const activeDefenders = new Set(getActiveDefenderIds(playerCount));
   for (let i = 0; i <= stepIdx; i++) {
     const sw = steps[i].switches || [];
     sw.forEach(([d1, d2]) => {
+      if (!activeDefenders.has(d1) || !activeDefenders.has(d2)) return;
       const o1 = m[d1];
       const o2 = m[d2];
+      if (!o1 || !o2) return;
       m[d1] = o2;
       m[d2] = o1;
     });
@@ -87,21 +94,22 @@ export function computeDefenseTargets(
   }
 
   const cur = state.steps[stepIdx];
-  const off = cur.off;
-  const ballCarrier = cur.ballCarrier;
+  const off = activeOffense(cur.off, state.playerCount);
+  const ballCarrier = activeBallCarrier(cur, state.playerCount);
+  const defenderIds = getActiveDefenderIds(state.playerCount);
 
   // Matchups en début d'étape (avant détection d'écran sur cette étape)
-  let matchups = getMatchupsAt(state.steps, stepIdx - 1);
+  let matchups = getMatchupsAt(state.steps, stepIdx - 1, state.playerCount);
 
   // Estimation des positions défensives au début de cette étape
   // pour que la détection d'écran soit basée sur où sont vraiment les défenseurs.
   const prevDefenderPositions: DefenderPositions =
     stepIdx === 0
-      ? structuredClone(state.defenseInitial)
+      ? activeDefenseInitial(state.defenseInitial, state.playerCount)
       : extractPositions(computeDefenseTargets(state, stepIdx - 1, false).positions);
 
   const prevOffAtStep: AttackerPositions | undefined =
-    stepIdx > 0 ? state.steps[stepIdx - 1].off : undefined;
+    stepIdx > 0 ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount) : undefined;
   const screen = detectScreen(off, ballCarrier, matchups, prevDefenderPositions, state.screenRadius, cur.forcedScreener, prevOffAtStep);
 
   // Règle effective : on regarde l'override individuel du défenseur du porteur,
@@ -133,7 +141,7 @@ export function computeDefenseTargets(
     }
   }
 
-  const prevOff = stepIdx > 0 ? state.steps[stepIdx - 1].off : null;
+  const prevOff = stepIdx > 0 ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount) : null;
   const hoop = getDefenseHoop(state);
   const triggers = detectTriggers(off, prevOff, ballCarrier, state.triggers, hoop);
   const side = ballSide(off[ballCarrier]);
@@ -141,11 +149,12 @@ export function computeDefenseTargets(
 
   const positions = {} as ReturnType<typeof computeDefenseTargets>['positions'];
 
-  DEFENDER_IDS.forEach((dId) => {
+  defenderIds.forEach((dId) => {
     const oId = matchups[dId];
     const att = off[oId];
     const isCarrierDefender = oId === ballCarrier;
     const rule = state.rules[dId];
+    if (!att || !rule) return;
 
     let target: { x: number; y: number };
     let helpFactor = 0;
@@ -247,15 +256,15 @@ export function computeDefenseTargets(
   // gagne dans effectiveDefensePositions.
   // ---------------------------------------------------------------------
   if (screen && effectiveScreenRule !== 'switch') {
-    const prevOff = stepIdx > 0 ? state.steps[stepIdx - 1].off : null;
-    const prevPrevOff = stepIdx > 1 ? state.steps[stepIdx - 2].off : null;
+    const prevOff = stepIdx > 0 ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount) : null;
+    const prevPrevOff = stepIdx > 1 ? activeOffense(state.steps[stepIdx - 2].off, state.playerCount) : null;
     const action = detectScreenAction(off, prevOff, screen, null, prevPrevOff, hoop);
     const currentTargets = {} as Record<DefenderId, Point>;
-    DEFENDER_IDS.forEach((dId) => {
+    defenderIds.forEach((dId) => {
       currentTargets[dId] = { x: positions[dId].x, y: positions[dId].y };
     });
     const overrides = computePnRRotations(
-      off, matchups, screen, action, currentTargets, hoop, state.defenseInitial
+      off, matchups, screen, action, currentTargets, hoop, activeDefenseInitial(state.defenseInitial, state.playerCount)
     );
     for (const ov of overrides) {
       positions[ov.defender].x = Math.round(ov.target.x);
@@ -322,14 +331,24 @@ export function computeDefenseTargets(
   // + PnR + trap auto) pour permettre la prise de précédence par scénario.
   if (cur.defensiveDirectives && state.defenseScriptedDirectivesEnabled !== false) {
     const directiveTargets = {} as DefenderPositions;
-    DEFENDER_IDS.forEach((dId) => {
+    defenderIds.forEach((dId) => {
       directiveTargets[dId] = { x: positions[dId].x, y: positions[dId].y };
     });
+    const activeDefenders = new Set(defenderIds);
+    const activeStep: Step = { ...cur, off, ballCarrier };
     for (const directive of cur.defensiveDirectives) {
-      applyDirective(directiveTargets, directive, cur);
+      const activeDirective = {
+        ...directive,
+        defenders: directive.defenders.filter((dId) => activeDefenders.has(dId)),
+        swapWith: directive.swapWith && activeDefenders.has(directive.swapWith)
+          ? directive.swapWith
+          : undefined,
+      };
+      if (activeDirective.defenders.length === 0) continue;
+      applyDirective(directiveTargets, activeDirective, activeStep);
     }
     // Re-projette les nouvelles positions sur le record `positions` (arrondi).
-    DEFENDER_IDS.forEach((dId) => {
+    defenderIds.forEach((dId) => {
       positions[dId].x = Math.round(directiveTargets[dId].x);
       positions[dId].y = Math.round(directiveTargets[dId].y);
     });
@@ -339,8 +358,9 @@ export function computeDefenseTargets(
   // trap, switch), on recalcule orientation/facing en partant de la position
   // FINALE et du pnrRole effectif. Sinon, le low-man tag pointerait encore
   // vers son homme original au lieu de la zone de menace.
-  DEFENDER_IDS.forEach((dId) => {
+  defenderIds.forEach((dId) => {
     const slot = positions[dId];
+    if (!slot) return;
     const att = off[slot.matchedTo];
     const rule = state.rules[dId];
     const recomputed = computeDefenderOrientation({
@@ -370,6 +390,9 @@ function computeZoneDefenseTargets(
   stepIdx: number
 ): { positions: Record<DefenderId, { x: number; y: number; helpFactor: number; isCarrierDefender: boolean; matchedTo: AttackerId; onScreen: boolean; switchedThisStep: boolean; orientation: number; gazeOrientation: number; facing: { x: number; y: number }; armBallSide: { x: number; y: number }; armManSide: { x: number; y: number }; helpAim?: { x: number; y: number }; helpPriority?: import('../types').HelpPriority; helpKind?: 'sag-weakside' | 'denial-strongside' | 'active-help' | 'none' }>; matchupsApplied: Matchups } {
   const cur = state.steps[stepIdx];
+  const off = activeOffense(cur.off, state.playerCount);
+  const ballCarrier = activeBallCarrier(cur, state.playerCount);
+  const defenderIds = getActiveDefenderIds(state.playerCount);
   const hoop = getDefenseHoop(state);
   const baseLayout = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
   // En mode attack 'down', miroite le layout autour de la médiane pour que
@@ -377,22 +400,24 @@ function computeZoneDefenseTargets(
   const oriented = state.attackingDirection === 'down' ? mirrorZoneLayout(baseLayout) : baseLayout;
   // Applique les overrides utilisateur (homePos déplacés, radius, mode) après
   // l'orientation pour rester invariant au sens d'attaque.
-  const layout = applyZoneOverrides(oriented, state.zoneOverrides);
+  const layout = applyZoneOverrides(oriented, state.zoneOverrides).filter((z) =>
+    defenderIds.includes(z.assignedTo)
+  );
   const zoneTargets = computeZoneTargets(
-    cur.off, cur.ballCarrier, layout, state.zoneConfig, state.defenseDistance, hoop
+    off, ballCarrier, layout, state.zoneConfig, state.defenseDistance, hoop
   );
 
   const positions = {} as ReturnType<typeof computeDefenseTargets>['positions'];
   const matchups = {} as Matchups;
 
-  const carrierPosZone = cur.off[cur.ballCarrier];
-  DEFENDER_IDS.forEach((dId) => {
+  const carrierPosZone = off[ballCarrier];
+  defenderIds.forEach((dId) => {
     const zt = zoneTargets[dId];
-    const trackedAttacker = zt?.trackedAttacker || 'O1';
+    const trackedAttacker = zt?.trackedAttacker || ballCarrier;
     matchups[dId] = trackedAttacker;
     const x = zt?.x ?? state.defenseInitial[dId].x;
     const y = zt?.y ?? state.defenseInitial[dId].y;
-    const att = cur.off[trackedAttacker];
+    const att = off[trackedAttacker];
     // En zone, tout le monde regarde le ballon (principe de base) ; le
     // tracking d'un attaquant est secondaire. On reflète ça via stance="sag"
     // (head-on-swivel) qui produit facing = midpoint(homme, ballon), ce qui
@@ -402,7 +427,7 @@ function computeZoneDefenseTargets(
       defenderPos: { x, y },
       manPos: att ?? { x, y },
       ballPos: carrierPosZone ?? { x, y },
-      isCarrierDefender: trackedAttacker === cur.ballCarrier,
+      isCarrierDefender: trackedAttacker === ballCarrier,
       stance: 'sag',
       manualDelta: state.rules[dId]?.orientation ?? 0,
       manualBody: state.rules[dId]?.bodyOrientation,
@@ -412,7 +437,7 @@ function computeZoneDefenseTargets(
       x,
       y,
       helpFactor: 0,
-      isCarrierDefender: trackedAttacker === cur.ballCarrier,
+      isCarrierDefender: trackedAttacker === ballCarrier,
       matchedTo: trackedAttacker,
       onScreen: false,
       switchedThisStep: false,
@@ -448,8 +473,9 @@ export function computeAttackerVisuals(
 ): import('../types').ComputedAttackerVisuals {
   const cur = state.steps[stepIdx];
   if (!cur) return {} as import('../types').ComputedAttackerVisuals;
-  const off = cur.off;
-  const ballPos = off[cur.ballCarrier];
+  const off = activeOffense(cur.off, state.playerCount);
+  const carrier = activeBallCarrier(cur, state.playerCount);
+  const ballPos = off[carrier];
   const hoop = getDefenseHoop(state);
   const next = state.steps[stepIdx + 1];
   const prev = state.steps[stepIdx - 1];
@@ -459,18 +485,18 @@ export function computeAttackerVisuals(
   let screenerTargetDef: { x: number; y: number } | null = null;
   const offBallScreeners = new Map<AttackerId, { x: number; y: number }>();
   if (state.defenseSystem === 'man') {
-    const matchups = getMatchupsAt(state.steps, stepIdx - 1);
+    const matchups = getMatchupsAt(state.steps, stepIdx - 1, state.playerCount);
     const prevDef =
       stepIdx === 0
-        ? structuredClone(state.defenseInitial)
+        ? activeDefenseInitial(state.defenseInitial, state.playerCount)
         : extractPositions(computeDefenseTargets(state, stepIdx - 1, false).positions);
-    const prevOffArg = stepIdx > 0 ? state.steps[stepIdx - 1].off : undefined;
-    const sc = detectScreen(off, cur.ballCarrier, matchups, prevDef, state.screenRadius, cur.forcedScreener, prevOffArg);
+    const prevOffArg = stepIdx > 0 ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount) : undefined;
+    const sc = detectScreen(off, carrier, matchups, prevDef, state.screenRadius, cur.forcedScreener, prevOffArg);
     if (sc) {
       detectedScreener = sc.screener;
       screenerTargetDef = prevDef[sc.carrierDef];
     }
-    const obs = detectOffBallScreens(off, cur.ballCarrier, matchups, prevDef, state.screenRadius, prevOffArg);
+    const obs = detectOffBallScreens(off, carrier, matchups, prevDef, state.screenRadius, prevOffArg);
     obs.forEach((o) => {
       offBallScreeners.set(o.screener, prevDef[o.cutterDef]);
     });
@@ -484,12 +510,12 @@ export function computeAttackerVisuals(
     let nextPos: Point | undefined;
     let screenTargetDefPos: Point | undefined;
 
-    if (id === cur.ballCarrier) {
+    if (id === carrier) {
       role = 'carrier';
-    } else if (prev && prev.ballCarrier === id && cur.ballCarrier !== id) {
+    } else if (prev && activeBallCarrier(prev, state.playerCount) === id && carrier !== id) {
       // L'ex-porteur regarde le receveur (transition de balle).
       role = 'passer';
-      receiverPos = off[cur.ballCarrier];
+      receiverPos = off[carrier];
     } else if (id === detectedScreener && screenerTargetDef) {
       role = 'screener';
       screenTargetDefPos = screenerTargetDef;
@@ -497,7 +523,7 @@ export function computeAttackerVisuals(
       role = 'screener';
       screenTargetDefPos = offBallScreeners.get(id)!;
     } else if (next) {
-      const np = next.off[id];
+      const np = activeOffense(next.off, state.playerCount)[id];
       if (np) {
         const dx = np.x - attackerPos.x;
         const dy = np.y - attackerPos.y;
@@ -519,7 +545,7 @@ export function computeAttackerVisuals(
       screenTargetDefPos,
       // Détection dribble pour le porteur (cf. règle métier dans
       // orientation.ts : porteur statique → panier ; en dribble → mouvement).
-      prevPos: prev ? prev.off[id] : undefined,
+      prevPos: prev ? activeOffense(prev.off, state.playerCount)[id] : undefined,
       manualBody: manualOverride?.body,
       manualGaze: manualOverride?.gaze,
     });
@@ -538,13 +564,11 @@ export function computeAttackerVisuals(
 function extractPositions(
   positions: Record<DefenderId, { x: number; y: number }>
 ): DefenderPositions {
-  return {
-    D1: { x: positions.D1.x, y: positions.D1.y },
-    D2: { x: positions.D2.x, y: positions.D2.y },
-    D3: { x: positions.D3.x, y: positions.D3.y },
-    D4: { x: positions.D4.x, y: positions.D4.y },
-    D5: { x: positions.D5.x, y: positions.D5.y },
-  };
+  const out = {} as DefenderPositions;
+  (Object.entries(positions) as [DefenderId, { x: number; y: number }][]).forEach(([id, p]) => {
+    if (p) out[id] = { x: p.x, y: p.y };
+  });
+  return out;
 }
 
 /**
@@ -563,32 +587,36 @@ export function detectStepScreenAction(
   if (state.defenseSystem !== 'man') return null;
   const cur = state.steps[stepIdx];
   if (!cur) return null;
-  const matchups = getMatchupsAt(state.steps, stepIdx - 1);
+  const off = activeOffense(cur.off, state.playerCount);
+  const ballCarrier = activeBallCarrier(cur, state.playerCount);
+  const matchups = getMatchupsAt(state.steps, stepIdx - 1, state.playerCount);
   const prevDef =
     stepIdx === 0
-      ? structuredClone(state.defenseInitial)
+      ? activeDefenseInitial(state.defenseInitial, state.playerCount)
       : extractPositions(computeDefenseTargets(state, stepIdx - 1, false).positions);
-  const prevOff = stepIdx > 0 ? state.steps[stepIdx - 1].off : null;
-  const prevPrevOff = stepIdx > 1 ? state.steps[stepIdx - 2].off : null;
+  const prevOff = stepIdx > 0 ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount) : null;
+  const prevPrevOff = stepIdx > 1 ? activeOffense(state.steps[stepIdx - 2].off, state.playerCount) : null;
   const screen = detectScreen(
-    cur.off, cur.ballCarrier, matchups, prevDef, state.screenRadius, cur.forcedScreener, prevOff ?? undefined
+    off, ballCarrier, matchups, prevDef, state.screenRadius, cur.forcedScreener, prevOff ?? undefined
   );
   if (!screen) return null;
   let prevScreen: import('../types').DetectedScreen | null = null;
   if (stepIdx > 0) {
     const prevStep = state.steps[stepIdx - 1];
-    const prevMatchups = getMatchupsAt(state.steps, stepIdx - 2);
+    const prevStepOff = activeOffense(prevStep.off, state.playerCount);
+    const prevCarrier = activeBallCarrier(prevStep, state.playerCount);
+    const prevMatchups = getMatchupsAt(state.steps, stepIdx - 2, state.playerCount);
     const prevPrevDef =
       stepIdx === 1
-        ? structuredClone(state.defenseInitial)
+        ? activeDefenseInitial(state.defenseInitial, state.playerCount)
         : extractPositions(computeDefenseTargets(state, stepIdx - 2, false).positions);
     prevScreen = detectScreen(
-      prevStep.off, prevStep.ballCarrier, prevMatchups, prevPrevDef, state.screenRadius, prevStep.forcedScreener,
+      prevStepOff, prevCarrier, prevMatchups, prevPrevDef, state.screenRadius, prevStep.forcedScreener,
       prevPrevOff ?? undefined
     );
   }
   const action = detectScreenAction(
-    cur.off, prevOff, screen, prevScreen, prevPrevOff, getDefenseHoop(state)
+    off, prevOff, screen, prevScreen, prevPrevOff, getDefenseHoop(state)
   );
   return { screen, action };
 }
@@ -600,6 +628,9 @@ export function detectStepScreenAction(
  */
 export function effectiveDefensePositions(state: AppState, stepIdx: number): ComputedDefense {
   const { positions: targets } = computeDefenseTargets(state, stepIdx, true);
+  const defenderIds = getActiveDefenderIds(state.playerCount);
+  const curStep = state.steps[stepIdx];
+  const curCarrier = activeBallCarrier(curStep, state.playerCount);
 
   const baseMaxSpeed = state.defenseSystem === 'zone'
     ? state.zoneConfig.rotationSpeed
@@ -610,15 +641,15 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
   const isCloseoutTransition =
     stepIdx > 0 &&
     state.defenseSystem === 'man' &&
-    state.steps[stepIdx - 1].ballCarrier !== state.steps[stepIdx].ballCarrier;
+    activeBallCarrier(state.steps[stepIdx - 1], state.playerCount) !== curCarrier;
 
   // Over-closeout : closeout ET le nouveau porteur a driver vers le panier
   // entre N-1 et N (le défenseur arrivé trop fort se fait déborder).
   let isOverClosedTransition = false;
   if (isCloseoutTransition) {
-    const newCarrier = state.steps[stepIdx].ballCarrier;
-    const prevP = state.steps[stepIdx - 1].off[newCarrier];
-    const curP = state.steps[stepIdx].off[newCarrier];
+    const newCarrier = curCarrier;
+    const prevP = activeOffense(state.steps[stepIdx - 1].off, state.playerCount)[newCarrier];
+    const curP = activeOffense(curStep.off, state.playerCount)[newCarrier];
     if (prevP && curP) {
       const hoop = getDefenseHoop(state);
       const prevD = Math.hypot(prevP.x - hoop.x, prevP.y - hoop.y);
@@ -631,18 +662,19 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
   if (stepIdx === 0) {
     if (state.defenseSystem === 'zone') {
       const baseLayout = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
-      const layout = state.attackingDirection === 'down' ? mirrorZoneLayout(baseLayout) : baseLayout;
+      const layout = (state.attackingDirection === 'down' ? mirrorZoneLayout(baseLayout) : baseLayout)
+        .filter((z) => defenderIds.includes(z.assignedTo));
       prevPositions = {} as DefenderPositions;
       layout.forEach((z) => { prevPositions[z.assignedTo] = { ...z.homePos }; });
     } else {
-      prevPositions = structuredClone(state.defenseInitial);
+      prevPositions = activeDefenseInitial(state.defenseInitial, state.playerCount);
     }
   } else {
     prevPositions = extractPositions(computeDefenseTargets(state, stepIdx - 1, false).positions);
   }
 
   const overrides = state.steps[stepIdx]?.defenseOverrides;
-  const offAtStep = state.steps[stepIdx]?.off ?? {};
+  const offAtStep = activeOffense(state.steps[stepIdx]?.off ?? {} as AttackerPositions, state.playerCount);
 
   // Construit les clusters d'écran à contourner (poseur + son défenseur, fusionnés
   // en une seule masse). Seulement en défense individuelle — la zone n'a pas de
@@ -651,24 +683,26 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
   const screenerObstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
   if (state.defenseSystem === 'man' && stepIdx > 0) {
     const cur = state.steps[stepIdx];
-    const matchupsForScreen = getMatchupsAt(state.steps, stepIdx - 1);
-    const prevOffEff = state.steps[stepIdx - 1].off;
+    const curOff = activeOffense(cur.off, state.playerCount);
+    const carrier = activeBallCarrier(cur, state.playerCount);
+    const matchupsForScreen = getMatchupsAt(state.steps, stepIdx - 1, state.playerCount);
+    const prevOffEff = activeOffense(state.steps[stepIdx - 1].off, state.playerCount);
     const screen = detectScreen(
-      cur.off, cur.ballCarrier, matchupsForScreen, prevPositions, state.screenRadius, cur.forcedScreener, prevOffEff
+      curOff, carrier, matchupsForScreen, prevPositions, state.screenRadius, cur.forcedScreener, prevOffEff
     );
     const offBallScreens = detectOffBallScreens(
-      cur.off, cur.ballCarrier, matchupsForScreen, prevPositions, state.screenRadius, prevOffEff
+      curOff, carrier, matchupsForScreen, prevPositions, state.screenRadius, prevOffEff
     );
     const linkDist = PLAYER_RADIUS * 4;
     const baseR = PLAYER_RADIUS + 4;
     if (screen) {
-      const sPos = cur.off[screen.screener];
+      const sPos = curOff[screen.screener];
       const sDef = prevPositions[screen.screenerDef];
       const c = makeCluster(sPos, [sDef], linkDist, baseR);
       screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: screen.screenerDef });
     }
     offBallScreens.forEach((s) => {
-      const sPos = cur.off[s.screener];
+      const sPos = curOff[s.screener];
       const sDef = prevPositions[s.screenerDef];
       const c = makeCluster(sPos, [sDef], linkDist, baseR);
       screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: s.screenerDef });
@@ -676,7 +710,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
   }
 
   const out = {} as ComputedDefense;
-  DEFENDER_IDS.forEach((dId) => {
+  defenderIds.forEach((dId) => {
     // Override manuel utilisateur : prend toujours le pas sur le calcul.
     if (overrides?.[dId]) {
       const pos = overrides[dId]!;
@@ -734,7 +768,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     // matché (attaquant non visé OU autre défenseur), on baisse la vitesse
     // max. Modélise le contact "épaule" hors écran formel.
     const frictionObstacles: Point[] = [...nonMatchedAttackerPositions];
-    DEFENDER_IDS.forEach((other) => {
+    defenderIds.forEach((other) => {
       if (other !== dId) frictionObstacles.push(prevPositions[other]);
     });
     const friction = proximityFriction(from, to, frictionObstacles);
@@ -745,7 +779,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     // Override par défenseur > global > défaut, modulé par le profil offensif
     // du porteur sur lequel on closeoute (shooter → +15%, non-shooter → -15%).
     const ruleBoost = state.rules[dId]?.closeoutBoost;
-    const carrierForCloseout = state.steps[stepIdx].ballCarrier;
+    const carrierForCloseout = curCarrier;
     const profileBonus = closingOut
       ? closeoutProfileBonus(state.attackerProfiles?.[carrierForCloseout])
       : 1;
@@ -817,7 +851,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
   // autre joueur (sauf son matchedTo).
   resolvePlayerCollisions(out as unknown as Record<string, ComputedDefense[DefenderId]>, offAtStep, MIN_PLAYER_CLEARANCE_PX);
   // Re-arrondit après résolution
-  DEFENDER_IDS.forEach((dId) => {
+  defenderIds.forEach((dId) => {
     out[dId].x = Math.round(out[dId].x);
     out[dId].y = Math.round(out[dId].y);
   });

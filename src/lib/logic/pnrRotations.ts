@@ -13,8 +13,6 @@ import {
   actionRequiresLowManTag,
 } from './screenAction';
 
-const DEFENDER_IDS: DefenderId[] = ['D1', 'D2', 'D3', 'D4', 'D5'];
-
 /**
  * Rôle assigné par les rotations PnR (low-man tag + X-out + stunt).
  * Permet à l'engine d'overrider les targets ET de tagger le défenseur
@@ -62,6 +60,7 @@ export function computePnRRotations(
   const carrierPos = off[screen.carrier];
   if (!carrierPos) return [];
   const overrides: PnRRotationOverride[] = [];
+  const defenderIds = Object.keys(defenderTargets) as DefenderId[];
 
   // -----------------------------------------------------------------------
   // 1. Identifier le low-man : défenseur weak-side, le plus proche du panier,
@@ -71,7 +70,7 @@ export function computePnRRotations(
   const carrierSide = Math.sign(carrierPos.x - hoop.x) || 0;
   let lowMan: DefenderId | null = null as DefenderId | null;
   let lowManDistToHoop = Infinity;
-  DEFENDER_IDS.forEach((dId) => {
+  defenderIds.forEach((dId) => {
     if (dId === screen.carrierDef || dId === screen.screenerDef) return;
     const myAtt = matchups[dId];
     const myAttPos = off[myAtt];
@@ -83,6 +82,7 @@ export function computePnRRotations(
     const isWeakOrCentral = myAttSide === 0 || myAttSide !== carrierSide;
     if (!isWeakOrCentral) return;
     const dPos = defenderTargets[dId];
+    if (!dPos) return;
     const distToHoop = distance(dPos, hoop);
     if (distToHoop < lowManDistToHoop) {
       lowManDistToHoop = distToHoop;
@@ -118,7 +118,7 @@ export function computePnRRotations(
   if (orphanPos) {
     let xOutDef: DefenderId | null = null as DefenderId | null;
     let xOutBestDist = Infinity;
-    DEFENDER_IDS.forEach((dId) => {
+    defenderIds.forEach((dId) => {
       if (dId === screen.carrierDef || dId === screen.screenerDef || dId === lowManId) return;
       const myAtt = matchups[dId];
       const myAttPos = off[myAtt];
@@ -138,6 +138,7 @@ export function computePnRRotations(
       // contient déjà ses ajustements stance/help) et on shift de 50% vers
       // l'orphan. Évite que le défenseur abandonne complètement son homme.
       const baseTarget = defenderTargets[xOutId];
+      if (!baseTarget) return overrides;
       const xOutTarget: Point = {
         x: baseTarget.x + (orphanPos.x - baseTarget.x) * 0.5,
         y: baseTarget.y + (orphanPos.y - baseTarget.y) * 0.5,
@@ -162,7 +163,7 @@ export function computePnRRotations(
   //    du panier verticalement). Stunt = 25% du chemin vers le porteur.
   // -----------------------------------------------------------------------
   let nailDef: DefenderId | null = null as DefenderId | null;
-  DEFENDER_IDS.forEach((dId) => {
+  defenderIds.forEach((dId) => {
     if (
       dId === screen.carrierDef ||
       dId === screen.screenerDef ||
@@ -181,6 +182,7 @@ export function computePnRRotations(
   if (nailDef) {
     const nailId: DefenderId = nailDef;
     const baseTarget = defenderTargets[nailId];
+    if (!baseTarget) return overrides;
     const stuntTarget: Point = {
       x: baseTarget.x + (carrierPos.x - baseTarget.x) * 0.25,
       y: baseTarget.y + (carrierPos.y - baseTarget.y) * 0.25,

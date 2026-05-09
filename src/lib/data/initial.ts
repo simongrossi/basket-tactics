@@ -66,6 +66,7 @@ export function makeInitialState(): AppState {
   return {
     steps: [makeStep(initialOff, 'O1', [])],
     activeStep: 0,
+    playerCount: 5,
     defenseInitial: structuredClone(initialDef),
     defenseDistance: DEFAULT_DEFENSE_DISTANCE_PX,
     defenseMaxSpeed: DEFAULT_DEFENSE_MAX_SPEED_PX,

@@ -12,6 +12,7 @@ import type {
 import { Panel, Section, Slider, CheckboxLine, Button, COLORS } from './ui';
 import { DEFENSE_PRESETS, type DefensePreset } from '@/lib/data/defensePresets';
 import { SimulationSection } from './SimulationSection';
+import { getActiveDefenderIds } from '@/lib/logic/players';
 
 interface DefensePanelProps {
   state: AppState;
@@ -31,6 +32,7 @@ export function DefensePanel(props: DefensePanelProps) {
   const { state } = props;
   const c = COLORS.defense;
   const isMan = state.defenseSystem === 'man';
+  const defenderIds = getActiveDefenderIds(state.playerCount);
 
   return (
     <Panel theme="defense" title="🛡 Défense" fill>
@@ -200,7 +202,10 @@ export function DefensePanel(props: DefensePanelProps) {
             />
             {(() => {
               const cur = state.steps[state.activeStep];
-              const overrideCount = cur?.defenseOverrides ? Object.keys(cur.defenseOverrides).length : 0;
+              const activeDefenders = new Set(defenderIds);
+              const overrideCount = cur?.defenseOverrides
+                ? Object.keys(cur.defenseOverrides).filter((id) => activeDefenders.has(id as DefenderId)).length
+                : 0;
               return (
                 <button
                   onClick={props.onClearAllDefenseOverrides}
@@ -376,7 +381,7 @@ export function DefensePanel(props: DefensePanelProps) {
               <span>hors-bal.</span>
               <span>écran</span>
             </div>
-            {(['D1', 'D2', 'D3', 'D4', 'D5'] as DefenderId[]).map((dId) => {
+            {defenderIds.map((dId) => {
               const r = state.rules[dId];
               return (
                 <div

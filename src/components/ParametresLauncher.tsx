@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { AppState } from '@/lib/types';
+import type { AppState, PlayerCount } from '@/lib/types';
 import { Panel, COLORS } from './ui';
 import { ParametresPanel } from './ParametresPanel';
 
 interface ParametresLauncherProps {
   state: AppState;
   onPatch: (p: Partial<AppState>) => void;
+  onSetPlayerCount: (count: PlayerCount) => void;
 }
 
 /**
@@ -15,7 +16,7 @@ interface ParametresLauncherProps {
  * Ouvre une modal pop-up centrée contenant tout le contenu de ParametresPanel
  * (VISU & LÉGENDE + INDICATEURS AUTO). Style cohérent avec LibraryPanel.
  */
-export function ParametresLauncher({ state, onPatch }: ParametresLauncherProps) {
+export function ParametresLauncher({ state, onPatch, onSetPlayerCount }: ParametresLauncherProps) {
   const c = COLORS.defense;
   const [open, setOpen] = useState(false);
 
@@ -54,9 +55,9 @@ export function ParametresLauncher({ state, onPatch }: ParametresLauncherProps) 
         }}
         onMouseEnter={(e) => { e.currentTarget.style.background = c.bgSubtle; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = c.bg; }}
-        title="Visu & légende, indicateurs auto, sens d'attaque"
+        title="Format de jeu, visu & légende, indicateurs auto, sens d'attaque"
       >
-        <span>⚙ Paramètres ({activeToggles} actifs)</span>
+        <span>⚙ Paramètres · {state.playerCount}x{state.playerCount} ({activeToggles} actifs)</span>
         <span style={{ fontSize: 10, color: c.accent, opacity: 0.7 }}>ouvrir →</span>
       </button>
       {open && (
@@ -110,7 +111,7 @@ export function ParametresLauncher({ state, onPatch }: ParametresLauncherProps) 
             >
               ×
             </button>
-            <ParametresPanel state={state} onPatch={onPatch} />
+            <ParametresPanel state={state} onPatch={onPatch} onSetPlayerCount={onSetPlayerCount} />
           </div>
         </div>
       )}

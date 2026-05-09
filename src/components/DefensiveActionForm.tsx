@@ -6,15 +6,14 @@ import type {
 } from '@/lib/types';
 import { DEFENSIVE_ACTIONS_CATALOG } from '@/lib/data/defensiveActionsCatalog';
 
-const ALL_DEFENDERS: DefenderId[] = ['D1','D2','D3','D4','D5'];
-const ALL_ATTACKERS: AttackerId[] = ['O1','O2','O3','O4','O5'];
-
 interface DefensiveActionFormProps {
   action: DefensiveScriptedAction;
+  defenderIds: DefenderId[];
+  attackerIds: AttackerId[];
   onChange: (updated: DefensiveScriptedAction) => void;
 }
 
-export function DefensiveActionForm({ action, onChange }: DefensiveActionFormProps) {
+export function DefensiveActionForm({ action, defenderIds, attackerIds, onChange }: DefensiveActionFormProps) {
   const def = DEFENSIVE_ACTIONS_CATALOG[action.type];
   const updateParams = (patch: Partial<DefensiveActionParams>) => {
     onChange({ ...action, params: { ...action.params, ...patch } });
@@ -31,7 +30,7 @@ export function DefensiveActionForm({ action, onChange }: DefensiveActionFormPro
             Défenseur(s)
           </label>
           <div style={{ display: 'flex', gap: 4 }}>
-            {ALL_DEFENDERS.map((d) => {
+            {defenderIds.map((d) => {
               const checked = action.params.defenders.includes(d);
               return (
                 <button
@@ -66,7 +65,7 @@ export function DefensiveActionForm({ action, onChange }: DefensiveActionFormPro
             style={{ fontSize: 11, padding: '3px 6px', borderRadius: 4, border: '1px solid #cbd5e1' }}
           >
             <option value="">—</option>
-            {ALL_ATTACKERS.map((o) => <option key={o} value={o}>{o}</option>)}
+            {attackerIds.map((o) => <option key={o} value={o}>{o}</option>)}
           </select>
         </div>
       )}
@@ -82,7 +81,7 @@ export function DefensiveActionForm({ action, onChange }: DefensiveActionFormPro
             style={{ fontSize: 11, padding: '3px 6px', borderRadius: 4, border: '1px solid #cbd5e1' }}
           >
             <option value="">—</option>
-            {ALL_DEFENDERS.map((d) => <option key={d} value={d}>{d}</option>)}
+            {defenderIds.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
         </div>
       )}

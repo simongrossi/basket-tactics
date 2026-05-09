@@ -20,6 +20,7 @@ import { effectiveDefensePositions, getDefenseHoop, detectStepScreenAction } fro
 import { computeMetrics } from '@/lib/logic/metrics';
 import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offense';
 import { computeCoachDiagnostics } from '@/lib/logic/coachDiagnostics';
+import { activeBallCarrier, activeOffense } from '@/lib/logic/players';
 import type { AppState } from '@/lib/types';
 
 export default function Page() {
@@ -37,7 +38,12 @@ export default function Page() {
     const step = app.state.steps[app.state.activeStep];
     if (!step) return null;
     const defPos = effectiveDefensePositions(app.state, app.state.activeStep);
-    return computeMetrics(step.off, defPos, step.ballCarrier, getDefenseHoop(app.state));
+    return computeMetrics(
+      activeOffense(step.off, app.state.playerCount),
+      defPos,
+      activeBallCarrier(step, app.state.playerCount),
+      getDefenseHoop(app.state)
+    );
   }, [app.state]);
 
   const bestAction = useMemo(() => {
@@ -45,7 +51,11 @@ export default function Page() {
     if (!step) return null;
     const defPos = effectiveDefensePositions(app.state, app.state.activeStep);
     const actions = evaluateOffensiveOptions(
-      step.off, defPos, step.ballCarrier, getDefenseHoop(app.state), app.state.attackerProfiles
+      activeOffense(step.off, app.state.playerCount),
+      defPos,
+      activeBallCarrier(step, app.state.playerCount),
+      getDefenseHoop(app.state),
+      app.state.attackerProfiles
     );
     return bestOffensiveAction(actions);
   }, [app.state]);
@@ -148,6 +158,7 @@ export default function Page() {
             />
             <ScenarioPanel
               scriptedActions={app.state.scriptedActions ?? []}
+              playerCount={app.state.playerCount}
               onAddAction={app.addScriptedAction}
               onUpdateAction={app.updateScriptedAction}
               onDeleteAction={app.deleteScriptedAction}
@@ -174,7 +185,7 @@ export default function Page() {
               onExportFolder={lib.exportFolder}
               onImportFolder={lib.importFolder}
             />
-            <ParametresLauncher state={app.state} onPatch={app.patch} />
+            <ParametresLauncher state={app.state} onPatch={app.patch} onSetPlayerCount={app.setPlayerCount} />
           </div>
         )}
 
@@ -319,4 +330,3 @@ export default function Page() {
     </main>
   );
 }
-

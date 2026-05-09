@@ -1,11 +1,13 @@
 'use client';
 
-import type { AppState } from '@/lib/types';
+import type { AppState, PlayerCount } from '@/lib/types';
+import { PLAYER_COUNT_OPTIONS } from '@/lib/logic/players';
 import { Panel, CheckboxLine, COLORS } from './ui';
 
 interface ParametresPanelProps {
   state: AppState;
   onPatch: (p: Partial<AppState>) => void;
+  onSetPlayerCount: (count: PlayerCount) => void;
 }
 
 /**
@@ -14,10 +16,38 @@ interface ParametresPanelProps {
  * regrouper TOUTES les options visuelles au même endroit, et alléger
  * la hauteur du panneau Défense (qui se concentre sur la simulation).
  */
-export function ParametresPanel({ state, onPatch }: ParametresPanelProps) {
+export function ParametresPanel({ state, onPatch, onSetPlayerCount }: ParametresPanelProps) {
   const c = COLORS.defense;
   return (
     <Panel theme="defense" title="⚙ Paramètres">
+      <div style={{ fontSize: 10, fontWeight: 600, color: c.accentText, opacity: 0.8, letterSpacing: '0.02em' }}>
+        FORMAT DE JEU
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, marginBottom: 6 }}>
+        {PLAYER_COUNT_OPTIONS.map((count) => {
+          const active = state.playerCount === count;
+          return (
+            <button
+              key={count}
+              type="button"
+              onClick={() => onSetPlayerCount(count)}
+              style={{
+                fontSize: 11,
+                padding: '5px 6px',
+                borderRadius: 5,
+                border: `1px solid ${active ? c.accent : c.border}`,
+                background: active ? c.accent : '#fff',
+                color: active ? '#fff' : c.accentText,
+                cursor: 'pointer',
+                fontWeight: active ? 700 : 500,
+              }}
+            >
+              {count}x{count}
+            </button>
+          );
+        })}
+      </div>
+
       <div style={{ fontSize: 10, fontWeight: 600, color: c.accentText, opacity: 0.8, letterSpacing: '0.02em' }}>
         VISU & LÉGENDE
       </div>

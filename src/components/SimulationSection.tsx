@@ -5,6 +5,7 @@ import type { AppState } from '@/lib/types';
 import { Section, COLORS } from './ui';
 import { effectiveDefensePositions, getDefenseHoop } from '@/lib/logic/engine';
 import { simulatePossessions, type SimulationResult } from '@/lib/logic/simulator';
+import { activeBallCarrier, activeOffense } from '@/lib/logic/players';
 
 interface SimulationSectionProps {
   state: AppState;
@@ -46,9 +47,9 @@ export function SimulationSection({ state }: SimulationSectionProps) {
       }
       const defPos = effectiveDefensePositions(state, state.activeStep);
       const r = simulatePossessions(
-        step.off,
+        activeOffense(step.off, state.playerCount),
         defPos,
-        step.ballCarrier,
+        activeBallCarrier(step, state.playerCount),
         runs,
         getDefenseHoop(state)
       );
