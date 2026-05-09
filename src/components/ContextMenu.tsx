@@ -110,6 +110,8 @@ interface AttackerMenuProps {
   dominantHand: DominantHand;
   offensiveProfile: OffensiveProfile;
   tool: Tool;
+  bodyOrientation?: number;
+  gazeOrientation?: number;
   onSetTool: (t: Tool) => void;
   onMakeCarrier: () => void;
   onForceScreener: () => void;
@@ -117,6 +119,8 @@ interface AttackerMenuProps {
   onClearAnnotations: () => void;
   onSetDominantHand: (h: DominantHand) => void;
   onSetOffensiveProfile: (p: OffensiveProfile) => void;
+  onSetBodyOrientation: (v: number | undefined) => void;
+  onSetGazeOrientation: (v: number | undefined) => void;
   onClose: () => void;
 }
 
@@ -574,9 +578,9 @@ const PROFILE_LABELS: Record<OffensiveProfile, string> = {
 
 function AttackerMenu({
   oId, x, y, isCarrier, isForcedScreener, hasAnnotations, dominantHand, offensiveProfile,
-  tool, onSetTool,
+  tool, onSetTool, bodyOrientation, gazeOrientation,
   onMakeCarrier, onForceScreener, onClearForcedScreener, onClearAnnotations,
-  onSetDominantHand, onSetOffensiveProfile, onClose,
+  onSetDominantHand, onSetOffensiveProfile, onSetBodyOrientation, onSetGazeOrientation, onClose,
 }: AttackerMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
   const pos = useClampedPosition(x, y, ref);
@@ -678,6 +682,74 @@ function AttackerMenu({
             <option key={p} value={p}>{PROFILE_LABELS[p]}</option>
           ))}
         </select>
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          marginTop: 6,
+          padding: '5px 6px',
+          borderRadius: 4,
+          background: '#fff7ed',
+          border: '1px solid #fed7aa',
+        }}
+        title="Override absolu de l'orientation du corps en degrés (0–360°). Si défini, écrase le calcul auto (porteur → panier, idle → ballon, etc.)."
+      >
+        <span style={{ fontSize: 11, color: '#9a3412', width: 88, fontWeight: 500 }}>orient. corps</span>
+        <input
+          type="range"
+          min={0}
+          max={359}
+          step={5}
+          value={bodyOrientation ?? 0}
+          onChange={(e) => onSetBodyOrientation(parseInt(e.target.value))}
+          style={{ flex: 1 }}
+        />
+        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: bodyOrientation !== undefined ? '#9a3412' : '#94a3b8', fontWeight: bodyOrientation !== undefined ? 600 : 400 }}>
+          {bodyOrientation !== undefined ? `${bodyOrientation}°` : 'auto'}
+        </span>
+        {bodyOrientation !== undefined && (
+          <button
+            onClick={() => onSetBodyOrientation(undefined)}
+            title="Revenir au calcul auto"
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
+          >↻</button>
+        )}
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          marginTop: 6,
+          padding: '5px 6px',
+          borderRadius: 4,
+          background: '#fff7ed',
+          border: '1px solid #fed7aa',
+        }}
+        title="Override absolu de l'orientation du regard en degrés (0–360°). Sera CLAMPÉ à ±60° du corps effectif (= cône de champ de vision)."
+      >
+        <span style={{ fontSize: 11, color: '#9a3412', width: 88, fontWeight: 500 }}>orient. regard</span>
+        <input
+          type="range"
+          min={0}
+          max={359}
+          step={5}
+          value={gazeOrientation ?? 0}
+          onChange={(e) => onSetGazeOrientation(parseInt(e.target.value))}
+          style={{ flex: 1 }}
+        />
+        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: gazeOrientation !== undefined ? '#9a3412' : '#94a3b8', fontWeight: gazeOrientation !== undefined ? 600 : 400 }}>
+          {gazeOrientation !== undefined ? `${gazeOrientation}°` : 'auto'}
+        </span>
+        {gazeOrientation !== undefined && (
+          <button
+            onClick={() => onSetGazeOrientation(undefined)}
+            title="Revenir au calcul auto"
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
+          >↻</button>
+        )}
       </div>
       <div
         style={{

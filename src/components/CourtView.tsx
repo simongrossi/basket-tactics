@@ -53,6 +53,7 @@ interface CourtViewProps {
   onClearAnnotationsFor: (oId: AttackerId) => void;
   onSetAttackerHand: (oId: AttackerId, hand: 'right' | 'left') => void;
   onSetAttackerProfile: (oId: AttackerId, profile: import('@/lib/types').OffensiveProfile) => void;
+  onSetAttackerOrientation: (oId: AttackerId, patch: { body?: number | undefined; gaze?: number | undefined }) => void;
   onSetZoneOverride: (regionId: string, override: Partial<import('@/lib/types').ZoneRegionOverride>) => void;
   onClearZoneOverride: (regionId: string) => void;
   onDeleteAnnotation: (idx: number) => void;
@@ -959,6 +960,10 @@ export function CourtView(props: CourtViewProps) {
             onClearAnnotations={() => props.onClearAnnotationsFor(oId)}
             onSetDominantHand={(h) => props.onSetAttackerHand(oId, h)}
             onSetOffensiveProfile={(p) => props.onSetAttackerProfile(oId, p)}
+            bodyOrientation={state.attackerOrientations?.[oId]?.body}
+            gazeOrientation={state.attackerOrientations?.[oId]?.gaze}
+            onSetBodyOrientation={(v) => props.onSetAttackerOrientation(oId, { body: v })}
+            onSetGazeOrientation={(v) => props.onSetAttackerOrientation(oId, { gaze: v })}
             onClose={() => setCtxMenu(null)}
           />
         );

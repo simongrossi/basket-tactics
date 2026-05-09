@@ -487,6 +487,7 @@ export function computeAttackerVisuals(
       }
     }
 
+    const manualOverride = state.attackerOrientations?.[id];
     const r = computeAttackerOrientation({
       attackerPos,
       role,
@@ -498,6 +499,8 @@ export function computeAttackerVisuals(
       // Détection dribble pour le porteur (cf. règle métier dans
       // orientation.ts : porteur statique → panier ; en dribble → mouvement).
       prevPos: prev ? prev.off[id] : undefined,
+      manualBody: manualOverride?.body,
+      manualGaze: manualOverride?.gaze,
     });
     out[id] = {
       orientation: r.bodyOrientation,

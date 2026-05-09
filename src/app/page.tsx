@@ -187,6 +187,7 @@ export default function Page() {
             onClearAnnotationsFor={app.clearAnnotationsFor}
             onSetAttackerHand={app.setAttackerHand}
             onSetAttackerProfile={app.setAttackerProfile}
+            onSetAttackerOrientation={app.setAttackerOrientation}
             onSetZoneOverride={app.setZoneOverride}
             onClearZoneOverride={app.clearZoneOverride}
             onDeleteAnnotation={app.deleteAnnotation}

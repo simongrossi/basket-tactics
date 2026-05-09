@@ -282,6 +282,27 @@ export function useAppState() {
     }));
   }, []);
 
+  const setAttackerOrientation = useCallback(
+    (oId: AttackerId, patch: { body?: number | undefined; gaze?: number | undefined }) => {
+      setStateWithHistory((s) => {
+        const cur = s.attackerOrientations?.[oId] ?? {};
+        const next = { ...cur, ...patch };
+        // Nettoie les clés undefined pour pas garder des champs morts.
+        const cleaned: { body?: number; gaze?: number } = {};
+        if (typeof next.body === 'number') cleaned.body = next.body;
+        if (typeof next.gaze === 'number') cleaned.gaze = next.gaze;
+        const allOrientations = { ...(s.attackerOrientations ?? {}) };
+        if (Object.keys(cleaned).length === 0) {
+          delete allOrientations[oId];
+        } else {
+          allOrientations[oId] = cleaned;
+        }
+        return { ...s, attackerOrientations: allOrientations };
+      });
+    },
+    []
+  );
+
   const setAttackerProfile = useCallback(
     (oId: AttackerId, profile: import('@/lib/types').OffensiveProfile) => {
       setStateWithHistory((s) => {
@@ -500,6 +521,7 @@ export function useAppState() {
     updateRule,
     applyDefenderProfile,
     setAttackerHand,
+    setAttackerOrientation,
     setAttackerProfile,
     setScreenRule,
     resetSwitches,

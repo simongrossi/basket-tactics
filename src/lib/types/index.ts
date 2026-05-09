@@ -357,6 +357,11 @@ export interface AppState {
   showFieldOfViewAll?: boolean;
   showFieldOfViewAllDefenders?: boolean;
   showFieldOfViewAllAttackers?: boolean;
+  /** Overrides manuels d'orientation par attaquant (clic-droit → sliders).
+   *  Si défini, écrase le calcul auto de `computeAttackerOrientation`
+   *  (porteur → panier, idle → ballon, etc.). Le `gaze` reste clampé à
+   *  ±60° du `body` effectif (règle anatomique cône de vision). */
+  attackerOrientations?: Partial<Record<AttackerId, { body?: number; gaze?: number }>>;
   /** Vue debug d'aide défensive : pour chaque défenseur dont helpFactor>0.10,
    *  une flèche depuis sa position vers son `helpAim` avec un badge `xx%`
    *  et un tag de priorité (paint/man/passlane). Inclut aussi les rotations

@@ -206,12 +206,16 @@ export interface AttackerOrientationInput {
    *  (carrier qui se déplace > 30 px → orientation dans la direction du
    *  mouvement, pas vers le panier). */
   prevPos?: Point;
+  /** Override manuel — corps en absolu (0–360°). Si défini, écrase l'auto. */
+  manualBody?: number;
+  /** Override manuel — regard. Sera clampé à ±60° du body effectif. */
+  manualGaze?: number;
 }
 
 const DRIBBLE_THRESHOLD_PX = 30;
 
 export function computeAttackerOrientation(input: AttackerOrientationInput): OrientationResult {
-  const { attackerPos, role, ballPos, hoop, receiverPos, nextPos, screenTargetDefPos, prevPos } = input;
+  const { attackerPos, role, ballPos, hoop, receiverPos, nextPos, screenTargetDefPos, prevPos, manualBody, manualGaze } = input;
 
   // ---------------------------------------------------------------------------
   // 1. Cibles des bras — par rôle.
@@ -262,7 +266,9 @@ export function computeAttackerOrientation(input: AttackerOrientationInput): Ori
   } else {
     bodyAuto = angleFromNorth(attackerPos, ballPos);
   }
-  const bodyOrientation = normalizeAngle(bodyAuto);
+  const bodyOrientation = typeof manualBody === 'number'
+    ? normalizeAngle(manualBody)
+    : normalizeAngle(bodyAuto);
 
   // ---------------------------------------------------------------------------
   // 3. Gaze + clamp anatomique.
@@ -280,7 +286,8 @@ export function computeAttackerOrientation(input: AttackerOrientationInput): Ori
   } else {
     gazeTarget = ballPos;
   }
-  const gazeAuto = angleFromNorth(attackerPos, gazeTarget);
+  let gazeAuto = angleFromNorth(attackerPos, gazeTarget);
+  if (typeof manualGaze === 'number') gazeAuto = normalizeAngle(manualGaze);
   const gazeOrientation = clampGazeToFrontal(gazeAuto, bodyOrientation);
   const facing = projectFromAngle(attackerPos, gazeOrientation, 30);
 
