@@ -141,16 +141,36 @@ export function Player({
             opacity={isAttacker ? 0.7 : 1}
           />
         </g>
-        {facing && (() => {
+        {(gazeOrientation !== undefined || facing) && (() => {
           // Pointeur de "facing" : un petit triangle posé sur le bord du
           // cercle, dans la direction regardée. Indique l'orientation
           // sans toucher aux bras (ex. on-ball regarde le porteur, off-ball
           // sag = midpoint man-ballon, fronting = ballon).
-          const dx = facing.x - pos.x;
-          const dy = facing.y - pos.y;
-          const len = Math.hypot(dx, dy) || 1;
-          const ux = dx / len;
-          const uy = dy / len;
+          //
+          // On dérive la direction du triangle depuis `gazeOrientation`
+          // (l'angle) plutôt que depuis `facing` (le point) quand les
+          // deux sont disponibles : pendant l'animation entre étapes,
+          // `gazeOrientation` est lerpé angulairement (chemin court
+          // autour du cercle) tandis que `facing` est lerpé linéairement
+          // en (x, y) — ce qui peut faire passer le point facing PAR le
+          // joueur et sortir du côté opposé, désynchronisant le triangle
+          // des bras (qui suivent gazeOrientation). Garantit l'invariant
+          // "regard et bras dans la même direction" à toute frame.
+          let ux: number;
+          let uy: number;
+          if (gazeOrientation !== undefined) {
+            const rad = (gazeOrientation * Math.PI) / 180;
+            ux = Math.sin(rad);
+            uy = -Math.cos(rad);
+          } else if (facing) {
+            const dx = facing.x - pos.x;
+            const dy = facing.y - pos.y;
+            const len = Math.hypot(dx, dy) || 1;
+            ux = dx / len;
+            uy = dy / len;
+          } else {
+            return null;
+          }
           const tip = { x: pos.x + ux * (r + 6), y: pos.y + uy * (r + 6) };
           const base = { x: pos.x + ux * r, y: pos.y + uy * r };
           const px = -uy * 4;
