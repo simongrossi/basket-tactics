@@ -104,6 +104,41 @@ export function upsertMovementAnnotation(
 }
 
 /**
+ * Supprime l'annotation à `annoIdx` sur Step[stepIdx]. Si c'est une annotation
+ * de mouvement, le joueur annule son mouvement : Step[stepIdx+1].off[player] = Step[stepIdx].off[player].
+ * Cascade : recale le `from` d'une annotation de mouvement aval du même joueur.
+ *
+ * Voir le contrat de chaînage dans la JSDoc de `setPlayerPositionAt`.
+ */
+export function removeAnnotation(
+  steps: Step[],
+  stepIdx: number,
+  annoIdx: number,
+): Step[] {
+  if (stepIdx < 0 || stepIdx >= steps.length) return steps;
+  const cur = steps[stepIdx];
+  if (annoIdx < 0 || annoIdx >= cur.annotations.length) return steps;
+  const removed = cur.annotations[annoIdx];
+  const out = steps.map((s) => ({ ...s, off: { ...s.off }, annotations: [...s.annotations] }));
+  out[stepIdx].annotations.splice(annoIdx, 1);
+
+  if (isMovement(removed) && stepIdx + 1 < out.length) {
+    const playerId = removed.fromId;
+    const snapBack = { ...out[stepIdx].off[playerId] };
+    out[stepIdx + 1].off[playerId] = snapBack;
+    const nextIdx = findMovementIdx(out[stepIdx + 1].annotations, playerId);
+    if (nextIdx >= 0) {
+      out[stepIdx + 1].annotations[nextIdx] = {
+        ...out[stepIdx + 1].annotations[nextIdx],
+        from: snapBack,
+      };
+    }
+  }
+
+  return out;
+}
+
+/**
  * Ajoute une annotation `pass`. N'affecte pas les positions.
  */
 export function upsertPassAnnotation(

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Step, AttackerPositions, AttackerId, Point } from '@/lib/types';
-import { setPlayerPositionAt, upsertMovementAnnotation, upsertPassAnnotation } from '../stepMutations';
+import { setPlayerPositionAt, upsertMovementAnnotation, upsertPassAnnotation, removeAnnotation } from '../stepMutations';
 
 const ZERO: AttackerPositions = {
   O1: { x: 0, y: 0 },
@@ -155,5 +155,45 @@ describe('upsertPassAnnotation', () => {
     expect(out[0].annotations).toHaveLength(1);
     expect(out[0].annotations[0].type).toBe('pass');
     expect(out[1].off.O1).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe('removeAnnotation', () => {
+  it('supprime une pass sans cascade sur les positions', () => {
+    const steps: Step[] = [
+      { ...step({}), annotations: [{ type: 'pass', fromId: 'O1', toId: 'O3', from: { x: 0, y: 0 }, to: { x: 200, y: 0 } }] },
+      step({}),
+    ];
+    const out = removeAnnotation(steps, 0, 0);
+    expect(out[0].annotations).toHaveLength(0);
+    expect(out[1].off.O1).toEqual({ x: 0, y: 0 });
+  });
+
+  it('supprimer une dribble : Step[N+1].off snap-back à Step[N].off', () => {
+    const steps: Step[] = [
+      { ...step({}, 'O1'), annotations: [{ type: 'dribble', fromId: 'O1', from: { x: 0, y: 0 }, to: { x: 80, y: 80 } }] },
+      step({ O1: { x: 80, y: 80 } } as Partial<AttackerPositions>),
+    ];
+    const out = removeAnnotation(steps, 0, 0);
+    expect(out[1].off.O1).toEqual({ x: 0, y: 0 });
+  });
+
+  it('cascade : recale le `from` d\'une annotation de mouvement aval du même joueur', () => {
+    const steps: Step[] = [
+      { ...step({}, 'O1'), annotations: [{ type: 'dribble', fromId: 'O1', from: { x: 0, y: 0 }, to: { x: 80, y: 80 } }] },
+      {
+        ...step({ O1: { x: 80, y: 80 } } as Partial<AttackerPositions>, 'O1'),
+        annotations: [{ type: 'dribble', fromId: 'O1', from: { x: 80, y: 80 }, to: { x: 150, y: 100 } }],
+      },
+      step({ O1: { x: 150, y: 100 } } as Partial<AttackerPositions>),
+    ];
+    const out = removeAnnotation(steps, 0, 0);
+    expect(out[1].off.O1).toEqual({ x: 0, y: 0 });
+    expect(out[1].annotations[0].from).toEqual({ x: 0, y: 0 });
+  });
+
+  it('idx invalide : retourne les steps inchangés', () => {
+    const steps = [step({}), step({})];
+    expect(removeAnnotation(steps, 0, 5)).toBe(steps);
   });
 });
