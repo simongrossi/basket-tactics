@@ -20,7 +20,12 @@ import { ZoneCoverage } from './ZoneCoverage';
 import { PassLanesOverlay } from './PassLanesOverlay';
 import { HelpDebugOverlay } from './HelpDebugOverlay';
 import { FieldOfViewOverlay } from './FieldOfViewOverlay';
-import { effectiveDefensePositions, getMatchupsAt, computeAttackerVisuals } from '@/lib/logic/engine';
+import {
+  effectiveDefensePositions,
+  getMatchupsAt,
+  computeAttackerVisuals,
+  recomputeDefenseFrameOrientations,
+} from '@/lib/logic/engine';
 import { lerpAngleDeg } from '@/lib/logic/orientation';
 import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
 import type { DetectedOffBallScreen } from '@/lib/types';
@@ -300,6 +305,7 @@ export function CourtView(props: CourtViewProps) {
         off,
         PLAYER_RADIUS * 2 + 2
       );
+      recomputeDefenseFrameOrientations(cur, off, carrier, defPos);
 
       const ball = computeBallFrame(
         offA[activeBallCarrier(a, cur.playerCount)],
@@ -489,6 +495,7 @@ export function CourtView(props: CourtViewProps) {
       off,
       PLAYER_RADIUS * 2 + 2
     );
+    recomputeDefenseFrameOrientations(state, off, carrier, defPos);
 
     const ball = computeBallFrame(
       offA[activeBallCarrier(a, state.playerCount)],

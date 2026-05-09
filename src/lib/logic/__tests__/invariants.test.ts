@@ -89,9 +89,14 @@ describe('Invariants sur les playbooks de la bibliothèque', () => {
           DEF_IDS.forEach((dId) => {
             const p = def[dId];
             // L'orientation doit être un nombre fini ; le facing doit être
-            // un point valide.
+            // un point valide et cohérent avec le regard depuis la position
+            // réellement affichée.
             expect(Number.isFinite(p.orientation), `${dId} orientation finie`).toBe(true);
             expect(Number.isFinite(p.facing.x) && Number.isFinite(p.facing.y), `${dId} facing valide`).toBe(true);
+            const facingAngle = (Math.atan2(p.facing.x - p.x, -(p.facing.y - p.y)) * 180) / Math.PI;
+            const diff = Math.abs(((facingAngle - p.gazeOrientation) % 360 + 540) % 360 - 180);
+            expect(diff, `${dId} étape ${stepIdx}: facing ${facingAngle}, gaze ${p.gazeOrientation}`)
+              .toBeLessThan(0.5);
           });
         }
       });
@@ -146,7 +151,7 @@ describe('Invariants sur les playbooks de la bibliothèque', () => {
         }
       });
 
-      it("INVARIANT anatomique : gaze ∈ ±90° du body pour tous les défenseurs et attaquants", () => {
+      it("INVARIANT anatomique : gaze ∈ ±60° du body pour tous les défenseurs et attaquants", () => {
         const angleDiff = (a: number, b: number) =>
           Math.abs(((a - b) % 360 + 540) % 360 - 180);
         for (let stepIdx = 0; stepIdx < state.steps.length; stepIdx++) {
@@ -155,12 +160,12 @@ describe('Invariants sur les playbooks de la bibliothèque', () => {
           DEF_IDS.forEach((dId) => {
             const diff = angleDiff(def[dId].gazeOrientation, def[dId].orientation);
             expect(diff, `${dId} étape ${stepIdx}: gaze ${def[dId].gazeOrientation}, body ${def[dId].orientation}`)
-              .toBeLessThanOrEqual(90 + 0.01);
+              .toBeLessThanOrEqual(60 + 0.01);
           });
           ATT_IDS.forEach((id) => {
             const diff = angleDiff(v[id].gazeOrientation, v[id].orientation);
             expect(diff, `${id} étape ${stepIdx}: gaze ${v[id].gazeOrientation}, body ${v[id].orientation}`)
-              .toBeLessThanOrEqual(90 + 0.01);
+              .toBeLessThanOrEqual(60 + 0.01);
           });
         }
       });

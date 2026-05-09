@@ -19,16 +19,39 @@ Avant ces changements :
 
 ### `computeDefenderOrientation`
 
-Retourne `{ orientationDeg, facing }` pour un défenseur.
+Retourne `{ bodyOrientation, gazeOrientation, facing, armBallSide, armManSide }` pour un défenseur.
 
-| Cas | `facing` | Modulation `orientationDeg` |
+| Cas | `gazeOrientation` / triangle | `bodyOrientation` |
 |-----|----------|-----------------------------|
-| `isCarrierDefender = true` | porteur | `vsCarrier='topside'` → +30° (push baseline), `'baseline'` → -30° (push milieu) |
-| `pnrRole` ∈ {tag, x-out, stunt} | ballon | — |
-| `stance` ∈ {fronting, deny-3q, stunt} | ballon | — |
-| `stance` ∈ {sag, behind, undefined} | midpoint(homme, ballon) | — |
+| `isCarrierDefender = true` | porteur | porteur, modulé par `vsCarrier='topside'` (+30°) / `'baseline'` (-30°) |
+| `pnrRole` ∈ {tag, stunt} | ballon prioritaire, homme en périphérie si possible | 75% côté ballon, 25% recover homme |
+| `pnrRole = x-out` | ballon prioritaire, homme en périphérie si possible | 60% côté ballon |
+| `stance = fronting` | ballon | ballon / ligne de passe |
+| `stance = deny-3q` | ballon prioritaire, homme en périphérie si possible | 65% côté ballon |
+| `stance = stunt` | ballon prioritaire, homme en périphérie si possible | 70% côté ballon |
+| `stance = behind` | ballon prioritaire, homme en périphérie si possible | homme |
+| `stance = sag` / undefined | ballon prioritaire, homme en périphérie si possible | midpoint **angulaire** homme-ballon |
 
-`orientationDeg` est l'angle horaire depuis le NORD (haut, y négatif). 0° = face haut, +90° = face droite. Calculé via `Math.atan2(dx, -dy) * 180 / π` à partir du vecteur défenseur→facing.
+Les angles sont horaires depuis le NORD (haut, y négatif). 0° = face haut, +90° = face droite.
+
+La logique de vision humaine vit dans [`src/lib/logic/vision.ts`](../src/lib/logic/vision.ts) :
+- tête clampée à ±60° du corps ;
+- champ de vision de 120° centré sur le regard ;
+- si homme + porteur peuvent entrer ensemble dans le cône, la cible secondaire reste en périphérie ;
+- si c'est physiquement impossible, la consigne prioritaire gagne sans fabriquer un regard dans le dos.
+
+Le clic-droit défenseur expose aussi une consigne tactique de corps :
+
+| Mode corps | Effet |
+|---|---|
+| `auto` | suit la stance (`sag`, `deny-3q`, `fronting`, etc.) |
+| `open` | corps ouvert au midpoint angulaire homme/ballon |
+| `face-man` | corps face à l'homme marqué |
+| `face-ball` | corps face au porteur / ballon |
+| `pass-lane-flat` | corps dans l'axe porteur→homme marqué |
+| `pass-lane-perp` | corps à 90° de l'axe porteur→homme marqué |
+
+Le slider absolu `bodyOrientation` reste prioritaire quand il est défini.
 
 ### Override manuel : delta clampé
 

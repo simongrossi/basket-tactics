@@ -12,6 +12,14 @@ function angleDiff(a: number, b: number): number {
   return ((a - b) % 360 + 540) % 360 - 180;
 }
 
+function pointFromAngle(angleDeg: number, distance = 120, from = { x: 300, y: 300 }) {
+  const rad = (angleDeg * Math.PI) / 180;
+  return {
+    x: from.x + Math.sin(rad) * distance,
+    y: from.y - Math.cos(rad) * distance,
+  };
+}
+
 describe('computeDefenderOrientation — convention B + invariants anatomiques', () => {
   it('on-ball : facing pointe vers le porteur, body face au porteur', () => {
     const r = computeDefenderOrientation({
@@ -40,6 +48,18 @@ describe('computeDefenderOrientation — convention B + invariants anatomiques',
     expect(dMan).toBeLessThan(50);  // proche de l'homme
   });
 
+  it('off-ball sag : le corps utilise le midpoint angulaire ball-you-man', () => {
+    const origin = { x: 300, y: 300 };
+    const r = computeDefenderOrientation({
+      defenderPos: origin,
+      manPos: pointFromAngle(60, 240, origin),
+      ballPos: pointFromAngle(-60, 60, origin),
+      stance: 'sag',
+    });
+
+    expect(Math.abs(angleDiff(r.bodyOrientation, 0))).toBeLessThan(1);
+  });
+
   it('fronting : facing pointe vers le ballon (denial)', () => {
     const r = computeDefenderOrientation({
       defenderPos: { x: 200, y: 300 },
@@ -53,7 +73,74 @@ describe('computeDefenderOrientation — convention B + invariants anatomiques',
     expect(Math.abs(angleDiff(r.gazeOrientation, ballAngleFromDef))).toBeLessThanOrEqual(91);
   });
 
-  it("INVARIANT #1 — gaze ne dépasse jamais ±90° du body", () => {
+  it('fronting : le corps fait face au ballon pour couper la passe', () => {
+    const r = computeDefenderOrientation({
+      defenderPos: { x: 300, y: 300 },
+      manPos: { x: 300, y: 420 },
+      ballPos: { x: 300, y: 180 },
+      stance: 'fronting',
+    });
+
+    expect(Math.abs(angleDiff(r.bodyOrientation, 0))).toBeLessThan(1);
+    expect(Math.abs(angleDiff(r.gazeOrientation, 0))).toBeLessThan(1);
+  });
+
+  it('deny-3q : les hanches sont plus ouvertes côté ballon qu’en sag', () => {
+    const origin = { x: 300, y: 300 };
+    const sag = computeDefenderOrientation({
+      defenderPos: origin,
+      manPos: pointFromAngle(90, 120, origin),
+      ballPos: pointFromAngle(0, 120, origin),
+      stance: 'sag',
+    });
+    const deny = computeDefenderOrientation({
+      defenderPos: origin,
+      manPos: pointFromAngle(90, 120, origin),
+      ballPos: pointFromAngle(0, 120, origin),
+      stance: 'deny-3q',
+    });
+
+    expect(Math.abs(angleDiff(deny.bodyOrientation, 0))).toBeLessThan(Math.abs(angleDiff(sag.bodyOrientation, 0)));
+  });
+
+  it("bodyMode='pass-lane-flat' met le corps dans l'axe porteur→homme", () => {
+    const r = computeDefenderOrientation({
+      defenderPos: { x: 300, y: 300 },
+      manPos: { x: 420, y: 300 },
+      ballPos: { x: 180, y: 300 },
+      stance: 'sag',
+      bodyMode: 'pass-lane-flat',
+    });
+
+    expect(Math.abs(angleDiff(r.bodyOrientation, 90))).toBeLessThan(1);
+  });
+
+  it("bodyMode='pass-lane-perp' met le corps perpendiculaire à l'axe de passe", () => {
+    const r = computeDefenderOrientation({
+      defenderPos: { x: 300, y: 300 },
+      manPos: { x: 420, y: 300 },
+      ballPos: { x: 180, y: 300 },
+      stance: 'sag',
+      bodyMode: 'pass-lane-perp',
+    });
+
+    expect(Math.abs(angleDiff(r.bodyOrientation, 180))).toBeLessThan(1);
+  });
+
+  it('manualBody garde la priorité sur le menu tactique de corps', () => {
+    const r = computeDefenderOrientation({
+      defenderPos: { x: 300, y: 300 },
+      manPos: { x: 420, y: 300 },
+      ballPos: { x: 180, y: 300 },
+      stance: 'sag',
+      bodyMode: 'pass-lane-flat',
+      manualBody: 270,
+    });
+
+    expect(r.bodyOrientation).toBeCloseTo(270, 0);
+  });
+
+  it("INVARIANT #1 — gaze ne dépasse jamais ±60° du body", () => {
     // Test stress : on construit un cas où l'auto voudrait pointer derrière.
     // En sag, body pointe vers midpoint, gaze vers ballon. Si on isole un
     // scénario où ces deux divergent fortement, le clamp doit s'appliquer.
@@ -64,7 +151,7 @@ describe('computeDefenderOrientation — convention B + invariants anatomiques',
       stance: 'sag',
     });
     const diff = Math.abs(angleDiff(r.gazeOrientation, r.bodyOrientation));
-    expect(diff).toBeLessThanOrEqual(90 + 0.01); // tolérance epsilon
+    expect(diff).toBeLessThanOrEqual(60 + 0.01); // tolérance epsilon
   });
 
   it("INVARIANT #2 — armBallSide ne tombe jamais derrière le corps", () => {
@@ -124,6 +211,42 @@ describe('computeDefenderOrientation — convention B + invariants anatomiques',
     expect(Math.abs(angleDiff(r.gazeOrientation, 45))).toBeLessThan(1);
   });
 
+  it("gazeLock='opponent' garde le porteur dans le champ quand c'est physiquement possible", () => {
+    const origin = { x: 300, y: 300 };
+    const r = computeDefenderOrientation({
+      defenderPos: origin,
+      manPos: pointFromAngle(50, 120, origin),
+      ballPos: pointFromAngle(-50, 120, origin),
+      stance: 'sag',
+      manualBody: 0,
+      gazeLock: 'opponent',
+    });
+
+    // Regarder exactement l'homme (50°) exclurait le ballon (100° d'écart).
+    // Le regard se décale donc au minimum vers le ballon : homme encore vu,
+    // porteur en limite de cône, tête toujours dans ±60° du corps.
+    expect(r.gazeOrientation).toBeCloseTo(10, 0);
+    expect(Math.abs(angleDiff(50, r.gazeOrientation))).toBeLessThanOrEqual(60 + 0.01);
+    expect(Math.abs(angleDiff(-50, r.gazeOrientation))).toBeLessThanOrEqual(60 + 0.01);
+    expect(Math.abs(angleDiff(r.gazeOrientation, 0))).toBeLessThanOrEqual(60 + 0.01);
+  });
+
+  it("gazeLock='opponent' priorise l'homme si les deux cibles ne peuvent pas entrer dans 120°", () => {
+    const origin = { x: 300, y: 300 };
+    const r = computeDefenderOrientation({
+      defenderPos: origin,
+      manPos: pointFromAngle(60, 120, origin),
+      ballPos: pointFromAngle(-100, 120, origin),
+      stance: 'sag',
+      manualBody: 0,
+      gazeLock: 'opponent',
+    });
+
+    expect(r.gazeOrientation).toBeCloseTo(60, 0);
+    expect(Math.abs(angleDiff(60, r.gazeOrientation))).toBeLessThan(1);
+    expect(Math.abs(angleDiff(-100, r.gazeOrientation))).toBeGreaterThan(60);
+  });
+
   it("gazeLock='both' pointe le regard vers le midpoint man-ballon", () => {
     const r = computeDefenderOrientation({
       defenderPos: { x: 300, y: 300 },
@@ -135,6 +258,22 @@ describe('computeDefenderOrientation — convention B + invariants anatomiques',
     });
     // Midpoint = (300, 200), pile au nord du défenseur. Gaze doit être ~0°.
     expect(Math.abs(angleDiff(r.gazeOrientation, 0))).toBeLessThan(1);
+  });
+
+  it("gazeLock='both' utilise un midpoint angulaire, pas un midpoint biaisé par la distance", () => {
+    const origin = { x: 300, y: 300 };
+    const r = computeDefenderOrientation({
+      defenderPos: origin,
+      manPos: pointFromAngle(60, 240, origin),
+      ballPos: pointFromAngle(-60, 60, origin),
+      stance: 'sag',
+      manualBody: 0,
+      gazeLock: 'both',
+    });
+
+    expect(Math.abs(angleDiff(r.gazeOrientation, 0))).toBeLessThan(1);
+    expect(Math.abs(angleDiff(60, r.gazeOrientation))).toBeLessThanOrEqual(60 + 0.01);
+    expect(Math.abs(angleDiff(-60, r.gazeOrientation))).toBeLessThanOrEqual(60 + 0.01);
   });
 });
 

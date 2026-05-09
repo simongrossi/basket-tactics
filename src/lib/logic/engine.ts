@@ -210,7 +210,7 @@ export function computeDefenseTargets(
     }
 
     // Calcul orientation Convention B (corps + regard + 2 cibles bras
-    // asymétriques) avec invariants anatomiques : regard ∈ ±90° du corps,
+    // asymétriques) avec invariants anatomiques : regard ∈ ±60° du corps,
     // bras jamais dans le dos. Le delta manuel (rule.orientation, ±45°) reste
     // pris en compte. Les overrides absolus (bodyOrientation/gazeOrientation)
     // priment quand définis.
@@ -223,6 +223,7 @@ export function computeDefenseTargets(
       vsCarrier: rule.vsCarrier,
       manualDelta: manualOrientationDelta,
       manualBody: rule.bodyOrientation,
+      bodyMode: rule.bodyOrientationMode,
       gazeLock: rule.gazeLock,
     });
 
@@ -373,6 +374,7 @@ export function computeDefenseTargets(
       pnrRole: slot.pnrRole,
       manualDelta: rule.orientation ?? 0,
       manualBody: rule.bodyOrientation,
+      bodyMode: rule.bodyOrientationMode,
       gazeLock: rule.gazeLock,
     });
     slot.orientation = recomputed.bodyOrientation;
@@ -431,6 +433,7 @@ function computeZoneDefenseTargets(
       stance: 'sag',
       manualDelta: state.rules[dId]?.orientation ?? 0,
       manualBody: state.rules[dId]?.bodyOrientation,
+      bodyMode: state.rules[dId]?.bodyOrientationMode,
       gazeLock: state.rules[dId]?.gazeLock,
     });
     positions[dId] = {
@@ -856,5 +859,46 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     out[dId].y = Math.round(out[dId].y);
   });
 
+  recomputeDefenseFrameOrientations(state, offAtStep, curCarrier, out);
+
   return out;
+}
+
+/**
+ * Recalcule body/gaze/facing depuis les positions réellement affichées.
+ * À utiliser après vitesse, interpolation, contournement et collisions pour
+ * que triangle + champ de vision partent toujours du joueur visible.
+ */
+export function recomputeDefenseFrameOrientations(
+  state: AppState,
+  offAtStep: AttackerPositions,
+  ballCarrier: AttackerId,
+  defPos: ComputedDefense
+): ComputedDefense {
+  const ballPos = offAtStep[ballCarrier];
+  getActiveDefenderIds(state.playerCount).forEach((dId) => {
+    const slot = defPos[dId];
+    const rule = state.rules[dId];
+    if (!slot || !rule) return;
+    const defenderPos = { x: slot.x, y: slot.y };
+    const recomputed = computeDefenderOrientation({
+      defenderPos,
+      manPos: offAtStep[slot.matchedTo] ?? defenderPos,
+      ballPos: ballPos ?? defenderPos,
+      isCarrierDefender: slot.isCarrierDefender,
+      stance: rule.offBallStance,
+      vsCarrier: rule.vsCarrier,
+      pnrRole: slot.pnrRole,
+      manualDelta: rule.orientation ?? 0,
+      manualBody: rule.bodyOrientation,
+      bodyMode: rule.bodyOrientationMode,
+      gazeLock: rule.gazeLock,
+    });
+    slot.orientation = recomputed.bodyOrientation;
+    slot.gazeOrientation = recomputed.gazeOrientation;
+    slot.facing = recomputed.facing;
+    slot.armBallSide = recomputed.armBallSide;
+    slot.armManSide = recomputed.armManSide;
+  });
+  return defPos;
 }

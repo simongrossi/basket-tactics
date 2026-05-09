@@ -29,7 +29,7 @@ interface FieldOfViewOverlayProps {
  *
  * Géométrie :
  *  - Centre : position du joueur.
- *  - Direction : `gazeOrientation` (regard, clampé ±90° du corps en amont
+ *  - Direction : `gazeOrientation` (regard, clampé ±60° du corps en amont
  *    pour respecter la règle anatomique : pas de regard derrière la tête).
  *  - Ouverture : 120° (60° de chaque côté du regard) — vision humaine
  *    focale + périphérique nette.

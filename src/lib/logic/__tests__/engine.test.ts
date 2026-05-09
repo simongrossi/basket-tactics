@@ -5,6 +5,14 @@ import type { AppState, AttackerPositions } from '../../types';
 
 const cloneState = (): AppState => structuredClone(makeInitialState());
 
+function angleFromNorth(from: { x: number; y: number }, to: { x: number; y: number }): number {
+  return (Math.atan2(to.x - from.x, -(to.y - from.y)) * 180) / Math.PI;
+}
+
+function angleDiff(a: number, b: number): number {
+  return ((a - b) % 360 + 540) % 360 - 180;
+}
+
 describe('getMatchupsAt', () => {
   it('renvoie les matchups de base si aucun switch', () => {
     const s = cloneState();
@@ -148,6 +156,23 @@ describe('effectiveDefensePositions', () => {
     // au moins un défenseur doit être en retard
     const lateCount = Object.values(out).filter((d) => d.late).length;
     expect(lateCount).toBeGreaterThan(0);
+  });
+
+  it('recalcule le triangle depuis la position effective quand un défenseur est en retard', () => {
+    const s = cloneState();
+    const off2: AttackerPositions = {
+      ...s.steps[0].off,
+      O2: { x: 520, y: 100 },
+    };
+    s.steps = [s.steps[0], makeStep(off2, 'O1', [])];
+    s.rules.D2 = { ...s.rules.D2, maxSpeed: 1, gazeLock: 'opponent' };
+
+    const out = effectiveDefensePositions(s, 1);
+    const p = out.D2;
+    expect(p.late).toBe(true);
+
+    const facingAngle = angleFromNorth({ x: p.x, y: p.y }, p.facing);
+    expect(Math.abs(angleDiff(facingAngle, p.gazeOrientation))).toBeLessThan(0.5);
   });
 
   it('respecte les defenseOverrides : la position override est conservée telle quelle', () => {

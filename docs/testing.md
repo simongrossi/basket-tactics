@@ -88,7 +88,7 @@ Les tests vivent à côté du code testé sous `__tests__/`. Le pattern d'inclus
 Régression que `attackingDirection='up'` (default) place les défenseurs entre attaquants et HOOP top, et que `attackingDirection='down'` (avec positions miroir en bas) les place entre attaquants et HOOP_OPPOSITE.
 
 ### `orientation.test.ts`
-- `computeDefenderOrientation` : on-ball regarde le porteur, fronting/deny-3q regardent le ballon, sag = midpoint, angle horaire depuis le nord (cas est=+90°), modulation `vsCarrier='topside'` (+30°), delta manuel ajouté et clampé à ±45°.
+- `computeDefenderOrientation` : on-ball regarde le porteur, fronting/deny-3q regardent le ballon, sag = midpoint angulaire, `gazeLock` garde homme + porteur dans le cône quand c'est possible, `bodyOrientationMode` couvre corps dans/perpendiculaire à la ligne de passe, angle horaire depuis le nord (cas est=+90°), modulation `vsCarrier='topside'` (+30°), delta manuel ajouté et clampé à ±45°.
 - `computeAttackerOrientation` : porteur→panier, passeur→receveur, coupeur→nextPos, poseur d'écran orienté perpendiculairement à la ligne vers le défenseur ciblé (différence ≈ 90° vs facing frontal), défaut→ballon.
 
 ### `invariants.test.ts` (régression sur playbooks)

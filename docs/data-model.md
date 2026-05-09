@@ -212,6 +212,9 @@ interface DefenderRule {
   distance?: number;                    // override individuel de state.defenseDistance (range 20-80)
   maxSpeed?: number;                    // override individuel de state.defenseMaxSpeed (range 40-200)
   helpMode?: 'auto' | 'aggressive' | 'passive' | 'disabled'; // comportement d'aide individuel
+  bodyOrientationMode?: BodyOrientationMode; // consigne tactique de corps
+  bodyOrientation?: number;              // override absolu 0-360, prioritaire
+  gazeLock?: 'opponent' | 'ball-carrier' | 'both'; // verrouillage dynamique du regard
 }
 
 type CarrierBehavior =
@@ -232,6 +235,14 @@ type OffBallStance =
 type OnScreenNav =
   | 'auto'        // suit state.screenRule (défaut)
   | 'over' | 'under' | 'switch' | 'hedge' | 'drop' | 'blitz';
+
+type BodyOrientationMode =
+  | 'auto'             // suit la stance
+  | 'open'             // ouvert homme/ballon
+  | 'face-man'         // face à son homme
+  | 'face-ball'        // face au porteur
+  | 'pass-lane-flat'   // dans l'axe porteur→homme
+  | 'pass-lane-perp';  // perpendiculaire à l'axe porteur→homme
 ```
 
 ## Annotation

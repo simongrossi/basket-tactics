@@ -456,6 +456,29 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, isCarrierDefender, tool, o
         )}
       </Row>
       <Row
+        label="corps"
+        title="Consigne tactique d'orientation du corps. Auto suit la stance. Ligne de passe à plat = corps dans l'axe porteur→homme ; perpendiculaire = corps à 90° de cet axe. Le slider absolu 'orientation corps' écrase ce choix."
+      >
+        <select
+          value={rule.bodyOrientationMode ?? 'auto'}
+          onChange={(e) => {
+            const v = e.target.value as NonNullable<DefenderRule['bodyOrientationMode']>;
+            onUpdate({
+              bodyOrientationMode: v === 'auto' ? undefined : v,
+              bodyOrientation: undefined,
+            });
+          }}
+          style={{ flex: 1 }}
+        >
+          <option value="auto">auto (selon stance)</option>
+          <option value="open">ouvert homme/ballon</option>
+          <option value="face-man">face à mon homme</option>
+          <option value="face-ball">face au porteur</option>
+          <option value="pass-lane-flat">ligne passe à plat</option>
+          <option value="pass-lane-perp">ligne passe perpend.</option>
+        </select>
+      </Row>
+      <Row
         label="champ de vision"
         title="Affiche un cône de vision autour de ce défenseur (heatmap cyan semi-transparente, ouverture 120° centrée sur son regard). Permet de visualiser ce que voit le défenseur en plus du triangle pointeur."
       >

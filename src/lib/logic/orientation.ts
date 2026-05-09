@@ -1,4 +1,5 @@
-import type { Point, OffBallStance, CarrierBehavior } from '../types';
+import type { Point, OffBallStance, CarrierBehavior, BodyOrientationMode } from '../types';
+import { clampGazeToFrontal, resolveDefenderGaze } from './vision';
 
 // =============================================================================
 // INVARIANTS ANATOMIQUES — INVIOLABLES
@@ -32,7 +33,7 @@ import type { Point, OffBallStance, CarrierBehavior } from '../types';
  *    Plage 0–360° libre (rotation possible dans tout sens).
  *
  *  - `gazeOrientation` : angle horaire du regard depuis le NORD. CONTRAINT à
- *    ±90° de `bodyOrientation` (cf. invariant #1). C'est l'angle utilisé
+ *    ±60° de `bodyOrientation` (cf. invariant #1). C'est l'angle utilisé
  *    pour positionner le triangle pointeur facing.
  *
  *  - `facing` : point géométrique que le joueur regarde (cohérent avec
@@ -54,6 +55,8 @@ export interface OrientationResult {
   armManSide: Point;
 }
 
+const ARM_FRONT_HALF_ANGLE_DEG = 90;
+
 // =============================================================================
 // DÉFENSEUR
 // =============================================================================
@@ -68,6 +71,8 @@ export interface DefenderOrientationInput {
   pnrRole?: 'tag' | 'x-out' | 'stunt';
   /** Override manuel — corps en absolu (0–360°). Si défini, écrase l'auto. */
   manualBody?: number;
+  /** Consigne tactique de corps. Écrasée par manualBody si défini. */
+  bodyMode?: BodyOrientationMode;
   /** Verrouillage du regard sur une cible dynamique. Prioritaire sur la
    *  logique stance. Le clamp anatomique ±60° reste appliqué après. */
   gazeLock?: 'opponent' | 'ball-carrier' | 'both';
@@ -76,7 +81,7 @@ export interface DefenderOrientationInput {
 }
 
 export function computeDefenderOrientation(input: DefenderOrientationInput): OrientationResult {
-  const { defenderPos, manPos, ballPos, isCarrierDefender, stance, vsCarrier, pnrRole, manualBody, gazeLock, manualDelta } = input;
+  const { defenderPos, manPos, ballPos, isCarrierDefender, stance, vsCarrier, pnrRole, manualBody, bodyMode, gazeLock, manualDelta } = input;
 
   // ---------------------------------------------------------------------------
   // 1. Cibles des bras — par rôle/stance
@@ -120,24 +125,18 @@ export function computeDefenderOrientation(input: DefenderOrientationInput): Ori
   }
 
   // ---------------------------------------------------------------------------
-  // 2. Body orientation — milieu de la ligne d'épaule (perpendiculaire à
-  //    l'axe homme-ballon en open stance ; vers homme en on-ball).
+  // 2. Body orientation — logique basket : on-ball en contain, off-ball en
+  //    open stance angulaire (ball-you-man), avec biais selon la stance.
   // ---------------------------------------------------------------------------
-  let bodyAuto: number;
-  if (isCarrierDefender) {
-    // Corps face au porteur.
-    bodyAuto = angleFromNorth(defenderPos, manPos);
-  } else if (stance === 'fronting') {
-    // Fronting : dos au ballon, face à l'homme.
-    bodyAuto = angleFromNorth(defenderPos, manPos);
-  } else {
-    // Open stance / default : corps orienté vers le midpoint homme-ballon.
-    const midpoint: Point = {
-      x: (manPos.x + ballPos.x) / 2,
-      y: (manPos.y + ballPos.y) / 2,
-    };
-    bodyAuto = angleFromNorth(defenderPos, midpoint);
-  }
+  let bodyAuto = computeDefenderBodyOrientation({
+    defenderPos,
+    manPos,
+    ballPos,
+    isCarrierDefender,
+    stance,
+    pnrRole,
+    bodyMode,
+  });
 
   // Modulation `vsCarrier` legacy pour on-ball (force baseline / topside).
   if (isCarrierDefender) {
@@ -156,28 +155,16 @@ export function computeDefenderOrientation(input: DefenderOrientationInput): Ori
   // ---------------------------------------------------------------------------
   // 3. Gaze (regard) — verrouillage explicite > stance auto, puis CLAMP.
   // ---------------------------------------------------------------------------
-  let gazeTarget: Point;
-  if (gazeLock === 'opponent') {
-    gazeTarget = manPos;
-  } else if (gazeLock === 'ball-carrier') {
-    gazeTarget = ballPos;
-  } else if (gazeLock === 'both') {
-    gazeTarget = { x: (manPos.x + ballPos.x) / 2, y: (manPos.y + ballPos.y) / 2 };
-  } else if (isCarrierDefender) {
-    gazeTarget = manPos;
-  } else if (pnrRole === 'tag' || pnrRole === 'x-out' || pnrRole === 'stunt') {
-    gazeTarget = ballPos;
-  } else if (stance === 'fronting' || stance === 'deny-3q' || stance === 'stunt') {
-    gazeTarget = ballPos;
-  } else {
-    // Sag : regard sur le ballon (priorité 1) — le head-on-swivel se matérialise
-    // par la posture du corps (open stance) qui voit déjà l'homme.
-    gazeTarget = ballPos;
-  }
-
-  const gazeAuto = angleFromNorth(defenderPos, gazeTarget);
-  // Invariant #1 : clamp gaze à ±60° du corps (cohérent avec FOV overlay).
-  const gazeOrientation = clampGazeToFrontal(gazeAuto, bodyOrientation);
+  const gazeOrientation = resolveDefenderGaze({
+    defenderPos,
+    manPos,
+    ballPos,
+    bodyOrientation,
+    isCarrierDefender,
+    stance,
+    pnrRole,
+    gazeLock,
+  });
   const facing = projectFromAngle(defenderPos, gazeOrientation, 30);
 
   // ---------------------------------------------------------------------------
@@ -347,18 +334,74 @@ function angleDiff(a: number, b: number): number {
   return ((a - b) % 360 + 540) % 360 - 180;
 }
 
-/**
- * INVARIANT #1 — clamp gaze au CÔNE DE CHAMP DE VISION (±60° du body).
- * Le triangle de regard ne peut s'orienter QUE dans la zone visuellement
- * couverte par les cônes (FieldOfViewOverlay). Si |gaze - body| > 60°,
- * ramène à la limite du cône (body ± 60°).
- */
-const FOV_HALF_ANGLE_DEG = 60;
-function clampGazeToFrontal(gaze: number, body: number): number {
-  const diff = angleDiff(gaze, body);
-  if (diff > FOV_HALF_ANGLE_DEG) return normalizeAngle(body + FOV_HALF_ANGLE_DEG);
-  if (diff < -FOV_HALF_ANGLE_DEG) return normalizeAngle(body - FOV_HALF_ANGLE_DEG);
-  return normalizeAngle(gaze);
+function computeDefenderBodyOrientation(input: {
+  defenderPos: Point;
+  manPos: Point;
+  ballPos: Point;
+  isCarrierDefender?: boolean;
+  stance?: OffBallStance;
+  pnrRole?: 'tag' | 'x-out' | 'stunt';
+  bodyMode?: BodyOrientationMode;
+}): number {
+  const { defenderPos, manPos, ballPos, isCarrierDefender, stance, pnrRole, bodyMode } = input;
+  const manAngle = angleFromNorth(defenderPos, manPos);
+  const ballAngle = angleFromNorth(defenderPos, ballPos);
+
+  if (bodyMode && bodyMode !== 'auto') {
+    const passLineLength = Math.hypot(manPos.x - ballPos.x, manPos.y - ballPos.y);
+    const passAngle = passLineLength < 0.001 ? manAngle : angleFromNorth(ballPos, manPos);
+    switch (bodyMode) {
+      case 'open':
+        return blendAngleDeg(manAngle, ballAngle, 0.5);
+      case 'face-man':
+        return manAngle;
+      case 'face-ball':
+        return ballAngle;
+      case 'pass-lane-flat':
+        return passAngle;
+      case 'pass-lane-perp':
+        return passAngle + 90;
+    }
+  }
+
+  if (isCarrierDefender) {
+    return manAngle;
+  }
+
+  if (pnrRole === 'tag' || pnrRole === 'stunt') {
+    // Rotation d'aide : épaules franchement côté ballon, sans perdre totalement
+    // le recover vers l'homme original.
+    return blendAngleDeg(manAngle, ballAngle, 0.75);
+  }
+  if (pnrRole === 'x-out') {
+    // X-out : course de rotation vers le ballon, mais le corps reste un peu
+    // plus ouvert pour lire la passe suivante.
+    return blendAngleDeg(manAngle, ballAngle, 0.6);
+  }
+
+  switch (stance) {
+    case 'fronting':
+      // Full denial : le défenseur est entre homme et ballon, poitrine vers la
+      // passe pour interdire l'entrée. Le contact homme reste via bras/corps.
+      return ballAngle;
+    case 'deny-3q':
+      // 3/4 deny : pied/main dans la ligne de passe, hanches ouvertes.
+      return blendAngleDeg(manAngle, ballAngle, 0.65);
+    case 'stunt':
+      // Fake d'aide : plus proche d'un show vers le ballon que d'un marquage pur.
+      return blendAngleDeg(manAngle, ballAngle, 0.7);
+    case 'behind':
+      // Strictement entre homme et panier : priorité à contenir l'homme.
+      return manAngle;
+    case 'sag':
+    default:
+      // Ball-you-man : midpoint angulaire, non biaisé par la distance des cibles.
+      return blendAngleDeg(manAngle, ballAngle, 0.5);
+  }
+}
+
+function blendAngleDeg(a: number, b: number, t: number): number {
+  return normalizeAngle(a + angleDiff(b, a) * t);
 }
 
 /**
@@ -367,14 +410,16 @@ function clampGazeToFrontal(gaze: number, body: number): number {
  * ligne limite frontale, en gardant la même distance au joueur.
  */
 function clampArmTargetToFrontal(target: Point, joueur: Point, bodyDeg: number): Point {
-  const angleToTarget = angleFromNorth(joueur, target);
-  const diff = angleDiff(angleToTarget, bodyDeg);
-  if (Math.abs(diff) <= 90) return target;
-  // Sinon : on ramène à la limite frontale, distance préservée.
   const dx = target.x - joueur.x;
   const dy = target.y - joueur.y;
   const dist = Math.hypot(dx, dy);
-  const limitDeg = diff > 0 ? bodyDeg + 90 : bodyDeg - 90;
+  if (dist < 0.001) return projectFromAngle(joueur, bodyDeg, 1);
+
+  const angleToTarget = angleFromNorth(joueur, target);
+  const diff = angleDiff(angleToTarget, bodyDeg);
+  if (Math.abs(diff) <= ARM_FRONT_HALF_ANGLE_DEG) return target;
+  // Sinon : on ramène à la limite frontale, distance préservée.
+  const limitDeg = diff > 0 ? bodyDeg + ARM_FRONT_HALF_ANGLE_DEG : bodyDeg - ARM_FRONT_HALF_ANGLE_DEG;
   return projectFromAngle(joueur, limitDeg, dist);
 }
 

@@ -21,7 +21,7 @@ interface PlayerProps {
   orientation?: number;
   /** Angle horaire du REGARD depuis le NORD. Pilote la rotation des bras :
    *  les bras s'ouvrent dans la direction où le joueur regarde, partant des
-   *  épaules vers l'avant. Toujours clampé à ±90° du body (orientation.ts),
+   *  épaules vers l'avant. Toujours clampé à ±60° du body (orientation.ts),
    *  donc jamais derrière la tête. */
   gazeOrientation?: number;
   /** Convention B asymétrique : cibles géométriques des 2 mains. Stockées
@@ -103,7 +103,7 @@ export function Player({
          *
          * Les bras s'ouvrent toujours DANS LA DIRECTION du regard (= vers
          * l'avant), partant des épaules. Le `gazeOrientation` est clampé
-         * ±90° du `bodyOrientation` en amont (orientation.ts), donc les
+         * ±60° du `bodyOrientation` en amont (orientation.ts), donc les
          * bras ne peuvent JAMAIS pointer dans le dos du joueur.
          *
          * Si `gazeOrientation` n'est pas fourni (legacy), fallback sur

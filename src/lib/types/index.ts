@@ -184,6 +184,13 @@ export interface DefensiveDirective {
 export type HelpPriority = 'paint' | 'man' | 'passlane';
 export type CarrierBehavior = 'coller' | 'bumper' | 'contester' | 'reculer' | 'topside' | 'baseline';
 export type OffBallStance = 'sag' | 'deny-3q' | 'fronting' | 'behind' | 'stunt';
+export type BodyOrientationMode =
+  | 'auto'
+  | 'open'
+  | 'face-man'
+  | 'face-ball'
+  | 'pass-lane-flat'
+  | 'pass-lane-perp';
 /** Comportement d'aide individuel.
  *  - 'auto' (default) : sideFactor standard (1 weak-side, 0.7 neutre, 0.35 strong-side)
  *  - 'aggressive' : ignore le côté (sideFactor toujours 1, aide même strong-side)
@@ -228,6 +235,10 @@ export interface DefenderRule {
    *  Permet au coach de figer une posture spécifique pour un défenseur,
    *  indépendamment de la stance et de la position du ballon. */
   bodyOrientation?: number;
+  /** Consigne tactique d'orientation du corps. Undefined/'auto' suit la stance
+   *  (sag, deny, fronting...). Les modes ligne de passe orientent le corps par
+   *  rapport à l'axe porteur→homme marqué. Écrasé par `bodyOrientation`. */
+  bodyOrientationMode?: BodyOrientationMode;
   /** Verrouillage du regard sur une cible dynamique. Le regard suit la
    *  position courante de la cible étape par étape (vs un angle figé) :
    *   - 'opponent'     : regard sur l'homme marqué (matchedTo)
@@ -398,7 +409,7 @@ export interface ComputedDefender {
    *  par `computeDefenderOrientation` à partir de la stance, du ballon, de
    *  la position de l'homme. Override possible via `rule.bodyOrientation`. */
   orientation: number;
-  /** Angle horaire du REGARD depuis le nord. Contraint à ±90° du `orientation`
+  /** Angle horaire du REGARD depuis le nord. Contraint à ±60° du `orientation`
    *  (corps) — règle anatomique inviolable : on ne peut pas regarder derrière
    *  sa tête. */
   gazeOrientation: number;
@@ -422,7 +433,7 @@ export interface ComputedDefender {
 /** Visuels d'attaquants calculés par étape (convention B + invariants anatomiques). */
 export interface ComputedAttacker {
   orientation: number;       // body, 0–360°
-  gazeOrientation: number;   // regard, clampé ±90° du corps
+  gazeOrientation: number;   // regard, clampé ±60° du corps
   facing: Point;
   armBallSide: Point;
   armManSide: Point;
