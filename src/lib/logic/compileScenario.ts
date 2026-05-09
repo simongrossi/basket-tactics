@@ -7,6 +7,7 @@
 import type { AttackerPositions, AttackerId, DefensiveScriptedAction, ScriptedAction, Step } from '@/lib/types';
 import { SCRIPTED_GENERATORS } from './scriptedGenerators';
 import { applyDefensivePass, type ParentRangeMap } from './defensiveCompilation';
+import { ensureAnnotationsForMovement } from './migrateAnnotations';
 
 export interface CompileInput {
   initialOff: AttackerPositions;
@@ -80,7 +81,7 @@ export function compileScenario(input: CompileInput): Step[] {
     applyDefensivePass(result, defensives, parentRanges);
   }
 
-  return result;
+  return ensureAnnotationsForMovement(result, 5);
 }
 
 /** Convertit `crypto.randomUUID()` ou un fallback simple. */

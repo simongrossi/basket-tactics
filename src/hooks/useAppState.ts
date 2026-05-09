@@ -31,6 +31,7 @@ import {
   upsertPassAnnotation,
   removeAnnotation as removeAnnotationFromSteps,
 } from '@/lib/logic/stepMutations';
+import { ensureAnnotationsForMovement } from '@/lib/logic/migrateAnnotations';
 
 const STORAGE_KEY = 'basket-tactics-state-v1';
 
@@ -50,7 +51,11 @@ function loadFromStorage(): AppState | null {
       zoneConfig: { ...defaults.zoneConfig, ...(parsed.zoneConfig || {}) },
       scriptedActions,
     } as AppState;
-    return normalizeStateForPlayerCount(merged, normalizePlayerCount(merged.playerCount));
+    const normalized = normalizeStateForPlayerCount(merged, normalizePlayerCount(merged.playerCount));
+    return {
+      ...normalized,
+      steps: ensureAnnotationsForMovement(normalized.steps, normalizePlayerCount(normalized.playerCount)),
+    };
   } catch {
     return null;
   }
@@ -435,7 +440,7 @@ export function useAppState() {
   const loadTemplate = useCallback((template: Template) => {
     setStateWithHistory((s) => ({
       ...s,
-      steps: structuredClone(template.steps),
+      steps: ensureAnnotationsForMovement(structuredClone(template.steps), s.playerCount),
       activeStep: 0,
       defenseInitial: structuredClone(template.defenseInitial),
     }));
@@ -564,7 +569,11 @@ export function useAppState() {
       ...next,
       zoneConfig: { ...defaults.zoneConfig, ...(next.zoneConfig || {}) },
     };
-    setStateWithHistory(normalizeStateForPlayerCount(merged, normalizePlayerCount(merged.playerCount)));
+    const normalized = normalizeStateForPlayerCount(merged, normalizePlayerCount(merged.playerCount));
+    setStateWithHistory({
+      ...normalized,
+      steps: ensureAnnotationsForMovement(normalized.steps, normalizePlayerCount(normalized.playerCount)),
+    });
   }, []);
 
   const patch = useCallback((p: Partial<AppState>) => {
