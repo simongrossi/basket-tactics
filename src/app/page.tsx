@@ -179,7 +179,7 @@ export default function Page() {
         )}
 
         <div className="center-col">
-          <div style={{ position: 'relative', minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ position: 'relative', minHeight: 0, overflow: 'hidden', display: 'grid' }}>
             <CourtView
               state={app.state}
               onMoveAttacker={app.moveAttacker}
