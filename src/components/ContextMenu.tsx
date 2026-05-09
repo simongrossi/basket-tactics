@@ -358,7 +358,7 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
       </Row>
       <Row
         label="champ de vision"
-        title="Affiche un cône de vision autour de ce défenseur (heatmap cyan semi-transparente, ouverture 120° centrée sur son regard, profondeur ≈5,4 m). Permet de visualiser ce que voit le défenseur en plus du triangle pointeur."
+        title="Affiche un cône de vision autour de ce défenseur (heatmap cyan semi-transparente, ouverture 120° centrée sur son regard). Permet de visualiser ce que voit le défenseur en plus du triangle pointeur."
       >
         <input
           type="checkbox"
@@ -366,6 +366,60 @@ function DefenderMenu({ dId, x, y, rule, hasOverride, tool, onSetTool, onUpdate,
           onChange={(e) => onUpdate({ showFieldOfView: e.target.checked || undefined })}
           style={{ marginLeft: 'auto' }}
         />
+      </Row>
+      <Row
+        label="orientation corps"
+        title="Override absolu de l'orientation du corps en degrés (0–360°). 0° = corps face au panier opposé, 90° = côté droit, 180° = face au panier protégé, 270° = côté gauche. Si défini, écrase le calcul auto open stance."
+      >
+        <input
+          type="range"
+          min={0}
+          max={359}
+          step={5}
+          value={rule.bodyOrientation ?? 0}
+          onChange={(e) => {
+            const v = parseInt(e.target.value);
+            onUpdate({ bodyOrientation: v });
+          }}
+          style={{ flex: 1 }}
+        />
+        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: rule.bodyOrientation !== undefined ? '#9a3412' : '#94a3b8', fontWeight: rule.bodyOrientation !== undefined ? 600 : 400 }}>
+          {rule.bodyOrientation !== undefined ? `${rule.bodyOrientation}°` : 'auto'}
+        </span>
+        {rule.bodyOrientation !== undefined && (
+          <button
+            onClick={() => onUpdate({ bodyOrientation: undefined })}
+            title="Revenir au calcul auto"
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
+          >↻</button>
+        )}
+      </Row>
+      <Row
+        label="orientation regard"
+        title="Override absolu de l'orientation du regard en degrés (0–360°). Sera CLAMPÉ à ±60° du corps effectif (= cône de champ de vision). Si défini, écrase le calcul auto."
+      >
+        <input
+          type="range"
+          min={0}
+          max={359}
+          step={5}
+          value={rule.gazeOrientation ?? 0}
+          onChange={(e) => {
+            const v = parseInt(e.target.value);
+            onUpdate({ gazeOrientation: v });
+          }}
+          style={{ flex: 1 }}
+        />
+        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: rule.gazeOrientation !== undefined ? '#9a3412' : '#94a3b8', fontWeight: rule.gazeOrientation !== undefined ? 600 : 400 }}>
+          {rule.gazeOrientation !== undefined ? `${rule.gazeOrientation}°` : 'auto'}
+        </span>
+        {rule.gazeOrientation !== undefined && (
+          <button
+            onClick={() => onUpdate({ gazeOrientation: undefined })}
+            title="Revenir au calcul auto"
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
+          >↻</button>
+        )}
       </Row>
       <Row
         label="vs écran"
