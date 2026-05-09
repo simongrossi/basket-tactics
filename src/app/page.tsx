@@ -302,7 +302,8 @@ export default function Page() {
           gap: 8px;
           min-width: 0;
           min-height: 0;
-          overflow: hidden;
+          overflow-y: auto;
+          overflow-x: hidden;
         }
         @media (max-width: 1100px) {
           .layout-grid:not(.presenting) { grid-template-columns: 220px 1fr 260px; }
