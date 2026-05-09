@@ -6,6 +6,11 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Fixed — Pause fige l'instant courant (au lieu de revenir au début)
+- Cliquer sur ⏸ pendant la lecture **fige l'image à l'instant t courant** au lieu de retomber sur la frame statique de l'étape active. Permet de faire une capture d'écran d'un moment précis entre deux étapes (drive en plein arc, défenseur en hedge, etc.).
+- Implémentation : au moment de la pause, `playbackT` est propagé dans `scrubT` ([page.tsx:73-89](src/app/page.tsx)), ce qui pilote l'affichage via le `scrubFrame` existant dans CourtView. Stop (⏹) reste distinct et revient à l'étape 0.
+- Reprise de lecture après pause : repart du début (efface scrubT). Si tu veux un "resume" depuis l'instant pause, c'est un cran de plus à coder, dis-le.
+
 ### Fixed — Le défenseur du porteur suit la trajectoire courbe en lecture
 - Pendant la lecture, le défenseur du porteur (D1 typiquement) interpolait linéairement entre sa position à l'étape A et sa position à l'étape B → il prenait la **corde** d'un arc pendant que le porteur faisait un dribble en wave ou un V-cut. Visuellement il "coupait au plus court" et lâchait son homme.
 - Désormais sa position est **recalculée à chaque frame** (playback + scrub) à partir de la position courante du porteur via `carrierDefenderTarget` — il colle à la trajectoire réelle, dribble courbe inclus. Implémentation : nouvelle fonction `followCarrierAtFrame` ([engine.ts](src/lib/logic/engine.ts)), appelée avant `resolvePlayerCollisions` et `recomputeDefenseFrameOrientations` dans [`CourtView.tsx`](src/components/CourtView.tsx) (playFrame + scrubFrame).

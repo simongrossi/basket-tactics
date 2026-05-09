@@ -71,9 +71,22 @@ export default function Page() {
   }, [app.state]);
 
   const handlePlayToggle = useCallback(() => {
-    setIsPlaying((p) => !p);
-    setPlaybackT(null);
-  }, []);
+    if (isPlaying) {
+      // Pause : fige l'instant courant en propageant playbackT dans scrubT,
+      // ce qui pilote l'affichage de la frame intermédiaire (cf. scrubFrame
+      // dans CourtView). L'utilisateur peut alors faire une capture sur cet
+      // instant t précis. Stop (⏹) reste séparé pour revenir au début.
+      if (playbackT != null) setScrubT(playbackT);
+      setPlaybackT(null);
+      setIsPlaying(false);
+    } else {
+      // Reprend la lecture du début : efface scrubT pour ne pas figer la
+      // première frame, et reset playbackT.
+      setScrubT(null);
+      setPlaybackT(null);
+      setIsPlaying(true);
+    }
+  }, [isPlaying, playbackT]);
 
   // Échap quitte le mode présentation
   useEffect(() => {
@@ -246,6 +259,7 @@ export default function Page() {
             onStop={() => {
               setIsPlaying(false);
               setPlaybackT(null);
+              setScrubT(null);
               app.setActiveStep(0);
             }}
             playbackSpeed={playbackSpeed}
