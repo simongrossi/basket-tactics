@@ -157,7 +157,8 @@ Tactiques par type de zone (`TACTICS`) :
 | 2-3 | 1.2 | 1.5 | 0.5 | 1.0 |
 | 3-2 | 1.3 | 1.6 | 0.35 | 0.95 |
 | 1-3-1 | 1.15 | 1.4 | 0.6 | 1.05 |
-| match-up | 1.4 | 1.3 | 0.4 | 1.0 |
+| 2-1-2 | 1.2 | 1.5 | 0.5 | 1.0 |
+| match-up | 2.0 | 1.3 | 0.25 | 1.0 |
 
 #### Situations zone (`zoneSituations.ts`)
 - `detectOverload` — 3+ attaquants côté ballon → boost `effectiveBallSideHelp = ballSideHelp × (1 + intensity × 0.6)`. Intensité 0.6 (3 joueurs) ou 1.0 (4+).
@@ -237,8 +238,9 @@ L'ordre interne (cf. [logique-defensive.md § Pipeline de calcul](logique-defens
 3. Applique les **rotations PnR collectives** (`computePnRRotations`).
 4. Applique les **couvertures off-ball** (`applyOffBallScreenAdjustment`).
 5. Applique les **traps** (`trapTarget`).
-6. **Recalcul d'orientation post-pass** avec position finale + pnrRole.
-7. **`effectiveDefensePositions`** applique le **moteur physique** (path arc, friction, maxSpeed, collisions).
+6. Applique les **directives défensives scriptées** (`applyDirective`) : si `state.defenseScriptedDirectivesEnabled === true` et que `step.defensiveDirectives` contient des directives pour ce step, l'engine ajuste les positions cibles des défenseurs concernés (help-and-recover, pre-switch, trap, tag) avant le moteur physique. Les directives sont produites par `defensiveCompilation.ts` lors de `compileScenario`.
+7. **Recalcul d'orientation post-pass** avec position finale + pnrRole.
+8. **`effectiveDefensePositions`** applique le **moteur physique** (path arc, friction, maxSpeed, collisions).
 
 Pour la zone, étape 1 est remplacée par `computeZoneDefenseTargets` (ownership continu).
 

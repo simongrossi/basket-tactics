@@ -533,6 +533,49 @@ Détections actuelles (tag stable + sévérité) :
 
 Les profils joueurs sont lus pour enrichir le message ("Closeout long sur O1 (créateur)") et **escalader la sévérité** quand un shooter/stretch-big est concerné (un corner faible avec un shooter devient critical au lieu de warning).
 
+## Couche défensive scriptable
+
+La défense standard (aide, écrans, zone…) est calculée en temps réel par le moteur. La couche scriptable y ajoute des **directives explicites** posées par le coach lors de la construction du scénario.
+
+### Architecture
+
+```
+ScriptedAction[] (kind='defensive')
+  │
+  └── compileScenario (passe 2 — defensiveCompilation.ts)
+        │
+        ├── defensiveDefaults.ts : infère les params manquants selon le contexte
+        │   (ex : trap sur PnR → defenders = [porteurDef, screenerDef])
+        │
+        └── Step.defensiveDirectives[] : DefensiveDirective par step concerné
+              │
+              └── engine.ts : applyDirective (si defenseScriptedDirectivesEnabled)
+                    │
+                    └── ajuste les positions cibles standard avant le moteur physique
+```
+
+1. Le compilateur de scénario (`compileScenario`) exécute une **passe 2** sur les actions défensives (`defensiveCompilation.ts`). Pour chaque `DefensiveScriptedAction`, il génère les `DefensiveDirective[]` correspondantes et les injecte dans les `Step.defensiveDirectives[]` des steps ciblés.
+2. `defensiveDefaults.ts` infère les paramètres absents selon le contexte (ex. : un `trap` couplé à un PnR désigne automatiquement le défenseur du porteur et du screener).
+3. À chaque frame, l'engine appelle `applyDirective` pour chaque directive active du step courant. `applyDirective` ajuste la position cible du ou des défenseurs concernés **avant** l'application du moteur physique (arc, friction, maxSpeed).
+
+### Les 4 actions MVP
+
+| Type | Comportement |
+|------|-------------|
+| `help-and-recover` | Un défenseur aide (phase `engage`) puis revient sur son homme (phase `release`). `helpStep` et `recoverStep` bornent les deux phases. |
+| `pre-switch` | Échange anticipé entre deux défenseurs avant le croisement. Modifie `assignmentOverrides` sur les steps concernés. |
+| `trap` | Deux défenseurs ferment le porteur (cage à deux). Override les cibles de `defenders` vers la position de piège. |
+| `tag` | Un défenseur quitte son homme pour coller le roller/cutter ciblé (`target`). |
+
+### Couplage action offensive / couverture libre
+
+- **Couplée** (`parentActionId` défini) : la couverture s'applique sur les mêmes steps que l'action offensive parente. Pratique pour scripter "quand O5 pose un PnR, D4 vient trapper".
+- **Libre** (`affectedSteps` requis) : la couverture n'est rattachée à aucune action offensive. Les indices de steps sont posés manuellement par le coach.
+
+### Toggle global
+
+`AppState.defenseScriptedDirectivesEnabled` (default `true`) permet de désactiver toutes les directives d'un coup. Géré par `useAppState.toggleScriptedDefense`. Utile pour comparer la couverture standard et la couverture scriptée sur le même scénario.
+
 ## Points d'extension
 
 Pour ajouter un nouveau comportement défensif :

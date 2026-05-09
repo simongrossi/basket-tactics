@@ -37,6 +37,10 @@ interface AppState {
   defenseSystem: 'man' | 'zone';
   zoneConfig: ZoneConfig;
 
+  // Défense scriptable
+  /** Active l'application des directives défensives scriptées par l'engine. Default true. */
+  defenseScriptedDirectivesEnabled?: boolean;
+
   // Outil courant + visu
   tool: 'move' | 'pass' | 'dribble' | 'cut' | 'screen';
   showHelpLines: boolean;
@@ -53,10 +57,31 @@ interface AppState {
   showScreenIndicators?: boolean;       // cercles violet/vert sur les poseurs d'écran (default true)
   showStateRings?: boolean;             // anneaux carrier/late/closeout/denial sur défenseurs (default true)
   showLockBadges?: boolean;             // cadenas position manuelle (jaune) + forcedScreener (violet) (default true)
+  /** Toggles fine-grained sur les sous-visuels (ET logique avec leur master). Default true partout. */
+  showZoneTracking?: boolean;
+  showContestedPass?: boolean;
+  showBlockedPass?: boolean;
+  showOffBallScreenIndicator?: boolean;
+  showLateRing?: boolean;
+  showCloseoutRing?: boolean;
+  showDenyingRing?: boolean;
+  showForcedScreenerBadge?: boolean;
+  /** Vue debug aide défensive : flèches helpAim + badges % + tag priorité. Outil développeur. */
+  showHelpDebug?: boolean;
+  /** Toggles globaux des cônes de champ de vision (heatmap 120°). */
+  showFieldOfViewAll?: boolean;
+  showFieldOfViewAllDefenders?: boolean;
+  showFieldOfViewAllAttackers?: boolean;
   closeoutBoost?: number;               // multiplicateur vit. max du défenseur en closeout (default 1.4)
   denyAggressiveness?: number;          // intensité max du strong-side denial automatique (default 0.45)
   attackerHands?: AttackerHands;        // main dominante par attaquant ('right' | 'left')
   attackerProfiles?: AttackerProfiles;  // profil offensif par attaquant — module aide / closeout / shotQuality
+  /** Overrides manuels d'orientation par attaquant (body + gaze, écrasent le calcul auto). */
+  attackerOrientations?: Partial<Record<AttackerId, { body?: number; gaze?: number }>>;
+  /** Overrides par région de zone (homePos, radius, mode). Keyed par region.id. */
+  zoneOverrides?: ZoneOverrides;
+  /** Mode édition zones : active l'overlay interactif (drag homePos, popup par région). */
+  zoneEditMode?: boolean;
 }
 ```
 
@@ -93,6 +118,71 @@ interface Step {
   label?: string;                       // texte libre éditable ("dribble drive")
   defenseOverrides?: Partial<Record<DefenderId, Point>>; // overrides manuels
   forcedScreener?: AttackerId;          // override de detectScreen (clic-droit)
+  /** Step édité manuellement après génération scénario. La recompilation préserve ce step. */
+  manualOverride?: boolean;
+  /** Id de la ScriptedAction qui a produit ce step (trace de provenance). */
+  generatedBy?: string;
+  /** Directives défensives pour ce step. Posées par compileScenario, consommées par engine.applyDirective. */
+  defensiveDirectives?: DefensiveDirective[];
+  /** Overrides d'assignation défenseur → attaquant pour ce step (ex : pre-switch). */
+  assignmentOverrides?: Partial<Record<DefenderId, AttackerId>>;
+}
+```
+
+## ScriptedAction
+
+Union discriminée par `kind`. Le compilateur de scénario (`compileScenario`) transforme une liste de `ScriptedAction[]` en `Step[]` consommables par le moteur.
+
+```typescript
+type ScriptedAction = OffensiveScriptedAction | DefensiveScriptedAction;
+
+interface OffensiveScriptedAction {
+  kind: 'offensive';
+  id: string;
+  type: ScriptedActionType;   // 'pick-and-roll' | 'give-and-go' | 'basket-cut' | … (18 valeurs)
+  params: ScriptedActionParams;
+  label?: string;             // override libre de la lecture FR auto-générée
+}
+
+interface DefensiveScriptedAction {
+  kind: 'defensive';
+  id: string;
+  type: DefensiveActionType;  // 'help-and-recover' | 'pre-switch' | 'trap' | 'tag'
+  /** Si défini → couverture couplée à l'action offensive parentActionId.
+   *  Sinon → couverture libre (affectedSteps requis). */
+  parentActionId?: string;
+  /** Steps ciblés (indices absolus compilés). Pour une couverture couplée,
+   *  défaut = tous les steps du parent. Pour une couverture libre, requis. */
+  affectedSteps?: number[];
+  params: DefensiveActionParams;
+  label?: string;
+}
+
+type DefensiveActionType = 'help-and-recover' | 'pre-switch' | 'trap' | 'tag';
+
+interface DefensiveActionParams {
+  defenders: DefenderId[];      // défenseur(s) qui exécutent la directive
+  target?: AttackerId;          // attaquant ciblé (porteur trappé, roller taggé…)
+  swapWith?: DefenderId;        // pour pre-switch : 2e défenseur qui échange
+  helpStep?: number;            // pour help-and-recover : step de la phase "aide"
+  recoverStep?: number;         // pour help-and-recover : step du retour
+}
+```
+
+### `DefensiveDirective`
+
+Produit par `defensiveCompilation.ts` lors de `compileScenario` (passe 2). Stocké dans `Step.defensiveDirectives[]`, consommé par `engine.applyDirective` à chaque step si `defenseScriptedDirectivesEnabled === true`.
+
+```typescript
+interface DefensiveDirective {
+  type: DefensiveActionType;
+  defenders: DefenderId[];
+  target?: AttackerId;
+  swapWith?: DefenderId;
+  /** 'engage' = action active, 'release' = retour à la position standard. */
+  phase: 'engage' | 'release';
+  /** ID de l'action source (debug + traçabilité UI). */
+  sourceActionId: string;
 }
 ```
 
