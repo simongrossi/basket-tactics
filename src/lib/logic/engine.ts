@@ -40,6 +40,7 @@ import {
 import { HOOP, HOOP_OPPOSITE, PLAYER_RADIUS } from '../data/court';
 import type { Point } from '../types';
 import { isInTrapZone, pickTrapHelper, trapTarget } from './trap';
+import { applyDirective } from './applyDirective';
 
 /** Panier de référence côté défense pour cet AppState (selon attackingDirection). */
 export function getDefenseHoop(state: AppState): Point {
@@ -312,6 +313,26 @@ export function computeDefenseTargets(
         positions[helper].y = Math.round(t.y);
       }
     }
+  }
+
+  // Phase 3 — application des directives défensives scriptées
+  // (step.defensiveDirectives) sur les positions cibles défensives finales.
+  // Override additif : seuls les défenseurs nommés dans la directive sont
+  // touchés. S'applique après tous les calculs standard (man/zone + écrans
+  // + PnR + trap auto) pour permettre la prise de précédence par scénario.
+  if (cur.defensiveDirectives && state.defenseScriptedDirectivesEnabled !== false) {
+    const directiveTargets = {} as DefenderPositions;
+    DEFENDER_IDS.forEach((dId) => {
+      directiveTargets[dId] = { x: positions[dId].x, y: positions[dId].y };
+    });
+    for (const directive of cur.defensiveDirectives) {
+      applyDirective(directiveTargets, directive, cur);
+    }
+    // Re-projette les nouvelles positions sur le record `positions` (arrondi).
+    DEFENDER_IDS.forEach((dId) => {
+      positions[dId].x = Math.round(directiveTargets[dId].x);
+      positions[dId].y = Math.round(directiveTargets[dId].y);
+    });
   }
 
   // Post-pass orientation : après tous les ajustements (PnR, off-ball,

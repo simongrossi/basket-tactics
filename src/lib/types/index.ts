@@ -431,6 +431,9 @@ export interface AppState {
   steps: Step[];
   activeStep: number;
   defenseInitial: DefenderPositions;
+  /** Phase 3 — active l'application des directives défensives scriptées
+   *  (step.defensiveDirectives) par l'engine. Default true. */
+  defenseScriptedDirectivesEnabled?: boolean;
   defenseDistance: number;
   defenseMaxSpeed: number;
   triggers: DefenseTriggers;
