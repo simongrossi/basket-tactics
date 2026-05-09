@@ -4,6 +4,8 @@ Simulateur tactique de basket-ball pour visualiser des systèmes offensifs et ob
 
 > Pas de backend, pas de compte, pas de tracking. Tu lances `npm run dev`, c'est joué.
 
+**Version actuelle : 0.6.0** (2026-05-09) — cycle "fidélité basket" : orientation calculée des joueurs, anti-téléportation, rim protection sur drive, vue debug aide, refactor `physics.ts` centralisé. Voir [CHANGELOG.md](CHANGELOG.md).
+
 ---
 
 ## Démarrage rapide
@@ -19,7 +21,7 @@ Autres commandes utiles :
 
 ```bash
 npm run type-check   # tsc --noEmit
-npm test             # Vitest — 93 tests sur la logique pure
+npm test             # Vitest — 188 tests sur la logique pure
 npm run test:watch   # Vitest en mode watch
 npm run build        # build de production statique
 ```

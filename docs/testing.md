@@ -28,7 +28,7 @@ Les tests vivent à côté du code testé sous `__tests__/`. Le pattern d'inclus
 
 ## Couverture actuelle
 
-184 tests sur 14 modules de la logique défensive, de la simulation, de l'orientation et des invariants playbooks.
+**188 tests** sur 14 modules — logique défensive, simulation, orientation, invariants playbooks, rim protection, et utilitaires zone. Voir [CHANGELOG.md § 0.6.0](../CHANGELOG.md) pour le détail des ajouts récents (73 tests neufs depuis 0.5.0).
 
 ### `engine.test.ts`
 - `getMatchupsAt` : matchups de base, application d'un switch, cumul de plusieurs switches sur étapes successives, immuabilité de `baseMatchups`.
@@ -112,7 +112,7 @@ Pour les 7 playbooks de la lib (PNR central, Horns flare, Pindown coin, Spain PN
 
 ## À ajouter
 
-- `triggers.detectTriggers` (drive movement, post-up stationnaire)
-- `zoneDefense.pointInPolygon` + `mapAttackersToZones` (cas limites de polygones)
-- `geometry` (trivial mais utile en garde-fou)
-- `help.computeHelpTarget` (sag baseline, priorités paint/man/passlane)
+- `triggers.detectTriggers` (drive movement, post-up stationnaire) — partiellement couvert via `invariants.test.ts`, mais pas de tests unitaires dédiés.
+- `zoneDefense.pointInPolygon` (cas limites de polygones — concaves, points sur l'arête).
+- `geometry` complet (lerp, normalize, computeBallFrame avec edge cases — déjà partiellement testé pour les obstacles).
+- Ajouts P6 maintenant couverts : `help.computeHelpTarget` (sag, denial, priorité paint, rim-protect), `orientation.*`, `zoneDefense` ownership, `zoneSituations`, invariants playbooks. ✓
