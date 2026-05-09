@@ -88,102 +88,48 @@ export function Player({
   return (
     <g data-id={id} style={{ cursor: 'grab' }}>
       <g pointerEvents="none">
-        {/* Convention B — bras asymétriques par rôle.
+        {/* Pictogramme stylisé FIBA : 2 arcs symétriques courbés au-dessus
+         * du joueur (= "épaules + bras levés"), avec ROTATION qui suit le
+         * `bodyOrientation` du corps.
          *
-         * - Le **corps** (orientation) définit la ligne d'épaule (perpendiculaire
-         *   au regard). Les épaules sont à ±r*0.6 latéralement.
-         * - Le bras **ball-side** part de l'épaule la plus proche de `armBallSide`
-         *   et pointe vers cette cible.
-         * - Le bras **man-side** part de l'autre épaule et pointe vers `armManSide`.
-         * - La courbure de chaque bras bombe vers l'AVANT du joueur (forwardX,
-         *   forwardY) — invariant anatomique : aucune courbure dans le dos.
-         * - Les cibles sont déjà clampées au demi-cercle frontal en amont
-         *   (cf. orientation.ts § INVARIANT #2), donc aucun bras ne pointe
-         *   derrière le joueur ici.
+         * Conséquence visuelle :
+         *  - À body=0° (regard nord) : arcs au-dessus.
+         *  - À body=90° (regard est) : arcs à droite (épaules orientées E-O).
+         *  - À body=180° (regard sud) : arcs en bas (face sud).
          *
-         * Si `armBallSide` ou `armManSide` ne sont pas fournis, fallback sur
-         * deux arcs symétriques au-dessus (convention FIBA classique).
+         * `bodyOrientation` est calculé en open stance (perpendiculaire à
+         * l'axe homme-ballon) en convention B — donc les épaules tournent
+         * pour matérialiser que le défenseur "voit" homme et ballon.
+         *
+         * Le `gaze` (triangle pointeur ci-dessous) est calculé séparément et
+         * dessiné HORS du wrapper de rotation, pour pointer la direction du
+         * regard précis (clampé ±90° du body, jamais derrière).
+         *
+         * Note : `armBallSide` et `armManSide` sont conservés dans les types
+         * et le data model (computeAttackerOrientation / computeDefenderOrientation),
+         * mais ne servent plus au rendu. Ils restent disponibles pour un
+         * affichage futur (overlay debug par exemple).
          */}
-        {(() => {
-          const bodyRad = (orientation * Math.PI) / 180;
-          // Convention SVG y-down : à orientation=0° (nord), forward = +y négatif.
-          const forwardX = Math.sin(bodyRad);
-          const forwardY = -Math.cos(bodyRad);
-          // Côté droit du joueur (perpendiculaire à forward, sens horaire).
-          const rightX = -forwardY;
-          const rightY = forwardX;
-          // Épaules droite (D) et gauche (G) du joueur.
-          const shoulderD = { x: pos.x + rightX * r * 0.6, y: pos.y + rightY * r * 0.6 };
-          const shoulderG = { x: pos.x - rightX * r * 0.6, y: pos.y - rightY * r * 0.6 };
-
-          // Si convention B fournie : 2 bras vers cibles distinctes.
-          if (armBallSide && armManSide) {
-            // Attribuer ball-side et man-side à l'épaule la plus proche.
-            const dBallToD = Math.hypot(armBallSide.x - shoulderD.x, armBallSide.y - shoulderD.y);
-            const dBallToG = Math.hypot(armBallSide.x - shoulderG.x, armBallSide.y - shoulderG.y);
-            const ballOnRight = dBallToD <= dBallToG;
-            const ballShoulder = ballOnRight ? shoulderD : shoulderG;
-            const manShoulder = ballOnRight ? shoulderG : shoulderD;
-
-            const drawArm = (shoulder: Point, target: Point) => {
-              const dx = target.x - shoulder.x;
-              const dy = target.y - shoulder.y;
-              const dist = Math.hypot(dx, dy) || 1;
-              const armLen = Math.min(r * 1.6, Math.max(r * 0.9, dist * 0.5));
-              const ux = dx / dist;
-              const uy = dy / dist;
-              const hand = { x: shoulder.x + ux * armLen, y: shoulder.y + uy * armLen };
-              // Control point : à mi-bras + offset vers l'avant pour la courbure.
-              const midX = (shoulder.x + hand.x) / 2 + forwardX * r * 0.25;
-              const midY = (shoulder.y + hand.y) / 2 + forwardY * r * 0.25;
-              return `M ${shoulder.x} ${shoulder.y} Q ${midX} ${midY} ${hand.x} ${hand.y}`;
-            };
-
-            return (
-              <>
-                <path
-                  d={drawArm(ballShoulder, armBallSide)}
-                  fill="none"
-                  stroke={stroke}
-                  strokeWidth={isAttacker ? 1.8 : 2.5}
-                  strokeLinecap="round"
-                  opacity={isAttacker ? 0.7 : 1}
-                />
-                <path
-                  d={drawArm(manShoulder, armManSide)}
-                  fill="none"
-                  stroke={stroke}
-                  strokeWidth={isAttacker ? 1.8 : 2.5}
-                  strokeLinecap="round"
-                  opacity={isAttacker ? 0.7 : 1}
-                />
-              </>
-            );
-          }
-
-          // Fallback : arcs FIBA symétriques au-dessus (orientation appliquée
-          // comme rotation autour du centre).
-          return (
-            <g transform={`rotate(${orientation}, ${pos.x}, ${pos.y})`}>
-              <path
-                d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
-                fill="none"
-                stroke={stroke}
-                strokeWidth={isAttacker ? 1.8 : 2.5}
-                strokeLinecap="round"
-                opacity={isAttacker ? 0.7 : 1}
-              />
-              <path
-                d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
-                fill="none"
-                stroke={stroke}
-                strokeWidth={isAttacker ? 1.8 : 2.5}
-                strokeLinecap="round"
-                opacity={isAttacker ? 0.7 : 1}
-              />
-            </g>
-          );
-        })()}
+        <g transform={`rotate(${orientation}, ${pos.x}, ${pos.y})`}>
+          <path
+            d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={isAttacker ? 1.8 : 2.5}
+            strokeLinecap="round"
+            opacity={isAttacker ? 0.7 : 1}
+          />
+          <path
+            d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={isAttacker ? 1.8 : 2.5}
+            strokeLinecap="round"
+            opacity={isAttacker ? 0.7 : 1}
+          />
+        </g>
+        {/* armBallSide / armManSide : conservés dans l'API (props) pour le
+         * data model et un futur overlay debug, mais non rendus ici. */}
         {facing && (() => {
           // Pointeur de "facing" : un petit triangle posé sur le bord du
           // cercle, dans la direction regardée. Indique l'orientation
