@@ -109,8 +109,16 @@ export function Player({
          * Si `gazeOrientation` n'est pas fourni (legacy), fallback sur
          * `orientation` (rétrocompat ancien API). */}
         <g transform={`rotate(${gazeOrientation ?? orientation ?? 0}, ${pos.x}, ${pos.y})`}>
+          {/* Tracé conçu en posture neutre (regard nord, gaze=0°) :
+           *  - Départ (épaule) : BAS-côté du cercle (= dos du joueur).
+           *  - Fin (main) : HAUT-côté étiré (= devant, dans le champ de vision).
+           *  - Courbure : bombe latéralement vers l'EXTÉRIEUR (paume ouverte).
+           *
+           * Quand on rotate selon le regard, l'ensemble pivote en bloc :
+           * les bras suivent toujours "départ derrière, ouverture devant",
+           * matérialisant la posture défensive bras tendus en avant. */}
           <path
-            d={`M ${pos.x - r * 0.6} ${pos.y - r * 0.7} Q ${pos.x - r * 1.4} ${pos.y - r * 0.95} ${pos.x - r * 1.55} ${pos.y - r * 0.15}`}
+            d={`M ${pos.x - r * 0.5} ${pos.y + r * 0.4} Q ${pos.x - r * 1.3} ${pos.y - r * 0.2} ${pos.x - r * 1.1} ${pos.y - r * 1.0}`}
             fill="none"
             stroke={stroke}
             strokeWidth={isAttacker ? 1.8 : 2.5}
@@ -118,7 +126,7 @@ export function Player({
             opacity={isAttacker ? 0.7 : 1}
           />
           <path
-            d={`M ${pos.x + r * 0.6} ${pos.y - r * 0.7} Q ${pos.x + r * 1.4} ${pos.y - r * 0.95} ${pos.x + r * 1.55} ${pos.y - r * 0.15}`}
+            d={`M ${pos.x + r * 0.5} ${pos.y + r * 0.4} Q ${pos.x + r * 1.3} ${pos.y - r * 0.2} ${pos.x + r * 1.1} ${pos.y - r * 1.0}`}
             fill="none"
             stroke={stroke}
             strokeWidth={isAttacker ? 1.8 : 2.5}
