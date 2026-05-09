@@ -62,3 +62,58 @@ export function setPlayerPositionAt(
 
   return out;
 }
+
+/**
+ * Insère ou remplace une annotation de mouvement (cut/dribble/screen) sur Step[stepIdx].
+ * - Une seule annotation de mouvement par joueur par étape (contrainte invariante).
+ * - `from` est toujours snappé à la position courante du joueur.
+ * - Synchronise Step[stepIdx+1].off[fromId] = anno.to.
+ * - Recale le `from` d'une éventuelle annotation de mouvement aval du même joueur.
+ *
+ * Voir le contrat de chaînage dans la JSDoc de `setPlayerPositionAt`.
+ */
+export function upsertMovementAnnotation(
+  steps: Step[],
+  stepIdx: number,
+  anno: Annotation,
+): Step[] {
+  if (!isMovement(anno)) return steps;
+  if (stepIdx < 0 || stepIdx >= steps.length) return steps;
+  const out = steps.map((s) => ({ ...s, off: { ...s.off }, annotations: [...s.annotations] }));
+  const cur = out[stepIdx];
+  const snappedFrom = { ...cur.off[anno.fromId] };
+  const newAnno: Annotation = { ...anno, from: snappedFrom, to: { ...anno.to } };
+
+  const existingIdx = findMovementIdx(cur.annotations, anno.fromId);
+  if (existingIdx >= 0) {
+    cur.annotations[existingIdx] = newAnno;
+  } else {
+    cur.annotations.push(newAnno);
+  }
+
+  if (stepIdx + 1 < out.length) {
+    const next = out[stepIdx + 1];
+    next.off[anno.fromId] = { ...newAnno.to };
+    const nextIdx = findMovementIdx(next.annotations, anno.fromId);
+    if (nextIdx >= 0) {
+      next.annotations[nextIdx] = { ...next.annotations[nextIdx], from: { ...newAnno.to } };
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Ajoute une annotation `pass`. N'affecte pas les positions.
+ */
+export function upsertPassAnnotation(
+  steps: Step[],
+  stepIdx: number,
+  anno: Annotation,
+): Step[] {
+  if (anno.type !== 'pass') return steps;
+  if (stepIdx < 0 || stepIdx >= steps.length) return steps;
+  const out = steps.map((s) => ({ ...s, off: { ...s.off }, annotations: [...s.annotations] }));
+  out[stepIdx].annotations.push({ ...anno });
+  return out;
+}

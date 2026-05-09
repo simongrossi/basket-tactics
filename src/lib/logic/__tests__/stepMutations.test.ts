@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Step, AttackerPositions, AttackerId, Point } from '@/lib/types';
-import { setPlayerPositionAt } from '../stepMutations';
+import { setPlayerPositionAt, upsertMovementAnnotation, upsertPassAnnotation } from '../stepMutations';
 
 const ZERO: AttackerPositions = {
   O1: { x: 0, y: 0 },
@@ -84,5 +84,76 @@ describe('setPlayerPositionAt', () => {
   it('stepIdx >= length : retourne les steps inchangés (référence identique)', () => {
     const steps = [step({}), step({})];
     expect(setPlayerPositionAt(steps, 5, 'O1', { x: 50, y: 50 })).toBe(steps);
+  });
+});
+
+describe('upsertMovementAnnotation', () => {
+  it('ajoute l\'annotation et synchronise Step[N+1].off', () => {
+    const steps = [step({}), step({})];
+    const out = upsertMovementAnnotation(steps, 0, {
+      type: 'dribble', fromId: 'O1', from: { x: 0, y: 0 }, to: { x: 50, y: 50 },
+    });
+    expect(out[0].annotations).toHaveLength(1);
+    expect(out[1].off.O1).toEqual({ x: 50, y: 50 });
+  });
+
+  it('remplace une annotation de mouvement existante du même joueur', () => {
+    const steps: Step[] = [
+      { ...step({}), annotations: [{ type: 'cut', fromId: 'O1', from: { x: 0, y: 0 }, to: { x: 30, y: 30 } }] },
+      step({ O1: { x: 30, y: 30 } } as Partial<AttackerPositions>),
+    ];
+    const out = upsertMovementAnnotation(steps, 0, {
+      type: 'dribble', fromId: 'O1', from: { x: 0, y: 0 }, to: { x: 80, y: 80 },
+    });
+    expect(out[0].annotations).toHaveLength(1);
+    expect(out[0].annotations[0].type).toBe('dribble');
+    expect(out[1].off.O1).toEqual({ x: 80, y: 80 });
+  });
+
+  it('coexiste avec une pass du même joueur', () => {
+    const steps: Step[] = [
+      { ...step({}), annotations: [{ type: 'pass', fromId: 'O1', toId: 'O3', from: { x: 0, y: 0 }, to: { x: 200, y: 0 } }] },
+      step({}),
+    ];
+    const out = upsertMovementAnnotation(steps, 0, {
+      type: 'dribble', fromId: 'O1', from: { x: 0, y: 0 }, to: { x: 50, y: 50 },
+    });
+    expect(out[0].annotations).toHaveLength(2);
+    expect(out[0].annotations.map((a) => a.type).sort()).toEqual(['dribble', 'pass']);
+  });
+
+  it('snap le `from` à la position courante du joueur', () => {
+    const steps = [step({ O1: { x: 10, y: 20 } } as Partial<AttackerPositions>), step({})];
+    const out = upsertMovementAnnotation(steps, 0, {
+      type: 'cut', fromId: 'O1', from: { x: 999, y: 999 }, to: { x: 50, y: 50 },
+    });
+    expect(out[0].annotations[0].from).toEqual({ x: 10, y: 20 });
+  });
+
+  it('recale le `from` d\'une annotation de mouvement existante sur Step[N+1]', () => {
+    const steps: Step[] = [
+      step({}),
+      {
+        ...step({ O1: { x: 50, y: 50 } } as Partial<AttackerPositions>),
+        annotations: [{ type: 'cut', fromId: 'O1', from: { x: 50, y: 50 }, to: { x: 200, y: 0 } }],
+      },
+      step({ O1: { x: 200, y: 0 } } as Partial<AttackerPositions>),
+    ];
+    const out = upsertMovementAnnotation(steps, 0, {
+      type: 'dribble', fromId: 'O1', from: { x: 0, y: 0 }, to: { x: 80, y: 80 },
+    });
+    expect(out[1].annotations[0].from).toEqual({ x: 80, y: 80 });
+  });
+});
+
+describe('upsertPassAnnotation', () => {
+  it('ajoute la pass sans toucher aux positions', () => {
+    const steps = [step({}, 'O1'), step({}, 'O1')];
+    const out = upsertPassAnnotation(steps, 0, {
+      type: 'pass', fromId: 'O1', toId: 'O3', from: { x: 0, y: 0 }, to: { x: 200, y: 0 },
+    });
+    expect(out[0].annotations).toHaveLength(1);
+    expect(out[0].annotations[0].type).toBe('pass');
+    expect(out[1].off.O1).toEqual({ x: 0, y: 0 });
   });
 });
