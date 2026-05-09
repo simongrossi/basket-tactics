@@ -45,6 +45,7 @@ import {
   getActiveDefenderIds,
   isActiveAttacker,
 } from '@/lib/logic/players';
+import { attackerTrajectoryAt, type MovementType } from '@/lib/logic/playbackTrajectory';
 
 interface CourtViewProps {
   state: AppState;
@@ -89,6 +90,8 @@ interface PlaybackFrame {
   ballPos: Point;
   ballInFlight: boolean;
   attVisuals: import('@/lib/types').ComputedAttackerVisuals;
+  attackerIsScreening: Partial<Record<AttackerId, boolean>>;
+  attackerMovementType: Partial<Record<AttackerId, MovementType>>;
 }
 
 export function CourtView(props: CourtViewProps) {
@@ -149,47 +152,53 @@ export function CourtView(props: CourtViewProps) {
       const defA = effectiveDefensePositions(cur, idxA);
       const defB = effectiveDefensePositions(cur, idxB);
 
-      // Interpolation des attaquants AVEC contournement d'obstacles. Les
-      // obstacles considérés : les autres attaquants (position moyenne A-B)
-      // et les défenseurs (position moyenne A-B). Évite qu'un attaquant
-      // traverse un autre joueur entre deux étapes.
+      // Interpolation des attaquants pilotée par les annotations de mouvement.
+      // L'évitement d'obstacles est appliqué uniquement pour cut et idle
+      // (pas pour dribble — on suit la wave dessinée ; pas pour screen —
+      // trajectoire courte et délibérée).
       const off = {} as AttackerPositions;
       const attackerIds = Object.keys(offA) as AttackerId[];
       const defenderIds = Object.keys(defA) as DefenderId[];
       const radiusObstacle = PLAYER_RADIUS + 2;
+      const attackerMovementType: Partial<Record<AttackerId, MovementType>> = {};
+      const attackerIsScreening: Partial<Record<AttackerId, boolean>> = {};
       attackerIds.forEach((id) => {
-        const from = offA[id];
-        const to = offB[id];
-        const obstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
-        attackerIds.forEach((other) => {
-          if (other === id) return;
-          obstacles.push({
-            center: {
-              x: (offA[other].x + offB[other].x) / 2,
-              y: (offA[other].y + offB[other].y) / 2,
-            },
-            radius: radiusObstacle,
-            defenderToSkip: 'D1' as DefenderId, // valeur arbitraire, jamais filtrée car l'attaquant n'est pas un DefenderId
+        const traj = attackerTrajectoryAt(cur.steps, idxA, id, localT);
+        attackerMovementType[id] = traj.movementType;
+        attackerIsScreening[id] = traj.isScreening;
+        let p = traj.position;
+
+        // Obstacle avoidance only for `cut` or `idle`. For dribble we follow the
+        // drawn wave; for screen the trajectory is short and deliberate.
+        if (traj.movementType === 'cut' || traj.movementType === 'idle') {
+          const obstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
+          attackerIds.forEach((other) => {
+            if (other === id) return;
+            obstacles.push({
+              center: {
+                x: (offA[other].x + offB[other].x) / 2,
+                y: (offA[other].y + offB[other].y) / 2,
+              },
+              radius: radiusObstacle,
+              defenderToSkip: 'D1' as DefenderId,
+            });
           });
-        });
-        defenderIds.forEach((dId) => {
-          obstacles.push({
-            center: {
-              x: (defA[dId].x + defB[dId].x) / 2,
-              y: (defA[dId].y + defB[dId].y) / 2,
-            },
-            radius: radiusObstacle,
-            defenderToSkip: 'D1' as DefenderId,
+          defenderIds.forEach((dId) => {
+            obstacles.push({
+              center: {
+                x: (defA[dId].x + defB[dId].x) / 2,
+                y: (defA[dId].y + defB[dId].y) / 2,
+              },
+              radius: radiusObstacle,
+              defenderToSkip: 'D1' as DefenderId,
+            });
           });
-        });
-        let p: Point = {
-          x: from.x + (to.x - from.x) * localT,
-          y: from.y + (to.y - from.y) * localT,
-        };
-        const blocking = pickBlockingCluster(from, to, obstacles);
-        if (blocking) {
-          p = curveAroundObstacle(from, to, blocking.center, blocking.radius, localT);
+          const blocking = pickBlockingCluster(offA[id], offB[id], obstacles);
+          if (blocking) {
+            p = curveAroundObstacle(offA[id], offB[id], blocking.center, blocking.radius, localT);
+          }
         }
+
         off[id] = p;
       });
 
@@ -308,7 +317,7 @@ export function CourtView(props: CourtViewProps) {
         localT
       );
       const attVisuals = computeAttackerVisuals(cur, idxB);
-      setPlayFrame({ off, defPos, carrier, screen, offBallScreens, stepIdx: idxA, ballPos: ball.pos, ballInFlight: ball.inFlight, attVisuals });
+      setPlayFrame({ off, defPos, carrier, screen, offBallScreens, stepIdx: idxA, ballPos: ball.pos, ballInFlight: ball.inFlight, attVisuals, attackerIsScreening, attackerMovementType });
     };
     // setInterval plus déterministe que requestAnimationFrame pour ce cas
     // (pas de soucis avec re-renders qui restartent la boucle).
@@ -345,6 +354,8 @@ export function CourtView(props: CourtViewProps) {
       ballPos,
       ballInFlight: false,
       attVisuals: computeAttackerVisuals(state, state.activeStep),
+      attackerIsScreening: {},
+      attackerMovementType: {},
     };
   }, [state]);
 
@@ -363,38 +374,44 @@ export function CourtView(props: CourtViewProps) {
     const offB = activeOffense(b.off, state.playerCount);
     const defA = effectiveDefensePositions(state, idxA);
     const defB = effectiveDefensePositions(state, idxB);
-    // Interpolation des attaquants AVEC contournement (cf. playFrame).
+    // Interpolation des attaquants pilotée par les annotations (cf. playFrame).
+    // Évitement d'obstacles uniquement pour cut/idle.
     const off = {} as AttackerPositions;
     const scrubAttIds = Object.keys(offA) as AttackerId[];
     const scrubDefIds = Object.keys(defA) as DefenderId[];
     const scrubObstacleR = PLAYER_RADIUS + 2;
+    const scrubAttackerMovementType: Partial<Record<AttackerId, MovementType>> = {};
+    const scrubAttackerIsScreening: Partial<Record<AttackerId, boolean>> = {};
     scrubAttIds.forEach((id) => {
-      const from = offA[id];
-      const to = offB[id];
-      const obstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
-      scrubAttIds.forEach((other) => {
-        if (other === id) return;
-        obstacles.push({
-          center: { x: (offA[other].x + offB[other].x) / 2, y: (offA[other].y + offB[other].y) / 2 },
-          radius: scrubObstacleR,
-          defenderToSkip: 'D1' as DefenderId,
+      const traj = attackerTrajectoryAt(state.steps, idxA, id, localT);
+      scrubAttackerMovementType[id] = traj.movementType;
+      scrubAttackerIsScreening[id] = traj.isScreening;
+      let p = traj.position;
+
+      // Obstacle avoidance only for `cut` or `idle`.
+      if (traj.movementType === 'cut' || traj.movementType === 'idle') {
+        const obstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
+        scrubAttIds.forEach((other) => {
+          if (other === id) return;
+          obstacles.push({
+            center: { x: (offA[other].x + offB[other].x) / 2, y: (offA[other].y + offB[other].y) / 2 },
+            radius: scrubObstacleR,
+            defenderToSkip: 'D1' as DefenderId,
+          });
         });
-      });
-      scrubDefIds.forEach((dId) => {
-        obstacles.push({
-          center: { x: (defA[dId].x + defB[dId].x) / 2, y: (defA[dId].y + defB[dId].y) / 2 },
-          radius: scrubObstacleR,
-          defenderToSkip: 'D1' as DefenderId,
+        scrubDefIds.forEach((dId) => {
+          obstacles.push({
+            center: { x: (defA[dId].x + defB[dId].x) / 2, y: (defA[dId].y + defB[dId].y) / 2 },
+            radius: scrubObstacleR,
+            defenderToSkip: 'D1' as DefenderId,
+          });
         });
-      });
-      let p: Point = {
-        x: from.x + (to.x - from.x) * localT,
-        y: from.y + (to.y - from.y) * localT,
-      };
-      const blocking = pickBlockingCluster(from, to, obstacles);
-      if (blocking) {
-        p = curveAroundObstacle(from, to, blocking.center, blocking.radius, localT);
+        const blocking = pickBlockingCluster(offA[id], offB[id], obstacles);
+        if (blocking) {
+          p = curveAroundObstacle(offA[id], offB[id], blocking.center, blocking.radius, localT);
+        }
       }
+
       off[id] = p;
     });
     const carrier = localT < 0.5
@@ -506,6 +523,8 @@ export function CourtView(props: CourtViewProps) {
       ballPos: ball.pos,
       ballInFlight: ball.inFlight,
       attVisuals: computeAttackerVisuals(state, idxB),
+      attackerIsScreening: scrubAttackerIsScreening,
+      attackerMovementType: scrubAttackerMovementType,
     };
   }, [props.scrubT, state]);
 
@@ -809,6 +828,7 @@ export function CourtView(props: CourtViewProps) {
                       facing={frame.attVisuals[id]?.facing}
                       armBallSide={frame.attVisuals[id]?.armBallSide}
                       armManSide={frame.attVisuals[id]?.armManSide}
+                      isScreening={frame.attackerIsScreening?.[id] === true}
                     />
                   ))}
                 {(Object.entries(frame.defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(
@@ -855,6 +875,7 @@ export function CourtView(props: CourtViewProps) {
                       facing={frame.attVisuals[id]?.facing}
                       armBallSide={frame.attVisuals[id]?.armBallSide}
                       armManSide={frame.attVisuals[id]?.armManSide}
+                      isScreening={frame.attackerIsScreening?.[id] === true}
                     />
                   ) : null
                 )}

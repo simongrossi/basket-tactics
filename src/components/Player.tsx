@@ -40,6 +40,9 @@ interface PlayerProps {
   showForcedScreenerBadge?: boolean;
   /** Rôle PnR (P1) — affiche un anneau distinct selon la rotation. */
   pnrRole?: 'tag' | 'x-out' | 'stunt';
+  /** Attaquant en position d'écran (isScreening=true dans playbackTrajectory).
+   *  Prop préparée pour Task 10 — pas de rendu spécifique ici. */
+  isScreening?: boolean;
 }
 
 export function Player({
@@ -67,6 +70,7 @@ export function Player({
   showDenyingRing = true,
   showForcedScreenerBadge = true,
   pnrRole,
+  isScreening: _isScreening,
 }: PlayerProps) {
   const fill = isAttacker ? '#D85A30' : '#378ADD';
 
