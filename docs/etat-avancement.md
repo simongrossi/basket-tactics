@@ -53,9 +53,9 @@
 - **Idée** : alléger drastiquement la colonne gauche en réduisant `ScenarioPanel` à un résumé minimal (liste des libellés + bouton ouvrir) et déplacer toute l'édition (formulaires, couvertures, défense libre) dans une modale `ScenarioEditorModal`.
 
 ### Multi-format de jeu (2x2 / 3x3 / 4x4 / 5x5)
-- **Branche** : `wip/player-count` (commit `3e92420`, poussée sur GitHub, **pas mergée**)
-- **État** : 17 fichiers touchés, nouveau type `PlayerCount`, nouveau module `src/lib/logic/players.ts`, nouveau champ `AppState.playerCount`, propagation à travers engine + composants. **Travail non terminé.**
-- **À reprendre quand** : on décide d'attaquer le multi-format. Le commit WIP est intentionnellement isolé pour ne pas bloquer `main`.
+- **Mergé sur `main`** (commit `cea5111`, depuis l'ancienne branche `wip/player-count`)
+- **État** : type `PlayerCount`, module `src/lib/logic/players.ts`, champ `AppState.playerCount`, toggle dans Paramètres, propagation à travers engine + 17 composants. **Type-check ✅, 234 tests ✅**.
+- **Travail non terminé** : implémentation fonctionnelle de base mais manque sans doute du polissage UX/edge cases. À éprouver en usage réel et compléter au fil des bugs/manques constatés.
 
 ---
 
