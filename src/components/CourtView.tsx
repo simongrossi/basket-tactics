@@ -749,6 +749,8 @@ export function CourtView(props: CourtViewProps) {
           attVisuals={frame.attVisuals}
           rules={state.rules}
           showAll={!!state.showFieldOfViewAll}
+          showAllDefenders={!!state.showFieldOfViewAllDefenders}
+          showAllAttackers={!!state.showFieldOfViewAllAttackers}
         />
         <HelpLines off={frame.off} defPos={frame.defPos} defenseDistance={state.defenseDistance} show={state.showHelpLines} />
         {/* Anneaux de menace — rendus AVANT les sprites pour que les icônes

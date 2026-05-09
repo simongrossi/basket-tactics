@@ -12,9 +12,12 @@ interface FieldOfViewOverlayProps {
   off: AttackerPositions;
   attVisuals: ComputedAttackerVisuals;
   rules: DefenderRules;
-  /** Toggle global qui force le cône sur TOUS les joueurs (défenseurs +
-   *  attaquants). Combiné par OR logique avec les toggles individuels. */
+  /** Active les cônes sur **tous les joueurs** (défenseurs + attaquants). */
   showAll?: boolean;
+  /** Active les cônes sur tous les défenseurs uniquement. */
+  showAllDefenders?: boolean;
+  /** Active les cônes sur tous les attaquants uniquement. */
+  showAllAttackers?: boolean;
 }
 
 /**
@@ -52,20 +55,23 @@ const CONE_STYLE: Record<ConeKind, { fill: string; stroke: string }> = {
   att: { fill: '#f97316', stroke: '#c2410c' },
 };
 
-export function FieldOfViewOverlay({ defPos, off, attVisuals, rules, showAll }: FieldOfViewOverlayProps) {
+export function FieldOfViewOverlay({
+  defPos, off, attVisuals, rules, showAll, showAllDefenders, showAllAttackers,
+}: FieldOfViewOverlayProps) {
   const cones: { id: string; cx: number; cy: number; gaze: number; kind: ConeKind }[] = [];
+  const defOn = !!(showAll || showAllDefenders);
+  const attOn = !!(showAll || showAllAttackers);
 
-  // Défenseurs : cône si toggle global OU toggle individuel.
+  // Défenseurs : cône si toggle "tous" OU toggle "tous défenseurs" OU
+  // toggle individuel (clic-droit).
   (Object.entries(defPos) as [DefenderId, ComputedDefense[DefenderId]][]).forEach(([id, p]) => {
-    const enabled = showAll || rules[id]?.showFieldOfView === true;
+    const enabled = defOn || rules[id]?.showFieldOfView === true;
     if (!enabled) return;
     cones.push({ id: `def-${id}`, cx: p.x, cy: p.y, gaze: p.gazeOrientation, kind: 'def' });
   });
 
-  // Attaquants : cône si toggle global (pas de réglage individuel pour
-  // l'instant — on peut en ajouter via un nouveau champ d'AttackerHands
-  // si besoin futur).
-  if (showAll) {
+  // Attaquants : cône si toggle "tous" OU toggle "tous attaquants".
+  if (attOn) {
     (Object.entries(off) as [AttackerId, { x: number; y: number }][]).forEach(([id, pos]) => {
       const v = attVisuals[id];
       if (!v) return;

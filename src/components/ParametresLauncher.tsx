@@ -133,6 +133,8 @@ function countActiveToggles(state: AppState): number {
   if (state.showBestAction) n++;
   if (state.showHelpDebug) n++;
   if (state.showFieldOfViewAll) n++;
+  if (state.showFieldOfViewAllDefenders) n++;
+  if (state.showFieldOfViewAllAttackers) n++;
   // INDICATEURS AUTO — default true partout
   if (state.showSwitchMatchups !== false) n++;
   if (state.showScreenIndicators !== false) n++;

@@ -346,12 +346,17 @@ export interface AppState {
   /** Affiche la meilleure action offensive (tir / drive / passe) calculée
    *  par évaluation des EV. Phase B. Indépendant de showThreats. */
   showBestAction?: boolean;
-  /** Toggle global : affiche le champ de vision (cône heatmap) sur **tous
-   *  les joueurs** (défenseurs ET attaquants). Combiné avec les toggles
-   *  individuels `rule.showFieldOfView` par OR logique : si l'un OU
-   *  l'autre est actif, le cône s'affiche. Quand plusieurs cônes se
-   *  superposent, l'opacité s'accumule naturellement (heatmap croisée). */
+  /** Toggles globaux du champ de vision (cônes heatmap). Tous combinés en
+   *  OR logique avec les toggles individuels `rule.showFieldOfView` :
+   *  - `showFieldOfViewAll` : active TOUS les joueurs (défenseurs + attaquants)
+   *    en un clic. Implique les deux sous-toggles ci-dessous.
+   *  - `showFieldOfViewAllDefenders` : active uniquement les 5 défenseurs.
+   *  - `showFieldOfViewAllAttackers` : active uniquement les 5 attaquants.
+   *  Quand plusieurs cônes se superposent, l'opacité s'accumule naturellement
+   *  (heatmap croisée). */
   showFieldOfViewAll?: boolean;
+  showFieldOfViewAllDefenders?: boolean;
+  showFieldOfViewAllAttackers?: boolean;
   /** Vue debug d'aide défensive : pour chaque défenseur dont helpFactor>0.10,
    *  une flèche depuis sa position vers son `helpAim` avec un badge `xx%`
    *  et un tag de priorité (paint/man/passlane). Inclut aussi les rotations

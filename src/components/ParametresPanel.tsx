@@ -83,9 +83,21 @@ export function ParametresPanel({ state, onPatch }: ParametresPanelProps) {
         />
         <LegendCheckboxLine
           checked={!!state.showFieldOfViewAll}
-          label="champ de vision (tous)"
-          sample="circle" color="#06b6d4"
+          label="champ vision (tous)"
+          sample="circle" color="#94a3b8"
           onChange={(v) => onPatch({ showFieldOfViewAll: v })}
+        />
+        <LegendCheckboxLine
+          checked={!!state.showFieldOfViewAllDefenders}
+          label="champ vision (défenseurs)"
+          sample="circle" color="#06b6d4"
+          onChange={(v) => onPatch({ showFieldOfViewAllDefenders: v })}
+        />
+        <LegendCheckboxLine
+          checked={!!state.showFieldOfViewAllAttackers}
+          label="champ vision (attaquants)"
+          sample="circle" color="#f97316"
+          onChange={(v) => onPatch({ showFieldOfViewAllAttackers: v })}
         />
       </div>
       <button
