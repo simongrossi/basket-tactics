@@ -4,8 +4,9 @@
 // main (`manualOverride: true`) en les réinjectant à leur position d'origine
 // dans le groupe de l'action qui les a générés.
 
-import type { AttackerPositions, AttackerId, ScriptedAction, Step } from '@/lib/types';
+import type { AttackerPositions, AttackerId, DefensiveScriptedAction, ScriptedAction, Step } from '@/lib/types';
 import { SCRIPTED_GENERATORS } from './scriptedGenerators';
+import { applyDefensivePass, type ParentRangeMap } from './defensiveCompilation';
 
 export interface CompileInput {
   initialOff: AttackerPositions;
@@ -46,6 +47,8 @@ export function compileScenario(input: CompileInput): Step[] {
     subIndexCounter.set(s.generatedBy, cur + 1);
   }
 
+  // Passe 1 — actions offensives
+  const parentRanges: ParentRangeMap = {};
   for (const action of actions) {
     if (action.kind !== 'offensive') continue;
     const gen = SCRIPTED_GENERATORS[action.type];
@@ -53,6 +56,7 @@ export function compileScenario(input: CompileInput): Step[] {
     const generated = gen(prev, action);
     if (generated.length === 0) continue;
 
+    const startIndex = result.length;
     const overrides = manualByAction.get(action.id);
     for (let i = 0; i < generated.length; i++) {
       const override = overrides?.get(i);
@@ -65,6 +69,15 @@ export function compileScenario(input: CompileInput): Step[] {
         prev = generated[i];
       }
     }
+    parentRanges[action.id] = { startIndex, endIndex: result.length - 1 };
+  }
+
+  // Passe 2 — actions défensives
+  const defensives = actions.filter(
+    (a): a is DefensiveScriptedAction => a.kind === 'defensive',
+  );
+  if (defensives.length > 0) {
+    applyDefensivePass(result, defensives, parentRanges);
   }
 
   return result;
