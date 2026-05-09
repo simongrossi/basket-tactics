@@ -87,11 +87,26 @@ export function expandToDirectives(
       break;
     }
     case 'help-and-recover': {
-      // helpStep + recoverStep peuvent être des indices absolus (libre)
-      // ou des indices relatifs au parent (couplée). Si non fournis, on
-      // utilise targetStepIndices[0] et targetStepIndices[1] respectivement.
-      const helpIdx = def.params.helpStep ?? targetStepIndices[0];
-      const recoverIdx = def.params.recoverStep ?? targetStepIndices[1] ?? targetStepIndices[0] + 1;
+      // helpStep + recoverStep sont :
+      //  - relatifs au parent (couplée) : 0 = 1er step du parent
+      //  - absolus (libre) : indices directs dans steps[]
+      // Si non fournis, on utilise les 2 premiers targetStepIndices.
+      const isCoupled = def.parentActionId !== undefined;
+      const resolveIdx = (raw: number | undefined): number | undefined => {
+        if (raw === undefined) return undefined;
+        if (isCoupled) {
+          // Indice relatif → on lit dans targetStepIndices (qui est déjà ordonné).
+          if (raw < 0 || raw >= targetStepIndices.length) return undefined;
+          return targetStepIndices[raw];
+        }
+        // Libre : indice absolu, doit être dans la liste targetStepIndices
+        // (sinon resolveTargetSteps l'aurait filtré).
+        return raw;
+      };
+      const helpIdx = resolveIdx(def.params.helpStep) ?? targetStepIndices[0];
+      const recoverIdx = resolveIdx(def.params.recoverStep)
+        ?? targetStepIndices[1]
+        ?? (helpIdx !== undefined ? helpIdx + 1 : undefined);
       if (helpIdx !== undefined) {
         result.push({
           stepIndex: helpIdx,

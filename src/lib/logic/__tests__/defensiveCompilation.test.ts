@@ -70,13 +70,40 @@ describe('expandToDirectives', () => {
     expect(result[0].stepIndex).toBe(2);
   });
 
-  it("help-and-recover : 1 engage + 1 release", () => {
+  it("help-and-recover couplée : helpStep/recoverStep sont relatifs au parent", () => {
     const def: DefensiveScriptedAction = {
       kind: 'defensive', id: 'd1', type: 'help-and-recover',
       parentActionId: 'A',
-      params: { defenders: ['D2'], target: 'O1', helpStep: 1, recoverStep: 2 },
+      params: { defenders: ['D2'], target: 'O1', helpStep: 0, recoverStep: 1 },
     };
+    // targetStepIndices = [1, 2] (parent A occupe [1,2,3] mais on filtre via affectedSteps)
+    // helpStep relatif 0 → targetStepIndices[0] = 1 (engage)
+    // recoverStep relatif 1 → targetStepIndices[1] = 2 (release)
     const result = expandToDirectives(def, [1, 2]);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({ stepIndex: 1, directive: { phase: 'engage' } });
+    expect(result[1]).toMatchObject({ stepIndex: 2, directive: { phase: 'release' } });
+  });
+
+  it("help-and-recover libre : helpStep/recoverStep sont absolus", () => {
+    const def: DefensiveScriptedAction = {
+      kind: 'defensive', id: 'd1', type: 'help-and-recover',
+      affectedSteps: [3, 4],
+      params: { defenders: ['D2'], target: 'O1', helpStep: 3, recoverStep: 4 },
+    };
+    const result = expandToDirectives(def, [3, 4]);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({ stepIndex: 3, directive: { phase: 'engage' } });
+    expect(result[1]).toMatchObject({ stepIndex: 4, directive: { phase: 'release' } });
+  });
+
+  it("help-and-recover sans helpStep/recoverStep : utilise les 2 premiers targetStepIndices", () => {
+    const def: DefensiveScriptedAction = {
+      kind: 'defensive', id: 'd1', type: 'help-and-recover',
+      parentActionId: 'A',
+      params: { defenders: ['D2'], target: 'O1' },
+    };
+    const result = expandToDirectives(def, [1, 2, 3]);
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({ stepIndex: 1, directive: { phase: 'engage' } });
     expect(result[1]).toMatchObject({ stepIndex: 2, directive: { phase: 'release' } });
