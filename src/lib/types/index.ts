@@ -61,6 +61,71 @@ export interface Step {
   /** Override de l'auto-detection d'écran porteur : l'utilisateur impose
    *  cet attaquant comme poseur, peu importe sa position. */
   forcedScreener?: AttackerId;
+  /** Step édité manuellement par l'utilisateur après génération scénario.
+   *  La recompilation du scénario préserve ce step (ne l'écrase pas). */
+  manualOverride?: boolean;
+  /** Id de la `ScriptedAction` qui a produit ce step. Trace de provenance
+   *  utile à l'UI (badge "généré par pick-and-roll"). */
+  generatedBy?: string;
+}
+
+// =============================================================
+// Scénario scripté (couche au-dessus de Step[])
+// =============================================================
+// Le user empile des actions FIBA nommées (ScriptedAction[]) ; un compilateur
+// les transforme en Step[] consommable par le moteur d'animation existant.
+// Chaque action a son propre type de paramètres ; on les regroupe dans une
+// union discriminée pour conserver le typage end-to-end.
+
+export type ScriptedActionType =
+  | 'pick-and-roll'
+  | 'pick-and-pop'
+  | 'hand-off'
+  | 'give-and-go'
+  | 'basket-cut'
+  | 'backdoor-cut'
+  | 'flare-cut'
+  | 'curl-cut'
+  | 'shuffle-cut'
+  | 'pin-down'
+  | 'flare-screen'
+  | 'back-screen'
+  | 'cross-screen'
+  | 'screen-the-screener'
+  | 'drive'
+  | 'pass'
+  | 'kick-out'
+  | 'shoot'
+  | 'isolation';
+
+/** Côté de l'action par rapport au porteur (axe = top of the key). */
+export type ActionSide = 'fort' | 'faible' | 'axe';
+/** Direction d'un drive. */
+export type DriveDirection = 'panier' | 'baseline' | 'middle';
+
+export interface ScriptedActionParams {
+  ballHandler?: AttackerId;
+  screener?: AttackerId;
+  cutter?: AttackerId;
+  passer?: AttackerId;
+  receiver?: AttackerId;
+  giver?: AttackerId;
+  driver?: AttackerId;
+  shooter?: AttackerId;
+  from?: AttackerId;
+  to?: AttackerId;
+  firstScreener?: AttackerId;
+  secondScreener?: AttackerId;
+  side?: ActionSide;
+  direction?: DriveDirection;
+}
+
+export interface ScriptedAction {
+  id: string;
+  type: ScriptedActionType;
+  params: ScriptedActionParams;
+  /** Override libre de la lecture FR auto-générée. */
+  label?: string;
 }
 
 export type HelpPriority = 'paint' | 'man' | 'passlane';
@@ -411,4 +476,8 @@ export interface AppState {
   /** Mode édition zones : active l'overlay interactif (drag des homePos +
    *  clic sur les labels pour ouvrir le popup de réglage par région). */
   zoneEditMode?: boolean;
+  /** Scénario scripté optionnel. Quand non-vide, ses actions sont compilées
+   *  en `steps[]` (les steps marqués `manualOverride` sont préservés). Le
+   *  user peut basculer entre saisie manuelle et scénario via l'UI. */
+  scriptedActions?: ScriptedAction[];
 }

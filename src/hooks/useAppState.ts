@@ -7,6 +7,7 @@ import type {
   Annotation,
   Step,
   ScreenRule,
+  ScriptedAction,
   Tool,
   DefenderRule,
   DefenseSystem,
@@ -17,6 +18,7 @@ import { getZoneLayout, mirrorZoneLayout } from '@/lib/data/zones';
 import type { Template } from '@/lib/data/templates';
 import type { DefensePreset } from '@/lib/data/defensePresets';
 import type { DefenderProfile } from '@/lib/data/defenderProfiles';
+import { compileScenario } from '@/lib/logic/compileScenario';
 
 const STORAGE_KEY = 'basket-tactics-state-v1';
 
@@ -38,6 +40,41 @@ function loadFromStorage(): AppState | null {
 }
 
 const HISTORY_LIMIT = 50;
+
+// ============================================================
+// Helpers scénario scripté
+// ============================================================
+
+/** Marque un step comme édité manuellement (préservé à la prochaine recompile
+ *  scénario). N'est utile que pour les steps issus du scénario (generatedBy
+ *  défini). Le step 0 (départ) et les steps purement manuels n'ont pas besoin
+ *  du flag. */
+function markStepAsManual(state: AppState, stepIdx: number): AppState {
+  if (stepIdx <= 0) return state; // step 0 = position de départ, jamais marqué
+  const cur = state.steps[stepIdx];
+  if (!cur || !cur.generatedBy || cur.manualOverride) return state;
+  const steps = [...state.steps];
+  steps[stepIdx] = { ...cur, manualOverride: true };
+  return { ...state, steps };
+}
+
+/** Recompile les steps depuis le scénario (si non vide). Conserve le step 0
+ *  comme position de départ et préserve les manualOverride. */
+function recompileScenarioSteps(state: AppState): AppState {
+  const actions = state.scriptedActions;
+  if (!actions || actions.length === 0) return state;
+  const initial = state.steps[0];
+  if (!initial) return state;
+  const newSteps = compileScenario({
+    initialOff: initial.off,
+    initialBallCarrier: initial.ballCarrier,
+    actions,
+    existingSteps: state.steps,
+  });
+  // Conserve activeStep dans les bornes du nouveau tableau.
+  const activeStep = Math.min(state.activeStep, newSteps.length - 1);
+  return { ...state, steps: newSteps, activeStep };
+}
 
 export function useAppState() {
   // Premier render identique côté SSR et client : on part toujours de l'état
@@ -146,6 +183,9 @@ export function useAppState() {
       const steps = [...s.steps];
       const cur = { ...steps[s.activeStep] };
       cur.off = { ...cur.off, [id]: { x, y } };
+      // Si ce step provient du scénario, on le marque comme édité manuellement
+      // pour qu'il survive à la prochaine recompile.
+      if (s.activeStep > 0 && cur.generatedBy) cur.manualOverride = true;
       steps[s.activeStep] = cur;
       return { ...s, steps };
     });
@@ -205,6 +245,7 @@ export function useAppState() {
       if (annotation.type === 'pass' && annotation.toId) {
         cur.ballCarrier = annotation.toId;
       }
+      if (s.activeStep > 0 && cur.generatedBy) cur.manualOverride = true;
       steps[s.activeStep] = cur;
       return { ...s, steps };
     });
@@ -502,6 +543,53 @@ export function useAppState() {
     setStateWithHistory((s) => ({ ...s, ...p }));
   }, []);
 
+  // ============================================================
+  // Scénario scripté
+  // ============================================================
+
+  const addScriptedAction = useCallback((action: ScriptedAction) => {
+    setStateWithHistory((s) => {
+      const next: AppState = { ...s, scriptedActions: [...(s.scriptedActions ?? []), action] };
+      return recompileScenarioSteps(next);
+    });
+  }, []);
+
+  const updateScriptedAction = useCallback((id: string, action: ScriptedAction) => {
+    setStateWithHistory((s) => {
+      const list = (s.scriptedActions ?? []).map((a) => (a.id === id ? action : a));
+      return recompileScenarioSteps({ ...s, scriptedActions: list });
+    });
+  }, []);
+
+  const deleteScriptedAction = useCallback((id: string) => {
+    setStateWithHistory((s) => {
+      const list = (s.scriptedActions ?? []).filter((a) => a.id !== id);
+      // Purge les manualOverride orphelins liés à cette action.
+      const cleanSteps = s.steps.map((st) =>
+        st.generatedBy === id ? { ...st, manualOverride: false } : st
+      );
+      return recompileScenarioSteps({ ...s, scriptedActions: list, steps: cleanSteps });
+    });
+  }, []);
+
+  const moveScriptedAction = useCallback((id: string, dir: 'up' | 'down') => {
+    setStateWithHistory((s) => {
+      const list = [...(s.scriptedActions ?? [])];
+      const idx = list.findIndex((a) => a.id === id);
+      if (idx < 0) return s;
+      const target = dir === 'up' ? idx - 1 : idx + 1;
+      if (target < 0 || target >= list.length) return s;
+      [list[idx], list[target]] = [list[target], list[idx]];
+      return recompileScenarioSteps({ ...s, scriptedActions: list });
+    });
+  }, []);
+
+  const clearScriptedActions = useCallback(() => {
+    setStateWithHistory((s) => ({ ...s, scriptedActions: [] }));
+    // On ne recompile pas : le user passe en mode 100% manuel, ses steps
+    // existants restent intacts.
+  }, []);
+
   return {
     state,
     undo,
@@ -539,5 +627,10 @@ export function useAppState() {
     loadTemplate,
     clearDefenseOverride,
     applyDefensePreset,
+    addScriptedAction,
+    updateScriptedAction,
+    deleteScriptedAction,
+    moveScriptedAction,
+    clearScriptedActions,
   };
 }
