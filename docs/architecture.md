@@ -25,39 +25,96 @@ src/
 │   ├── layout.tsx        # racine Next.js
 │   └── page.tsx          # point d'entrée — orchestre tout
 ├── components/
-│   ├── ui.tsx            # primitives partagées (Panel, Section, Slider, Button)
-│   ├── OffensePanel.tsx  # panneau gauche — orange, attaque
-│   ├── DefensePanel.tsx  # panneau droit — bleu, défense
-│   ├── CourtView.tsx     # SVG interactif du terrain
-│   ├── Court.tsx         # arrière-plan terrain (lignes)
-│   ├── Player.tsx        # cercle + bras défensifs + ballon
-│   ├── Annotations.tsx   # flèches passe/dribble/course/écran
-│   ├── Overlays.tsx      # matchups, lignes d'aide, écran indicators, zones
-│   ├── Timeline.tsx      # scrubber horizontal sous le terrain
-│   ├── ContextMenu.tsx   # menu clic-droit sur défenseur
-│   ├── StepThumbnail.tsx # rendu statique réutilisable (export)
-│   └── PlaybookView.tsx  # overlay export PDF
+│   ├── ui.tsx                    # primitives partagées (Panel, Section, Slider, Button)
+│   │
+│   │   — Panneaux latéraux —
+│   ├── OffensePanel.tsx          # panneau gauche — orange, attaque
+│   ├── DefensePanel.tsx          # panneau droit — bleu, défense
+│   ├── ScenarioPanel.tsx         # panneau scénario (directives scriptées)
+│   ├── LibraryPanel.tsx          # panneau bibliothèque de systèmes
+│   ├── MetricsBar.tsx            # barre de métriques défensives
+│   ├── ParametresPanel.tsx       # panneau paramètres avancés
+│   ├── SimulationSection.tsx     # section simulation Monte Carlo
+│   │
+│   │   — Terrain SVG interactif —
+│   ├── CourtView.tsx             # SVG interactif du terrain
+│   ├── Court.tsx                 # arrière-plan terrain (lignes)
+│   ├── Player.tsx                # cercle + bras défensifs + ballon
+│   ├── Annotations.tsx           # flèches passe/dribble/course/écran
+│   ├── Timeline.tsx              # scrubber horizontal sous le terrain
+│   ├── ContextMenu.tsx           # menu clic-droit sur défenseur
+│   ├── StepThumbnail.tsx         # rendu statique réutilisable (export)
+│   │
+│   │   — Overlays SVG —
+│   ├── Overlays.tsx              # matchups, lignes d'aide, écran indicators, zones
+│   ├── HeatmapOverlay.tsx        # heatmap de danger offensif
+│   ├── ThreatOverlay.tsx         # visualisation des menaces (Phase A)
+│   ├── PassLanesOverlay.tsx      # lignes de passe ouvertes/contestées
+│   ├── FieldOfViewOverlay.tsx    # cônes de vision des défenseurs
+│   ├── BestActionOverlay.tsx     # meilleure action offensive simulée
+│   ├── ZoneCoverage.tsx          # dessin des zones de couverture
+│   ├── ZoneEditOverlay.tsx       # édition interactive des zones
+│   ├── ActionOrderBadges.tsx     # badges d'ordre des actions scriptées
+│   │
+│   │   — Modales et lanceurs —
+│   ├── AddCoverageModal.tsx      # modale ajout de couverture défensive
+│   ├── LibraryModal.tsx          # modale bibliothèque / import de systèmes
+│   ├── FloatingActionsMenu.tsx   # menu flottant d'actions rapides
+│   ├── ParametresLauncher.tsx    # bouton/lanceur du panneau paramètres
+│   │
+│   │   — Formulaires défensifs —
+│   ├── DefensiveActionForm.tsx   # formulaire d'action défensive scriptée
+│   ├── ScenarioReader.tsx        # lecture/affichage d'un scénario compilé
+│   │
+│   │   — Debug / diagnostics —
+│   ├── CoachDiagnostics.tsx      # diagnostics coach (avertissements tactiques)
+│   └── HelpDebugOverlay.tsx      # overlay de debug des vecteurs d'aide
 ├── hooks/
 │   └── useAppState.ts    # état central + tous les callbacks
 └── lib/
     ├── data/
-    │   ├── court.ts          # constantes terrain, panier, dimensions
-    │   ├── initial.ts        # AppState par défaut
-    │   ├── zones.ts          # polygones des zones (2-3, 1-3-1, etc.)
-    │   └── templates.ts      # bibliothèque systèmes (PNR, Horns, Pindown)
+    │   ├── court.ts                    # constantes terrain, panier, dimensions
+    │   ├── initial.ts                  # AppState par défaut
+    │   ├── zones.ts                    # polygones des zones (2-3, 1-3-1, etc.)
+    │   ├── templates.ts                # bibliothèque systèmes (PNR, Horns, Pindown)
+    │   ├── library.ts                  # gestion persistence bibliothèque locale
+    │   ├── physics.ts                  # constantes physiques (vitesse, radius)
+    │   ├── defenderProfiles.ts         # profils défenseurs (vitesse, portée)
+    │   ├── defensePresets.ts           # préréglages de stratégie défensive
+    │   ├── defensiveActionsCatalog.ts  # catalogue des actions défensives scriptées
+    │   └── scriptedActionsCatalog.ts   # catalogue des actions offensives scriptées
     ├── logic/                # MOTEUR PUR (aucun React)
-    │   ├── engine.ts         # orchestration : appelle tous les autres
-    │   ├── manDefense.ts     # marquage individuel + stances
-    │   ├── help.ts           # logique d'aide (sag baseline + triggers)
-    │   ├── triggers.ts       # détection drive / post-up / paint
-    │   ├── screens.ts        # détection + ajustement écrans (porteur + non-porteur)
-    │   ├── zoneDefense.ts    # logique de zone (mapping, rotation)
-    │   ├── trap.ts           # choix du défenseur en aide-trap
-    │   ├── metrics.ts        # métriques défensives (gap, paint coverage, passes)
-    │   ├── threats.ts        # Phase A simu : score de menace par attaquant
-    │   ├── offense.ts        # Phase B simu : EV des actions offensives
-    │   ├── simulator.ts      # Phase C simu : Monte Carlo de possessions (PPP)
-    │   └── geometry.ts       # utilitaires : distance, clamp, lerp, ballSide
+    │   │   — Cœur défensif —
+    │   ├── engine.ts                   # orchestration : appelle tous les autres
+    │   ├── manDefense.ts               # marquage individuel + stances
+    │   ├── help.ts                     # logique d'aide (sag baseline + triggers)
+    │   ├── triggers.ts                 # détection drive / post-up / paint
+    │   ├── screens.ts                  # détection + ajustement écrans (porteur + non-porteur)
+    │   ├── zoneDefense.ts              # logique de zone (mapping, rotation)
+    │   ├── trap.ts                     # choix du défenseur en aide-trap
+    │   ├── metrics.ts                  # métriques défensives (gap, paint coverage, passes)
+    │   ├── orientation.ts              # calcul des orientations O et D
+    │   ├── geometry.ts                 # utilitaires : distance, clamp, lerp, ballSide
+    │   │
+    │   │   — Actions défensives scriptées —
+    │   ├── applyDirective.ts           # application d'une directive défensive à l'engine
+    │   ├── defensiveCompilation.ts     # compilation des actions scriptées → directives
+    │   ├── defensiveDefaults.ts        # valeurs par défaut des actions défensives
+    │   ├── scriptedActionMigration.ts  # migration des anciens formats d'actions
+    │   ├── scriptedGenerators.ts       # générateurs d'actions scriptées (PNR, etc.)
+    │   ├── compileScenario.ts          # compilation complète d'un scénario
+    │   ├── pnrRotations.ts             # rotations défensives sur PNR
+    │   ├── screenAction.ts             # logique d'action sur écran
+    │   │
+    │   │   — Simulation (Phases A/B/C) —
+    │   ├── threats.ts                  # Phase A : score de menace par attaquant
+    │   ├── offense.ts                  # Phase B : EV des actions offensives
+    │   ├── simulator.ts                # Phase C : Monte Carlo de possessions (PPP)
+    │   ├── tacticalReads.ts            # lectures tactiques offensives
+    │   │
+    │   │   — Zone et situations —
+    │   ├── zoneSituations.ts           # détection de situations de zone (overload, skip)
+    │   └── coachDiagnostics.ts         # génération des avertissements coach
     └── types/
         └── index.ts          # tous les types
 ```
@@ -101,7 +158,7 @@ L'utilisateur peut **drag** un défenseur sur le terrain → la position est éc
 Toute la logique défensive (engine.ts, screens.ts, etc.) est **pure** : entrée = `AppState`, sortie = positions. Aucun hook React, aucun localStorage, aucun side-effect.
 
 Avantages :
-- Testable isolément (cf. [testing.md](testing.md) — 109 tests Vitest sur engine, screens, metrics, help, trap, manDefense, geometry, threats, offense, simulator)
+- Testable isolément (cf. [testing.md](testing.md) — ~198 tests Vitest dans 21 fichiers : engine, screens, metrics, help, trap, manDefense, geometry, threats, offense, simulator, orientation, zone, directives défensives scriptées…)
 - Réutilisable en SSR / export PDF / preview
 - Le rendu peut s'appuyer dessus sans gérer d'état intermédiaire
 

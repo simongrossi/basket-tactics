@@ -13,7 +13,7 @@ L'ancienne section "Visualisation" et l'ancienne `<details>` "Légende couleurs"
 
 ### Bibliothèque systèmes (modal)
 
-Bouton compact en haut de l'OffensePanel : `📚 Bibliothèque (N systèmes)` avec background tinté orange et bordure gauche accent. Le clic ouvre une **modal centrée** ([`TemplateLibraryModal.tsx`](../src/components/TemplateLibraryModal.tsx)) :
+Bouton compact en haut de l'OffensePanel : `📚 Bibliothèque (N systèmes)` avec background tinté orange et bordure gauche accent. Le clic ouvre une **modal centrée** ([`LibraryModal.tsx`](../src/components/LibraryModal.tsx)) :
 
 - Backdrop sombre, modal max 720px de large, max 85vh de haut
 - Header tinté orange avec titre + sous-titre + bouton de fermeture
@@ -29,8 +29,9 @@ Pas de header. Toute la hauteur viewport est exploitée. Chaque colonne latéral
 
 - **Colonne gauche (260px)** : panneaux empilés :
   - `OffensePanel` (orange, fill) — Attaque (Actions, Étapes)
-  - `LibraryPanel` (compact) — un seul bouton qui ouvre la modal `TemplateLibraryModal`
-- **Colonne centrale** : terrain + timeline + métriques (`grid-template-rows: minmax(0, 1fr) auto auto`). Bouton flottant `⋯` en haut à droite du terrain (`FloatingActionsMenu`) qui ouvre un menu déroulant avec les 5 actions globales (plein écran, playbook PDF, exporter/importer JSON, reset). Reste visible en mode plein écran.
+  - `LibraryPanel` (compact) — un seul bouton qui ouvre la modal `LibraryModal`
+  - `ScenarioPanel` (orange, compact) — édition du scénario tactique (actions FIBA empilables, couvertures défensives, défense libre). Une modale plein écran dédiée (`ScenarioEditorModal`) est planifiée pour remplacer ce panneau latéral.
+- **Colonne centrale** : terrain + timeline + métriques (`grid-template-rows: minmax(0, 1fr) auto auto`). Bouton flottant `⋯` (`FloatingActionsMenu`) ancré au coin haut-droit du terrain : ouvre un menu déroulant avec 5 actions globales (plein écran, playbook PDF, exporter JSON, importer JSON, reset). Reste visible en mode plein écran.
 - **Colonne droite (300px)** : `DefensePanel` (bleu, fill l'espace restant) au-dessus, `ParametresPanel` (compact, options d'affichage) en-dessous.
 
 Les panneaux "fill" (OffensePanel, DefensePanel) prennent `flex: 1 1 0` ; les panneaux "compact" (ParametresPanel) prennent `flex: 0 0 auto` (hauteur de leur contenu). Géré par la prop `fill` du composant `Panel`.

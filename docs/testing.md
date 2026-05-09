@@ -14,21 +14,38 @@ npm run test:watch # mode watch local
 ## Structure
 
 ```
-src/lib/logic/
-├── engine.ts
-├── screens.ts
-├── metrics.ts
-└── __tests__/
+src/lib/
+├── data/__tests__/
+│   └── defensiveActionsCatalog.test.ts
+└── logic/__tests__/
+    ├── applyDirective.test.ts
+    ├── coachDiagnostics.test.ts (via invariants)
+    ├── defenseScriptedIntegration.test.ts
+    ├── defensiveCompilation.test.ts
+    ├── defensiveDefaults.test.ts
     ├── engine.test.ts
+    ├── geometry.test.ts
+    ├── help.test.ts
+    ├── invariants.test.ts
+    ├── manDefense.test.ts
+    ├── metrics.test.ts
+    ├── offense.test.ts
+    ├── orientation.test.ts
     ├── screens.test.ts
-    └── metrics.test.ts
+    ├── scriptedActionMigration.test.ts
+    ├── scriptedGenerators.test.ts
+    ├── simulator.test.ts
+    ├── threats.test.ts
+    ├── trap.test.ts
+    ├── zoneDefense.test.ts
+    └── zoneSituations.test.ts
 ```
 
 Les tests vivent à côté du code testé sous `__tests__/`. Le pattern d'inclusion `vitest.config.ts` est `src/**/__tests__/**/*.test.ts`.
 
 ## Couverture actuelle
 
-**188 tests** sur 14 modules — logique défensive, simulation, orientation, invariants playbooks, rim protection, et utilitaires zone. Voir [CHANGELOG.md § 0.6.0](../CHANGELOG.md) pour le détail des ajouts récents (73 tests neufs depuis 0.5.0).
+**~198 tests** dans 21 fichiers — logique défensive, simulation, orientation, invariants playbooks, rim protection, utilitaires zone, et actions défensives scriptées. Voir [CHANGELOG.md § 0.6.0](../CHANGELOG.md) pour le détail des ajouts récents.
 
 ### `engine.test.ts`
 - `getMatchupsAt` : matchups de base, application d'un switch, cumul de plusieurs switches sur étapes successives, immuabilité de `baseMatchups`.
@@ -103,6 +120,29 @@ Pour les 7 playbooks de la lib (PNR central, Horns flare, Pindown coin, Spain PN
 
 ### `simulator.test.ts` (Phase C simulation Monte Carlo)
 - `simulatePossessions` : PPP cohérent dans [0, 3], défense lockdown produit un PPP plus faible que défense absente (régression de cohérence du modèle), somme des outcomes = N runs, `runs=0` retourne ppp=0 sans crash, **reproductibilité avec RNG seedé** (deux runs avec la même seed donnent un PPP identique — utilisation de mulberry32).
+
+### Actions défensives scriptées (ajouts récents)
+
+#### `defensiveActionsCatalog.test.ts` (data)
+- Vérifie que le catalogue expose les actions attendues avec les champs obligatoires (`id`, `label`, `directive`), sans doublons d'identifiant.
+
+#### `applyDirective.test.ts`
+- `applyDirective` : application correcte des 4 directives MVP (`blitz`, `hedge`, `drop`, `switch`) sur l'état engine ; immutabilité de l'entrée ; résultat cohérent (positions modifiées uniquement pour les défenseurs concernés).
+
+#### `defensiveCompilation.test.ts`
+- `compileDefensiveActions` : directives correctement ordonnées par étape, actions sans étape ignorées, fusion avec les cibles engine sans écrasement des overrides manuels.
+
+#### `defensiveDefaults.test.ts`
+- Valeurs par défaut correctes pour chaque type d'action (seuils de distance, stances, facteur d'aide) ; cohérence avec les constantes `physics.ts`.
+
+#### `scriptedActionMigration.test.ts`
+- Migration des anciens formats d'actions scriptées vers le schéma courant ; pas de perte de données ; idempotence (migrer deux fois = même résultat).
+
+#### `scriptedGenerators.test.ts`
+- Générateurs (`generatePnrDirectives`, etc.) : nombre d'actions produit, champs présents, positions de départ/arrivée dans les bornes du terrain.
+
+#### `defenseScriptedIntegration.test.ts`
+- Test d'intégration end-to-end : scénario avec directives scriptées compilé puis exécuté via `effectiveDefensePositions` ; les positions finales reflètent les directives (blitz → two defenders on carrier, drop → drop defender behind screen).
 
 ## Conventions
 

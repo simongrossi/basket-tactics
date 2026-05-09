@@ -2,17 +2,6 @@
 
 Documentation exhaustive de chaque réglage disponible dans l'interface.
 
-## Header global
-
-Affiché en haut de la page, regroupe les actions transverses.
-
-| Bouton | Action |
-|--------|--------|
-| 📄 **playbook PDF** | Ouvre la vue playbook (overlay) pour exporter en PDF |
-| **exporter JSON** | Télécharge l'état actuel en `.json` |
-| **importer JSON** | Charge un fichier `.json` (merge avec defaults) |
-| **reset complet** | Réinitialise tout, vide le localStorage |
-
 ## Panneau attaque (gauche, orange)
 
 ### Outils
@@ -240,16 +229,62 @@ Une barre compacte au-dessus du scrub track contient :
 
 Anciennement dans une section "Lecture" du panneau Attaque ; déplacé pour gagner de la place dans le panel et regrouper toutes les commandes de lecture au même endroit que la timeline.
 
-## Panneau Actions (bas de la colonne gauche)
+## Menu flottant ⋯ (FloatingActionsMenu)
 
-5 boutons compacts empilés en pleine largeur, anciennement dans le header.
+Bouton `⋯` ancré au coin haut-droit du terrain. Ouvre un menu déroulant avec 5 actions globales :
 
 | Bouton | Effet |
 |--------|-------|
-| **🎬 plein écran** | Toggle qui masque les 4 panneaux latéraux pour donner toute la largeur au terrain. Idéal sur tablette ou écran serré. Re-clic ou touche `Échap` pour quitter. |
+| **plein écran** | Toggle qui masque les 4 panneaux latéraux pour donner toute la largeur au terrain. Re-clic ou touche `Échap` pour quitter. |
 | **📄 playbook PDF** | Ouvre la vue playbook (vignettes par étape) prête à imprimer en PDF. |
-| **exporter / importer JSON** | Sauvegarde / chargement du système au format JSON. |
+| **exporter JSON** | Télécharge l'état actuel en `.json`. |
+| **importer JSON** | Charge un fichier `.json` (merge avec defaults). |
 | **reset complet** | Vide localStorage et restaure l'état initial. |
+
+Le menu reste visible en mode plein écran.
+
+## Panneau Scénario (colonne gauche, sous le panneau Attaque)
+
+Accessible via le panneau titré `🎬 Scénario`. Permet de composer un scénario tactique en empilant des actions FIBA nommées ; le moteur génère automatiquement les étapes correspondantes, les retouches manuelles d'étapes sont ensuite préservées.
+
+### Actions offensives
+
+Liste des actions scriptées offensives dans l'ordre d'exécution. Chaque carte affiche :
+- **numéro** (`#01`, `#02`…), **nom de l'action** (ex. : Pick & Roll porteur, Flare screen…), bouton `✕` pour supprimer
+- Résumé textuel des paramètres en dessous du titre
+- **Clic sur la carte** : bascule compact ↔ expand
+
+En mode expand, le panneau d'édition expose :
+- Les **paramètres de l'action** (porteur, poseur, côté, direction…) via des selects
+- Un champ **libellé libre** pour remplacer le résumé généré
+- Les boutons **▲ monter / ▼ descendre** pour réordonner
+
+### Modale d'ajout d'action
+
+Le bouton **➕ Ajouter une action** ouvre une modale centrée (`AddActionModal`) :
+- Header orange avec titre `🎬 Ajouter une action FIBA`
+- Champ **filtre texte** (autofocus) pour chercher par nom, terme FIBA ou description
+- Catalogue d'actions groupé par catégorie (Pick & Roll, Cuts, Actions hors-ballon…)
+- Section `🛡️ Défense (libre)` en bas du catalogue pour ajouter une action défensive autonome
+- Fermeture : clic hors modal, bouton `✕`, ou touche `Échap`
+
+### Couvertures défensives (🛡️ COUVERTURES DÉFENSIVES)
+
+Sous chaque action offensive expand, une sous-section liste les **couvertures défensives attachées** à cette action. Chaque couverture est affichée avec son label et son résumé de paramètres. Le bouton **+ ajouter une couverture** ouvre `AddCoverageModal` : catalogue des actions défensives disponibles avec inférence automatique des defaults depuis l'action offensive parente.
+
+### Défense libre (🛡️ DÉFENSE (LIBRE))
+
+Section affichée sous la liste offensive quand des actions défensives autonomes (non rattachées à une action offensive) existent. Même style de carte compact/expand. En mode expand, expose le formulaire `DefensiveActionForm` et un champ **STEPS CIBLES** (liste de numéros d'étapes séparés par des virgules).
+
+### Bouton Effacer
+
+**🗑 Effacer le scénario** — visible dès qu'au moins une action offensive existe. Demande confirmation avant de vider la liste complète.
+
+### Toggle global dans le panneau Défense
+
+En haut du `DefensePanel`, une checkbox **"Appliquer les directives défensives scriptées"** (`defenseScriptedDirectivesEnabled`) contrôle si le moteur applique ou non les directives issues du scénario sur chaque étape. Décochée : le moteur ignore le scénario, la défense suit uniquement les réglages manuels.
+
+> **Refonte planifiée** : le panneau Scénario va être déplacé dans une modale plein écran dédiée (`ScenarioEditorModal`). Voir `docs/superpowers/specs/2026-05-09-scenario-editor-modal-design.md`.
 
 ## Panneau Paramètres (bas de la colonne droite)
 

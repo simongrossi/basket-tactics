@@ -8,7 +8,7 @@
 > - ✅ **v1.0 — Tier 1** : implémenté, dispo dans le panneau Scénario.
 > - 🔜 **Tier 2** : action jouable, à coder (générateur + entrée catalogue, pas de changement archi).
 > - 🟦 **Tier 3 — entrées** : alignement / set play (génère 1 step de positionnement initial).
-> - 🛡️ **Défensif** : phase défensive scriptable (cf. section dédiée — extension archi).
+> - 🛡️ **Défensif** : phase défensive scriptable (cf. section dédiée — extension archi). Peut être combiné avec ✅ si l'action est implémentée en Phase 3 MVP.
 > - 📐 **Géométrique pur** : zone du terrain / formation / posture — pas une action mais un référentiel.
 > - 📊 **Stat / arbitrage** : non-jouable (faute, violation, statistique, règle).
 > - 🎬 **Composé** : combinaison d'actions Tier 1 — pas besoin de générateur dédié, on l'écrit comme une séquence.
@@ -381,28 +381,32 @@ Implémenter le concept "set play / entry" : `ScriptedAction` de type `entry` qu
 
 Cibler : Horns, Floppy, Pistol, Box set, UCLA, Iverson, Pinch post.
 
-### Phase 3 — Couche défensive scriptable (estim. ~4-7j, change archi)
+### Phase 3 — Couche défensive scriptable ✅ MVP implémenté
 
-Étendre `ScriptedAction` avec un mode défensif :
+`ScriptedAction` est une union discriminée `OffensiveScriptedAction | DefensiveScriptedAction`. Les 4 actions défensives MVP sont disponibles dans le panneau Scénario :
 
 ```ts
-type ScriptedAction =
-  | { kind: 'offensive'; type: ScriptedActionType; ... }
-  | { kind: 'defensive'; type: DefensiveActionType; affectedSteps: number[]; ... };
-
 type DefensiveActionType =
-  | 'help-and-recover'      // D_X aide sur step N, recover sur step N+1
-  | 'closeout'              // D_X sprint sur O_Y au step N
-  | 'pre-switch'            // D_X et D_Y échangent avant l'écran
-  | 'trap'                  // D_X et D_Y forment un V sur O_Z
-  | 'double-team'           // idem trap (statique)
-  | 'stunt'                 // faux help + recover
-  | 'jam-cutter'            // bloque le cutter
-  | 'tag'                   // low-man bumpe le roller
-  | 'rotation';             // 3 défenseurs qui tournent
+  | 'help-and-recover'  // D_X aide sur step N, recover sur step N+1
+  | 'pre-switch'        // D_X et D_Y échangent avant l'écran (assignmentOverrides)
+  | 'trap'              // D_X et D_Y forment un V sur O_Z (directive par step)
+  | 'tag';              // low-man bumpe le roller (pnrRole='tag')
 ```
 
-Ces actions ajoutent des **directives temporaires par step** que le moteur défensif applique en complément de `DefenderRules`. Les valeurs déjà dans le code (over/under/switch/hedge/drop/blitz/ice) restent pilotées via `state.screenRule` (global) — la nouveauté est de pouvoir les **scripter par step**.
+**Modules implémentés** :
+- `src/lib/logic/applyDirective.ts` — application des directives défensives par step
+- `src/lib/logic/defensiveCompilation.ts` — compilation des actions défensives en directives
+- `src/lib/logic/defensiveDefaults.ts` — valeurs par défaut des actions défensives
+- `src/lib/logic/defensiveActionsCatalog.ts` — catalogue des 4 actions MVP
+
+**UX Scénario** :
+- Couvertures défensives **couplées** : attachées à une action offensive via `parentActionId`
+- Actions défensives **libres** : avec `affectedSteps` explicite
+- Toggle global `defenseScriptedDirectivesEnabled` (default `true`)
+
+**Tests** : `applyDirective.test.ts`, `defenseScriptedIntegration.test.ts`, `defensiveCompilation.test.ts`, `defensiveDefaults.test.ts`, `defensiveActionsCatalog.test.ts`
+
+**Reste à faire (Phase 3 suite)** : toutes les autres actions défensives listées en section 2 — closeout, stunt, jam-cutter, rotation, double-team, et les couvertures d'écran (over/under/switch/hedge/drop/blitz/ice) exposées comme directives scriptables par step.
 
 ### Phase 4 — LLM (estim. ~5-10j, dépendant du choix d'API)
 
@@ -418,5 +422,5 @@ Parser de texte libre `prompt → ScriptedAction[]`, en s'appuyant sur le vocabu
   - 🔜 Tier 2 à coder : ~85
   - 🟦 Entrées Tier 3 : ~25
   - 🎯 Finitions/passes (param) : ~40
-- **Phases défensives scriptables** : ~50 (~30 couvertures + ~20 individuelles/équipe) — 0% actuellement
+- **Phases défensives scriptables** : ~50 (~30 couvertures + ~20 individuelles/équipe) — **4 MVP ✅** (help-and-recover, pre-switch, trap, tag)
 - **Géométrie / postures / rôles / stats** : ~55 (hors-scope automatisation)
