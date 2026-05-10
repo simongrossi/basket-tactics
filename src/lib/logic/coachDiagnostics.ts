@@ -30,7 +30,8 @@ import {
 import { detectOffBallScreens } from './screens';
 import { computeTacticalReads } from './tacticalReads';
 import { detectBaselineDrive } from './baselineDrive';
-import { detectCuts } from './threatResolution';
+import { detectCuts, detectMatchupOrphans } from './threatResolution';
+import { initialDef, baseMatchups } from '../data/initial';
 import { activeBallCarrier, activeOffense, getActiveDefenderIds } from './players';
 
 /** Étiquette courte du profil pour insérer dans les phrases coach. */
@@ -292,6 +293,35 @@ export function computeCoachDiagnostics(
         tag: 'cut-backdoor',
         defenders: [],
         attackers: [cut.cutter],
+      });
+    });
+  }
+
+  // --------------------------------------------------------------------------
+  // 2.e. Matchup orphans : un défenseur perdu en aide loin de son homePos
+  //   ET son matchup naturel n'est plus couvert. Signal au coach que la
+  //   rotation a un trou ou qu'un défenseur n'est pas revenu.
+  // --------------------------------------------------------------------------
+  {
+    const defPosForOrphans: Record<string, { x: number; y: number }> = {};
+    const homePosForOrphans: Record<string, { x: number; y: number }> = {};
+    defenderIds.forEach((dId) => {
+      defPosForOrphans[dId] = { x: defPos[dId].x, y: defPos[dId].y };
+      const home = state.defenseInitial[dId] ?? initialDef[dId];
+      if (home) homePosForOrphans[dId] = { x: home.x, y: home.y };
+    });
+    const orphans = detectMatchupOrphans(off, defPosForOrphans, homePosForOrphans, baseMatchups);
+    orphans.forEach((o) => {
+      const oLabel = withProfile(o.naturalAttacker, profiles?.[o.naturalAttacker]);
+      out.push({
+        id: `matchup-orphan-${o.defender}-${stepIdx}`,
+        severity: isOutsideThreat(profiles?.[o.naturalAttacker]) ? 'critical' : 'warning',
+        message: isOutsideThreat(profiles?.[o.naturalAttacker])
+          ? `${o.defender} en aide loin de ${oLabel} (tireur libre à ${Math.round(o.closestDefDistance)}px)`
+          : `${o.defender} en aide à ${Math.round(o.defDisplacement)}px de son home — ${oLabel} non couvert`,
+        tag: 'matchup-orphan',
+        defenders: [o.defender],
+        attackers: [o.naturalAttacker],
       });
     });
   }

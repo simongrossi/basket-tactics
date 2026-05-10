@@ -242,3 +242,72 @@ export function detectCuts(
   return cuts;
 }
 
+export interface MatchupOrphan {
+  defender: DefenderId;
+  /** Distance courante du défenseur à son homePos. Indique l'aide en cours. */
+  defDisplacement: number;
+  /** Le matchup naturel (baseMatchups) du défenseur. */
+  naturalAttacker: AttackerId;
+  /** Position de l'attaquant. */
+  attackerPos: Point;
+  /** Distance entre l'attaquant et son défenseur le plus proche. */
+  closestDefDistance: number;
+}
+
+/**
+ * Détecte les "matchup orphans" : un défenseur déplacé en aide (loin de son
+ * homePos) DONT le matchup naturel n'est plus couvert (attaquant à >100 px du
+ * plus proche défenseur). Sert à alerter le coach que la rotation est en
+ * retard ou que le défenseur n'est pas revenu sur son homme.
+ *
+ * C'est un diagnostic, pas une force corrective : le moteur ne peut pas
+ * "téléporter" le défenseur. Le coach voit qu'il y a un trou et peut
+ * réajuster les directives ou la position.
+ */
+export function detectMatchupOrphans(
+  off: AttackerPositions,
+  defPositions: Record<string, ThreatDefenderInput>,
+  homePositions: Record<string, ThreatDefenderInput>,
+  baseMatchups: Record<string, AttackerId>
+): MatchupOrphan[] {
+  const orphans: MatchupOrphan[] = [];
+  const defenderIds = Object.keys(defPositions) as DefenderId[];
+
+  defenderIds.forEach((dId) => {
+    const naturalAtt = baseMatchups[dId];
+    if (!naturalAtt) return;
+    const attackerPos = off[naturalAtt];
+    if (!attackerPos) return;
+
+    const defPos = defPositions[dId];
+    const homePos = homePositions[dId];
+    if (!defPos || !homePos) return;
+
+    const defDisplacement = distance(
+      { x: defPos.x, y: defPos.y },
+      { x: homePos.x, y: homePos.y }
+    );
+    if (defDisplacement < 100) return; // pas vraiment déplacé
+
+    // Plus proche défenseur de l'attaquant orphelin (n'importe lequel).
+    let closestDist = Infinity;
+    defenderIds.forEach((otherD) => {
+      const dp = defPositions[otherD];
+      const d = distance({ x: dp.x, y: dp.y }, attackerPos);
+      if (d < closestDist) closestDist = d;
+    });
+
+    if (closestDist > 100) {
+      orphans.push({
+        defender: dId,
+        defDisplacement,
+        naturalAttacker: naturalAtt,
+        attackerPos,
+        closestDefDistance: closestDist,
+      });
+    }
+  });
+
+  return orphans;
+}
+

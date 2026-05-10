@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   detectFreePathThreats,
   detectCuts,
+  detectMatchupOrphans,
   type ThreatDefenderInput,
 } from '../threatResolution';
 import type { AttackerPositions } from '../../types';
@@ -195,7 +196,7 @@ describe('detectCuts', () => {
     expect(r.find((c) => c.cutter === 'O3')).toBeUndefined();
   });
 
-  it('rapporte la distance du défenseur naturel si fourni', () => {
+  it('rapporte la distance du défenseur naturel si fourni (cuts)', () => {
     const prev = { ...balanced, O3: { x: 470, y: 380 } };
     const cur = { ...balanced, O3: { x: 380, y: 130 } };
     const defPos: Record<string, ThreatDefenderInput> = {
@@ -204,5 +205,51 @@ describe('detectCuts', () => {
     const matchups = { D3: 'O3' as const } as Record<string, any>;
     const r = detectCuts(cur, prev, 'O1', HOOP, defPos, matchups);
     expect(r[0].cutterDefDistance).toBeGreaterThan(80);
+  });
+});
+
+describe('detectMatchupOrphans', () => {
+  const off: AttackerPositions = {
+    O1: { x: 300, y: 470 },
+    O2: { x: 130, y: 380 },
+    O3: { x: 470, y: 380 },
+    O4: { x: 220, y: 230 },
+    O5: { x: 380, y: 230 },
+  };
+  const homePositions: Record<string, ThreatDefenderInput> = {
+    D1: { x: 300, y: 380 },
+    D2: { x: 170, y: 310 },
+    D3: { x: 430, y: 310 },
+    D4: { x: 240, y: 160 },
+    D5: { x: 360, y: 160 },
+  };
+  const matchups = { D1: 'O1', D2: 'O2', D3: 'O3', D4: 'O4', D5: 'O5' };
+
+  it('aucun orphan si tous les défenseurs sont à leur home', () => {
+    const r = detectMatchupOrphans(off, homePositions, homePositions, matchups);
+    expect(r).toEqual([]);
+  });
+
+  it('détecte un orphan : D2 est en aide loin de son home et O2 est libre', () => {
+    const defPos: Record<string, ThreatDefenderInput> = {
+      ...homePositions,
+      D2: { x: 350, y: 160 }, // D2 en aide raquette, à ~190px de son home
+    };
+    const r = detectMatchupOrphans(off, defPos, homePositions, matchups);
+    expect(r).toHaveLength(1);
+    expect(r[0].defender).toBe('D2');
+    expect(r[0].naturalAttacker).toBe('O2');
+    expect(r[0].defDisplacement).toBeGreaterThan(100);
+    expect(r[0].closestDefDistance).toBeGreaterThan(100);
+  });
+
+  it("pas d'orphan si l'attaquant est couvert par un autre défenseur", () => {
+    const defPos: Record<string, ThreatDefenderInput> = {
+      ...homePositions,
+      D2: { x: 350, y: 160 }, // D2 déplacé
+      D4: { x: 130, y: 380 }, // D4 placé pile sur O2
+    };
+    const r = detectMatchupOrphans(off, defPos, homePositions, matchups);
+    expect(r.find((o) => o.defender === 'D2')).toBeUndefined();
   });
 });
