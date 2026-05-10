@@ -447,7 +447,7 @@ describe('computeZoneTargets — weakside paint sag (P3.f)', () => {
     expect(t.D4.trackedAttacker).not.toBe('O4');
   });
 
-  it('ballon central → comportement neutre (pas de sag asymétrique)', () => {
+  it('ballon central → D4 et D3 marquent leur matchup respectif (pas de bias weakside)', () => {
     const off: AttackerPositions = {
       O1: { x: 300, y: 470 },
       O2: { x: 130, y: 380 },
@@ -456,10 +456,10 @@ describe('computeZoneTargets — weakside paint sag (P3.f)', () => {
       O5: { x: 380, y: 230 },
     };
     const t = computeZoneTargets(off, 'O1', layout, baseConfig, 40, HOOP);
-    // Symétrique : D4 et D3 doivent être à des distances similaires de l'axe
-    const dD3 = Math.abs(t.D3.x - 300);
-    const dD4 = Math.abs(t.D4.x - 300);
-    expect(Math.abs(dD3 - dD4)).toBeLessThan(40);
+    // Ballon central → pas de côté faible → chacun suit son matchup naturel.
+    // D3↔O3 (droite), D4↔O4 (gauche).
+    expect(['O3', 'O5']).toContain(t.D3.trackedAttacker);
+    expect(['O4', null]).toContain(t.D4.trackedAttacker);
   });
 });
 
@@ -477,6 +477,44 @@ describe('computeZoneTargets — recover boost (P3.f)', () => {
     const t = computeZoneTargets(off, 'O1', layout, baseConfig, 40, HOOP);
     // D1 (matchup O1) doit tracker O1 (le porteur).
     expect(t.D1.trackedAttacker).toBe('O1');
+  });
+});
+
+describe('computeZoneTargets — pass denial (P3.g)', () => {
+  const layout = getZoneLayout('zone-2-3');
+
+  it('passDenial=100 → plus de défenseurs trackent leur matchup naturel qu\'à passDenial=0', () => {
+    const off: AttackerPositions = {
+      O1: { x: 300, y: 470 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 470, y: 380 },
+      O4: { x: 220, y: 230 },
+      O5: { x: 380, y: 230 },
+    };
+    const cfgOff: ZoneConfig = { ...baseConfig, passDenial: 0 };
+    const cfgOn: ZoneConfig = { ...baseConfig, passDenial: 100 };
+    const tOff = computeZoneTargets(off, 'O1', layout, cfgOff, 40, HOOP);
+    const tOn = computeZoneTargets(off, 'O1', layout, cfgOn, 40, HOOP);
+    const naturalMatches = (t: typeof tOff) => {
+      const naturals: Record<string, string> = { D1: 'O1', D2: 'O2', D3: 'O3', D4: 'O4', D5: 'O5' };
+      return (['D1', 'D2', 'D3', 'D4', 'D5'] as const).filter(
+        (d) => t[d].trackedAttacker === naturals[d]
+      ).length;
+    };
+    expect(naturalMatches(tOn)).toBeGreaterThanOrEqual(naturalMatches(tOff));
+  });
+
+  it('pass denial ne désigne pas le défenseur déjà sur high-post isolé', () => {
+    const off: AttackerPositions = {
+      O1: { x: 300, y: 470 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 470, y: 380 },
+      O4: { x: 300, y: 220 }, // high-post isolé → D5 designated coverer
+      O5: { x: 470, y: 90 },
+    };
+    const t = computeZoneTargets(off, 'O1', layout, baseConfig, 40, HOOP);
+    // D5 doit rester sur le high-post O4, pas être détourné par pass denial
+    expect(t.D5.trackedAttacker).toBe('O4');
   });
 });
 

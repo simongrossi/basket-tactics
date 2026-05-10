@@ -31,6 +31,13 @@ const FREE_PATH_DRIVING_DELTA_PX = 20;
 const CUT_MIN_DELTA_DHOOP_PX = 25;
 const CUT_MAX_DHOOP_PX = 250;
 const CUT_NEAR_TEAMMATE_PX = 30;
+/** Distance perpendiculaire au-delà de laquelle la ligne de passe est dite
+ *  "ouverte". Plus permissif que FREE_PATH (60 vs 80) car une passe n'a pas
+ *  besoin d'un défenseur exactement sur la trajectoire pour être contestée. */
+const OPEN_PASS_PERP_PX = 60;
+/** Distance minimale entre porteur et receveur pour considérer la passe
+ *  comme "menaçante". En-dessous (15px) c'est un hand-off, pas une vraie passe. */
+const OPEN_PASS_MIN_LEN_PX = 80;
 
 export interface FreePathThreat {
   attacker: AttackerId;
@@ -240,6 +247,135 @@ export function detectCuts(
     });
   });
   return cuts;
+}
+
+export interface OpenPassThreat {
+  /** Receveur potentiel de la passe ouverte. */
+  receiver: AttackerId;
+  /** Position du receveur. */
+  receiverPos: Point;
+  /** Distance perp du défenseur le plus proche au segment porteur→receveur. */
+  closestPerpDist: number;
+  /** Défenseur désigné couvreur de la passe (intercept du couloir). */
+  designated: DefenderId | null;
+  /** Point d'interception suggéré : mi-chemin sur la ligne de passe. */
+  interceptPoint: Point;
+  /** Distance receveur ↔ panier (les passes vers le panier sont plus urgentes). */
+  receiverDistToHoop: number;
+  /** Urgence 0..1 : plus le receveur est proche du panier OU plus la passe est
+   *  ouverte, plus l'urgence est forte. */
+  urgency: number;
+}
+
+/**
+ * Détecte les lignes de passe ouvertes depuis le porteur vers ses coéquipiers.
+ * Pour chaque attaquant non-porteur, on vérifie si le segment porteur→attaquant
+ * est "libre" (aucun défenseur dans 60 px du segment). Si oui, on désigne le
+ * défenseur le plus proche du point d'interception comme couvreur de la passe.
+ *
+ * Diffère de detectFreePathThreats (qui vise les attaquants proches du panier)
+ * en couvrant les passes périmétriques skip et extra-pass : un shooter ouvert
+ * à 250px du panier est une menace même s'il n'est pas en drive.
+ *
+ * Le couvreur désigné est choisi parmi les défenseurs DISPONIBLES (exclus :
+ * carrierDef, déjà désignés sur d'autres menaces).
+ */
+export function detectOpenPassThreats(
+  off: AttackerPositions,
+  carrier: AttackerId,
+  hoop: Point,
+  defPositions: Record<string, ThreatDefenderInput>,
+  unavailable: Set<DefenderId> = new Set(),
+  matchups: Record<string, AttackerId> | null = null
+): OpenPassThreat[] {
+  const carrierPos = off[carrier];
+  if (!carrierPos) return [];
+  const defenderIds = Object.keys(defPositions) as DefenderId[];
+  const availableIds = defenderIds.filter((id) => !unavailable.has(id));
+  if (availableIds.length === 0) return [];
+
+  const threats: OpenPassThreat[] = [];
+  const localAssigned = new Set<DefenderId>(unavailable);
+
+  // Trie les receveurs potentiels par menace : plus proche du panier d'abord
+  // (passe la plus dangereuse), puis les autres.
+  const ranked = (Object.entries(off) as [AttackerId, Point][])
+    .filter(([id]) => id !== carrier)
+    .map(([id, pos]) => ({
+      id,
+      pos,
+      dHoop: distance(pos, hoop),
+      passLen: distance(pos, carrierPos),
+    }))
+    .filter((r) => r.passLen > OPEN_PASS_MIN_LEN_PX)
+    .sort((a, b) => a.dHoop - b.dHoop);
+
+  for (const r of ranked) {
+    // Distance perp des défenseurs au segment porteur→receveur.
+    const perpDistances = availableIds.map((id) => ({
+      id,
+      perpDist: pointToSegmentDistance(
+        { x: defPositions[id].x, y: defPositions[id].y },
+        carrierPos,
+        r.pos
+      ),
+    }));
+    const closest = perpDistances.reduce((a, b) => (a.perpDist < b.perpDist ? a : b));
+    if (closest.perpDist <= OPEN_PASS_PERP_PX) continue;
+
+    // Point d'interception : mi-chemin sur la ligne de passe.
+    const interceptPoint = {
+      x: (carrierPos.x + r.pos.x) / 2,
+      y: (carrierPos.y + r.pos.y) / 2,
+    };
+
+    // Désignation :
+    //  1. Préférer le défenseur naturel du receveur (baseMatchups) s'il est
+    //     disponible — c'est lui qui doit naturellement deny la passe sur
+    //     son homme. Évite que le pivot ferme un skip pass perimetrique.
+    //  2. Sinon, le défenseur disponible le plus proche du point d'interception,
+    //     mais SEULEMENT si l'intercept est physiquement à portée (< 220 px de
+    //     son home) — au-delà, le défenseur ne peut pas réalistement intercepter.
+    let designated: DefenderId | null = null;
+    if (matchups) {
+      const naturalDef = (Object.entries(matchups) as [DefenderId, AttackerId][])
+        .find(([d, o]) => o === r.id && !localAssigned.has(d) && availableIds.includes(d))?.[0];
+      if (naturalDef) designated = naturalDef;
+    }
+    if (!designated) {
+      const candidates = availableIds
+        .filter((id) => !localAssigned.has(id))
+        .map((id) => ({
+          id,
+          d: distance({ x: defPositions[id].x, y: defPositions[id].y }, interceptPoint),
+        }))
+        .filter((c) => c.d < 220)
+        .sort((a, b) => a.d - b.d);
+      designated = candidates[0]?.id ?? null;
+    }
+    if (designated) localAssigned.add(designated);
+    if (!designated) continue;
+
+    // Urgence : combine proximité receveur↔panier (1.0 si rim, 0 si très loin)
+    // et ouverture du couloir (perpDist proche de 60 = faiblement urgent,
+    // perpDist élevé = très urgent). On amplifie les passes "rim" car elles
+    // donnent des tirs faciles.
+    const proximityScore = Math.max(0, 1 - r.dHoop / 300);
+    const openScore = Math.min(1, (closest.perpDist - OPEN_PASS_PERP_PX) / 80);
+    const urgency = 0.4 * proximityScore + 0.6 * openScore;
+
+    threats.push({
+      receiver: r.id,
+      receiverPos: r.pos,
+      closestPerpDist: closest.perpDist,
+      designated,
+      interceptPoint,
+      receiverDistToHoop: r.dHoop,
+      urgency,
+    });
+  }
+
+  return threats;
 }
 
 export interface MatchupOrphan {

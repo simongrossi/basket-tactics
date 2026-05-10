@@ -87,6 +87,7 @@ export function makeInitialState(): AppState {
       extendTo3pt: true,
       paintCoverage: 50,
       rimProtection: 50,
+      passDenial: 50,
     },
     offBallScreenRule: 'over',
     fullCourt: false,

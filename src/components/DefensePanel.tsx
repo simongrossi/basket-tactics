@@ -201,6 +201,14 @@ export function DefensePanel(props: DefensePanelProps) {
             value={state.zoneConfig.rimProtection ?? 50}
             onChange={(v) => props.onUpdateZoneConfig({ rimProtection: v })}
           />
+          <Slider
+            label="deny passes"
+            min={0}
+            max={100}
+            step={5}
+            value={state.zoneConfig.passDenial ?? 50}
+            onChange={(v) => props.onUpdateZoneConfig({ passDenial: v })}
+          />
           <CheckboxLine
             checked={state.zoneConfig.trapCorners}
             label="trap en coin"

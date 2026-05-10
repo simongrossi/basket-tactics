@@ -422,6 +422,13 @@ export interface ZoneConfig {
    *  0 = désactivé. 50 = défaut. 100 = ferme très agressivement.
    *  Indéfini = 50. */
   rimProtection?: number;
+  /** Force avec laquelle la zone ferme une ligne de passe ouverte depuis le
+   *  porteur. Pour chaque attaquant dont la ligne de passe carrier→att n'est
+   *  pas contestée (aucun défenseur à <60px du segment), un défenseur est
+   *  désigné couvreur et tiré vers le point d'interception.
+   *  0 = aucune réaction. 50 = défaut. 100 = pression skipée maximale.
+   *  Indéfini = 50. */
+  passDenial?: number;
 }
 
 // --- Écrans non-porteur (Palier 4) ---

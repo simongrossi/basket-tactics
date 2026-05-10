@@ -14,7 +14,7 @@ import { manTarget, carrierDefenderTarget } from './manDefense';
 import { baseMatchups } from '../data/initial';
 import { detectOverload, findCriticalZoneAttackers } from './zoneSituations';
 import { detectBaselineDriveFromPositions, type BaselineDefenderInput } from './baselineDrive';
-import { detectFreePathThreats, type FreePathThreat } from './threatResolution';
+import { detectFreePathThreats, detectOpenPassThreats, type FreePathThreat, type OpenPassThreat } from './threatResolution';
 
 export function pointInPolygon(point: Point, polygon: Point[]): boolean {
   let inside = false;
@@ -245,6 +245,8 @@ export function computeZoneTargets(
   const paintCoverageFactor = (config.paintCoverage ?? 50) / 50;
   // rimProtection : 0 = aucune réaction "free path", 50 = défaut, 100 = max.
   const rimProtectionFactor = (config.rimProtection ?? 50) / 50;
+  // passDenial : 0 = aucune fermeture de ligne de passe, 50 = défaut, 100 = max.
+  const passDenialFactor = (config.passDenial ?? 50) / 50;
 
   // P3 — Situations tactiques de zone :
   //  - overload côté ballon (3+ attaquants) → boost le glissement collectif.
@@ -295,6 +297,9 @@ export function computeZoneTargets(
   // (rim-threats déclarés ici, calculés plus bas après les autres designations)
   const rimThreats: FreePathThreat[] = [];
   const rimProtectorByThreat = new Map<AttackerId, DefenderId>();
+  // (pass-denial threats déclarés ici, calculés plus bas)
+  const passThreats: OpenPassThreat[] = [];
+  const passDenierByReceiver = new Map<AttackerId, DefenderId>();
 
   // P3.d — Désigner un "ball-pressure coverer" : LE défenseur structurellement
   // responsable de presser le porteur. Sans ça, le moteur ownership pur peut
@@ -388,6 +393,36 @@ export function computeZoneTargets(
     });
   }
 
+  // P3.g — "Deny passes" : détecte les lignes de passe ouvertes depuis le
+  // porteur et désigne un défenseur couvreur pour chaque. Inclut tous les
+  // défenseurs déjà désignés dans la liste unavailable pour éviter qu'un
+  // défenseur ait deux missions concurrentes.
+  if (passDenialFactor > 0 && ballPos) {
+    const homePosByDef: Record<string, BaselineDefenderInput> = {};
+    layout.forEach((zone) => {
+      homePosByDef[zone.assignedTo] = { x: zone.homePos.x, y: zone.homePos.y };
+    });
+    const unavailable = new Set<DefenderId>();
+    designatedCoverer.forEach((dId) => unavailable.add(dId));
+    if (baselineDriveCoverer) unavailable.add(baselineDriveCoverer);
+    if (ballPressureCoverer) unavailable.add(ballPressureCoverer);
+    rimProtectorByThreat.forEach((dId) => unavailable.add(dId));
+    const threats = detectOpenPassThreats(off, ballCarrier, hoop, homePosByDef, unavailable, baseMatchups);
+    threats.forEach((t) => {
+      // Skip si ce receveur est déjà la cible d'une autre désignation forte
+      // (high-post / short-corner isolé, rim threat) — il a déjà une mission
+      // de couverture et y ajouter un pass-denier créerait des conflits
+      // (deux défenseurs attirés sur le même attaquant pour des raisons
+      // différentes).
+      if (designatedCoverer.has(t.receiver)) return;
+      if (rimProtectorByThreat.has(t.receiver)) return;
+      if (t.designated) {
+        passThreats.push(t);
+        passDenierByReceiver.set(t.receiver, t.designated);
+      }
+    });
+  }
+
   // P3.b — Bias homePos du couvreur désigné face à un high-post isolé.
   // En 2-3, D5 anchor à y=145 ne sort pas spontanément vers y=165 car son
   // home est trop bas. On shift son ancrage vers l'attaquant pour qu'il
@@ -421,6 +456,20 @@ export function computeZoneTargets(
       y: zone.homePos.y + (ballPos.y - zone.homePos.y) * w,
     });
   }
+
+  // P3.g — Bias homePos des pass-deniers vers le point d'interception
+  // (mi-chemin sur la ligne de passe carrier→receiver). Pondéré par l'urgence
+  // de la passe × passDenialFactor. Skipé si déjà désigné ailleurs.
+  passThreats.forEach((threat) => {
+    const dId = threat.designated!;
+    if (homeBiasOverrides.has(dId)) return;
+    const zone = layout.find((z) => z.assignedTo === dId)!;
+    const w = 0.5 * threat.urgency * passDenialFactor;
+    homeBiasOverrides.set(dId, {
+      x: zone.homePos.x + (threat.interceptPoint.x - zone.homePos.x) * w,
+      y: zone.homePos.y + (threat.interceptPoint.y - zone.homePos.y) * w,
+    });
+  });
 
   // P3.e — Bias homePos des rim-protectors vers la position d'interception
   // (mi-chemin entre l'attaquant menaçant et le panier). Pondéré par
@@ -524,7 +573,8 @@ export function computeZoneTargets(
           Array.from(designatedCoverer.values()).includes(dId) ||
           baselineDriveCoverer === dId ||
           ballPressureCoverer === dId ||
-          Array.from(rimProtectorByThreat.values()).includes(dId);
+          Array.from(rimProtectorByThreat.values()).includes(dId) ||
+          Array.from(passDenierByReceiver.values()).includes(dId);
         if (!isDesignatedAnywhere) {
           recoverMult = 1.15;
         }
@@ -547,9 +597,27 @@ export function computeZoneTargets(
         const urgency = threat?.urgency ?? 0;
         rimMult = 1.0 + 3.0 * urgency * rimProtectionFactor;
       }
+      // P3.g — Boost passe-denial : le défenseur désigné couvreur de la passe
+      // au receiver reçoit un boost sur sa claim au receiver. Pondéré par
+      // l'urgence de la passe × passDenialFactor. Empilé seulement si pas
+      // déjà responsable d'une autre mission sur ce receiver.
+      let passDenialMult = 1.0;
+      const passDenier = passDenierByReceiver.get(oId);
+      if (
+        passDenier === dId &&
+        designatedCoverer.get(oId) !== dId &&
+        rimProtectorByThreat.get(oId) !== dId &&
+        baselineDriveCoverer !== dId &&
+        !(oId === ballCarrier && ballPressureCoverer === dId)
+      ) {
+        const threat = passThreats.find((t) => t.receiver === oId);
+        const urgency = threat?.urgency ?? 0;
+        passDenialMult = 1.0 + 2.0 * urgency * passDenialFactor;
+      }
+
       dClaims.set(
         oId,
-        proximity * naturalMult * carrierMult * criticalMult * baselineMult * pressureMult * rimMult * recoverMult
+        proximity * naturalMult * carrierMult * criticalMult * baselineMult * pressureMult * rimMult * recoverMult * passDenialMult
       );
     });
     claims.set(dId, dClaims);
@@ -614,11 +682,14 @@ export function computeZoneTargets(
       ballPressureCoverer === dId && primaryAttacker === ballCarrier;
     const isRimProtectorForPrimary =
       primaryAttacker !== null && rimProtectorByThreat.get(primaryAttacker) === dId;
+    const isPassDenierForPrimary =
+      primaryAttacker !== null && passDenierByReceiver.get(primaryAttacker) === dId;
     const engagementThreshold =
       isPrimaryCritical ||
       isBaselineCovererForCarrier ||
       isPressureCovererForCarrier ||
-      isRimProtectorForPrimary
+      isRimProtectorForPrimary ||
+      isPassDenierForPrimary
         ? 0.08
         : 0.15;
     if (!primaryAttacker || primaryShare < engagementThreshold) {

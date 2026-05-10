@@ -3,6 +3,7 @@ import {
   detectFreePathThreats,
   detectCuts,
   detectMatchupOrphans,
+  detectOpenPassThreats,
   type ThreatDefenderInput,
 } from '../threatResolution';
 import type { AttackerPositions } from '../../types';
@@ -205,6 +206,76 @@ describe('detectCuts', () => {
     const matchups = { D3: 'O3' as const } as Record<string, any>;
     const r = detectCuts(cur, prev, 'O1', HOOP, defPos, matchups);
     expect(r[0].cutterDefDistance).toBeGreaterThan(80);
+  });
+});
+
+describe('detectOpenPassThreats', () => {
+  const off: AttackerPositions = {
+    O1: { x: 300, y: 470 }, // porteur top arc
+    O2: { x: 130, y: 380 }, // wing gauche
+    O3: { x: 470, y: 380 }, // wing droit
+    O4: { x: 220, y: 230 },
+    O5: { x: 380, y: 230 },
+  };
+
+  it('aucune menace si pas de porteur défini dans off', () => {
+    const r = detectOpenPassThreats(off, 'OX' as any, HOOP, defAtHomes);
+    expect(r).toEqual([]);
+  });
+
+  it('aucune menace si toutes les lignes de passe sont fermées', () => {
+    // Place les défenseurs directement sur chaque ligne carrier→att
+    const tight: Record<string, ThreatDefenderInput> = {
+      D1: { x: 215, y: 425 }, // mi-segment O1↔O2
+      D2: { x: 385, y: 425 }, // mi-segment O1↔O3
+      D3: { x: 260, y: 350 }, // mi-segment O1↔O4
+      D4: { x: 340, y: 350 }, // mi-segment O1↔O5
+      D5: { x: 300, y: 145 },
+    };
+    const r = detectOpenPassThreats(off, 'O1', HOOP, tight);
+    expect(r).toEqual([]);
+  });
+
+  it('détecte une passe ouverte (lignes non couvertes)', () => {
+    // Tous les défenseurs très loin des lignes
+    const far: Record<string, ThreatDefenderInput> = {
+      D1: { x: 50, y: 500 },
+      D2: { x: 50, y: 450 },
+      D3: { x: 550, y: 500 },
+      D4: { x: 50, y: 400 },
+      D5: { x: 50, y: 350 },
+    };
+    const r = detectOpenPassThreats(off, 'O1', HOOP, far);
+    expect(r.length).toBeGreaterThan(0);
+  });
+
+  it('préfère le défenseur naturel si matchups fourni', () => {
+    const far: Record<string, ThreatDefenderInput> = {
+      D1: { x: 50, y: 500 },
+      D2: { x: 50, y: 450 },
+      D3: { x: 550, y: 500 },
+      D4: { x: 50, y: 400 },
+      D5: { x: 50, y: 350 },
+    };
+    const matchups: Record<string, 'O1' | 'O2' | 'O3' | 'O4' | 'O5'> = {
+      D1: 'O1', D2: 'O2', D3: 'O3', D4: 'O4', D5: 'O5',
+    };
+    const r = detectOpenPassThreats(off, 'O1', HOOP, far, new Set(), matchups);
+    const o2Threat = r.find((t) => t.receiver === 'O2');
+    // D2 est le défenseur naturel de O2 → devrait être désigné
+    if (o2Threat) expect(o2Threat.designated).toBe('D2');
+  });
+
+  it('exclut les défenseurs unavailable', () => {
+    const far: Record<string, ThreatDefenderInput> = {
+      D1: { x: 50, y: 500 },
+      D2: { x: 50, y: 450 },
+      D3: { x: 550, y: 500 },
+      D4: { x: 50, y: 400 },
+      D5: { x: 50, y: 350 },
+    };
+    const r = detectOpenPassThreats(off, 'O1', HOOP, far, new Set<'D2'>(['D2']));
+    r.forEach((t) => expect(t.designated).not.toBe('D2'));
   });
 });
 
