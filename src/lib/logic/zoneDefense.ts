@@ -159,21 +159,53 @@ const TACTICS: Record<ZoneType, ZoneTactic> = {
 };
 
 /**
- * Décale le homePos vers le côté du ballon. Asymétrique : le défenseur
- * faible-côté glisse beaucoup (× 1.0), le fort-côté peu (× 0.3) — il est
- * déjà près du ballon —, le central modérément (× 0.6). Plafonné à 80px
- * pour ne pas sortir un défenseur de sa zone.
+ * Décale le homePos selon la position du ballon. Trois régimes selon le
+ * positionnement du défenseur par rapport au côté du ballon :
+ *
+ * - **Strong-side** (même côté) : peu de shift X (×0.3), déjà près du ballon.
+ * - **Centre** : shift X modéré vers le ballon (×0.6).
+ * - **Weak-side** (côté opposé) : pull FORT vers l'axe central (x=300) ET
+ *   sag vertical vers la raquette/panier. C'est le principe basket
+ *   fondamental "weakside help into paint" — le défenseur côté faible
+ *   contrôle la raquette plutôt que de couvrir individuellement son
+ *   attaquant.
+ *
+ * Plafonnés à ±80 px (X) et ±60 px (Y).
  */
-function ballSideShifted(home: Point, ballPos: Point, helpFactor: number): Point {
+function ballSideShifted(
+  home: Point,
+  ballPos: Point,
+  helpFactor: number,
+  hoop: Point = HOOP
+): Point {
   const ballOffset = ballPos.x - COURT_CENTER_X;
   const homeOffset = home.x - COURT_CENTER_X;
   const homeIsCenter = Math.abs(homeOffset) < 30;
-  let sideMult: number;
-  if (homeIsCenter) sideMult = 0.6;
-  else if (Math.sign(homeOffset) === Math.sign(ballOffset)) sideMult = 0.3;
-  else sideMult = 1.0;
-  const shiftX = Math.max(-80, Math.min(80, ballOffset * helpFactor * 0.4 * sideMult));
-  return { x: home.x + shiftX, y: home.y };
+  const isWeakSide =
+    !homeIsCenter && Math.sign(homeOffset) !== Math.sign(ballOffset) && ballOffset !== 0;
+
+  let shiftX = 0;
+  let shiftY = 0;
+
+  if (homeIsCenter) {
+    shiftX = ballOffset * helpFactor * 0.4 * 0.6;
+  } else if (isWeakSide) {
+    // Weak-side : pull fort vers l'axe central (x=300), pas juste vers le
+    // ballon. Le défenseur côté faible doit "contrôler la raquette" en
+    // glissant vers la ligne médiane plutôt que de rester sur son homme
+    // (principe basket "weakside help into paint").
+    shiftX = -homeOffset * helpFactor * 0.8;
+    // Sag vertical : descendre vers le panier pour les positions hautes
+    // (front-row guards à y=270) — moins pour les back-3 déjà près du panier.
+    shiftY = (hoop.y - home.y) * helpFactor * 0.4;
+  } else {
+    // Strong-side : peu de shift, le défenseur est déjà bien placé
+    shiftX = ballOffset * helpFactor * 0.4 * 0.3;
+  }
+
+  shiftX = Math.max(-80, Math.min(80, shiftX));
+  shiftY = Math.max(-60, Math.min(60, shiftY));
+  return { x: home.x + shiftX, y: home.y + shiftY };
 }
 
 /**
@@ -415,7 +447,7 @@ export function computeZoneTargets(
   layout.forEach((zone) => {
     const baseHome = homeBiasOverrides.get(zone.assignedTo) ?? zone.homePos;
     const home = ballPos
-      ? ballSideShifted(baseHome, ballPos, effectiveBallSideHelp)
+      ? ballSideShifted(baseHome, ballPos, effectiveBallSideHelp, hoop)
       : baseHome;
     shiftedHomes.set(zone.assignedTo, home);
   });
@@ -591,6 +623,34 @@ export function computeZoneTargets(
     if (mode === 'agressif') engagement = Math.min(1, engagement * 1.5);
     else if (mode === 'passif') engagement *= 0.5;
     else if (mode === 'trap' && primaryAttacker === ballCarrier) engagement = 1;
+
+    // Weakside paint help : si le défenseur ET son primary sont tous deux
+    // côté faible (et le primary n'est pas le porteur), on RÉDUIT l'engagement
+    // pour que le défenseur reste en aide raquette plutôt que de coller son
+    // homme. C'est le principe "help and recover" basket : sur le côté faible,
+    // on contrôle la peinture, on ne suit pas individuellement.
+    if (
+      ballPos &&
+      primaryAttacker !== null &&
+      primaryAttacker !== ballCarrier
+    ) {
+      const ballOffsetLocal = ballPos.x - COURT_CENTER_X;
+      const homeOffsetLocal = zone.homePos.x - COURT_CENTER_X;
+      const homeIsCenterLocal = Math.abs(homeOffsetLocal) < 30;
+      const attPosLocal = off[primaryAttacker as AttackerId];
+      const attOffsetLocal = (attPosLocal?.x ?? COURT_CENTER_X) - COURT_CENTER_X;
+      const isWeakSideDef =
+        !homeIsCenterLocal &&
+        ballOffsetLocal !== 0 &&
+        Math.sign(homeOffsetLocal) !== Math.sign(ballOffsetLocal);
+      const isWeakSideAtt =
+        ballOffsetLocal !== 0 &&
+        attOffsetLocal !== 0 &&
+        Math.sign(attOffsetLocal) !== Math.sign(ballOffsetLocal);
+      if (isWeakSideDef && isWeakSideAtt) {
+        engagement *= 0.5;
+      }
+    }
 
     const primary: AttackerId = primaryAttacker;
     const attPos = off[primary];

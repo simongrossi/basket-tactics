@@ -223,7 +223,9 @@ describe('detectMatchupOrphans', () => {
     D4: { x: 240, y: 160 },
     D5: { x: 360, y: 160 },
   };
-  const matchups = { D1: 'O1', D2: 'O2', D3: 'O3', D4: 'O4', D5: 'O5' };
+  const matchups: Record<string, 'O1' | 'O2' | 'O3' | 'O4' | 'O5'> = {
+    D1: 'O1', D2: 'O2', D3: 'O3', D4: 'O4', D5: 'O5',
+  };
 
   it('aucun orphan si tous les défenseurs sont à leur home', () => {
     const r = detectMatchupOrphans(off, homePositions, homePositions, matchups);

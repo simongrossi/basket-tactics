@@ -414,6 +414,55 @@ describe('computeZoneTargets — rim protection (P3.e)', () => {
   });
 });
 
+describe('computeZoneTargets — weakside paint sag (P3.f)', () => {
+  const layout = getZoneLayout('zone-2-3');
+
+  it('ballon wing droit fort → défenseurs weakside (gauche) glissent vers axe central', () => {
+    const off: AttackerPositions = {
+      O1: { x: 470, y: 200 }, // wing droit STRONG
+      O2: { x: 130, y: 380 }, // wing gauche WEAK
+      O3: { x: 470, y: 90 },  // corner droit
+      O4: { x: 130, y: 90 },  // corner gauche WEAK
+      O5: { x: 300, y: 300 },
+    };
+    const t = computeZoneTargets(off, 'O1', layout, baseConfig, 40, HOOP);
+    // D4 (weakside back-3) doit être plus central que son home (130).
+    expect(t.D4.x).toBeGreaterThan(170);
+    expect(Math.abs(t.D4.x - 300)).toBeLessThan(135);
+    // D1 (weakside front-2) doit aussi sagger central.
+    expect(Math.abs(t.D1.x - 300)).toBeLessThan(70);
+  });
+
+  it('weakside défenseur ne track pas son matchup naturel s\'il est aussi weakside', () => {
+    const off: AttackerPositions = {
+      O1: { x: 470, y: 200 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 470, y: 90 },
+      O4: { x: 130, y: 90 },
+      O5: { x: 300, y: 300 },
+    };
+    const t = computeZoneTargets(off, 'O1', layout, baseConfig, 40, HOOP);
+    // D4↔O4 baseMatchup. Tous deux côté gauche, ballon côté droit.
+    // D4 doit RESTER en help (pas de track explicite), pas coller O4.
+    expect(t.D4.trackedAttacker).not.toBe('O4');
+  });
+
+  it('ballon central → comportement neutre (pas de sag asymétrique)', () => {
+    const off: AttackerPositions = {
+      O1: { x: 300, y: 470 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 470, y: 380 },
+      O4: { x: 220, y: 230 },
+      O5: { x: 380, y: 230 },
+    };
+    const t = computeZoneTargets(off, 'O1', layout, baseConfig, 40, HOOP);
+    // Symétrique : D4 et D3 doivent être à des distances similaires de l'axe
+    const dD3 = Math.abs(t.D3.x - 300);
+    const dD4 = Math.abs(t.D4.x - 300);
+    expect(Math.abs(dD3 - dD4)).toBeLessThan(40);
+  });
+});
+
 describe('mapAttackersToZones', () => {
   it('retourne une Map indexée par zone.id', () => {
     const layout = getZoneLayout('zone-2-3');
