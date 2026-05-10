@@ -51,6 +51,18 @@ Refonte significative de la défense de zone pour encoder les principes basket f
 - Cumulé pire cas : `0.33 × maxSpeed` → D1 nettement late après l'écran, intuition basket respectée.
 - Limité au défenseur du porteur (le screenerDef a son propre rôle hedge/show).
 
+#### Étape 12 — Qualité d'écran (0-100)
+- Nouveau champ `Annotation.quality` (0-100, défaut 50) sur les annotations `type='screen'`. Module la pénalité Étape 11 :
+  - **0 (ghost)** : ×1.00 — faux écran, le défenseur passe sans ralentir.
+  - **25 (loose)** : ×0.78 — léger frôlement (~0.2s perdues).
+  - **50 (standard, défaut)** : ×0.55 — comportement Étape 11 inchangé.
+  - **75 (solid)** : ×0.32 — écran tight, défenseur sensiblement late.
+  - **100 (lockdown)** : ×0.18 — D1 quasi-stoppé (~1.2s).
+- Courbe linéaire par morceaux `screenPenaltyFromQuality(q)` exportée par `speedConstraint`.
+- UI : badge cliquable `ghost/loose/std/solid/lock` sur chaque segment screen du MultiTrackTimeline. Clic cycle 0→25→50→75→100.
+- Handler `setAnnotationQuality(stepIdx, annoIdx, quality)` exposé par `useAppState`.
+- Tests : 7 nouveaux cas sur `screenPenaltyFromQuality` (clamp, monotonie, points de référence). 426 → **433 tests verts**.
+
 #### Étape 10b — Segments à cheval sur plusieurs étapes
 - `tStart` peut désormais être < 0 (jusqu'à -1) et `tEnd` peut être > 1 (jusqu'à 2), permettant à une action de s'étendre dans la transition précédente ou suivante.
 - `attackerTrajectoryAt` regarde les annotations sur les steps `idxA` ET `idxA+1` pour identifier les actions actives à un temps global donné (fenêtre [absStart, absEnd] = anchor + tStart, anchor + tEnd).

@@ -60,6 +60,19 @@ interface ScreenerCluster {
 }
 
 /**
+ * Pénalité de vitesse appliquée au défenseur du porteur qui prend un écran,
+ * en fonction de la qualité de l'écran (0-100). Voir Annotation.quality.
+ * Courbe linéaire par morceaux : 0→1.00, 50→0.55 (référence Étape 11), 100→0.18.
+ */
+export function screenPenaltyFromQuality(quality: number): number {
+  const q = Math.max(0, Math.min(100, quality));
+  if (q <= 50) {
+    return 1.0 - (q / 50) * 0.45;
+  }
+  return 0.55 - ((q - 50) / 50) * 0.37;
+}
+
+/**
  * Calcule les positions effectives en appliquant la contrainte de vitesse max.
  * Si un défenseur ne peut atteindre sa cible, il est marqué "late" et reste
  * en chemin.
@@ -119,6 +132,9 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
   // détection d'écran formelle. Mirroite la logique de CourtView pour que la
   // physique du moteur et le rendu du scrub utilisent les MÊMES obstacles.
   const screenerObstacles: ScreenerCluster[] = [];
+  // Qualité de l'écran courant : 0-100, 50 par défaut. Module la pénalité de
+  // vitesse appliquée au défenseur du porteur (Étape 12).
+  let activeScreenQuality = 50;
   if (state.defenseSystem === 'man' && stepIdx > 0) {
     const cur = state.steps[stepIdx];
     const curOff = activeOffense(cur.off, state.playerCount);
@@ -136,6 +152,17 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
       const sDef = prevPositions[screen.screenerDef];
       const c = makeCluster(sPos, [sDef], PLAYER_CLUSTER_LINK_DIST_PX, PLAYER_CLUSTER_BASE_R_PX);
       screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: screen.screenerDef });
+      // Cherche l'annotation 'screen' associée à ce poseur. Peut être sur le
+      // step courant (phase=end) ou le step précédent (phase=end terminant ici).
+      const candidates = [state.steps[stepIdx], state.steps[stepIdx - 1]];
+      for (const st of candidates) {
+        if (!st) continue;
+        const sa = st.annotations.find((a) => a.type === 'screen' && a.fromId === screen.screener);
+        if (sa) {
+          activeScreenQuality = sa.quality ?? 50;
+          break;
+        }
+      }
     }
     offBallScreens.forEach((s) => {
       const sPos = curOff[s.screener];
@@ -224,15 +251,18 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
       : baseMaxSpeed;
     const maxSpeed = closingOut ? indivMaxSpeed * closeoutBoost : indivMaxSpeed;
     // Pénalité de contact d'écran : un défenseur du porteur qui prend un
-    // écran perd du temps à se dégager. Représente le "bump" physique : le
-    // défenseur ne traverse pas le poseur instantanément, il négocie le
-    // contact. Friction et pathArcLength capturent déjà une partie, mais
-    // pas suffisamment pour matcher l'intuition basket : un D1 qui prend un
-    // écran tight perd typiquement 0.3-0.6 sec, soit ~50% de sa vitesse sur
-    // une étape d'animation.
+    // écran perd du temps à se dégager. La pénalité est modulée par la
+    // qualité de l'écran (Étape 12) :
+    //   0   (ghost)    → ×1.00 (pas de contact)
+    //   25  (loose)    → ×0.78
+    //   50  (standard) → ×0.55 (défaut)
+    //   75  (solid)    → ×0.32
+    //   100 (lockdown) → ×0.18
     const isCarrierDefScreenedThisStep =
       targets[dId].onScreen === true && targets[dId].isCarrierDefender;
-    const screenContactPenalty = isCarrierDefScreenedThisStep ? 0.55 : 1.0;
+    const screenContactPenalty = isCarrierDefScreenedThisStep
+      ? screenPenaltyFromQuality(activeScreenQuality)
+      : 1.0;
     // Vitesse effective = vitesse théorique × friction × pénalité écran.
     const effectiveMaxSpeed = maxSpeed * friction * screenContactPenalty;
 

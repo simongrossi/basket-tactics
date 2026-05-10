@@ -22,6 +22,8 @@ interface MultiTrackTimelineProps {
   onTogglePhase?: (stepFullIdx: number, annoIdx: number, newPhase: 'start' | 'end') => void;
   /** Édite les bornes temporelles d'une annotation (drag des poignées). */
   onTrimTiming?: (stepFullIdx: number, annoIdx: number, tStart: number, tEnd: number) => void;
+  /** Édite la qualité (0-100) d'une annotation 'screen'. */
+  onSetQuality?: (stepFullIdx: number, annoIdx: number, quality: number) => void;
 }
 
 /**
@@ -39,6 +41,7 @@ export function MultiTrackTimeline({
   onJumpToRealStep,
   onTogglePhase,
   onTrimTiming,
+  onSetQuality,
 }: MultiTrackTimelineProps) {
   const tracks = useMemo(() => computePlayerTracks(state), [state]);
   const realStepsCount = useMemo(() => countRealSteps(state), [state]);
@@ -121,6 +124,7 @@ export function MultiTrackTimeline({
             onJumpToRealStep={onJumpToRealStep}
             onTogglePhase={onTogglePhase}
             onTrimTiming={onTrimTiming}
+            onSetQuality={onSetQuality}
           />
         ))}
         <div style={{ height: 4, borderTop: '1px dashed #cbd5e1', margin: '2px 0' }} />
@@ -132,6 +136,7 @@ export function MultiTrackTimeline({
             onJumpToRealStep={onJumpToRealStep}
             onTogglePhase={onTogglePhase}
             onTrimTiming={onTrimTiming}
+            onSetQuality={onSetQuality}
           />
         ))}
       </div>
@@ -145,12 +150,14 @@ function TrackRow({
   onJumpToRealStep,
   onTogglePhase,
   onTrimTiming,
+  onSetQuality,
 }: {
   track: PlayerTrack;
   transitionCount: number;
   onJumpToRealStep?: (idx: number) => void;
   onTogglePhase?: (stepFullIdx: number, annoIdx: number, newPhase: 'start' | 'end') => void;
   onTrimTiming?: (stepFullIdx: number, annoIdx: number, tStart: number, tEnd: number) => void;
+  onSetQuality?: (stepFullIdx: number, annoIdx: number, quality: number) => void;
 }) {
   return (
     <div style={{
@@ -180,6 +187,7 @@ function TrackRow({
           onClick={() => onJumpToRealStep?.(i + 1)}
           onTogglePhase={onTogglePhase}
           onTrimTiming={onTrimTiming}
+          onSetQuality={onSetQuality}
         />
       ))}
     </div>
@@ -191,11 +199,13 @@ function SegmentCell({
   onClick,
   onTogglePhase,
   onTrimTiming,
+  onSetQuality,
 }: {
   segment: TrackSegment;
   onClick?: () => void;
   onTogglePhase?: (stepFullIdx: number, annoIdx: number, newPhase: 'start' | 'end') => void;
   onTrimTiming?: (stepFullIdx: number, annoIdx: number, tStart: number, tEnd: number) => void;
+  onSetQuality?: (stepFullIdx: number, annoIdx: number, quality: number) => void;
 }) {
   const color = ACTIVITY_COLORS[segment.activity];
   const isMovementWithAnno =
@@ -241,12 +251,38 @@ function SegmentCell({
 
   const handlePointerUp = () => setDragging(null);
 
+  const isScreenWithAnno =
+    segment.activity === 'screen' &&
+    segment.annoStepFullIdx !== undefined &&
+    segment.annoIdx !== undefined;
+  const screenQuality = segment.quality ?? 50;
+
+  const cycleQuality = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isScreenWithAnno || !onSetQuality) return;
+    const STEPS = [0, 25, 50, 75, 100];
+    const cur = screenQuality;
+    const idx = STEPS.findIndex((v) => v >= cur);
+    const next = STEPS[(idx + 1) % STEPS.length];
+    onSetQuality(segment.annoStepFullIdx!, segment.annoIdx!, next);
+  };
+
+  const qualityLabel = (q: number): string => {
+    if (q <= 12) return 'ghost';
+    if (q <= 37) return 'loose';
+    if (q <= 62) return 'std';
+    if (q <= 87) return 'solid';
+    return 'lock';
+  };
+
   const tooltip = `${color.label}${segment.detail ? ' ' + segment.detail : ''}${
     segment.movePx > 0 ? ` · ${Math.round(segment.movePx)}px` : ''
   }${
     isMovementWithAnno
       ? ` · phase=${phase} · t=[${tStart.toFixed(2)}, ${tEnd.toFixed(2)}]`
       : ''
+  }${
+    isScreenWithAnno ? ` · qualité=${screenQuality} (${qualityLabel(screenQuality)})` : ''
   }`;
 
   return (
@@ -312,6 +348,24 @@ function SegmentCell({
         {color.label}
         {segment.detail && (
           <span style={{ opacity: 0.7, marginLeft: 3 }}>{segment.detail}</span>
+        )}
+        {isScreenWithAnno && onSetQuality && (
+          <span
+            onClick={cycleQuality}
+            title={`Qualité d'écran : ${screenQuality}% (${qualityLabel(screenQuality)}). Clic pour cycler ghost→loose→std→solid→lock.`}
+            style={{
+              marginLeft: 4,
+              padding: '0 4px',
+              background: 'rgba(0,0,0,0.18)',
+              borderRadius: 2,
+              fontSize: 8,
+              fontWeight: 700,
+              letterSpacing: 0.3,
+              cursor: 'pointer',
+            }}
+          >
+            {qualityLabel(screenQuality)} {screenQuality}
+          </span>
         )}
       </div>
 

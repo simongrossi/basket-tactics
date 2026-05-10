@@ -73,6 +73,16 @@ export interface Annotation {
    *  par drag des bords des segments dans MultiTrackTimeline. */
   tStart?: number;
   tEnd?: number;
+  /** Qualité d'écran (0-100) — Étape 12. Utilisé uniquement pour les
+   *  annotations type='screen'. Module la pénalité de vitesse appliquée
+   *  au défenseur du porteur :
+   *  - 0 (ghost) : pas de ralentissement, faux écran
+   *  - 25 (loose) : léger frottement (~0.2s perdues)
+   *  - 50 (standard, défaut) : ralentissement modéré (~0.5s)
+   *  - 75 (solid) : écran tight (~0.8s)
+   *  - 100 (lockdown) : D1 quasi-stoppé (~1.2s)
+   *  Indéfini = 50. */
+  quality?: number;
 }
 
 export interface Step {

@@ -60,6 +60,9 @@ export interface TrackSegment {
    *  Undefined = 0 et 1 (pleine durée). */
   tStart?: number;
   tEnd?: number;
+  /** Qualité de l'écran (Étape 12), uniquement si activity='screen'.
+   *  Undefined = 50 (standard). */
+  quality?: number;
 }
 
 export interface PlayerTrack {
@@ -132,6 +135,7 @@ export function computePlayerTracks(state: AppState): PlayerTrack[] {
 
       let segTStart: number | undefined;
       let segTEnd: number | undefined;
+      let segQuality: number | undefined;
 
       if (annoMove) {
         activity = annoMove.type as PlayerActivity;
@@ -141,6 +145,7 @@ export function computePlayerTracks(state: AppState): PlayerTrack[] {
         annoIdx = annoMove === annoStartOnNext ? annoStartIdx : annoEndIdx;
         segTStart = annoMove.tStart;
         segTEnd = annoMove.tEnd;
+        if (annoMove.type === 'screen') segQuality = annoMove.quality;
       } else if (annoPass) {
         activity = 'pass';
         if (annoPass.toId) detail = `→ ${annoPass.toId}`;
@@ -159,6 +164,7 @@ export function computePlayerTracks(state: AppState): PlayerTrack[] {
         annoIdx,
         tStart: segTStart,
         tEnd: segTEnd,
+        quality: segQuality,
       });
     }
     tracks.push({ id, kind: 'attacker', segments });

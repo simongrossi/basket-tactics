@@ -400,6 +400,36 @@ export function useAppState() {
   );
 
   /**
+   * Définit la qualité d'un écran (annotation type='screen'), entre 0 et 100.
+   * Module la pénalité de vitesse appliquée au défenseur du porteur (Étape 12).
+   * 50 = standard (équivalent au comportement Étape 11).
+   */
+  const setAnnotationQuality = useCallback(
+    (stepIdx: number, annoIdx: number, quality: number) => {
+      setStateWithHistory((s) => {
+        const step = s.steps[stepIdx];
+        if (!step) return s;
+        const anno = step.annotations[annoIdx];
+        if (!anno) return s;
+        if (anno.type !== 'screen') return s;
+        const q = Math.max(0, Math.min(100, Math.round(quality)));
+        const steps = s.steps.map((st, i) =>
+          i === stepIdx
+            ? {
+                ...st,
+                annotations: st.annotations.map((a, j) =>
+                  j === annoIdx ? { ...a, quality: q } : a
+                ),
+              }
+            : st
+        );
+        return { ...s, steps };
+      });
+    },
+    []
+  );
+
+  /**
    * Bascule la phase d'une annotation de mouvement entre 'end' (le joueur
    * se déplace pendant cette étape, arrive à destination à la fin) et
    * 'start' (le joueur est déjà à destination dès le début de l'étape, le
@@ -904,6 +934,7 @@ export function useAppState() {
     deleteAnnotation,
     setAnnotationPhase,
     setAnnotationTiming,
+    setAnnotationQuality,
     setForcedScreener,
     clearAnnotationsFor,
     setTool,
