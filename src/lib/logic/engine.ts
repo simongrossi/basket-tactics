@@ -15,6 +15,7 @@ import {
 import type { DefenderTarget } from './defense/types';
 import { buildDefenseFrameContext } from './defense/context';
 import { applyBaseTargetsLayer } from './defense/baseTargets';
+import { applyRimProtectionLayer } from './defense/rimProtectionLayer';
 import { applyPnRRotationsLayer } from './defense/pnrLayer';
 import { applyOffBallScreenLayer } from './defense/offBallScreenLayer';
 import { applyTrapLayer } from './defense/trapLayer';
@@ -68,6 +69,10 @@ export function computeDefenseTargets(
 
   // Couche 1 — base man-to-man + help + screen-on-target + orientation initiale.
   applyBaseTargetsLayer(positions, matchups, ctx);
+  // Couche 1.5 — Rim protection : "pas d'easy basket". Détecte les couloirs
+  // libres vers le panier et désigne un défenseur (autre que carrierDef) pour
+  // les fermer, peu importe le matchup.
+  applyRimProtectionLayer(positions, matchups, ctx);
   // Couche 2 — Rotations PnR (low-man tag + X-out + nail stunt).
   applyPnRRotationsLayer(positions, matchups, ctx);
   // Couche 3 — Écrans hors-ballon (mute matchups en cas de switch off-ball).
