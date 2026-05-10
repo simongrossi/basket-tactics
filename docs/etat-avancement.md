@@ -33,8 +33,15 @@ Refonte significative de la défense de zone pour encoder les **principes basket
 - **4.b Recover boost** : un défenseur sans rôle d'aide actif reçoit ×1.15 sur sa claim au matchup naturel. Pull-back actif après aide.
 - **4.c Couche `applyRimProtectionLayer` en man defense** : nouvelle couche 1.5 du pipeline man-to-man (engine.ts) qui applique le rim protection aux positions calculées par baseTargets. Filet de sécurité pour les edge cases (défenseur perdu via écran, switch).
 
+### Étape 5 — Pass denial
+
+- **`detectOpenPassThreats`** ([threatResolution.ts](../src/lib/logic/threatResolution.ts)) : pour chaque attaquant non-porteur, vérifie si segment carrier→att libre (perpDist >60px). Désigne le défenseur **naturel** (baseMatchups) si disponible, sinon le plus proche de l'intercept (sous 220px).
+- Slider `passDenial` (0-100, défaut 50) dans DefensePanel.
+- Boost claim ×(1+2×urgency×factor) sur le receveur + bias home (×0.5 × urgency × factor) vers point d'interception.
+- Skipé pour les receveurs déjà couverts par d'autres désignations (high-post, rim) — évite les conflits du type "le pivot fait un skip pass perimetric".
+
 ### Tests
-- **387 tests verts** au total après les Étapes 2-4 (vs 348 avant).
+- **394 tests verts** au total après les Étapes 2-5 (vs 348 avant, +46 tests).
 - Nouveaux fichiers : `threatResolution.test.ts`, `rimProtectionLayer.test.ts`, `baselineDrive.test.ts`.
 - Sections enrichies dans `zoneDefense.test.ts` (P3.b high-post isolé, P3.c baseline, P3.d ball-pressure, P3.e rim protection, P3.f weakside paint sag + recover).
 

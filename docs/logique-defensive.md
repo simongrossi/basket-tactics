@@ -483,6 +483,7 @@ Toutes ces mécaniques vivent dans [`zoneDefense.ts`](../src/lib/logic/zoneDefen
 | 2 | `baselineDriveCoverer` (porteur en attaque ligne de fond) | `detectBaselineDriveFromPositions` | `baselineDrive.ts` |
 | 3 | `ballPressureCoverer` (défenseur structurel responsable du porteur) | calcul interne (front/back row + côté ballon) | `zoneDefense.ts` |
 | 4 | `rimProtectorByThreat` (free-path vers panier sans couvreur) | `detectFreePathThreats` | `threatResolution.ts` |
+| 5 | `passDenierByReceiver` (ligne de passe ouverte vers un coéquipier) | `detectOpenPassThreats` | `threatResolution.ts` |
 
 Les défenseurs déjà désignés à un niveau supérieur sont **exclus** des niveaux suivants (passés via `unavailable: Set<DefenderId>`), évitant qu'un même défenseur cumule plusieurs missions.
 
@@ -495,6 +496,7 @@ Trois sliders dans `Configuration zone` modulent ces mécaniques (`ZoneConfig`) 
 | `pression bal.` | `ballPressure` 0-100 | Module `ballPressureCoverer` (boost ×1+1.5×factor) + bias home (30%-60% vers le ballon) |
 | `aide raquette` | `paintCoverage` 0-100 | Module `designatedCoverer` (boost ×4 à factor=1) + `baselineDriveCoverer` |
 | `protect. panier` | `rimProtection` 0-100 | Module `rimProtectorByThreat` (boost ×3+urgency, bias toward intercept point) |
+| `deny passes` | `passDenial` 0-100 | Module `passDenierByReceiver` (boost ×1+2×urgency×factor, bias 50% vers mi-segment porteur→receveur) |
 
 À 0 chaque slider désactive complètement la mécanique correspondante (zone passive). À 50 (défaut) comportement standard. À 100 mécanique amplifiée.
 
@@ -559,6 +561,33 @@ detectFreePathThreats(off, hoop, defPositions, unavailable, prevOff?)
 **urgency** ∈ [0, 1] : 1 quand A à dHoop=0, 0 à 280 px. Échelle linéaire incluant la bande étendue.
 
 En claim loop : `rimMult = 1+3*urgency*rimProtectionFactor` sur la claim du couvreur à l'attaquant menaçant. Bias homePos : 40% × urgency × factor vers le point d'interception (mi-chemin attaquant→panier).
+
+### Pass denial — fermeture des lignes de passe ([threatResolution.ts > detectOpenPassThreats](../src/lib/logic/threatResolution.ts))
+
+Détection systématique des **lignes de passe ouvertes** depuis le porteur vers ses coéquipiers :
+
+```
+detectOpenPassThreats(off, carrier, hoop, defPositions, unavailable, matchups?)
+  │
+  ├── pour chaque attaquant A non-porteur, passLen > 80 px:
+  │     trouve le défenseur disponible le plus proche du segment carrier→A
+  │     si perpDist > 60 → passe ouverte
+  │
+  └── désignation :
+        1. Préférer le défenseur naturel du receveur (baseMatchups) s'il est dispo
+        2. Sinon, le plus proche du point d'interception, MAIS sous 220 px de son home
+           (au-delà → pas réaliste, skip)
+```
+
+**Urgence** = 0.4 × proximité receveur↔panier + 0.6 × ouverture du couloir. Une passe vers un receveur proche du panier avec couloir grand ouvert est très urgente.
+
+En claim loop : `passDenialMult = 1+2×urgency×passDenialFactor` sur la claim du couvreur au receveur. Bias homePos : 50% × urgency × factor vers le point d'interception (mi-segment carrier→receveur).
+
+**Filtres** :
+- Skip les receveurs déjà couverts par `designatedCoverer` ou `rimProtectorByThreat` (évite que deux défenseurs convergent sur le même attaquant pour des raisons différentes).
+- L'`unavailable` set inclut tous les défenseurs déjà désignés ailleurs (high-post, baseline, ball-pressure, rim) — empêche un défenseur de cumuler deux missions.
+
+Le bénéfice basket : sur une scène équilibrée, les défenseurs trackent activement leurs matchups via la pression sur les lignes de passe, au lieu de rester en formation passive.
 
 ### Détection de cuts ([threatResolution.ts > detectCuts](../src/lib/logic/threatResolution.ts))
 

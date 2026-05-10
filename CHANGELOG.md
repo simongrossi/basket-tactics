@@ -6,6 +6,48 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Étapes 2 à 5 — Réflexes défensifs avancés en zone
+
+Refonte significative de la défense de zone pour encoder les principes basket fondamentaux qui doivent l'emporter sur la simple ownership géométrique. Documentation : [docs/logique-defensive.md > Réflexes défensifs avancés](./docs/logique-defensive.md#réflexes-défensifs-avancés-étapes-2-4).
+
+#### Étape 2 — Désignation de couvreurs (zone)
+- **2.a `designatedCoverer`** : un attaquant isolé en zone-tueuse (high-post / short-corner sans coéquipier <80px) déclenche une désignation explicite du défenseur le plus proche par homePos. Boost ×4 sur sa claim, bias home (40% vers attaquant pour high-post). Empêche la dilution d'ownership entre 5 défenseurs concurrents.
+- **2.b `paintCoverage`** : nouveau slider `ZoneConfig.paintCoverage` (0-100, défaut 50) qui module l'agressivité des boosts désignation.
+- **2.c `isHighPost` élargi** : couvre maintenant la "tête de raquette" complète (`verticalFromHoop ∈ [80, 200]` vs `[130, 200]` avant).
+- **2.d `baselineDriveCoverer`** : nouveau module `baselineDrive.ts` détecte les attaques ligne de fond non fermées. Désigne le wing low côté ballon. Diagnostics coach `baseline-drive-open/soft/late/closed`.
+- **2.e `ballPressureCoverer`** : LE défenseur structurellement responsable de presser le porteur. Front-row si ballon haut, back-row si bas. Préfère le défenseur du même côté que le ballon. Boost ×2.5 + bias home + seuil engagement abaissé.
+
+#### Étape 3 — Réflexes basket universels
+- **3.a `rimProtectorByThreat` ("pas d'easy basket")** : nouveau module `threatResolution.ts` avec `detectFreePathThreats`. Pour chaque attaquant à <220px du panier sans défenseur sur la trajectoire, désigne le défenseur disponible le plus proche du panier. Slider `rimProtection` (0-100).
+- **3.b `detectCuts`** : détection des coupes hors-ballon vers le panier (Δ dHoop > 25, exclut les screeners). Diagnostic coach `cut-backdoor`.
+- **3.c Step-up préventif** : `detectFreePathThreats` étendu pour détecter les drives en cours (220-280px avec mouvement vers panier). Réaction défensive AVANT que l'attaquant arrive sur le panier.
+- **3.d `detectMatchupOrphans`** : signale via diagnostic coach les défenseurs en aide loin de leur home dont le matchup naturel n'est plus couvert.
+
+#### Étape 4 — Axe central et recover
+- **4.a Weakside paint sag** : `ballSideShifted` étendu — les défenseurs côté faible glissent vers l'**axe central** (x=300, pull ×0.8) ET vers le panier en Y (×0.4). Engagement réduit ×0.5 si défenseur ET matchup tous deux weakside. Effet : D4 weakside passe de 121px à 98px de l'axe central.
+- **4.b Recover boost** : défenseur sans rôle d'aide actif reçoit ×1.15 sur claim au matchup naturel. Pull-back actif après aide.
+- **4.c Couche `applyRimProtectionLayer` en man defense** : nouvelle couche 1.5 du pipeline man-to-man qui applique le rim protection aux positions post-baseTargets. Filet de sécurité pour les edge cases (défenseur perdu via écran, switch).
+
+#### Étape 5 — Pass denial
+- **`detectOpenPassThreats`** dans `threatResolution.ts` : pour chaque attaquant non-porteur, vérifie si segment carrier→att libre (perpDist >60px). Désigne le défenseur naturel (baseMatchups) si disponible, sinon le plus proche de l'intercept (sous 220px).
+- Slider `passDenial` (0-100, défaut 50) dans DefensePanel.
+- Boost claim sur le receveur + bias home vers point d'interception. Skipé pour les receveurs déjà couverts par d'autres designations (évite les conflits, ex : pivot D5 ne fait pas un skip pass perimetric).
+
+#### Architecture
+- Toutes les désignations vivent dans `zoneDefense.ts` et sont calculées **avant** la boucle de claims, dans cet ordre (priorité décroissante) : `designatedCoverer` (high-post) → `baselineDriveCoverer` → `ballPressureCoverer` → `rimProtectorByThreat` → `passDenierByReceiver`.
+- Mécanisme commun : un seul défenseur boosté par menace (pas de dilution), `unavailable: Set<DefenderId>` propagé entre détections pour éviter qu'un défenseur cumule plusieurs missions.
+- Tests : 348 → **394 tests verts** (+46 tests, dont 22 dans `threatResolution.test.ts`, 9 nouvelles sections dans `zoneDefense.test.ts`, 3 dans `rimProtectionLayer.test.ts`).
+
+#### Sliders zone disponibles dans DefensePanel
+| Slider | Champ | Effet |
+|--------|-------|-------|
+| pression bal. | `ballPressure` | Pression sur porteur (ballPressureCoverer) |
+| vit. rotation | `rotationSpeed` | Vitesse de mouvement de la zone |
+| position vert. | `verticalOffset` | Décalage vertical des homePos |
+| aide raquette | `paintCoverage` | Couverture zones-tueuses (high-post, short-corner, baseline) |
+| protect. panier | `rimProtection` | Free-path threats (pas d'easy basket) |
+| deny passes | `passDenial` | Fermeture des lignes de passe ouvertes |
+
 ### Refactor — Découpage du moteur défensif en couches isolées (engine.ts : 982 → 117 lignes)
 
 `src/lib/logic/engine.ts` était devenu un "gravity well" mélangeant calcul des cibles défensives, ajustements playback, calcul d'orientation des attaquants, détection d'événements tactiques, et contrainte de vitesse. Le tout dans une seule grosse fonction `computeDefenseTargets` (~290 l) + un `effectiveDefensePositions` (~235 l) qui partageaient des dizaines d'imports. Découpage en pipeline de couches indépendantes, chacune testable en isolation.
