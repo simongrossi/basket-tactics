@@ -185,6 +185,105 @@ describe('computeZoneTargets — couverture high-post isolé (P3.b)', () => {
   });
 });
 
+describe('computeZoneTargets — paintCoverage slider (P3.b)', () => {
+  const off: AttackerPositions = {
+    O1: { x: 300, y: 470 },
+    O2: { x: 130, y: 380 },
+    O3: { x: 470, y: 380 },
+    O4: { x: 300, y: 220 }, // high-post isolé
+    O5: { x: 470, y: 90 },
+  };
+  const layout = getZoneLayout('zone-2-3');
+
+  it('paintCoverage=0 désactive le boost (D5 reste près de son home)', () => {
+    const cfg0: ZoneConfig = { ...baseConfig, paintCoverage: 0 };
+    const cfg50: ZoneConfig = { ...baseConfig, paintCoverage: 50 };
+    const t0 = computeZoneTargets(off, 'O1', layout, cfg0, 40, HOOP);
+    const t50 = computeZoneTargets(off, 'O1', layout, cfg50, 40, HOOP);
+    // paintCoverage=0 → boost neutre → D5 reste plus bas (plus près panier).
+    expect(t0.D5.y).toBeLessThan(t50.D5.y);
+  });
+
+  it('paintCoverage=100 amplifie l\'engagement vs paintCoverage=50', () => {
+    const cfg50: ZoneConfig = { ...baseConfig, paintCoverage: 50 };
+    const cfg100: ZoneConfig = { ...baseConfig, paintCoverage: 100 };
+    const t50 = computeZoneTargets(off, 'O1', layout, cfg50, 40, HOOP);
+    const t100 = computeZoneTargets(off, 'O1', layout, cfg100, 40, HOOP);
+    expect(t100.D5.y).toBeGreaterThan(t50.D5.y);
+  });
+
+  it('paintCoverage indéfini = comportement par défaut (50)', () => {
+    const cfgUndef: ZoneConfig = { ...baseConfig };
+    delete (cfgUndef as Partial<ZoneConfig>).paintCoverage;
+    const cfg50: ZoneConfig = { ...baseConfig, paintCoverage: 50 };
+    const tUndef = computeZoneTargets(off, 'O1', layout, cfgUndef, 40, HOOP);
+    const t50 = computeZoneTargets(off, 'O1', layout, cfg50, 40, HOOP);
+    expect(tUndef.D5.y).toBe(t50.D5.y);
+  });
+});
+
+describe('computeZoneTargets — réaction baseline drive (P3.c)', () => {
+  const layout = getZoneLayout('zone-2-3');
+
+  it('porteur en corner droit isolé : D3 (wing-right) descend pour fermer la ligne', () => {
+    // O1 porteur en corner droit profond (lateral=170, vert=15 → short-corner)
+    const baseline: AttackerPositions = {
+      O1: { x: 470, y: 90 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 300, y: 470 }, // déplacé loin pour ne pas concurrencer
+      O4: { x: 200, y: 380 },
+      O5: { x: 380, y: 380 },
+    };
+    // Référence : porteur central, pas de baseline drive.
+    const central: AttackerPositions = {
+      O1: { x: 300, y: 470 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 470, y: 380 },
+      O4: { x: 220, y: 230 },
+      O5: { x: 380, y: 230 },
+    };
+    const tBaseline = computeZoneTargets(baseline, 'O1', layout, baseConfig, 40, HOOP);
+    const tCentral = computeZoneTargets(central, 'O1', layout, baseConfig, 40, HOOP);
+    // D3 (wing-right, homePos 470,145) doit s'engager fortement quand le
+    // porteur attaque la ligne de fond corner droit.
+    expect(tBaseline.D3.trackedAttacker).toBe('O1');
+    // D3 cible plus proche du porteur (470, 90) que dans le cas central.
+    const dBaseline = Math.hypot(tBaseline.D3.x - 470, tBaseline.D3.y - 90);
+    const dCentral = Math.hypot(tCentral.D3.x - 470, tCentral.D3.y - 90);
+    expect(dBaseline).toBeLessThan(dCentral);
+  });
+
+  it('porteur en corner gauche isolé : D4 (wing-left) descend pour fermer', () => {
+    const off: AttackerPositions = {
+      O1: { x: 130, y: 90 },
+      O2: { x: 470, y: 380 },
+      O3: { x: 300, y: 470 },
+      O4: { x: 380, y: 380 },
+      O5: { x: 200, y: 380 },
+    };
+    const t = computeZoneTargets(off, 'O1', layout, baseConfig, 40, HOOP);
+    expect(t.D4.trackedAttacker).toBe('O1');
+  });
+
+  it('paintCoverage=0 désactive la réaction baseline (D3 reste à son anchor)', () => {
+    const off: AttackerPositions = {
+      O1: { x: 470, y: 90 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 300, y: 470 },
+      O4: { x: 200, y: 380 },
+      O5: { x: 380, y: 380 },
+    };
+    const cfg0: ZoneConfig = { ...baseConfig, paintCoverage: 0 };
+    const cfg50: ZoneConfig = { ...baseConfig, paintCoverage: 50 };
+    const t0 = computeZoneTargets(off, 'O1', layout, cfg0, 40, HOOP);
+    const t50 = computeZoneTargets(off, 'O1', layout, cfg50, 40, HOOP);
+    // Distance au porteur : t50 < t0 (D3 plus engagé avec boost).
+    const d0 = Math.hypot(t0.D3.x - 470, t0.D3.y - 90);
+    const d50 = Math.hypot(t50.D3.x - 470, t50.D3.y - 90);
+    expect(d50).toBeLessThan(d0);
+  });
+});
+
 describe('mapAttackersToZones', () => {
   it('retourne une Map indexée par zone.id', () => {
     const layout = getZoneLayout('zone-2-3');

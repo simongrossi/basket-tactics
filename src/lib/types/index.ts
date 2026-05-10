@@ -407,6 +407,14 @@ export interface ZoneConfig {
    *  milieu de terrain, négatif = vers le panier. Permet de "remonter" ou
    *  "redescendre" la zone selon la philosophie défensive. */
   verticalOffset?: number;
+  /** Force avec laquelle la zone ferme un attaquant seul à la tête de raquette
+   *  ou en short-corner (zones-tueuses).
+   *  0 = aucun boost (l'attaquant est traité comme un attaquant normal).
+   *  50 = comportement par défaut (boost ×4 sur le couvreur désigné).
+   *  100 = boost agressif (×6) + bias home maximal — le couvreur sort très
+   *  fort de sa zone naturelle.
+   *  Indéfini = 50 (comportement actuel par défaut). */
+  paintCoverage?: number;
 }
 
 // --- Écrans non-porteur (Palier 4) ---

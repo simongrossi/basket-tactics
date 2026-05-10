@@ -185,6 +185,14 @@ export function DefensePanel(props: DefensePanelProps) {
             value={state.zoneConfig.verticalOffset ?? 0}
             onChange={(v) => props.onUpdateZoneConfig({ verticalOffset: v })}
           />
+          <Slider
+            label="aide raquette"
+            min={0}
+            max={100}
+            step={5}
+            value={state.zoneConfig.paintCoverage ?? 50}
+            onChange={(v) => props.onUpdateZoneConfig({ paintCoverage: v })}
+          />
           <CheckboxLine
             checked={state.zoneConfig.trapCorners}
             label="trap en coin"

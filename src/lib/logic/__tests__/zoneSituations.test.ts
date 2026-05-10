@@ -80,12 +80,17 @@ describe('isShortCorner / isHighPost', () => {
     expect(isShortCorner({ x: HOOP.x + 280, y: HOOP.y + 30 }, HOOP)).toBe(false);
   });
 
-  it('high post détecté centré (lateral <60) ET 130-200px du panier', () => {
+  it('high post / tête de raquette : centré (lateral <60) ET 80-200px du panier', () => {
+    // FT line stricto sensu (top of key)
     expect(isHighPost({ x: HOOP.x, y: HOOP.y + 150 }, HOOP)).toBe(true);
     expect(isHighPost({ x: HOOP.x + 50, y: HOOP.y + 180 }, HOOP)).toBe(true);
-    expect(isHighPost({ x: HOOP.x + 70, y: HOOP.y + 180 }, HOOP)).toBe(false); // trop latéral
+    // Top-of-paint (au-dessus du basket, sous la FT line)
+    expect(isHighPost({ x: HOOP.x, y: HOOP.y + 90 }, HOOP)).toBe(true);
+    expect(isHighPost({ x: HOOP.x, y: HOOP.y + 120 }, HOOP)).toBe(true);
+    // Hors zone
+    expect(isHighPost({ x: HOOP.x + 70, y: HOOP.y + 150 }, HOOP)).toBe(false); // trop latéral
     expect(isHighPost({ x: HOOP.x, y: HOOP.y + 250 }, HOOP)).toBe(false); // trop loin
-    expect(isHighPost({ x: HOOP.x, y: HOOP.y + 100 }, HOOP)).toBe(false); // trop près
+    expect(isHighPost({ x: HOOP.x, y: HOOP.y + 60 }, HOOP)).toBe(false); // trop près du panier
   });
 });
 

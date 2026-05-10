@@ -77,15 +77,23 @@ export function isShortCorner(pos: Point, hoop: Point = HOOP): boolean {
 }
 
 /**
- * High post : sommet de la raquette / FT line. Tueur en 1-3-1 et 2-3 car
- * la passe à la FT line ouvre les angles vers les ailiers et la baseline.
+ * High post / tête de raquette : la bande centrale entre le panier et le
+ * sommet de la raquette (FT line). Inclut le top-of-paint (zone juste
+ * au-dessus du panier) ET la FT line stricto sensu. Tueur en 2-3 et 1-3-1
+ * car la passe au sommet de la raquette ouvre les angles vers les ailiers
+ * et la ligne de fond.
  *
- * Critère : centré (lateral <60px) ET 130-200px du panier.
+ * Critère : centré (lateral <60px) ET 80-200px du panier.
+ *
+ * Note : la borne basse était à 130 (FT line uniquement). Elle a été
+ * abaissée à 80 pour couvrir aussi le top-of-paint (y SVG ~155-200), zone
+ * que les coachs appellent "tête de raquette" en français et qui pose le
+ * même problème de couverture en zone-2-3 (gap entre front-2 et back-3).
  */
 export function isHighPost(pos: Point, hoop: Point = HOOP): boolean {
   const lateral = Math.abs(pos.x - hoop.x);
   const verticalFromHoop = Math.abs(pos.y - hoop.y);
-  return lateral < 60 && verticalFromHoop > 130 && verticalFromHoop < 200;
+  return lateral < 60 && verticalFromHoop > 80 && verticalFromHoop < 200;
 }
 
 /**

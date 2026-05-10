@@ -13,6 +13,7 @@ import { distance } from './geometry';
 import { manTarget, carrierDefenderTarget } from './manDefense';
 import { baseMatchups } from '../data/initial';
 import { detectOverload, findCriticalZoneAttackers } from './zoneSituations';
+import { detectBaselineDriveFromPositions, type BaselineDefenderInput } from './baselineDrive';
 
 export function pointInPolygon(point: Point, polygon: Point[]): boolean {
   let inside = false;
@@ -205,6 +206,9 @@ export function computeZoneTargets(
   const tactic = TACTICS[config.type] ?? DEFAULT_TACTIC;
   const ballPos = off[ballCarrier];
   const ballPressureFactor = config.ballPressure / 100;
+  // paintCoverage : 0 = aucun boost zones-tueuses, 50 = défaut, 100 = max.
+  // On dérive un facteur 0..1.5 utilisé pour moduler criticalMult et bias home.
+  const paintCoverageFactor = (config.paintCoverage ?? 50) / 50;
 
   // P3 — Situations tactiques de zone :
   //  - overload côté ballon (3+ attaquants) → boost le glissement collectif.
@@ -252,13 +256,40 @@ export function computeZoneTargets(
     if (bestD) designatedCoverer.set(c.attackerId, bestD);
   });
 
+  // P3.c — Réaction zone à un drive ligne de fond. Si le porteur est dans
+  // la bande baseline (deep corner / short corner / shallow penetration) ET
+  // qu'aucun défenseur n'est sur le couloir d'attaque carrier→panier, on
+  // désigne le défenseur le plus proche du couloir (par homePos) comme
+  // "couvreur baseline". On lui appliquera plus bas un boost concentré sur
+  // sa claim au porteur, comme pour le high-post isolé. La détection utilise
+  // les homePos (proxy structurel) car les positions effectives ne sont pas
+  // encore calculées à ce stade.
+  let baselineDriveCoverer: DefenderId | null = null;
+  if (ballPos) {
+    const homePosByDef: Record<string, BaselineDefenderInput> = {};
+    layout.forEach((zone) => {
+      homePosByDef[zone.assignedTo] = { x: zone.homePos.x, y: zone.homePos.y };
+    });
+    const baseline = detectBaselineDriveFromPositions(
+      ballCarrier,
+      ballPos,
+      null,
+      hoop,
+      homePosByDef
+    );
+    if (baseline?.uncovered && baseline.closer) {
+      baselineDriveCoverer = baseline.closer.id;
+    }
+  }
+
   // P3.b — Bias homePos du couvreur désigné face à un high-post isolé.
   // En 2-3, D5 anchor à y=145 ne sort pas spontanément vers y=165 car son
-  // home est trop bas. On shift son ancrage de 40% vers l'attaquant pour
-  // qu'il monte naturellement, le boost ×4 fait le reste. Limité au high-post
-  // (le short-corner est couvert par le wing low qui a son home naturellement
-  // proche, pas besoin de déplacer son ancrage).
-  const HIGH_POST_BIAS_WEIGHT = 0.4;
+  // home est trop bas. On shift son ancrage vers l'attaquant pour qu'il
+  // monte naturellement, le boost critique fait le reste. Limité au
+  // high-post (le short-corner est couvert par le wing low qui a son home
+  // naturellement proche). Modulé par paintCoverageFactor : 0×=aucun shift,
+  // 1×=shift normal (40%), 2×=shift fort (80% du chemin vers l'attaquant).
+  const HIGH_POST_BIAS_WEIGHT = 0.4 * paintCoverageFactor;
   const homeBiasOverrides = new Map<DefenderId, Point>();
   criticalAttackers.forEach((c) => {
     if (c.zone !== 'high-post' || !isolatedIds.has(c.attackerId)) return;
@@ -295,23 +326,39 @@ export function computeZoneTargets(
       const proximity = Math.exp(-Math.pow(d / reach, 2));
       const naturalMult = oId === naturalAtt ? tactic.naturalBonus : 1.0;
       const carrierMult = oId === ballCarrier ? tactic.carrierBonus : 1.0;
-      // P3 — Boost critique sur les zone-tueuses (high-post, short-corner) :
+      // P3 — Boost critique sur les zone-tueuses (high-post, short-corner).
+      // Modulé par paintCoverageFactor (slider config) : 0=neutre, 1=défaut,
+      // 2=agressif. Les valeurs ci-dessous sont les défauts à factor=1.
       //  - non-critique : 1.0 (pas de boost)
-      //  - critique avec coéquipier proche : 1.4 (boost modéré, partagé)
-      //  - critique ISOLÉ + couvreur désigné : 4.0 (boost fort, concentré)
-      //  - critique ISOLÉ + non-désigné : 1.2 (légèrement attiré sans
-      //    diluer l'ownership du couvreur désigné)
-      // La concentration du boost sur un seul défenseur évite la dilution
-      // d'ownership entre 5 concurrents et permet l'engagement réel.
+      //  - critique non isolé : 1.4 (boost modéré, partagé)
+      //  - critique ISOLÉ + couvreur désigné : 4.0 (boost concentré)
+      //  - critique ISOLÉ + non-désigné : 1.2 (faible attraction)
+      // L'interpolation lerp(1.0, base, factor) garantit que factor=0 désactive
+      // tout boost (1.0 = neutre) et que factor=2 amplifie linéairement.
       let criticalMult = 1.0;
       if (criticalIds.has(oId)) {
+        let baseBoost: number;
         if (isolatedIds.has(oId)) {
-          criticalMult = designatedCoverer.get(oId) === dId ? 4.0 : 1.2;
+          baseBoost = designatedCoverer.get(oId) === dId ? 4.0 : 1.2;
         } else {
-          criticalMult = 1.4;
+          baseBoost = 1.4;
         }
+        criticalMult = 1.0 + (baseBoost - 1.0) * paintCoverageFactor;
       }
-      dClaims.set(oId, proximity * naturalMult * carrierMult * criticalMult);
+      // P3.c — Boost baseline-drive : empilé sur le porteur uniquement quand
+      // ce défenseur est désigné couvreur baseline ET qu'il n'est pas déjà
+      // designatedCoverer (sinon double-comptage avec criticalMult). Effet :
+      // le wing low côté ballon ferme la ligne avec une attraction très
+      // concentrée sur le porteur, sans diluer.
+      let baselineMult = 1.0;
+      if (
+        oId === ballCarrier &&
+        baselineDriveCoverer === dId &&
+        designatedCoverer.get(oId) !== dId
+      ) {
+        baselineMult = 1.0 + 2.0 * paintCoverageFactor;
+      }
+      dClaims.set(oId, proximity * naturalMult * carrierMult * criticalMult * baselineMult);
     });
     claims.set(dId, dClaims);
   });
@@ -364,11 +411,15 @@ export function computeZoneTargets(
     // Seuil minimum d'engagement pour bouger : si on possède très peu
     // d'attaquants (tous les attaquants sont loin), on reste au home.
     // Abaissé à 0.08 quand le primary est en zone-tueuse (high-post,
-    // short-corner) — sinon les claims dilués par 5 défenseurs concurrents
-    // empêchent le déclenchement même quand le boost critique est actif.
+    // short-corner) ou que ce défenseur est couvreur baseline désigné —
+    // sinon les claims dilués par 5 défenseurs concurrents empêchent le
+    // déclenchement même quand le boost critique est actif.
     const isPrimaryCritical =
       primaryAttacker !== null && criticalIds.has(primaryAttacker);
-    const engagementThreshold = isPrimaryCritical ? 0.08 : 0.15;
+    const isBaselineCovererForCarrier =
+      baselineDriveCoverer === dId && primaryAttacker === ballCarrier;
+    const engagementThreshold =
+      isPrimaryCritical || isBaselineCovererForCarrier ? 0.08 : 0.15;
     if (!primaryAttacker || primaryShare < engagementThreshold) {
       targets[dId] = {
         x: Math.round(homeShifted.x),
