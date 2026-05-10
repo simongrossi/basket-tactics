@@ -109,7 +109,42 @@ export type ScriptedActionType =
   | 'pass'
   | 'kick-out'
   | 'shoot'
-  | 'isolation';
+  | 'isolation'
+  // ---------- Tier 2 — Cuts ----------
+  | 'flash-cut'
+  | 'flex-cut'
+  | 'i-cut'
+  | 'popout-cut'
+  | 'shallow-cut'
+  | 'ucla-cut'
+  | 'v-cut'
+  | 'l-cut'
+  | 'banana-cut'
+  | 'iverson-cut'
+  // ---------- Tier 2 — Off-ball screens ----------
+  | 'staggered-screen'
+  | 'elevator-screen'
+  | 'hammer-screen'
+  | 'ram-screen'
+  | 'wide-screen'
+  | 'wiper-screen'
+  | 'screen-away'
+  // ---------- Tier 2 — PnR variants ----------
+  | 'slip'
+  | 'reject'
+  | 'drag-screen'
+  | 'step-up-screen'
+  | 'ghost-screen'
+  // ---------- Tier 2 — Combinations ----------
+  | 'zoom-action'
+  | 'rip-dho'
+  | 'slide-action'
+  | 'split-action'
+  | 'high-low-action'
+  // ---------- Tier 2 — Replacements ----------
+  | 'drift'
+  | 'lift'
+  | 'replacement';
 
 /** Côté de l'action par rapport au porteur (axe = top of the key). */
 export type ActionSide = 'fort' | 'faible' | 'axe';

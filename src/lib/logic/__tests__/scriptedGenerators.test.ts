@@ -226,6 +226,59 @@ describe('Generators avec zones nommées', () => {
     expect(steps[0].off.O4).toEqual({ x: 225, y: 235 });
   });
 
+  it('Tier 2 — chaque générateur produit au moins 1 step avec positions valides', () => {
+    // Paramètres qui couvrent l'union des champs requis par les actions Tier 2.
+    const baseParams = {
+      cutter: 'O3' as const,
+      screener: 'O5' as const,
+      ballHandler: 'O1' as const,
+      driver: 'O1' as const,
+      passer: 'O1' as const,
+      receiver: 'O2' as const,
+      giver: 'O1' as const,
+      from: 'O1' as const,
+      to: 'O3' as const,
+      firstScreener: 'O4' as const,
+      secondScreener: 'O5' as const,
+      shooter: 'O1' as const,
+      // replacement requiert targetZone.
+      targetZone: 'wing-strong' as const,
+    };
+    const tier2Types = [
+      'flash-cut','flex-cut','i-cut','popout-cut','shallow-cut','ucla-cut',
+      'v-cut','l-cut','banana-cut','iverson-cut',
+      'staggered-screen','elevator-screen','hammer-screen','ram-screen',
+      'wide-screen','wiper-screen','screen-away',
+      'slip','reject','drag-screen','step-up-screen','ghost-screen',
+      'zoom-action','rip-dho','slide-action','split-action','high-low-action',
+      'drift','lift','replacement',
+    ] as const;
+
+    for (const type of tier2Types) {
+      const action: ScriptedAction = {
+        kind: 'offensive',
+        id: `a-${type}`,
+        type,
+        params: baseParams,
+      };
+      const gen = SCRIPTED_GENERATORS[type];
+      expect(gen, `générateur manquant pour ${type}`).toBeDefined();
+      const steps = gen(initialStep, action);
+      expect(steps.length, `${type} doit produire au moins 1 step`).toBeGreaterThan(0);
+      // Toutes les positions doivent être dans le terrain (pas de NaN, pas de hors-bornes).
+      for (const s of steps) {
+        for (const id of Object.keys(s.off) as Array<keyof typeof s.off>) {
+          const p = s.off[id];
+          expect(Number.isFinite(p.x) && Number.isFinite(p.y), `${type}: pos non finie pour ${id}`).toBe(true);
+          expect(p.x).toBeGreaterThanOrEqual(0);
+          expect(p.x).toBeLessThanOrEqual(600);
+          expect(p.y).toBeGreaterThanOrEqual(0);
+          expect(p.y).toBeLessThanOrEqual(540);
+        }
+      }
+    }
+  });
+
   it('pin-down + targetZone relative au porteur côté gauche → résolution miroir', () => {
     // Forcer porteur côté gauche : ballCarrier=O2 (x=130).
     const leftStep: Step = {
