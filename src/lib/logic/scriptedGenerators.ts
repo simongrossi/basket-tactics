@@ -14,6 +14,7 @@ import type {
   Step,
 } from '@/lib/types';
 import { HOOP, COURT } from '@/lib/data/court';
+import { resolveZone, ballSideFromCarrier, type ZoneRef } from '@/lib/data/courtZones';
 
 // ============================================================
 // Helpers géométriques
@@ -42,6 +43,14 @@ function towards(from: Point, to: Point, d: number): Point {
 
 function offset(p: Point, dx: number, dy: number): Point {
   return clamp({ x: p.x + dx, y: p.y + dy });
+}
+
+/** Résout une zone optionnelle vers un Point absolu, en référence au porteur.
+ *  Renvoie null si `ref` n'est pas défini → le générateur garde son comportement
+ *  par défaut (rétro-compatibilité avec les scénarios existants). */
+function resolveZonePoint(ref: ZoneRef | undefined, carrier: Point): Point | null {
+  if (!ref) return null;
+  return resolveZone(ref, ballSideFromCarrier(carrier));
 }
 
 /** "Côté fort" = côté où se trouve le porteur (signe de carrier.x - 300).
@@ -273,7 +282,11 @@ const genGiveAndGo: Generator = (prev, action) => {
 const genBasketCut: Generator = (prev, action) => {
   const cutter = action.params.cutter as AttackerId;
   if (!cutter) return [];
-  const newPos = lerp(prev.off[cutter], HOOP, 0.65);
+  const carrierPos = prev.off[prev.ballCarrier];
+  const zonePoint = resolveZonePoint(action.params.targetZone, carrierPos);
+  // Zone explicite → on y va directement. Sinon, comportement historique :
+  // 65% du chemin vers le panier (ne pas finir collé au cercle).
+  const newPos = zonePoint ?? lerp(prev.off[cutter], HOOP, 0.65);
   const off1 = move(prev.off, cutter, newPos);
   return [makeStepFrom(off1, prev.ballCarrier, [
     annot('cut', cutter, prev.off, off1),
@@ -287,11 +300,13 @@ const genBasketCut: Generator = (prev, action) => {
 const genBackdoorCut: Generator = (prev, action) => {
   const cutter = action.params.cutter as AttackerId;
   if (!cutter) return [];
+  const carrierPos = prev.off[prev.ballCarrier];
+  const zonePoint = resolveZonePoint(action.params.targetZone, carrierPos);
   // Backdoor : on contourne en passant côté baseline (y vers panier, x s'écarte légèrement
   // côté ligne de fond avant de plonger).
   const start = prev.off[cutter];
   const sign = start.x <= 300 ? -1 : 1;
-  const target: Point = clamp({
+  const target: Point = zonePoint ?? clamp({
     x: 300 + sign * 80,        // près de la ligne de fond côté baseline
     y: HOOP.y + 30,             // juste en bas du cercle
   });
@@ -313,17 +328,25 @@ const genFlare: Generator = (prev, action) => {
   // Step 1 : screener vient se placer entre cutter et ballCarrier (côté ballon du cutter).
   const cutterPos = prev.off[cutter];
   const carrierPos = prev.off[prev.ballCarrier];
-  const screenPos = lerp(cutterPos, carrierPos, 0.4);
+  const screenZonePoint = resolveZonePoint(action.params.screenZone, carrierPos);
+  const targetZonePoint = resolveZonePoint(action.params.targetZone, carrierPos);
+
+  const screenPos = screenZonePoint ?? lerp(cutterPos, carrierPos, 0.4);
   const off1 = move(prev.off, screener, screenPos);
   const step1 = makeStepFrom(off1, prev.ballCarrier, [
     annot('screen', screener, prev.off, off1, cutter),
   ], { generatedBy: action.id, label: 'Pose flare' });
 
-  // Step 2 : cutter s'éloigne du ballon (direction opposée carrierPos→cutterPos).
-  const dx = cutterPos.x - carrierPos.x;
-  const dy = cutterPos.y - carrierPos.y;
-  const len = Math.max(1, Math.hypot(dx, dy));
-  const flarePos = clamp({ x: cutterPos.x + (dx / len) * 90, y: cutterPos.y + (dy / len) * 90 });
+  // Step 2 : cutter s'éloigne du ballon (ou rejoint la zone cible).
+  let flarePos: Point;
+  if (targetZonePoint) {
+    flarePos = targetZonePoint;
+  } else {
+    const dx = cutterPos.x - carrierPos.x;
+    const dy = cutterPos.y - carrierPos.y;
+    const len = Math.max(1, Math.hypot(dx, dy));
+    flarePos = clamp({ x: cutterPos.x + (dx / len) * 90, y: cutterPos.y + (dy / len) * 90 });
+  }
   const off2 = move(off1, cutter, flarePos);
   const step2 = makeStepFrom(off2, prev.ballCarrier, [
     annot('cut', cutter, off1, off2),
@@ -341,15 +364,19 @@ const genCurlCut: Generator = (prev, action) => {
   const screener = action.params.screener as AttackerId;
   if (!cutter || !screener) return [];
 
-  // Step 1 : screener à mi-chemin entre cutter et panier.
-  const screenPos = lerp(prev.off[cutter], HOOP, 0.4);
+  const carrierPos = prev.off[prev.ballCarrier];
+  const screenZonePoint = resolveZonePoint(action.params.screenZone, carrierPos);
+  const targetZonePoint = resolveZonePoint(action.params.targetZone, carrierPos);
+
+  // Step 1 : screener à mi-chemin entre cutter et panier (ou zone explicite).
+  const screenPos = screenZonePoint ?? lerp(prev.off[cutter], HOOP, 0.4);
   const off1 = move(prev.off, screener, screenPos);
   const step1 = makeStepFrom(off1, prev.ballCarrier, [
     annot('screen', screener, prev.off, off1, cutter),
   ], { generatedBy: action.id, label: 'Pose écran' });
 
-  // Step 2 : cutter curl autour de l'écran et continue vers le panier (proche du cercle).
-  const curlPos = towards(HOOP, prev.off[cutter], 40); // ~40px du cercle, dans la direction du cutter
+  // Step 2 : cutter curl autour de l'écran et continue vers la cible.
+  const curlPos = targetZonePoint ?? towards(HOOP, prev.off[cutter], 40);
   const off2 = move(off1, cutter, curlPos);
   const step2 = makeStepFrom(off2, prev.ballCarrier, [
     annot('cut', cutter, off1, off2),
@@ -367,15 +394,19 @@ const genShuffleCut: Generator = (prev, action) => {
   const screener = action.params.screener as AttackerId;
   if (!cutter || !screener) return [];
 
-  // Step 1 : screener au high post.
-  const screenPos: Point = { x: 300, y: 230 };
+  const carrierPos = prev.off[prev.ballCarrier];
+  const screenZonePoint = resolveZonePoint(action.params.screenZone, carrierPos);
+  const targetZonePoint = resolveZonePoint(action.params.targetZone, carrierPos);
+
+  // Step 1 : screener au high post (ou zone explicite).
+  const screenPos: Point = screenZonePoint ?? { x: 300, y: 230 };
   const off1 = move(prev.off, screener, screenPos);
   const step1 = makeStepFrom(off1, prev.ballCarrier, [
     annot('screen', screener, prev.off, off1, cutter),
   ], { generatedBy: action.id, label: 'Écran haut' });
 
-  // Step 2 : cutter passe par le high post et plonge bas du poste.
-  const cutPos: Point = lerp(screenPos, HOOP, 0.7);
+  // Step 2 : cutter passe par l'écran et plonge bas du poste (ou zone cible).
+  const cutPos: Point = targetZonePoint ?? lerp(screenPos, HOOP, 0.7);
   const off2 = move(off1, cutter, cutPos);
   const step2 = makeStepFrom(off2, prev.ballCarrier, [
     annot('cut', cutter, off1, off2),
@@ -393,18 +424,20 @@ const genPinDown: Generator = (prev, action) => {
   const cutter = action.params.cutter as AttackerId;
   if (!screener || !cutter) return [];
 
-  // Step 1 : screener descend juste au-dessus du cutter (entre cutter et panier).
+  const carrierPos = prev.off[prev.ballCarrier];
+  const screenZonePoint = resolveZonePoint(action.params.screenZone, carrierPos);
+  const targetZonePoint = resolveZonePoint(action.params.targetZone, carrierPos);
+
+  // Step 1 : screener descend juste au-dessus du cutter (ou zone explicite).
   const cutterPos = prev.off[cutter];
-  const screenPos: Point = { x: cutterPos.x, y: cutterPos.y - 35 };
+  const screenPos: Point = screenZonePoint ?? { x: cutterPos.x, y: cutterPos.y - 35 };
   const off1 = move(prev.off, screener, screenPos);
   const step1 = makeStepFrom(off1, prev.ballCarrier, [
     annot('screen', screener, prev.off, off1, cutter),
   ], { generatedBy: action.id, label: 'Pose pin-down' });
 
-  // Step 2 : cutter remonte (s'éloigne du panier) à l'aile/3pts.
-  // On garantit un déplacement minimum de 80px vers le haut (y croissant), même
-  // si le cutter part déjà bas — l'écran déplace l'horizon défensif.
-  const popUpPos: Point = { x: cutterPos.x, y: cutterPos.y + 80 };
+  // Step 2 : cutter remonte (ou rejoint la zone cible).
+  const popUpPos: Point = targetZonePoint ?? { x: cutterPos.x, y: cutterPos.y + 80 };
   const off2 = move(off1, cutter, popUpPos);
   const step2 = makeStepFrom(off2, prev.ballCarrier, [
     annot('cut', cutter, off1, off2),
@@ -428,16 +461,20 @@ const genBackScreen: Generator = (prev, action) => {
   const cutter = action.params.cutter as AttackerId;
   if (!screener || !cutter) return [];
 
-  // Step 1 : screener se place "côté loin du panier" du cutter (dos du défenseur).
+  const carrierPos = prev.off[prev.ballCarrier];
+  const screenZonePoint = resolveZonePoint(action.params.screenZone, carrierPos);
+  const targetZonePoint = resolveZonePoint(action.params.targetZone, carrierPos);
+
+  // Step 1 : screener se place "côté loin du panier" du cutter (ou zone explicite).
   const cutterPos = prev.off[cutter];
-  const screenPos: Point = { x: cutterPos.x, y: cutterPos.y + 35 };
+  const screenPos: Point = screenZonePoint ?? { x: cutterPos.x, y: cutterPos.y + 35 };
   const off1 = move(prev.off, screener, screenPos);
   const step1 = makeStepFrom(off1, prev.ballCarrier, [
     annot('screen', screener, prev.off, off1, cutter),
   ], { generatedBy: action.id, label: 'Pose back-screen' });
 
-  // Step 2 : cutter coupe vers le panier (lerp vers HOOP).
-  const cutPos = lerp(cutterPos, HOOP, 0.65);
+  // Step 2 : cutter coupe vers le panier (ou zone cible).
+  const cutPos = targetZonePoint ?? lerp(cutterPos, HOOP, 0.65);
   const off2 = move(off1, cutter, cutPos);
   const step2 = makeStepFrom(off2, prev.ballCarrier, [
     annot('cut', cutter, off1, off2),
@@ -456,16 +493,20 @@ const genCrossScreen: Generator = (prev, action) => {
   if (!screener || !cutter) return [];
 
   const cutterPos = prev.off[cutter];
-  // Screener traverse pour aller au milieu de la raquette, à hauteur du cutter.
-  const screenPos: Point = { x: 300, y: cutterPos.y };
+  const carrierPos = prev.off[prev.ballCarrier];
+  const screenZonePoint = resolveZonePoint(action.params.screenZone, carrierPos);
+  const targetZonePoint = resolveZonePoint(action.params.targetZone, carrierPos);
+
+  // Screener traverse au milieu de la raquette à hauteur du cutter (ou zone explicite).
+  const screenPos: Point = screenZonePoint ?? { x: 300, y: cutterPos.y };
   const off1 = move(prev.off, screener, screenPos);
   const step1 = makeStepFrom(off1, prev.ballCarrier, [
     annot('screen', screener, prev.off, off1, cutter),
   ], { generatedBy: action.id, label: 'Pose cross-screen' });
 
-  // Cutter traverse vers l'autre côté (mirror x autour de 300).
+  // Cutter traverse vers l'autre côté (mirror x autour de 300, ou zone cible).
   const oppositeX = 600 - cutterPos.x;
-  const cutPos: Point = { x: oppositeX, y: cutterPos.y };
+  const cutPos: Point = targetZonePoint ?? { x: oppositeX, y: cutterPos.y };
   const off2 = move(off1, cutter, cutPos);
   const step2 = makeStepFrom(off2, prev.ballCarrier, [
     annot('cut', cutter, off1, off2),
@@ -524,8 +565,12 @@ const genDrive: Generator = (prev, action) => {
   const direction = action.params.direction ?? 'panier';
   if (!driver) return [];
   const driverPos = prev.off[driver];
+  // Si zone cible explicite, elle prime sur la direction (qui ne sert qu'au reader).
+  const zonePoint = resolveZonePoint(action.params.targetZone, driverPos);
   let target: Point;
-  if (direction === 'baseline') {
+  if (zonePoint) {
+    target = zonePoint;
+  } else if (direction === 'baseline') {
     const sign = driverPos.x <= 300 ? -1 : 1;
     target = clamp({ x: 300 + sign * 130, y: HOOP.y + 30 });
   } else if (direction === 'middle') {
@@ -626,10 +671,759 @@ const genIsolation: Generator = (prev, action) => {
 };
 
 // ============================================================
+// TIER 2 — Cuts
+// ============================================================
+
+const HIGH_POST_LEFT: Point = { x: 225, y: 235 };
+
+/** Helper : retourne la zone explicite si fournie, sinon le défaut donné. */
+function zoneOrDefault(
+  ref: ZoneRef | undefined, carrier: Point, fallback: Point,
+): Point {
+  return resolveZonePoint(ref, carrier) ?? fallback;
+}
+
+const genFlashCut: Generator = (prev, action) => {
+  const cutter = action.params.cutter as AttackerId;
+  if (!cutter) return [];
+  const carrier = prev.off[prev.ballCarrier];
+  const target = zoneOrDefault(action.params.targetZone, carrier, { x: 300, y: 235 });
+  const off1 = move(prev.off, cutter, target);
+  return [makeStepFrom(off1, prev.ballCarrier, [
+    annot('cut', cutter, prev.off, off1),
+  ], { generatedBy: action.id, label: 'Flash cut' })];
+};
+
+const genFlexCut: Generator = (prev, action) => {
+  const cutter = action.params.cutter as AttackerId;
+  const screener = action.params.screener as AttackerId;
+  if (!cutter || !screener) return [];
+  const carrier = prev.off[prev.ballCarrier];
+
+  // Step 1 : cross-screen au low post.
+  const screenPos = resolveZonePoint(action.params.screenZone, carrier) ?? { x: 300, y: 95 };
+  const off1 = move(prev.off, screener, screenPos);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('screen', screener, prev.off, off1, cutter),
+  ], { generatedBy: action.id, label: 'Cross-screen low' });
+
+  // Step 2 : cutter coupe vers low-block fort.
+  const target = zoneOrDefault(
+    action.params.targetZone, carrier,
+    { x: carrier.x < 300 ? 225 : 375, y: 95 },
+  );
+  const off2 = move(off1, cutter, target);
+  const step2 = makeStepFrom(off2, prev.ballCarrier, [
+    annot('cut', cutter, off1, off2),
+  ], { generatedBy: action.id, label: 'Flex panier' });
+  return [step1, step2];
+};
+
+const genICut: Generator = (prev, action) => {
+  const cutter = action.params.cutter as AttackerId;
+  if (!cutter) return [];
+  const carrier = prev.off[prev.ballCarrier];
+  const start = prev.off[cutter];
+  // Step 1 : plonge vers panier.
+  const dive = lerp(start, HOOP, 0.7);
+  const off1 = move(prev.off, cutter, dive);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('cut', cutter, prev.off, off1),
+  ], { generatedBy: action.id, label: 'I-cut plonge' });
+  // Step 2 : ressort vers la zone (ou point de départ).
+  const out = zoneOrDefault(action.params.targetZone, carrier, start);
+  const off2 = move(off1, cutter, out);
+  const step2 = makeStepFrom(off2, prev.ballCarrier, [
+    annot('cut', cutter, off1, off2),
+  ], { generatedBy: action.id, label: 'I-cut ressort' });
+  return [step1, step2];
+};
+
+const genPopoutCut: Generator = (prev, action) => {
+  const cutter = action.params.cutter as AttackerId;
+  if (!cutter) return [];
+  const carrier = prev.off[prev.ballCarrier];
+  const target = zoneOrDefault(action.params.targetZone, carrier, { x: carrier.x, y: carrier.y + 20 });
+  const off1 = move(prev.off, cutter, target);
+  return [makeStepFrom(off1, prev.ballCarrier, [
+    annot('cut', cutter, prev.off, off1),
+  ], { generatedBy: action.id, label: 'Popout' })];
+};
+
+const genShallowCut: Generator = (prev, action) => {
+  const cutter = action.params.cutter as AttackerId;
+  if (!cutter) return [];
+  const carrier = prev.off[prev.ballCarrier];
+  // Défaut : top → corner fort.
+  const fallback: Point = carrier.x < 300 ? { x: 53, y: 80 } : { x: 547, y: 80 };
+  const target = zoneOrDefault(action.params.targetZone, carrier, fallback);
+  const off1 = move(prev.off, cutter, target);
+  return [makeStepFrom(off1, prev.ballCarrier, [
+    annot('cut', cutter, prev.off, off1),
+  ], { generatedBy: action.id, label: 'Shallow cut' })];
+};
+
+const genUclaCut: Generator = (prev, action) => {
+  const cutter = action.params.cutter as AttackerId;
+  const screener = action.params.screener as AttackerId;
+  if (!cutter || !screener) return [];
+  const carrier = prev.off[prev.ballCarrier];
+  // Step 1 : screener au high post (ou zone explicite).
+  const screenPos = resolveZonePoint(action.params.screenZone, carrier) ?? HIGH_POST_LEFT;
+  const off1 = move(prev.off, screener, screenPos);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('screen', screener, prev.off, off1, cutter),
+  ], { generatedBy: action.id, label: 'Écran haut poste' });
+  // Step 2 : cutter coupe vers low-block (ou zone cible).
+  const target = zoneOrDefault(action.params.targetZone, carrier, { x: 225, y: 95 });
+  const off2 = move(off1, cutter, target);
+  const step2 = makeStepFrom(off2, prev.ballCarrier, [
+    annot('cut', cutter, off1, off2),
+  ], { generatedBy: action.id, label: 'UCLA panier' });
+  return [step1, step2];
+};
+
+const genVCut: Generator = (prev, action) => {
+  const cutter = action.params.cutter as AttackerId;
+  if (!cutter) return [];
+  const carrier = prev.off[prev.ballCarrier];
+  // Démarquage en V : aller-retour autour du point de départ.
+  // Pour un seul step, on amène directement le cutter à sa cible (ou départ).
+  const start = prev.off[cutter];
+  const target = zoneOrDefault(action.params.targetZone, carrier, start);
+  const off1 = move(prev.off, cutter, target);
+  return [makeStepFrom(off1, prev.ballCarrier, [
+    annot('cut', cutter, prev.off, off1),
+  ], { generatedBy: action.id, label: 'V-cut' })];
+};
+
+const genLCut: Generator = (prev, action) => {
+  const cutter = action.params.cutter as AttackerId;
+  if (!cutter) return [];
+  const carrier = prev.off[prev.ballCarrier];
+  const start = prev.off[cutter];
+  const target = zoneOrDefault(action.params.targetZone, carrier, start);
+  const off1 = move(prev.off, cutter, target);
+  return [makeStepFrom(off1, prev.ballCarrier, [
+    annot('cut', cutter, prev.off, off1),
+  ], { generatedBy: action.id, label: 'L-cut' })];
+};
+
+const genBananaCut: Generator = (prev, action) => {
+  // Banana = basket cut avec courbure (rendu animation), pour la position
+  // finale on traite comme un basket cut.
+  return genBasketCut(prev, action);
+};
+
+const genIversonCut: Generator = (prev, action) => {
+  const cutter = action.params.cutter as AttackerId;
+  const a = action.params.firstScreener as AttackerId;
+  const b = action.params.secondScreener as AttackerId;
+  if (!cutter || !a || !b) return [];
+  const carrier = prev.off[prev.ballCarrier];
+  // Step 1 : screeners au coude G et coude D.
+  const off1 = { ...prev.off, [a]: clamp({ x: 225, y: 235 }), [b]: clamp({ x: 375, y: 235 }) };
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('screen', a, prev.off, off1, cutter),
+    annot('screen', b, prev.off, off1, cutter),
+  ], { generatedBy: action.id, label: 'Coudes' });
+  // Step 2 : cutter traverse horizontalement.
+  const start = prev.off[cutter];
+  const target = zoneOrDefault(action.params.targetZone, carrier, { x: 600 - start.x, y: 235 });
+  const off2 = move(off1, cutter, target);
+  const step2 = makeStepFrom(off2, prev.ballCarrier, [
+    annot('cut', cutter, off1, off2),
+  ], { generatedBy: action.id, label: 'Iverson cut' });
+  return [step1, step2];
+};
+
+// ============================================================
+// TIER 2 — Off-ball screens
+// ============================================================
+
+const genStaggeredScreen: Generator = (prev, action) => {
+  const cutter = action.params.cutter as AttackerId;
+  const a = action.params.firstScreener as AttackerId;
+  const b = action.params.secondScreener as AttackerId;
+  if (!cutter || !a || !b) return [];
+  const carrier = prev.off[prev.ballCarrier];
+  const cutterPos = prev.off[cutter];
+
+  // Step 1 : 1er écran proche du cutter.
+  const screen1: Point = { x: cutterPos.x, y: cutterPos.y - 50 };
+  const off1 = move(prev.off, a, screen1);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('screen', a, prev.off, off1, cutter),
+  ], { generatedBy: action.id, label: 'Stagger 1er écran' });
+
+  // Step 2 : 2e écran plus haut, non adjacent.
+  const screen2: Point = { x: cutterPos.x, y: cutterPos.y - 110 };
+  const off2 = move(off1, b, screen2);
+  const step2 = makeStepFrom(off2, prev.ballCarrier, [
+    annot('screen', b, off1, off2, cutter),
+  ], { generatedBy: action.id, label: 'Stagger 2e écran' });
+
+  // Step 3 : cutter remonte vers la cible (ou nail par défaut).
+  const target = zoneOrDefault(action.params.targetZone, carrier, { x: 300, y: 235 });
+  const off3 = move(off2, cutter, target);
+  const step3 = makeStepFrom(off3, prev.ballCarrier, [
+    annot('cut', cutter, off2, off3),
+  ], { generatedBy: action.id, label: 'Use stagger' });
+  return [step1, step2, step3];
+};
+
+const genElevatorScreen: Generator = (prev, action) => {
+  const cutter = action.params.cutter as AttackerId;
+  const a = action.params.firstScreener as AttackerId;
+  const b = action.params.secondScreener as AttackerId;
+  if (!cutter || !a || !b) return [];
+  const carrier = prev.off[prev.ballCarrier];
+
+  // Step 1 : écrans à 30px de chaque côté du cutter.
+  const cutterPos = prev.off[cutter];
+  const off1 = {
+    ...prev.off,
+    [a]: clamp({ x: cutterPos.x - 30, y: cutterPos.y - 30 }),
+    [b]: clamp({ x: cutterPos.x + 30, y: cutterPos.y - 30 }),
+  };
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('screen', a, prev.off, off1, cutter),
+    annot('screen', b, prev.off, off1, cutter),
+  ], { generatedBy: action.id, label: 'Pose ascenseur' });
+
+  // Step 2 : cutter passe entre + remonte. Screeners se referment.
+  const target = zoneOrDefault(action.params.targetZone, carrier, { x: cutterPos.x, y: cutterPos.y + 60 });
+  const off2 = {
+    ...off1,
+    [cutter]: clamp(target),
+    [a]: clamp({ x: cutterPos.x - 10, y: cutterPos.y - 30 }),
+    [b]: clamp({ x: cutterPos.x + 10, y: cutterPos.y - 30 }),
+  };
+  const step2 = makeStepFrom(off2, prev.ballCarrier, [
+    annot('cut', cutter, off1, off2),
+  ], { generatedBy: action.id, label: 'Ferme + cutter sort' });
+  return [step1, step2];
+};
+
+const genHammerScreen: Generator = (prev, action) => {
+  const screener = action.params.screener as AttackerId;
+  const cutter = action.params.cutter as AttackerId;
+  if (!screener || !cutter) return [];
+  const carrier = prev.off[prev.ballCarrier];
+  // Hammer = écran côté faible pour libérer un tireur au corner faible.
+  const cutterPos = prev.off[cutter];
+  const screenPos = resolveZonePoint(action.params.screenZone, carrier)
+    ?? { x: cutterPos.x, y: cutterPos.y - 30 };
+  const off1 = move(prev.off, screener, screenPos);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('screen', screener, prev.off, off1, cutter),
+  ], { generatedBy: action.id, label: 'Hammer pose' });
+
+  const fallback: Point = carrier.x < 300 ? { x: 547, y: 80 } : { x: 53, y: 80 }; // corner faible
+  const target = zoneOrDefault(action.params.targetZone, carrier, fallback);
+  const off2 = move(off1, cutter, target);
+  const step2 = makeStepFrom(off2, prev.ballCarrier, [
+    annot('cut', cutter, off1, off2),
+  ], { generatedBy: action.id, label: 'Hammer corner' });
+  return [step1, step2];
+};
+
+const genRamScreen: Generator = (prev, action) => {
+  const a = action.params.firstScreener as AttackerId;
+  const b = action.params.secondScreener as AttackerId;
+  const ballHandler = action.params.ballHandler as AttackerId;
+  if (!a || !b || !ballHandler) return [];
+  // Step 1 : a (RAM) pose un écran sur b.
+  const bPos = prev.off[b];
+  const ramPos: Point = { x: bPos.x, y: bPos.y - 30 };
+  const off1 = move(prev.off, a, ramPos);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('screen', a, prev.off, off1, b),
+  ], { generatedBy: action.id, label: 'RAM' });
+  // Step 2 : b monte poser le PnR pour ballHandler.
+  const carrierPos = prev.off[ballHandler];
+  const screenPnRPos: Point = { x: carrierPos.x + 30, y: carrierPos.y - 25 };
+  const off2 = move(off1, b, screenPnRPos);
+  const step2 = makeStepFrom(off2, prev.ballCarrier, [
+    annot('screen', b, off1, off2, ballHandler),
+  ], { generatedBy: action.id, label: 'PnR ballon' });
+  return [step1, step2];
+};
+
+const genWideScreen: Generator = (prev, action) => {
+  const screener = action.params.screener as AttackerId;
+  const cutter = action.params.cutter as AttackerId;
+  if (!screener || !cutter) return [];
+  const carrier = prev.off[prev.ballCarrier];
+  const cutterPos = prev.off[cutter];
+  // Wide screen = cross-screen haut, hors raquette.
+  const screenPos = resolveZonePoint(action.params.screenZone, carrier) ?? { x: 300, y: 320 };
+  const off1 = move(prev.off, screener, screenPos);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('screen', screener, prev.off, off1, cutter),
+  ], { generatedBy: action.id, label: 'Wide pose' });
+  const target = zoneOrDefault(action.params.targetZone, carrier, { x: 600 - cutterPos.x, y: cutterPos.y });
+  const off2 = move(off1, cutter, target);
+  const step2 = makeStepFrom(off2, prev.ballCarrier, [
+    annot('cut', cutter, off1, off2),
+  ], { generatedBy: action.id, label: 'Wide cut' });
+  return [step1, step2];
+};
+
+const genWiperScreen: Generator = (prev, action) => {
+  const screener = action.params.screener as AttackerId;
+  const cutter = action.params.cutter as AttackerId;
+  if (!screener || !cutter) return [];
+  const carrier = prev.off[prev.ballCarrier];
+  const cutterPos = prev.off[cutter];
+  // Step 1 : flare screen.
+  const screen1: Point = { x: cutterPos.x + 25, y: cutterPos.y };
+  const off1 = move(prev.off, screener, screen1);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('screen', screener, prev.off, off1, cutter),
+  ], { generatedBy: action.id, label: 'Flare' });
+  // Step 2 : cutter flare.
+  const flarePos: Point = { x: cutterPos.x + 60, y: cutterPos.y };
+  const off2 = move(off1, cutter, flarePos);
+  const step2 = makeStepFrom(off2, prev.ballCarrier, [
+    annot('cut', cutter, off1, off2),
+  ], { generatedBy: action.id, label: 'Cutter flare' });
+  // Step 3 : pin-down (essuie-glace inverse) → cutter pop vers cible.
+  const target = zoneOrDefault(action.params.targetZone, carrier, { x: cutterPos.x, y: cutterPos.y + 90 });
+  const off3 = move(off2, cutter, target);
+  const step3 = makeStepFrom(off3, prev.ballCarrier, [
+    annot('cut', cutter, off2, off3),
+  ], { generatedBy: action.id, label: 'Pin-down' });
+  return [step1, step2, step3];
+};
+
+const genScreenAway: Generator = (prev, action) => {
+  const passer = action.params.passer as AttackerId;
+  const receiver = action.params.receiver as AttackerId;
+  const screener = action.params.screener as AttackerId;
+  const cutter = action.params.cutter as AttackerId;
+  if (!passer || !receiver || !screener || !cutter) return [];
+  // Step 1 : passe.
+  const off1 = { ...prev.off };
+  const step1 = makeStepFrom(off1, receiver, [
+    annot('pass', passer, prev.off, off1, receiver),
+  ], { generatedBy: action.id, label: 'Passe' });
+  // Step 2 : screener pose un écran pour cutter du côté opposé.
+  const cutterPos = prev.off[cutter];
+  const screenPos: Point = { x: cutterPos.x, y: cutterPos.y - 35 };
+  const carrier = off1[receiver];
+  const target = zoneOrDefault(action.params.targetZone, carrier, { x: cutterPos.x, y: cutterPos.y + 80 });
+  const off2 = { ...off1, [screener]: clamp(screenPos), [cutter]: clamp(target) };
+  const step2 = makeStepFrom(off2, receiver, [
+    annot('screen', screener, off1, off2, cutter),
+    annot('cut', cutter, off1, off2),
+  ], { generatedBy: action.id, label: 'Screen away' });
+  return [step1, step2];
+};
+
+// ============================================================
+// TIER 2 — PnR variants
+// ============================================================
+
+const genSlip: Generator = (prev, action) => {
+  const screener = action.params.screener as AttackerId;
+  const ballHandler = action.params.ballHandler as AttackerId;
+  if (!screener || !ballHandler) return [];
+  const side = (action.params.side ?? 'fort') as 'fort' | 'faible' | 'axe';
+  const carrierPos = prev.off[ballHandler];
+  const sign = sideSignFromCarrier(carrierPos, side);
+  // Step 1 : screener feint de poser.
+  const fakePos: Point = { x: carrierPos.x + sign * 25, y: carrierPos.y - 10 };
+  const off1 = move(prev.off, screener, fakePos);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('cut', screener, prev.off, off1),
+  ], { generatedBy: action.id, label: 'Feint écran' });
+  // Step 2 : screener slip vers cible (panier ou zone).
+  const target = zoneOrDefault(action.params.targetZone, carrierPos, lerp(fakePos, HOOP, 0.7));
+  const off2 = move(off1, screener, target);
+  const step2 = makeStepFrom(off2, prev.ballCarrier, [
+    annot('cut', screener, off1, off2),
+  ], { generatedBy: action.id, label: 'Slip panier' });
+  return [step1, step2];
+};
+
+const genReject: Generator = (prev, action) => {
+  const screener = action.params.screener as AttackerId;
+  const ballHandler = action.params.ballHandler as AttackerId;
+  if (!screener || !ballHandler) return [];
+  const side = (action.params.side ?? 'fort') as 'fort' | 'faible' | 'axe';
+  const carrierPos = prev.off[ballHandler];
+  const sign = sideSignFromCarrier(carrierPos, side);
+  // Step 1 : screener pose côté demandé.
+  const screenPos: Point = { x: carrierPos.x + sign * 30, y: carrierPos.y - 25 };
+  const off1 = move(prev.off, screener, screenPos);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('screen', screener, prev.off, off1, ballHandler),
+  ], { generatedBy: action.id, label: 'Pose écran' });
+  // Step 2 : porteur reject (attaque côté opposé à l'écran).
+  const target = zoneOrDefault(action.params.targetZone, carrierPos, {
+    x: carrierPos.x - sign * 80, y: carrierPos.y - 80,
+  });
+  const off2 = move(off1, ballHandler, target);
+  const step2 = makeStepFrom(off2, ballHandler, [
+    annot('dribble', ballHandler, off1, off2),
+  ], { generatedBy: action.id, label: 'Reject' });
+  return [step1, step2];
+};
+
+const genDragScreen: Generator = (prev, action) => {
+  const screener = action.params.screener as AttackerId;
+  const ballHandler = action.params.ballHandler as AttackerId;
+  if (!screener || !ballHandler) return [];
+  // Drag = PnR en transition, vers axe central.
+  const carrierPos = prev.off[ballHandler];
+  const screenPos: Point = { x: 300, y: carrierPos.y - 30 };
+  const off1 = move(prev.off, screener, screenPos);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('screen', screener, prev.off, off1, ballHandler),
+  ], { generatedBy: action.id, label: 'Pose drag' });
+  const handlerPos = lerp(carrierPos, HOOP, 0.45);
+  const off2 = { ...off1, [ballHandler]: clamp(handlerPos), [screener]: lerp(screenPos, HOOP, 0.5) };
+  const step2 = makeStepFrom(off2, ballHandler, [
+    annot('dribble', ballHandler, off1, off2),
+    annot('cut', screener, off1, off2),
+  ], { generatedBy: action.id, label: 'Use drag' });
+  return [step1, step2];
+};
+
+const genStepUpScreen: Generator = (prev, action) => {
+  const screener = action.params.screener as AttackerId;
+  const ballHandler = action.params.ballHandler as AttackerId;
+  if (!screener || !ballHandler) return [];
+  // Step-up = écran qui pousse le porteur vers la baseline.
+  const carrierPos = prev.off[ballHandler];
+  const sign = carrierPos.x < 300 ? -1 : 1;
+  const screenPos: Point = { x: carrierPos.x, y: carrierPos.y + 25 }; // dans le dos vs panier
+  const off1 = move(prev.off, screener, screenPos);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('screen', screener, prev.off, off1, ballHandler),
+  ], { generatedBy: action.id, label: 'Step-up pose' });
+  // Step 2 : porteur attaque baseline.
+  const baselinePos: Point = clamp({ x: 300 + sign * 130, y: HOOP.y + 30 });
+  const off2 = { ...off1, [ballHandler]: baselinePos };
+  const step2 = makeStepFrom(off2, ballHandler, [
+    annot('dribble', ballHandler, off1, off2),
+  ], { generatedBy: action.id, label: 'Drive baseline' });
+  // Step 3 : screener roll.
+  const rollPos = lerp(screenPos, HOOP, 0.6);
+  const off3 = { ...off2, [screener]: rollPos };
+  const step3 = makeStepFrom(off3, ballHandler, [
+    annot('cut', screener, off2, off3),
+  ], { generatedBy: action.id, label: 'Step-up roll' });
+  return [step1, step2, step3];
+};
+
+const genGhostScreen: Generator = (prev, action) => {
+  const screener = action.params.screener as AttackerId;
+  const ballHandler = action.params.ballHandler as AttackerId;
+  if (!screener || !ballHandler) return [];
+  const carrierPos = prev.off[ballHandler];
+  // Step 1 : screener vient feindre.
+  const fakePos: Point = { x: carrierPos.x + 20, y: carrierPos.y - 20 };
+  const off1 = move(prev.off, screener, fakePos);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('cut', screener, prev.off, off1),
+  ], { generatedBy: action.id, label: 'Ghost feinte' });
+  // Step 2 : screener coupe sans contact (ghost).
+  const target = zoneOrDefault(action.params.targetZone, carrierPos, lerp(fakePos, HOOP, 0.7));
+  const off2 = move(off1, screener, target);
+  const step2 = makeStepFrom(off2, prev.ballCarrier, [
+    annot('cut', screener, off1, off2),
+  ], { generatedBy: action.id, label: 'Ghost cut' });
+  return [step1, step2];
+};
+
+// ============================================================
+// TIER 2 — Combinations
+// ============================================================
+
+const genZoomAction: Generator = (prev, action) => {
+  const screener = action.params.screener as AttackerId;
+  const cutter = action.params.cutter as AttackerId;
+  const giver = action.params.giver as AttackerId;
+  if (!screener || !cutter || !giver) return [];
+  // Step 1 : pin-down (screener bas, cutter remonte).
+  const cutterPos = prev.off[cutter];
+  const pinDownPos: Point = { x: cutterPos.x, y: cutterPos.y - 35 };
+  const off1 = move(prev.off, screener, pinDownPos);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('screen', screener, prev.off, off1, cutter),
+  ], { generatedBy: action.id, label: 'Pin-down' });
+  const popUp: Point = { x: cutterPos.x, y: cutterPos.y + 60 };
+  const off2 = move(off1, cutter, popUp);
+  const step2 = makeStepFrom(off2, prev.ballCarrier, [
+    annot('cut', cutter, off1, off2),
+  ], { generatedBy: action.id, label: 'Cutter remonte' });
+  // Step 2 : DHO du giver vers cutter.
+  const giverPos = prev.off[giver];
+  const meet = lerp(giverPos, popUp, 0.7);
+  const off3 = move(off2, giver, meet);
+  const step3 = makeStepFrom(off3, cutter, [
+    annot('pass', giver, off2, off3, cutter),
+  ], { generatedBy: action.id, label: 'DHO' });
+  return [step1, step2, step3];
+};
+
+const genRipDho: Generator = (prev, action) => {
+  const screener = action.params.screener as AttackerId;
+  const cutter = action.params.cutter as AttackerId;
+  const giver = action.params.giver as AttackerId;
+  if (!screener || !cutter || !giver) return [];
+  // Step 1 : back-screen.
+  const cutterPos = prev.off[cutter];
+  const backPos: Point = { x: cutterPos.x, y: cutterPos.y + 35 };
+  const off1 = move(prev.off, screener, backPos);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('screen', screener, prev.off, off1, cutter),
+  ], { generatedBy: action.id, label: 'Back-screen' });
+  // Step 2 : cutter coupe vers panier puis remonte.
+  const cutPos = lerp(cutterPos, HOOP, 0.5);
+  const off2 = move(off1, cutter, cutPos);
+  const step2 = makeStepFrom(off2, prev.ballCarrier, [
+    annot('cut', cutter, off1, off2),
+  ], { generatedBy: action.id, label: 'Cutter plonge' });
+  // Step 3 : DHO du giver.
+  const meet = lerp(prev.off[giver], cutPos, 0.6);
+  const off3 = move(off2, giver, meet);
+  const step3 = makeStepFrom(off3, cutter, [
+    annot('pass', giver, off2, off3, cutter),
+  ], { generatedBy: action.id, label: 'DHO' });
+  return [step1, step2, step3];
+};
+
+const genSlideAction: Generator = (prev, action) => {
+  const cutter = action.params.cutter as AttackerId;
+  const screener = action.params.screener as AttackerId;
+  if (!cutter || !screener) return [];
+  const carrier = prev.off[prev.ballCarrier];
+  // Step 1 : cutter vers dunker faible (par défaut).
+  const fallback: Point = carrier.x < 300 ? { x: 405, y: 90 } : { x: 195, y: 90 };
+  const target = zoneOrDefault(action.params.targetZone, carrier, fallback);
+  const off1 = move(prev.off, cutter, target);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('cut', cutter, prev.off, off1),
+  ], { generatedBy: action.id, label: 'Slide cutter' });
+  // Step 2 : screener roll.
+  const off2 = move(off1, screener, lerp(prev.off[screener], HOOP, 0.6));
+  const step2 = makeStepFrom(off2, prev.ballCarrier, [
+    annot('cut', screener, off1, off2),
+  ], { generatedBy: action.id, label: 'Roll' });
+  return [step1, step2];
+};
+
+const genSplitAction: Generator = (prev, action) => {
+  const passer = action.params.passer as AttackerId;
+  const receiver = action.params.receiver as AttackerId;
+  const screener = action.params.screener as AttackerId;
+  const cutter = action.params.cutter as AttackerId;
+  if (!passer || !receiver || !screener || !cutter) return [];
+  // Step 1 : passe au poste.
+  const off1 = { ...prev.off };
+  const step1 = makeStepFrom(off1, receiver, [
+    annot('pass', passer, prev.off, off1, receiver),
+  ], { generatedBy: action.id, label: 'Passe poste' });
+  // Step 2 : split — screener pose, cutter coupe.
+  const cutterPos = prev.off[cutter];
+  const screenPos: Point = lerp(cutterPos, prev.off[receiver], 0.4);
+  const cutPos = lerp(cutterPos, HOOP, 0.55);
+  const off2 = { ...off1, [screener]: clamp(screenPos), [cutter]: clamp(cutPos) };
+  const step2 = makeStepFrom(off2, receiver, [
+    annot('screen', screener, off1, off2, cutter),
+    annot('cut', cutter, off1, off2),
+  ], { generatedBy: action.id, label: 'Split' });
+  return [step1, step2];
+};
+
+const genHighLowAction: Generator = (prev, action) => {
+  const from = action.params.from as AttackerId;
+  const to = action.params.to as AttackerId;
+  if (!from || !to) return [];
+  const off1 = { ...prev.off };
+  return [makeStepFrom(off1, to, [
+    annot('pass', from, prev.off, off1, to),
+  ], { generatedBy: action.id, label: 'High-low' })];
+};
+
+// ============================================================
+// TIER 2 — Replacements
+// ============================================================
+
+const genDrift: Generator = (prev, action) => {
+  const cutter = action.params.cutter as AttackerId;
+  if (!cutter) return [];
+  const carrier = prev.off[prev.ballCarrier];
+  // Default : drift vers le corner du même côté que le cutter.
+  const start = prev.off[cutter];
+  const fallback: Point = start.x < 300 ? { x: 53, y: 80 } : { x: 547, y: 80 };
+  const target = zoneOrDefault(action.params.targetZone, carrier, fallback);
+  const off1 = move(prev.off, cutter, target);
+  return [makeStepFrom(off1, prev.ballCarrier, [
+    annot('cut', cutter, prev.off, off1),
+  ], { generatedBy: action.id, label: 'Drift' })];
+};
+
+const genLift: Generator = (prev, action) => {
+  const cutter = action.params.cutter as AttackerId;
+  if (!cutter) return [];
+  const carrier = prev.off[prev.ballCarrier];
+  const target = zoneOrDefault(action.params.targetZone, carrier, { x: 300, y: 330 });
+  const off1 = move(prev.off, cutter, target);
+  return [makeStepFrom(off1, prev.ballCarrier, [
+    annot('cut', cutter, prev.off, off1),
+  ], { generatedBy: action.id, label: 'Lift' })];
+};
+
+const genReplacement: Generator = (prev, action) => {
+  const cutter = action.params.cutter as AttackerId;
+  if (!cutter) return [];
+  const carrier = prev.off[prev.ballCarrier];
+  // targetZone est requis pour cette action — fallback peu utile mais sûr.
+  const target = zoneOrDefault(action.params.targetZone, carrier, prev.off[cutter]);
+  const off1 = move(prev.off, cutter, target);
+  return [makeStepFrom(off1, prev.ballCarrier, [
+    annot('cut', cutter, prev.off, off1),
+  ], { generatedBy: action.id, label: 'Replacement' })];
+};
+
+// ============================================================
+// TIER 3 — Sets (entrées de jeu)
+// ============================================================
+//
+// Un set produit 1 step "alignement" qui place les 5 attaquants dans la
+// formation typique. Le coach empile ensuite les actions signature (Tier 1/2)
+// par-dessus. Les positions sont déterministes (basées sur les zones FIBA/NBA
+// du Phase 0) ; le coach peut ensuite les éditer via manualOverride.
+
+function alignmentStep(
+  off: AttackerPositions,
+  ballCarrier: AttackerId,
+  actionId: string,
+  label: string,
+): Step {
+  // Annotations de "cut" entre la position précédente et la nouvelle, pour
+  // donner une trajectoire visible au moteur d'animation.
+  // L'appelant fournit l'objet déjà mis à jour ; pas d'annotation ici, le
+  // moteur de migration en ajoutera (`ensureAnnotationsForMovement`).
+  return makeStepFrom(off, ballCarrier, [], { generatedBy: actionId, label });
+}
+
+const genHornsSet: Generator = (_prev, action) => {
+  const off1: AttackerPositions = {
+    O1: clamp({ x: 300, y: 420 }), // meneur (PG spot)
+    O2: clamp({ x: 120, y: 260 }), // aile gauche
+    O3: clamp({ x: 480, y: 260 }), // aile droite
+    O4: clamp({ x: 225, y: 235 }), // coude gauche
+    O5: clamp({ x: 375, y: 235 }), // coude droit
+  };
+  return [alignmentStep(off1, 'O1', action.id, 'Horns 1-2-2')];
+};
+
+const genFloppySet: Generator = (_prev, action) => {
+  const off1: AttackerPositions = {
+    O1: clamp({ x: 300, y: 330 }), // meneur top
+    O2: clamp({ x: 53, y: 80 }),   // tireur corner gauche
+    O3: clamp({ x: 547, y: 80 }),  // tireur corner droit
+    O4: clamp({ x: 225, y: 235 }), // grand coude gauche
+    O5: clamp({ x: 375, y: 235 }), // grand coude droit
+  };
+  return [alignmentStep(off1, 'O1', action.id, 'Floppy')];
+};
+
+const genPistolSet: Generator = (_prev, action) => {
+  // Pistol = entrée transition. Meneur + arrière côté fort, big traînant.
+  const off1: AttackerPositions = {
+    O1: clamp({ x: 300, y: 470 }), // meneur (logo)
+    O2: clamp({ x: 480, y: 380 }), // arrière côté droit (drag)
+    O3: clamp({ x: 120, y: 380 }), // ailier côté gauche
+    O4: clamp({ x: 547, y: 80 }),  // ailier 2 corner
+    O5: clamp({ x: 300, y: 235 }), // pivot trail
+  };
+  return [alignmentStep(off1, 'O1', action.id, 'Pistol')];
+};
+
+const genUclaSet: Generator = (_prev, action) => {
+  // 1-3-1 : meneur top, 3 ailiers/coude, pivot bas.
+  const off1: AttackerPositions = {
+    O1: clamp({ x: 300, y: 420 }), // meneur
+    O2: clamp({ x: 120, y: 260 }), // aile G
+    O3: clamp({ x: 480, y: 260 }), // aile D
+    O4: clamp({ x: 300, y: 235 }), // haut poste (futur screener UCLA)
+    O5: clamp({ x: 300, y: 95 }),  // pivot bas
+  };
+  return [alignmentStep(off1, 'O1', action.id, 'UCLA 1-3-1')];
+};
+
+const genIversonSet: Generator = (_prev, action) => {
+  // Meneur top, 2 grands coudes, 2 ailiers en bas.
+  const off1: AttackerPositions = {
+    O1: clamp({ x: 300, y: 420 }), // meneur top
+    O2: clamp({ x: 120, y: 260 }), // aile G basse
+    O3: clamp({ x: 480, y: 260 }), // aile D basse
+    O4: clamp({ x: 225, y: 235 }), // coude G
+    O5: clamp({ x: 375, y: 235 }), // coude D
+  };
+  return [alignmentStep(off1, 'O1', action.id, 'Iverson')];
+};
+
+const genDiamondSet: Generator = (_prev, action) => {
+  // Losange : 1 top, 2 mi-distance, 1 bas du poste, 1 axe.
+  const off1: AttackerPositions = {
+    O1: clamp({ x: 300, y: 420 }), // pointe haute
+    O2: clamp({ x: 120, y: 260 }), // mi-G
+    O3: clamp({ x: 480, y: 260 }), // mi-D
+    O4: clamp({ x: 300, y: 165 }), // axe / mi-poste
+    O5: clamp({ x: 300, y: 95 }),  // pointe basse
+  };
+  return [alignmentStep(off1, 'O1', action.id, 'Diamond')];
+};
+
+const genChicagoSet: Generator = (_prev, action) => {
+  // Setup pour DHO + pin-down : meneur côté droit, big au coude droit.
+  const off1: AttackerPositions = {
+    O1: clamp({ x: 480, y: 260 }), // meneur aile D
+    O2: clamp({ x: 120, y: 260 }), // ailier G
+    O3: clamp({ x: 53, y: 80 }),   // tireur corner G
+    O4: clamp({ x: 375, y: 235 }), // grand coude D (DHO)
+    O5: clamp({ x: 225, y: 95 }),  // 5 low-block G (pin-down ensuite)
+  };
+  return [alignmentStep(off1, 'O1', action.id, 'Chicago setup')];
+};
+
+const genLoopSet: Generator = (_prev, action) => {
+  // Cutter en bas, 2 screeners en stagger côté D.
+  const off1: AttackerPositions = {
+    O1: clamp({ x: 300, y: 420 }), // meneur top
+    O2: clamp({ x: 547, y: 80 }),  // cutter corner D
+    O3: clamp({ x: 120, y: 260 }), // aile G
+    O4: clamp({ x: 375, y: 165 }), // 1er screener mi-poste D
+    O5: clamp({ x: 375, y: 235 }), // 2e screener coude D
+  };
+  return [alignmentStep(off1, 'O1', action.id, 'Loop setup')];
+};
+
+const genAmericaSet: Generator = (_prev, action) => {
+  // Triple écran : 3 grands alignés à gauche, 1 cutter qui les utilise.
+  const off1: AttackerPositions = {
+    O1: clamp({ x: 300, y: 420 }), // meneur top
+    O2: clamp({ x: 547, y: 80 }),  // cutter coin D
+    O3: clamp({ x: 225, y: 95 }),  // 1er écran low-block G
+    O4: clamp({ x: 225, y: 165 }), // 2e écran mi-poste G
+    O5: clamp({ x: 225, y: 235 }), // 3e écran coude G
+  };
+  return [alignmentStep(off1, 'O1', action.id, 'America (triple)')];
+};
+
+// ============================================================
 // Registry
 // ============================================================
 
 export const SCRIPTED_GENERATORS: Record<string, Generator> = {
+  // Tier 1
   'pick-and-roll': genPickAndRoll,
   'pick-and-pop': genPickAndPop,
   'hand-off': genHandOff,
@@ -649,4 +1443,49 @@ export const SCRIPTED_GENERATORS: Record<string, Generator> = {
   'kick-out': genKickOut,
   shoot: genShoot,
   isolation: genIsolation,
+  // Tier 2 — Cuts
+  'flash-cut': genFlashCut,
+  'flex-cut': genFlexCut,
+  'i-cut': genICut,
+  'popout-cut': genPopoutCut,
+  'shallow-cut': genShallowCut,
+  'ucla-cut': genUclaCut,
+  'v-cut': genVCut,
+  'l-cut': genLCut,
+  'banana-cut': genBananaCut,
+  'iverson-cut': genIversonCut,
+  // Tier 2 — Off-ball screens
+  'staggered-screen': genStaggeredScreen,
+  'elevator-screen': genElevatorScreen,
+  'hammer-screen': genHammerScreen,
+  'ram-screen': genRamScreen,
+  'wide-screen': genWideScreen,
+  'wiper-screen': genWiperScreen,
+  'screen-away': genScreenAway,
+  // Tier 2 — PnR variants
+  slip: genSlip,
+  reject: genReject,
+  'drag-screen': genDragScreen,
+  'step-up-screen': genStepUpScreen,
+  'ghost-screen': genGhostScreen,
+  // Tier 2 — Combinations
+  'zoom-action': genZoomAction,
+  'rip-dho': genRipDho,
+  'slide-action': genSlideAction,
+  'split-action': genSplitAction,
+  'high-low-action': genHighLowAction,
+  // Tier 2 — Replacements
+  drift: genDrift,
+  lift: genLift,
+  replacement: genReplacement,
+  // Tier 3 — Sets
+  'horns-set': genHornsSet,
+  'floppy-set': genFloppySet,
+  'pistol-set': genPistolSet,
+  'ucla-set': genUclaSet,
+  'iverson-set': genIversonSet,
+  'diamond-set': genDiamondSet,
+  'chicago-set': genChicagoSet,
+  'loop-set': genLoopSet,
+  'america-set': genAmericaSet,
 };

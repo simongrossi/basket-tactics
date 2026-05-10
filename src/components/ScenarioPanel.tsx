@@ -16,7 +16,9 @@ import {
   DEFENSIVE_ACTIONS_CATALOG,
   ALL_DEFENSIVE_ACTION_TYPES,
 } from '@/lib/data/defensiveActionsCatalog';
+import type { ZoneRef } from '@/lib/data/courtZones';
 import { newScriptedActionId } from '@/lib/logic/compileScenario';
+import { ZoneSelect, ZonePickerModal } from './ZonePicker';
 import { inferDefensiveDefaults } from '@/lib/logic/defensiveDefaults';
 import { AddCoverageModal } from './AddCoverageModal';
 import { DefensiveActionForm } from './DefensiveActionForm';
@@ -40,6 +42,9 @@ const PARAM_LABELS: Record<ParamKind, string> = {
   secondScreener: '2e poseur',
   side: 'Côté',
   direction: 'Direction',
+  targetZone: 'Zone cible',
+  screenZone: 'Zone de l\'écran',
+  fromZone: 'Zone de départ',
 };
 
 interface ScenarioPanelProps {
@@ -580,10 +585,19 @@ interface ActionFormProps {
 }
 
 function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
-  const updateParam = (key: ParamKind, value: string) => {
-    onChange({ ...action, params: { ...action.params, [key]: value } });
+  const updateParam = (key: ParamKind, value: string | undefined) => {
+    const nextParams = { ...action.params } as Record<string, unknown>;
+    if (value === undefined || value === '') delete nextParams[key];
+    else nextParams[key] = value;
+    onChange({ ...action, params: nextParams as OffensiveScriptedAction['params'] });
   };
+  const updateZoneParam = (key: ParamKind, value: ZoneRef | undefined) => {
+    updateParam(key, value);
+  };
+  const [zonePickerFor, setZonePickerFor] = useState<ParamKind | null>(null);
   const allParams: ParamKind[] = [...def.requiredParams, ...(def.optionalParams ?? [])];
+  const isZoneParam = (k: ParamKind) =>
+    k === 'targetZone' || k === 'screenZone' || k === 'fromZone';
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6, marginLeft: 24 }}>
       {allParams.map((paramKey) => (
@@ -591,18 +605,33 @@ function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
           <span style={{ fontSize: 11, color: '#475569', minWidth: 80 }}>
             {PARAM_LABELS[paramKey]}{def.requiredParams.includes(paramKey) ? ' *' : ''}
           </span>
-          <select
-            value={(action.params[paramKey] as string | undefined) ?? ''}
-            onChange={(e) => updateParam(paramKey, e.target.value)}
-            style={{ fontSize: 11, padding: '2px 4px', flex: 1 }}
-          >
-            <option value="">—</option>
-            {paramOptionsFor(paramKey, attackerIds).map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
+          {isZoneParam(paramKey) ? (
+            <ZoneSelect
+              value={action.params[paramKey] as ZoneRef | undefined}
+              onChange={(z) => updateZoneParam(paramKey, z)}
+              onOpenPicker={() => setZonePickerFor(paramKey)}
+            />
+          ) : (
+            <select
+              value={(action.params[paramKey] as string | undefined) ?? ''}
+              onChange={(e) => updateParam(paramKey, e.target.value)}
+              style={{ fontSize: 11, padding: '2px 4px', flex: 1 }}
+            >
+              <option value="">—</option>
+              {paramOptionsFor(paramKey, attackerIds).map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          )}
         </div>
       ))}
+      {zonePickerFor && (
+        <ZonePickerModal
+          initialValue={action.params[zonePickerFor] as ZoneRef | undefined}
+          onConfirm={(z) => { updateZoneParam(zonePickerFor, z); setZonePickerFor(null); }}
+          onCancel={() => setZonePickerFor(null)}
+        />
+      )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ fontSize: 11, color: '#475569', minWidth: 80 }}>Libellé libre</span>
         <input
@@ -620,6 +649,7 @@ function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
 function paramOptionsFor(key: ParamKind, attackerIds: AttackerId[]): string[] {
   if (key === 'side') return SIDES;
   if (key === 'direction') return DRIVE_DIRECTIONS;
+  // Les paramètres "zone" sont rendus via <ZoneSelect>, pas via ce dropdown.
   return attackerIds;
 }
 

@@ -109,12 +109,62 @@ export type ScriptedActionType =
   | 'pass'
   | 'kick-out'
   | 'shoot'
-  | 'isolation';
+  | 'isolation'
+  // ---------- Tier 2 — Cuts ----------
+  | 'flash-cut'
+  | 'flex-cut'
+  | 'i-cut'
+  | 'popout-cut'
+  | 'shallow-cut'
+  | 'ucla-cut'
+  | 'v-cut'
+  | 'l-cut'
+  | 'banana-cut'
+  | 'iverson-cut'
+  // ---------- Tier 2 — Off-ball screens ----------
+  | 'staggered-screen'
+  | 'elevator-screen'
+  | 'hammer-screen'
+  | 'ram-screen'
+  | 'wide-screen'
+  | 'wiper-screen'
+  | 'screen-away'
+  // ---------- Tier 2 — PnR variants ----------
+  | 'slip'
+  | 'reject'
+  | 'drag-screen'
+  | 'step-up-screen'
+  | 'ghost-screen'
+  // ---------- Tier 2 — Combinations ----------
+  | 'zoom-action'
+  | 'rip-dho'
+  | 'slide-action'
+  | 'split-action'
+  | 'high-low-action'
+  // ---------- Tier 2 — Replacements ----------
+  | 'drift'
+  | 'lift'
+  | 'replacement'
+  // ---------- Tier 3 — Sets (entrées de jeu) ----------
+  | 'horns-set'
+  | 'floppy-set'
+  | 'pistol-set'
+  | 'ucla-set'
+  | 'iverson-set'
+  | 'diamond-set'
+  | 'chicago-set'
+  | 'loop-set'
+  | 'america-set';
 
 /** Côté de l'action par rapport au porteur (axe = top of the key). */
 export type ActionSide = 'fort' | 'faible' | 'axe';
 /** Direction d'un drive. */
 export type DriveDirection = 'panier' | 'baseline' | 'middle';
+
+// ZoneRef est défini dans `lib/data/courtZones`. On utilise un import de type
+// (`import type`) pour éviter une dépendance d'exécution circulaire — types est
+// la racine du graphe et courtZones consomme déjà `Point` d'ici.
+import type { ZoneRef } from '@/lib/data/courtZones';
 
 export interface ScriptedActionParams {
   ballHandler?: AttackerId;
@@ -131,6 +181,12 @@ export interface ScriptedActionParams {
   secondScreener?: AttackerId;
   side?: ActionSide;
   direction?: DriveDirection;
+  /** Zone de destination du cutter / driver (FIBA / NBA, absolue ou fort/faible). */
+  targetZone?: ZoneRef;
+  /** Zone où le screener vient poser son écran. */
+  screenZone?: ZoneRef;
+  /** Zone d'origine (pour replacement / fill / drift / lift). */
+  fromZone?: ZoneRef;
 }
 
 export interface OffensiveScriptedAction {

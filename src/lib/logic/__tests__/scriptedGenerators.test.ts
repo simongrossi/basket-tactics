@@ -163,3 +163,173 @@ describe('compileScenario', () => {
     expect(out[0].label).toBe('Départ');
   });
 });
+
+// ============================================================
+// Zones nommées (Phase 1) — paramètres targetZone / screenZone
+// ============================================================
+
+describe('Generators avec zones nommées', () => {
+  it('basket-cut + targetZone="short-corner-strong" → cutter au short corner du côté du porteur', () => {
+    // Porteur O1 à (300, 470) → x>=300 → ballSide="right" → strong=right
+    // short-corner-right est à (430, 55) (cf. courtZones.ts).
+    const action: ScriptedAction = {
+      kind: 'offensive',
+      id: 'a-bc-zone',
+      type: 'basket-cut',
+      params: { cutter: 'O3', targetZone: 'short-corner-strong' },
+    };
+    const steps = SCRIPTED_GENERATORS['basket-cut'](initialStep, action);
+    expect(steps).toHaveLength(1);
+    expect(steps[0].off.O3).toEqual({ x: 430, y: 55 });
+  });
+
+  it('basket-cut sans targetZone → comportement par défaut (lerp vers HOOP)', () => {
+    const action: ScriptedAction = {
+      kind: 'offensive',
+      id: 'a-bc-default',
+      type: 'basket-cut',
+      params: { cutter: 'O3' },
+    };
+    const [step] = SCRIPTED_GENERATORS['basket-cut'](initialStep, action);
+    // O3 part à (470, 380), HOOP=(300,75), lerp 0.65 → (~360, ~180).
+    // Ne doit PAS être à short-corner-right (430, 55).
+    expect(step.off.O3).not.toEqual({ x: 430, y: 55 });
+    // Mais doit être plus proche du panier que la position de départ.
+    const dStart = Math.hypot(initialStep.off.O3.x - HOOP.x, initialStep.off.O3.y - HOOP.y);
+    const dEnd = Math.hypot(step.off.O3.x - HOOP.x, step.off.O3.y - HOOP.y);
+    expect(dEnd).toBeLessThan(dStart);
+  });
+
+  it('drive + targetZone="nail" → driver finit au nail (300, 235)', () => {
+    const action: ScriptedAction = {
+      kind: 'offensive',
+      id: 'a-drive-nail',
+      type: 'drive',
+      params: { driver: 'O1', targetZone: 'nail' },
+    };
+    const [step] = SCRIPTED_GENERATORS['drive'](initialStep, action);
+    expect(step.off.O1).toEqual({ x: 300, y: 235 });
+  });
+
+  it('cross-screen + screenZone absolue → screener à la zone exacte', () => {
+    const action: ScriptedAction = {
+      kind: 'offensive',
+      id: 'a-cross',
+      type: 'cross-screen',
+      params: {
+        screener: 'O4',
+        cutter: 'O5',
+        screenZone: 'high-post-left',  // (225, 235)
+      },
+    };
+    const steps = SCRIPTED_GENERATORS['cross-screen'](initialStep, action);
+    expect(steps[0].off.O4).toEqual({ x: 225, y: 235 });
+  });
+
+  it('Tier 2 — chaque générateur produit au moins 1 step avec positions valides', () => {
+    // Paramètres qui couvrent l'union des champs requis par les actions Tier 2.
+    const baseParams = {
+      cutter: 'O3' as const,
+      screener: 'O5' as const,
+      ballHandler: 'O1' as const,
+      driver: 'O1' as const,
+      passer: 'O1' as const,
+      receiver: 'O2' as const,
+      giver: 'O1' as const,
+      from: 'O1' as const,
+      to: 'O3' as const,
+      firstScreener: 'O4' as const,
+      secondScreener: 'O5' as const,
+      shooter: 'O1' as const,
+      // replacement requiert targetZone.
+      targetZone: 'wing-strong' as const,
+    };
+    const tier2Types = [
+      'flash-cut','flex-cut','i-cut','popout-cut','shallow-cut','ucla-cut',
+      'v-cut','l-cut','banana-cut','iverson-cut',
+      'staggered-screen','elevator-screen','hammer-screen','ram-screen',
+      'wide-screen','wiper-screen','screen-away',
+      'slip','reject','drag-screen','step-up-screen','ghost-screen',
+      'zoom-action','rip-dho','slide-action','split-action','high-low-action',
+      'drift','lift','replacement',
+    ] as const;
+
+    for (const type of tier2Types) {
+      const action: ScriptedAction = {
+        kind: 'offensive',
+        id: `a-${type}`,
+        type,
+        params: baseParams,
+      };
+      const gen = SCRIPTED_GENERATORS[type];
+      expect(gen, `générateur manquant pour ${type}`).toBeDefined();
+      const steps = gen(initialStep, action);
+      expect(steps.length, `${type} doit produire au moins 1 step`).toBeGreaterThan(0);
+      // Toutes les positions doivent être dans le terrain (pas de NaN, pas de hors-bornes).
+      for (const s of steps) {
+        for (const id of Object.keys(s.off) as Array<keyof typeof s.off>) {
+          const p = s.off[id];
+          expect(Number.isFinite(p.x) && Number.isFinite(p.y), `${type}: pos non finie pour ${id}`).toBe(true);
+          expect(p.x).toBeGreaterThanOrEqual(0);
+          expect(p.x).toBeLessThanOrEqual(600);
+          expect(p.y).toBeGreaterThanOrEqual(0);
+          expect(p.y).toBeLessThanOrEqual(540);
+        }
+      }
+    }
+  });
+
+  it('Tier 3 — chaque set place les 5 attaquants à des positions valides', () => {
+    const sets = [
+      'horns-set', 'floppy-set', 'pistol-set', 'ucla-set', 'iverson-set',
+      'diamond-set', 'chicago-set', 'loop-set', 'america-set',
+    ] as const;
+    for (const type of sets) {
+      const action: ScriptedAction = {
+        kind: 'offensive',
+        id: `s-${type}`,
+        type,
+        params: {},
+      };
+      const gen = SCRIPTED_GENERATORS[type];
+      expect(gen, `générateur set manquant pour ${type}`).toBeDefined();
+      const steps = gen(initialStep, action);
+      expect(steps).toHaveLength(1);
+      const step = steps[0];
+      // Les 5 attaquants doivent être placés.
+      const ids = ['O1', 'O2', 'O3', 'O4', 'O5'] as const;
+      for (const id of ids) {
+        const p = step.off[id];
+        expect(p, `${type}: position manquante pour ${id}`).toBeDefined();
+        expect(Number.isFinite(p.x) && Number.isFinite(p.y)).toBe(true);
+      }
+      // Les 5 positions doivent être distinctes (pas deux joueurs au même endroit).
+      const seen = new Set<string>();
+      for (const id of ids) {
+        const key = `${step.off[id].x},${step.off[id].y}`;
+        expect(seen.has(key), `${type}: ${id} partage sa position avec un autre joueur`).toBe(false);
+        seen.add(key);
+      }
+    }
+  });
+
+  it('pin-down + targetZone relative au porteur côté gauche → résolution miroir', () => {
+    // Forcer porteur côté gauche : ballCarrier=O2 (x=130).
+    const leftStep: Step = {
+      ...initialStep,
+      ballCarrier: 'O2',
+    };
+    const action: ScriptedAction = {
+      kind: 'offensive',
+      id: 'a-pd',
+      type: 'pin-down',
+      params: {
+        screener: 'O4',
+        cutter: 'O3',
+        targetZone: 'wing-strong',  // porteur côté gauche → wing-left=(120, 260)
+      },
+    };
+    const steps = SCRIPTED_GENERATORS['pin-down'](leftStep, action);
+    expect(steps[1].off.O3).toEqual({ x: 120, y: 260 });
+  });
+});
