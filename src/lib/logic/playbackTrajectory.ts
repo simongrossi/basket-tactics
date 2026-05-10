@@ -57,21 +57,45 @@ export function attackerTrajectoryAt(
   if (stepIdx + 1 >= steps.length) {
     return { position: { ...fallback }, movementType: 'idle', isScreening: false };
   }
-  const ann = findMovementAnnotation(cur, playerId);
-  if (!ann) {
+
+  // Sélection de l'annotation active : on regarde l'annotation sur step idxA
+  // (par défaut) ET sur step idxA+1 (au cas où elle ait tStart < 0 et déborde
+  // dans la transition courante). On choisit celle dont la fenêtre temporelle
+  // contient le globalT courant.
+  const globalT = stepIdx + Math.max(0, Math.min(1, localT));
+  type Candidate = { ann: Annotation; absStart: number; absEnd: number };
+  const candidates: Candidate[] = [];
+  for (const checkIdx of [stepIdx, stepIdx + 1]) {
+    if (checkIdx < 0 || checkIdx >= steps.length) continue;
+    const a = findMovementAnnotation(steps[checkIdx], playerId);
+    if (!a) continue;
+    const tSraw = a.tStart ?? 0;
+    const tEraw = a.tEnd ?? 1;
+    const absStart = checkIdx + tSraw;
+    const absEnd = checkIdx + tEraw;
+    // Ne garder que si la fenêtre chevauche la transition courante [stepIdx, stepIdx+1]
+    if (absEnd <= stepIdx || absStart >= stepIdx + 1) continue;
+    candidates.push({ ann: a, absStart, absEnd });
+  }
+
+  if (candidates.length === 0) {
     return { position: { ...fallback }, movementType: 'idle', isScreening: false };
   }
 
-  // Mapping du temps global du segment [0,1] vers le temps DE L'ACTION [0,1]
-  // selon les bornes tStart/tEnd de l'annotation. Avant tStart → 0 (joueur
-  // au from), après tEnd → 1 (joueur au to).
-  const t = Math.max(0, Math.min(1, localT));
-  const tS = Math.max(0, Math.min(1, ann.tStart ?? 0));
-  const tE = Math.max(tS, Math.min(1, ann.tEnd ?? 1));
+  const active = candidates.find((c) => globalT >= c.absStart && globalT <= c.absEnd);
+  let chosen: Candidate;
   let actionT: number;
-  if (t <= tS) actionT = 0;
-  else if (t >= tE) actionT = 1;
-  else actionT = (t - tS) / Math.max(0.001, tE - tS);
+  if (active) {
+    chosen = active;
+    actionT = (globalT - active.absStart) / Math.max(0.001, active.absEnd - active.absStart);
+  } else {
+    // Pas dans la fenêtre active : on prend la candidate la plus pertinente
+    // (la première par absStart) et on snap aux extrémités.
+    chosen = candidates.sort((a, b) => a.absStart - b.absStart)[0];
+    if (globalT < chosen.absStart) actionT = 0;
+    else actionT = 1;
+  }
+  const ann = chosen.ann;
 
   const hasWaypoints = !!ann.waypoints && ann.waypoints.length > 0;
   if (ann.type === 'cut') {

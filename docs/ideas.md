@@ -5,6 +5,19 @@ Quand une idée mûrit, la déplacer dans [`etat-avancement.md`](./etat-avanceme
 
 ---
 
+### Timecode absolu sur la timeline (24s + montée de balle)
+
+Aujourd'hui la timeline est en unités d'étapes (pas de notion de temps réel).
+**Idée** : afficher un timecode en secondes au-dessus de la timeline (ex : 0:00, 0:05, 0:10...) basé sur une durée par étape configurable.
+Une possession FIBA c'est 24 secondes + ~6-8s pour monter la balle → timeline totale plafonnée à ~30s.
+- Permet d'évaluer si un système est temporellement réaliste
+- Aide à caler les timings tStart/tEnd avec une intuition concrète
+- Possibilité d'ajouter un compte à rebours visuel pendant la lecture
+
+**Workload** : ~1 session (timecode UI au-dessus de Timeline + champ `secondsPerStep` dans AppState).
+
+---
+
 ### Phase "début / fin" sur les annotations de mouvement
 
 Aujourd'hui, dessiner un écran/cut/dribble de A à B sur l'étape N signifie

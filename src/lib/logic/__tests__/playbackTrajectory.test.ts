@@ -129,6 +129,44 @@ describe('attackerTrajectoryAt', () => {
       expect(attackerTrajectoryAt(steps, 0, 'O2', 0.9).position).toEqual({ x: 100, y: 0 });
     });
 
+    it('tStart négatif : action s\'étend dans la transition précédente', () => {
+      // Step 0: O5 à origine. Step 1: O5 à origine. Step 2: O5 à destination.
+      // Annotation screen sur step 1 avec tStart=-0.4 (déborde sur step 0→1).
+      const ann = {
+        type: 'cut' as const, fromId: 'O5' as AttackerId,
+        from: { x: 380, y: 230 }, to: { x: 412, y: 311 },
+        tStart: -0.4, tEnd: 1,
+      };
+      const steps = [
+        step({ O5: { x: 380, y: 230 } } as Partial<AttackerPositions>),
+        step({ O5: { x: 380, y: 230 } } as Partial<AttackerPositions>, [ann] as any),
+        step({ O5: { x: 412, y: 311 } } as Partial<AttackerPositions>),
+      ];
+
+      // Pendant transition 0→1 (stepIdx=0) :
+      //  - globalT = 0 + localT
+      //  - L'annotation sur step 1 a absStart = 1 + (-0.4) = 0.6, absEnd = 1 + 1 = 2
+      //  - À localT=0.5 (globalT=0.5 < 0.6) : pas encore commencé → from
+      const rEarly = attackerTrajectoryAt(steps, 0, 'O5', 0.5);
+      expect(rEarly.position).toEqual({ x: 380, y: 230 });
+
+      //  - À localT=0.8 (globalT=0.8 dans [0.6, 2]) : actionT = (0.8-0.6)/1.4 ≈ 0.143
+      const rMid = attackerTrajectoryAt(steps, 0, 'O5', 0.8);
+      const expected1x = 380 + (412 - 380) * (0.2 / 1.4);
+      expect(rMid.position.x).toBeCloseTo(expected1x, 1);
+
+      // Pendant transition 1→2 (stepIdx=1) :
+      //  - L'annotation sur step 1 a absStart = 0.6, absEnd = 2.0
+      //  - À localT=0.0 (globalT=1.0) : actionT = (1-0.6)/1.4 ≈ 0.286
+      const rJoin = attackerTrajectoryAt(steps, 1, 'O5', 0.0);
+      const expectedJoinX = 380 + (412 - 380) * (0.4 / 1.4);
+      expect(rJoin.position.x).toBeCloseTo(expectedJoinX, 1);
+
+      //  - À localT=1.0 (globalT=2.0 = absEnd) : à destination
+      const rEnd = attackerTrajectoryAt(steps, 1, 'O5', 1.0);
+      expect(rEnd.position).toEqual({ x: 412, y: 311 });
+    });
+
     it('défaut sans tStart/tEnd : comportement historique (0..1)', () => {
       const ann = {
         type: 'cut' as const, fromId: 'O2' as AttackerId,

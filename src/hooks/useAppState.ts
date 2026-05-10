@@ -369,10 +369,19 @@ export function useAppState() {
         const movementTypes: AnnotationType[] = ['cut', 'dribble', 'screen'];
         if (!movementTypes.includes(anno.type)) return s;
 
-        // Clamp 0..1 et minimum de durée pour éviter zéro (instabilité visuelle).
+        // Clamp avec extension cross-step :
+        //  - tStart peut être < 0 jusqu'à -1 (déborde sur la transition précédente)
+        //  - tEnd peut être > 1 jusqu'à 2 (déborde sur la transition suivante)
+        //  - minimum de durée 0.05 pour éviter l'instabilité visuelle
+        // Active uniquement si une étape précédente/suivante existe pour porter
+        // l'extension.
         const minDur = 0.05;
-        let nextStart = Math.max(0, Math.min(1 - minDur, tStart));
-        let nextEnd = Math.max(nextStart + minDur, Math.min(1, tEnd));
+        const canExtendBackward = stepIdx > 0;
+        const canExtendForward = stepIdx + 1 < s.steps.length;
+        const minStart = canExtendBackward ? -1 : 0;
+        const maxEnd = canExtendForward ? 2 : 1;
+        let nextStart = Math.max(minStart, Math.min(maxEnd - minDur, tStart));
+        let nextEnd = Math.max(nextStart + minDur, Math.min(maxEnd, tEnd));
 
         const steps = s.steps.map((st, i) =>
           i === stepIdx

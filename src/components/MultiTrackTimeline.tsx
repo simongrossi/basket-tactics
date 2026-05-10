@@ -227,7 +227,11 @@ function SegmentCell({
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragging || !cellRef.current || !onTrimTiming || !isMovementWithAnno) return;
     const rect = cellRef.current.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    // On laisse le ratio sortir de [0, 1] pour permettre l'extension dans les
+    // cellules adjacentes (tStart < 0, tEnd > 1). Le clamp final se fait dans
+    // le handler state (qui respecte les frontières de step).
+    const rawRatio = (e.clientX - rect.left) / rect.width;
+    const ratio = Math.max(-1, Math.min(2, rawRatio));
     if (dragging === 'start') {
       onTrimTiming(segment.annoStepFullIdx!, segment.annoIdx!, ratio, tEnd);
     } else {
@@ -257,9 +261,13 @@ function SegmentCell({
         background: '#f8fafc',
         border: '1px solid #e2e8f0',
         borderRadius: 3,
+        // overflow: visible permet au segment de déborder sur les cellules
+        // adjacentes quand tStart < 0 ou tEnd > 1.
+        overflow: 'visible',
       }}
     >
-      {/* Segment visible positionné selon tStart/tEnd */}
+      {/* Segment visible positionné selon tStart/tEnd. z-index élevé pour
+          passer au-dessus des cellules adjacentes quand tStart<0 ou tEnd>1. */}
       <div
         onClick={onClick}
         title={tooltip}
@@ -284,6 +292,8 @@ function SegmentCell({
           lineHeight: '18px',
           borderLeft: isMovementWithAnno && phase === 'start' ? `3px solid ${color.fg}` : undefined,
           borderRight: isMovementWithAnno && phase === 'end' ? `3px solid ${color.fg}` : undefined,
+          zIndex: 1,
+          boxShadow: tStart < 0 || tEnd > 1 ? `0 0 0 1px ${color.fg}` : undefined,
         }}
       >
         {segment.isCarrier && (
@@ -333,40 +343,44 @@ function SegmentCell({
         </button>
       )}
 
-      {/* Poignée de trim gauche (tStart) */}
+      {/* Poignée de trim gauche (tStart) — peut être négative pour étendre
+          dans la cellule précédente */}
       {isMovementWithAnno && onTrimTiming && (
         <div
           onPointerDown={handleHandlePointerDown('start')}
-          title="Glisser pour avancer/retarder le début"
+          title="Glisser pour avancer/retarder le début (vers la gauche = étend sur l'étape précédente)"
           style={{
             position: 'absolute',
             top: 0,
             left: `${tStart * 100}%`,
             transform: 'translateX(-50%)',
-            width: 6,
+            width: 8,
             height: '100%',
             cursor: 'ew-resize',
-            zIndex: 3,
-            background: dragging === 'start' ? '#D85A30' : 'transparent',
+            zIndex: 4,
+            background: dragging === 'start' ? '#D85A30' : 'rgba(0,0,0,0.05)',
+            borderRadius: 2,
           }}
         />
       )}
 
-      {/* Poignée de trim droite (tEnd) */}
+      {/* Poignée de trim droite (tEnd) — peut être > 1 pour étendre dans la
+          cellule suivante */}
       {isMovementWithAnno && onTrimTiming && (
         <div
           onPointerDown={handleHandlePointerDown('end')}
-          title="Glisser pour avancer/retarder la fin"
+          title="Glisser pour avancer/retarder la fin (vers la droite = étend sur l'étape suivante)"
           style={{
             position: 'absolute',
             top: 0,
             left: `${tEnd * 100}%`,
             transform: 'translateX(-50%)',
-            width: 6,
+            width: 8,
             height: '100%',
             cursor: 'ew-resize',
-            zIndex: 3,
-            background: dragging === 'end' ? '#D85A30' : 'transparent',
+            zIndex: 4,
+            background: dragging === 'end' ? '#D85A30' : 'rgba(0,0,0,0.05)',
+            borderRadius: 2,
           }}
         />
       )}
