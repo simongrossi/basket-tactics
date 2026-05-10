@@ -216,12 +216,68 @@ export function computeZoneTargets(
   const criticalAttackers = findCriticalZoneAttackers(off, hoop);
   const criticalIds = new Set(criticalAttackers.map((c) => c.attackerId));
 
+  // P3.b — Détecter quels attaquants critiques sont ISOLÉS : aucun
+  // coéquipier dans un rayon de 80px. Un attaquant isolé en zone-tueuse
+  // (high-post seul, short-corner sans aide) crée un trou que la zone
+  // doit fermer avec un défenseur "désigné" — voir designatedCoverer ci-dessous.
+  const ISOLATED_RADIUS_PX = 80;
+  const isolatedIds = new Set<AttackerId>();
+  criticalAttackers.forEach((c) => {
+    const hasNeighbor = (Object.entries(off) as [AttackerId, Point][]).some(
+      ([oId, pos]) => oId !== c.attackerId && distance(pos, c.pos) < ISOLATED_RADIUS_PX
+    );
+    if (!hasNeighbor) isolatedIds.add(c.attackerId);
+  });
+
+  // P3.b — Pour chaque attaquant critique ISOLÉ, on désigne UN seul défenseur
+  // couvreur (celui dont le homePos est le plus proche). Plutôt que de
+  // booster équitablement les claims de tous les défenseurs (ce qui dilue
+  // l'ownership et empêche l'engagement), on concentre le boost fort (×4)
+  // sur le couvreur désigné et on laisse les autres à un boost faible (×1.2)
+  // pour ne pas créer de compétition. Effet : la zone "désigne" un défenseur
+  // qui ferme le trou, comme dans une vraie zone-2-3 où le pivot remonte
+  // sur le high-post pendant que les autres tiennent leur poste.
+  const designatedCoverer = new Map<AttackerId, DefenderId>();
+  criticalAttackers.forEach((c) => {
+    if (!isolatedIds.has(c.attackerId)) return;
+    let bestD: DefenderId | null = null;
+    let bestDist = Infinity;
+    layout.forEach((z) => {
+      const d = distance(z.homePos, c.pos);
+      if (d < bestDist) {
+        bestDist = d;
+        bestD = z.assignedTo;
+      }
+    });
+    if (bestD) designatedCoverer.set(c.attackerId, bestD);
+  });
+
+  // P3.b — Bias homePos du couvreur désigné face à un high-post isolé.
+  // En 2-3, D5 anchor à y=145 ne sort pas spontanément vers y=165 car son
+  // home est trop bas. On shift son ancrage de 40% vers l'attaquant pour
+  // qu'il monte naturellement, le boost ×4 fait le reste. Limité au high-post
+  // (le short-corner est couvert par le wing low qui a son home naturellement
+  // proche, pas besoin de déplacer son ancrage).
+  const HIGH_POST_BIAS_WEIGHT = 0.4;
+  const homeBiasOverrides = new Map<DefenderId, Point>();
+  criticalAttackers.forEach((c) => {
+    if (c.zone !== 'high-post' || !isolatedIds.has(c.attackerId)) return;
+    const dId = designatedCoverer.get(c.attackerId);
+    if (!dId) return;
+    const zone = layout.find((z) => z.assignedTo === dId)!;
+    homeBiasOverrides.set(dId, {
+      x: zone.homePos.x + (c.pos.x - zone.homePos.x) * HIGH_POST_BIAS_WEIGHT,
+      y: zone.homePos.y + (c.pos.y - zone.homePos.y) * HIGH_POST_BIAS_WEIGHT,
+    });
+  });
+
   // Pré-calcul du homePos shifté ball-side pour chaque zone (avec boost overload).
   const shiftedHomes = new Map<DefenderId, Point>();
   layout.forEach((zone) => {
+    const baseHome = homeBiasOverrides.get(zone.assignedTo) ?? zone.homePos;
     const home = ballPos
-      ? ballSideShifted(zone.homePos, ballPos, effectiveBallSideHelp)
-      : zone.homePos;
+      ? ballSideShifted(baseHome, ballPos, effectiveBallSideHelp)
+      : baseHome;
     shiftedHomes.set(zone.assignedTo, home);
   });
 
@@ -239,12 +295,22 @@ export function computeZoneTargets(
       const proximity = Math.exp(-Math.pow(d / reach, 2));
       const naturalMult = oId === naturalAtt ? tactic.naturalBonus : 1.0;
       const carrierMult = oId === ballCarrier ? tactic.carrierBonus : 1.0;
-      // P3 — Boost critique : un attaquant en short-corner ou high-post
-      // est attractif pour TOUS les défenseurs nearby (pas seulement le
-      // matchup naturel). Multiplie le claim de chaque défenseur sur cet
-      // attaquant. Effet : la zone rotate vraiment pour fermer ces spots
-      // au lieu d'attendre que le matchup naturel arrive.
-      const criticalMult = criticalIds.has(oId) ? 1.4 : 1.0;
+      // P3 — Boost critique sur les zone-tueuses (high-post, short-corner) :
+      //  - non-critique : 1.0 (pas de boost)
+      //  - critique avec coéquipier proche : 1.4 (boost modéré, partagé)
+      //  - critique ISOLÉ + couvreur désigné : 4.0 (boost fort, concentré)
+      //  - critique ISOLÉ + non-désigné : 1.2 (légèrement attiré sans
+      //    diluer l'ownership du couvreur désigné)
+      // La concentration du boost sur un seul défenseur évite la dilution
+      // d'ownership entre 5 concurrents et permet l'engagement réel.
+      let criticalMult = 1.0;
+      if (criticalIds.has(oId)) {
+        if (isolatedIds.has(oId)) {
+          criticalMult = designatedCoverer.get(oId) === dId ? 4.0 : 1.2;
+        } else {
+          criticalMult = 1.4;
+        }
+      }
       dClaims.set(oId, proximity * naturalMult * carrierMult * criticalMult);
     });
     claims.set(dId, dClaims);
@@ -297,7 +363,13 @@ export function computeZoneTargets(
 
     // Seuil minimum d'engagement pour bouger : si on possède très peu
     // d'attaquants (tous les attaquants sont loin), on reste au home.
-    if (!primaryAttacker || primaryShare < 0.15) {
+    // Abaissé à 0.08 quand le primary est en zone-tueuse (high-post,
+    // short-corner) — sinon les claims dilués par 5 défenseurs concurrents
+    // empêchent le déclenchement même quand le boost critique est actif.
+    const isPrimaryCritical =
+      primaryAttacker !== null && criticalIds.has(primaryAttacker);
+    const engagementThreshold = isPrimaryCritical ? 0.08 : 0.15;
+    if (!primaryAttacker || primaryShare < engagementThreshold) {
       targets[dId] = {
         x: Math.round(homeShifted.x),
         y: Math.round(homeShifted.y),

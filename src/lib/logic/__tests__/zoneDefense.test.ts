@@ -113,6 +113,78 @@ describe('computeZoneTargets', () => {
   });
 });
 
+describe('computeZoneTargets — couverture high-post isolé (P3.b)', () => {
+  it('un high-post isolé tire le défenseur désigné vers la position de couverture', () => {
+    const layout = getZoneLayout('zone-2-3');
+
+    // Baseline : O4 et O5 sur leurs ailes habituelles. Pas de high-post.
+    const baseline: AttackerPositions = {
+      O1: { x: 300, y: 470 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 470, y: 380 },
+      O4: { x: 220, y: 230 },
+      O5: { x: 380, y: 230 },
+    };
+    const tBaseline = computeZoneTargets(baseline, 'O1', layout, baseConfig, 40, HOOP);
+
+    // Cas tueur : O4 seul à la tête de raquette (high-post centré).
+    const highPostIsolated: AttackerPositions = {
+      O1: { x: 300, y: 470 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 470, y: 380 },
+      O4: { x: 300, y: 220 },
+      O5: { x: 470, y: 90 },
+    };
+    const tIsolated = computeZoneTargets(highPostIsolated, 'O1', layout, baseConfig, 40, HOOP);
+
+    // D5 désigné couvreur (homePos 300,145 le plus proche du high-post 300,220).
+    // Engagement franc → target = panier-côté de O4 (y≈172, entre basket 75
+    // et O4 220). D5 part de y=145 (home) et monte vers y≈172 → y AUGMENTE.
+    // Sans high-post, D5 reste près de son home (y≈168 après ball-pressure).
+    expect(tIsolated.D5.y).toBeGreaterThan(tBaseline.D5.y);
+    expect(tIsolated.D5.y - tBaseline.D5.y).toBeGreaterThan(8);
+  });
+
+  it('un high-post NON isolé (coéquipier collé) déclenche moins fort qu\'un isolé', () => {
+    const layout = getZoneLayout('zone-2-3');
+
+    const isolated: AttackerPositions = {
+      O1: { x: 300, y: 470 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 470, y: 380 },
+      O4: { x: 300, y: 220 },
+      O5: { x: 470, y: 90 },  // loin de O4 (>80px)
+    };
+    const tIso = computeZoneTargets(isolated, 'O1', layout, baseConfig, 40, HOOP);
+
+    const notIsolated: AttackerPositions = {
+      O1: { x: 300, y: 470 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 470, y: 380 },
+      O4: { x: 300, y: 220 },
+      O5: { x: 350, y: 220 }, // collé à O4 (50px) → non isolé
+    };
+    const tNot = computeZoneTargets(notIsolated, 'O1', layout, baseConfig, 40, HOOP);
+
+    // Isolé = boost ×4 + bias home → D5 monte plus haut pour fermer le high-post.
+    // Non-isolé = boost ×1.4 partagé → D5 monte moins.
+    expect(tIso.D5.y).toBeGreaterThan(tNot.D5.y);
+  });
+
+  it('le défenseur désigné track explicitement le high-post isolé', () => {
+    const layout = getZoneLayout('zone-2-3');
+    const off: AttackerPositions = {
+      O1: { x: 300, y: 470 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 470, y: 380 },
+      O4: { x: 300, y: 220 },
+      O5: { x: 470, y: 90 },
+    };
+    const t = computeZoneTargets(off, 'O1', layout, baseConfig, 40, HOOP);
+    expect(t.D5.trackedAttacker).toBe('O4');
+  });
+});
+
 describe('mapAttackersToZones', () => {
   it('retourne une Map indexée par zone.id', () => {
     const layout = getZoneLayout('zone-2-3');
