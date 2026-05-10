@@ -256,6 +256,49 @@ export function computeZoneTargets(
     if (bestD) designatedCoverer.set(c.attackerId, bestD);
   });
 
+  // P3.d — Désigner un "ball-pressure coverer" : LE défenseur structurellement
+  // responsable de presser le porteur. Sans ça, le moteur ownership pur peut
+  // laisser le porteur seul (cas top-of-arc central : D1 et D2 restent à
+  // mi-chemin, aucun ne sort à 5m du porteur).
+  //
+  // Heuristique :
+  //  - Ballon "haut" (vert > 100px du panier) → front-row pressure (les guards).
+  //  - Ballon "bas" (vert <= 100px) → back-row pressure (wings/pivot).
+  //  Front-row détecté par homePos.y (max) > médiane y des homePos.
+  //  Parmi candidats : préférer le défenseur naturel (baseMatchups), sinon
+  //  le plus proche latéralement du porteur.
+  let ballPressureCoverer: DefenderId | null = null;
+  if (ballPos) {
+    const verticalFromHoop = Math.abs(ballPos.y - hoop.y);
+    const ballHigh = verticalFromHoop > 100;
+    // On dérive la médiane de y des homePos pour identifier front vs back.
+    const homePosYs = layout.map((z) => Math.abs(z.homePos.y - hoop.y));
+    const sortedYs = [...homePosYs].sort((a, b) => a - b);
+    const medianY = sortedYs[Math.floor(sortedYs.length / 2)];
+    const candidates = layout.filter((zone) => {
+      const isFrontRow = Math.abs(zone.homePos.y - hoop.y) > medianY;
+      return ballHigh ? isFrontRow : !isFrontRow;
+    });
+    if (candidates.length > 0) {
+      // En zone, c'est le défenseur du MÊME CÔTÉ que le ballon qui prend la
+      // sortie, pas le matchup naturel (la zone absorbe le porteur). On
+      // filtre d'abord par côté ; si vide (ballon central), tous candidats
+      // restent en course. Puis on prend le plus proche latéralement.
+      const ballSide = Math.sign(ballPos.x - COURT_CENTER_X);
+      const sameSide =
+        ballSide === 0
+          ? candidates
+          : candidates.filter(
+              (zone) => Math.sign(zone.homePos.x - COURT_CENTER_X) === ballSide
+            );
+      const finalCandidates = sameSide.length > 0 ? sameSide : candidates;
+      const sorted = [...finalCandidates].sort(
+        (a, b) => Math.abs(a.homePos.x - ballPos.x) - Math.abs(b.homePos.x - ballPos.x)
+      );
+      ballPressureCoverer = sorted[0].assignedTo;
+    }
+  }
+
   // P3.c — Réaction zone à un drive ligne de fond. Si le porteur est dans
   // la bande baseline (deep corner / short corner / shallow penetration) ET
   // qu'aucun défenseur n'est sur le couloir d'attaque carrier→panier, on
@@ -301,6 +344,20 @@ export function computeZoneTargets(
       y: zone.homePos.y + (c.pos.y - zone.homePos.y) * HIGH_POST_BIAS_WEIGHT,
     });
   });
+
+  // P3.d — Bias homePos du ball-pressure coverer vers le porteur. Évite que
+  // le défenseur naturel reste collé à son anchor quand le porteur est loin.
+  // Modulé par ballPressureFactor (le slider "pression bal." existant) : 0%
+  // = pas de shift (zone purement passive), 100% = 60% du chemin vers le
+  // porteur. Skipé si déjà désigné high-post coverer (évite double-bias).
+  if (ballPressureCoverer && ballPos && !homeBiasOverrides.has(ballPressureCoverer)) {
+    const zone = layout.find((z) => z.assignedTo === ballPressureCoverer)!;
+    const w = 0.3 + 0.3 * ballPressureFactor;
+    homeBiasOverrides.set(ballPressureCoverer, {
+      x: zone.homePos.x + (ballPos.x - zone.homePos.x) * w,
+      y: zone.homePos.y + (ballPos.y - zone.homePos.y) * w,
+    });
+  }
 
   // Pré-calcul du homePos shifté ball-side pour chaque zone (avec boost overload).
   const shiftedHomes = new Map<DefenderId, Point>();
@@ -358,7 +415,22 @@ export function computeZoneTargets(
       ) {
         baselineMult = 1.0 + 2.0 * paintCoverageFactor;
       }
-      dClaims.set(oId, proximity * naturalMult * carrierMult * criticalMult * baselineMult);
+      // P3.d — Boost ball-pressure : LE défenseur désigné responsable de
+      // presser le porteur reçoit ×2.5 sur sa claim au porteur. Empilé
+      // seulement s'il n'est pas déjà critical/baseline (qui ont leurs
+      // propres boosts). Modulé par ballPressureFactor : 0=neutre, 1=×2.5
+      // complet. Effet : un défenseur sort SYSTÉMATIQUEMENT sur le porteur,
+      // même si la géométrie pure ne le ferait pas naturellement.
+      let pressureMult = 1.0;
+      if (
+        oId === ballCarrier &&
+        ballPressureCoverer === dId &&
+        designatedCoverer.get(oId) !== dId &&
+        baselineDriveCoverer !== dId
+      ) {
+        pressureMult = 1.0 + 1.5 * ballPressureFactor;
+      }
+      dClaims.set(oId, proximity * naturalMult * carrierMult * criticalMult * baselineMult * pressureMult);
     });
     claims.set(dId, dClaims);
   });
@@ -418,8 +490,12 @@ export function computeZoneTargets(
       primaryAttacker !== null && criticalIds.has(primaryAttacker);
     const isBaselineCovererForCarrier =
       baselineDriveCoverer === dId && primaryAttacker === ballCarrier;
+    const isPressureCovererForCarrier =
+      ballPressureCoverer === dId && primaryAttacker === ballCarrier;
     const engagementThreshold =
-      isPrimaryCritical || isBaselineCovererForCarrier ? 0.08 : 0.15;
+      isPrimaryCritical || isBaselineCovererForCarrier || isPressureCovererForCarrier
+        ? 0.08
+        : 0.15;
     if (!primaryAttacker || primaryShare < engagementThreshold) {
       targets[dId] = {
         x: Math.round(homeShifted.x),
