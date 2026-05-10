@@ -15,7 +15,7 @@ import { Timeline } from '@/components/Timeline';
 import { CourtView } from '@/components/CourtView';
 import { PlaybookView } from '@/components/PlaybookView';
 import { MetricsBar } from '@/components/MetricsBar';
-import { CoachDiagnostics } from '@/components/CoachDiagnostics';
+import { CoachDiagnosticsOverlay } from '@/components/CoachDiagnosticsOverlay';
 import { effectiveDefensePositions, getDefenseHoop, detectStepScreenAction } from '@/lib/logic/engine';
 import { computeMetrics } from '@/lib/logic/metrics';
 import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offense';
@@ -206,6 +206,9 @@ export default function Page() {
 
         <div className="center-col">
           <div style={{ position: 'relative', minHeight: 0, overflow: 'hidden', display: 'grid' }}>
+            {app.state.showCoachDiagnostics !== false && (
+              <CoachDiagnosticsOverlay diagnostics={coachDiagnostics} />
+            )}
             <CourtView
               state={app.state}
               onMoveAttacker={app.moveAttacker}
@@ -271,9 +274,6 @@ export default function Page() {
             onSetPlaybackSpeed={setPlaybackSpeed}
           />
           {metrics && <MetricsBar metrics={metrics} bestAction={bestAction} screenAction={screenAction} />}
-          {app.state.showCoachDiagnostics !== false && (
-            <CoachDiagnostics diagnostics={coachDiagnostics} />
-          )}
         </div>
 
         {!presentMode && (
