@@ -40,8 +40,22 @@ Refonte significative de la défense de zone pour encoder les **principes basket
 - Boost claim ×(1+2×urgency×factor) sur le receveur + bias home (×0.5 × urgency × factor) vers point d'interception.
 - Skipé pour les receveurs déjà couverts par d'autres désignations (high-post, rim) — évite les conflits du type "le pivot fait un skip pass perimetric".
 
+### Étape 6 — Décomposition des téléports (A + D)
+
+Bug rapporté : sur certaines actions FIBA (Rip-DHO, back-screens), les générateurs émettent un step avec un saut > 5 m pour un joueur (téléportation), déclenchant le warning `attacker-jump`.
+
+**Solution** : nouveau module [`breakUpTeleports.ts`](../src/lib/logic/breakUpTeleports.ts) appliqué à la sortie de `compileScenario`. Si un joueur bouge de plus de 100 px (~2.7 m) entre deux steps, on insère des steps intermédiaires interpolés linéairement.
+
+- Nouveau champ `Step.isInterpolated: boolean` marque les steps phantômes
+- Annotations + label restent sur le step terminal
+- `ballCarrier`, `defensiveDirectives`, `assignmentOverrides` propagés sur les intermédiaires (pour préserver les couvertures scriptées pendant le mouvement)
+- UI : `OffensePanel` masque les interpolés de la liste utilisateur ; `Timeline` les affiche en gris/petit avec tooltip "(transition)"
+- `compileScenario` skip les interpolés lors du matching `manualOverride` (subIndex compté uniquement sur les steps réels)
+
+Effet sur Rip-DHO : 4 steps → 7 steps (3 interpolés), aucun mouvement > 110 px.
+
 ### Tests
-- **394 tests verts** au total après les Étapes 2-5 (vs 348 avant, +46 tests).
+- **401 tests verts** au total après les Étapes 2-6 (vs 348 avant, +53 tests).
 - Nouveaux fichiers : `threatResolution.test.ts`, `rimProtectionLayer.test.ts`, `baselineDrive.test.ts`.
 - Sections enrichies dans `zoneDefense.test.ts` (P3.b high-post isolé, P3.c baseline, P3.d ball-pressure, P3.e rim protection, P3.f weakside paint sag + recover).
 

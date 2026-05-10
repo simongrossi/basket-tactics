@@ -38,6 +38,12 @@ Refonte significative de la défense de zone pour encoder les principes basket f
 - Mécanisme commun : un seul défenseur boosté par menace (pas de dilution), `unavailable: Set<DefenderId>` propagé entre détections pour éviter qu'un défenseur cumule plusieurs missions.
 - Tests : 348 → **394 tests verts** (+46 tests, dont 22 dans `threatResolution.test.ts`, 9 nouvelles sections dans `zoneDefense.test.ts`, 3 dans `rimProtectionLayer.test.ts`).
 
+#### Étape 6 — Décomposition des téléports
+- **`breakUpTeleports()`** ([`breakUpTeleports.ts`](./src/lib/logic/breakUpTeleports.ts)) appliqué après compilation. Si un joueur bouge >100 px entre deux steps, on insère des steps interpolés.
+- Nouveau champ `Step.isInterpolated: boolean` marque les steps phantômes.
+- UI : `OffensePanel` masque les interpolés de la liste utilisateur ; `Timeline` les affiche en gris/petit.
+- Tests : 394 → **401 tests verts** (+7 nouveaux dans `breakUpTeleports.test.ts`).
+
 #### Sliders zone disponibles dans DefensePanel
 | Slider | Champ | Effet |
 |--------|-------|-------|
