@@ -223,8 +223,18 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
       ? (state.rules[dId]?.maxSpeed ?? baseMaxSpeed)
       : baseMaxSpeed;
     const maxSpeed = closingOut ? indivMaxSpeed * closeoutBoost : indivMaxSpeed;
-    // Vitesse effective = vitesse théorique × friction de proximité.
-    const effectiveMaxSpeed = maxSpeed * friction;
+    // Pénalité de contact d'écran : un défenseur du porteur qui prend un
+    // écran perd du temps à se dégager. Représente le "bump" physique : le
+    // défenseur ne traverse pas le poseur instantanément, il négocie le
+    // contact. Friction et pathArcLength capturent déjà une partie, mais
+    // pas suffisamment pour matcher l'intuition basket : un D1 qui prend un
+    // écran tight perd typiquement 0.3-0.6 sec, soit ~50% de sa vitesse sur
+    // une étape d'animation.
+    const isCarrierDefScreenedThisStep =
+      targets[dId].onScreen === true && targets[dId].isCarrierDefender;
+    const screenContactPenalty = isCarrierDefScreenedThisStep ? 0.55 : 1.0;
+    // Vitesse effective = vitesse théorique × friction × pénalité écran.
+    const effectiveMaxSpeed = maxSpeed * friction * screenContactPenalty;
 
     // À l'étape 0, on considère que les défenseurs SONT à leur position idéale
     // (le step 0 est un setup, pas une transition). La contrainte de vitesse
