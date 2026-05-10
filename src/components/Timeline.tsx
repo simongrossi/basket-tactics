@@ -2,6 +2,13 @@
 
 import { useRef, useState, useCallback } from 'react';
 import type { AppState } from '@/lib/types';
+import {
+  formatClock,
+  formatShotClock,
+  getSecondsPerStep,
+  getPossessionSeconds,
+  totalDurationSeconds,
+} from '@/lib/logic/timecode';
 
 interface TimelineProps {
   state: AppState;
@@ -71,6 +78,31 @@ export function Timeline({
   const ratio = total > 1 ? displayT / (total - 1) : 0;
   const currentStepIdx = Math.round(displayT);
   const currentStep = state.steps[currentStepIdx];
+
+  // Timecode (Étape 13) : mappe la position courante (full-step) sur l'axe
+  // des étapes réelles (non-interpolées), puis convertit en secondes.
+  const realIndices: number[] = [];
+  state.steps.forEach((s, i) => { if (!s.isInterpolated) realIndices.push(i); });
+  const fullToRealStep = (fullT: number): number => {
+    if (realIndices.length === 0) return 0;
+    let iA = -1;
+    let iB = -1;
+    for (let i = 0; i < realIndices.length; i++) {
+      if (realIndices[i] <= fullT) iA = i;
+      if (realIndices[i] > fullT && iB === -1) iB = i;
+    }
+    if (iA === -1) return 0;
+    if (iB === -1) return iA;
+    const lerp = (fullT - realIndices[iA]) / (realIndices[iB] - realIndices[iA]);
+    return iA + lerp;
+  };
+  const realT = fullToRealStep(displayT);
+  const sps = getSecondsPerStep(state);
+  const elapsedSec = realT * sps;
+  const possSec = getPossessionSeconds(state);
+  const shotLeft = Math.max(0, possSec - elapsedSec);
+  const totalSec = totalDurationSeconds(state);
+  const violation = elapsedSec > possSec;
 
   const hasControls = onPlayToggle && onStop && onSetPlaybackSpeed && playbackSpeed != null;
 
@@ -229,10 +261,27 @@ export function Timeline({
           </div>
         )}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#64748b', lineHeight: 1.2 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#64748b', lineHeight: 1.2, alignItems: 'center' }}>
         <span>
           Étape {currentStepIdx + 1} / {total}
           {currentStep?.label ? ` — ${currentStep.label}` : ''}
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontVariantNumeric: 'tabular-nums' }}>
+          <span title={`Possession : ${sps.toFixed(1)} s / étape · total ${totalSec.toFixed(1)} s`}>
+            {formatClock(elapsedSec)} / {formatClock(totalSec)}
+          </span>
+          <span
+            title="Shot clock (24s par défaut)"
+            style={{
+              padding: '1px 6px',
+              borderRadius: 4,
+              fontWeight: 700,
+              background: violation ? '#fee2e2' : shotLeft < 5 ? '#fef3c7' : '#f1f5f9',
+              color: violation ? '#991b1b' : shotLeft < 5 ? '#92400e' : '#334155',
+            }}
+          >
+            ⏱ {violation ? 'VIOL.' : formatShotClock(shotLeft)}
+          </span>
         </span>
         <span>porteur : {currentStep?.ballCarrier}</span>
       </div>

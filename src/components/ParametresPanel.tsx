@@ -48,6 +48,36 @@ export function ParametresPanel({ state, onPatch, onSetPlayerCount }: Parametres
         })}
       </div>
 
+      <div style={{ fontSize: 10, fontWeight: 600, color: c.accentText, opacity: 0.8, letterSpacing: '0.02em', marginTop: 8 }}>
+        TIMECODE
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 8px', marginBottom: 6, fontSize: 11 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }} title="Durée d'une étape en secondes. Affecte uniquement l'horloge et le shot clock — le moteur reste step-based.">
+          <span style={{ flex: '0 0 70px', color: c.accentText }}>s / étape</span>
+          <input
+            type="number"
+            min={0.5}
+            max={20}
+            step={0.5}
+            value={state.secondsPerStep ?? 4}
+            onChange={(e) => onPatch({ secondsPerStep: parseFloat(e.target.value) })}
+            style={{ width: 50, padding: '2px 4px', fontSize: 11 }}
+          />
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }} title="Durée totale de la possession (24s FIBA / 14s reset après rebond offensif).">
+          <span style={{ flex: '0 0 70px', color: c.accentText }}>possession</span>
+          <input
+            type="number"
+            min={1}
+            max={60}
+            step={1}
+            value={state.possessionSeconds ?? 24}
+            onChange={(e) => onPatch({ possessionSeconds: parseInt(e.target.value, 10) })}
+            style={{ width: 50, padding: '2px 4px', fontSize: 11 }}
+          />
+        </label>
+      </div>
+
       <div style={{ fontSize: 10, fontWeight: 600, color: c.accentText, opacity: 0.8, letterSpacing: '0.02em' }}>
         VISU & LÉGENDE
       </div>

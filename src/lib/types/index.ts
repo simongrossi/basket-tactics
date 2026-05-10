@@ -690,6 +690,14 @@ export interface AppState {
   showCloseoutRing?: boolean;
   showDenyingRing?: boolean;
   showForcedScreenerBadge?: boolean;
+  /** Durée d'une étape en secondes (Étape 13). Sert à afficher le temps
+   *  écoulé et le temps restant sur la possession (24s en FIBA, 14s en
+   *  reset après rebond offensif). Défaut 4. Modifie uniquement
+   *  l'affichage — le moteur reste step-based. */
+  secondsPerStep?: number;
+  /** Durée totale de la possession en secondes pour l'affichage shot clock
+   *  (Étape 13). Défaut 24. Permet aussi d'afficher 14 pour les resets. */
+  possessionSeconds?: number;
   /** Multiplicateur de vitesse appliqué au défenseur du nouveau porteur en
    *  closeout. 1 = closeout désactivé, 1.4 = défaut, 2 = très agressif. */
   closeoutBoost?: number;

@@ -9,6 +9,7 @@ import {
   type PlayerTrack,
   type TrackSegment,
 } from '@/lib/logic/playerTracks';
+import { getSecondsPerStep } from '@/lib/logic/timecode';
 
 interface MultiTrackTimelineProps {
   state: AppState;
@@ -60,6 +61,7 @@ export function MultiTrackTimeline({
   const transitionCount = realStepsCount - 1;
   const cursorRatio = transitionCount > 0 ? realT / transitionCount : 0;
   const cursorPct = Math.max(0, Math.min(100, cursorRatio * 100));
+  const sps = getSecondsPerStep(state);
 
   return (
     <div
@@ -87,16 +89,23 @@ export function MultiTrackTimeline({
         zIndex: 2,
       }}>
         <div></div>
-        {Array.from({ length: transitionCount }, (_, i) => (
-          <div
-            key={i}
-            onClick={() => onJumpToRealStep?.(i + 1)}
-            style={{ textAlign: 'center', cursor: 'pointer' }}
-            title={`Sauter à l'étape ${i + 2}`}
-          >
-            #{i + 1}→#{i + 2}
-          </div>
-        ))}
+        {Array.from({ length: transitionCount }, (_, i) => {
+          const tA = (i * sps).toFixed(1);
+          const tB = ((i + 1) * sps).toFixed(1);
+          return (
+            <div
+              key={i}
+              onClick={() => onJumpToRealStep?.(i + 1)}
+              style={{ textAlign: 'center', cursor: 'pointer', fontVariantNumeric: 'tabular-nums' }}
+              title={`Transition #${i + 1}→#${i + 2} · ${tA}s → ${tB}s`}
+            >
+              #{i + 1}→#{i + 2}
+              <div style={{ fontWeight: 400, opacity: 0.7, fontSize: 8 }}>
+                {tA}s
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Pistes — attaquants puis défenseurs avec un petit gap */}

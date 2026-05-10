@@ -51,6 +51,15 @@ Refonte significative de la défense de zone pour encoder les principes basket f
 - Cumulé pire cas : `0.33 × maxSpeed` → D1 nettement late après l'écran, intuition basket respectée.
 - Limité au défenseur du porteur (le screenerDef a son propre rôle hedge/show).
 
+#### Étape 13 — Timecode (24s possession)
+- Nouveaux champs `AppState.secondsPerStep` (défaut 4) et `possessionSeconds` (défaut 24).
+- Module `src/lib/logic/timecode.ts` : `realStepToSeconds`, `shotClockAt`, `totalDurationSeconds`, `formatClock`, `formatShotClock`.
+- Affichage MM:SS écoulé / total dans la Timeline + badge shot clock cliquable (jaune sous 5s, rouge en violation).
+- Headers de la MultiTrackTimeline annotés avec le temps de chaque transition (`0.0s`, `4.0s`...).
+- Réglages dans le panneau Paramètres : `s / étape` et `possession` (input numériques).
+- Le moteur reste step-based : ces utilitaires sont uniquement pour l'AFFICHAGE.
+- Tests : 16 nouveaux cas (formatage, conversion, clamp, steps interpolés). 433 → **449 tests verts**.
+
 #### Étape 12 — Qualité d'écran (0-100)
 - Nouveau champ `Annotation.quality` (0-100, défaut 50) sur les annotations `type='screen'`. Module la pénalité Étape 11 :
   - **0 (ghost)** : ×1.00 — faux écran, le défenseur passe sans ralentir.
