@@ -15,6 +15,7 @@ import { Timeline } from '@/components/Timeline';
 import { CourtView } from '@/components/CourtView';
 import { PlaybookView } from '@/components/PlaybookView';
 import { PlayerTimelineModal } from '@/components/PlayerTimelineModal';
+import { MultiTrackTimeline } from '@/components/MultiTrackTimeline';
 import { MetricsBar } from '@/components/MetricsBar';
 import { CoachDiagnosticsOverlay } from '@/components/CoachDiagnosticsOverlay';
 import { effectiveDefensePositions, getDefenseHoop, detectStepScreenAction } from '@/lib/logic/engine';
@@ -32,6 +33,7 @@ export default function Page() {
   const [playbackT, setPlaybackT] = useState<number | null>(null);
   const [showPlaybook, setShowPlaybook] = useState(false);
   const [showPlayerTimeline, setShowPlayerTimeline] = useState(false);
+  const [showMultiTrack, setShowMultiTrack] = useState(false);
   const [scrubT, setScrubT] = useState<number | null>(null);
   const [playbackStartT, setPlaybackStartT] = useState(0);
   const [presentMode, setPresentMode] = useState(false);
@@ -264,24 +266,63 @@ export default function Page() {
               stepToActionId={app.state.steps.map((s) => s.generatedBy)}
             />
           )}
-          <Timeline
-            state={app.state}
-            onSetActiveStep={app.setActiveStep}
-            onScrub={setScrubT}
-            isPlaying={isPlaying}
-            scrubT={scrubT}
-            playbackT={playbackT}
-            onPlayToggle={handlePlayToggle}
-            onStop={() => {
-              setIsPlaying(false);
-              setPlaybackT(null);
-              setScrubT(null);
-              setPlaybackStartT(0);
-              app.setActiveStep(0);
-            }}
-            playbackSpeed={playbackSpeed}
-            onSetPlaybackSpeed={setPlaybackSpeed}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ flex: 1 }}>
+              <Timeline
+                state={app.state}
+                onSetActiveStep={app.setActiveStep}
+                onScrub={setScrubT}
+                isPlaying={isPlaying}
+                scrubT={scrubT}
+                playbackT={playbackT}
+                onPlayToggle={handlePlayToggle}
+                onStop={() => {
+                  setIsPlaying(false);
+                  setPlaybackT(null);
+                  setScrubT(null);
+                  setPlaybackStartT(0);
+                  app.setActiveStep(0);
+                }}
+                playbackSpeed={playbackSpeed}
+                onSetPlaybackSpeed={setPlaybackSpeed}
+              />
+            </div>
+            <button
+              onClick={() => setShowMultiTrack((v) => !v)}
+              title={showMultiTrack ? 'Masquer les pistes joueurs' : 'Afficher les pistes joueurs (multi-track)'}
+              style={{
+                padding: '6px 10px',
+                fontSize: 12,
+                border: '1px solid #cbd5e1',
+                borderRadius: 6,
+                background: showMultiTrack ? '#fed7aa' : '#fff',
+                color: showMultiTrack ? '#9a3412' : '#475569',
+                cursor: 'pointer',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {showMultiTrack ? '▼' : '▲'} pistes
+            </button>
+          </div>
+          {showMultiTrack && (
+            <MultiTrackTimeline
+              state={app.state}
+              fullT={scrubT ?? playbackT ?? app.state.activeStep}
+              onJumpToRealStep={(realIdx) => {
+                let count = 0;
+                for (let i = 0; i < app.state.steps.length; i++) {
+                  if (!app.state.steps[i].isInterpolated) {
+                    if (count === realIdx) {
+                      app.setActiveStep(i);
+                      break;
+                    }
+                    count++;
+                  }
+                }
+              }}
+            />
+          )}
           {metrics && <MetricsBar metrics={metrics} bestAction={bestAction} screenAction={screenAction} />}
         </div>
 
