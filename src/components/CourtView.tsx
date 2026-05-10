@@ -15,11 +15,17 @@ import type {
 import { CourtBackground, ArrowMarkers } from './Court';
 import { Player, Ball } from './Player';
 import { AnnotationView } from './Annotations';
-import { Matchups, HelpLines, ScreenIndicator, ZoneOverlay, OffBallScreenIndicator } from './Overlays';
-import { ZoneCoverage } from './ZoneCoverage';
-import { PassLanesOverlay } from './PassLanesOverlay';
-import { HelpDebugOverlay } from './HelpDebugOverlay';
-import { FieldOfViewOverlay } from './FieldOfViewOverlay';
+import {
+  Matchups,
+  HelpLines,
+  ScreenIndicator,
+  ZoneOverlay,
+  OffBallScreenIndicator,
+} from './overlays/MatchupAndScreenOverlays';
+import { ZoneCoverage } from './overlays/ZoneCoverage';
+import { PassLanesOverlay } from './overlays/PassLanesOverlay';
+import { HelpDebugOverlay } from './overlays/HelpDebugOverlay';
+import { FieldOfViewOverlay } from './overlays/FieldOfViewOverlay';
 import {
   effectiveDefensePositions,
   getMatchupsAt,
@@ -28,7 +34,7 @@ import {
 import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
 import { detectTriggers } from '@/lib/logic/triggers';
 import { getZoneLayout, mirrorZoneLayout, applyZoneOverrides } from '@/lib/data/zones';
-import { ZoneEditOverlay, ZoneRegionMenu } from './ZoneEditOverlay';
+import { ZoneEditOverlay, ZoneRegionMenu } from './overlays/ZoneEditOverlay';
 import {
   COURT,
   FULL_COURT_HEIGHT,
@@ -40,10 +46,11 @@ import { clamp, distance } from '@/lib/logic/geometry';
 import { resolveFrameAt, type PlaybackFrame } from '@/lib/logic/playback/frameResolver';
 import { usePlaybackAnimation } from '@/hooks/usePlaybackAnimation';
 import { ContextMenu } from './ContextMenu';
-import { ActionOrderBadges } from './ActionOrderBadges';
-import { HeatmapOverlay } from './HeatmapOverlay';
-import { ThreatOverlay } from './ThreatOverlay';
-import { BestActionOverlay } from './BestActionOverlay';
+import { ActionOrderBadges } from './overlays/ActionOrderBadges';
+import { HeatmapOverlay } from './overlays/HeatmapOverlay';
+import { ThreatOverlay } from './overlays/ThreatOverlay';
+import { BestActionOverlay } from './overlays/BestActionOverlay';
+import { GhostLayer } from './overlays/GhostLayer';
 import { computeAttackerThreats } from '@/lib/logic/threats';
 import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offense';
 import {
@@ -802,43 +809,3 @@ function extractDefPositions(defPos: ComputedDefense): Record<DefenderId, Point>
   return out;
 }
 
-/**
- * Affiche en transparence les positions de tous les joueurs à l'étape donnée
- * (utilisé pour le mode fantôme : ghost de l'étape N-1 quand on édite N).
- * Cercles gris avec contour pointillé, sans label, opacité 0.35.
- */
-function GhostLayer({ state, stepIdx }: { state: AppState; stepIdx: number }) {
-  const step = state.steps[stepIdx];
-  if (!step) return null;
-  const off = activeOffense(step.off, state.playerCount);
-  const defPos = effectiveDefensePositions(state, stepIdx);
-  const r = PLAYER_RADIUS;
-  return (
-    <g pointerEvents="none" opacity={0.35}>
-      {(Object.entries(off) as [AttackerId, Point][]).map(([id, pos]) => (
-        <circle
-          key={`ghost-o-${id}`}
-          cx={pos.x}
-          cy={pos.y}
-          r={r}
-          fill="none"
-          stroke="#D85A30"
-          strokeWidth={1.5}
-          strokeDasharray="3 3"
-        />
-      ))}
-      {(Object.entries(defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(([id, p]) => (
-        <circle
-          key={`ghost-d-${id}`}
-          cx={p.x}
-          cy={p.y}
-          r={r}
-          fill="none"
-          stroke="#378ADD"
-          strokeWidth={1.5}
-          strokeDasharray="3 3"
-        />
-      ))}
-    </g>
-  );
-}
