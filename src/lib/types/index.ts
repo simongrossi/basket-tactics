@@ -202,18 +202,34 @@ export type DefensiveActionType =
   | 'help-and-recover'
   | 'pre-switch'
   | 'trap'
-  | 'tag';
+  | 'tag'
+  // Phase 5 — couvertures FIBA Tier 2
+  | 'over'
+  | 'under'
+  | 'switch'
+  | 'hedge'
+  | 'drop'
+  | 'blitz'
+  | 'ice'
+  | 'flat-hedge'
+  | 'peel-switch'
+  | 'triple-switch'
+  | 'closing-out';
 
 export interface DefensiveActionParams {
   /** Défenseur(s) qui exécutent la directive. */
   defenders: DefenderId[];
   /** Attaquant ciblé (porteur trappé, cutter jammé, roller taggé...). */
   target?: AttackerId;
-  /** Pour pre-switch uniquement : 2e défenseur qui échange. */
+  /** Pour pre-switch / switch / peel-switch : 2e défenseur qui échange. */
   swapWith?: DefenderId;
+  /** Pour triple-switch : 3e défenseur de la chaîne (D1→D2→D3→D1). */
+  thirdSwap?: DefenderId;
   /** Pour help-and-recover : steps de chaque phase. */
   helpStep?: number;
   recoverStep?: number;
+  /** Pour drop : profondeur du retrait du big (cf. FIBA ScreenRule). */
+  dropDepth?: 'shallow' | 'medium' | 'deep';
 }
 
 export interface DefensiveScriptedAction {
@@ -236,6 +252,8 @@ export interface DefensiveDirective {
   defenders: DefenderId[];
   target?: AttackerId;
   swapWith?: DefenderId;
+  thirdSwap?: DefenderId;
+  dropDepth?: 'shallow' | 'medium' | 'deep';
   /** 'engage' = action active, 'release' = retour à la position standard. */
   phase: 'engage' | 'release';
   /** ID de l'action source (debug + UI traçabilité). */

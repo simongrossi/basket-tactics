@@ -64,7 +64,18 @@ export function expandToDirectives(
   switch (def.type) {
     case 'trap':
     case 'tag':
-    case 'pre-switch': {
+    case 'pre-switch':
+    case 'over':
+    case 'under':
+    case 'switch':
+    case 'hedge':
+    case 'drop':
+    case 'blitz':
+    case 'ice':
+    case 'flat-hedge':
+    case 'peel-switch':
+    case 'triple-switch':
+    case 'closing-out': {
       // 1 directive engage par step ciblé.
       // Pour pre-switch, on ne génère qu'un engage sur le 1er step ciblé
       // (l'effet swap est géré par applyDefensivePass via assignmentOverrides).
@@ -79,6 +90,8 @@ export function expandToDirectives(
             defenders: def.params.defenders,
             target: def.params.target,
             swapWith: def.params.swapWith,
+            thirdSwap: def.params.thirdSwap,
+            dropDepth: def.params.dropDepth,
             phase: 'engage',
             sourceActionId: def.id,
           },

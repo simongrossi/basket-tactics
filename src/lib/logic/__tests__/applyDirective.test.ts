@@ -117,3 +117,89 @@ describe('applyDirective — pre-switch', () => {
     expect(d5ToO1).toBeLessThan(50);
   });
 });
+
+// =============================================================
+// Phase 5 — couvertures Tier 2
+// =============================================================
+
+describe('applyDirective — Phase 5 Tier 2 coverages', () => {
+  it('chaque type produit des positions finies pour ses défenseurs', () => {
+    const tier2: Array<DefensiveDirective['type']> = [
+      'over','under','switch','hedge','drop','blitz','ice',
+      'flat-hedge','peel-switch','triple-switch','closing-out',
+    ];
+    for (const type of tier2) {
+      const step = baseStep();
+      const targets = baseDef();
+      const dir: DefensiveDirective = {
+        type,
+        defenders: ['D1'],
+        target: 'O1',
+        swapWith: 'D5',
+        thirdSwap: 'D3',
+        phase: 'engage',
+        sourceActionId: `d-${type}`,
+      };
+      applyDirective(targets, dir, step);
+      for (const id of ['D1','D2','D3','D4','D5'] as const) {
+        const p = targets[id];
+        expect(Number.isFinite(p.x), `${type}: ${id}.x non fini`).toBe(true);
+        expect(Number.isFinite(p.y), `${type}: ${id}.y non fini`).toBe(true);
+      }
+    }
+  });
+
+  it('drop deep place le défenseur plus près du panier que drop shallow', () => {
+    const step = baseStep();
+    const t1 = baseDef();
+    const t2 = baseDef();
+    applyDirective(t1, {
+      type: 'drop', defenders: ['D5'], target: 'O1',
+      dropDepth: 'shallow', phase: 'engage', sourceActionId: 'a',
+    }, step);
+    applyDirective(t2, {
+      type: 'drop', defenders: ['D5'], target: 'O1',
+      dropDepth: 'deep', phase: 'engage', sourceActionId: 'a',
+    }, step);
+    const dShallow = Math.hypot(t1.D5.x - 300, t1.D5.y - 75);
+    const dDeep = Math.hypot(t2.D5.x - 300, t2.D5.y - 75);
+    expect(dDeep).toBeLessThan(dShallow);
+  });
+
+  it('switch : D1 et D5 prennent le man de l\'autre', () => {
+    const step = baseStep();
+    const targets = baseDef();
+    applyDirective(targets, {
+      type: 'switch', defenders: ['D1'], swapWith: 'D5',
+      phase: 'engage', sourceActionId: 'a',
+    }, step);
+    const d1ToO5 = Math.hypot(targets.D1.x - step.off.O5.x, targets.D1.y - step.off.O5.y);
+    const d5ToO1 = Math.hypot(targets.D5.x - step.off.O1.x, targets.D5.y - step.off.O1.y);
+    expect(d1ToO5).toBeLessThan(50);
+    expect(d5ToO1).toBeLessThan(50);
+  });
+
+  it('triple-switch : D1→man(D5), D5→man(D3), D3→man(D1)', () => {
+    const step = baseStep();
+    const targets = baseDef();
+    applyDirective(targets, {
+      type: 'triple-switch', defenders: ['D1'], swapWith: 'D5', thirdSwap: 'D3',
+      phase: 'engage', sourceActionId: 'a',
+    }, step);
+    expect(Math.hypot(targets.D1.x - step.off.O5.x, targets.D1.y - step.off.O5.y)).toBeLessThan(50);
+    expect(Math.hypot(targets.D5.x - step.off.O3.x, targets.D5.y - step.off.O3.y)).toBeLessThan(50);
+    expect(Math.hypot(targets.D3.x - step.off.O1.x, targets.D3.y - step.off.O1.y)).toBeLessThan(50);
+  });
+
+  it('closing-out : défenseur proche du target côté périphérie', () => {
+    const step = baseStep();
+    const targets = baseDef();
+    applyDirective(targets, {
+      type: 'closing-out', defenders: ['D2'], target: 'O2',
+      phase: 'engage', sourceActionId: 'a',
+    }, step);
+    const d = Math.hypot(targets.D2.x - step.off.O2.x, targets.D2.y - step.off.O2.y);
+    expect(d).toBeGreaterThan(15);
+    expect(d).toBeLessThan(40);
+  });
+});

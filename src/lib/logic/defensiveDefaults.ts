@@ -39,10 +39,42 @@ export function inferDefensiveDefaults(
       const helper: DefenderId = (carrier && carrier !== 'O1') ? 'D2' : 'D2';
       return { defenders: [helper], target: carrier };
     }
-    case 'pre-switch': {
+    case 'pre-switch':
+    case 'switch':
+    case 'peel-switch': {
       const d0 = carrier ? DEFAULT_ASSIGNMENT[carrier] : 'D1';
       const d1 = screener ? DEFAULT_ASSIGNMENT[screener] : 'D5';
-      return { defenders: [d0], swapWith: d1 };
+      return { defenders: [d0], swapWith: d1, target: carrier };
+    }
+    case 'triple-switch': {
+      const d0 = carrier ? DEFAULT_ASSIGNMENT[carrier] : 'D1';
+      const d1 = screener ? DEFAULT_ASSIGNMENT[screener] : 'D5';
+      // 3e défenseur : un autre que d0 et d1.
+      const all: DefenderId[] = ['D1','D2','D3','D4','D5'];
+      const d2 = all.find((d) => d !== d0 && d !== d1) ?? 'D3';
+      return { defenders: [d0], swapWith: d1, thirdSwap: d2, target: carrier };
+    }
+    case 'over':
+    case 'under':
+    case 'ice':
+    case 'closing-out': {
+      // Couvertures portées par le défenseur du porteur (Di du porteur).
+      const d0 = carrier ? DEFAULT_ASSIGNMENT[carrier] : 'D1';
+      return { defenders: [d0], target: carrier };
+    }
+    case 'hedge':
+    case 'flat-hedge':
+    case 'drop': {
+      // Couvertures portées par le défenseur du screener (big).
+      const d0 = screener ? DEFAULT_ASSIGNMENT[screener] : 'D5';
+      return { defenders: [d0], target: carrier };
+    }
+    case 'blitz': {
+      // Comme trap : 2 défenseurs (porteur + screener) sur le porteur.
+      const trappers: DefenderId[] = [];
+      if (carrier) trappers.push(DEFAULT_ASSIGNMENT[carrier]);
+      if (screener) trappers.push(DEFAULT_ASSIGNMENT[screener]);
+      return { defenders: trappers, target: carrier };
     }
   }
 }
