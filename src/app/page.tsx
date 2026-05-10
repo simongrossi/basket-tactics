@@ -14,6 +14,7 @@ import { LibraryPanel } from '@/components/LibraryPanel';
 import { Timeline } from '@/components/Timeline';
 import { CourtView } from '@/components/CourtView';
 import { PlaybookView } from '@/components/PlaybookView';
+import { PlayerTimelineModal } from '@/components/PlayerTimelineModal';
 import { MetricsBar } from '@/components/MetricsBar';
 import { CoachDiagnosticsOverlay } from '@/components/CoachDiagnosticsOverlay';
 import { effectiveDefensePositions, getDefenseHoop, detectStepScreenAction } from '@/lib/logic/engine';
@@ -30,6 +31,7 @@ export default function Page() {
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [playbackT, setPlaybackT] = useState<number | null>(null);
   const [showPlaybook, setShowPlaybook] = useState(false);
+  const [showPlayerTimeline, setShowPlayerTimeline] = useState(false);
   const [scrubT, setScrubT] = useState<number | null>(null);
   const [playbackStartT, setPlaybackStartT] = useState(0);
   const [presentMode, setPresentMode] = useState(false);
@@ -249,6 +251,7 @@ export default function Page() {
               presentMode={presentMode}
               onTogglePresentMode={() => setPresentMode((p) => !p)}
               onOpenPlaybook={() => setShowPlaybook(true)}
+              onOpenPlayerTimeline={() => setShowPlayerTimeline(true)}
               onExport={handleExport}
               onImport={handleImport}
               onReset={app.resetAll}
@@ -312,6 +315,26 @@ export default function Page() {
       />
       {showPlaybook && (
         <PlaybookView state={app.state} onClose={() => setShowPlaybook(false)} />
+      )}
+      {showPlayerTimeline && (
+        <PlayerTimelineModal
+          state={app.state}
+          currentFullStepIdx={app.state.activeStep}
+          onClose={() => setShowPlayerTimeline(false)}
+          onJumpToRealStep={(realIdx) => {
+            // Convertit realStepIdx → fullStepIdx en sautant les interpolés
+            let count = 0;
+            for (let i = 0; i < app.state.steps.length; i++) {
+              if (!app.state.steps[i].isInterpolated) {
+                if (count === realIdx) {
+                  app.setActiveStep(i);
+                  break;
+                }
+                count++;
+              }
+            }
+          }}
+        />
       )}
 
       <style

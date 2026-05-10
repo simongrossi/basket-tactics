@@ -5,6 +5,30 @@ Quand une idée mûrit, la déplacer dans [`etat-avancement.md`](./etat-avanceme
 
 ---
 
+### Phase "début / fin" sur les annotations de mouvement
+
+Aujourd'hui, dessiner un écran/cut/dribble de A à B sur l'étape N signifie
+"le joueur se déplace de A à B PENDANT l'étape N — il arrive à B à la FIN".
+L'écran est donc effectif à partir de l'étape N+1 (quand le défenseur passe).
+
+**Idée** : permettre à l'utilisateur de choisir au moment du dessin :
+- **Fin d'action** (actuel) : le joueur se déplace, arrive à destination en fin
+- **Début d'action** : le joueur est déjà à destination DÈS le début de l'étape
+
+Cas d'usage : poser un écran "déjà actif" à l'étape N. L'étape N-1 est mise
+à jour rétroactivement pour que le poseur soit déjà à la destination, et
+le défenseur subit l'écran pendant l'étape N quand il tente de suivre le porteur.
+
+**Implémentation** :
+- Nouveau champ optionnel `Annotation.phase: 'start' | 'end'` (default 'end')
+- UI : modal/toggle quand l'utilisateur dessine, ou clic-droit sur l'annotation
+- Logique : si phase='start', `upsertMovementAnnotation` met à jour Step[N-1].off
+- Indicateur visuel : annotation en pointillés différents si phase='start'
+
+**Workload estimé** : 1-2 sessions.
+
+---
+
 ### Affichage simultané des variantes (split view)
 
 Lié à l'Étape 7 (branches manuelles). Aujourd'hui une seule variante est active à la fois.

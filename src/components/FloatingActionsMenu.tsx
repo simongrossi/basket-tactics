@@ -6,6 +6,7 @@ interface FloatingActionsMenuProps {
   presentMode: boolean;
   onTogglePresentMode: () => void;
   onOpenPlaybook: () => void;
+  onOpenPlayerTimeline: () => void;
   onExport: () => void;
   onImport: () => void;
   onReset: () => void;
@@ -95,6 +96,7 @@ export function FloatingActionsMenu(props: FloatingActionsMenuProps) {
             label={props.presentMode ? '✕ quitter plein écran' : '🎬 plein écran'}
           />
           <MenuItem onClick={runAndClose(props.onOpenPlaybook)} label="📄 playbook PDF" />
+          <MenuItem onClick={runAndClose(props.onOpenPlayerTimeline)} label="🎞 timeline par joueur" />
           <MenuItem onClick={runAndClose(props.onExport)} label="exporter JSON" />
           <MenuItem onClick={runAndClose(props.onImport)} label="importer JSON" />
           <div style={{ height: 1, background: '#e2e8f0', margin: '4px 0' }} />
