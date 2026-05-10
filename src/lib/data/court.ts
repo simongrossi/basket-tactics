@@ -88,7 +88,32 @@ export const RESTRICTED_AREA_RADIUS = 46;
 export const CENTER_CIRCLE_RADIUS = 67;
 
 // =============================================================
+// Géométrie terrain — axes et tolérances
+// =============================================================
+// Ligne médiane verticale : axe x=300 (centre des paniers et du terrain).
+// Toute la logique côté ballon / côté fort / côté faible s'appuie dessus.
+export const COURT_CENTERLINE_X = 300;
+// Tolérance latérale pour considérer un point "dans l'axe" (ni gauche ni
+// droite). Utilisée par ballSide / attackerSide pour produire 0 quand le
+// porteur est dans cette bande centrale.
+export const CARRIER_SIDE_TOLERANCE_PX = 30;
+
+// =============================================================
 // Joueurs
 // =============================================================
 export const PLAYER_RADIUS = 16;
 export const BALL_RADIUS = 7;
+
+// Rayons dérivés pour collision / interaction. Centralisés ici pour éviter
+// les `PLAYER_RADIUS + N` éparpillés dans les composants et le moteur.
+//
+//  - OBSTACLE : rayon de "blocage" pendant le playback (curve-around).
+//  - PICK     : tolérance de clic souris pour sélectionner un joueur.
+//  - CLUSTER_BASE_R : rayon d'agrégation pour le clustering écran.
+//  - CLUSTER_LINK_DIST : distance max entre deux joueurs liés (poseur ↔ déf).
+//  - MIN_CLEARANCE : distance minimale entre deux centres joueur (anti-overlap).
+export const PLAYER_OBSTACLE_RADIUS_PX = PLAYER_RADIUS + 2;
+export const PLAYER_PICK_RADIUS_PX = PLAYER_RADIUS + 4;
+export const PLAYER_CLUSTER_BASE_R_PX = PLAYER_RADIUS + 4;
+export const PLAYER_CLUSTER_LINK_DIST_PX = PLAYER_RADIUS * 4;
+export const PLAYER_MIN_CLEARANCE_PX = PLAYER_RADIUS * 2 + 2;

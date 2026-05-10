@@ -13,7 +13,7 @@ import type {
   Point,
   Step,
 } from '@/lib/types';
-import { HOOP, COURT } from '@/lib/data/court';
+import { COURT, COURT_CENTERLINE_X, HOOP } from '@/lib/data/court';
 import { resolveZone, ballSideFromCarrier, type ZoneRef } from '@/lib/data/courtZones';
 
 // ============================================================
@@ -22,6 +22,14 @@ import { resolveZone, ballSideFromCarrier, type ZoneRef } from '@/lib/data/court
 
 const clampX = (x: number) => Math.max(COURT.marginX, Math.min(COURT.innerMaxX, x));
 const clampY = (y: number) => Math.max(COURT.marginY, Math.min(COURT.innerMaxY, y));
+
+/** Signe binaire du porteur par rapport à la ligne médiane (sans tolérance,
+ *  pour les fallbacks qui ont besoin d'un -1/+1 strict). Utilise
+ *  `sideSignFromCarrier` quand une zone explicite (fort/faible/axe) est
+ *  donnée par l'utilisateur. */
+function carrierBaseSign(carrier: Point): -1 | 1 {
+  return carrier.x < COURT_CENTERLINE_X ? -1 : 1;
+}
 
 function clamp(p: Point): Point {
   return { x: clampX(p.x), y: clampY(p.y) };
@@ -59,7 +67,10 @@ function resolveZonePoint(ref: ZoneRef | undefined, carrier: Point): Point | nul
  *  'fort' et -1 pour 'faible' afin que les deux options soient distinctes. */
 function sideSignFromCarrier(carrier: Point, side: 'fort' | 'faible' | 'axe' | undefined): -1 | 0 | 1 {
   if (side === 'axe') return 0;
-  const carrierSign: -1 | 0 | 1 = carrier.x < 295 ? -1 : carrier.x > 305 ? 1 : 0;
+  // Tolérance ±5 px pour considérer le porteur "dans l'axe" — plus stricte que
+  // CARRIER_SIDE_TOLERANCE_PX (30) car ici on choisit fort/faible explicite.
+  const carrierSign: -1 | 0 | 1 =
+    carrier.x < COURT_CENTERLINE_X - 5 ? -1 : carrier.x > COURT_CENTERLINE_X + 5 ? 1 : 0;
   if (side === 'faible') {
     if (carrierSign === 0) return -1;
     return -carrierSign as -1 | 1;
@@ -305,7 +316,7 @@ const genBackdoorCut: Generator = (prev, action) => {
   // Backdoor : on contourne en passant côté baseline (y vers panier, x s'écarte légèrement
   // côté ligne de fond avant de plonger).
   const start = prev.off[cutter];
-  const sign = start.x <= 300 ? -1 : 1;
+  const sign = start.x <= COURT_CENTERLINE_X ? -1 : 1;
   const target: Point = zonePoint ?? clamp({
     x: 300 + sign * 80,        // près de la ligne de fond côté baseline
     y: HOOP.y + 30,             // juste en bas du cercle
@@ -571,10 +582,10 @@ const genDrive: Generator = (prev, action) => {
   if (zonePoint) {
     target = zonePoint;
   } else if (direction === 'baseline') {
-    const sign = driverPos.x <= 300 ? -1 : 1;
-    target = clamp({ x: 300 + sign * 130, y: HOOP.y + 30 });
+    const sign = driverPos.x <= COURT_CENTERLINE_X ? -1 : 1;
+    target = clamp({ x: COURT_CENTERLINE_X + sign * 130, y: HOOP.y + 30 });
   } else if (direction === 'middle') {
-    target = clamp({ x: 300, y: HOOP.y + 50 });
+    target = clamp({ x: COURT_CENTERLINE_X, y: HOOP.y + 50 });
   } else {
     target = lerp(driverPos, HOOP, 0.6);
   }
@@ -710,7 +721,7 @@ const genFlexCut: Generator = (prev, action) => {
   // Step 2 : cutter coupe vers low-block fort.
   const target = zoneOrDefault(
     action.params.targetZone, carrier,
-    { x: carrier.x < 300 ? 225 : 375, y: 95 },
+    { x: carrierBaseSign(carrier) === -1 ? 225 : 375, y: 95 },
   );
   const off2 = move(off1, cutter, target);
   const step2 = makeStepFrom(off2, prev.ballCarrier, [
@@ -755,7 +766,7 @@ const genShallowCut: Generator = (prev, action) => {
   if (!cutter) return [];
   const carrier = prev.off[prev.ballCarrier];
   // Défaut : top → corner fort.
-  const fallback: Point = carrier.x < 300 ? { x: 53, y: 80 } : { x: 547, y: 80 };
+  const fallback: Point = carrierBaseSign(carrier) === -1 ? { x: 53, y: 80 } : { x: 547, y: 80 };
   const target = zoneOrDefault(action.params.targetZone, carrier, fallback);
   const off1 = move(prev.off, cutter, target);
   return [makeStepFrom(off1, prev.ballCarrier, [
@@ -919,7 +930,7 @@ const genHammerScreen: Generator = (prev, action) => {
     annot('screen', screener, prev.off, off1, cutter),
   ], { generatedBy: action.id, label: 'Hammer pose' });
 
-  const fallback: Point = carrier.x < 300 ? { x: 547, y: 80 } : { x: 53, y: 80 }; // corner faible
+  const fallback: Point = carrierBaseSign(carrier) === -1 ? { x: 547, y: 80 } : { x: 53, y: 80 }; // corner faible
   const target = zoneOrDefault(action.params.targetZone, carrier, fallback);
   const off2 = move(off1, cutter, target);
   const step2 = makeStepFrom(off2, prev.ballCarrier, [
@@ -1097,7 +1108,7 @@ const genStepUpScreen: Generator = (prev, action) => {
   if (!screener || !ballHandler) return [];
   // Step-up = écran qui pousse le porteur vers la baseline.
   const carrierPos = prev.off[ballHandler];
-  const sign = carrierPos.x < 300 ? -1 : 1;
+  const sign = carrierBaseSign(carrierPos);
   const screenPos: Point = { x: carrierPos.x, y: carrierPos.y + 25 }; // dans le dos vs panier
   const off1 = move(prev.off, screener, screenPos);
   const step1 = makeStepFrom(off1, prev.ballCarrier, [
@@ -1202,7 +1213,7 @@ const genSlideAction: Generator = (prev, action) => {
   if (!cutter || !screener) return [];
   const carrier = prev.off[prev.ballCarrier];
   // Step 1 : cutter vers dunker faible (par défaut).
-  const fallback: Point = carrier.x < 300 ? { x: 405, y: 90 } : { x: 195, y: 90 };
+  const fallback: Point = carrierBaseSign(carrier) === -1 ? { x: 405, y: 90 } : { x: 195, y: 90 };
   const target = zoneOrDefault(action.params.targetZone, carrier, fallback);
   const off1 = move(prev.off, cutter, target);
   const step1 = makeStepFrom(off1, prev.ballCarrier, [
@@ -1259,7 +1270,7 @@ const genDrift: Generator = (prev, action) => {
   const carrier = prev.off[prev.ballCarrier];
   // Default : drift vers le corner du même côté que le cutter.
   const start = prev.off[cutter];
-  const fallback: Point = start.x < 300 ? { x: 53, y: 80 } : { x: 547, y: 80 };
+  const fallback: Point = carrierBaseSign(start) === -1 ? { x: 53, y: 80 } : { x: 547, y: 80 };
   const target = zoneOrDefault(action.params.targetZone, carrier, fallback);
   const off1 = move(prev.off, cutter, target);
   return [makeStepFrom(off1, prev.ballCarrier, [

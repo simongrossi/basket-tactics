@@ -84,30 +84,52 @@ src/
     │   ├── defensiveActionsCatalog.ts  # catalogue des actions défensives scriptées
     │   └── scriptedActionsCatalog.ts   # catalogue des actions offensives scriptées
     ├── logic/                # MOTEUR PUR (aucun React)
-    │   │   — Cœur défensif —
-    │   ├── engine.ts                   # orchestration : appelle tous les autres + suivi runtime (followDefendersAtFrame, recomputeDefenseFrameOrientations)
+    │   │   — Cœur défensif (orchestrateur + couches) —
+    │   ├── engine.ts                   # orchestrateur 117 l : compose les couches via le pipeline
+    │   ├── attackerVisuals.ts          # orientation des attaquants par rôle (carrier/passer/cutter/screener/idle)
+    │   ├── defense/
+    │   │   ├── types.ts                # type partagé DefenderTarget
+    │   │   ├── context.ts              # DefenseFrameContext + buildDefenseFrameContext (setup phase)
+    │   │   ├── baseTargets.ts          # couche 1 : base man-to-man + help + screen-on-target + orientation initiale
+    │   │   ├── pnrLayer.ts             # couche 2 : rotations PnR (low-man tag + X-out + nail stunt)
+    │   │   ├── offBallScreenLayer.ts   # couche 3 : écrans hors-ballon (mute matchups si switch)
+    │   │   ├── trapLayer.ts            # couche 4 : trap auto en zone de trappe
+    │   │   ├── directiveLayer.ts       # couche 5 : directives défensives scriptées (step.defensiveDirectives)
+    │   │   ├── postPassOrientation.ts  # couche 6 : recalcul orientation final depuis positions ajustées
+    │   │   ├── zoneTargets.ts          # branche zone (ownership polygonal + tracking d'attaquant)
+    │   │   ├── speedConstraint.ts      # effectiveDefensePositions : vitesse max + closeout + friction + collisions
+    │   │   └── frameAdjust.ts          # followDefendersAtFrame + recomputeDefenseFrameOrientations (post-passes playback)
+    │   │
+    │   │   — Briques métier consommées par les couches —
     │   ├── manDefense.ts               # marquage individuel + stances
     │   ├── help.ts                     # logique d'aide (sag baseline + triggers)
     │   ├── triggers.ts                 # détection drive / post-up / paint
     │   ├── screens.ts                  # détection + ajustement écrans (porteur + non-porteur). 'hedge' bouge D5 (show) ET D1 (over the top).
-    │   ├── zoneDefense.ts              # logique de zone (mapping, rotation)
+    │   ├── zoneDefense.ts              # ownership polygonal de zone
     │   ├── trap.ts                     # choix du défenseur en aide-trap
     │   ├── metrics.ts                  # métriques défensives (gap, paint coverage, passes)
     │   ├── orientation.ts              # calcul des orientations O et D (corps + regard + bras)
     │   ├── vision.ts                   # vision humaine : clamp ±60°, cône 120°, regard distance-based
+    │   ├── angles.ts                   # math angulaire pur partagé (normalizeAngle, angleDiff, lerpAngleDeg)
     │   ├── geometry.ts                 # utilitaires : distance, clamp, lerp, ballSide
     │   │
-    │   │   — Trajectoires et lecture —
+    │   │   — Détection d'événements —
+    │   ├── events/
+    │   │   └── triggerDetector.ts      # detectStepScreenAction (écran porteur + classification d'action)
+    │   │
+    │   │   — Trajectoires et lecture (playback) —
     │   ├── playbackTrajectory.ts       # position interpolée d'un attaquant à t selon ses annotations
     │   ├── polyline.ts                 # spline Catmull-Rom (V-cut, freehand) : sample, path, simplify
     │   ├── dribbleWave.ts              # wave Q-Bezier du dribble (sans waypoints)
+    │   ├── playback/
+    │   │   └── frameResolver.ts        # resolveFrameAt(state, t) — fonction pure unifiée play+scrub
     │   │
     │   │   — Actions défensives scriptées —
     │   ├── applyDirective.ts           # application d'une directive défensive à l'engine
     │   ├── defensiveCompilation.ts     # compilation des actions scriptées → directives
     │   ├── defensiveDefaults.ts        # valeurs par défaut des actions défensives
     │   ├── scriptedActionMigration.ts  # migration des anciens formats d'actions
-    │   ├── scriptedGenerators.ts       # générateurs d'actions scriptées (PNR, etc.)
+    │   ├── scriptedGenerators.ts       # générateurs d'actions scriptées (PNR, etc.)  ⚠ 1491 l, à découper (cf. ROADMAP § A4)
     │   ├── compileScenario.ts          # compilation complète d'un scénario
     │   ├── pnrRotations.ts             # rotations défensives sur PNR
     │   ├── screenAction.ts             # logique d'action sur écran
@@ -121,8 +143,10 @@ src/
     │   │   — Zone et situations —
     │   ├── zoneSituations.ts           # détection de situations de zone (overload, skip)
     │   └── coachDiagnostics.ts         # génération des avertissements coach
+    ├── constants/
+    │   └── gameplay.ts                 # DRIBBLE_THRESHOLD_PX, POST_HOLD_THRESHOLD_PX
     └── types/
-        └── index.ts          # tous les types
+        └── index.ts                    # tous les types
 ```
 
 ## Flux de données
@@ -161,33 +185,71 @@ L'utilisateur peut **drag** un défenseur sur le terrain → la position est éc
 
 ### Pourquoi le moteur est-il pur ?
 
-Toute la logique défensive (engine.ts, screens.ts, etc.) est **pure** : entrée = `AppState`, sortie = positions. Aucun hook React, aucun localStorage, aucun side-effect.
+Toute la logique défensive (engine.ts, defense/*.ts, screens.ts, etc.) est **pure** : entrée = `AppState`, sortie = positions. Aucun hook React, aucun localStorage, aucun side-effect.
 
 Avantages :
-- Testable isolément (cf. [testing.md](testing.md) — ~198 tests Vitest dans 21 fichiers : engine, screens, metrics, help, trap, manDefense, geometry, threats, offense, simulator, orientation, zone, directives défensives scriptées…)
+- Testable isolément (cf. [testing.md](testing.md) — ~336 tests Vitest dans 27 fichiers : engine, screens, metrics, help, trap, manDefense, geometry, threats, offense, simulator, orientation, zone, directives défensives scriptées…)
 - Réutilisable en SSR / export PDF / preview
 - Le rendu peut s'appuyer dessus sans gérer d'état intermédiaire
 
 ## Cycle de calcul d'une étape
 
+`computeDefenseTargets(state, stepIdx)` est un **orchestrateur** qui compose un pipeline de couches indépendantes (`src/lib/logic/defense/`). Chaque couche prend le contexte de frame en lecture, et mute le record `positions` (et éventuellement `matchups`) en place.
+
 ```
 computeDefenseTargets(state, stepIdx)
 ├── Branche zone ──→ computeZoneDefenseTargets()
-└── Branche man (par défaut)
-    ├── getMatchupsAt(steps, stepIdx-1)        # cumule les switches passés
-    ├── detectScreen(...)                       # écran sur porteur ?
-    ├── applySwitch() si rule === 'switch'
-    ├── pour chaque défenseur :
-    │   ├── isCarrierDefender ?
-    │   │   ├── oui → carrierDefenderTarget(rule.vsCarrier, ...)
-    │   │   └── non → offBallStanceTarget OU manTarget + computeHelpTarget
-    │   └── applyScreenAdjustment() si concerné
-    └── detectOffBallScreens(...)               # écrans non-porteur
-        └── applyOffBallScreenAdjustment() ou applySwitchOffBall()
+└── Branche man (par défaut) :
+    │
+    │   ── Setup ──
+    ├── buildDefenseFrameContext(state, stepIdx, mutateStepForSwitch)
+    │   ├── getMatchupsAt(steps, stepIdx-1)        # cumule les switches passés
+    │   ├── prevDefenderPositions (récursion N-1, ou setup si N=0)
+    │   ├── detectScreen + détermine effectiveScreenRule
+    │   ├── applySwitch() si rule === 'switch' (mute step.switches)
+    │   ├── peelSwitchShouldFire() → switch tardif si porteur a dépassé
+    │   ├── detectTriggers (drive/post/paint)
+    │   └── ballSide, hoop, prevOff
+    │
+    │   ── Pipeline (couches enchaînées sur positions muté en place) ──
+    ├── 1. applyBaseTargetsLayer
+    │   └── pour chaque défenseur :
+    │       ├── isCarrierDefender ? → carrierDefenderTarget(vsCarrier, …)
+    │       │                       │ sinon → offBallStanceTarget OU manTarget
+    │       ├── stance === 'sag' ? → computeHelpTarget (bias d'aide)
+    │       ├── applyScreenAdjustment (drop/over/under/chase/blitz/hedge)
+    │       ├── orientationLateralOffset (offset latéral manuel)
+    │       └── computeDefenderOrientation (orientation initiale)
+    │
+    ├── 2. applyPnRRotationsLayer
+    │   ├── detectScreenAction (roll/short-roll/slip/pop/ghost/reject/snake)
+    │   └── computePnRRotations → low-man tag + X-out + nail stunt
+    │
+    ├── 3. applyOffBallScreenLayer
+    │   ├── detectOffBallScreens
+    │   └── applyOffBallScreenAdjustment OU applySwitchOffBall (mute matchups)
+    │
+    ├── 4. applyTrapLayer
+    │   └── pickTrapHelper + trapTarget (si trigger trap + porteur en zone)
+    │
+    ├── 5. applyDirectiveLayer
+    │   └── applyDirective(...) pour chaque step.defensiveDirectives
+    │
+    └── 6. applyPostPassOrientationLayer
+        └── computeDefenderOrientation à partir des positions FINALES
+            (pour que low-man tag pointe la zone de menace, pas son homme)
 ```
 
-`effectiveDefensePositions` ajoute par-dessus :
+Chaque couche est isolée derrière une signature `(positions, [matchups,] ctx) → void` et testable indépendamment. Pour ajouter une 7ᵉ couche (ex : communication défensive) : un fichier dans `defense/` + une ligne dans le pipeline.
+
+`effectiveDefensePositions` (`defense/speedConstraint.ts`) consomme le résultat du pipeline et ajoute :
+- pré-relaxation hors des attaquants non-matchés (lever C)
+- longueur d'arc autour des clusters d'écran (lever A — mêmes obstacles que le rendu du scrub)
+- friction de proximité (lever B)
+- closeout + over-closeout (transition de balle, modulé par profil offensif du porteur)
 - contrainte de vitesse max → si la cible est trop loin, le défenseur reste en chemin et est marqué `late: true`
+- solveur de collisions strict
+- recompute orientation final depuis les positions effectives
 
 ## Persistance
 

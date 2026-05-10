@@ -1,5 +1,7 @@
 import type { Point, OffBallStance, CarrierBehavior, BodyOrientationMode } from '../types';
 import { clampGazeToFrontal, resolveDefenderGaze } from './vision';
+import { angleDiff, lerpAngleDeg as lerpAngleDegShared, normalizeAngle } from './angles';
+import { DRIBBLE_THRESHOLD_PX } from '../constants/gameplay';
 
 // =============================================================================
 // INVARIANTS ANATOMIQUES — INVIOLABLES
@@ -203,8 +205,6 @@ export interface AttackerOrientationInput {
   manualGaze?: number;
 }
 
-const DRIBBLE_THRESHOLD_PX = 30;
-
 export function computeAttackerOrientation(input: AttackerOrientationInput): OrientationResult {
   const { attackerPos, role, ballPos, hoop, receiverPos, nextPos, screenTargetDefPos, prevPos, manualBody, manualGaze } = input;
 
@@ -324,16 +324,6 @@ function angleFromNorth(from: Point, to: Point): number {
   return (Math.atan2(dx, -dy) * 180) / Math.PI;
 }
 
-/** Normalise un angle dans [0, 360). */
-function normalizeAngle(deg: number): number {
-  return ((deg % 360) + 360) % 360;
-}
-
-/** Différence signée d'angles dans [-180, 180]. */
-function angleDiff(a: number, b: number): number {
-  return ((a - b) % 360 + 540) % 360 - 180;
-}
-
 function computeDefenderBodyOrientation(input: {
   defenderPos: Point;
   manPos: Point;
@@ -445,8 +435,8 @@ function clampDelta(d: number | undefined): number {
 /**
  * Lerp angulaire entre deux angles en degrés. Prend le plus court chemin
  * autour du cercle. Évite l'effet "rotation à l'envers" en passant 0/360.
+ *
+ * Réexporté depuis `./angles` pour préserver l'API publique (CourtView et
+ * tests historiques importent depuis `orientation`).
  */
-export function lerpAngleDeg(a: number, b: number, t: number): number {
-  const diff = angleDiff(b, a);
-  return a + diff * t;
-}
+export const lerpAngleDeg = lerpAngleDegShared;

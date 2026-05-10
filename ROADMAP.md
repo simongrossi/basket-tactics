@@ -10,6 +10,14 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
 ## Livré récemment (mai 2026)
 
+- 🟢 **Refacto moteur défensif en couches** (2026-05-10) :
+  - **`engine.ts` : 982 → 117 lignes** (-88%). Le calcul des cibles défensives (`computeDefenseTargets`, ~290 lignes monolithique) découpé en pipeline de 6 couches isolées dans `src/lib/logic/defense/` : context → baseTargets → pnrRotations → offBallScreen → trap → directives → postPassOrientation. Chaque couche est testable en isolation derrière une signature `(positions, [matchups,] ctx) → void`.
+  - `effectiveDefensePositions` (contrainte vitesse + closeout + friction + collisions, ~235 l) sortie dans `defense/speedConstraint.ts`. `followDefendersAtFrame` + `recomputeDefenseFrameOrientations` dans `defense/frameAdjust.ts`. `computeAttackerVisuals` dans `attackerVisuals.ts`. `detectStepScreenAction` dans `events/triggerDetector.ts`.
+  - **`CourtView.tsx` : 1222 → 811 lignes** (-34%). Boucle d'animation extraite dans le hook `usePlaybackAnimation`, calcul de frame interpolée (play + scrub) unifié dans `playback/frameResolver.ts`. Plus de divergence silencieuse possible entre play et scrub. Les 10 overlays regroupés sous `src/components/overlays/`. `GhostLayer` extrait.
+  - Centralisation des constantes physiques : `COURT_CENTERLINE_X`, `CARRIER_SIDE_TOLERANCE_PX`, 5 offsets `PLAYER_*` dans `data/court.ts` ; `DRIBBLE_THRESHOLD_PX`, `POST_HOLD_THRESHOLD_PX` dans `constants/gameplay.ts` ; `normalizeAngle`/`angleDiff`/`lerpAngleDeg` dédupliqués dans `logic/angles.ts`. **`vision.ts` et `orientation.ts` restent strictement séparés** — seul le math angulaire pur est mutualisé.
+  - Comportement bit-identique (zéro changement fonctionnel), 336 tests verts à chaque sous-étape, ré-exports gardés sur `engine.ts` pour préserver l'API publique.
+  - Détail complet : [CHANGELOG.md § Refactor](CHANGELOG.md). Architecture mise à jour : [docs/architecture.md](docs/architecture.md).
+
 - 🟢 **0.8.0 — cycle "lecture animée fidèle"** (2026-05-10) :
   - **Trajectoires courbes** : annotation `cut`/`dribble`/`screen` gagne `waypoints?: Point[]`. Shift+drag enregistre un freehand simplifié en 3-7 waypoints (Douglas-Peucker, tolérance 6 px). Rendu et lecture via spline Catmull-Rom (τ=0.5, équivalent Bezier cubique exact en SVG), reparamétrée en longueur d'arc → vitesse perçue constante quel que soit la courbure. V-cut, L-cut, démarquage en arc, dribble curviligne couverts. Module [`polyline.ts`](src/lib/logic/polyline.ts).
   - **Suivi temps-réel des défenseurs en lecture** : `followDefendersAtFrame` ([`engine.ts`](src/lib/logic/engine.ts)) recalcule chaque défenseur (carrier + off-ball) à chaque frame depuis la position courante de son attaquant marqué via `carrierDefenderTarget` / `offBallStanceTarget` / `manTarget`. Avant, l'interpolation linéaire entre defA et defB faisait que le défenseur prenait la corde des arcs offensifs. Skip si placement manuel via `defenseOverrides`.
@@ -238,6 +246,57 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 
 ---
 
+## 4. Dette technique & refactos restants
+
+La passe de refacto de mai 2026 a découpé `engine.ts` (982 → 117 lignes) et `CourtView.tsx` (1222 → 811 lignes), centralisé les constantes physiques, et regroupé les overlays. Reste 3 gros morceaux identifiés dans le plan original :
+
+### ⚪ A4 — Casser `scriptedGenerators.ts` (1491 lignes)
+
+50 generators d'actions FIBA (PnR, cuts, screens, handoffs…) dans un seul fichier monolithique. Chaque action = 30+ lignes de trajectoire hardcodée → duplication massive (calcul du `carrierBaseSign`, fallbacks de coin, polylines de cuts).
+
+**Plan** :
+- `src/lib/logic/scripted/trajectoryBuilder.ts` — helpers `moveTo(point, frames)`, `screenAt(point, hold)`, `cutTo(point, via?)`, `dribbleTo(point)`. Génère le polyline + waypoints + flags attendus par `playbackTrajectory.ts`.
+- Un fichier par famille d'action : `actions/pickAndRoll.ts` (PnR + slip + reject + drag), `actions/cuts.ts` (back-cut, flare, ucla), `actions/screens.ts` (staggered, elevator, hammer, ram, wide, wiper), `actions/handoff.ts`, `actions/dribbleActions.ts`.
+- `scripted/index.ts` — registry `{ kind: ScriptedKind → generator }`. Le switch/dispatch actuel devient `registry[kind](params)`.
+- Estimation : ~2 jours, P2.
+
+### ⚪ A5 — Démêler `useAppState.ts` (766 lignes)
+
+Hook géant qui mélange state global + persistance localStorage + 20+ action handlers + recompilation scénario. Hard à tester, refactors risqués, pas de boundaries claires.
+
+**Plan** :
+- `src/state/store.ts` — state nu + setters atomiques.
+- `src/state/actions/` — un fichier par domaine (`playerActions.ts`, `scenarioActions.ts`, `defenseActions.ts`, `annotationActions.ts`, `zoneActions.ts`). Chaque action = fonction pure `(state, payload) → newState`.
+- `src/state/persistence.ts` — load/save localStorage + migrations de schéma.
+- `useAppState.ts` réduit à de la glue : compose les actions, appelle `recompileScenarioSteps()` aux bons moments.
+- Migration vers Zustand optionnelle (pas une obligation).
+- Estimation : ~1.5 jour, P2.
+
+### ⚪ A6 — Tests composants
+
+Aujourd'hui zéro test sur `src/components/`. Le hook `usePlaybackAnimation` (extrait en A2) et les overlays isolés (A2.3) sont devenus testables.
+
+**Plan** :
+- Tests `usePlaybackAnimation` (transitions step, fin de lecture, reprise depuis scrub).
+- Tests sur les overlays isolés (`HeatmapOverlay`, `FieldOfViewOverlay`, `PassLanesOverlay`, `ThreatOverlay`) avec inputs frames mockés.
+- Pas la peine de tester CourtView de bout en bout — trop de surface, ROI faible.
+- Estimation : ~2 jours, P3 (à faire après A2 — fait — donc débloqué).
+
+### ⚪ Mode "Play IA — voir un match jouer tout seul" (parties B1-B5 du plan)
+
+L'infrastructure existe (géométrie, threats, offense EV, défense réactive, simulator Monte-Carlo) mais il **manque la boucle de match autonome** : pas de bouton "▶ Play IA" qui fasse jouer 5v5 en continu sur 24 secondes de shot clock visualisable. Le simulateur actuel fait des possessions stochastiques sur un état figé.
+
+Ce qu'il faut pour que ça marche :
+- **B1 — Game loop** : `match/gameLoop.ts` avec `tick(matchState, dt) → matchState'`. Cadence de décision ~5 Hz, interpolation entre.
+- **B2 — Décideur joueur autonome** : `match/decisions/ballHandler.ts` (dribble continu / passer / tirer / reset), `match/decisions/offBallMover.ts` (spacing / cuts / écrans). Mémoire courte d'intent par joueur.
+- **B3 — Modèle de tir + rebond + transition possession**.
+- **B4 — UI** : bouton "▶ Play IA (live)" dans `SimulationSection`, HUD léger (possession, shot clock, score, dernière action), pause + vitesse.
+- **B5 — Tuning** via Monte-Carlo en parallèle (PPP du mode live vs simulator → ±0.15 attendu).
+
+**Statut** : repoussé tout en bas de la pile par décision projet (cf. `feedback project_priorities_2026_05`). Les refactos A* débloquent tout le reste, "Play IA" est une feature isolée qui peut attendre.
+
+---
+
 ## Hors roadmap court terme
 
-Idées plus lointaines (modélisation agent, mode coach audio, multi-utilisateur, IA défensive) : voir [IDEAS.md § Idées plus loin](IDEAS.md).
+Idées plus lointaines (modélisation agent, mode coach audio, multi-utilisateur, IA défensive en édition) : voir [IDEAS.md § Idées plus loin](IDEAS.md).

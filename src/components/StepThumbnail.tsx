@@ -10,11 +10,11 @@ import type {
 import { CourtBackground, ArrowMarkers } from './Court';
 import { Player, Ball } from './Player';
 import { AnnotationView } from './Annotations';
-import { ActionOrderBadges } from './ActionOrderBadges';
+import { ActionOrderBadges } from './overlays/ActionOrderBadges';
 import { effectiveDefensePositions, getMatchupsAt, computeAttackerVisuals } from '@/lib/logic/engine';
 import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
 import { getZoneLayout, mirrorZoneLayout } from '@/lib/data/zones';
-import { ZoneOverlay } from './Overlays';
+import { ZoneOverlay } from './overlays/MatchupAndScreenOverlays';
 import { COURT, FULL_COURT_HEIGHT } from '@/lib/data/court';
 import {
   activeBallCarrier,

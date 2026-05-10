@@ -1,4 +1,5 @@
 import type { OffBallStance, Point } from '../types';
+import { angleDiff, normalizeAngle } from './angles';
 
 export type GazeLock = 'opponent' | 'ball-carrier' | 'both';
 
@@ -160,14 +161,6 @@ function angleFromNorth(from: Point, to: Point): number {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   return (Math.atan2(dx, -dy) * 180) / Math.PI;
-}
-
-function normalizeAngle(deg: number): number {
-  return ((deg % 360) + 360) % 360;
-}
-
-function angleDiff(a: number, b: number): number {
-  return ((a - b) % 360 + 540) % 360 - 180;
 }
 
 function clamp(value: number, min: number, max: number): number {
