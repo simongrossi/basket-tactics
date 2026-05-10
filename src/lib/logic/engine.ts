@@ -8,10 +8,10 @@ import type {
   AttackerId,
   AttackerPositions,
 } from '../types';
-import { getZoneLayout, mirrorZoneLayout, applyZoneOverrides } from '../data/zones';
+import { getZoneLayout, mirrorZoneLayout } from '../data/zones';
 import { detectTriggers } from './triggers';
 import { manTarget, carrierDefenderTarget, offBallStanceTarget, orientationLateralOffset } from './manDefense';
-import { computeDefenderOrientation, computeAttackerOrientation, type AttackerRole } from './orientation';
+import { computeDefenderOrientation } from './orientation';
 import { DEFAULT_CLOSEOUT_BOOST, DEFAULT_DENY_AGGRESSIVENESS, MIN_PLAYER_CLEARANCE_PX } from '../data/physics';
 import { computeHelpTarget, leaveAttackerCostMultiplier, closeoutProfileBonus } from './help';
 import {
@@ -23,8 +23,9 @@ import {
   applySwitchOffBall,
   peelSwitchShouldFire,
 } from './screens';
-import { computeZoneTargets } from './zoneDefense';
-import { detectScreenAction, type DetectedScreenAction } from './screenAction';
+import { computeZoneDefenseTargets } from './defense/zoneTargets';
+import { followDefendersAtFrame, recomputeDefenseFrameOrientations } from './defense/frameAdjust';
+import { detectScreenAction } from './screenAction';
 import { computePnRRotations } from './pnrRotations';
 import {
   ballSide,
@@ -43,7 +44,6 @@ import {
   PLAYER_CLUSTER_LINK_DIST_PX,
   PLAYER_RADIUS,
 } from '../data/court';
-import { DRIBBLE_THRESHOLD_PX } from '../constants/gameplay';
 import type { Point } from '../types';
 import { isInTrapZone, pickTrapHelper, trapTarget } from './trap';
 import { applyDirective } from './applyDirective';
@@ -113,7 +113,7 @@ export function computeDefenseTargets(
   const prevDefenderPositions: DefenderPositions =
     stepIdx === 0
       ? activeDefenseInitial(state.defenseInitial, state.playerCount)
-      : extractPositions(computeDefenseTargets(state, stepIdx - 1, false).positions);
+      : extractDefenderPositions(computeDefenseTargets(state, stepIdx - 1, false).positions);
 
   const prevOffAtStep: AttackerPositions | undefined =
     stepIdx > 0 ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount) : undefined;
@@ -394,184 +394,16 @@ export function computeDefenseTargets(
   return { positions, matchupsApplied: matchups };
 }
 
-function computeZoneDefenseTargets(
-  state: AppState,
-  stepIdx: number
-): { positions: Record<DefenderId, { x: number; y: number; helpFactor: number; isCarrierDefender: boolean; matchedTo: AttackerId; onScreen: boolean; switchedThisStep: boolean; orientation: number; gazeOrientation: number; facing: { x: number; y: number }; armBallSide: { x: number; y: number }; armManSide: { x: number; y: number }; helpAim?: { x: number; y: number }; helpPriority?: import('../types').HelpPriority; helpKind?: 'sag-weakside' | 'denial-strongside' | 'active-help' | 'none' }>; matchupsApplied: Matchups } {
-  const cur = state.steps[stepIdx];
-  const off = activeOffense(cur.off, state.playerCount);
-  const ballCarrier = activeBallCarrier(cur, state.playerCount);
-  const defenderIds = getActiveDefenderIds(state.playerCount);
-  const hoop = getDefenseHoop(state);
-  const baseLayout = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
-  // En mode attack 'down', miroite le layout autour de la médiane pour que
-  // les zones soient devant le panier protégé (bas).
-  const oriented = state.attackingDirection === 'down' ? mirrorZoneLayout(baseLayout) : baseLayout;
-  // Applique les overrides utilisateur (homePos déplacés, radius, mode) après
-  // l'orientation pour rester invariant au sens d'attaque.
-  const layout = applyZoneOverrides(oriented, state.zoneOverrides).filter((z) =>
-    defenderIds.includes(z.assignedTo)
-  );
-  const zoneTargets = computeZoneTargets(
-    off, ballCarrier, layout, state.zoneConfig, state.defenseDistance, hoop
-  );
+// `computeZoneDefenseTargets` extrait dans `./defense/zoneTargets.ts`.
 
-  const positions = {} as ReturnType<typeof computeDefenseTargets>['positions'];
-  const matchups = {} as Matchups;
+// `computeAttackerVisuals` a été extrait dans `./attackerVisuals.ts`.
+// Ré-export pour ne pas casser les imports historiques (CourtView, StepThumbnail,
+// frameResolver pointent encore vers `./engine`).
+export { computeAttackerVisuals } from './attackerVisuals';
 
-  const carrierPosZone = off[ballCarrier];
-  defenderIds.forEach((dId) => {
-    const zt = zoneTargets[dId];
-    const trackedAttacker = zt?.trackedAttacker || ballCarrier;
-    matchups[dId] = trackedAttacker;
-    const x = zt?.x ?? state.defenseInitial[dId].x;
-    const y = zt?.y ?? state.defenseInitial[dId].y;
-    const att = off[trackedAttacker];
-    // En zone, tout le monde regarde le ballon (principe de base) ; le
-    // tracking d'un attaquant est secondaire. On reflète ça via stance="sag"
-    // (head-on-swivel) qui produit facing = midpoint(homme, ballon), ce qui
-    // est en pratique très proche du ballon quand le défenseur n'est pas
-    // collé à un homme.
-    const orient = computeDefenderOrientation({
-      defenderPos: { x, y },
-      manPos: att ?? { x, y },
-      ballPos: carrierPosZone ?? { x, y },
-      isCarrierDefender: trackedAttacker === ballCarrier,
-      stance: 'sag',
-      manualDelta: state.rules[dId]?.orientation ?? 0,
-      manualBody: state.rules[dId]?.bodyOrientation,
-      bodyMode: state.rules[dId]?.bodyOrientationMode,
-      gazeLock: state.rules[dId]?.gazeLock,
-    });
-    positions[dId] = {
-      x,
-      y,
-      helpFactor: 0,
-      isCarrierDefender: trackedAttacker === ballCarrier,
-      matchedTo: trackedAttacker,
-      onScreen: false,
-      switchedThisStep: false,
-      orientation: orient.bodyOrientation,
-      gazeOrientation: orient.gazeOrientation,
-      facing: orient.facing,
-      armBallSide: orient.armBallSide,
-      armManSide: orient.armManSide,
-    };
-  });
-
-  return { positions, matchupsApplied: matchups };
-}
-
-/**
- * Calcule orientation + facing pour chaque attaquant à une étape donnée.
- *
- * Les rôles sont déduits du contexte :
- *  - `carrier` : le porteur de balle.
- *  - `passer` : à la transition stepIdx-1 → stepIdx, l'ex-porteur (s'il y a
- *    eu changement de carrier) regarde le NOUVEAU porteur (receveur). À cette
- *    étape, c'est lui le "passer" si le ballon était sur lui à l'étape
- *    précédente.
- *  - `cutter` : un non-porteur dont le delta vers l'étape SUIVANTE est > 30 px
- *    (il s'apprête à bouger, son orientation suit la course).
- *  - `screener` : si un écran est détecté (porteur ou off-ball), le poseur
- *    s'oriente perpendiculairement à la ligne screener→défenseur ciblé.
- *  - `idle` : aucun rôle particulier → regarde le ballon.
- */
-export function computeAttackerVisuals(
-  state: AppState,
-  stepIdx: number
-): import('../types').ComputedAttackerVisuals {
-  const cur = state.steps[stepIdx];
-  if (!cur) return {} as import('../types').ComputedAttackerVisuals;
-  const off = activeOffense(cur.off, state.playerCount);
-  const carrier = activeBallCarrier(cur, state.playerCount);
-  const ballPos = off[carrier];
-  const hoop = getDefenseHoop(state);
-  const next = state.steps[stepIdx + 1];
-  const prev = state.steps[stepIdx - 1];
-
-  // Détection écran porteur + off-ball pour les rôles screener (man uniquement).
-  let detectedScreener: AttackerId | null = null;
-  let screenerTargetDef: { x: number; y: number } | null = null;
-  const offBallScreeners = new Map<AttackerId, { x: number; y: number }>();
-  if (state.defenseSystem === 'man') {
-    const matchups = getMatchupsAt(state.steps, stepIdx - 1, state.playerCount);
-    const prevDef =
-      stepIdx === 0
-        ? activeDefenseInitial(state.defenseInitial, state.playerCount)
-        : extractPositions(computeDefenseTargets(state, stepIdx - 1, false).positions);
-    const prevOffArg = stepIdx > 0 ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount) : undefined;
-    const sc = detectScreen(off, carrier, matchups, prevDef, state.screenRadius, cur.forcedScreener, prevOffArg);
-    if (sc) {
-      detectedScreener = sc.screener;
-      screenerTargetDef = prevDef[sc.carrierDef];
-    }
-    const obs = detectOffBallScreens(off, carrier, matchups, prevDef, state.screenRadius, prevOffArg);
-    obs.forEach((o) => {
-      offBallScreeners.set(o.screener, prevDef[o.cutterDef]);
-    });
-  }
-
-  const out: import('../types').ComputedAttackerVisuals = {} as import('../types').ComputedAttackerVisuals;
-  (Object.keys(off) as AttackerId[]).forEach((id) => {
-    const attackerPos = off[id];
-    let role: AttackerRole = 'idle';
-    let receiverPos: Point | undefined;
-    let nextPos: Point | undefined;
-    let screenTargetDefPos: Point | undefined;
-
-    if (id === carrier) {
-      role = 'carrier';
-    } else if (prev && activeBallCarrier(prev, state.playerCount) === id && carrier !== id) {
-      // L'ex-porteur regarde le receveur (transition de balle).
-      role = 'passer';
-      receiverPos = off[carrier];
-    } else if (id === detectedScreener && screenerTargetDef) {
-      role = 'screener';
-      screenTargetDefPos = screenerTargetDef;
-    } else if (offBallScreeners.has(id)) {
-      role = 'screener';
-      screenTargetDefPos = offBallScreeners.get(id)!;
-    } else if (next) {
-      const np = activeOffense(next.off, state.playerCount)[id];
-      if (np) {
-        const dx = np.x - attackerPos.x;
-        const dy = np.y - attackerPos.y;
-        if (Math.hypot(dx, dy) > DRIBBLE_THRESHOLD_PX) {
-          role = 'cutter';
-          nextPos = np;
-        }
-      }
-    }
-
-    const manualOverride = state.attackerOrientations?.[id];
-    const r = computeAttackerOrientation({
-      attackerPos,
-      role,
-      ballPos: ballPos ?? attackerPos,
-      hoop,
-      receiverPos,
-      nextPos,
-      screenTargetDefPos,
-      // Détection dribble pour le porteur (cf. règle métier dans
-      // orientation.ts : porteur statique → panier ; en dribble → mouvement).
-      prevPos: prev ? activeOffense(prev.off, state.playerCount)[id] : undefined,
-      manualBody: manualOverride?.body,
-      manualGaze: manualOverride?.gaze,
-    });
-    out[id] = {
-      orientation: r.bodyOrientation,
-      gazeOrientation: r.gazeOrientation,
-      facing: r.facing,
-      armBallSide: r.armBallSide,
-      armManSide: r.armManSide,
-    };
-  });
-
-  return out;
-}
-
-function extractPositions(
+/** Réduit un record de cibles défensives riches en plain `DefenderPositions`
+ *  (juste x/y). Helper partagé entre engine.ts et attackerVisuals.ts. */
+export function extractDefenderPositions(
   positions: Record<DefenderId, { x: number; y: number }>
 ): DefenderPositions {
   const out = {} as DefenderPositions;
@@ -581,55 +413,10 @@ function extractPositions(
   return out;
 }
 
-/**
- * Détecte l'écran porteur ET le type d'action (roll/pop/slip/short-roll/ghost/
- * reject/snake/re-screen) pour une étape donnée. Retourne null si aucun écran
- * n'est détecté à cette étape.
- *
- * Glue qui rassemble : matchups courants, positions défensives précédentes
- * (pour `detectScreen`), écran de l'étape précédente (pour `re-screen`), et
- * positions attaquantes des deux étapes précédentes (pour `snake`).
- */
-export function detectStepScreenAction(
-  state: AppState,
-  stepIdx: number
-): { screen: import('../types').DetectedScreen; action: DetectedScreenAction } | null {
-  if (state.defenseSystem !== 'man') return null;
-  const cur = state.steps[stepIdx];
-  if (!cur) return null;
-  const off = activeOffense(cur.off, state.playerCount);
-  const ballCarrier = activeBallCarrier(cur, state.playerCount);
-  const matchups = getMatchupsAt(state.steps, stepIdx - 1, state.playerCount);
-  const prevDef =
-    stepIdx === 0
-      ? activeDefenseInitial(state.defenseInitial, state.playerCount)
-      : extractPositions(computeDefenseTargets(state, stepIdx - 1, false).positions);
-  const prevOff = stepIdx > 0 ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount) : null;
-  const prevPrevOff = stepIdx > 1 ? activeOffense(state.steps[stepIdx - 2].off, state.playerCount) : null;
-  const screen = detectScreen(
-    off, ballCarrier, matchups, prevDef, state.screenRadius, cur.forcedScreener, prevOff ?? undefined
-  );
-  if (!screen) return null;
-  let prevScreen: import('../types').DetectedScreen | null = null;
-  if (stepIdx > 0) {
-    const prevStep = state.steps[stepIdx - 1];
-    const prevStepOff = activeOffense(prevStep.off, state.playerCount);
-    const prevCarrier = activeBallCarrier(prevStep, state.playerCount);
-    const prevMatchups = getMatchupsAt(state.steps, stepIdx - 2, state.playerCount);
-    const prevPrevDef =
-      stepIdx === 1
-        ? activeDefenseInitial(state.defenseInitial, state.playerCount)
-        : extractPositions(computeDefenseTargets(state, stepIdx - 2, false).positions);
-    prevScreen = detectScreen(
-      prevStepOff, prevCarrier, prevMatchups, prevPrevDef, state.screenRadius, prevStep.forcedScreener,
-      prevPrevOff ?? undefined
-    );
-  }
-  const action = detectScreenAction(
-    off, prevOff, screen, prevScreen, prevPrevOff, getDefenseHoop(state)
-  );
-  return { screen, action };
-}
+// `detectStepScreenAction` extrait dans `./events/triggerDetector.ts`.
+// Ré-export pour préserver l'API consommée par tacticalReads, coachDiagnostics
+// et app/page.tsx.
+export { detectStepScreenAction } from './events/triggerDetector';
 
 /**
  * Calcule les positions effectives en appliquant la contrainte de vitesse max.
@@ -680,7 +467,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
       prevPositions = activeDefenseInitial(state.defenseInitial, state.playerCount);
     }
   } else {
-    prevPositions = extractPositions(computeDefenseTargets(state, stepIdx - 1, false).positions);
+    prevPositions = extractDefenderPositions(computeDefenseTargets(state, stepIdx - 1, false).positions);
   }
 
   const overrides = state.steps[stepIdx]?.defenseOverrides;
@@ -871,112 +658,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
   return out;
 }
 
-/**
- * En lecture, chaque défenseur en marquage individuel doit suivre EN TEMPS
- * RÉEL la position courante de son attaquant (qui peut suivre une wave
- * dribble, un V-cut, une polyline courbe). Sinon, l'interpolation linéaire
- * entre defA et defB le fait passer par une corde au lieu de la trajectoire
- * réelle de l'attaquant — il "coupe au plus court" et lâche son homme.
- *
- * Comportement :
- *  - Carrier defender → `carrierDefenderTarget` (vsCarrier, distance, hoop)
- *  - Off-ball → `offBallStanceTarget` (stance, ball) ou `manTarget` (sag/behind)
- *  - Skipped si l'utilisateur a posé un placement manuel (`defenseOverrides`)
- *    sur l'une des deux étapes du segment — sa position imposée prime.
- *
- * NB : aide (`helpFactor`, `helpAim`), closeout, denying restent ceux calculés
- * par `effectiveDefensePositions` aux étapes A/B et interpolés. Cette fonction
- * réécrit uniquement la POSITION de marquage, pas les flags d'état.
- */
-export function followDefendersAtFrame(
-  defPos: ComputedDefense,
-  off: AttackerPositions,
-  ballCarrier: AttackerId,
-  state: AppState,
-  idxA: number,
-  idxB: number
-): void {
-  const carrierPos = off[ballCarrier];
-  const hoop = getDefenseHoop(state);
-  const overridesA = state.steps[idxA]?.defenseOverrides ?? {};
-  const overridesB = state.steps[idxB]?.defenseOverrides ?? {};
-
-  for (const dId of getActiveDefenderIds(state.playerCount)) {
-    const slot = defPos[dId];
-    if (!slot) continue;
-    // Placement manuel sur l'une des deux étapes → la position imposée prime,
-    // on garde l'interpolation linéaire entre override(A) et calc(B) ou inverse.
-    if (overridesA[dId] || overridesB[dId]) continue;
-    const rule = state.rules[dId];
-    if (!rule) continue;
-    const dist = rule.distance ?? state.defenseDistance;
-
-    // On suit TOUJOURS l'homme assigné (`slot.matchedTo`), pas le ballCarrier
-    // courant. Pendant une transition de balle (segment où le porteur change
-    // entre A et B), `slot.isCarrierDefender` peut être true pour un défenseur
-    // qui ne défend PAS encore le porteur courant — il défend son homme qui
-    // VA recevoir la balle. Le tirer sur le porteur courant le téléporte sur
-    // l'attaquant fauteur, alors qu'il devrait juste anticiper sa rotation
-    // sur son propre homme (qui devient porteur).
-    const myMan = off[slot.matchedTo];
-    if (!myMan) continue;
-
-    let tgt: Point | null = null;
-    // Si l'homme assigné est effectivement le porteur courant → comportement
-    // de carrier defender (vsCarrier). Sinon → off-ball (stance ou manTarget).
-    const myManIsCurrentCarrier = slot.matchedTo === ballCarrier;
-    if (myManIsCurrentCarrier) {
-      tgt = carrierDefenderTarget(rule.vsCarrier, myMan, dist, hoop);
-    } else {
-      const stance = rule.offBallStance;
-      // Position du ballon ≈ position du porteur (approximation OK hors passe
-      // en vol, où les stances fronting/deny ne sont pas critiques visuellement).
-      tgt = stance && carrierPos
-        ? offBallStanceTarget(myMan, carrierPos, dist, stance, hoop)
-        : manTarget(myMan, dist, hoop);
-    }
-    if (tgt) {
-      slot.x = Math.round(tgt.x);
-      slot.y = Math.round(tgt.y);
-    }
-  }
-}
-
-/**
- * Recalcule body/gaze/facing depuis les positions réellement affichées.
- * À utiliser après vitesse, interpolation, contournement et collisions pour
- * que triangle + champ de vision partent toujours du joueur visible.
- */
-export function recomputeDefenseFrameOrientations(
-  state: AppState,
-  offAtStep: AttackerPositions,
-  ballCarrier: AttackerId,
-  defPos: ComputedDefense
-): ComputedDefense {
-  const ballPos = offAtStep[ballCarrier];
-  getActiveDefenderIds(state.playerCount).forEach((dId) => {
-    const slot = defPos[dId];
-    const rule = state.rules[dId];
-    if (!slot || !rule) return;
-    const defenderPos = { x: slot.x, y: slot.y };
-    const recomputed = computeDefenderOrientation({
-      defenderPos,
-      manPos: offAtStep[slot.matchedTo] ?? defenderPos,
-      ballPos: ballPos ?? defenderPos,
-      isCarrierDefender: slot.isCarrierDefender,
-      stance: rule.offBallStance,
-      vsCarrier: rule.vsCarrier,
-      pnrRole: slot.pnrRole,
-      manualDelta: rule.orientation ?? 0,
-      manualBody: rule.bodyOrientation,
-      bodyMode: rule.bodyOrientationMode,
-      gazeLock: rule.gazeLock,
-    });
-    slot.orientation = recomputed.bodyOrientation;
-    slot.gazeOrientation = recomputed.gazeOrientation;
-    slot.facing = recomputed.facing;
-    slot.armBallSide = recomputed.armBallSide;
-    slot.armManSide = recomputed.armManSide;
-  });
-  return defPos;
-}
+// `followDefendersAtFrame` et `recomputeDefenseFrameOrientations` extraits dans
+// `./defense/frameAdjust.ts`. Ré-export pour préserver l'API publique consommée
+// par CourtView, frameResolver, etc.
+export { followDefendersAtFrame, recomputeDefenseFrameOrientations };
