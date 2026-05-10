@@ -6,6 +6,11 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Fixed — Téléportation du défenseur du futur porteur lors d'une passe scriptée
+- Sur un scénario type **give-and-go** (O1 passe à O3 puis coupe vers le panier), pendant la transition de balle entre l'étape A (porteur=O1) et l'étape B (porteur=O3), `followDefendersAtFrame` plaçait D3 sur O1 au lieu de O3 — apparence de "téléportation" de D3 vers le centre du terrain.
+- Cause : `slot.isCarrierDefender` est hérité de l'étape B (donc D3 est marqué carrier-defender pour l'étape suivante), mais `ballCarrier` interpolé selon `localT < 0.5` valait encore O1 → on tirait D3 sur O1 alors qu'il défendait son propre homme O3 qui allait recevoir la balle.
+- Fix : `followDefendersAtFrame` suit désormais **`slot.matchedTo`** (l'homme assigné) au lieu de `ballCarrier`. Si l'homme assigné est le porteur courant → comportement carrier-defender, sinon off-ball — sans téléportation. Implémentation : [`engine.ts`](src/lib/logic/engine.ts).
+
 ### Added — Pilotage défensif en masse depuis le DefensePanel
 - Nouvelle section **"Appliquer à tous les défenseurs"** dans le panneau Défense (au-dessus de "Règles individuelles") qui pousse une consigne sur **tous les défenseurs en un clic**. Évite les 5 clics-droits successifs pour aligner toute l'équipe sur un schéma.
 - Réglages exposés en masse : `helpPct`, `priority`, `vsCarrier`, `offBallStance`, `screenNav`, `helpMode` (auto/agressif/passif/désactivé), `gazeLock` (auto/mon homme/porteur/les deux), `bodyOrientationMode` (auto/ouvert/face homme/face porteur/ligne passe à plat/ligne passe perp.). Les selects ont une option "—" qui ne déclenche rien (placeholder).

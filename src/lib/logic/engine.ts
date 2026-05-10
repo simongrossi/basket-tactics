@@ -904,18 +904,29 @@ export function followDefendersAtFrame(
     if (!rule) continue;
     const dist = rule.distance ?? state.defenseDistance;
 
+    // On suit TOUJOURS l'homme assigné (`slot.matchedTo`), pas le ballCarrier
+    // courant. Pendant une transition de balle (segment où le porteur change
+    // entre A et B), `slot.isCarrierDefender` peut être true pour un défenseur
+    // qui ne défend PAS encore le porteur courant — il défend son homme qui
+    // VA recevoir la balle. Le tirer sur le porteur courant le téléporte sur
+    // l'attaquant fauteur, alors qu'il devrait juste anticiper sa rotation
+    // sur son propre homme (qui devient porteur).
+    const myMan = off[slot.matchedTo];
+    if (!myMan) continue;
+
     let tgt: Point | null = null;
-    if (slot.isCarrierDefender && carrierPos) {
-      tgt = carrierDefenderTarget(rule.vsCarrier, carrierPos, dist, hoop);
+    // Si l'homme assigné est effectivement le porteur courant → comportement
+    // de carrier defender (vsCarrier). Sinon → off-ball (stance ou manTarget).
+    const myManIsCurrentCarrier = slot.matchedTo === ballCarrier;
+    if (myManIsCurrentCarrier) {
+      tgt = carrierDefenderTarget(rule.vsCarrier, myMan, dist, hoop);
     } else {
-      const att = off[slot.matchedTo];
-      if (!att) continue;
       const stance = rule.offBallStance;
       // Position du ballon ≈ position du porteur (approximation OK hors passe
       // en vol, où les stances fronting/deny ne sont pas critiques visuellement).
       tgt = stance && carrierPos
-        ? offBallStanceTarget(att, carrierPos, dist, stance, hoop)
-        : manTarget(att, dist, hoop);
+        ? offBallStanceTarget(myMan, carrierPos, dist, stance, hoop)
+        : manTarget(myMan, dist, hoop);
     }
     if (tgt) {
       slot.x = Math.round(tgt.x);
