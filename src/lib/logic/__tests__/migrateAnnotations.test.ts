@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Step, AttackerPositions, AttackerId } from '@/lib/types';
-import { ensureAnnotationsForMovement } from '../migrateAnnotations';
+import { ensureAnnotationsForMovement, reconcileMovementAnnotations } from '../migrateAnnotations';
 
 const ZERO: AttackerPositions = {
   O1: { x: 0, y: 0 }, O2: { x: 100, y: 0 }, O3: { x: 200, y: 0 },
@@ -53,5 +53,44 @@ describe('ensureAnnotationsForMovement', () => {
     const steps = [step({}, 'O1'), step({ O5: { x: 999, y: 999 } } as Partial<AttackerPositions>)];
     const out = ensureAnnotationsForMovement(steps, 4);
     expect(out[0].annotations).toHaveLength(0);
+  });
+});
+
+describe('reconcileMovementAnnotations', () => {
+  it('met à jour Step[N+1] quand Step[N] a une annotation et Step[N+1] est inchangé', () => {
+    const steps: Step[] = [
+      { ...step({}, 'O1'), annotations: [{ type: 'screen', fromId: 'O3', from: { x: 200, y: 0 }, to: { x: 311, y: 433 } }] },
+      step({}), // O3 à (200, 0) — position d'origine inchangée
+    ];
+    const out = reconcileMovementAnnotations(steps);
+    expect(out[1].off.O3).toEqual({ x: 311, y: 433 });
+  });
+
+  it('respecte une position manuellement éditée (différente de l\'origine ET de l\'annotation)', () => {
+    const steps: Step[] = [
+      { ...step({}, 'O1'), annotations: [{ type: 'cut', fromId: 'O3', from: { x: 200, y: 0 }, to: { x: 311, y: 433 } }] },
+      step({ O3: { x: 250, y: 250 } } as Partial<AttackerPositions>), // user a placé O3 ailleurs
+    ];
+    const out = reconcileMovementAnnotations(steps);
+    expect(out[1].off.O3).toEqual({ x: 250, y: 250 });
+  });
+
+  it('ne touche pas aux pass annotations (mouvement de balle, pas de joueur)', () => {
+    const steps: Step[] = [
+      { ...step({}, 'O1'), annotations: [{ type: 'pass', fromId: 'O1', toId: 'O3', from: { x: 0, y: 0 }, to: { x: 200, y: 0 } }] },
+      step({}),
+    ];
+    const out = reconcileMovementAnnotations(steps);
+    expect(out[1].off.O1).toEqual({ x: 0, y: 0 });
+  });
+
+  it('idempotente', () => {
+    const steps: Step[] = [
+      { ...step({}, 'O1'), annotations: [{ type: 'screen', fromId: 'O3', from: { x: 200, y: 0 }, to: { x: 311, y: 433 } }] },
+      step({}),
+    ];
+    const once = reconcileMovementAnnotations(steps);
+    const twice = reconcileMovementAnnotations(once);
+    expect(twice[1].off.O3).toEqual(once[1].off.O3);
   });
 });
