@@ -2,7 +2,7 @@
 
 > Vue consolidée de **ce qui est fait**, **ce qui est en cours**, et **ce qui reste à faire**, pour ne rien oublier entre deux sessions de travail.
 >
-> Mise à jour : **2026-05-10**.
+> Mise à jour : **2026-05-11**.
 >
 > Pour la roadmap exhaustive des actions FIBA, voir [`fiba-actions-roadmap.md`](./fiba-actions-roadmap.md).
 
@@ -113,10 +113,38 @@ Extension de l'Étape 10 : un segment peut sortir des limites de sa cellule pour
 
 Cas d'usage : un écran qui se met en place pendant que le porteur finit son dribble — le défenseur du porteur traverse la zone d'écran alors qu'elle est déjà active.
 
-Pour V2 (timecode absolu en secondes type 24s + montée de balle), voir [docs/ideas.md](./ideas.md).
+### Étape 12 — Qualité d'écran (0-100)
+
+Suite de l'Étape 11 : la pénalité de contact écran (`×0.55`) devient modulable par un nouveau champ `Annotation.quality` (0-100, défaut 50).
+
+- Courbe linéaire par morceaux `screenPenaltyFromQuality(q)` exportée par [`speedConstraint.ts`](../src/lib/logic/defense/speedConstraint.ts) :
+  - **0 ghost** → ×1.00 (faux écran)
+  - **25 loose** → ×0.78
+  - **50 std** → ×0.55 (= Étape 11)
+  - **75 solid** → ×0.32
+  - **100 lockdown** → ×0.18 (~1.2s perdues)
+- UI : badge cliquable `ghost/loose/std/solid/lock` sur chaque segment screen du MultiTrackTimeline. Clic cycle entre les 5 paliers.
+- Handler `setAnnotationQuality(stepIdx, annoIdx, quality)` dans `useAppState`.
+
+### Étape 13 — Timecode (24s possession)
+
+Le moteur reste step-based, mais l'affichage parle désormais le langage du basket réel.
+
+- Champs `AppState.secondsPerStep` (défaut 4) et `possessionSeconds` (défaut 24) — modifiables dans le panneau Paramètres > TIMECODE.
+- Module [`timecode.ts`](../src/lib/logic/timecode.ts) : `formatClock`, `formatShotClock`, `realStepToSeconds`, `shotClockAt`, `totalDurationSeconds`.
+- Timeline principale : affiche `0:08 / 0:16` + badge **⏱ shot clock** (jaune sous 5s, rouge **VIOL.** si la possession est dépassée).
+- MultiTrackTimeline : entête de chaque transition annotée avec son timing absolu (`0.0s`, `4.0s`…).
+
+### Étape 14 — PDF lisible quand les actions se chevauchent
+
+Quand plusieurs annotations (screen + dribble + cut) tombent sur la même étape, le visuel imprimé seul ne dit pas qui agit à quel moment. Étape 14 ajoute la couche textuelle/synoptique manquante.
+
+- **Sous chaque vignette** : timecode (`0:04 → 0:08 (4.0s)`) + liste à puces des annotations parallèles avec leurs timings absolus, qualité d'écran et tags (★ cross-step, *(début)* pour phase='start').
+- **Section Synoptique multi-pistes** (cochable, sur page séparée) : grille joueur × transition avec barres positionnées selon tStart/tEnd. Pour les écrans, code qualité (`gh/lo/st/so/lk`).
+- Helper [`annotationSummary`](../src/lib/logic/pdfRecap.ts) extrait pour testabilité.
 
 ### Tests
-- **426 tests verts** au total après les Étapes 2-10b (vs 348 avant, +78 tests).
+- **460 tests verts** au total après les Étapes 2-14 (vs 348 avant, +112 tests).
 - Nouveaux fichiers : `threatResolution.test.ts`, `rimProtectionLayer.test.ts`, `baselineDrive.test.ts`.
 - Sections enrichies dans `zoneDefense.test.ts` (P3.b high-post isolé, P3.c baseline, P3.d ball-pressure, P3.e rim protection, P3.f weakside paint sag + recover).
 
