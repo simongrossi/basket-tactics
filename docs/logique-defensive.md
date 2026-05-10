@@ -34,6 +34,9 @@ C'est le seul point d'entrée appelé par le rendu. Tout le reste est interne.
 | `zoneSituations.ts` | **P3** — Détection des situations zone (overload, short corner, high post, skip pass) qui modulent le moteur ownership. |
 | `tacticalReads.ts` | **P5** — Lectures offensives auto : map la couverture défense → opportunité offensive en vocabulaire coach. |
 | `orientation.ts` | **P6** — Calcul d'orientation et de facing pour défenseurs et attaquants. Voir [orientation-anti-teleport.md](orientation-anti-teleport.md). |
+| `baselineDrive.ts` | **Étape 1** — Détection "attaque ligne de fond" (carrier en bande baseline ; phase driving/static ; verdict uncovered). Pur géométrique, alimente coachDiagnostics et zone (`baselineDriveCoverer`). |
+| `threatResolution.ts` | **Étape 3** — Détection unifiée des menaces : `detectFreePathThreats` (couloir libre vers panier), `detectCuts` (coupes hors-ballon), `detectMatchupOrphans` (défenseurs perdus en aide). |
+| `defense/rimProtectionLayer.ts` | **Étape 4.c** — Couche 1.5 man defense : applique `detectFreePathThreats` après baseTargets pour fermer les couloirs libres. |
 
 ## Pipeline de calcul
 
@@ -464,6 +467,145 @@ computeZoneTargets(off, carrier, layout, config, defenseDistance)
 ### Bascule individuelle ↔ zone
 
 `updateZoneConfig` (useAppState.ts) NE force PLUS d'overrides au changement de type. Comportement : recalcule `defenseInitial` aux nouveaux homePos, supprime tous les overrides existants, laisse le moteur calculer dynamiquement. Sinon les défenseurs étaient figés au homePos sur l'étape active, désactivant le tracking.
+
+## Réflexes défensifs avancés (Étapes 2-4)
+
+Au-dessus du moteur ownership de base, plusieurs **mécaniques de désignation** identifient des situations basket précises et désignent un défenseur "responsable", à qui on applique :
+1. Un **boost de claim** sur l'attaquant ciblé (concentré sur lui plutôt que partagé entre les 5 défenseurs, sinon l'ownership se dilue et personne ne s'engage vraiment)
+2. Un **bias homePos** vers une position structurelle adaptée à la situation
+3. Un **seuil d'engagement abaissé** (0.08 au lieu de 0.15) pour qu'il s'engage même avec une ownership partagée
+
+Toutes ces mécaniques vivent dans [`zoneDefense.ts`](../src/lib/logic/zoneDefense.ts) et sont calculées **avant** la boucle de claims, dans cet ordre (priorité décroissante quand plusieurs s'appliquent) :
+
+| Ordre | Désignation | Source | Module |
+|-------|-------------|--------|--------|
+| 1 | `designatedCoverer` (high-post / short-corner isolé) | `findCriticalZoneAttackers` + détection isolement | `zoneSituations.ts` |
+| 2 | `baselineDriveCoverer` (porteur en attaque ligne de fond) | `detectBaselineDriveFromPositions` | `baselineDrive.ts` |
+| 3 | `ballPressureCoverer` (défenseur structurel responsable du porteur) | calcul interne (front/back row + côté ballon) | `zoneDefense.ts` |
+| 4 | `rimProtectorByThreat` (free-path vers panier sans couvreur) | `detectFreePathThreats` | `threatResolution.ts` |
+
+Les défenseurs déjà désignés à un niveau supérieur sont **exclus** des niveaux suivants (passés via `unavailable: Set<DefenderId>`), évitant qu'un même défenseur cumule plusieurs missions.
+
+### Sliders de configuration
+
+Trois sliders dans `Configuration zone` modulent ces mécaniques (`ZoneConfig`) :
+
+| Slider | Champ | Effet |
+|--------|-------|-------|
+| `pression bal.` | `ballPressure` 0-100 | Module `ballPressureCoverer` (boost ×1+1.5×factor) + bias home (30%-60% vers le ballon) |
+| `aide raquette` | `paintCoverage` 0-100 | Module `designatedCoverer` (boost ×4 à factor=1) + `baselineDriveCoverer` |
+| `protect. panier` | `rimProtection` 0-100 | Module `rimProtectorByThreat` (boost ×3+urgency, bias toward intercept point) |
+
+À 0 chaque slider désactive complètement la mécanique correspondante (zone passive). À 50 (défaut) comportement standard. À 100 mécanique amplifiée.
+
+### High-post / short-corner isolé ([zoneDefense.ts:230-280](../src/lib/logic/zoneDefense.ts))
+
+Un attaquant dans une **zone-tueuse** (high-post centré ou short-corner) sans coéquipier dans 80 px est marqué **isolé**.
+
+- `criticalIds` = `findCriticalZoneAttackers(off, hoop)` (cf. `zoneSituations.ts`)
+- `isolatedIds` = critical ∩ (aucun coéquipier dans 80 px)
+- Pour chaque attaquant isolé, on désigne le défenseur dont le `homePos` est le plus proche
+- En claim loop : `criticalMult = 4.0` pour le couvreur désigné, `1.2` pour les autres défenseurs (faible attraction sans diluer l'ownership). À factor=0 : tout neutre. À factor=1 : 4.0/1.2. À factor=2 : 7.0/1.4
+- Pour le **high-post** spécifiquement, on bias aussi le `homePos` du couvreur de 40% vers l'attaquant (le pivot anchor à y=145 remonte vers le high-post à y=220 plutôt que d'y rester)
+
+### Baseline drive ([baselineDrive.ts](../src/lib/logic/baselineDrive.ts))
+
+Détection en **deux phases** d'un porteur attaquant la ligne de fond :
+- `phase: 'driving'` quand mouvement net vers panier (Δ lateral > 15 ou Δ dHoop > 20 entre prev et current step)
+- `phase: 'static'` quand porteur posté en zone baseline (`distToHoop < 180`) sans mouvement
+
+Critères d'éligibilité :
+- `verticalFromHoop < 80 px` (bande baseline)
+- `lateral` ∈ [95, 260] px (entre paint edge et corner 3pt)
+
+Verdict `uncovered` :
+- Trouve le défenseur le plus proche du segment carrier→panier (perpendiculaire)
+- Si `perpDist > 70 px` ou défenseur `late` → couloir non fermé → désigne ce défenseur comme `closer`
+
+En claim loop : `baselineMult = 1+2*paintCoverageFactor` sur la claim du closer au porteur.
+
+Diagnostics coach associés (4 cas) : `baseline-drive-open` (critical/warning selon profil), `baseline-drive-soft` (info, posté), `baseline-drive-late` (warning), `baseline-drive-closed` (good).
+
+### Ball-pressure coverer ([zoneDefense.ts:286-330](../src/lib/logic/zoneDefense.ts))
+
+LE défenseur structurellement responsable de presser le porteur. Sans cette désignation, le moteur ownership pur peut laisser le porteur seul (cas top-of-arc central : tous les guards à 191 px du porteur).
+
+Heuristique :
+- Ballon "haut" (vert > 100 px du panier) → candidats = front-row (homePos.y > médiane). Ballon "bas" → candidats = back-row.
+- Filtre par côté : préfère les candidats du **même côté** que le ballon (la zone absorbe par la position, pas par matchup naturel)
+- Choisit le plus proche latéralement parmi les candidats restants
+
+En claim loop : `pressureMult = 1+1.5*ballPressureFactor` sur la claim au porteur, **empilé seulement** s'il n'est pas déjà `designatedCoverer` ou `baselineDriveCoverer`.
+
+Bias homePos : 30%-60% vers le ballon (selon `ballPressureFactor`).
+
+### Rim protection — "pas d'easy basket" ([threatResolution.ts](../src/lib/logic/threatResolution.ts))
+
+Détection systématique des **couloirs libres vers le panier** :
+
+```
+detectFreePathThreats(off, hoop, defPositions, unavailable, prevOff?)
+  │
+  ├── pour chaque attaquant A à dHoop < 220 (statique) OU dHoop < 280 ET Δ dHoop > 20 (drive en cours):
+  │     trouve le défenseur disponible le plus proche du segment A→panier
+  │     si perpDist > 80 → menace détectée
+  │
+  └── pour chaque menace, désigne LE défenseur disponible le plus proche du PANIER
+        (préserve la défense basket-side, pas du couloir lui-même)
+```
+
+**unavailable** est passé par zoneDefense pour exclure les défenseurs déjà engagés ailleurs (high-post, baseline) — sinon on désignerait un défenseur structurellement indisponible.
+
+**urgency** ∈ [0, 1] : 1 quand A à dHoop=0, 0 à 280 px. Échelle linéaire incluant la bande étendue.
+
+En claim loop : `rimMult = 1+3*urgency*rimProtectionFactor` sur la claim du couvreur à l'attaquant menaçant. Bias homePos : 40% × urgency × factor vers le point d'interception (mi-chemin attaquant→panier).
+
+### Détection de cuts ([threatResolution.ts > detectCuts](../src/lib/logic/threatResolution.ts))
+
+Cuts hors-ballon (différents du baseline drive qui cible le porteur) :
+- Attaquant non-porteur, dHoop courant < 250
+- Δ dHoop > 25 entre prev et current step (mouvement net)
+- Pas en train de poser un écran (aucun coéquipier dans 30 px)
+
+Alimente le diagnostic coach `cut-backdoor` (warning si défenseur naturel à >80 px, info sinon).
+
+### Weakside paint sag ([zoneDefense.ts:165-205](../src/lib/logic/zoneDefense.ts))
+
+`ballSideShifted` étendu pour appliquer le principe basket "weakside help into paint" :
+- **Strong-side** (même côté que ballon) : peu de shift X (×0.3), déjà près du ballon
+- **Centre** : shift X modéré vers ballon (×0.6)
+- **Weak-side** (opposé) :
+  - Pull X ×0.8 vers l'**axe central** (x=300), pas seulement vers le ballon
+  - Sag Y ×0.4 vers le panier
+  - Cap ±80 px (X), ±60 px (Y)
+
+En plus, en claim/engagement loop : si défenseur ET son primary sont tous deux côté faible (et le primary n'est pas le porteur), `engagement *= 0.5`. Le défenseur reste en aide raquette plutôt que de coller son matchup naturel à 5 m du ballon.
+
+Effet mesuré (ballon wing droit) : D4 weakside passe de (179, 97) — 121 px de l'axe central — à (202, 115) — 98 px (à l'orée de la raquette).
+
+### Recover boost ([zoneDefense.ts:600-625](../src/lib/logic/zoneDefense.ts))
+
+Quand un défenseur n'a **aucun rôle d'aide actif** (pas critical/baseline/pressure/rim), sa claim sur son matchup naturel reçoit un boost ×1.15. Évite les défenseurs qui restent en aide errante après une rotation — ils reviennent activement sur leur homme.
+
+### Diagnostic "matchup orphan" ([threatResolution.ts > detectMatchupOrphans](../src/lib/logic/threatResolution.ts))
+
+Détecte les rotations imparfaites :
+- Défenseur courant à >100 px de son `homePos` (déplacé en aide)
+- ET son matchup naturel à >100 px de tout défenseur
+- → orphelin, sévérité critical si shooter sinon warning
+
+Le moteur ne corrige pas (limites speed constraint), mais le coach voit le trou via `LECTURE COACH`.
+
+### Couche `rimProtectionLayer` en man defense ([defense/rimProtectionLayer.ts](../src/lib/logic/defense/rimProtectionLayer.ts))
+
+Couche 1.5 du pipeline man-to-man (entre `baseTargets` et `pnrRotations`). Utilise `detectFreePathThreats` avec les positions COURANTES (post-baseTargets) plutôt que homePos.
+
+Différences vs zone :
+- Exclut le `carrierDef` (déjà sa mission sur le porteur)
+- Skip le porteur lui-même (déjà géré)
+- Bias = 50% × urgency vers point d'interception
+
+En pratique, la défense individuelle gère la plupart des cas via les matchups (D3 suit O3 même en cut). Cette couche est un filet de sécurité pour les edge cases (défenseur perdu via écran, switch laissant un attaquant en transit).
 
 ## Vitesse maximale, `late`, physique du déplacement
 

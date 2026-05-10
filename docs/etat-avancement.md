@@ -8,6 +8,42 @@
 
 ---
 
+## 🆕 Travail récent — Étapes 2/3/4 réflexes défensifs (sur `main`)
+
+Refonte significative de la défense de zone pour encoder les **principes basket fondamentaux** qui doivent l'emporter sur la simple ownership géométrique. Documentation détaillée : [logique-defensive.md > Réflexes défensifs avancés](./logique-defensive.md#réflexes-défensifs-avancés-étapes-2-4).
+
+### Étape 2 — Désignation de couvreurs (zone)
+
+- **2.a `designatedCoverer`** : un attaquant en zone-tueuse (high-post / short-corner) **isolé** (aucun coéquipier <80 px) déclenche une désignation explicite du défenseur le plus proche par homePos. Boost ×4 sur sa claim, bias home (40% vers l'attaquant pour high-post). Évite la dilution d'ownership entre 5 défenseurs concurrents.
+- **2.b `paintCoverage`** : nouveau slider `ZoneConfig.paintCoverage` (0-100, défaut 50) qui module l'agressivité des boosts ci-dessus.
+- **2.c `isHighPost` élargi** : couvre maintenant la "tête de raquette" (verticalFromHoop ∈ [80, 200], au lieu de [130, 200]) — inclut le top-of-paint en plus de la FT line.
+- **2.d `baselineDriveCoverer`** : détection couloir baseline non fermé (cf. [`baselineDrive.ts`](../src/lib/logic/baselineDrive.ts)). Désigne le wing low côté ballon. Diagnostics : `baseline-drive-open/soft/late/closed`.
+- **2.e `ballPressureCoverer`** : LE défenseur structurellement responsable de presser le porteur. Front-row si ballon haut, back-row si bas. Préfère le défenseur du même côté que le ballon. Boost ×2.5 (à factor=1) + bias home + seuil engagement abaissé.
+
+### Étape 3 — Réflexes basket universels
+
+- **3.a `rimProtectorByThreat` ("pas d'easy basket")** : nouveau module [`threatResolution.ts`](../src/lib/logic/threatResolution.ts) avec `detectFreePathThreats`. Pour chaque attaquant à <220 px du panier sans défenseur sur la trajectoire, désigne le défenseur disponible le plus proche du panier. Slider `rimProtection` (0-100). Couvre les cas où le pivot est dragué ailleurs et personne ne ferme la peinture.
+- **3.b Détection cuts hors-ballon** : `detectCuts(off, prevOff, ...)` détecte les coupes vers le panier (Δ dHoop > 25, exclut les screeners). Diagnostic `cut-backdoor`.
+- **3.c Step-up préventif** : `detectFreePathThreats` étendu pour détecter les drives en cours (220-280 px avec mouvement vers panier). Permet le step-up AVANT que l'attaquant arrive sur le panier.
+- **3.d Diagnostic matchup orphan** : `detectMatchupOrphans` signale les défenseurs en aide loin de leur home dont le matchup naturel n'est plus couvert.
+
+### Étape 4 — Recover et axe central
+
+- **4.a Weakside paint sag** : `ballSideShifted` étendu — les défenseurs côté faible glissent **vers l'axe central** (x=300, ×0.8) ET vers le panier en Y (×0.4). Engagement réduit ×0.5 si le défenseur ET son matchup sont tous deux weakside (reste en aide raquette plutôt que coller son homme à 5 m du ballon). Effet mesuré : D4 passe de 121 px de l'axe central à 98 px.
+- **4.b Recover boost** : un défenseur sans rôle d'aide actif reçoit ×1.15 sur sa claim au matchup naturel. Pull-back actif après aide.
+- **4.c Couche `applyRimProtectionLayer` en man defense** : nouvelle couche 1.5 du pipeline man-to-man (engine.ts) qui applique le rim protection aux positions calculées par baseTargets. Filet de sécurité pour les edge cases (défenseur perdu via écran, switch).
+
+### Tests
+- **387 tests verts** au total après les Étapes 2-4 (vs 348 avant).
+- Nouveaux fichiers : `threatResolution.test.ts`, `rimProtectionLayer.test.ts`, `baselineDrive.test.ts`.
+- Sections enrichies dans `zoneDefense.test.ts` (P3.b high-post isolé, P3.c baseline, P3.d ball-pressure, P3.e rim protection, P3.f weakside paint sag + recover).
+
+### Limites résiduelles connues
+- **Recover after help engine-level** : les défenseurs en transit après aide sont limités par `speedConstraint`. Le boost recover (4.b) et le diagnostic (3.d) atténuent mais ne corrigent pas un défenseur qui doit physiquement traverser le terrain.
+- **Pas de "rotation cascade" 5-stages** : quand un défenseur sort, ses voisins comblent partiellement (via `ballSideShifted`) mais pas via une vraie chaîne dynamique D2 sort → D5 glisse → D4 fill.
+
+---
+
 ## 🆕 Travail récent — branche `simon/flamboyant-hodgkin-3a101f`
 
 Lot de corrections et d'améliorations livrées dans cette branche (cf. [CHANGELOG.md > Unreleased](../CHANGELOG.md)) :
