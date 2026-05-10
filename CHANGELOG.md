@@ -6,6 +6,57 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Refactor — Découpage du moteur défensif en couches isolées (engine.ts : 982 → 117 lignes)
+
+`src/lib/logic/engine.ts` était devenu un "gravity well" mélangeant calcul des cibles défensives, ajustements playback, calcul d'orientation des attaquants, détection d'événements tactiques, et contrainte de vitesse. Le tout dans une seule grosse fonction `computeDefenseTargets` (~290 l) + un `effectiveDefensePositions` (~235 l) qui partageaient des dizaines d'imports. Découpage en pipeline de couches indépendantes, chacune testable en isolation.
+
+**Fichiers extraits** (toutes nouvelles factorisations, comportement bit-identique, 336 tests verts à chaque commit) :
+
+- **`defense/types.ts`** — type partagé `DefenderTarget` (sortie de `computeDefenseTargets`, entrée de `effectiveDefensePositions`).
+- **`defense/context.ts`** — `DefenseFrameContext` + `buildDefenseFrameContext()`. Setup phase : matchups, prevDefenderPositions, écran porteur, switch/peel-switch, triggers, ballSide. Mute `step.switches` pour persistance.
+- **`defense/baseTargets.ts`** — couche 1, base man-to-man + help (sag uniquement) + screen-on-target adjustment + offset latéral manuel + orientation initiale.
+- **`defense/pnrLayer.ts`** — couche 2, rotations PnR (low-man tag + X-out + nail stunt) sur roll/short-roll/slip.
+- **`defense/offBallScreenLayer.ts`** — couche 3, écrans hors-ballon (mute matchups en cas de switch off-ball).
+- **`defense/trapLayer.ts`** — couche 4, trap auto en zone de trappe.
+- **`defense/directiveLayer.ts`** — couche 5, directives défensives scriptées (`step.defensiveDirectives`).
+- **`defense/postPassOrientation.ts`** — couche 6, recalcul orientation final depuis les positions ajustées (pour que low-man tag pointe la zone de menace, pas son homme original).
+- **`defense/zoneTargets.ts`** — branche zone du calcul (ownership polygonal + tracking d'attaquant).
+- **`defense/speedConstraint.ts`** — `effectiveDefensePositions` : contrainte vitesse max + closeout/over-closeout + friction de proximité + clusters d'écran + collisions.
+- **`defense/frameAdjust.ts`** — `followDefendersAtFrame` + `recomputeDefenseFrameOrientations` (post-passes appliquées sur ComputedDefense pendant le playback, consommées par `frameResolver`).
+- **`attackerVisuals.ts`** — `computeAttackerVisuals` (orientation des attaquants par rôle : carrier/passer/cutter/screener/idle).
+- **`events/triggerDetector.ts`** — `detectStepScreenAction` (détection écran porteur + classification d'action : roll/pop/slip/short-roll/ghost/reject/snake/re-screen).
+
+**Pipeline de `computeDefenseTargets`** réduit à 25 lignes orchestrateur :
+```ts
+const { ctx, matchups } = buildDefenseFrameContext(state, stepIdx, mutateStepForSwitch);
+const positions = {};
+applyBaseTargetsLayer(positions, matchups, ctx);   // 1
+applyPnRRotationsLayer(positions, matchups, ctx);  // 2
+applyOffBallScreenLayer(positions, matchups, ctx); // 3
+applyTrapLayer(positions, matchups, ctx);          // 4
+applyDirectiveLayer(positions, ctx);               // 5
+applyPostPassOrientationLayer(positions, ctx);     // 6
+```
+
+**Bénéfice** : chaque couche est isolée derrière une signature claire `(positions, [matchups,] ctx) → void`. Modifier une règle d'aide (couche 1) ne risque plus de casser le PnR (couche 2) silencieusement. Ajouter une 7ᵉ couche (ex : communication défensive) = un fichier + une ligne dans le pipeline. L'ordre des couches est explicite et documenté.
+
+Re-exports gardés sur `engine.ts` pour préserver l'API publique consommée par CourtView, frameResolver, app/page.tsx, coachDiagnostics, tacticalReads, etc. Aucune migration côté caller.
+
+### Refactor — Extraction de la logique playback de CourtView (1222 → 811 lignes)
+
+`CourtView.tsx` mêlait la boucle d'animation, le calcul de frame interpolée (défenseurs + attaquants + ballon + orientations + collisions) et le rendu SVG. Les boucles play (220 l) et scrub (170 l) dupliquaient ~95 % de leur logique.
+
+- **`src/lib/logic/playback/frameResolver.ts`** — `resolveFrameAt(state, t)` fonction pure qui calcule une frame complète à un instant fractionnaire. Sert pour la lecture continue ET le scrub. Plus de divergence silencieuse possible entre play et scrub.
+- **`src/hooks/usePlaybackAnimation.ts`** — boucle setInterval ~30 fps + conversion elapsed → t + fin de lecture. Ne calcule pas la frame (délégué au resolver).
+- **`src/components/overlays/`** — les 10 fichiers d'overlay (HeatmapOverlay, FieldOfViewOverlay, PassLanesOverlay, ThreatOverlay, etc.) regroupés sous un sous-dossier `overlays/` (move via `git mv`, historique préservé). `Overlays.tsx` renommé en `MatchupAndScreenOverlays.tsx`. `GhostLayer` extrait inline → fichier dédié.
+
+### Refactor — Centralisation des constantes physiques + helpers angulaires
+
+- **`src/lib/data/court.ts`** enrichi : `COURT_CENTERLINE_X = 300`, `CARRIER_SIDE_TOLERANCE_PX = 30`, et 5 offsets `PLAYER_*` (PLAYER_OBSTACLE_RADIUS_PX, PLAYER_PICK_RADIUS_PX, PLAYER_CLUSTER_BASE_R_PX, PLAYER_CLUSTER_LINK_DIST_PX, PLAYER_MIN_CLEARANCE_PX). Remplace les `PLAYER_RADIUS + N` éparpillés dans CourtView, Annotations, engine.
+- **`src/lib/constants/gameplay.ts`** (nouveau) — `DRIBBLE_THRESHOLD_PX = 30`, `POST_HOLD_THRESHOLD_PX = 30`. Distincts des constantes terrain car ils décrivent des comportements joueur, pas une géométrie.
+- **`src/lib/logic/angles.ts`** (nouveau) — `normalizeAngle`, `angleDiff`, `lerpAngleDeg` dédupliqués entre `orientation.ts` et `vision.ts`. **Ces deux modules restent strictement séparés** : seul le math angulaire pur est mutualisé. `vision.ts` (champ de vision, gaze locks) et `orientation.ts` (corps, bras, anatomie) sont deux concepts distincts.
+- **`scriptedGenerators.ts`** — helper privé `carrierBaseSign(carrier)` remplace les 7 occurrences inline `carrier.x < 300`.
+
 ### Changed — Refonte du panneau Défense pour colonne étroite (plus de débordement)
 - Section **"Appliquer à tous"** : abandon de la grille 6 colonnes (qui forçait une largeur min ≥ ~340 px et débordait sur écrans en colonne étroite). Refondue en layout vertical compact : label gauche fixe (80 px) + control qui s'étire sur le reste, via les helpers `MassRow` et `MassSelect`. Tient maintenant proprement dans n'importe quelle largeur de colonne ≥ 200 px.
 - Section **"Règles individuelles"** : grille passée de `1fr 1fr 1fr 1fr` à `minmax(0,1fr) ... minmax(0,1fr)` pour accepter la compression CSS, et `min-width: 0; width: 100%; box-sizing: border-box` ajouté à tous les `<select>` pour qu'ils se compressent au lieu de pousser leur conteneur.
