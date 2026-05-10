@@ -28,11 +28,26 @@ describe('attackerTrajectoryAt', () => {
     expect(r.movementType).toBe('cut');
   });
 
-  it('dribble : position sur la wave (offset latéral non nul à t=0.25)', () => {
+  it('dribble sans waypoints : ligne droite from → to (wave purement visuelle)', () => {
     const ann = { type: 'dribble' as const, fromId: 'O1' as AttackerId, from: { x: 0, y: 0 }, to: { x: 100, y: 0 } };
     const steps = [step({}, [ann] as any), step({ O1: { x: 100, y: 0 } } as Partial<AttackerPositions>)];
     const r = attackerTrajectoryAt(steps, 0, 'O1', 0.25);
-    expect(Math.abs(r.position.y)).toBeGreaterThan(0);
+    expect(r.position.x).toBeCloseTo(25, 5);
+    expect(r.position.y).toBeCloseTo(0, 5);
+    expect(r.movementType).toBe('dribble');
+  });
+
+  it('dribble avec waypoints : suit la polyline tracée par l\'utilisateur', () => {
+    const ann = {
+      type: 'dribble' as const,
+      fromId: 'O1' as AttackerId,
+      from: { x: 0, y: 0 },
+      to: { x: 100, y: 0 },
+      waypoints: [{ x: 50, y: 50 }],
+    };
+    const steps = [step({}, [ann] as any), step({ O1: { x: 100, y: 0 } } as Partial<AttackerPositions>)];
+    const r = attackerTrajectoryAt(steps, 0, 'O1', 0.5);
+    expect(r.position.y).toBeGreaterThan(0);
     expect(r.movementType).toBe('dribble');
   });
 

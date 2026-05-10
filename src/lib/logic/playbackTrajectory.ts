@@ -1,5 +1,4 @@
 import type { Annotation, AnnotationType, AttackerId, Point, Step } from '@/lib/types';
-import { sampleDribbleWave } from './dribbleWave';
 import { samplePolyline } from './polyline';
 
 function annotationPolyline(ann: Annotation): Point[] {
@@ -35,7 +34,7 @@ function lerp(a: Point, b: Point, t: number): Point {
  * Trajectoires :
  * - aucune annotation de mouvement → idle (position constante).
  * - `cut` → ligne droite from → to.
- * - `dribble` → wave échantillonnée via sampleDribbleWave.
+ * - `dribble` → ligne droite from → to (la wave est purement visuelle, côté schéma).
  * - `screen` → vitesse double pour atteindre `to` à t=0.5, puis pinned ; isScreening=true à partir de t=0.5.
  *
  * NB : aucune logique d'évitement d'obstacles ici. CourtView l'applique en
@@ -66,10 +65,11 @@ export function attackerTrajectoryAt(
   }
   if (ann.type === 'dribble') {
     // Avec waypoints : trajectoire courbe lisse (l'utilisateur a explicitement
-    // dessiné le dribble, on suit sa polyline). Sans waypoints : wave standard.
+    // dessiné le dribble, on suit sa polyline). Sans waypoints : ligne droite —
+    // la wave du schéma est une convention visuelle, le joueur ne la suit pas en lecture.
     const position = hasWaypoints
       ? samplePolyline(annotationPolyline(ann), t)
-      : sampleDribbleWave(ann.from, ann.to, t);
+      : lerp(ann.from, ann.to, t);
     return { position, movementType: 'dribble', isScreening: false };
   }
   if (ann.type === 'screen') {
