@@ -53,6 +53,16 @@ export interface Annotation {
    *  Concaténés avec `from` et `to` en polyline ordonnée et interpolés en
    *  spline Catmull-Rom à la lecture. Absent ou vide = ligne droite. */
   waypoints?: Point[];
+  /** Phase temporelle de l'action pour les annotations de mouvement
+   *  (cut/screen/dribble) — Étape 9.
+   *  - 'end' (défaut) : le joueur se déplace PENDANT cette étape, arrive
+   *    à `to` à la FIN. L'effet (ex: écran posé) est actif à partir de
+   *    l'étape suivante.
+   *  - 'start' : le joueur est DÉJÀ à `to` au début de cette étape. Le
+   *    mouvement a eu lieu pendant la transition précédente. L'effet est
+   *    actif IMMÉDIATEMENT durant cette étape.
+   *  Indéfini = 'end' (rétrocompatibilité). */
+  phase?: 'start' | 'end';
 }
 
 export interface Step {

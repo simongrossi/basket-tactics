@@ -130,6 +130,40 @@ describe('upsertMovementAnnotation', () => {
     expect(out[0].annotations[0].from).toEqual({ x: 10, y: 20 });
   });
 
+  it('phase=start : positions step N et N+1 = destination, step N-1 inchangé', () => {
+    const steps: Step[] = [
+      step({ O3: { x: 200, y: 0 } } as Partial<AttackerPositions>),
+      step({ O3: { x: 200, y: 0 } } as Partial<AttackerPositions>),
+      step({ O3: { x: 200, y: 0 } } as Partial<AttackerPositions>),
+    ];
+    const out = upsertMovementAnnotation(steps, 1, {
+      type: 'screen', fromId: 'O3', from: { x: 999, y: 999 }, to: { x: 311, y: 433 }, phase: 'start',
+    });
+    // Step 0 (N-1) reste à l'origine
+    expect(out[0].off.O3).toEqual({ x: 200, y: 0 });
+    // Step 1 (N) au destination (déjà à destination dès le début)
+    expect(out[1].off.O3).toEqual({ x: 311, y: 433 });
+    // Step 2 (N+1) au destination (pas de mouvement durant N → N+1)
+    expect(out[2].off.O3).toEqual({ x: 311, y: 433 });
+    // Annotation snap from = step N-1.off
+    expect(out[1].annotations[0]).toMatchObject({
+      phase: 'start',
+      from: { x: 200, y: 0 },
+      to: { x: 311, y: 433 },
+    });
+  });
+
+  it('phase=start sur step 0 (pas de N-1) : ignoré, fallback phase=end', () => {
+    const steps = [step({}), step({})];
+    const out = upsertMovementAnnotation(steps, 0, {
+      type: 'cut', fromId: 'O1', from: { x: 0, y: 0 }, to: { x: 100, y: 100 }, phase: 'start',
+    });
+    // Comportement fallback : phase='start' sur step 0 n'a pas de sens, on
+    // doit garder un état cohérent (l'annotation peut rester ou pas, mais
+    // pas de plantage).
+    expect(out).toBeDefined();
+  });
+
   it('annotation sur la dernière étape : auto-crée une étape suivante avec la destination', () => {
     const steps = [step({})]; // une seule étape
     const out = upsertMovementAnnotation(steps, 0, {

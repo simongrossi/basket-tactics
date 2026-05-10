@@ -5,6 +5,7 @@ import type {
   DefenderId,
   DefenderPositions,
   Annotation,
+  AnnotationType,
   Step,
   ScreenRule,
   ScenarioBranch,
@@ -352,6 +353,59 @@ export function useAppState() {
       return { ...s, steps };
     });
   }, []);
+
+  /**
+   * Bascule la phase d'une annotation de mouvement entre 'end' (le joueur
+   * se déplace pendant cette étape, arrive à destination à la fin) et
+   * 'start' (le joueur est déjà à destination dès le début de l'étape, le
+   * mouvement a eu lieu dans la transition précédente). Resynchronise les
+   * positions des étapes concernées en conséquence.
+   */
+  const setAnnotationPhase = useCallback(
+    (stepIdx: number, annoIdx: number, phase: 'start' | 'end') => {
+      setStateWithHistory((s) => {
+        const step = s.steps[stepIdx];
+        if (!step) return s;
+        const anno = step.annotations[annoIdx];
+        if (!anno) return s;
+        const movementTypes: AnnotationType[] = ['cut', 'dribble', 'screen'];
+        if (!movementTypes.includes(anno.type)) return s;
+        const currentPhase = anno.phase ?? 'end';
+        if (currentPhase === phase) return s;
+
+        const steps = s.steps.map((st) => ({
+          ...st,
+          off: { ...st.off },
+          annotations: [...st.annotations],
+        }));
+
+        if (currentPhase === 'end' && phase === 'start') {
+          // L'action devient active DÈS le début de cette étape.
+          // cur.off[X] = destination (à la place de l'origine)
+          // step N+1.off[X] reste à destination (déjà le cas)
+          // step N-1.off[X] reste à l'origine (déjà le cas)
+          if (stepIdx === 0) return s; // pas de step précédent pour phase='start'
+          steps[stepIdx].off[anno.fromId] = { ...anno.to };
+          if (stepIdx + 1 < steps.length) {
+            steps[stepIdx + 1].off[anno.fromId] = { ...anno.to };
+          }
+          steps[stepIdx].annotations[annoIdx] = { ...anno, phase: 'start' };
+        } else if (currentPhase === 'start' && phase === 'end') {
+          // L'action devient active à la FIN de cette étape.
+          // cur.off[X] revient à l'origine
+          // step N+1.off[X] = destination
+          steps[stepIdx].off[anno.fromId] = { ...anno.from };
+          if (stepIdx + 1 < steps.length) {
+            steps[stepIdx + 1].off[anno.fromId] = { ...anno.to };
+          }
+          steps[stepIdx].annotations[annoIdx] = { ...anno, phase: 'end' };
+        }
+
+        return { ...s, steps };
+      });
+    },
+    []
+  );
 
   const setTool = useCallback((tool: Tool) => {
     setStateWithHistory((s) => ({ ...s, tool }));
@@ -803,6 +857,7 @@ export function useAppState() {
     addAnnotation,
     deleteLastAnnotation,
     deleteAnnotation,
+    setAnnotationPhase,
     setForcedScreener,
     clearAnnotationsFor,
     setTool,

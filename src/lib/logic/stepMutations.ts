@@ -81,8 +81,37 @@ export function upsertMovementAnnotation(
   if (stepIdx < 0 || stepIdx >= steps.length) return steps;
   const out = steps.map((s) => ({ ...s, off: { ...s.off }, annotations: [...s.annotations] }));
   const cur = out[stepIdx];
+  const phase = anno.phase ?? 'end';
+
+  if (phase === 'start' && stepIdx > 0) {
+    // Phase='start' : l'action est ACTIVE dès le début de cette étape.
+    // Le mouvement a eu lieu pendant la transition précédente (N-1 → N).
+    //  - cur.off[player] = destination (le joueur est déjà à `to` au début de N)
+    //  - prev.off[player] reste à l'origine (= anno.from)
+    //  - next.off[player] reste à destination (pas de nouveau mouvement dans N → N+1)
+    //  - L'annotation porte `from = prev.off[player]` (snap rétroactif)
+    const prev = out[stepIdx - 1];
+    const snappedFrom = { ...prev.off[anno.fromId] };
+    const newAnno: Annotation = { ...anno, from: snappedFrom, to: { ...anno.to }, phase: 'start' };
+
+    const existingIdx = findMovementIdx(cur.annotations, anno.fromId);
+    if (existingIdx >= 0) {
+      cur.annotations[existingIdx] = newAnno;
+    } else {
+      cur.annotations.push(newAnno);
+    }
+
+    cur.off[anno.fromId] = { ...newAnno.to };
+    if (stepIdx + 1 < out.length) {
+      out[stepIdx + 1].off[anno.fromId] = { ...newAnno.to };
+    }
+    return out;
+  }
+
+  // Phase='end' (défaut) : le joueur se déplace pendant cette étape, arrive
+  // à destination à la fin. Comportement historique.
   const snappedFrom = { ...cur.off[anno.fromId] };
-  const newAnno: Annotation = { ...anno, from: snappedFrom, to: { ...anno.to } };
+  const newAnno: Annotation = { ...anno, from: snappedFrom, to: { ...anno.to }, phase: 'end' };
 
   const existingIdx = findMovementIdx(cur.annotations, anno.fromId);
   if (existingIdx >= 0) {
@@ -92,8 +121,6 @@ export function upsertMovementAnnotation(
   }
 
   if (stepIdx + 1 < out.length) {
-    // Cas standard : l'étape suivante existe, on met à jour la position du
-    // joueur à destination.
     const next = out[stepIdx + 1];
     next.off[anno.fromId] = { ...newAnno.to };
     const nextIdx = findMovementIdx(next.annotations, anno.fromId);
@@ -101,10 +128,6 @@ export function upsertMovementAnnotation(
       next.annotations[nextIdx] = { ...next.annotations[nextIdx], from: { ...newAnno.to } };
     }
   } else {
-    // Cas dernière étape : on auto-crée une étape suivante reflétant la
-    // destination de l'annotation. Sans ça, l'annotation "écran" ou "cut"
-    // dessinée sur la dernière étape reste purement décorative et le joueur
-    // garde sa position d'origine en bout de timeline — contre-intuitif.
     const nextOff = { ...cur.off, [anno.fromId]: { ...newAnno.to } };
     out.push({
       off: nextOff,

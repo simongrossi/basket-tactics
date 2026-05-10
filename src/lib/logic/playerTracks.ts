@@ -47,6 +47,15 @@ export interface TrackSegment {
   detail?: string;
   /** Distance parcourue en px (pour les attaquants, transition). */
   movePx: number;
+  /** Phase de l'annotation source (uniquement si l'activité provient d'une
+   *  annotation cut/screen/dribble) : 'end' = action s'achève à la fin du
+   *  segment, 'start' = action active dès le début. */
+  phase?: 'start' | 'end';
+  /** Index complet (dans state.steps) du step qui PORTE l'annotation source.
+   *  Sert à l'UI pour cibler le toggle de phase. */
+  annoStepFullIdx?: number;
+  /** Index dans step.annotations de l'annotation source. */
+  annoIdx?: number;
 }
 
 export interface PlayerTrack {
@@ -82,6 +91,10 @@ export function computePlayerTracks(state: AppState): PlayerTrack[] {
   const tracks: PlayerTrack[] = [];
 
   // Pistes attaquants — basées sur annotations + diff de position.
+  // Pour la transition i → i+1, on cherche :
+  //  - une annotation phase='end' (défaut) sur le step i, OU
+  //  - une annotation phase='start' sur le step i+1 (même mouvement, mais
+  //    le user a choisi que l'action soit active dès le début de i+1).
   attackerIds.forEach((id) => {
     const segments: TrackSegment[] = [];
     for (let i = 0; i < realSteps.length - 1; i++) {
@@ -93,20 +106,32 @@ export function computePlayerTracks(state: AppState): PlayerTrack[] {
       const isCarrier = cur.ballCarrier === id;
       let activity: PlayerActivity = 'idle';
       let detail: string | undefined;
+      let phase: 'start' | 'end' | undefined;
 
-      // Annotation présente pour ce joueur sur Step N (décrit la transition).
-      const annoMove = cur.annotations.find(
-        (an) =>
-          (an.type === 'cut' || an.type === 'screen' || an.type === 'dribble') &&
-          an.fromId === id,
+      const isMovementType = (t: string) => t === 'cut' || t === 'screen' || t === 'dribble';
+
+      const annoEndIdx = cur.annotations.findIndex(
+        (an) => isMovementType(an.type) && an.fromId === id && (an.phase ?? 'end') === 'end',
       );
+      const annoStartIdx = nxt.annotations.findIndex(
+        (an) => isMovementType(an.type) && an.fromId === id && an.phase === 'start',
+      );
+      const annoEndOnCur = annoEndIdx >= 0 ? cur.annotations[annoEndIdx] : null;
+      const annoStartOnNext = annoStartIdx >= 0 ? nxt.annotations[annoStartIdx] : null;
+      const annoMove = annoEndOnCur ?? annoStartOnNext;
       const annoPass = cur.annotations.find(
         (an) => an.type === 'pass' && an.fromId === id,
       );
 
+      let annoStepFullIdx: number | undefined;
+      let annoIdx: number | undefined;
+
       if (annoMove) {
         activity = annoMove.type as PlayerActivity;
         if (annoMove.type === 'screen' && annoMove.toId) detail = `→ ${annoMove.toId}`;
+        phase = annoMove === annoStartOnNext ? 'start' : 'end';
+        annoStepFullIdx = annoMove === annoStartOnNext ? realSteps[i + 1].idx : realSteps[i].idx;
+        annoIdx = annoMove === annoStartOnNext ? annoStartIdx : annoEndIdx;
       } else if (annoPass) {
         activity = 'pass';
         if (annoPass.toId) detail = `→ ${annoPass.toId}`;
@@ -114,7 +139,16 @@ export function computePlayerTracks(state: AppState): PlayerTrack[] {
         activity = isCarrier ? 'dribble' : 'cut';
       }
 
-      segments.push({ fromStepIdx: i, activity, isCarrier, detail, movePx: move });
+      segments.push({
+        fromStepIdx: i,
+        activity,
+        isCarrier,
+        detail,
+        movePx: move,
+        phase,
+        annoStepFullIdx,
+        annoIdx,
+      });
     }
     tracks.push({ id, kind: 'attacker', segments });
   });

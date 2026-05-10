@@ -18,6 +18,8 @@ interface MultiTrackTimelineProps {
   /** Hauteur disponible (par défaut 220 px = ~10 pistes de 20 px). */
   maxHeight?: number;
   onJumpToRealStep?: (realStepIdx: number) => void;
+  /** Bascule la phase d'une annotation entre 'start' et 'end'. */
+  onTogglePhase?: (stepFullIdx: number, annoIdx: number, newPhase: 'start' | 'end') => void;
 }
 
 /**
@@ -28,7 +30,13 @@ interface MultiTrackTimelineProps {
  * Lecture-seule pour V1 — l'édition drag des bornes (tStart/tEnd) viendra
  * dans une Étape 9 ultérieure (cf. docs/ideas.md).
  */
-export function MultiTrackTimeline({ state, fullT, maxHeight = 240, onJumpToRealStep }: MultiTrackTimelineProps) {
+export function MultiTrackTimeline({
+  state,
+  fullT,
+  maxHeight = 240,
+  onJumpToRealStep,
+  onTogglePhase,
+}: MultiTrackTimelineProps) {
   const tracks = useMemo(() => computePlayerTracks(state), [state]);
   const realStepsCount = useMemo(() => countRealSteps(state), [state]);
 
@@ -128,10 +136,12 @@ function TrackRow({
   track,
   transitionCount,
   onJumpToRealStep,
+  onTogglePhase,
 }: {
   track: PlayerTrack;
   transitionCount: number;
   onJumpToRealStep?: (idx: number) => void;
+  onTogglePhase?: (stepFullIdx: number, annoIdx: number, newPhase: 'start' | 'end') => void;
 }) {
   return (
     <div style={{
@@ -155,22 +165,52 @@ function TrackRow({
         {track.id}
       </div>
       {track.segments.slice(0, transitionCount).map((seg, i) => (
-        <SegmentCell key={i} segment={seg} onClick={() => onJumpToRealStep?.(i + 1)} />
+        <SegmentCell
+          key={i}
+          segment={seg}
+          onClick={() => onJumpToRealStep?.(i + 1)}
+          onTogglePhase={onTogglePhase}
+        />
       ))}
     </div>
   );
 }
 
-function SegmentCell({ segment, onClick }: { segment: TrackSegment; onClick?: () => void }) {
+function SegmentCell({
+  segment,
+  onClick,
+  onTogglePhase,
+}: {
+  segment: TrackSegment;
+  onClick?: () => void;
+  onTogglePhase?: (stepFullIdx: number, annoIdx: number, newPhase: 'start' | 'end') => void;
+}) {
   const color = ACTIVITY_COLORS[segment.activity];
+  const isMovementWithAnno =
+    (segment.activity === 'cut' || segment.activity === 'screen' || segment.activity === 'dribble') &&
+    segment.annoStepFullIdx !== undefined &&
+    segment.annoIdx !== undefined;
+  const phase = segment.phase ?? 'end';
+
+  const handleTogglePhase = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isMovementWithAnno || !onTogglePhase) return;
+    onTogglePhase(segment.annoStepFullIdx!, segment.annoIdx!, phase === 'start' ? 'end' : 'start');
+  };
+
   return (
     <div
       onClick={onClick}
-      title={`${color.label}${segment.detail ? ' ' + segment.detail : ''}${segment.movePx > 0 ? ` · ${Math.round(segment.movePx)}px` : ''}`}
+      title={`${color.label}${segment.detail ? ' ' + segment.detail : ''}${segment.movePx > 0 ? ` · ${Math.round(segment.movePx)}px` : ''}${isMovementWithAnno ? ` · phase=${phase} (clic icône pour bascule)` : ''}`}
       style={{
         position: 'relative',
         padding: '2px 4px',
-        background: color.bg,
+        // Aligne visuellement le segment selon la phase : 'start' tire vers
+        // la gauche (action active dès le début), 'end' centré classique.
+        background:
+          isMovementWithAnno && phase === 'start'
+            ? `linear-gradient(to right, ${color.bg}, ${color.bg} 70%, transparent)`
+            : color.bg,
         color: color.fg,
         borderRadius: 3,
         fontSize: 9,
@@ -183,6 +223,8 @@ function SegmentCell({ segment, onClick }: { segment: TrackSegment; onClick?: ()
         textOverflow: 'ellipsis',
         height: 18,
         lineHeight: '14px',
+        borderLeft: isMovementWithAnno && phase === 'start' ? `3px solid ${color.fg}` : undefined,
+        borderRight: isMovementWithAnno && phase === 'end' ? `3px solid ${color.fg}` : undefined,
       }}
     >
       {segment.isCarrier && (
@@ -197,6 +239,30 @@ function SegmentCell({ segment, onClick }: { segment: TrackSegment; onClick?: ()
             background: '#ea580c',
           }}
         />
+      )}
+      {isMovementWithAnno && onTogglePhase && (
+        <button
+          onClick={handleTogglePhase}
+          title={`Basculer en ${phase === 'start' ? 'fin' : 'début'} d'action`}
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: phase === 'start' ? 0 : undefined,
+            right: phase === 'end' ? 0 : undefined,
+            width: 10,
+            height: 10,
+            padding: 0,
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            fontSize: 9,
+            color: color.fg,
+            opacity: 0.8,
+            lineHeight: 1,
+          }}
+        >
+          {phase === 'start' ? '◀' : '▶'}
+        </button>
       )}
       {color.label}
       {segment.detail && (
