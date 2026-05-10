@@ -501,7 +501,7 @@ export function CourtView(props: CourtViewProps) {
             joueur passent par-dessus l'anneau (visuel plus propre). */}
         {threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="rings" />}
         {state.showGhosts && state.activeStep > 0 && !props.isPlaying && props.scrubT == null && (
-          <GhostLayer state={state} stepIdx={state.activeStep - 1} />
+          <GhostLayer state={state} stepIdx={state.activeStep - 1} currentStepIdx={state.activeStep} />
         )}
         <g>
           {(() => {

@@ -93,7 +93,7 @@ export function makeInitialState(): AppState {
     fullCourt: false,
     showPassLanes: false,
     attackingDirection: 'up',
-    showGhosts: false,
+    showGhosts: true,
     showActionOrder: false,
     showHeatmap: false,
     showSwitchMatchups: true,
