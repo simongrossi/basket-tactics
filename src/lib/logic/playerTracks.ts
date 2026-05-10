@@ -56,6 +56,10 @@ export interface TrackSegment {
   annoStepFullIdx?: number;
   /** Index dans step.annotations de l'annotation source. */
   annoIdx?: number;
+  /** Bornes temporelles de l'annotation (Étape 10, édition continue).
+   *  Undefined = 0 et 1 (pleine durée). */
+  tStart?: number;
+  tEnd?: number;
 }
 
 export interface PlayerTrack {
@@ -126,12 +130,17 @@ export function computePlayerTracks(state: AppState): PlayerTrack[] {
       let annoStepFullIdx: number | undefined;
       let annoIdx: number | undefined;
 
+      let segTStart: number | undefined;
+      let segTEnd: number | undefined;
+
       if (annoMove) {
         activity = annoMove.type as PlayerActivity;
         if (annoMove.type === 'screen' && annoMove.toId) detail = `→ ${annoMove.toId}`;
         phase = annoMove === annoStartOnNext ? 'start' : 'end';
         annoStepFullIdx = annoMove === annoStartOnNext ? realSteps[i + 1].idx : realSteps[i].idx;
         annoIdx = annoMove === annoStartOnNext ? annoStartIdx : annoEndIdx;
+        segTStart = annoMove.tStart;
+        segTEnd = annoMove.tEnd;
       } else if (annoPass) {
         activity = 'pass';
         if (annoPass.toId) detail = `→ ${annoPass.toId}`;
@@ -148,6 +157,8 @@ export function computePlayerTracks(state: AppState): PlayerTrack[] {
         phase,
         annoStepFullIdx,
         annoIdx,
+        tStart: segTStart,
+        tEnd: segTEnd,
       });
     }
     tracks.push({ id, kind: 'attacker', segments });

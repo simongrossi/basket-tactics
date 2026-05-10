@@ -322,6 +322,7 @@ export default function Page() {
                 }
               }}
               onTogglePhase={app.setAnnotationPhase}
+              onTrimTiming={app.setAnnotationTiming}
             />
           )}
           {metrics && <MetricsBar metrics={metrics} bestAction={bestAction} screenAction={screenAction} />}

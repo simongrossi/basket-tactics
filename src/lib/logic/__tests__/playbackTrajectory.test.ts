@@ -81,4 +81,61 @@ describe('attackerTrajectoryAt', () => {
     expect(r.position).toEqual({ x: 50, y: 50 });
     expect(r.movementType).toBe('idle');
   });
+
+  describe('édition continue (tStart/tEnd)', () => {
+    it('cut avec tStart=0.5 : avant t=0.5 joueur reste à anno.from', () => {
+      const ann = {
+        type: 'cut' as const, fromId: 'O2' as AttackerId,
+        from: { x: 100, y: 0 }, to: { x: 200, y: 0 },
+        tStart: 0.5, tEnd: 1,
+      };
+      const steps = [step({}, [ann] as any), step({ O2: { x: 200, y: 0 } } as Partial<AttackerPositions>)];
+      // À t=0.3 (< tStart=0.5) : joueur encore à from
+      expect(attackerTrajectoryAt(steps, 0, 'O2', 0.3).position).toEqual({ x: 100, y: 0 });
+      // À t=0.5 (= tStart) : début du mouvement
+      expect(attackerTrajectoryAt(steps, 0, 'O2', 0.5).position).toEqual({ x: 100, y: 0 });
+      // À t=1.0 (= tEnd) : à destination
+      expect(attackerTrajectoryAt(steps, 0, 'O2', 1.0).position).toEqual({ x: 200, y: 0 });
+      // À t=0.75 (milieu de [0.5, 1.0]) : mid-point
+      const r = attackerTrajectoryAt(steps, 0, 'O2', 0.75);
+      expect(r.position.x).toBeCloseTo(150, 5);
+    });
+
+    it('cut avec tEnd=0.5 : après t=0.5 joueur reste à anno.to', () => {
+      const ann = {
+        type: 'cut' as const, fromId: 'O2' as AttackerId,
+        from: { x: 100, y: 0 }, to: { x: 200, y: 0 },
+        tStart: 0, tEnd: 0.5,
+      };
+      const steps = [step({}, [ann] as any), step({ O2: { x: 200, y: 0 } } as Partial<AttackerPositions>)];
+      // À t=0.25 (milieu de [0, 0.5]) : mid-point
+      expect(attackerTrajectoryAt(steps, 0, 'O2', 0.25).position.x).toBeCloseTo(150, 5);
+      // À t=0.5 (= tEnd) : à destination
+      expect(attackerTrajectoryAt(steps, 0, 'O2', 0.5).position).toEqual({ x: 200, y: 0 });
+      // À t=0.8 (> tEnd) : reste à destination
+      expect(attackerTrajectoryAt(steps, 0, 'O2', 0.8).position).toEqual({ x: 200, y: 0 });
+    });
+
+    it('cut avec [tStart=0.2, tEnd=0.6] : mouvement compressé entre 20% et 60%', () => {
+      const ann = {
+        type: 'cut' as const, fromId: 'O2' as AttackerId,
+        from: { x: 0, y: 0 }, to: { x: 100, y: 0 },
+        tStart: 0.2, tEnd: 0.6,
+      };
+      const steps = [step({}, [ann] as any), step({ O2: { x: 100, y: 0 } } as Partial<AttackerPositions>)];
+      expect(attackerTrajectoryAt(steps, 0, 'O2', 0.1).position).toEqual({ x: 0, y: 0 });
+      // t=0.4 = milieu de [0.2, 0.6] = actionT=0.5 = 50%
+      expect(attackerTrajectoryAt(steps, 0, 'O2', 0.4).position.x).toBeCloseTo(50, 5);
+      expect(attackerTrajectoryAt(steps, 0, 'O2', 0.9).position).toEqual({ x: 100, y: 0 });
+    });
+
+    it('défaut sans tStart/tEnd : comportement historique (0..1)', () => {
+      const ann = {
+        type: 'cut' as const, fromId: 'O2' as AttackerId,
+        from: { x: 0, y: 0 }, to: { x: 100, y: 0 },
+      };
+      const steps = [step({}, [ann] as any), step({ O2: { x: 100, y: 0 } } as Partial<AttackerPositions>)];
+      expect(attackerTrajectoryAt(steps, 0, 'O2', 0.5).position.x).toBeCloseTo(50, 5);
+    });
+  });
 });

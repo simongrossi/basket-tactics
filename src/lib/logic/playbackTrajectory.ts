@@ -37,6 +37,12 @@ function lerp(a: Point, b: Point, t: number): Point {
  * - `dribble` → ligne droite from → to (la wave est purement visuelle, côté schéma).
  * - `screen` → vitesse double pour atteindre `to` à t=0.5, puis pinned ; isScreening=true à partir de t=0.5.
  *
+ * Édition continue (Étape 10) : si l'annotation porte `tStart`/`tEnd`
+ * (0..1), l'action n'occupe que [tStart, tEnd] dans le segment. Avant tStart
+ * le joueur est à anno.from, après tEnd à anno.to. Cela permet à plusieurs
+ * actions parallèles d'avoir des durées différentes (un écran rapide à
+ * [0, 0.4], un dribble plus long [0.3, 1.0], etc.).
+ *
  * NB : aucune logique d'évitement d'obstacles ici. CourtView l'applique en
  * couche pour `cut` uniquement.
  */
@@ -55,28 +61,36 @@ export function attackerTrajectoryAt(
   if (!ann) {
     return { position: { ...fallback }, movementType: 'idle', isScreening: false };
   }
+
+  // Mapping du temps global du segment [0,1] vers le temps DE L'ACTION [0,1]
+  // selon les bornes tStart/tEnd de l'annotation. Avant tStart → 0 (joueur
+  // au from), après tEnd → 1 (joueur au to).
   const t = Math.max(0, Math.min(1, localT));
+  const tS = Math.max(0, Math.min(1, ann.tStart ?? 0));
+  const tE = Math.max(tS, Math.min(1, ann.tEnd ?? 1));
+  let actionT: number;
+  if (t <= tS) actionT = 0;
+  else if (t >= tE) actionT = 1;
+  else actionT = (t - tS) / Math.max(0.001, tE - tS);
+
   const hasWaypoints = !!ann.waypoints && ann.waypoints.length > 0;
   if (ann.type === 'cut') {
     const position = hasWaypoints
-      ? samplePolyline(annotationPolyline(ann), t)
-      : lerp(ann.from, ann.to, t);
+      ? samplePolyline(annotationPolyline(ann), actionT)
+      : lerp(ann.from, ann.to, actionT);
     return { position, movementType: 'cut', isScreening: false };
   }
   if (ann.type === 'dribble') {
-    // Avec waypoints : trajectoire courbe lisse (l'utilisateur a explicitement
-    // dessiné le dribble, on suit sa polyline). Sans waypoints : ligne droite —
-    // la wave du schéma est une convention visuelle, le joueur ne la suit pas en lecture.
     const position = hasWaypoints
-      ? samplePolyline(annotationPolyline(ann), t)
-      : lerp(ann.from, ann.to, t);
+      ? samplePolyline(annotationPolyline(ann), actionT)
+      : lerp(ann.from, ann.to, actionT);
     return { position, movementType: 'dribble', isScreening: false };
   }
   if (ann.type === 'screen') {
-    if (t < 0.5) {
+    if (actionT < 0.5) {
       const position = hasWaypoints
-        ? samplePolyline(annotationPolyline(ann), t * 2)
-        : lerp(ann.from, ann.to, t * 2);
+        ? samplePolyline(annotationPolyline(ann), actionT * 2)
+        : lerp(ann.from, ann.to, actionT * 2);
       return { position, movementType: 'screen', isScreening: false };
     }
     return { position: { ...ann.to }, movementType: 'screen', isScreening: true };

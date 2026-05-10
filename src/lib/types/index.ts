@@ -63,6 +63,16 @@ export interface Annotation {
    *    actif IMMÉDIATEMENT durant cette étape.
    *  Indéfini = 'end' (rétrocompatibilité). */
   phase?: 'start' | 'end';
+  /** Bornes temporelles de l'action dans le segment de transition entre
+   *  deux étapes — Étape 10 (édition continue, façon vidéo).
+   *  - `tStart` (défaut 0) : moment où le mouvement commence (0 = début
+   *    de la transition, 1 = fin)
+   *  - `tEnd`   (défaut 1) : moment où le mouvement se termine
+   *  Permet à des actions parallèles d'avoir des durées différentes :
+   *  ex. O3 fait son écran [0, 0.4], O1 dribble [0.3, 1.0]. Modifiable
+   *  par drag des bords des segments dans MultiTrackTimeline. */
+  tStart?: number;
+  tEnd?: number;
 }
 
 export interface Step {

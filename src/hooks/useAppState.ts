@@ -355,6 +355,42 @@ export function useAppState() {
   }, []);
 
   /**
+   * Édite les bornes temporelles tStart/tEnd d'une annotation de mouvement.
+   * Permet l'édition continue façon vidéo : actions de durées différentes
+   * dans le même segment de transition.
+   */
+  const setAnnotationTiming = useCallback(
+    (stepIdx: number, annoIdx: number, tStart: number, tEnd: number) => {
+      setStateWithHistory((s) => {
+        const step = s.steps[stepIdx];
+        if (!step) return s;
+        const anno = step.annotations[annoIdx];
+        if (!anno) return s;
+        const movementTypes: AnnotationType[] = ['cut', 'dribble', 'screen'];
+        if (!movementTypes.includes(anno.type)) return s;
+
+        // Clamp 0..1 et minimum de durée pour éviter zéro (instabilité visuelle).
+        const minDur = 0.05;
+        let nextStart = Math.max(0, Math.min(1 - minDur, tStart));
+        let nextEnd = Math.max(nextStart + minDur, Math.min(1, tEnd));
+
+        const steps = s.steps.map((st, i) =>
+          i === stepIdx
+            ? {
+                ...st,
+                annotations: st.annotations.map((a, j) =>
+                  j === annoIdx ? { ...a, tStart: nextStart, tEnd: nextEnd } : a
+                ),
+              }
+            : st
+        );
+        return { ...s, steps };
+      });
+    },
+    []
+  );
+
+  /**
    * Bascule la phase d'une annotation de mouvement entre 'end' (le joueur
    * se déplace pendant cette étape, arrive à destination à la fin) et
    * 'start' (le joueur est déjà à destination dès le début de l'étape, le
@@ -858,6 +894,7 @@ export function useAppState() {
     deleteLastAnnotation,
     deleteAnnotation,
     setAnnotationPhase,
+    setAnnotationTiming,
     setForcedScreener,
     clearAnnotationsFor,
     setTool,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { AppState } from '@/lib/types';
 import {
   computePlayerTracks,
@@ -20,6 +20,8 @@ interface MultiTrackTimelineProps {
   onJumpToRealStep?: (realStepIdx: number) => void;
   /** Bascule la phase d'une annotation entre 'start' et 'end'. */
   onTogglePhase?: (stepFullIdx: number, annoIdx: number, newPhase: 'start' | 'end') => void;
+  /** Édite les bornes temporelles d'une annotation (drag des poignées). */
+  onTrimTiming?: (stepFullIdx: number, annoIdx: number, tStart: number, tEnd: number) => void;
 }
 
 /**
@@ -36,6 +38,7 @@ export function MultiTrackTimeline({
   maxHeight = 240,
   onJumpToRealStep,
   onTogglePhase,
+  onTrimTiming,
 }: MultiTrackTimelineProps) {
   const tracks = useMemo(() => computePlayerTracks(state), [state]);
   const realStepsCount = useMemo(() => countRealSteps(state), [state]);
@@ -116,6 +119,8 @@ export function MultiTrackTimeline({
             track={track}
             transitionCount={transitionCount}
             onJumpToRealStep={onJumpToRealStep}
+            onTogglePhase={onTogglePhase}
+            onTrimTiming={onTrimTiming}
           />
         ))}
         <div style={{ height: 4, borderTop: '1px dashed #cbd5e1', margin: '2px 0' }} />
@@ -125,6 +130,8 @@ export function MultiTrackTimeline({
             track={track}
             transitionCount={transitionCount}
             onJumpToRealStep={onJumpToRealStep}
+            onTogglePhase={onTogglePhase}
+            onTrimTiming={onTrimTiming}
           />
         ))}
       </div>
@@ -137,11 +144,13 @@ function TrackRow({
   transitionCount,
   onJumpToRealStep,
   onTogglePhase,
+  onTrimTiming,
 }: {
   track: PlayerTrack;
   transitionCount: number;
   onJumpToRealStep?: (idx: number) => void;
   onTogglePhase?: (stepFullIdx: number, annoIdx: number, newPhase: 'start' | 'end') => void;
+  onTrimTiming?: (stepFullIdx: number, annoIdx: number, tStart: number, tEnd: number) => void;
 }) {
   return (
     <div style={{
@@ -170,6 +179,7 @@ function TrackRow({
           segment={seg}
           onClick={() => onJumpToRealStep?.(i + 1)}
           onTogglePhase={onTogglePhase}
+          onTrimTiming={onTrimTiming}
         />
       ))}
     </div>
@@ -180,10 +190,12 @@ function SegmentCell({
   segment,
   onClick,
   onTogglePhase,
+  onTrimTiming,
 }: {
   segment: TrackSegment;
   onClick?: () => void;
   onTogglePhase?: (stepFullIdx: number, annoIdx: number, newPhase: 'start' | 'end') => void;
+  onTrimTiming?: (stepFullIdx: number, annoIdx: number, tStart: number, tEnd: number) => void;
 }) {
   const color = ACTIVITY_COLORS[segment.activity];
   const isMovementWithAnno =
@@ -191,6 +203,11 @@ function SegmentCell({
     segment.annoStepFullIdx !== undefined &&
     segment.annoIdx !== undefined;
   const phase = segment.phase ?? 'end';
+  const tStart = isMovementWithAnno ? (segment.tStart ?? 0) : 0;
+  const tEnd = isMovementWithAnno ? (segment.tEnd ?? 1) : 1;
+
+  const cellRef = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState<'start' | 'end' | null>(null);
 
   const handleTogglePhase = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -198,75 +215,160 @@ function SegmentCell({
     onTogglePhase(segment.annoStepFullIdx!, segment.annoIdx!, phase === 'start' ? 'end' : 'start');
   };
 
+  const handleHandlePointerDown =
+    (which: 'start' | 'end') => (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!isMovementWithAnno || !onTrimTiming) return;
+      e.stopPropagation();
+      e.preventDefault();
+      setDragging(which);
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging || !cellRef.current || !onTrimTiming || !isMovementWithAnno) return;
+    const rect = cellRef.current.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    if (dragging === 'start') {
+      onTrimTiming(segment.annoStepFullIdx!, segment.annoIdx!, ratio, tEnd);
+    } else {
+      onTrimTiming(segment.annoStepFullIdx!, segment.annoIdx!, tStart, ratio);
+    }
+  };
+
+  const handlePointerUp = () => setDragging(null);
+
+  const tooltip = `${color.label}${segment.detail ? ' ' + segment.detail : ''}${
+    segment.movePx > 0 ? ` · ${Math.round(segment.movePx)}px` : ''
+  }${
+    isMovementWithAnno
+      ? ` · phase=${phase} · t=[${tStart.toFixed(2)}, ${tEnd.toFixed(2)}]`
+      : ''
+  }`;
+
   return (
     <div
-      onClick={onClick}
-      title={`${color.label}${segment.detail ? ' ' + segment.detail : ''}${segment.movePx > 0 ? ` · ${Math.round(segment.movePx)}px` : ''}${isMovementWithAnno ? ` · phase=${phase} (clic icône pour bascule)` : ''}`}
+      ref={cellRef}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
       style={{
         position: 'relative',
-        padding: '2px 4px',
-        // Aligne visuellement le segment selon la phase : 'start' tire vers
-        // la gauche (action active dès le début), 'end' centré classique.
-        background:
-          isMovementWithAnno && phase === 'start'
-            ? `linear-gradient(to right, ${color.bg}, ${color.bg} 70%, transparent)`
-            : color.bg,
-        color: color.fg,
-        borderRadius: 3,
-        fontSize: 9,
-        fontWeight: 600,
-        textAlign: 'center',
-        cursor: onClick ? 'pointer' : 'default',
-        userSelect: 'none',
-        overflow: 'hidden',
-        whiteSpace: 'nowrap',
-        textOverflow: 'ellipsis',
         height: 18,
-        lineHeight: '14px',
-        borderLeft: isMovementWithAnno && phase === 'start' ? `3px solid ${color.fg}` : undefined,
-        borderRight: isMovementWithAnno && phase === 'end' ? `3px solid ${color.fg}` : undefined,
+        background: '#f8fafc',
+        border: '1px solid #e2e8f0',
+        borderRadius: 3,
       }}
     >
-      {segment.isCarrier && (
-        <span
-          style={{
-            position: 'absolute',
-            top: 1,
-            right: 1,
-            width: 5,
-            height: 5,
-            borderRadius: '50%',
-            background: '#ea580c',
-          }}
-        />
-      )}
+      {/* Segment visible positionné selon tStart/tEnd */}
+      <div
+        onClick={onClick}
+        title={tooltip}
+        style={{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: `${tStart * 100}%`,
+          width: `${(tEnd - tStart) * 100}%`,
+          padding: '0 4px',
+          background: color.bg,
+          color: color.fg,
+          borderRadius: 3,
+          fontSize: 9,
+          fontWeight: 600,
+          textAlign: 'center',
+          cursor: onClick ? 'pointer' : 'default',
+          userSelect: 'none',
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+          textOverflow: 'ellipsis',
+          lineHeight: '18px',
+          borderLeft: isMovementWithAnno && phase === 'start' ? `3px solid ${color.fg}` : undefined,
+          borderRight: isMovementWithAnno && phase === 'end' ? `3px solid ${color.fg}` : undefined,
+        }}
+      >
+        {segment.isCarrier && (
+          <span
+            style={{
+              position: 'absolute',
+              top: 1,
+              right: 1,
+              width: 5,
+              height: 5,
+              borderRadius: '50%',
+              background: '#ea580c',
+            }}
+          />
+        )}
+        {color.label}
+        {segment.detail && (
+          <span style={{ opacity: 0.7, marginLeft: 3 }}>{segment.detail}</span>
+        )}
+      </div>
+
+      {/* Toggle phase ◀/▶ */}
       {isMovementWithAnno && onTogglePhase && (
         <button
           onClick={handleTogglePhase}
           title={`Basculer en ${phase === 'start' ? 'fin' : 'début'} d'action`}
           style={{
             position: 'absolute',
-            bottom: 0,
-            left: phase === 'start' ? 0 : undefined,
-            right: phase === 'end' ? 0 : undefined,
+            bottom: -1,
+            left: phase === 'start' ? `${tStart * 100}%` : undefined,
+            right: phase === 'end' ? `${(1 - tEnd) * 100}%` : undefined,
             width: 10,
             height: 10,
             padding: 0,
             border: 'none',
-            background: 'transparent',
+            background: '#fff',
             cursor: 'pointer',
-            fontSize: 9,
+            fontSize: 8,
             color: color.fg,
-            opacity: 0.8,
+            opacity: 0.9,
             lineHeight: 1,
+            borderRadius: 2,
+            zIndex: 2,
           }}
         >
           {phase === 'start' ? '◀' : '▶'}
         </button>
       )}
-      {color.label}
-      {segment.detail && (
-        <span style={{ opacity: 0.7, marginLeft: 3 }}>{segment.detail}</span>
+
+      {/* Poignée de trim gauche (tStart) */}
+      {isMovementWithAnno && onTrimTiming && (
+        <div
+          onPointerDown={handleHandlePointerDown('start')}
+          title="Glisser pour avancer/retarder le début"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: `${tStart * 100}%`,
+            transform: 'translateX(-50%)',
+            width: 6,
+            height: '100%',
+            cursor: 'ew-resize',
+            zIndex: 3,
+            background: dragging === 'start' ? '#D85A30' : 'transparent',
+          }}
+        />
+      )}
+
+      {/* Poignée de trim droite (tEnd) */}
+      {isMovementWithAnno && onTrimTiming && (
+        <div
+          onPointerDown={handleHandlePointerDown('end')}
+          title="Glisser pour avancer/retarder la fin"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: `${tEnd * 100}%`,
+            transform: 'translateX(-50%)',
+            width: 6,
+            height: '100%',
+            cursor: 'ew-resize',
+            zIndex: 3,
+            background: dragging === 'end' ? '#D85A30' : 'transparent',
+          }}
+        />
       )}
     </div>
   );
