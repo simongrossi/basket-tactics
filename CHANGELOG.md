@@ -38,6 +38,16 @@ Refonte significative de la défense de zone pour encoder les principes basket f
 - Mécanisme commun : un seul défenseur boosté par menace (pas de dilution), `unavailable: Set<DefenderId>` propagé entre détections pour éviter qu'un défenseur cumule plusieurs missions.
 - Tests : 348 → **394 tests verts** (+46 tests, dont 22 dans `threatResolution.test.ts`, 9 nouvelles sections dans `zoneDefense.test.ts`, 3 dans `rimProtectionLayer.test.ts`).
 
+#### Étape 7 — Branches manuelles de scénario
+- Nouveau type `ScenarioBranch` ([types/index.ts](./src/lib/types/index.ts)) : variante terminale qui diverge après une action donnée du chemin principal.
+- `AppState.scenarioBranches: ScenarioBranch[]` + `activeBranchId: string | null` + `pdfIncludeBranches: boolean`.
+- `compileScenario(activeBranch?)` : si fournie, compile les actions du main jusqu'à `divergeAfterActionId` inclus puis continue avec `branch.actions`. Fallback graceful sur référence invalide.
+- Handlers `addScenarioBranch`, `updateScenarioBranch`, `deleteScenarioBranch`, `setActiveBranch`. Les handlers d'actions existants deviennent **branch-aware** (routent vers `branch.actions` quand une branche est active).
+- UI [`ScenarioPanel.tsx`](./src/components/ScenarioPanel.tsx) : sélecteur de tabs en haut (Principal + une par variante, double-clic pour renommer, × pour supprimer), bouton "+ variante" sur chaque action du main, bandeau d'info en mode branche active.
+- UI [`PlaybookView.tsx`](./src/components/PlaybookView.tsx) : toggle "variantes" qui ajoute une section par branche dans le PDF (page-break avant chaque). Steps interpolés filtrés.
+- V1 : un seul niveau (pas de sous-branches). Affichage simultané (split view) noté pour V2 dans [docs/ideas.md](./docs/ideas.md).
+- Tests : `scenarioBranches.test.ts` (6 cas : sans branche, simple, multi-actions, invalide, vide). 401 → **406 tests verts**.
+
 #### Étape 6 — Décomposition des téléports
 - **`breakUpTeleports()`** ([`breakUpTeleports.ts`](./src/lib/logic/breakUpTeleports.ts)) appliqué après compilation. Si un joueur bouge >100 px entre deux steps, on insère des steps interpolés.
 - Nouveau champ `Step.isInterpolated: boolean` marque les steps phantômes.

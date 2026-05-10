@@ -54,8 +54,20 @@ Bug rapporté : sur certaines actions FIBA (Rip-DHO, back-screens), les généra
 
 Effet sur Rip-DHO : 4 steps → 7 steps (3 interpolés), aucun mouvement > 110 px.
 
+### Étape 7 — Branches manuelles de scénario
+
+Pour présenter des **playbooks à choix multiples** ("si drop → pull-up", "si switch → mismatch") :
+
+- Nouveau type `ScenarioBranch` avec `divergeAfterActionId` + `actions` alternatives ([types/index.ts](../src/lib/types/index.ts))
+- `compileScenario` reçoit `activeBranch?` : compile main jusqu'à divergence puis branche
+- Handlers `useAppState` branch-aware : quand une branche est active, les actions ajoutées/éditées vont dans `branch.actions`
+- UI [`ScenarioPanel`](../src/components/ScenarioPanel.tsx) : tabs en haut, bouton "+ variante" sur chaque action, double-clic pour renommer
+- UI [`PlaybookView`](../src/components/PlaybookView.tsx) : toggle "variantes" qui ajoute une section par branche dans le PDF
+
+V1 = un seul niveau (pas de sous-branches imbriquées). Pour V2 (split view, branches auto réactives), voir [docs/ideas.md](./ideas.md).
+
 ### Tests
-- **401 tests verts** au total après les Étapes 2-6 (vs 348 avant, +53 tests).
+- **406 tests verts** au total après les Étapes 2-7 (vs 348 avant, +58 tests).
 - Nouveaux fichiers : `threatResolution.test.ts`, `rimProtectionLayer.test.ts`, `baselineDrive.test.ts`.
 - Sections enrichies dans `zoneDefense.test.ts` (P3.b high-post isolé, P3.c baseline, P3.d ball-pressure, P3.e rim protection, P3.f weakside paint sag + recover).
 
