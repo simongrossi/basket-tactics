@@ -14,6 +14,7 @@ import { manTarget, carrierDefenderTarget } from './manDefense';
 import { baseMatchups } from '../data/initial';
 import { detectOverload, findCriticalZoneAttackers } from './zoneSituations';
 import { detectBaselineDriveFromPositions, type BaselineDefenderInput } from './baselineDrive';
+import { detectFreePathThreats, type FreePathThreat } from './threatResolution';
 
 export function pointInPolygon(point: Point, polygon: Point[]): boolean {
   let inside = false;
@@ -209,6 +210,8 @@ export function computeZoneTargets(
   // paintCoverage : 0 = aucun boost zones-tueuses, 50 = défaut, 100 = max.
   // On dérive un facteur 0..1.5 utilisé pour moduler criticalMult et bias home.
   const paintCoverageFactor = (config.paintCoverage ?? 50) / 50;
+  // rimProtection : 0 = aucune réaction "free path", 50 = défaut, 100 = max.
+  const rimProtectionFactor = (config.rimProtection ?? 50) / 50;
 
   // P3 — Situations tactiques de zone :
   //  - overload côté ballon (3+ attaquants) → boost le glissement collectif.
@@ -255,6 +258,10 @@ export function computeZoneTargets(
     });
     if (bestD) designatedCoverer.set(c.attackerId, bestD);
   });
+
+  // (rim-threats déclarés ici, calculés plus bas après les autres designations)
+  const rimThreats: FreePathThreat[] = [];
+  const rimProtectorByThreat = new Map<AttackerId, DefenderId>();
 
   // P3.d — Désigner un "ball-pressure coverer" : LE défenseur structurellement
   // responsable de presser le porteur. Sans ça, le moteur ownership pur peut
@@ -325,6 +332,29 @@ export function computeZoneTargets(
     }
   }
 
+  // P3.e — "Pas d'easy basket" : détection des couloirs libres vers le panier.
+  // Calculée APRÈS les autres désignations pour pouvoir exclure les défenseurs
+  // déjà engagés ailleurs (high-post, baseline) du calcul de "qui ferme le
+  // couloir". Sans cette exclusion, on considérerait à tort qu'un défenseur
+  // "structurellement proche par homePos" mais en réalité dragué ailleurs
+  // ferme la ligne.
+  if (rimProtectionFactor > 0) {
+    const homePosByDef: Record<string, BaselineDefenderInput> = {};
+    layout.forEach((zone) => {
+      homePosByDef[zone.assignedTo] = { x: zone.homePos.x, y: zone.homePos.y };
+    });
+    const unavailable = new Set<DefenderId>();
+    designatedCoverer.forEach((dId) => unavailable.add(dId));
+    if (baselineDriveCoverer) unavailable.add(baselineDriveCoverer);
+    const threats = detectFreePathThreats(off, hoop, homePosByDef, unavailable);
+    threats.forEach((t) => {
+      if (t.designated) {
+        rimThreats.push(t);
+        rimProtectorByThreat.set(t.attacker, t.designated);
+      }
+    });
+  }
+
   // P3.b — Bias homePos du couvreur désigné face à un high-post isolé.
   // En 2-3, D5 anchor à y=145 ne sort pas spontanément vers y=165 car son
   // home est trop bas. On shift son ancrage vers l'attaquant pour qu'il
@@ -358,6 +388,26 @@ export function computeZoneTargets(
       y: zone.homePos.y + (ballPos.y - zone.homePos.y) * w,
     });
   }
+
+  // P3.e — Bias homePos des rim-protectors vers la position d'interception
+  // (mi-chemin entre l'attaquant menaçant et le panier). Pondéré par
+  // l'urgence de la menace × rimProtectionFactor. Évite que le couvreur reste
+  // à son ancrage normal quand un attaquant a un couloir libre.
+  rimThreats.forEach((threat) => {
+    const dId = threat.designated!;
+    if (homeBiasOverrides.has(dId)) return; // priorité aux autres designations
+    const zone = layout.find((z) => z.assignedTo === dId)!;
+    // Position d'interception : à mi-chemin entre attaquant et panier.
+    const intercept = {
+      x: (threat.pos.x + hoop.x) / 2,
+      y: (threat.pos.y + hoop.y) / 2,
+    };
+    const w = 0.4 * threat.urgency * rimProtectionFactor;
+    homeBiasOverrides.set(dId, {
+      x: zone.homePos.x + (intercept.x - zone.homePos.x) * w,
+      y: zone.homePos.y + (intercept.y - zone.homePos.y) * w,
+    });
+  });
 
   // Pré-calcul du homePos shifté ball-side pour chaque zone (avec boost overload).
   const shiftedHomes = new Map<DefenderId, Point>();
@@ -430,7 +480,27 @@ export function computeZoneTargets(
       ) {
         pressureMult = 1.0 + 1.5 * ballPressureFactor;
       }
-      dClaims.set(oId, proximity * naturalMult * carrierMult * criticalMult * baselineMult * pressureMult);
+      // P3.e — Boost rim-protection : le défenseur désigné rim-protector pour
+      // un attaquant avec couloir libre vers le panier reçoit un boost très
+      // fort sur sa claim à cet attaquant. Force le défenseur à fermer la
+      // ligne, peu importe son matchup. Empilé seulement si pas déjà
+      // designatedCoverer/baseline (priorité aux assignations existantes).
+      let rimMult = 1.0;
+      const rimProtector = rimProtectorByThreat.get(oId);
+      if (
+        rimProtector === dId &&
+        designatedCoverer.get(oId) !== dId &&
+        baselineDriveCoverer !== dId &&
+        !(oId === ballCarrier && ballPressureCoverer === dId)
+      ) {
+        const threat = rimThreats.find((t) => t.attacker === oId);
+        const urgency = threat?.urgency ?? 0;
+        rimMult = 1.0 + 3.0 * urgency * rimProtectionFactor;
+      }
+      dClaims.set(
+        oId,
+        proximity * naturalMult * carrierMult * criticalMult * baselineMult * pressureMult * rimMult
+      );
     });
     claims.set(dId, dClaims);
   });
@@ -492,8 +562,13 @@ export function computeZoneTargets(
       baselineDriveCoverer === dId && primaryAttacker === ballCarrier;
     const isPressureCovererForCarrier =
       ballPressureCoverer === dId && primaryAttacker === ballCarrier;
+    const isRimProtectorForPrimary =
+      primaryAttacker !== null && rimProtectorByThreat.get(primaryAttacker) === dId;
     const engagementThreshold =
-      isPrimaryCritical || isBaselineCovererForCarrier || isPressureCovererForCarrier
+      isPrimaryCritical ||
+      isBaselineCovererForCarrier ||
+      isPressureCovererForCarrier ||
+      isRimProtectorForPrimary
         ? 0.08
         : 0.15;
     if (!primaryAttacker || primaryShare < engagementThreshold) {

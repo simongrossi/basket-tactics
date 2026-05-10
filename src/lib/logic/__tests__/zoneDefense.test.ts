@@ -368,6 +368,52 @@ describe('computeZoneTargets — pression ballon désignée (P3.d)', () => {
   });
 });
 
+describe('computeZoneTargets — rim protection (P3.e)', () => {
+  const layout = getZoneLayout('zone-2-3');
+
+  it('cutter en raquette + D5 dragué par high-post → un autre défenseur ferme', () => {
+    // O3 high-post isolé dragge D5. O5 cutter raquette → un AUTRE défenseur
+    // doit être désigné rim-protector et venir fermer.
+    const off: AttackerPositions = {
+      O1: { x: 300, y: 470 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 300, y: 220 }, // high-post isolé
+      O4: { x: 470, y: 380 },
+      O5: { x: 350, y: 110 }, // cutter raquette
+    };
+    const cfgOff: ZoneConfig = { ...baseConfig, rimProtection: 0 };
+    const cfgOn: ZoneConfig = { ...baseConfig, rimProtection: 100 };
+    const tOff = computeZoneTargets(off, 'O1', layout, cfgOff, 40, HOOP);
+    const tOn = computeZoneTargets(off, 'O1', layout, cfgOn, 40, HOOP);
+    // Avec rimProtection=100, un défenseur (autre que D5 occupé sur high-post)
+    // doit être plus proche d'O5 qu'avec rimProtection=0.
+    const closestOff = (['D1', 'D2', 'D3', 'D4'] as const)
+      .map((id) => Math.hypot(tOff[id].x - 350, tOff[id].y - 110))
+      .reduce((a, b) => Math.min(a, b));
+    const closestOn = (['D1', 'D2', 'D3', 'D4'] as const)
+      .map((id) => Math.hypot(tOn[id].x - 350, tOn[id].y - 110))
+      .reduce((a, b) => Math.min(a, b));
+    expect(closestOn).toBeLessThan(closestOff);
+  });
+
+  it('rimProtection=0 désactive complètement la réaction free-path', () => {
+    const off: AttackerPositions = {
+      O1: { x: 300, y: 470 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 300, y: 220 },
+      O4: { x: 470, y: 380 },
+      O5: { x: 350, y: 110 },
+    };
+    const cfg: ZoneConfig = { ...baseConfig, rimProtection: 0 };
+    const t = computeZoneTargets(off, 'O1', layout, cfg, 40, HOOP);
+    // Aucun défenseur ne doit avoir target.trackedAttacker === 'O5' avec
+    // rimProtection=0 (D5 est occupé par high-post O3, personne sur O5).
+    const o5Trackers = (['D1', 'D2', 'D3', 'D4'] as const)
+      .filter((id) => t[id].trackedAttacker === 'O5');
+    expect(o5Trackers.length).toBe(0);
+  });
+});
+
 describe('mapAttackersToZones', () => {
   it('retourne une Map indexée par zone.id', () => {
     const layout = getZoneLayout('zone-2-3');

@@ -193,6 +193,14 @@ export function DefensePanel(props: DefensePanelProps) {
             value={state.zoneConfig.paintCoverage ?? 50}
             onChange={(v) => props.onUpdateZoneConfig({ paintCoverage: v })}
           />
+          <Slider
+            label="protect. panier"
+            min={0}
+            max={100}
+            step={5}
+            value={state.zoneConfig.rimProtection ?? 50}
+            onChange={(v) => props.onUpdateZoneConfig({ rimProtection: v })}
+          />
           <CheckboxLine
             checked={state.zoneConfig.trapCorners}
             label="trap en coin"

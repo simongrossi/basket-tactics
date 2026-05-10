@@ -415,6 +415,13 @@ export interface ZoneConfig {
    *  fort de sa zone naturelle.
    *  Indéfini = 50 (comportement actuel par défaut). */
   paintCoverage?: number;
+  /** Force avec laquelle la zone ferme un attaquant qui a un couloir libre
+   *  vers le panier ("pas d'easy basket"). À chaque step, si un attaquant
+   *  proche du panier (<220px) n'a aucun défenseur sur sa trajectoire, le
+   *  défenseur le plus proche du panier est désigné rim-protector et boosté.
+   *  0 = désactivé. 50 = défaut. 100 = ferme très agressivement.
+   *  Indéfini = 50. */
+  rimProtection?: number;
 }
 
 // --- Écrans non-porteur (Palier 4) ---
