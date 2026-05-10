@@ -7,6 +7,7 @@ import type {
   Annotation,
   Step,
   ScreenRule,
+  ScenarioBranch,
   ScriptedAction,
   Tool,
   DefenderRule,
@@ -87,12 +88,16 @@ function recompileScenarioSteps(state: AppState): AppState {
   if (!actions || actions.length === 0) return state;
   const initial = state.steps[0];
   if (!initial) return state;
+  const activeBranch = state.activeBranchId
+    ? state.scenarioBranches?.find((b) => b.id === state.activeBranchId) ?? null
+    : null;
   const newSteps = compileScenario({
     initialOff: initial.off,
     initialBallCarrier: initial.ballCarrier,
     actions,
     existingSteps: state.steps,
     playerCount: state.playerCount,
+    activeBranch,
   });
   // Conserve activeStep dans les bornes du nouveau tableau.
   const activeStep = Math.min(state.activeStep, newSteps.length - 1);
@@ -621,40 +626,58 @@ export function useAppState() {
   // Scénario scripté
   // ============================================================
 
+  // Helpers branch-aware : si une branche est active, les opérations sur les
+  // actions ciblent `branch.actions` au lieu de `mainActions`. Sinon comportement
+  // d'avant Étape 7. Évite de dupliquer toute la logique de l'UI.
+  const mutateActionsScope = (
+    s: AppState,
+    mutate: (list: ScriptedAction[]) => ScriptedAction[]
+  ): AppState => {
+    if (s.activeBranchId) {
+      const branches = (s.scenarioBranches ?? []).map((b) =>
+        b.id === s.activeBranchId ? { ...b, actions: mutate(b.actions) } : b
+      );
+      return { ...s, scenarioBranches: branches };
+    }
+    return { ...s, scriptedActions: mutate(s.scriptedActions ?? []) };
+  };
+
   const addScriptedAction = useCallback((action: ScriptedAction) => {
     setStateWithHistory((s) => {
-      const next: AppState = { ...s, scriptedActions: [...(s.scriptedActions ?? []), action] };
+      const next = mutateActionsScope(s, (list) => [...list, action]);
       return recompileScenarioSteps(next);
     });
   }, []);
 
   const updateScriptedAction = useCallback((id: string, action: ScriptedAction) => {
     setStateWithHistory((s) => {
-      const list = (s.scriptedActions ?? []).map((a) => (a.id === id ? action : a));
-      return recompileScenarioSteps({ ...s, scriptedActions: list });
+      const next = mutateActionsScope(s, (list) => list.map((a) => (a.id === id ? action : a)));
+      return recompileScenarioSteps(next);
     });
   }, []);
 
   const deleteScriptedAction = useCallback((id: string) => {
     setStateWithHistory((s) => {
-      const list = (s.scriptedActions ?? []).filter((a) => a.id !== id);
-      // Purge les manualOverride orphelins liés à cette action.
-      const cleanSteps = s.steps.map((st) =>
+      const next = mutateActionsScope(s, (list) => list.filter((a) => a.id !== id));
+      const cleanSteps = next.steps.map((st) =>
         st.generatedBy === id ? { ...st, manualOverride: false } : st
       );
-      return recompileScenarioSteps({ ...s, scriptedActions: list, steps: cleanSteps });
+      return recompileScenarioSteps({ ...next, steps: cleanSteps });
     });
   }, []);
 
   const moveScriptedAction = useCallback((id: string, dir: 'up' | 'down') => {
     setStateWithHistory((s) => {
-      const list = [...(s.scriptedActions ?? [])];
-      const idx = list.findIndex((a) => a.id === id);
-      if (idx < 0) return s;
-      const target = dir === 'up' ? idx - 1 : idx + 1;
-      if (target < 0 || target >= list.length) return s;
-      [list[idx], list[target]] = [list[target], list[idx]];
-      return recompileScenarioSteps({ ...s, scriptedActions: list });
+      const next = mutateActionsScope(s, (list) => {
+        const arr = [...list];
+        const idx = arr.findIndex((a) => a.id === id);
+        if (idx < 0) return arr;
+        const target = dir === 'up' ? idx - 1 : idx + 1;
+        if (target < 0 || target >= arr.length) return arr;
+        [arr[idx], arr[target]] = [arr[target], arr[idx]];
+        return arr;
+      });
+      return recompileScenarioSteps(next);
     });
   }, []);
 
@@ -662,6 +685,37 @@ export function useAppState() {
     setStateWithHistory((s) => ({ ...s, scriptedActions: [] }));
     // On ne recompile pas : le user passe en mode 100% manuel, ses steps
     // existants restent intacts.
+  }, []);
+
+  // ============================================================
+  // Branches scénario (Étape 7)
+  // ============================================================
+
+  const addScenarioBranch = useCallback((branch: ScenarioBranch) => {
+    setStateWithHistory((s) => ({
+      ...s,
+      scenarioBranches: [...(s.scenarioBranches ?? []), branch],
+    }));
+  }, []);
+
+  const updateScenarioBranch = useCallback((id: string, branch: ScenarioBranch) => {
+    setStateWithHistory((s) => {
+      const list = (s.scenarioBranches ?? []).map((b) => (b.id === id ? branch : b));
+      const next = { ...s, scenarioBranches: list };
+      return s.activeBranchId === id ? recompileScenarioSteps(next) : next;
+    });
+  }, []);
+
+  const deleteScenarioBranch = useCallback((id: string) => {
+    setStateWithHistory((s) => {
+      const list = (s.scenarioBranches ?? []).filter((b) => b.id !== id);
+      const activeBranchId = s.activeBranchId === id ? null : s.activeBranchId;
+      return recompileScenarioSteps({ ...s, scenarioBranches: list, activeBranchId });
+    });
+  }, []);
+
+  const setActiveBranch = useCallback((id: string | null) => {
+    setStateWithHistory((s) => recompileScenarioSteps({ ...s, activeBranchId: id }));
   }, []);
 
   // ============================================================
@@ -756,6 +810,10 @@ export function useAppState() {
     addScriptedAction,
     updateScriptedAction,
     deleteScriptedAction,
+    addScenarioBranch,
+    updateScenarioBranch,
+    deleteScenarioBranch,
+    setActiveBranch,
     moveScriptedAction,
     clearScriptedActions,
     addDefensiveAction,

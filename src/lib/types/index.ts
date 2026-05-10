@@ -252,6 +252,26 @@ export interface DefensiveScriptedAction {
 
 export type ScriptedAction = OffensiveScriptedAction | DefensiveScriptedAction;
 
+/**
+ * Branche manuelle de scénario (Étape 7) — variante terminale qui diverge du
+ * chemin principal après une action donnée. Le coach définit plusieurs branches
+ * pour montrer différentes lectures possibles (drop, switch, trap, etc.).
+ *
+ * V1 : un seul niveau (pas de sous-branches). Le chemin principal joue
+ * normalement ; une branche active remplace les actions suivantes après le
+ * point de divergence.
+ */
+export interface ScenarioBranch {
+  id: string;
+  label: string;
+  /** Id de la `ScriptedAction` (du chemin principal) après laquelle la
+   *  branche prend le relais. Les steps de cette action incluse sont
+   *  joués, puis la branche démarre. */
+  divergeAfterActionId: string;
+  /** Suite alternative d'actions (offensives ou défensives). */
+  actions: ScriptedAction[];
+}
+
 export interface DefensiveDirective {
   type: DefensiveActionType;
   defenders: DefenderId[];
@@ -668,4 +688,14 @@ export interface AppState {
    *  en `steps[]` (les steps marqués `manualOverride` sont préservés). Le
    *  user peut basculer entre saisie manuelle et scénario via l'UI. */
   scriptedActions?: ScriptedAction[];
+  /** Branches manuelles du scénario (Étape 7). Variantes terminales qui
+   *  divergent après une action donnée. V1 : un seul niveau. */
+  scenarioBranches?: ScenarioBranch[];
+  /** Id de la branche actuellement affichée ; null/undefined = chemin
+   *  principal. Le compilateur utilise cette valeur pour décider de la
+   *  suite après le point de divergence. */
+  activeBranchId?: string | null;
+  /** Inclure les variantes dans le PDF playbook (une section par variante
+   *  après le chemin principal). Indéfini = false par défaut. */
+  pdfIncludeBranches?: boolean;
 }

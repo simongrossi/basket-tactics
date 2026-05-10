@@ -173,6 +173,8 @@ export default function Page() {
             />
             <ScenarioPanel
               scriptedActions={app.state.scriptedActions ?? []}
+              scenarioBranches={app.state.scenarioBranches ?? []}
+              activeBranchId={app.state.activeBranchId ?? null}
               playerCount={app.state.playerCount}
               onAddAction={app.addScriptedAction}
               onUpdateAction={app.updateScriptedAction}
@@ -182,6 +184,10 @@ export default function Page() {
               onAddDefensiveAction={app.addDefensiveAction}
               onUpdateDefensiveAction={app.updateDefensiveAction}
               onDeleteDefensiveAction={app.deleteDefensiveAction}
+              onAddBranch={app.addScenarioBranch}
+              onUpdateBranch={app.updateScenarioBranch}
+              onDeleteBranch={app.deleteScenarioBranch}
+              onSetActiveBranch={app.setActiveBranch}
             />
             <LibraryPanel
               state={app.state}

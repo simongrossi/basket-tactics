@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import type { AppState } from '@/lib/types';
+import { useState, useMemo } from 'react';
+import type { AppState, ScenarioBranch, Step } from '@/lib/types';
 import { StepThumbnail } from './StepThumbnail';
+import { compileScenario } from '@/lib/logic/compileScenario';
 
 interface PlaybookViewProps {
   state: AppState;
@@ -15,6 +16,30 @@ export function PlaybookView({ state, title, onClose }: PlaybookViewProps) {
   const [showDefense, setShowDefense] = useState(true);
   const [showLegend, setShowLegend] = useState(true);
   const [docTitle, setDocTitle] = useState(title ?? 'Playbook');
+  const [includeBranches, setIncludeBranches] = useState(state.pdfIncludeBranches ?? false);
+
+  // Compile chaque branche pour pouvoir l'afficher comme section séparée.
+  // Pour le chemin principal, on filtre les steps interpolés (transitions
+  // automatiques qui n'ont pas de sens dans un playbook imprimé).
+  const branchSections = useMemo<{ branch: ScenarioBranch; steps: Step[] }[]>(() => {
+    if (!includeBranches) return [];
+    const branches = state.scenarioBranches ?? [];
+    const initial = state.steps[0];
+    if (!initial) return [];
+    const actions = state.scriptedActions ?? [];
+    return branches.map((b) => ({
+      branch: b,
+      steps: compileScenario({
+        initialOff: initial.off,
+        initialBallCarrier: initial.ballCarrier,
+        actions,
+        playerCount: state.playerCount,
+        activeBranch: b,
+      }).filter((s) => !s.isInterpolated),
+    }));
+  }, [includeBranches, state.scenarioBranches, state.scriptedActions, state.steps, state.playerCount]);
+
+  const mainSteps = state.steps.filter((s) => !s.isInterpolated);
 
   return (
     <>
@@ -79,6 +104,12 @@ export function PlaybookView({ state, title, onClose }: PlaybookViewProps) {
             <input type="checkbox" checked={showLegend} onChange={(e) => setShowLegend(e.target.checked)} />
             légende
           </label>
+          {(state.scenarioBranches?.length ?? 0) > 0 && (
+            <label style={{ fontSize: 12, display: 'flex', gap: 4, alignItems: 'center' }} title="Inclure les variantes du scénario comme sections supplémentaires">
+              <input type="checkbox" checked={includeBranches} onChange={(e) => setIncludeBranches(e.target.checked)} />
+              variantes
+            </label>
+          )}
           <button onClick={() => window.print()} style={{ padding: '6px 12px' }}>
             🖨 imprimer / PDF
           </button>
@@ -100,11 +131,17 @@ export function PlaybookView({ state, title, onClose }: PlaybookViewProps) {
         >
           <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 4, color: '#0f172a' }}>{docTitle}</h1>
           <div style={{ fontSize: 11, color: '#64748b', marginBottom: 18 }}>
-            {state.steps.length} étape{state.steps.length > 1 ? 's' : ''} · système{' '}
+            {mainSteps.length} étape{mainSteps.length > 1 ? 's' : ''} · système{' '}
             {state.defenseSystem === 'zone' ? `zone ${state.zoneConfig.type}` : 'homme à homme'}
             {state.defenseSystem === 'man' && ` · écran porteur : ${state.screenRule}`}
           </div>
 
+          {/* Chemin principal */}
+          {branchSections.length > 0 && (
+            <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: '#0f172a' }}>
+              Chemin principal
+            </h2>
+          )}
           <div
             style={{
               display: 'grid',
@@ -112,27 +149,71 @@ export function PlaybookView({ state, title, onClose }: PlaybookViewProps) {
               gap: 16,
             }}
           >
-            {state.steps.map((step, i) => (
-              <div
-                key={i}
-                style={{
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 6,
-                  padding: 8,
-                  pageBreakInside: 'avoid',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#0f172a' }}>
-                    Étape {i + 1}
-                    {step.label ? ` — ${step.label}` : ''}
-                  </span>
-                  <span style={{ fontSize: 10, color: '#64748b' }}>porteur : {step.ballCarrier}</span>
+            {mainSteps.map((step, i) => {
+              const realIdx = state.steps.indexOf(step);
+              return (
+                <div
+                  key={i}
+                  style={{
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 6,
+                    padding: 8,
+                    pageBreakInside: 'avoid',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#0f172a' }}>
+                      Étape {i + 1}
+                      {step.label ? ` — ${step.label}` : ''}
+                    </span>
+                    <span style={{ fontSize: 10, color: '#64748b' }}>porteur : {step.ballCarrier}</span>
+                  </div>
+                  <StepThumbnail state={state} stepIdx={realIdx} showDefense={showDefense} />
                 </div>
-                <StepThumbnail state={state} stepIdx={i} showDefense={showDefense} />
-              </div>
-            ))}
+              );
+            })}
           </div>
+
+          {/* Sections variantes — une par branche, compilée séparément */}
+          {branchSections.map(({ branch, steps: bSteps }) => (
+            <div key={branch.id} style={{ marginTop: 24, pageBreakBefore: 'always' }}>
+              <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4, color: '#0f172a' }}>
+                Variante : {branch.label}
+              </h2>
+              <div style={{ fontSize: 11, color: '#64748b', marginBottom: 12 }}>
+                Diverge après l'action #{
+                  ((state.scriptedActions ?? []).findIndex((a) => a.id === branch.divergeAfterActionId) + 1)
+                    .toString().padStart(2, '0')
+                } du chemin principal · {bSteps.length} étape{bSteps.length > 1 ? 's' : ''}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: 16 }}>
+                {bSteps.map((step, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      border: '1px solid #e2e8f0',
+                      borderRadius: 6,
+                      padding: 8,
+                      pageBreakInside: 'avoid',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#0f172a' }}>
+                        Étape {i + 1}
+                        {step.label ? ` — ${step.label}` : ''}
+                      </span>
+                      <span style={{ fontSize: 10, color: '#64748b' }}>porteur : {step.ballCarrier}</span>
+                    </div>
+                    <StepThumbnail
+                      state={{ ...state, steps: bSteps }}
+                      stepIdx={i}
+                      showDefense={showDefense}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
 
           {showLegend && (
             <div

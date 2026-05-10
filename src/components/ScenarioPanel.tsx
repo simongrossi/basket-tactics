@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import type {
   AttackerId, ScriptedAction, OffensiveScriptedAction, ActionSide, DriveDirection,
   DefensiveActionType, DefensiveActionParams, DefensiveScriptedAction, PlayerCount,
+  ScenarioBranch,
 } from '@/lib/types';
 import { getActiveAttackerIds, getActiveDefenderIds } from '@/lib/logic/players';
 import {
@@ -49,6 +50,8 @@ const PARAM_LABELS: Record<ParamKind, string> = {
 
 interface ScenarioPanelProps {
   scriptedActions: ScriptedAction[];
+  scenarioBranches: ScenarioBranch[];
+  activeBranchId: string | null;
   onAddAction: (action: ScriptedAction) => void;
   onUpdateAction: (id: string, action: ScriptedAction) => void;
   onDeleteAction: (id: string) => void;
@@ -62,6 +65,10 @@ interface ScenarioPanelProps {
   ) => void;
   onUpdateDefensiveAction: (id: string, updated: DefensiveScriptedAction) => void;
   onDeleteDefensiveAction: (id: string) => void;
+  onAddBranch: (branch: ScenarioBranch) => void;
+  onUpdateBranch: (id: string, branch: ScenarioBranch) => void;
+  onDeleteBranch: (id: string) => void;
+  onSetActiveBranch: (id: string | null) => void;
   playerCount: PlayerCount;
 }
 
@@ -104,12 +111,33 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
     setShowAddModal(false);
   };
 
+  const activeBranch = props.scenarioBranches.find((b) => b.id === props.activeBranchId) ?? null;
   // Phase 3 défense scriptable : la liste peut contenir des actions défensives ;
   // ce panneau ne gère pour l'instant que les offensives (la zone défensive
-  // sera ajoutée Task 6).
-  const offensiveActions = props.scriptedActions.filter(
+  // sera ajoutée Task 6). En mode branche active, on affiche les actions de la
+  // branche au lieu du chemin principal.
+  const offensiveActions = (activeBranch ? activeBranch.actions : props.scriptedActions).filter(
     (a): a is OffensiveScriptedAction => a.kind === 'offensive'
   );
+
+  const handleAddBranch = (afterActionId: string) => {
+    const label = window.prompt('Nom de la variante (ex: "Si drop", "Si switch")', `Variante ${props.scenarioBranches.length + 1}`);
+    if (!label) return;
+    const newBranch: ScenarioBranch = {
+      id: newScriptedActionId(),
+      label,
+      divergeAfterActionId: afterActionId,
+      actions: [],
+    };
+    props.onAddBranch(newBranch);
+    props.onSetActiveBranch(newBranch.id);
+  };
+
+  const handleRenameBranch = (b: ScenarioBranch) => {
+    const label = window.prompt('Renommer la variante', b.label);
+    if (!label || label === b.label) return;
+    props.onUpdateBranch(b.id, { ...b, label });
+  };
 
   return (
     <Panel theme="offense" title="🎬 Scénario">
@@ -118,6 +146,53 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
         étapes correspondantes. Tu peux toujours retoucher chaque étape à la
         main ensuite — les modifs manuelles seront préservées.
       </div>
+
+      {/* Sélecteur de branches : visible quand au moins une variante existe */}
+      {props.scenarioBranches.length > 0 && (
+        <div style={{
+          display: 'flex',
+          gap: 4,
+          flexWrap: 'wrap',
+          padding: '4px 0',
+          borderBottom: '1px solid #fed7aa',
+        }}>
+          <BranchTab
+            active={!activeBranch}
+            label="Principal"
+            onClick={() => props.onSetActiveBranch(null)}
+          />
+          {props.scenarioBranches.map((b) => (
+            <BranchTab
+              key={b.id}
+              active={activeBranch?.id === b.id}
+              label={b.label}
+              onClick={() => props.onSetActiveBranch(b.id)}
+              onRename={() => handleRenameBranch(b)}
+              onDelete={() => {
+                if (window.confirm(`Supprimer la variante "${b.label}" ?`)) {
+                  props.onDeleteBranch(b.id);
+                }
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {activeBranch && (
+        <div style={{
+          fontSize: 11,
+          color: '#92400e',
+          background: '#fffbeb',
+          border: '1px solid #fde68a',
+          borderRadius: 4,
+          padding: '6px 8px',
+        }}>
+          Variante active : <strong>{activeBranch.label}</strong> — diverge après l'action #{
+            (props.scriptedActions.findIndex((a) => a.id === activeBranch.divergeAfterActionId) + 1)
+              .toString().padStart(2, '0')
+          } du chemin principal. Les actions ajoutées ici remplacent la suite du principal.
+        </div>
+      )}
 
       {/* Liste des actions */}
       {offensiveActions.length === 0 && (
@@ -160,6 +235,16 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                 {def.label}
               </span>
               <span style={{ fontSize: 11, color: '#9ca3af' }}>{isExpanded ? '▲' : '▼'}</span>
+              {!activeBranch && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleAddBranch(action.id); }}
+                  style={{
+                    border: '1px solid #fed7aa', background: '#fff7ed', cursor: 'pointer',
+                    fontSize: 10, color: '#9a3412', padding: '2px 6px', borderRadius: 3,
+                  }}
+                  title="Créer une variante qui diverge après cette action"
+                >+ variante</button>
+              )}
               <button
                 onClick={(e) => { e.stopPropagation(); props.onDeleteAction(action.id); }}
                 style={{
@@ -658,4 +743,48 @@ function defaultParamsFor(def: ScriptedActionDefinition): OffensiveScriptedActio
   if (def.optionalParams?.includes('side')) params.side = 'fort';
   if (def.optionalParams?.includes('direction')) params.direction = 'panier';
   return params;
+}
+
+function BranchTab({
+  active, label, onClick, onRename, onDelete,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+  onRename?: () => void;
+  onDelete?: () => void;
+}) {
+  return (
+    <div
+      onClick={onClick}
+      onDoubleClick={(e) => { e.stopPropagation(); onRename?.(); }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '4px 8px',
+        borderRadius: 4,
+        fontSize: 11,
+        fontWeight: active ? 700 : 500,
+        background: active ? '#ea580c' : '#fff',
+        color: active ? '#fff' : '#9a3412',
+        border: '1px solid #fed7aa',
+        cursor: 'pointer',
+        userSelect: 'none',
+      }}
+      title={onRename ? `Double-clic pour renommer` : undefined}
+    >
+      <span>{label}</span>
+      {onDelete && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          style={{
+            border: 'none', background: 'transparent', cursor: 'pointer',
+            fontSize: 11, color: active ? '#fff' : '#dc2626', padding: 0, lineHeight: 1,
+          }}
+          title="Supprimer la variante"
+        >×</button>
+      )}
+    </div>
+  );
 }

@@ -4,7 +4,7 @@
 // main (`manualOverride: true`) en les réinjectant à leur position d'origine
 // dans le groupe de l'action qui les a générés.
 
-import type { AttackerPositions, AttackerId, DefensiveScriptedAction, PlayerCount, ScriptedAction, Step } from '@/lib/types';
+import type { AttackerPositions, AttackerId, DefensiveScriptedAction, PlayerCount, ScenarioBranch, ScriptedAction, Step } from '@/lib/types';
 import { SCRIPTED_GENERATORS } from './scriptedGenerators';
 import { applyDefensivePass, type ParentRangeMap } from './defensiveCompilation';
 import { ensureAnnotationsForMovement } from './migrateAnnotations';
@@ -20,10 +20,32 @@ export interface CompileInput {
   /** Nombre de joueurs actifs. Utilisé par la migration d'annotations pour
    *  éviter de traiter des joueurs absents (ex. O5 en mode 4 joueurs). */
   playerCount?: PlayerCount;
+  /** Branche active (Étape 7). Si fournie, le compilateur joue le chemin
+   *  principal jusqu'à `branch.divergeAfterActionId` inclus, puis continue
+   *  avec `branch.actions` au lieu du reste du chemin principal. */
+  activeBranch?: ScenarioBranch | null;
 }
 
 export function compileScenario(input: CompileInput): Step[] {
-  const { initialOff, initialBallCarrier, actions, existingSteps = [] } = input;
+  const { initialOff, initialBallCarrier, actions: mainActions, existingSteps = [], activeBranch } = input;
+
+  // Construit la liste effective des actions à compiler :
+  //  - chemin principal jusqu'à `divergeAfterActionId` inclus
+  //  - puis les actions de la branche active
+  // Si pas de branche active OU si la diverge ne référence aucune action existante,
+  // on utilise simplement le chemin principal.
+  let actions: ScriptedAction[];
+  if (activeBranch) {
+    const divergeIdx = mainActions.findIndex((a) => a.id === activeBranch.divergeAfterActionId);
+    if (divergeIdx >= 0) {
+      actions = [...mainActions.slice(0, divergeIdx + 1), ...activeBranch.actions];
+    } else {
+      // Référence invalide → fallback au chemin principal pour ne rien casser.
+      actions = mainActions;
+    }
+  } else {
+    actions = mainActions;
+  }
 
   const initialStep: Step = {
     off: structuredClone(initialOff),
