@@ -144,7 +144,17 @@ export type ScriptedActionType =
   // ---------- Tier 2 — Replacements ----------
   | 'drift'
   | 'lift'
-  | 'replacement';
+  | 'replacement'
+  // ---------- Tier 3 — Sets (entrées de jeu) ----------
+  | 'horns-set'
+  | 'floppy-set'
+  | 'pistol-set'
+  | 'ucla-set'
+  | 'iverson-set'
+  | 'diamond-set'
+  | 'chicago-set'
+  | 'loop-set'
+  | 'america-set';
 
 /** Côté de l'action par rapport au porteur (axe = top of the key). */
 export type ActionSide = 'fort' | 'faible' | 'axe';

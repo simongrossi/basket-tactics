@@ -19,7 +19,7 @@ export interface ScriptedActionDefinition {
   label: string;            // libellé court bouton/liste
   fibaTerm: string;         // terme FIBA d'origine
   description: string;      // 1 ligne explicative
-  category: 'écran porteur' | 'écran non-porteur' | 'coupe' | 'combinaison' | 'finition' | 'porteur' | 'replacement';
+  category: 'écran porteur' | 'écran non-porteur' | 'coupe' | 'combinaison' | 'finition' | 'porteur' | 'replacement' | 'set';
   /** Paramètres requis (sélecteurs joueurs / côté). Ordre = ordre dans le formulaire. */
   requiredParams: ParamKind[];
   /** Paramètres optionnels avec valeur par défaut. */
@@ -537,6 +537,85 @@ export const SCRIPTED_ACTIONS_CATALOG: Record<ScriptedActionType, ScriptedAction
     requiredParams: ['cutter', 'targetZone'],
     stepsGenerated: 1,
     reader: (p) => `${fmt(p.cutter)} se replace${towardsZone(p.targetZone)}.`,
+  },
+
+  // =====================================================
+  // Tier 3 — Sets / entrées de jeu
+  // =====================================================
+  // Chaque set génère un step "alignement" qui place les 5 attaquants
+  // dans la formation typique. Les actions signature sont laissées au coach
+  // (à empiler après le set via les actions Tier 1/2).
+  'horns-set': {
+    type: 'horns-set', label: 'Horns', fibaTerm: 'Horns set',
+    description: 'Formation 1-2-2 : meneur top, 2 ailes, 2 grands aux coudes.',
+    category: 'set',
+    requiredParams: [],
+    stepsGenerated: 1,
+    reader: () => 'Alignement Horns (1-2-2 — meneur, ailes, coudes).',
+  },
+  'floppy-set': {
+    type: 'floppy-set', label: 'Floppy', fibaTerm: 'Floppy action',
+    description: 'Meneur top, 2 ailes baseline (corners), 2 grands haut poste.',
+    category: 'set',
+    requiredParams: [],
+    stepsGenerated: 1,
+    reader: () => 'Alignement Floppy (meneur top, tireurs baseline, grands haut poste).',
+  },
+  'pistol-set': {
+    type: 'pistol-set', label: 'Pistol', fibaTerm: 'Pistol offense',
+    description: 'Set d\'entrée arrière-arrière en transition (PnR/DHO entre meneur et arrière).',
+    category: 'set',
+    requiredParams: [],
+    stepsGenerated: 1,
+    reader: () => 'Alignement Pistol (entrée transition arrière-arrière).',
+  },
+  'ucla-set': {
+    type: 'ucla-set', label: 'UCLA set', fibaTerm: 'UCLA set',
+    description: 'Alignement 1-3-1 + UCLA cut du meneur.',
+    category: 'set',
+    requiredParams: [],
+    stepsGenerated: 1,
+    reader: () => 'Alignement UCLA (1-3-1 — UCLA cut du meneur sur écran haut poste).',
+  },
+  'iverson-set': {
+    type: 'iverson-set', label: 'Iverson set', fibaTerm: 'Iverson set',
+    description: 'Alignement avec 2 grands aux coudes, meneur passe entre les deux.',
+    category: 'set',
+    requiredParams: [],
+    stepsGenerated: 1,
+    reader: () => 'Alignement Iverson (2 grands aux coudes, meneur traverse).',
+  },
+  'diamond-set': {
+    type: 'diamond-set', label: 'Diamond', fibaTerm: 'Diamond offense',
+    description: 'Formation en losange : 1 top, 2 mi-distance, 1 bas du poste.',
+    category: 'set',
+    requiredParams: [],
+    stepsGenerated: 1,
+    reader: () => 'Alignement Diamond (losange).',
+  },
+  'chicago-set': {
+    type: 'chicago-set', label: 'Chicago action', fibaTerm: 'Chicago action',
+    description: 'DHO + pin-down enchaînés (action signature des Bulls).',
+    category: 'set',
+    requiredParams: [],
+    stepsGenerated: 1,
+    reader: () => 'Alignement Chicago (DHO + pin-down).',
+  },
+  'loop-set': {
+    type: 'loop-set', label: 'Loop set', fibaTerm: 'Loop set',
+    description: 'Cutter qui boucle autour de 2 écrans pour libérer un tir.',
+    category: 'set',
+    requiredParams: [],
+    stepsGenerated: 1,
+    reader: () => 'Alignement Loop (cutter loop autour de 2 écrans).',
+  },
+  'america-set': {
+    type: 'america-set', label: 'America set', fibaTerm: 'America set',
+    description: 'Set d\'entrée à 5 joueurs avec triple écran.',
+    category: 'set',
+    requiredParams: [],
+    stepsGenerated: 1,
+    reader: () => 'Alignement America (triple écran).',
   },
 };
 

@@ -279,6 +279,40 @@ describe('Generators avec zones nommées', () => {
     }
   });
 
+  it('Tier 3 — chaque set place les 5 attaquants à des positions valides', () => {
+    const sets = [
+      'horns-set', 'floppy-set', 'pistol-set', 'ucla-set', 'iverson-set',
+      'diamond-set', 'chicago-set', 'loop-set', 'america-set',
+    ] as const;
+    for (const type of sets) {
+      const action: ScriptedAction = {
+        kind: 'offensive',
+        id: `s-${type}`,
+        type,
+        params: {},
+      };
+      const gen = SCRIPTED_GENERATORS[type];
+      expect(gen, `générateur set manquant pour ${type}`).toBeDefined();
+      const steps = gen(initialStep, action);
+      expect(steps).toHaveLength(1);
+      const step = steps[0];
+      // Les 5 attaquants doivent être placés.
+      const ids = ['O1', 'O2', 'O3', 'O4', 'O5'] as const;
+      for (const id of ids) {
+        const p = step.off[id];
+        expect(p, `${type}: position manquante pour ${id}`).toBeDefined();
+        expect(Number.isFinite(p.x) && Number.isFinite(p.y)).toBe(true);
+      }
+      // Les 5 positions doivent être distinctes (pas deux joueurs au même endroit).
+      const seen = new Set<string>();
+      for (const id of ids) {
+        const key = `${step.off[id].x},${step.off[id].y}`;
+        expect(seen.has(key), `${type}: ${id} partage sa position avec un autre joueur`).toBe(false);
+        seen.add(key);
+      }
+    }
+  });
+
   it('pin-down + targetZone relative au porteur côté gauche → résolution miroir', () => {
     // Forcer porteur côté gauche : ballCarrier=O2 (x=130).
     const leftStep: Step = {
