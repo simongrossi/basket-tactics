@@ -113,6 +113,10 @@ export function OffensePanel(props: OffensePanelProps) {
       <Section theme="offense" label="Étapes" open>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 200, overflow: 'auto' }}>
           {state.steps.map((s, i) => {
+            // Steps interpolés (lissage des téléports) ne sont pas affichés
+            // dans la liste utilisateur — ils restent dans state.steps pour
+            // le playback mais ne sont pas éditables.
+            if (s.isInterpolated) return null;
             const isActive = i === state.activeStep;
             const carrier = activeBallCarrier(s, state.playerCount);
             const visibleAnnotations = s.annotations

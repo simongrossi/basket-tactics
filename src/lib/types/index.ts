@@ -80,6 +80,11 @@ export interface Step {
    *  Posé par compileScenario quand un `pre-switch` swappe deux défenseurs ;
    *  propagé sur tous les steps suivants du parent. */
   assignmentOverrides?: Partial<Record<DefenderId, AttackerId>>;
+  /** Step inséré par breakUpTeleports() pour lisser un mouvement trop grand
+   *  entre deux steps "réels". L'UI peut les masquer ou les afficher en grisé,
+   *  ne pas les considérer pour le matching manualOverride, etc. Les positions
+   *  sont interpolées linéairement. */
+  isInterpolated?: boolean;
 }
 
 // =============================================================

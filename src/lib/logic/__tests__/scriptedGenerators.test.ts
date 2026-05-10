@@ -115,11 +115,12 @@ describe('compileScenario', () => {
       initialBallCarrier: 'O1',
       actions,
     });
-    // 1 (départ) + 3 (PnR) + 1 (shoot) = 5
-    expect(out).toHaveLength(5);
-    expect(out[0].label).toBe('Départ');
-    expect(out[1].generatedBy).toBe('a1');
-    expect(out[4].generatedBy).toBe('a2');
+    // Steps "réels" (hors interpolés) : 1 (départ) + 3 (PnR) + 1 (shoot) = 5
+    const real = out.filter((s) => !s.isInterpolated);
+    expect(real).toHaveLength(5);
+    expect(real[0].label).toBe('Départ');
+    expect(real[1].generatedBy).toBe('a1');
+    expect(real[4].generatedBy).toBe('a2');
   });
 
   it('préserve un step manualOverride entre deux recompiles', () => {
@@ -131,26 +132,29 @@ describe('compileScenario', () => {
       initialBallCarrier: 'O1',
       actions,
     });
-    // Simule une édition manuelle du step 2 (index 2 dans firstCompile = 2e step PnR).
+    // Trouve le 2ᵉ step réel généré (hors interpolés) pour simuler l'édition utilisateur.
+    const realSteps = firstCompile.filter((s) => !s.isInterpolated);
+    const realIdx = firstCompile.indexOf(realSteps[2]);
     const editedStep: Step = {
-      ...firstCompile[2],
-      off: { ...firstCompile[2].off, O5: { x: 123, y: 234 } },
+      ...firstCompile[realIdx],
+      off: { ...firstCompile[realIdx].off, O5: { x: 123, y: 234 } },
       manualOverride: true,
     };
     const existingSteps = [...firstCompile];
-    existingSteps[2] = editedStep;
+    existingSteps[realIdx] = editedStep;
 
-    // Recompile avec les mêmes actions, en passant existingSteps.
     const secondCompile = compileScenario({
       initialOff,
       initialBallCarrier: 'O1',
       actions,
       existingSteps,
     });
-    // Le step 2 doit avoir conservé les positions éditées.
-    expect(secondCompile[2].off.O5.x).toBe(123);
-    expect(secondCompile[2].off.O5.y).toBe(234);
-    expect(secondCompile[2].manualOverride).toBe(true);
+    // Le step manualOverride doit avoir conservé les positions éditées.
+    const realIdx2 = secondCompile.findIndex((s) => s.manualOverride && !s.isInterpolated);
+    expect(realIdx2).toBeGreaterThanOrEqual(0);
+    expect(secondCompile[realIdx2].off.O5.x).toBe(123);
+    expect(secondCompile[realIdx2].off.O5.y).toBe(234);
+    expect(secondCompile[realIdx2].manualOverride).toBe(true);
   });
 
   it('retourne juste le step initial quand aucune action', () => {

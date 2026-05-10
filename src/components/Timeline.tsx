@@ -122,6 +122,7 @@ export function Timeline({
       {state.steps.map((s, i) => {
         const stepRatio = total > 1 ? i / (total - 1) : 0.5;
         const isCurrent = i === currentStepIdx;
+        const isInterp = !!s.isInterpolated;
         return (
           <div
             key={i}
@@ -136,16 +137,17 @@ export function Timeline({
               position: 'absolute',
               top: '50%',
               left: `calc(14px + (100% - 28px) * ${stepRatio})`,
-              width: 14,
-              height: 14,
-              borderRadius: 7,
-              background: isCurrent ? '#D85A30' : '#fff',
-              border: `2px solid ${isCurrent ? '#9a3412' : '#94a3b8'}`,
+              width: isInterp ? 8 : 14,
+              height: isInterp ? 8 : 14,
+              borderRadius: isInterp ? 4 : 7,
+              background: isCurrent ? '#D85A30' : isInterp ? '#cbd5e1' : '#fff',
+              border: `${isInterp ? 1 : 2}px solid ${isCurrent ? '#9a3412' : isInterp ? '#94a3b8' : '#94a3b8'}`,
+              opacity: isInterp ? 0.6 : 1,
               transform: 'translate(-50%, -50%)',
               cursor: 'pointer',
               pointerEvents: 'auto',
             }}
-            title={`Étape ${i + 1}${s.label ? ' — ' + s.label : ''}`}
+            title={`Étape ${i + 1}${s.label ? ' — ' + s.label : ''}${isInterp ? ' (transition)' : ''}`}
           />
         );
       })}

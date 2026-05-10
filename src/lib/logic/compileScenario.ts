@@ -8,6 +8,7 @@ import type { AttackerPositions, AttackerId, DefensiveScriptedAction, PlayerCoun
 import { SCRIPTED_GENERATORS } from './scriptedGenerators';
 import { applyDefensivePass, type ParentRangeMap } from './defensiveCompilation';
 import { ensureAnnotationsForMovement } from './migrateAnnotations';
+import { breakUpTeleports } from './breakUpTeleports';
 
 export interface CompileInput {
   initialOff: AttackerPositions;
@@ -42,6 +43,10 @@ export function compileScenario(input: CompileInput): Step[] {
   const subIndexCounter = new Map<string, number>();
   for (const s of existingSteps) {
     if (!s.generatedBy) continue;
+    // Les steps interpolés (isInterpolated) sont des lissages générés par
+    // breakUpTeleports — ils ne comptent pas comme des sous-étapes éditables
+    // par l'utilisateur et leurs manualOverride éventuels sont ignorés.
+    if (s.isInterpolated) continue;
     const cur = subIndexCounter.get(s.generatedBy) ?? 0;
     if (s.manualOverride) {
       let m = manualByAction.get(s.generatedBy);
@@ -84,7 +89,12 @@ export function compileScenario(input: CompileInput): Step[] {
     applyDefensivePass(result, defensives, parentRanges);
   }
 
-  return ensureAnnotationsForMovement(result, input.playerCount ?? 5);
+  // Décompose les téléports : si un joueur bouge trop entre deux steps (>100 px
+  // ≈ 2.7 m), on insère des steps intermédiaires interpolés. Lisse les
+  // mouvements générés par les actions FIBA qui placent les joueurs en un coup
+  // (back-screen, cut profond, plonge).
+  const smoothed = breakUpTeleports(result);
+  return ensureAnnotationsForMovement(smoothed, input.playerCount ?? 5);
 }
 
 /** Convertit `crypto.randomUUID()` ou un fallback simple. */
