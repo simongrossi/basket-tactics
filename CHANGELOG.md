@@ -38,6 +38,15 @@ Refonte significative de la défense de zone pour encoder les principes basket f
 - Mécanisme commun : un seul défenseur boosté par menace (pas de dilution), `unavailable: Set<DefenderId>` propagé entre détections pour éviter qu'un défenseur cumule plusieurs missions.
 - Tests : 348 → **394 tests verts** (+46 tests, dont 22 dans `threatResolution.test.ts`, 9 nouvelles sections dans `zoneDefense.test.ts`, 3 dans `rimProtectionLayer.test.ts`).
 
+#### Étape 8 — Multi-track timeline + Étape 9 — Phase début/fin
+- Nouveau module `playerTracks.ts` qui calcule pour chaque joueur ses segments d'activité à travers les étapes (idle, dribble, cut, screen, pass / pos, tracking, closeout, help).
+- `PlayerTimelineModal` (popup zoom) + `MultiTrackTimeline` (docké en bas, façon Premiere) avec curseur vertical synchronisé temps réel et clic pour sauter à un step.
+- Toggle "▲ pistes" à côté de la Timeline principale pour déplier/replier.
+- Steps interpolés fusionnés dans la vue (pas de bruit visuel).
+- Étape 9 : `Annotation.phase: 'start' | 'end'`. Permet de dire au moment du dessin si l'écran/cut/dribble est actif **dès le début** de l'étape (mouvement effectué dans la transition précédente) ou **à la fin** (mouvement effectué pendant cette étape). Bouton ◀/▶ sur les segments du multi-track pour basculer en place.
+- `setAnnotationPhase` resynchronise les positions des étapes concernées (`step N-1`, `step N`, `step N+1`).
+- Tests : `playerTracks.test.ts` (8 cas) + 2 nouveaux sur `upsertMovementAnnotation` (phase=start). 411 → **421 tests verts**.
+
 #### Étape 7 — Branches manuelles de scénario
 - Nouveau type `ScenarioBranch` ([types/index.ts](./src/lib/types/index.ts)) : variante terminale qui diverge après une action donnée du chemin principal.
 - `AppState.scenarioBranches: ScenarioBranch[]` + `activeBranchId: string | null` + `pdfIncludeBranches: boolean`.
