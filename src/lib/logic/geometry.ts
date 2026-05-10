@@ -5,6 +5,21 @@ export function distance(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
+/**
+ * Distance perpendiculaire d'un point au segment [a,b]. Si la projection du
+ * point tombe hors du segment, renvoie la distance à l'extrémité la plus
+ * proche. Utilisé pour mesurer "à quelle distance d'un couloir d'attaque" se
+ * trouve un défenseur.
+ */
+export function pointToSegmentDistance(p: Point, a: Point, b: Point): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq < 1e-6) return distance(p, a);
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq));
+  return distance(p, { x: a.x + t * dx, y: a.y + t * dy });
+}
+
 export function distHoop(p: Point, hoop: Point = HOOP): number {
   return distance(p, hoop);
 }
