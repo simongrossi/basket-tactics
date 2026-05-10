@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import type {
   AppState,
   AttackerId,
@@ -10,7 +10,7 @@ import type {
   Tool,
   Point,
   ComputedDefense,
-  AttackerPositions,
+  DetectedOffBallScreen,
 } from '@/lib/types';
 import { CourtBackground, ArrowMarkers } from './Court';
 import { Player, Ball } from './Player';
@@ -22,14 +22,10 @@ import { HelpDebugOverlay } from './HelpDebugOverlay';
 import { FieldOfViewOverlay } from './FieldOfViewOverlay';
 import {
   effectiveDefensePositions,
-  followDefendersAtFrame,
   getMatchupsAt,
   computeAttackerVisuals,
-  recomputeDefenseFrameOrientations,
 } from '@/lib/logic/engine';
-import { lerpAngleDeg } from '@/lib/logic/orientation';
 import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
-import type { DetectedOffBallScreen } from '@/lib/types';
 import { detectTriggers } from '@/lib/logic/triggers';
 import { getZoneLayout, mirrorZoneLayout, applyZoneOverrides } from '@/lib/data/zones';
 import { ZoneEditOverlay, ZoneRegionMenu } from './ZoneEditOverlay';
@@ -37,18 +33,12 @@ import {
   COURT,
   FULL_COURT_HEIGHT,
   FULL_COURT_INNER_MAX_Y,
-  PLAYER_CLUSTER_BASE_R_PX,
-  PLAYER_CLUSTER_LINK_DIST_PX,
-  PLAYER_MIN_CLEARANCE_PX,
-  PLAYER_OBSTACLE_RADIUS_PX,
   PLAYER_PICK_RADIUS_PX,
   PLAYER_RADIUS,
 } from '@/lib/data/court';
-import { PLAYBACK_STEP_DURATION_MS } from '@/lib/data/physics';
-import {
-  clamp, distance, curveAroundObstacle, resolvePlayerCollisions, makeCluster,
-  pickBlockingCluster, pickStaggeredPair, curveAroundStaggeredPair, computeBallFrame,
-} from '@/lib/logic/geometry';
+import { clamp, distance } from '@/lib/logic/geometry';
+import { resolveFrameAt, type PlaybackFrame } from '@/lib/logic/playback/frameResolver';
+import { usePlaybackAnimation } from '@/hooks/usePlaybackAnimation';
 import { ContextMenu } from './ContextMenu';
 import { ActionOrderBadges } from './ActionOrderBadges';
 import { HeatmapOverlay } from './HeatmapOverlay';
@@ -62,7 +52,6 @@ import {
   getActiveDefenderIds,
   isActiveAttacker,
 } from '@/lib/logic/players';
-import { attackerTrajectoryAt, type MovementType } from '@/lib/logic/playbackTrajectory';
 import { simplifyPolyline } from '@/lib/logic/polyline';
 
 interface CourtViewProps {
@@ -108,20 +97,6 @@ interface PendingAnnotation {
   waypoints?: Point[];
 }
 
-interface PlaybackFrame {
-  off: AttackerPositions;
-  defPos: ComputedDefense;
-  carrier: AttackerId;
-  screen: ReturnType<typeof detectScreen>;
-  offBallScreens: DetectedOffBallScreen[];
-  stepIdx: number;
-  ballPos: Point;
-  ballInFlight: boolean;
-  attVisuals: import('@/lib/types').ComputedAttackerVisuals;
-  attackerIsScreening: Partial<Record<AttackerId, boolean>>;
-  attackerMovementType: Partial<Record<AttackerId, MovementType>>;
-}
-
 export function CourtView(props: CourtViewProps) {
   const { state } = props;
   const svgRef = useRef<SVGSVGElement>(null);
@@ -134,241 +109,41 @@ export function CourtView(props: CourtViewProps) {
   const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null);
   const [playFrame, setPlayFrame] = useState<PlaybackFrame | null>(null);
 
-  // Playback animation
-  const playStart = useRef(0);
-  // Refs pour ne PAS faire dépendre l'effet de `state` (sinon chaque
-  // mutation reset playStart et la lecture n'avance jamais).
+  // Playback animation. Le state vit ici parce qu'il est consommé par le
+  // rendu, mais le calcul de la frame est délégué à `resolveFrameAt` (pure)
+  // et la boucle de tick à `usePlaybackAnimation`.
   const stateRef = useRef(state);
   stateRef.current = state;
-  const onPlaybackTickRef = useRef(props.onPlaybackTick);
-  onPlaybackTickRef.current = props.onPlaybackTick;
-  const onPlaybackEndRef = useRef(props.onPlaybackEnd);
-  onPlaybackEndRef.current = props.onPlaybackEnd;
 
-  // Snapshot de `playbackStartT` lu au DERNIER passage de `isPlaying` à true,
-  // pour ne pas être affecté par un changement de prop pendant la lecture.
-  const playbackStartTRef = useRef(props.playbackStartT ?? 0);
-  playbackStartTRef.current = props.playbackStartT ?? 0;
-
-  useEffect(() => {
-    if (!props.isPlaying) {
+  const handleTick = useCallback((t: number) => {
+    const cur = stateRef.current;
+    const totalSteps = cur.steps.length - 1;
+    if (totalSteps <= 0) return;
+    if (t >= totalSteps) {
       setPlayFrame(null);
+      props.onPlaybackTick?.(totalSteps);
       return;
     }
-    const stepDuration = PLAYBACK_STEP_DURATION_MS / props.playbackSpeed;
-    // Décale playStart en arrière pour que `elapsed = now - playStart` reflète
-    // déjà l'instant t demandé. Permet de reprendre depuis la pause au lieu
-    // de redémarrer du début.
-    playStart.current = performance.now() - playbackStartTRef.current * stepDuration;
+    props.onPlaybackTick?.(t);
+    const frame = resolveFrameAt(cur, t);
+    if (frame) setPlayFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    const tick = () => {
-      const cur = stateRef.current;
-      const elapsed = performance.now() - playStart.current;
-      const stepDuration = PLAYBACK_STEP_DURATION_MS / props.playbackSpeed;
-      const totalSteps = cur.steps.length - 1;
-      if (totalSteps <= 0) {
-        window.clearInterval(intervalId);
-        return;
-      }
-      const globalT = elapsed / stepDuration;
-      if (globalT >= totalSteps) {
-        window.clearInterval(intervalId);
-        setPlayFrame(null);
-        onPlaybackTickRef.current?.(totalSteps);
-        onPlaybackEndRef.current?.();
-        return;
-      }
-      onPlaybackTickRef.current?.(globalT);
-      const idxA = Math.floor(globalT);
-      const idxB = idxA + 1;
-      const localT = globalT - idxA;
-      const a = cur.steps[idxA];
-      const b = cur.steps[idxB];
-      const offA = activeOffense(a.off, cur.playerCount);
-      const offB = activeOffense(b.off, cur.playerCount);
-      const defA = effectiveDefensePositions(cur, idxA);
-      const defB = effectiveDefensePositions(cur, idxB);
+  usePlaybackAnimation({
+    isPlaying: props.isPlaying,
+    speed: props.playbackSpeed,
+    totalSteps: state.steps.length - 1,
+    startT: props.playbackStartT ?? 0,
+    onTick: handleTick,
+    onEnd: props.onPlaybackEnd,
+  });
 
-      // Interpolation des attaquants pilotée par les annotations de mouvement.
-      // L'évitement d'obstacles est appliqué uniquement pour cut et idle
-      // (pas pour dribble — on suit la wave dessinée ; pas pour screen —
-      // trajectoire courte et délibérée).
-      const off = {} as AttackerPositions;
-      const attackerIds = Object.keys(offA) as AttackerId[];
-      const defenderIds = Object.keys(defA) as DefenderId[];
-      const radiusObstacle = PLAYER_OBSTACLE_RADIUS_PX;
-      const attackerMovementType: Partial<Record<AttackerId, MovementType>> = {};
-      const attackerIsScreening: Partial<Record<AttackerId, boolean>> = {};
-      attackerIds.forEach((id) => {
-        const traj = attackerTrajectoryAt(cur.steps, idxA, id, localT);
-        attackerMovementType[id] = traj.movementType;
-        attackerIsScreening[id] = traj.isScreening;
-        let p = traj.position;
+  // Reset du playFrame quand la lecture s'arrête (pause / fin externe).
+  useEffect(() => {
+    if (!props.isPlaying) setPlayFrame(null);
+  }, [props.isPlaying]);
 
-        // Obstacle avoidance only for `cut` or `idle`. For dribble we follow the
-        // drawn wave; for screen the trajectory is short and deliberate.
-        if (traj.movementType === 'cut' || traj.movementType === 'idle') {
-          const obstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
-          attackerIds.forEach((other) => {
-            if (other === id) return;
-            obstacles.push({
-              center: {
-                x: (offA[other].x + offB[other].x) / 2,
-                y: (offA[other].y + offB[other].y) / 2,
-              },
-              radius: radiusObstacle,
-              defenderToSkip: 'D1' as DefenderId,
-            });
-          });
-          defenderIds.forEach((dId) => {
-            obstacles.push({
-              center: {
-                x: (defA[dId].x + defB[dId].x) / 2,
-                y: (defA[dId].y + defB[dId].y) / 2,
-              },
-              radius: radiusObstacle,
-              defenderToSkip: 'D1' as DefenderId,
-            });
-          });
-          const blocking = pickBlockingCluster(offA[id], offB[id], obstacles);
-          if (blocking) {
-            p = curveAroundObstacle(offA[id], offB[id], blocking.center, blocking.radius, localT);
-          }
-        }
-
-        off[id] = p;
-      });
-
-      const carrier = localT < 0.5
-        ? activeBallCarrier(a, cur.playerCount)
-        : activeBallCarrier(b, cur.playerCount);
-      // Détection d'écran sur la frame en cours pour piloter l'évitement
-      let screen: ReturnType<typeof detectScreen> = null;
-      let offBallScreens: DetectedOffBallScreen[] = [];
-      if (cur.defenseSystem === 'man') {
-        const matchups = getMatchupsAt(cur.steps, idxB - 1, cur.playerCount);
-        const defPosLinear = {} as Record<DefenderId, Point>;
-        (Object.keys(defA) as DefenderId[]).forEach((id) => {
-          defPosLinear[id] = {
-            x: defA[id].x + (defB[id].x - defA[id].x) * localT,
-            y: defA[id].y + (defB[id].y - defA[id].y) * localT,
-          };
-        });
-        const forced = (localT < 0.5 ? a : b).forcedScreener;
-        screen = detectScreen(off, carrier, matchups, defPosLinear, cur.screenRadius, forced);
-        offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosLinear, cur.screenRadius);
-      }
-
-      // Liste des CLUSTERS (poseur + son défenseur) à contourner.
-      // Important : on utilise la position MOYENNE entre A et B pour
-      // que l'obstacle soit STABLE pendant tout le segment (sinon la
-      // courbe Bezier est recalculée à chaque frame avec une géométrie
-      // qui change, ce qui produit un effet de clignotement quand le
-      // segment passe juste à la limite du cercle de l'obstacle).
-      const screenerObstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
-      const linkDist = PLAYER_CLUSTER_LINK_DIST_PX; // 64px : on lie poseur et son défenseur
-      const baseR = PLAYER_CLUSTER_BASE_R_PX; // 20px — clearance autour du cluster (tight)
-      const midpointOff = (id: AttackerId): Point => ({
-        x: (offA[id].x + offB[id].x) / 2,
-        y: (offA[id].y + offB[id].y) / 2,
-      });
-      const midpointDef = (id: DefenderId): Point => ({
-        x: (defA[id].x + defB[id].x) / 2,
-        y: (defA[id].y + defB[id].y) / 2,
-      });
-      if (screen) {
-        const sPos = midpointOff(screen.screener);
-        const sDef = midpointDef(screen.screenerDef);
-        const c = makeCluster(sPos, [sDef], linkDist, baseR);
-        screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: screen.screenerDef });
-      }
-      offBallScreens.forEach((s) => {
-        const sPos = midpointOff(s.screener);
-        const sDef = midpointDef(s.screenerDef);
-        const c = makeCluster(sPos, [sDef], linkDist, baseR);
-        screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: s.screenerDef });
-      });
-
-      const defPos = {} as ComputedDefense;
-      (Object.keys(defA) as DefenderId[]).forEach((id) => {
-        let p: Point = {
-          x: defA[id].x + (defB[id].x - defA[id].x) * localT,
-          y: defA[id].y + (defB[id].y - defA[id].y) * localT,
-        };
-        // Staggered screens : si 2 écrans en quinconce (côtés opposés du
-        // segment) → courbe en S réelle (pickStaggeredPair + cubic Bezier).
-        // Sinon (un seul ou tous du même côté) → super-cluster + courbe
-        // simple (pickBlockingCluster).
-        const candidates = screenerObstacles.filter((o) => id !== o.defenderToSkip);
-        const pair = pickStaggeredPair(defA[id], defB[id], candidates);
-        if (pair) {
-          p = curveAroundStaggeredPair(defA[id], defB[id], pair[0], pair[1], localT);
-        } else {
-          const blocking = pickBlockingCluster(defA[id], defB[id], candidates);
-          if (blocking) {
-            p = curveAroundObstacle(defA[id], defB[id], blocking.center, blocking.radius, localT);
-          }
-        }
-        defPos[id] = {
-          x: p.x,
-          y: p.y,
-          late: defB[id].late,
-          helpFactor: defB[id].helpFactor,
-          isCarrierDefender: defB[id].isCarrierDefender,
-          matchedTo: defB[id].matchedTo,
-          onScreen: defB[id].onScreen,
-          switchedThisStep: defB[id].switchedThisStep,
-          closingOut: defB[id].closingOut,
-          overClosed: defB[id].overClosed,
-          denying: defB[id].denying,
-          helpTriggered: defB[id].helpTriggered,
-          orientation: lerpAngleDeg(defA[id].orientation, defB[id].orientation, localT),
-          gazeOrientation: lerpAngleDeg(defA[id].gazeOrientation, defB[id].gazeOrientation, localT),
-          facing: {
-            x: defA[id].facing.x + (defB[id].facing.x - defA[id].facing.x) * localT,
-            y: defA[id].facing.y + (defB[id].facing.y - defA[id].facing.y) * localT,
-          },
-          armBallSide: {
-            x: defA[id].armBallSide.x + (defB[id].armBallSide.x - defA[id].armBallSide.x) * localT,
-            y: defA[id].armBallSide.y + (defB[id].armBallSide.y - defA[id].armBallSide.y) * localT,
-          },
-          armManSide: {
-            x: defA[id].armManSide.x + (defB[id].armManSide.x - defA[id].armManSide.x) * localT,
-            y: defA[id].armManSide.y + (defB[id].armManSide.y - defA[id].armManSide.y) * localT,
-          },
-        };
-      });
-
-      // Chaque défenseur (carrier + off-ball) suit la position courante de
-      // son attaquant en temps réel (sinon il coupe la corde quand son homme
-      // fait un arc / V-cut au lieu de suivre la trajectoire réelle). Skip
-      // si placement manuel via defenseOverrides.
-      followDefendersAtFrame(defPos, off, carrier, cur, idxA, idxB);
-
-      // Solveur de collisions strict : aucun défenseur ne se superpose
-      // à un autre joueur (sauf son matchedTo).
-      resolvePlayerCollisions(
-        defPos as unknown as Record<string, ComputedDefense[DefenderId]>,
-        off,
-        PLAYER_MIN_CLEARANCE_PX
-      );
-      recomputeDefenseFrameOrientations(cur, off, carrier, defPos);
-
-      const ball = computeBallFrame(
-        offA[activeBallCarrier(a, cur.playerCount)],
-        offB[activeBallCarrier(b, cur.playerCount)],
-        activeBallCarrier(a, cur.playerCount) !== activeBallCarrier(b, cur.playerCount),
-        localT
-      );
-      const attVisuals = computeAttackerVisuals(cur, idxB);
-      setPlayFrame({ off, defPos, carrier, screen, offBallScreens, stepIdx: idxA, ballPos: ball.pos, ballInFlight: ball.inFlight, attVisuals, attackerIsScreening, attackerMovementType });
-    };
-    // setInterval plus déterministe que requestAnimationFrame pour ce cas
-    // (pas de soucis avec re-renders qui restartent la boucle).
-    const intervalId = window.setInterval(tick, 33); // ~30fps
-    tick(); // premier frame immédiat
-    return () => window.clearInterval(intervalId);
-  }, [props.isPlaying, props.playbackSpeed]);
 
   // Computed (static frame)
   const staticFrame = useMemo<PlaybackFrame>(() => {
@@ -403,178 +178,15 @@ export function CourtView(props: CourtViewProps) {
     };
   }, [state]);
 
-  // Scrub frame (interpolation entre étapes pendant le drag de la timeline)
+  // Scrub frame (interpolation entre étapes pendant le drag de la timeline).
+  // Réutilise `resolveFrameAt` (même logique que la lecture continue) avec
+  // un stepIdx arrondi pour afficher l'étape la plus proche du curseur.
   const scrubFrame = useMemo<PlaybackFrame | null>(() => {
     if (props.scrubT == null) return null;
     const totalSteps = state.steps.length - 1;
     if (totalSteps <= 0) return null;
     const t = Math.max(0, Math.min(totalSteps, props.scrubT));
-    const idxA = Math.floor(t);
-    const idxB = Math.min(idxA + 1, totalSteps);
-    const localT = t - idxA;
-    const a = state.steps[idxA];
-    const b = state.steps[idxB];
-    const offA = activeOffense(a.off, state.playerCount);
-    const offB = activeOffense(b.off, state.playerCount);
-    const defA = effectiveDefensePositions(state, idxA);
-    const defB = effectiveDefensePositions(state, idxB);
-    // Interpolation des attaquants pilotée par les annotations (cf. playFrame).
-    // Évitement d'obstacles uniquement pour cut/idle.
-    const off = {} as AttackerPositions;
-    const scrubAttIds = Object.keys(offA) as AttackerId[];
-    const scrubDefIds = Object.keys(defA) as DefenderId[];
-    const scrubObstacleR = PLAYER_OBSTACLE_RADIUS_PX;
-    const scrubAttackerMovementType: Partial<Record<AttackerId, MovementType>> = {};
-    const scrubAttackerIsScreening: Partial<Record<AttackerId, boolean>> = {};
-    scrubAttIds.forEach((id) => {
-      const traj = attackerTrajectoryAt(state.steps, idxA, id, localT);
-      scrubAttackerMovementType[id] = traj.movementType;
-      scrubAttackerIsScreening[id] = traj.isScreening;
-      let p = traj.position;
-
-      // Obstacle avoidance only for `cut` or `idle`.
-      if (traj.movementType === 'cut' || traj.movementType === 'idle') {
-        const obstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
-        scrubAttIds.forEach((other) => {
-          if (other === id) return;
-          obstacles.push({
-            center: { x: (offA[other].x + offB[other].x) / 2, y: (offA[other].y + offB[other].y) / 2 },
-            radius: scrubObstacleR,
-            defenderToSkip: 'D1' as DefenderId,
-          });
-        });
-        scrubDefIds.forEach((dId) => {
-          obstacles.push({
-            center: { x: (defA[dId].x + defB[dId].x) / 2, y: (defA[dId].y + defB[dId].y) / 2 },
-            radius: scrubObstacleR,
-            defenderToSkip: 'D1' as DefenderId,
-          });
-        });
-        const blocking = pickBlockingCluster(offA[id], offB[id], obstacles);
-        if (blocking) {
-          p = curveAroundObstacle(offA[id], offB[id], blocking.center, blocking.radius, localT);
-        }
-      }
-
-      off[id] = p;
-    });
-    const carrier = localT < 0.5
-      ? activeBallCarrier(a, state.playerCount)
-      : activeBallCarrier(b, state.playerCount);
-    let screen: ReturnType<typeof detectScreen> = null;
-    let offBallScreens: DetectedOffBallScreen[] = [];
-    if (state.defenseSystem === 'man') {
-      const matchups = getMatchupsAt(state.steps, Math.max(0, idxB - 1), state.playerCount);
-      const defPosLinear = {} as Record<DefenderId, Point>;
-      (Object.keys(defA) as DefenderId[]).forEach((id) => {
-        defPosLinear[id] = {
-          x: defA[id].x + (defB[id].x - defA[id].x) * localT,
-          y: defA[id].y + (defB[id].y - defA[id].y) * localT,
-        };
-      });
-      const forced = (localT < 0.5 ? a : b).forcedScreener;
-      screen = detectScreen(off, carrier, matchups, defPosLinear, state.screenRadius, forced);
-      offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosLinear, state.screenRadius);
-    }
-    // Obstacles stables (midpoint A-B) pour la durée du segment.
-    const screenerObstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
-    const linkDist = PLAYER_CLUSTER_LINK_DIST_PX;
-    const baseR = PLAYER_CLUSTER_BASE_R_PX;
-    const midpointOff = (id: AttackerId): Point => ({
-      x: (offA[id].x + offB[id].x) / 2,
-      y: (offA[id].y + offB[id].y) / 2,
-    });
-    const midpointDef = (id: DefenderId): Point => ({
-      x: (defA[id].x + defB[id].x) / 2,
-      y: (defA[id].y + defB[id].y) / 2,
-    });
-    if (screen) {
-      const sPos = midpointOff(screen.screener);
-      const sDef = midpointDef(screen.screenerDef);
-      const c = makeCluster(sPos, [sDef], linkDist, baseR);
-      screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: screen.screenerDef });
-    }
-    offBallScreens.forEach((s) => {
-      const sPos = midpointOff(s.screener);
-      const sDef = midpointDef(s.screenerDef);
-      const c = makeCluster(sPos, [sDef], linkDist, baseR);
-      screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: s.screenerDef });
-    });
-
-    const defPos = {} as ComputedDefense;
-    (Object.keys(defA) as DefenderId[]).forEach((id) => {
-      let p: Point = {
-        x: defA[id].x + (defB[id].x - defA[id].x) * localT,
-        y: defA[id].y + (defB[id].y - defA[id].y) * localT,
-      };
-      const candidates = screenerObstacles.filter((o) => id !== o.defenderToSkip);
-      const pair = pickStaggeredPair(defA[id], defB[id], candidates);
-      if (pair) {
-        p = curveAroundStaggeredPair(defA[id], defB[id], pair[0], pair[1], localT);
-      } else {
-        const blocking = pickBlockingCluster(defA[id], defB[id], candidates);
-        if (blocking) {
-          p = curveAroundObstacle(defA[id], defB[id], blocking.center, blocking.radius, localT);
-        }
-      }
-      defPos[id] = {
-        x: p.x,
-        y: p.y,
-        late: defB[id].late,
-        helpFactor: defB[id].helpFactor,
-        isCarrierDefender: defB[id].isCarrierDefender,
-        matchedTo: defB[id].matchedTo,
-        onScreen: defB[id].onScreen,
-        switchedThisStep: defB[id].switchedThisStep,
-        closingOut: defB[id].closingOut,
-        orientation: lerpAngleDeg(defA[id].orientation, defB[id].orientation, localT),
-        gazeOrientation: lerpAngleDeg(defA[id].gazeOrientation, defB[id].gazeOrientation, localT),
-        armBallSide: {
-          x: defA[id].armBallSide.x + (defB[id].armBallSide.x - defA[id].armBallSide.x) * localT,
-          y: defA[id].armBallSide.y + (defB[id].armBallSide.y - defA[id].armBallSide.y) * localT,
-        },
-        armManSide: {
-          x: defA[id].armManSide.x + (defB[id].armManSide.x - defA[id].armManSide.x) * localT,
-          y: defA[id].armManSide.y + (defB[id].armManSide.y - defA[id].armManSide.y) * localT,
-        },
-        facing: {
-          x: defA[id].facing.x + (defB[id].facing.x - defA[id].facing.x) * localT,
-          y: defA[id].facing.y + (defB[id].facing.y - defA[id].facing.y) * localT,
-        },
-      };
-    });
-
-    // Voir playFrame : chaque défenseur suit la position courante de son
-    // attaquant pendant le scrub aussi (carrier + off-ball, sauf overrides).
-    followDefendersAtFrame(defPos, off, carrier, state, idxA, idxB);
-
-    // Solveur de collisions strict
-    resolvePlayerCollisions(
-      defPos as unknown as Record<string, ComputedDefense[DefenderId]>,
-      off,
-      PLAYER_MIN_CLEARANCE_PX
-    );
-    recomputeDefenseFrameOrientations(state, off, carrier, defPos);
-
-    const ball = computeBallFrame(
-      offA[activeBallCarrier(a, state.playerCount)],
-      offB[activeBallCarrier(b, state.playerCount)],
-      activeBallCarrier(a, state.playerCount) !== activeBallCarrier(b, state.playerCount),
-      localT
-    );
-    return {
-      off,
-      defPos,
-      carrier,
-      screen,
-      offBallScreens,
-      stepIdx: Math.round(t),
-      ballPos: ball.pos,
-      ballInFlight: ball.inFlight,
-      attVisuals: computeAttackerVisuals(state, idxB),
-      attackerIsScreening: scrubAttackerIsScreening,
-      attackerMovementType: scrubAttackerMovementType,
-    };
+    return resolveFrameAt(state, t, { stepIdx: Math.round(t) });
   }, [props.scrubT, state]);
 
   const frame = playFrame ?? scrubFrame ?? staticFrame;
