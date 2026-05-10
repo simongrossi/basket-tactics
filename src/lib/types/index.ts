@@ -116,6 +116,11 @@ export type ActionSide = 'fort' | 'faible' | 'axe';
 /** Direction d'un drive. */
 export type DriveDirection = 'panier' | 'baseline' | 'middle';
 
+// ZoneRef est défini dans `lib/data/courtZones`. On utilise un import de type
+// (`import type`) pour éviter une dépendance d'exécution circulaire — types est
+// la racine du graphe et courtZones consomme déjà `Point` d'ici.
+import type { ZoneRef } from '@/lib/data/courtZones';
+
 export interface ScriptedActionParams {
   ballHandler?: AttackerId;
   screener?: AttackerId;
@@ -131,6 +136,12 @@ export interface ScriptedActionParams {
   secondScreener?: AttackerId;
   side?: ActionSide;
   direction?: DriveDirection;
+  /** Zone de destination du cutter / driver (FIBA / NBA, absolue ou fort/faible). */
+  targetZone?: ZoneRef;
+  /** Zone où le screener vient poser son écran. */
+  screenZone?: ZoneRef;
+  /** Zone d'origine (pour replacement / fill / drift / lift). */
+  fromZone?: ZoneRef;
 }
 
 export interface OffensiveScriptedAction {

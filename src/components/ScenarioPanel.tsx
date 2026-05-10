@@ -16,6 +16,7 @@ import {
   DEFENSIVE_ACTIONS_CATALOG,
   ALL_DEFENSIVE_ACTION_TYPES,
 } from '@/lib/data/defensiveActionsCatalog';
+import { ALL_ABSOLUTE_ZONE_IDS, ALL_RELATIVE_ZONE_IDS } from '@/lib/data/courtZones';
 import { newScriptedActionId } from '@/lib/logic/compileScenario';
 import { inferDefensiveDefaults } from '@/lib/logic/defensiveDefaults';
 import { AddCoverageModal } from './AddCoverageModal';
@@ -40,6 +41,9 @@ const PARAM_LABELS: Record<ParamKind, string> = {
   secondScreener: '2e poseur',
   side: 'Côté',
   direction: 'Direction',
+  targetZone: 'Zone cible',
+  screenZone: 'Zone de l\'écran',
+  fromZone: 'Zone de départ',
 };
 
 interface ScenarioPanelProps {
@@ -620,6 +624,11 @@ function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
 function paramOptionsFor(key: ParamKind, attackerIds: AttackerId[]): string[] {
   if (key === 'side') return SIDES;
   if (key === 'direction') return DRIVE_DIRECTIONS;
+  if (key === 'targetZone' || key === 'screenZone' || key === 'fromZone') {
+    // Phase 1 : dropdown plat (zones absolues + relatives). La Phase 2
+    // remplacera par un dropdown groupé par catégorie + sélecteur visuel.
+    return [...ALL_RELATIVE_ZONE_IDS, ...ALL_ABSOLUTE_ZONE_IDS];
+  }
   return attackerIds;
 }
 

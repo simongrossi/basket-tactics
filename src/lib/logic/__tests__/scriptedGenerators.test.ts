@@ -163,3 +163,86 @@ describe('compileScenario', () => {
     expect(out[0].label).toBe('Départ');
   });
 });
+
+// ============================================================
+// Zones nommées (Phase 1) — paramètres targetZone / screenZone
+// ============================================================
+
+describe('Generators avec zones nommées', () => {
+  it('basket-cut + targetZone="short-corner-strong" → cutter au short corner du côté du porteur', () => {
+    // Porteur O1 à (300, 470) → x>=300 → ballSide="right" → strong=right
+    // short-corner-right est à (430, 55) (cf. courtZones.ts).
+    const action: ScriptedAction = {
+      kind: 'offensive',
+      id: 'a-bc-zone',
+      type: 'basket-cut',
+      params: { cutter: 'O3', targetZone: 'short-corner-strong' },
+    };
+    const steps = SCRIPTED_GENERATORS['basket-cut'](initialStep, action);
+    expect(steps).toHaveLength(1);
+    expect(steps[0].off.O3).toEqual({ x: 430, y: 55 });
+  });
+
+  it('basket-cut sans targetZone → comportement par défaut (lerp vers HOOP)', () => {
+    const action: ScriptedAction = {
+      kind: 'offensive',
+      id: 'a-bc-default',
+      type: 'basket-cut',
+      params: { cutter: 'O3' },
+    };
+    const [step] = SCRIPTED_GENERATORS['basket-cut'](initialStep, action);
+    // O3 part à (470, 380), HOOP=(300,75), lerp 0.65 → (~360, ~180).
+    // Ne doit PAS être à short-corner-right (430, 55).
+    expect(step.off.O3).not.toEqual({ x: 430, y: 55 });
+    // Mais doit être plus proche du panier que la position de départ.
+    const dStart = Math.hypot(initialStep.off.O3.x - HOOP.x, initialStep.off.O3.y - HOOP.y);
+    const dEnd = Math.hypot(step.off.O3.x - HOOP.x, step.off.O3.y - HOOP.y);
+    expect(dEnd).toBeLessThan(dStart);
+  });
+
+  it('drive + targetZone="nail" → driver finit au nail (300, 235)', () => {
+    const action: ScriptedAction = {
+      kind: 'offensive',
+      id: 'a-drive-nail',
+      type: 'drive',
+      params: { driver: 'O1', targetZone: 'nail' },
+    };
+    const [step] = SCRIPTED_GENERATORS['drive'](initialStep, action);
+    expect(step.off.O1).toEqual({ x: 300, y: 235 });
+  });
+
+  it('cross-screen + screenZone absolue → screener à la zone exacte', () => {
+    const action: ScriptedAction = {
+      kind: 'offensive',
+      id: 'a-cross',
+      type: 'cross-screen',
+      params: {
+        screener: 'O4',
+        cutter: 'O5',
+        screenZone: 'high-post-left',  // (225, 235)
+      },
+    };
+    const steps = SCRIPTED_GENERATORS['cross-screen'](initialStep, action);
+    expect(steps[0].off.O4).toEqual({ x: 225, y: 235 });
+  });
+
+  it('pin-down + targetZone relative au porteur côté gauche → résolution miroir', () => {
+    // Forcer porteur côté gauche : ballCarrier=O2 (x=130).
+    const leftStep: Step = {
+      ...initialStep,
+      ballCarrier: 'O2',
+    };
+    const action: ScriptedAction = {
+      kind: 'offensive',
+      id: 'a-pd',
+      type: 'pin-down',
+      params: {
+        screener: 'O4',
+        cutter: 'O3',
+        targetZone: 'wing-strong',  // porteur côté gauche → wing-left=(120, 260)
+      },
+    };
+    const steps = SCRIPTED_GENERATORS['pin-down'](leftStep, action);
+    expect(steps[1].off.O3).toEqual({ x: 120, y: 260 });
+  });
+});

@@ -5,12 +5,14 @@
 // /lib/logic/scriptedGenerators/<type>.ts.
 
 import type { ScriptedActionType, ScriptedActionParams, AttackerId } from '@/lib/types';
+import { COURT_ZONES, isAbsoluteZone, isRelativeZone, type ZoneRef } from '@/lib/data/courtZones';
 
 export type ParamKind =
   | 'ballHandler' | 'screener' | 'cutter' | 'passer' | 'receiver'
   | 'giver' | 'driver' | 'shooter' | 'from' | 'to'
   | 'firstScreener' | 'secondScreener'
-  | 'side' | 'direction';
+  | 'side' | 'direction'
+  | 'targetZone' | 'screenZone' | 'fromZone';
 
 export interface ScriptedActionDefinition {
   type: ScriptedActionType;
@@ -31,6 +33,29 @@ export interface ScriptedActionDefinition {
 // Helpers de formatage pour la lecture FR.
 const fmt = (id: AttackerId | undefined) => id ?? '?';
 const fmtSide = (s?: string) => s ?? 'axe';
+
+/** Lecture FR d'une référence de zone (absolue ou relative au porteur).
+ *  Renvoie une chaîne vide si la zone n'est pas définie — facilite la
+ *  composition dans les `reader` ("...vers {zone}"). */
+const fmtZone = (z?: ZoneRef): string => {
+  if (!z) return '';
+  if (isAbsoluteZone(z)) return COURT_ZONES[z].label.toLowerCase();
+  if (isRelativeZone(z)) {
+    // Format "wing-strong" / "short-corner-weak" → "aile fort" / "short corner faible".
+    // On utilise le label de la version "left" comme base FIBA puis on appose fort/faible.
+    const isStrong = z.endsWith('-strong');
+    const baseId = z.replace(/-strong|-weak$/, '-left') as keyof typeof COURT_ZONES;
+    const def = COURT_ZONES[baseId];
+    if (!def) return z;
+    // Retire le suffixe G/D du label si présent.
+    const baseLabel = def.label.replace(/\s*[GD]$/, '').toLowerCase();
+    return `${baseLabel} ${isStrong ? 'fort' : 'faible'}`;
+  }
+  return z;
+};
+
+/** Helper "vers la {zone}" — vide si zone absente, espace devant sinon. */
+const towardsZone = (z?: ZoneRef): string => (z ? ` vers ${fmtZone(z)}` : '');
 
 export const SCRIPTED_ACTIONS_CATALOG: Record<ScriptedActionType, ScriptedActionDefinition> = {
   'pick-and-roll': {
@@ -82,8 +107,9 @@ export const SCRIPTED_ACTIONS_CATALOG: Record<ScriptedActionType, ScriptedAction
     description: 'Coupe directe vers le panier.',
     category: 'coupe',
     requiredParams: ['cutter'],
+    optionalParams: ['targetZone'],
     stepsGenerated: 1,
-    reader: (p) => `${fmt(p.cutter)} coupe vers le panier.`,
+    reader: (p) => `${fmt(p.cutter)} coupe${p.targetZone ? towardsZone(p.targetZone) : ' vers le panier'}.`,
   },
   'backdoor-cut': {
     type: 'backdoor-cut',
@@ -92,8 +118,9 @@ export const SCRIPTED_ACTIONS_CATALOG: Record<ScriptedActionType, ScriptedAction
     description: 'S\'éloigne du panier puis coupe soudainement derrière le défenseur.',
     category: 'coupe',
     requiredParams: ['cutter'],
+    optionalParams: ['targetZone'],
     stepsGenerated: 1,
-    reader: (p) => `${fmt(p.cutter)} coupe en backdoor derrière la défense.`,
+    reader: (p) => `${fmt(p.cutter)} coupe en backdoor derrière la défense${towardsZone(p.targetZone)}.`,
   },
   'flare-cut': {
     type: 'flare-cut',
@@ -102,8 +129,9 @@ export const SCRIPTED_ACTIONS_CATALOG: Record<ScriptedActionType, ScriptedAction
     description: 'Coupe qui éloigne du ballon, en utilisant un écran flare.',
     category: 'coupe',
     requiredParams: ['cutter', 'screener'],
+    optionalParams: ['targetZone', 'screenZone'],
     stepsGenerated: 2,
-    reader: (p) => `${fmt(p.cutter)} coupe en flare via l\'écran de ${fmt(p.screener)}.`,
+    reader: (p) => `${fmt(p.cutter)} coupe en flare via l\'écran de ${fmt(p.screener)}${towardsZone(p.targetZone)}.`,
   },
   'curl-cut': {
     type: 'curl-cut',
@@ -112,8 +140,9 @@ export const SCRIPTED_ACTIONS_CATALOG: Record<ScriptedActionType, ScriptedAction
     description: 'Coupe enroulée autour d\'un écran vers le panier.',
     category: 'coupe',
     requiredParams: ['cutter', 'screener'],
+    optionalParams: ['targetZone', 'screenZone'],
     stepsGenerated: 2,
-    reader: (p) => `${fmt(p.cutter)} curl autour de l\'écran de ${fmt(p.screener)} vers le panier.`,
+    reader: (p) => `${fmt(p.cutter)} curl autour de l\'écran de ${fmt(p.screener)}${p.targetZone ? towardsZone(p.targetZone) : ' vers le panier'}.`,
   },
   'shuffle-cut': {
     type: 'shuffle-cut',
@@ -122,8 +151,9 @@ export const SCRIPTED_ACTIONS_CATALOG: Record<ScriptedActionType, ScriptedAction
     description: 'Coupe autour d\'un écran du haut du poste vers le panier.',
     category: 'coupe',
     requiredParams: ['cutter', 'screener'],
+    optionalParams: ['targetZone', 'screenZone'],
     stepsGenerated: 2,
-    reader: (p) => `${fmt(p.cutter)} fait un shuffle cut sur écran de ${fmt(p.screener)}.`,
+    reader: (p) => `${fmt(p.cutter)} fait un shuffle cut sur écran de ${fmt(p.screener)}${towardsZone(p.targetZone)}.`,
   },
   'pin-down': {
     type: 'pin-down',
@@ -132,8 +162,9 @@ export const SCRIPTED_ACTIONS_CATALOG: Record<ScriptedActionType, ScriptedAction
     description: 'Écran descendant pour libérer un tireur.',
     category: 'écran non-porteur',
     requiredParams: ['screener', 'cutter'],
+    optionalParams: ['targetZone', 'screenZone'],
     stepsGenerated: 2,
-    reader: (p) => `${fmt(p.screener)} pose un pin-down pour ${fmt(p.cutter)}.`,
+    reader: (p) => `${fmt(p.screener)} pose un pin-down pour ${fmt(p.cutter)}${towardsZone(p.targetZone)}.`,
   },
   'flare-screen': {
     type: 'flare-screen',
@@ -142,8 +173,9 @@ export const SCRIPTED_ACTIONS_CATALOG: Record<ScriptedActionType, ScriptedAction
     description: 'Écran latéral pour un joueur qui s\'éloigne du ballon.',
     category: 'écran non-porteur',
     requiredParams: ['screener', 'cutter'],
+    optionalParams: ['targetZone', 'screenZone'],
     stepsGenerated: 2,
-    reader: (p) => `${fmt(p.screener)} pose un écran flare pour ${fmt(p.cutter)}.`,
+    reader: (p) => `${fmt(p.screener)} pose un écran flare pour ${fmt(p.cutter)}${towardsZone(p.targetZone)}.`,
   },
   'back-screen': {
     type: 'back-screen',
@@ -152,8 +184,9 @@ export const SCRIPTED_ACTIONS_CATALOG: Record<ScriptedActionType, ScriptedAction
     description: 'Écran dans le dos du défenseur du cutter (cutter coupe vers le panier).',
     category: 'écran non-porteur',
     requiredParams: ['screener', 'cutter'],
+    optionalParams: ['targetZone', 'screenZone'],
     stepsGenerated: 2,
-    reader: (p) => `${fmt(p.screener)} pose un back-screen pour ${fmt(p.cutter)}.`,
+    reader: (p) => `${fmt(p.screener)} pose un back-screen pour ${fmt(p.cutter)}${towardsZone(p.targetZone)}.`,
   },
   'cross-screen': {
     type: 'cross-screen',
@@ -162,8 +195,9 @@ export const SCRIPTED_ACTIONS_CATALOG: Record<ScriptedActionType, ScriptedAction
     description: 'Écran horizontal d\'une position post-bas à l\'autre.',
     category: 'écran non-porteur',
     requiredParams: ['screener', 'cutter'],
+    optionalParams: ['targetZone', 'screenZone'],
     stepsGenerated: 2,
-    reader: (p) => `${fmt(p.screener)} pose un cross-screen pour ${fmt(p.cutter)}.`,
+    reader: (p) => `${fmt(p.screener)} pose un cross-screen pour ${fmt(p.cutter)}${towardsZone(p.targetZone)}.`,
   },
   'screen-the-screener': {
     type: 'screen-the-screener',
@@ -182,9 +216,12 @@ export const SCRIPTED_ACTIONS_CATALOG: Record<ScriptedActionType, ScriptedAction
     description: 'Pénétration agressive vers le panier en dribble.',
     category: 'porteur',
     requiredParams: ['driver'],
-    optionalParams: ['direction'],
+    optionalParams: ['direction', 'targetZone'],
     stepsGenerated: 1,
-    reader: (p) => `${fmt(p.driver)} attaque le panier ${p.direction ? `(${p.direction})` : ''}.`.trim(),
+    reader: (p) => {
+      if (p.targetZone) return `${fmt(p.driver)} attaque${towardsZone(p.targetZone)}.`;
+      return `${fmt(p.driver)} attaque le panier${p.direction ? ` (${p.direction})` : ''}.`;
+    },
   },
   pass: {
     type: 'pass',
