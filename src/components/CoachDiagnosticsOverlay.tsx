@@ -40,7 +40,7 @@ export function CoachDiagnosticsOverlay({ diagnostics }: Props) {
       style={{
         position: 'absolute',
         top: 8,
-        right: 8,
+        right: 48,
         zIndex: 20,
         pointerEvents: 'auto',
       }}
@@ -51,28 +51,33 @@ export function CoachDiagnosticsOverlay({ diagnostics }: Props) {
           onClick={() => setOpen(true)}
           title="Lecture coach"
           style={{
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
-            padding: '4px 8px',
+            height: 32,
+            padding: '0 12px',
             background: '#fff',
-            border: '1px solid #e2e8f0',
-            borderRadius: 999,
-            boxShadow: '0 1px 3px rgba(15, 23, 42, 0.08)',
-            fontSize: 11,
-            fontWeight: 600,
-            color: '#475569',
+            border: '1px solid #cbd5e1',
+            borderRadius: 16,
+            boxShadow: '0 1px 3px rgba(15,23,42,0.12)',
+            fontSize: 13,
+            fontWeight: 700,
+            color: '#334155',
             cursor: 'pointer',
-            lineHeight: 1.2,
+            lineHeight: 1,
           }}
         >
-          <span style={{ fontSize: 12 }}>💡</span>
+          <span style={{ fontSize: 14, lineHeight: 1 }}>💡</span>
           {critWarn > 0 && (
-            <span style={{ color: '#b45309' }}>⚠ {critWarn}</span>
+            <span style={{ color: '#b45309', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              ⚠ {critWarn}
+            </span>
           )}
-          {critWarn > 0 && reads > 0 && <span style={{ opacity: 0.4 }}>·</span>}
+          {critWarn > 0 && reads > 0 && <span style={{ opacity: 0.35 }}>·</span>}
           {reads > 0 && (
-            <span style={{ color: '#1e3a8a' }}>→ {reads}</span>
+            <span style={{ color: '#1e3a8a', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              → {reads}
+            </span>
           )}
         </button>
       )}
