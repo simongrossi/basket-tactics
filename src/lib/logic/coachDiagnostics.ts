@@ -30,6 +30,7 @@ import {
 import { detectOffBallScreens } from './screens';
 import { computeTacticalReads } from './tacticalReads';
 import { detectBaselineDrive } from './baselineDrive';
+import { detectCuts } from './threatResolution';
 import { activeBallCarrier, activeOffense, getActiveDefenderIds } from './players';
 
 /** Étiquette courte du profil pour insérer dans les phrases coach. */
@@ -260,6 +261,39 @@ export function computeCoachDiagnostics(
         attackers: [baseline.carrier],
       });
     }
+  }
+
+  // --------------------------------------------------------------------------
+  // 2.d. Cuts hors-ballon : un attaquant qui coupe vers le panier non couvert.
+  //   Différent du baseline-drive (qui cible le porteur) — ici c'est un
+  //   non-porteur qui se déplace vers le panier. Coach friendly : signaler
+  //   les coupes pour que l'utilisateur voie ce que la défense ignore.
+  // --------------------------------------------------------------------------
+  if (stepIdx > 0) {
+    const prevStep = state.steps[stepIdx - 1];
+    const prevOffMap = activeOffense(prevStep.off, state.playerCount);
+    const matchups = getMatchupsAt(state.steps, stepIdx, state.playerCount);
+    const defPosForCuts: Record<string, { x: number; y: number }> = {};
+    defenderIds.forEach((dId) => {
+      defPosForCuts[dId] = { x: defPos[dId].x, y: defPos[dId].y };
+    });
+    const cuts = detectCuts(off, prevOffMap, carrier, hoop, defPosForCuts, matchups);
+    cuts.forEach((cut) => {
+      const cutterLabel = withProfile(cut.cutter, profiles?.[cut.cutter]);
+      const sideLabel = cut.side === -1 ? 'G' : cut.side === 1 ? 'D' : '';
+      const defenderInSag =
+        cut.cutterDefDistance !== null && cut.cutterDefDistance > 80;
+      out.push({
+        id: `cut-${cut.cutter}-${stepIdx}`,
+        severity: defenderInSag ? 'warning' : 'info',
+        message: defenderInSag
+          ? `Cut ${sideLabel ? `côté ${sideLabel}` : 'central'} : ${cutterLabel} coupe vers le panier — défenseur en sag (${Math.round(cut.cutterDefDistance!)}px)`
+          : `Cut ${sideLabel ? `côté ${sideLabel}` : 'central'} : ${cutterLabel} coupe vers le panier`,
+        tag: 'cut-backdoor',
+        defenders: [],
+        attackers: [cut.cutter],
+      });
+    });
   }
 
   // --------------------------------------------------------------------------
