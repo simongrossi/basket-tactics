@@ -92,12 +92,25 @@ export function upsertMovementAnnotation(
   }
 
   if (stepIdx + 1 < out.length) {
+    // Cas standard : l'étape suivante existe, on met à jour la position du
+    // joueur à destination.
     const next = out[stepIdx + 1];
     next.off[anno.fromId] = { ...newAnno.to };
     const nextIdx = findMovementIdx(next.annotations, anno.fromId);
     if (nextIdx >= 0) {
       next.annotations[nextIdx] = { ...next.annotations[nextIdx], from: { ...newAnno.to } };
     }
+  } else {
+    // Cas dernière étape : on auto-crée une étape suivante reflétant la
+    // destination de l'annotation. Sans ça, l'annotation "écran" ou "cut"
+    // dessinée sur la dernière étape reste purement décorative et le joueur
+    // garde sa position d'origine en bout de timeline — contre-intuitif.
+    const nextOff = { ...cur.off, [anno.fromId]: { ...newAnno.to } };
+    out.push({
+      off: nextOff,
+      ballCarrier: cur.ballCarrier,
+      annotations: [],
+    });
   }
 
   return out;

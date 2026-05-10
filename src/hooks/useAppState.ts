@@ -181,7 +181,24 @@ export function useAppState() {
   const addStep = useCallback(() => {
     setStateWithHistory((s) => {
       const cur = s.steps[s.activeStep];
-      const newStep = makeStep(cur.off, cur.ballCarrier, []);
+      // Applique les destinations des annotations de mouvement (cut, screen,
+      // dribble) de l'étape courante aux positions de la nouvelle étape.
+      // Sinon un utilisateur qui trace un écran ou un cut puis clique
+      // "+ étape" verrait l'attaquant rester à sa position d'origine au lieu
+      // d'avoir bougé selon son intention.
+      const newOff = { ...cur.off };
+      cur.annotations.forEach((anno) => {
+        if (anno.type === 'cut' || anno.type === 'screen' || anno.type === 'dribble') {
+          const id = anno.fromId as AttackerId;
+          if (id in newOff && anno.to) {
+            newOff[id] = { x: anno.to.x, y: anno.to.y };
+          }
+        }
+      });
+      // Si une annotation de passe change le porteur, on propage aussi.
+      const passAnno = cur.annotations.find((a) => a.type === 'pass' && a.toId);
+      const newCarrier = passAnno?.toId ?? cur.ballCarrier;
+      const newStep = makeStep(newOff, newCarrier, []);
       const steps = [...s.steps];
       steps.splice(s.activeStep + 1, 0, newStep);
       return { ...s, steps, activeStep: s.activeStep + 1 };

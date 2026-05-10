@@ -130,6 +130,21 @@ describe('upsertMovementAnnotation', () => {
     expect(out[0].annotations[0].from).toEqual({ x: 10, y: 20 });
   });
 
+  it('annotation sur la dernière étape : auto-crée une étape suivante avec la destination', () => {
+    const steps = [step({})]; // une seule étape
+    const out = upsertMovementAnnotation(steps, 0, {
+      type: 'screen', fromId: 'O3', from: { x: 0, y: 0 }, to: { x: 311, y: 433 },
+    });
+    // Une nouvelle étape est créée automatiquement.
+    expect(out).toHaveLength(2);
+    expect(out[0].annotations).toHaveLength(1);
+    // L'étape suivante a O3 à la destination de l'annotation.
+    expect(out[1].off.O3).toEqual({ x: 311, y: 433 });
+    // Les autres joueurs gardent leur position de l'étape précédente.
+    expect(out[1].off.O1).toEqual(out[0].off.O1);
+    expect(out[1].ballCarrier).toBe(out[0].ballCarrier);
+  });
+
   it('recale le `from` d\'une annotation de mouvement existante sur Step[N+1]', () => {
     const steps: Step[] = [
       step({}),
