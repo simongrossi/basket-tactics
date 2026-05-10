@@ -33,7 +33,17 @@ import type { DetectedOffBallScreen } from '@/lib/types';
 import { detectTriggers } from '@/lib/logic/triggers';
 import { getZoneLayout, mirrorZoneLayout, applyZoneOverrides } from '@/lib/data/zones';
 import { ZoneEditOverlay, ZoneRegionMenu } from './ZoneEditOverlay';
-import { COURT, PLAYER_RADIUS, FULL_COURT_HEIGHT, FULL_COURT_INNER_MAX_Y } from '@/lib/data/court';
+import {
+  COURT,
+  FULL_COURT_HEIGHT,
+  FULL_COURT_INNER_MAX_Y,
+  PLAYER_CLUSTER_BASE_R_PX,
+  PLAYER_CLUSTER_LINK_DIST_PX,
+  PLAYER_MIN_CLEARANCE_PX,
+  PLAYER_OBSTACLE_RADIUS_PX,
+  PLAYER_PICK_RADIUS_PX,
+  PLAYER_RADIUS,
+} from '@/lib/data/court';
 import { PLAYBACK_STEP_DURATION_MS } from '@/lib/data/physics';
 import {
   clamp, distance, curveAroundObstacle, resolvePlayerCollisions, makeCluster,
@@ -186,7 +196,7 @@ export function CourtView(props: CourtViewProps) {
       const off = {} as AttackerPositions;
       const attackerIds = Object.keys(offA) as AttackerId[];
       const defenderIds = Object.keys(defA) as DefenderId[];
-      const radiusObstacle = PLAYER_RADIUS + 2;
+      const radiusObstacle = PLAYER_OBSTACLE_RADIUS_PX;
       const attackerMovementType: Partial<Record<AttackerId, MovementType>> = {};
       const attackerIsScreening: Partial<Record<AttackerId, boolean>> = {};
       attackerIds.forEach((id) => {
@@ -256,8 +266,8 @@ export function CourtView(props: CourtViewProps) {
       // qui change, ce qui produit un effet de clignotement quand le
       // segment passe juste à la limite du cercle de l'obstacle).
       const screenerObstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
-      const linkDist = PLAYER_RADIUS * 4; // 64px : on lie poseur et son défenseur
-      const baseR = PLAYER_RADIUS + 4; // 20px — clearance autour du cluster (tight)
+      const linkDist = PLAYER_CLUSTER_LINK_DIST_PX; // 64px : on lie poseur et son défenseur
+      const baseR = PLAYER_CLUSTER_BASE_R_PX; // 20px — clearance autour du cluster (tight)
       const midpointOff = (id: AttackerId): Point => ({
         x: (offA[id].x + offB[id].x) / 2,
         y: (offA[id].y + offB[id].y) / 2,
@@ -340,7 +350,7 @@ export function CourtView(props: CourtViewProps) {
       resolvePlayerCollisions(
         defPos as unknown as Record<string, ComputedDefense[DefenderId]>,
         off,
-        PLAYER_RADIUS * 2 + 2
+        PLAYER_MIN_CLEARANCE_PX
       );
       recomputeDefenseFrameOrientations(cur, off, carrier, defPos);
 
@@ -413,7 +423,7 @@ export function CourtView(props: CourtViewProps) {
     const off = {} as AttackerPositions;
     const scrubAttIds = Object.keys(offA) as AttackerId[];
     const scrubDefIds = Object.keys(defA) as DefenderId[];
-    const scrubObstacleR = PLAYER_RADIUS + 2;
+    const scrubObstacleR = PLAYER_OBSTACLE_RADIUS_PX;
     const scrubAttackerMovementType: Partial<Record<AttackerId, MovementType>> = {};
     const scrubAttackerIsScreening: Partial<Record<AttackerId, boolean>> = {};
     scrubAttIds.forEach((id) => {
@@ -468,8 +478,8 @@ export function CourtView(props: CourtViewProps) {
     }
     // Obstacles stables (midpoint A-B) pour la durée du segment.
     const screenerObstacles: { center: Point; radius: number; defenderToSkip: DefenderId }[] = [];
-    const linkDist = PLAYER_RADIUS * 4;
-    const baseR = PLAYER_RADIUS + 4;
+    const linkDist = PLAYER_CLUSTER_LINK_DIST_PX;
+    const baseR = PLAYER_CLUSTER_BASE_R_PX;
     const midpointOff = (id: AttackerId): Point => ({
       x: (offA[id].x + offB[id].x) / 2,
       y: (offA[id].y + offB[id].y) / 2,
@@ -542,7 +552,7 @@ export function CourtView(props: CourtViewProps) {
     resolvePlayerCollisions(
       defPos as unknown as Record<string, ComputedDefense[DefenderId]>,
       off,
-      PLAYER_RADIUS * 2 + 2
+      PLAYER_MIN_CLEARANCE_PX
     );
     recomputeDefenseFrameOrientations(state, off, carrier, defPos);
 
@@ -595,12 +605,12 @@ export function CourtView(props: CourtViewProps) {
       const cur = state.steps[state.activeStep];
       const off = activeOffense(cur.off, state.playerCount);
       for (const id in off) {
-        if (distance(off[id as AttackerId], pt) < PLAYER_RADIUS + 4) return id as AttackerId;
+        if (distance(off[id as AttackerId], pt) < PLAYER_PICK_RADIUS_PX) return id as AttackerId;
       }
       const activeDefenders = new Set(getActiveDefenderIds(state.playerCount));
       for (const id in state.defenseInitial) {
         if (!activeDefenders.has(id as DefenderId)) continue;
-        if (distance(state.defenseInitial[id as DefenderId], pt) < PLAYER_RADIUS + 4) return id as DefenderId;
+        if (distance(state.defenseInitial[id as DefenderId], pt) < PLAYER_PICK_RADIUS_PX) return id as DefenderId;
       }
       return null;
     },

@@ -6,6 +6,7 @@ import type {
   DetectedTriggers,
 } from '../types';
 import { HOOP } from '../data/court';
+import { POST_HOLD_THRESHOLD_PX } from '../constants/gameplay';
 import { distHoop, inPaint, distance } from './geometry';
 
 export function detectTriggers(
@@ -45,7 +46,7 @@ export function detectTriggers(
       && yIntoCourt > 45 && yIntoCourt < 145;
     if (prevOff && prevOff[ballCarrier]) {
       const delta = distance(carrier, prevOff[ballCarrier]);
-      post = inLowPost && delta < 30;
+      post = inLowPost && delta < POST_HOLD_THRESHOLD_PX;
     } else {
       post = inLowPost;
     }

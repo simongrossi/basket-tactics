@@ -1,5 +1,5 @@
 import type { Point } from '../types';
-import { HOOP, PAINT } from '../data/court';
+import { CARRIER_SIDE_TOLERANCE_PX, HOOP, PAINT } from '../data/court';
 
 export function distance(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -35,7 +35,7 @@ export function normalize(p: Point): Point {
 export function ballSide(carrierPos: Point | undefined): -1 | 0 | 1 {
   if (!carrierPos) return 0;
   const dx = carrierPos.x - HOOP.x;
-  if (Math.abs(dx) < 30) return 0;
+  if (Math.abs(dx) < CARRIER_SIDE_TOLERANCE_PX) return 0;
   return dx > 0 ? 1 : -1;
 }
 

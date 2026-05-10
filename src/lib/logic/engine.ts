@@ -36,7 +36,14 @@ import {
   makeCluster,
   pushOutOfMany,
 } from './geometry';
-import { HOOP, HOOP_OPPOSITE, PLAYER_RADIUS } from '../data/court';
+import {
+  HOOP,
+  HOOP_OPPOSITE,
+  PLAYER_CLUSTER_BASE_R_PX,
+  PLAYER_CLUSTER_LINK_DIST_PX,
+  PLAYER_RADIUS,
+} from '../data/court';
+import { DRIBBLE_THRESHOLD_PX } from '../constants/gameplay';
 import type { Point } from '../types';
 import { isInTrapZone, pickTrapHelper, trapTarget } from './trap';
 import { applyDirective } from './applyDirective';
@@ -530,7 +537,7 @@ export function computeAttackerVisuals(
       if (np) {
         const dx = np.x - attackerPos.x;
         const dy = np.y - attackerPos.y;
-        if (Math.hypot(dx, dy) > 30) {
+        if (Math.hypot(dx, dy) > DRIBBLE_THRESHOLD_PX) {
           role = 'cutter';
           nextPos = np;
         }
@@ -696,8 +703,8 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     const offBallScreens = detectOffBallScreens(
       curOff, carrier, matchupsForScreen, prevPositions, state.screenRadius, prevOffEff
     );
-    const linkDist = PLAYER_RADIUS * 4;
-    const baseR = PLAYER_RADIUS + 4;
+    const linkDist = PLAYER_CLUSTER_LINK_DIST_PX;
+    const baseR = PLAYER_CLUSTER_BASE_R_PX;
     if (screen) {
       const sPos = curOff[screen.screener];
       const sDef = prevPositions[screen.screenerDef];
