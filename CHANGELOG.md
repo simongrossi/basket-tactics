@@ -51,6 +51,14 @@ Refonte significative de la défense de zone pour encoder les principes basket f
 - Cumulé pire cas : `0.33 × maxSpeed` → D1 nettement late après l'écran, intuition basket respectée.
 - Limité au défenseur du porteur (le screenerDef a son propre rôle hedge/show).
 
+#### Étape 14 — PDF lisible quand les actions se chevauchent
+- Sous chaque vignette d'étape : bandeau timecode (`0:04 → 0:08 (4.0s)`) + liste à puces des annotations parallèles avec leurs timings absolus et leur qualité d'écran.
+- Symbole **★** sur les annotations à cheval sur la transition adjacente (`tStart<0` ou `tEnd>1`).
+- Tag **(début)** sur les annotations `phase='start'`.
+- Nouvelle section **Synoptique multi-pistes** (cochable, sur page séparée) : grille joueur × transition avec barres positionnées selon tStart/tEnd. Pour les écrans, la qualité est indiquée (`gh/lo/st/so/lk`).
+- Helper `annotationSummary` extrait dans `src/lib/logic/pdfRecap.ts` pour testabilité.
+- Tests : 11 nouveaux cas (formatage des annotations, qualité, phase, cross-step, secondsPerStep variable). 449 → **460 tests verts**.
+
 #### Étape 13 — Timecode (24s possession)
 - Nouveaux champs `AppState.secondsPerStep` (défaut 4) et `possessionSeconds` (défaut 24).
 - Module `src/lib/logic/timecode.ts` : `realStepToSeconds`, `shotClockAt`, `totalDurationSeconds`, `formatClock`, `formatShotClock`.
