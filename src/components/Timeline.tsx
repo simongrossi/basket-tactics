@@ -62,10 +62,9 @@ export function Timeline({
     if (!dragging) return;
     (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
     setDragging(false);
-    const t = tFromEvent(e.clientX);
-    const snapped = Math.round(t);
-    onScrub?.(null);
-    onSetActiveStep(snapped);
+    // Le scrub-drag exprime « fige l'image ici » : on conserve scrubT à la
+    // valeur du dernier pointerMove. Le clear de scrubT ne se fait que via
+    // ▶ (reprise lecture), ■ (stop) ou clic sur un marqueur d'étape.
   };
 
   const displayT = scrubT ?? playbackT ?? state.activeStep;
@@ -128,7 +127,10 @@ export function Timeline({
             key={i}
             onClick={(e) => {
               e.stopPropagation();
-              if (!dragging) onSetActiveStep(i);
+              if (!dragging) {
+                onScrub?.(null);
+                onSetActiveStep(i);
+              }
             }}
             style={{
               position: 'absolute',
