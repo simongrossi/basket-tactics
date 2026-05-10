@@ -96,6 +96,12 @@ Chaque action de mouvement peut avoir sa propre **durée** dans le segment :
 
 Cas d'usage : O3 fait un écran rapide sur [0, 0.4] pendant que O1 dribble sur [0.3, 1.0] → les deux actions se chevauchent naturellement avec des timings différents.
 
+### Étape 11 — Pénalité de contact d'écran
+
+Le défenseur du porteur qui prend un écran (carrierDef avec `onScreen=true`) reçoit maintenant une pénalité de vitesse `×0.55` dans `speedConstraint`. Combiné avec la friction proximité (déjà existante) et l'allongement du path arc, D1 est nettement retardé après un écran — intuition basket respectée.
+
+Cas observé : D1 contournait l'écran trop rapidement, rattrapant O1 sans réelle perte de temps. Avec la pénalité, D1 perd ~0.3-0.6 sec sur le contact — réaliste.
+
 ### Étape 10b — Segments à cheval sur plusieurs étapes
 
 Extension de l'Étape 10 : un segment peut sortir des limites de sa cellule pour s'étaler sur la transition précédente ou suivante.

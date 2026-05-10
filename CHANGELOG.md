@@ -45,6 +45,12 @@ Refonte significative de la défense de zone pour encoder les principes basket f
 - Handler `setAnnotationTiming` avec clamp 0..1 et durée minimum 0.05 (anti-instabilité visuelle).
 - Tests : 4 cas sur attackerTrajectoryAt (tStart à 0.5, tEnd à 0.5, [0.2, 0.6], défaut). 421 → **425 tests verts**.
 
+#### Étape 11 — Pénalité de contact d'écran
+- Le défenseur du porteur marqué `onScreen=true` reçoit désormais une pénalité de vitesse `×0.55` dans `speedConstraint` (en plus de la friction proximité et de l'allongement de path arc length).
+- Représente le contact physique avec le poseur d'écran : le défenseur ne traverse pas instantanément, il négocie le contact (perd ~0.3-0.6 sec).
+- Cumulé pire cas : `0.33 × maxSpeed` → D1 nettement late après l'écran, intuition basket respectée.
+- Limité au défenseur du porteur (le screenerDef a son propre rôle hedge/show).
+
 #### Étape 10b — Segments à cheval sur plusieurs étapes
 - `tStart` peut désormais être < 0 (jusqu'à -1) et `tEnd` peut être > 1 (jusqu'à 2), permettant à une action de s'étendre dans la transition précédente ou suivante.
 - `attackerTrajectoryAt` regarde les annotations sur les steps `idxA` ET `idxA+1` pour identifier les actions actives à un temps global donné (fenêtre [absStart, absEnd] = anchor + tStart, anchor + tEnd).
