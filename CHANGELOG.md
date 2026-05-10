@@ -45,6 +45,13 @@ Refonte significative de la défense de zone pour encoder les principes basket f
 - Handler `setAnnotationTiming` avec clamp 0..1 et durée minimum 0.05 (anti-instabilité visuelle).
 - Tests : 4 cas sur attackerTrajectoryAt (tStart à 0.5, tEnd à 0.5, [0.2, 0.6], défaut). 421 → **425 tests verts**.
 
+#### Étape 10b — Segments à cheval sur plusieurs étapes
+- `tStart` peut désormais être < 0 (jusqu'à -1) et `tEnd` peut être > 1 (jusqu'à 2), permettant à une action de s'étendre dans la transition précédente ou suivante.
+- `attackerTrajectoryAt` regarde les annotations sur les steps `idxA` ET `idxA+1` pour identifier les actions actives à un temps global donné (fenêtre [absStart, absEnd] = anchor + tStart, anchor + tEnd).
+- UI : `overflow: visible` sur les cellules + `z-index` sur les segments pour les laisser déborder. Les poignées de drag acceptent les ratios hors [0, 1] et clampent côté state à [-1, 2]. Box-shadow autour du segment quand il déborde pour le repérer.
+- Cas d'usage : un écran qui se pose pendant la fin du dribble du porteur (l'action démarre `tStart=-0.4` avant son anchor → D1 peut déjà commencer à le prendre).
+- Test : 1 nouveau cas cross-step (tStart=-0.4, vérification position aux deux transitions). 425 → **426 tests verts**.
+
 #### Étape 8 — Multi-track timeline + Étape 9 — Phase début/fin
 - Nouveau module `playerTracks.ts` qui calcule pour chaque joueur ses segments d'activité à travers les étapes (idle, dribble, cut, screen, pass / pos, tracking, closeout, help).
 - `PlayerTimelineModal` (popup zoom) + `MultiTrackTimeline` (docké en bas, façon Premiere) avec curseur vertical synchronisé temps réel et clic pour sauter à un step.

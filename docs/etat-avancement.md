@@ -66,8 +66,51 @@ Pour présenter des **playbooks à choix multiples** ("si drop → pull-up", "si
 
 V1 = un seul niveau (pas de sous-branches imbriquées). Pour V2 (split view, branches auto réactives), voir [docs/ideas.md](./ideas.md).
 
+### Étape 8 — Multi-track timeline façon vidéo
+
+Pour visualiser **qui fait quoi à quel moment** dans un scénario multi-action :
+
+- Nouveau module [`playerTracks.ts`](../src/lib/logic/playerTracks.ts) : `computePlayerTracks(state)` extrait pour chaque joueur ses segments d'activité à travers les étapes (idle, dribble, cut, screen, pass / pos, tracking, closeout, help).
+- [`PlayerTimelineModal`](../src/components/PlayerTimelineModal.tsx) : popup zoomable avec les 10 pistes (5 attaquants + 5 défenseurs), accessible via `⋯ > timeline par joueur`.
+- [`MultiTrackTimeline`](../src/components/MultiTrackTimeline.tsx) : panneau docké en bas de l'écran, sous la timeline principale, façon Adobe Premiere. Toggle `▲ pistes` pour déplier/replier.
+- Curseur vertical rouge synchronisé temps réel avec scrubT/playbackT/activeStep.
+- Steps interpolés (auto-créés par `breakUpTeleports`) fusionnés visuellement pour ne pas polluer.
+
+### Étape 9 — Phase début/fin sur annotations
+
+Le coach peut dire au moment du dessin SI l'action est active au **début** de l'étape (mouvement effectué dans la transition précédente) ou à la **fin** (mouvement effectué pendant cette étape) :
+
+- `Annotation.phase: 'start' | 'end'` (default 'end' = rétro-compatible).
+- `upsertMovementAnnotation` resynchronise les positions des étapes adjacentes selon la phase.
+- `setAnnotationPhase` dans `useAppState` pour basculer en place.
+- UI : bouton **◀** / **▶** dans le coin du segment (multi-track) pour bascule visuelle.
+
+### Étape 10 — Édition continue tStart/tEnd (façon vidéo)
+
+Chaque action de mouvement peut avoir sa propre **durée** dans le segment :
+
+- `Annotation.tStart` et `tEnd` (0..1) définissent les bornes temporelles.
+- `attackerTrajectoryAt` mappe le temps global vers le temps d'action selon ces bornes.
+- UI : poignées drag invisibles (`cursor=ew-resize`) sur les bords des segments dans `MultiTrackTimeline`. Glisser modifie tStart/tEnd en temps réel.
+- Handler `setAnnotationTiming` avec clamp et durée minimum 0.05.
+
+Cas d'usage : O3 fait un écran rapide sur [0, 0.4] pendant que O1 dribble sur [0.3, 1.0] → les deux actions se chevauchent naturellement avec des timings différents.
+
+### Étape 10b — Segments à cheval sur plusieurs étapes
+
+Extension de l'Étape 10 : un segment peut sortir des limites de sa cellule pour s'étaler sur la transition précédente ou suivante.
+
+- `tStart` peut être < 0 (jusqu'à -1) — l'action démarre dans la transition précédente.
+- `tEnd` peut être > 1 (jusqu'à 2) — l'action continue dans la transition suivante.
+- `attackerTrajectoryAt` regarde les annotations sur les steps `idxA` ET `idxA+1` pour trouver les actions actives à tout instant global.
+- UI : `overflow: visible` sur les cellules + `z-index` + `box-shadow` pour visualiser le débordement. Drag autorisé hors [0, 1].
+
+Cas d'usage : un écran qui se met en place pendant que le porteur finit son dribble — le défenseur du porteur traverse la zone d'écran alors qu'elle est déjà active.
+
+Pour V2 (timecode absolu en secondes type 24s + montée de balle), voir [docs/ideas.md](./ideas.md).
+
 ### Tests
-- **406 tests verts** au total après les Étapes 2-7 (vs 348 avant, +58 tests).
+- **426 tests verts** au total après les Étapes 2-10b (vs 348 avant, +78 tests).
 - Nouveaux fichiers : `threatResolution.test.ts`, `rimProtectionLayer.test.ts`, `baselineDrive.test.ts`.
 - Sections enrichies dans `zoneDefense.test.ts` (P3.b high-post isolé, P3.c baseline, P3.d ball-pressure, P3.e rim protection, P3.f weakside paint sag + recover).
 
