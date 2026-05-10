@@ -224,11 +224,21 @@ export function resolveFrameAt(
   recomputeDefenseFrameOrientations(state, off, carrier, defPos);
 
   // ---------------------------------------------------------------------
-  // 6. Ballon (interpolation entre porteur A et porteur B).
+  // 6. Ballon — suit la position INTERPOLÉE du porteur (et non les positions
+  //    brutes des steps). Sans ça, un dribble avec waypoints fait suivre la
+  //    courbe au joueur mais le ballon allait en ligne droite, donnant
+  //    l'impression que la balle quitte la main du porteur.
+  //    Pour les passes (carrierChanged), on prend les positions interpolées
+  //    des deux porteurs (passeur et receveur) — la parabole est correcte.
   // ---------------------------------------------------------------------
   const carrierA = activeBallCarrier(a, state.playerCount);
   const carrierB = activeBallCarrier(b, state.playerCount);
-  const ball = computeBallFrame(offA[carrierA], offB[carrierB], carrierA !== carrierB, localT);
+  const ball = computeBallFrame(
+    off[carrierA] ?? offA[carrierA],
+    off[carrierB] ?? offB[carrierB],
+    carrierA !== carrierB,
+    localT
+  );
 
   return {
     off,
