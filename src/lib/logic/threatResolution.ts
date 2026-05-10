@@ -23,6 +23,11 @@ import { distance, pointToSegmentDistance } from './geometry';
 
 const FREE_PATH_PERP_PX = 80;
 const FREE_PATH_DIST_TO_HOOP_MAX_PX = 220;
+/** Bande étendue pour les attaquants en mouvement vers le panier (drive,
+ *  cut profond) : on détecte la menace plus tôt pour permettre le step-up
+ *  préventif. Au-delà de 280 px, on considère que la défense a le temps. */
+const FREE_PATH_DIST_TO_HOOP_DRIVING_PX = 280;
+const FREE_PATH_DRIVING_DELTA_PX = 20;
 const CUT_MIN_DELTA_DHOOP_PX = 25;
 const CUT_MAX_DHOOP_PX = 250;
 const CUT_NEAR_TEAMMATE_PX = 30;
@@ -83,7 +88,8 @@ export function detectFreePathThreats(
   off: AttackerPositions,
   hoop: Point,
   defPositions: Record<string, ThreatDefenderInput>,
-  unavailable: Set<DefenderId> = new Set()
+  unavailable: Set<DefenderId> = new Set(),
+  prevOff: AttackerPositions | null = null
 ): FreePathThreat[] {
   const defenderIds = Object.keys(defPositions) as DefenderId[];
   // Défenseurs disponibles pour fermer le couloir : exclut ceux déjà désignés
@@ -94,9 +100,27 @@ export function detectFreePathThreats(
   const threats: FreePathThreat[] = [];
 
   // Trie les attaquants par distance au panier (les plus dangereux d'abord).
+  // - Toujours menace si dHoop < 220 (free-path statique)
+  // - Aussi menace si 220 <= dHoop < 280 ET mouvement vers panier (drive en
+  //   cours) : permet le step-up préventif avant que l'attaquant arrive.
   const ranked = (Object.entries(off) as [AttackerId, Point][])
-    .map(([id, pos]) => ({ id, pos, dHoop: distance(pos, hoop) }))
-    .filter((a) => a.dHoop < FREE_PATH_DIST_TO_HOOP_MAX_PX)
+    .map(([id, pos]) => {
+      const dHoop = distance(pos, hoop);
+      const prevPos = prevOff?.[id];
+      const deltaTowardHoop = prevPos
+        ? distance(prevPos, hoop) - dHoop
+        : 0;
+      return { id, pos, dHoop, deltaTowardHoop };
+    })
+    .filter((a) => {
+      if (a.dHoop < FREE_PATH_DIST_TO_HOOP_MAX_PX) return true;
+      if (
+        a.dHoop < FREE_PATH_DIST_TO_HOOP_DRIVING_PX &&
+        a.deltaTowardHoop > FREE_PATH_DRIVING_DELTA_PX
+      )
+        return true;
+      return false;
+    })
     .sort((a, b) => a.dHoop - b.dHoop);
 
   const localAssigned = new Set<DefenderId>(unavailable);
@@ -130,7 +154,9 @@ export function detectFreePathThreats(
     const designated = candidates[0]?.id ?? null;
     if (designated) localAssigned.add(designated);
 
-    const urgency = Math.max(0, 1 - att.dHoop / FREE_PATH_DIST_TO_HOOP_MAX_PX);
+    // Urgence : 1 quand dHoop=0, 0 à FREE_PATH_DIST_TO_HOOP_DRIVING_PX (=280).
+    // Échelle linéaire qui inclut la bande étendue "drive en cours".
+    const urgency = Math.max(0, 1 - att.dHoop / FREE_PATH_DIST_TO_HOOP_DRIVING_PX);
 
     threats.push({
       attacker: att.id,

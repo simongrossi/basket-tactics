@@ -202,7 +202,8 @@ export function computeZoneTargets(
   layout: ZoneLayout,
   config: ZoneConfig,
   defenseDistance: number,
-  hoop: Point = HOOP
+  hoop: Point = HOOP,
+  prevOff: AttackerPositions | null = null
 ): Record<DefenderId, ZoneDefenderTarget> {
   const tactic = TACTICS[config.type] ?? DEFAULT_TACTIC;
   const ballPos = off[ballCarrier];
@@ -346,7 +347,7 @@ export function computeZoneTargets(
     const unavailable = new Set<DefenderId>();
     designatedCoverer.forEach((dId) => unavailable.add(dId));
     if (baselineDriveCoverer) unavailable.add(baselineDriveCoverer);
-    const threats = detectFreePathThreats(off, hoop, homePosByDef, unavailable);
+    const threats = detectFreePathThreats(off, hoop, homePosByDef, unavailable, prevOff);
     threats.forEach((t) => {
       if (t.designated) {
         rimThreats.push(t);

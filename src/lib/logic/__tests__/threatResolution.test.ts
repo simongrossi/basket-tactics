@@ -90,6 +90,43 @@ describe('detectFreePathThreats', () => {
     expect(rClose[0].urgency).toBeGreaterThan(rFar[0]?.urgency ?? 0);
   });
 
+  it('drive en cours dans la bande étendue (220-280px) → menace si mouvement > 20px', () => {
+    // Porteur en wing droit, drive vers panier, autre défenseur loin pour
+    // qu'aucun ne couvre naturellement le couloir.
+    const unavailable = new Set<'D5' | 'D2' | 'D3'>(['D5', 'D2', 'D3']);
+    const prev: AttackerPositions = {
+      O1: { x: 470, y: 320 }, // wing droit reculé, dHoop ~298
+      O2: { x: 130, y: 380 },
+      O3: { x: 470, y: 380 },
+      O4: { x: 220, y: 230 },
+      O5: { x: 380, y: 230 },
+    };
+    const cur: AttackerPositions = {
+      O1: { x: 460, y: 250 }, // avancé vers panier, dHoop ~250
+      O2: { x: 130, y: 380 },
+      O3: { x: 470, y: 380 },
+      O4: { x: 220, y: 230 },
+      O5: { x: 380, y: 230 },
+    };
+    const without = detectFreePathThreats(cur, HOOP, defAtHomes, unavailable);
+    const withPrev = detectFreePathThreats(cur, HOOP, defAtHomes, unavailable, prev);
+    expect(without.find((t) => t.attacker === 'O1')).toBeUndefined();
+    expect(withPrev.find((t) => t.attacker === 'O1')).toBeDefined();
+  });
+
+  it('porteur statique entre 220-280 → pas de menace (pas de drive)', () => {
+    const prev: AttackerPositions = {
+      O1: { x: 300, y: 320 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 470, y: 380 },
+      O4: { x: 220, y: 230 },
+      O5: { x: 380, y: 230 },
+    };
+    const cur = { ...prev }; // identique = aucun mouvement
+    const r = detectFreePathThreats(cur, HOOP, defAtHomes, new Set<'D5'>(['D5']), prev);
+    expect(r.find((t) => t.attacker === 'O1')).toBeUndefined();
+  });
+
   it('détecte un drive carrier vers panier (carrier proche basket)', () => {
     const off: AttackerPositions = {
       O1: { x: 300, y: 130 }, // porteur en pleine raquette

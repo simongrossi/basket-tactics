@@ -32,8 +32,10 @@ export function computeZoneDefenseTargets(
   const layout = applyZoneOverrides(oriented, state.zoneOverrides).filter((z) =>
     defenderIds.includes(z.assignedTo)
   );
+  const prevStep = stepIdx > 0 ? state.steps[stepIdx - 1] : null;
+  const prevOff = prevStep ? activeOffense(prevStep.off, state.playerCount) : null;
   const zoneTargets = computeZoneTargets(
-    off, ballCarrier, layout, state.zoneConfig, state.defenseDistance, hoop
+    off, ballCarrier, layout, state.zoneConfig, state.defenseDistance, hoop, prevOff
   );
 
   const positions = {} as Record<DefenderId, DefenderTarget>;
