@@ -169,9 +169,28 @@ Indépendants des triggers :
 |---------|---------|-------|
 | **consigne** | over/under/switch/bump | Réponse défensive aux écrans hors-ballon |
 
+### Appliquer à tous (visible si système = homme)
+
+Section au-dessus de la grille individuelle. Pousse une consigne sur **tous les défenseurs en un clic** au lieu d'éditer chaque ligne. Layout vertical compact (label gauche fixe + select qui s'étire) qui tient dans toute largeur de colonne.
+
+| Réglage | Valeurs |
+|---|---|
+| **aide %** | input numérique 0–100 (Enter pour appliquer) |
+| **priorité** | raquette / homme / passe |
+| **vs porteur** | coller / bumper / contester / reculer / topside / baseline |
+| **hors-ballon** | sag / derrière / stunt / 3/4 deny / devant |
+| **écran** | auto (global) / over / under / switch / hedge / drop / blitz |
+| **aide mode** | auto / agressif / passif / désactivé |
+| **regard** | auto / 🔒 mon homme / 🔒 le porteur / 🔒 les deux |
+| **corps** | auto / ouvert / face homme / face porteur / passe à plat / passe perpend. |
+
+Chaque select a une option `—` neutre (placeholder, ne fait rien). Sélectionner une vraie valeur dispatche à tous les défenseurs et le select se réinitialise pour permettre de re-pousser. Action `updateAllRules` dans une seule entrée d'historique → ctrl-z propre.
+
+Bouton **"Réinitialiser les overrides individuels"** : efface `distance`, `maxSpeed`, `closeoutBoost`, `denyAggressiveness`, `screenNav` sur tous les défenseurs → tous retombent sur les sliders globaux.
+
 ### Règles individuelles (visible si système = homme)
 
-Tableau 5 lignes (D1–D5) × 6 colonnes :
+Tableau 5 lignes (D1–D5) × 6 colonnes pour des éditions ciblées par défenseur :
 
 | Colonne | Valeurs | Description |
 |---------|---------|-------------|
@@ -182,7 +201,7 @@ Tableau 5 lignes (D1–D5) × 6 colonnes :
 | **hors-bal.** | sag / derrière / stunt / 3/4 deny / devant | Stance quand on défend hors-ballon (stunt = fake d'aide, blend 0.4 entre derrière et devant) |
 | **écran** | auto / over / under / switch / hedge / drop / blitz | Override individuel sur écran porteur (auto = règle globale) |
 
-Astuce : **clic-droit** sur un défenseur sur le terrain ouvre un menu compact avec les mêmes réglages.
+Astuce : **clic-droit** sur un défenseur sur le terrain ouvre un menu compact avec les mêmes réglages **plus** les options avancées (helpMode, gazeLock, bodyOrientationMode, sliders distance/vitesse/closeout/denial individuels).
 
 ### Simulation (Monte Carlo)
 

@@ -371,143 +371,90 @@ export function DefensePanel(props: DefensePanelProps) {
             </div>
           </Section>
 
-          <Section theme="defense" label="Appliquer à tous les défenseurs">
-            <div style={{ fontSize: 10, color: '#64748b', marginBottom: 4 }}>
-              Pousse la même consigne sur les {defenderIds.length} défenseurs en un clic. Pratique pour aligner toute l'équipe sur un schéma.
+          <Section theme="defense" label={`Appliquer à tous (${defenderIds.length})`}>
+            <div style={{ fontSize: 10, color: '#64748b', marginBottom: 6 }}>
+              Pousse la même consigne sur les {defenderIds.length} défenseurs en un clic.
             </div>
-            {/* Ligne 1 : aide / priority / vsCarrier / offBallStance / screenNav (mêmes colonnes que la grille individuelle) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '64px 40px 1fr 1fr 1fr 1fr', gap: 3, fontSize: 10, color: '#64748b', marginBottom: 2 }}>
-              <span></span>
-              <span>aide</span>
-              <span>prio.</span>
-              <span>vs porteur</span>
-              <span>hors-bal.</span>
-              <span>écran</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <MassRow label="aide %">
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={5}
+                  placeholder="—"
+                  onBlur={(e) => {
+                    const v = parseInt(e.target.value);
+                    if (!Number.isNaN(v)) props.onUpdateAllRules({ helpPct: Math.max(0, Math.min(100, v)) });
+                    e.target.value = '';
+                  }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                  style={{ fontSize: 11, height: 22, padding: '0 3px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
+                  title="Saisir 0–100 puis Enter pour appliquer"
+                />
+              </MassRow>
+              <MassRow label="priorité">
+                <MassSelect
+                  onPick={(v) => props.onUpdateAllRules({ priority: v as any })}
+                  options={[['paint','raquette'],['man','homme'],['passlane','passe']]}
+                />
+              </MassRow>
+              <MassRow label="vs porteur">
+                <MassSelect
+                  onPick={(v) => props.onUpdateAllRules({ vsCarrier: v as any })}
+                  options={[
+                    ['coller','coller'],['bumper','bumper'],['contester','contester'],
+                    ['reculer','reculer'],['topside','topside'],['baseline','baseline'],
+                  ]}
+                />
+              </MassRow>
+              <MassRow label="hors-ballon">
+                <MassSelect
+                  onPick={(v) => props.onUpdateAllRules({ offBallStance: v as any })}
+                  options={[
+                    ['sag','sag'],['behind','derrière'],['stunt','stunt'],
+                    ['deny-3q','3/4 deny'],['fronting','devant'],
+                  ]}
+                />
+              </MassRow>
+              <MassRow label="écran">
+                <MassSelect
+                  onPick={(v) => props.onUpdateAllRules({ screenNav: v === 'auto' ? undefined : v as any })}
+                  options={[
+                    ['auto','auto (global)'],['over','over'],['under','under'],['switch','switch'],
+                    ['hedge','hedge'],['drop','drop'],['blitz','blitz'],
+                  ]}
+                />
+              </MassRow>
+              <MassRow label="aide mode">
+                <MassSelect
+                  onPick={(v) => props.onUpdateAllRules({ helpMode: v as any })}
+                  options={[
+                    ['auto','auto'],['aggressive','agressif'],['passive','passif'],['disabled','désactivé'],
+                  ]}
+                />
+              </MassRow>
+              <MassRow label="regard">
+                <MassSelect
+                  onPick={(v) => props.onUpdateAllRules({ gazeLock: v === 'auto' ? undefined : v as any })}
+                  options={[
+                    ['auto','auto'],['opponent','🔒 mon homme'],
+                    ['ball-carrier','🔒 le porteur'],['both','🔒 les deux'],
+                  ]}
+                />
+              </MassRow>
+              <MassRow label="corps">
+                <MassSelect
+                  onPick={(v) => props.onUpdateAllRules({ bodyOrientationMode: v === 'auto' ? undefined : v as any })}
+                  options={[
+                    ['auto','auto'],['open','ouvert'],['face-man','face homme'],
+                    ['face-ball','face porteur'],['pass-lane-flat','passe à plat'],
+                    ['pass-lane-perp','passe perpend.'],
+                  ]}
+                />
+              </MassRow>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '64px 40px 1fr 1fr 1fr 1fr', gap: 3, alignItems: 'center', fontSize: 11 }}>
-              <span style={{ fontWeight: 600, color: c.accentText }}>→ tous</span>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step={5}
-                placeholder="—"
-                onBlur={(e) => {
-                  const v = parseInt(e.target.value);
-                  if (!Number.isNaN(v)) props.onUpdateAllRules({ helpPct: Math.max(0, Math.min(100, v)) });
-                  e.target.value = '';
-                }}
-                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                style={{ fontSize: 11, height: 22, padding: '0 3px' }}
-                title="Saisir une valeur 0-100 puis Enter / Tab pour appliquer à tous"
-              />
-              <select
-                defaultValue=""
-                onChange={(e) => { if (e.target.value) { props.onUpdateAllRules({ priority: e.target.value as any }); e.target.value = ''; } }}
-                style={{ fontSize: 11, height: 22 }}
-              >
-                <option value="">—</option>
-                <option value="paint">raquette</option>
-                <option value="man">homme</option>
-                <option value="passlane">passe</option>
-              </select>
-              <select
-                defaultValue=""
-                onChange={(e) => { if (e.target.value) { props.onUpdateAllRules({ vsCarrier: e.target.value as any }); e.target.value = ''; } }}
-                style={{ fontSize: 11, height: 22 }}
-              >
-                <option value="">—</option>
-                <option value="coller">coller</option>
-                <option value="bumper">bumper</option>
-                <option value="contester">contester</option>
-                <option value="reculer">reculer</option>
-                <option value="topside">topside</option>
-                <option value="baseline">baseline</option>
-              </select>
-              <select
-                defaultValue=""
-                onChange={(e) => { if (e.target.value) { props.onUpdateAllRules({ offBallStance: e.target.value as any }); e.target.value = ''; } }}
-                style={{ fontSize: 11, height: 22 }}
-              >
-                <option value="">—</option>
-                <option value="sag">sag</option>
-                <option value="behind">derrière</option>
-                <option value="stunt">stunt</option>
-                <option value="deny-3q">3/4 deny</option>
-                <option value="fronting">devant</option>
-              </select>
-              <select
-                defaultValue=""
-                onChange={(e) => { if (e.target.value) { props.onUpdateAllRules({ screenNav: e.target.value === 'auto' ? undefined : e.target.value as any }); e.target.value = ''; } }}
-                style={{ fontSize: 11, height: 22 }}
-              >
-                <option value="">—</option>
-                <option value="auto">auto (global)</option>
-                <option value="over">over</option>
-                <option value="under">under</option>
-                <option value="switch">switch</option>
-                <option value="hedge">hedge</option>
-                <option value="drop">drop</option>
-                <option value="blitz">blitz</option>
-              </select>
-            </div>
-            {/* Ligne 2 : helpMode / gazeLock / bodyOrientationMode — réglages clic-droit
-                avancés non présents dans la grille individuelle. */}
-            <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr 1fr 1fr', gap: 3, fontSize: 10, color: '#64748b', marginTop: 6, marginBottom: 2 }}>
-              <span></span>
-              <span>aide mode</span>
-              <span>regard</span>
-              <span>corps</span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr 1fr 1fr', gap: 3, alignItems: 'center', fontSize: 11 }}>
-              <span style={{ fontWeight: 600, color: c.accentText }}>→ tous</span>
-              <select
-                defaultValue=""
-                onChange={(e) => { if (e.target.value) { props.onUpdateAllRules({ helpMode: e.target.value as any }); e.target.value = ''; } }}
-                style={{ fontSize: 11, height: 22 }}
-              >
-                <option value="">—</option>
-                <option value="auto">auto</option>
-                <option value="aggressive">agressif</option>
-                <option value="passive">passif</option>
-                <option value="disabled">désactivé</option>
-              </select>
-              <select
-                defaultValue=""
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (!v) return;
-                  props.onUpdateAllRules({ gazeLock: v === 'auto' ? undefined : v as any });
-                  e.target.value = '';
-                }}
-                style={{ fontSize: 11, height: 22 }}
-              >
-                <option value="">—</option>
-                <option value="auto">auto</option>
-                <option value="opponent">🔒 mon homme</option>
-                <option value="ball-carrier">🔒 le porteur</option>
-                <option value="both">🔒 les deux</option>
-              </select>
-              <select
-                defaultValue=""
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (!v) return;
-                  props.onUpdateAllRules({ bodyOrientationMode: v === 'auto' ? undefined : v as any });
-                  e.target.value = '';
-                }}
-                style={{ fontSize: 11, height: 22 }}
-              >
-                <option value="">—</option>
-                <option value="auto">auto</option>
-                <option value="open">ouvert (homme/ballon)</option>
-                <option value="face-man">face homme</option>
-                <option value="face-ball">face porteur</option>
-                <option value="pass-lane-flat">ligne passe à plat</option>
-                <option value="pass-lane-perp">ligne passe perp.</option>
-              </select>
-            </div>
-            <div style={{ marginTop: 6 }}>
+            <div style={{ marginTop: 8 }}>
               <button
                 type="button"
                 onClick={props.onResetIndividualOverrides}
@@ -519,6 +466,7 @@ export function DefensePanel(props: DefensePanelProps) {
                   background: '#fff',
                   color: '#475569',
                   cursor: 'pointer',
+                  width: '100%',
                 }}
                 title="Efface les overrides individuels (distance, vit. max, closeout, denial, screenNav). Tous retombent sur les sliders globaux ci-dessus."
               >
@@ -531,7 +479,7 @@ export function DefensePanel(props: DefensePanelProps) {
             <div style={{ fontSize: 10, color: '#64748b', marginBottom: 2 }}>
               Astuce : clic-droit sur un défenseur pour ouvrir un menu rapide.
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '24px 40px 1fr 1fr 1fr 1fr', gap: 3, fontSize: 10, color: '#64748b' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '24px 36px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: 3, fontSize: 10, color: '#64748b' }}>
               <span></span>
               <span>aide</span>
               <span>prio.</span>
@@ -544,7 +492,7 @@ export function DefensePanel(props: DefensePanelProps) {
               return (
                 <div
                   key={dId}
-                  style={{ display: 'grid', gridTemplateColumns: '24px 40px 1fr 1fr 1fr 1fr', gap: 3, alignItems: 'center', fontSize: 11 }}
+                  style={{ display: 'grid', gridTemplateColumns: '24px 36px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: 3, alignItems: 'center', fontSize: 11 }}
                 >
                   <span style={{ fontWeight: 500, color: c.accentText }}>{dId}</span>
                   <input
@@ -561,7 +509,7 @@ export function DefensePanel(props: DefensePanelProps) {
                   <select
                     value={r.priority}
                     onChange={(e) => props.onUpdateRule(dId, { priority: e.target.value as any })}
-                    style={{ fontSize: 11, height: 22 }}
+                    style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                   >
                     <option value="paint">raquette</option>
                     <option value="man">homme</option>
@@ -570,7 +518,7 @@ export function DefensePanel(props: DefensePanelProps) {
                   <select
                     value={r.vsCarrier}
                     onChange={(e) => props.onUpdateRule(dId, { vsCarrier: e.target.value as any })}
-                    style={{ fontSize: 11, height: 22 }}
+                    style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                   >
                     <option value="coller">coller</option>
                     <option value="bumper">bumper</option>
@@ -582,7 +530,7 @@ export function DefensePanel(props: DefensePanelProps) {
                   <select
                     value={r.offBallStance ?? 'sag'}
                     onChange={(e) => props.onUpdateRule(dId, { offBallStance: e.target.value as any })}
-                    style={{ fontSize: 11, height: 22 }}
+                    style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                   >
                     <option value="sag">sag</option>
                     <option value="behind">derrière</option>
@@ -593,7 +541,7 @@ export function DefensePanel(props: DefensePanelProps) {
                   <select
                     value={r.screenNav ?? 'auto'}
                     onChange={(e) => props.onUpdateRule(dId, { screenNav: e.target.value as any })}
-                    style={{ fontSize: 11, height: 22 }}
+                    style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                   >
                     <option value="auto">auto</option>
                     <option value="over">over</option>
@@ -613,5 +561,45 @@ export function DefensePanel(props: DefensePanelProps) {
       <SimulationSection state={state} />
 
     </Panel>
+  );
+}
+
+/** Une rangée de la section "Appliquer à tous" : label gauche fixe + control
+ *  qui s'étire sur le reste. Layout flex pour rester compact même en colonne
+ *  étroite — les selects se compressent via `min-width: 0`. */
+function MassRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+      <span style={{ fontSize: 10, color: '#64748b', flex: '0 0 80px' }}>{label}</span>
+      <div style={{ flex: '1 1 0%', minWidth: 0 }}>{children}</div>
+    </div>
+  );
+}
+
+/** Select "appliquer à tous" : option `—` neutre, dispatch au choix d'une
+ *  vraie valeur, puis se réinitialise pour permettre de re-pousser. */
+function MassSelect({
+  options,
+  onPick,
+}: {
+  options: [value: string, label: string][];
+  onPick: (value: string) => void;
+}) {
+  return (
+    <select
+      defaultValue=""
+      onChange={(e) => {
+        const v = e.target.value;
+        if (!v) return;
+        onPick(v);
+        e.target.value = '';
+      }}
+      style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
+    >
+      <option value="">—</option>
+      {options.map(([v, label]) => (
+        <option key={v} value={v}>{label}</option>
+      ))}
+    </select>
   );
 }
