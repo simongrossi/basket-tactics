@@ -38,6 +38,13 @@ Refonte significative de la défense de zone pour encoder les principes basket f
 - Mécanisme commun : un seul défenseur boosté par menace (pas de dilution), `unavailable: Set<DefenderId>` propagé entre détections pour éviter qu'un défenseur cumule plusieurs missions.
 - Tests : 348 → **394 tests verts** (+46 tests, dont 22 dans `threatResolution.test.ts`, 9 nouvelles sections dans `zoneDefense.test.ts`, 3 dans `rimProtectionLayer.test.ts`).
 
+#### Étape 10 — Édition continue tStart/tEnd (façon vidéo)
+- `Annotation.tStart` et `tEnd` (0..1) définissent les bornes temporelles de l'action dans le segment de transition. Permet à des actions parallèles d'avoir des durées différentes.
+- `attackerTrajectoryAt` mappe le temps global vers le temps d'action selon ces bornes : avant tStart le joueur reste à `from`, après tEnd à `to`.
+- UI : poignées de drag invisibles (`cursor=ew-resize`) sur les bords des segments dans MultiTrackTimeline. Glisser horizontalement modifie tStart/tEnd en temps réel.
+- Handler `setAnnotationTiming` avec clamp 0..1 et durée minimum 0.05 (anti-instabilité visuelle).
+- Tests : 4 cas sur attackerTrajectoryAt (tStart à 0.5, tEnd à 0.5, [0.2, 0.6], défaut). 421 → **425 tests verts**.
+
 #### Étape 8 — Multi-track timeline + Étape 9 — Phase début/fin
 - Nouveau module `playerTracks.ts` qui calcule pour chaque joueur ses segments d'activité à travers les étapes (idle, dribble, cut, screen, pass / pos, tracking, closeout, help).
 - `PlayerTimelineModal` (popup zoom) + `MultiTrackTimeline` (docké en bas, façon Premiere) avec curseur vertical synchronisé temps réel et clic pour sauter à un step.
