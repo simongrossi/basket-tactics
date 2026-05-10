@@ -513,6 +513,23 @@ export function computeZoneTargets(
       ) {
         pressureMult = 1.0 + 1.5 * ballPressureFactor;
       }
+      // P3.f — Recover boost : un défenseur sans rôle d'aide actif (pas
+      // critical-coverer, pas baseline-coverer, pas pressure-coverer, pas
+      // rim-protector) préfère légèrement son matchup naturel. Évite que
+      // les défenseurs "libres" restent en aide errante après une rotation —
+      // ils reviennent activement sur leur homme.
+      let recoverMult = 1.0;
+      if (oId === baseMatchups[dId]) {
+        const isDesignatedAnywhere =
+          Array.from(designatedCoverer.values()).includes(dId) ||
+          baselineDriveCoverer === dId ||
+          ballPressureCoverer === dId ||
+          Array.from(rimProtectorByThreat.values()).includes(dId);
+        if (!isDesignatedAnywhere) {
+          recoverMult = 1.15;
+        }
+      }
+
       // P3.e — Boost rim-protection : le défenseur désigné rim-protector pour
       // un attaquant avec couloir libre vers le panier reçoit un boost très
       // fort sur sa claim à cet attaquant. Force le défenseur à fermer la
@@ -532,7 +549,7 @@ export function computeZoneTargets(
       }
       dClaims.set(
         oId,
-        proximity * naturalMult * carrierMult * criticalMult * baselineMult * pressureMult * rimMult
+        proximity * naturalMult * carrierMult * criticalMult * baselineMult * pressureMult * rimMult * recoverMult
       );
     });
     claims.set(dId, dClaims);

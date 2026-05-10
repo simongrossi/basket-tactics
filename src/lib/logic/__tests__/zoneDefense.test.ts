@@ -463,6 +463,27 @@ describe('computeZoneTargets — weakside paint sag (P3.f)', () => {
   });
 });
 
+describe('computeZoneTargets — recover boost (P3.f)', () => {
+  const layout = getZoneLayout('zone-2-3');
+
+  it('défenseur libre (sans rôle d\'aide) préfère son matchup naturel', () => {
+    // Configuration équilibrée : aucun rôle d'aide actif, le boost recover
+    // doit pousser chaque défenseur vers son matchup naturel.
+    const off: AttackerPositions = {
+      O1: { x: 300, y: 470 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 470, y: 380 },
+      O4: { x: 220, y: 230 },
+      O5: { x: 380, y: 230 },
+    };
+    const t = computeZoneTargets(off, 'O1', layout, baseConfig, 40, HOOP);
+    // baseMatchups : D1↔O1, D2↔O2, D3↔O3, D4↔O4, D5↔O5.
+    // Au moins D2/D3 doivent tracker leur matchup naturel (proches gauche/droite).
+    expect(t.D2.trackedAttacker === 'O2' || t.D2.trackedAttacker === 'O3').toBe(true);
+    expect(t.D3.trackedAttacker === 'O3' || t.D3.trackedAttacker === 'O5').toBe(true);
+  });
+});
+
 describe('mapAttackersToZones', () => {
   it('retourne une Map indexée par zone.id', () => {
     const layout = getZoneLayout('zone-2-3');
