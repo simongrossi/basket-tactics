@@ -87,6 +87,43 @@ function carrierApexSlownessFromQuality(quality: number): number {
 }
 
 /**
+ * Largeur du "freeze" (en fraction de la transition) appliquée à D1 quand
+ * il prend ou quitte un écran. Modulé par la qualité :
+ *  - 0   (ghost)    → 0 (pas de freeze, lerp normal)
+ *  - 50  (std)      → 0.30 (30% de la transition figé sur le poseur)
+ *  - 100 (lockdown) → 0.55 (plus de la moitié de la transition figé)
+ */
+function freezeWidthFromQuality(quality: number): number {
+  const q = Math.max(0, Math.min(100, quality)) / 100;
+  return q * 0.55;
+}
+
+/**
+ * Remappe localT pour figer D1 à l'extrémité appropriée pendant la phase de
+ * contact écran. Deux modes :
+ *  - 'arriving' : D1 rejoint le poseur (defB est sur l'écran). Il y arrive
+ *    rapidement (compression de la première portion) puis y reste figé.
+ *  - 'leaving' : D1 quitte le poseur en recovery (defA est sur l'écran).
+ *    Il reste figé au départ puis rattrape rapidement.
+ * Sans screen ou freezeWidth=0 → lerp linéaire identique.
+ */
+function screenContactT(
+  localT: number,
+  freezeWidth: number,
+  mode: 'arriving' | 'leaving' | null
+): number {
+  if (!mode || freezeWidth <= 0) return localT;
+  const w = Math.min(0.9, freezeWidth);
+  if (mode === 'arriving') {
+    // Compresse [0, 1-w] → [0, 1], puis plateau à 1 sur [1-w, 1].
+    const active = 1 - w;
+    return localT < active ? localT / active : 1;
+  }
+  // leaving : plateau à 0 sur [0, w], puis compresse [w, 1] → [0, 1].
+  return localT > w ? (localT - w) / (1 - w) : 0;
+}
+
+/**
  * Résout la frame complète à l'instant `t` (en unités de step fractionnaires).
  * `t` est clampé à [0, steps.length - 1]. Retourne `null` si le scénario n'a
  * pas au moins 2 étapes (pas d'interpolation possible).
@@ -217,52 +254,68 @@ export function resolveFrameAt(
   // ---------------------------------------------------------------------
   const defPos = {} as ComputedDefense;
   defenderIds.forEach((id) => {
-    let p = lerpPoint(defA[id], defB[id], localT);
     const candidates = screenerObstacles.filter((o) => id !== o.defenderToSkip);
+
+    // Détection du mode de contact d'écran pour ce défenseur. La transition
+    // peut être :
+    //  - 'arriving' (defB onScreen, defA pas) : D1 atteint le poseur et y
+    //    reste figé pendant la queue de la transition.
+    //  - 'leaving' (defA onScreen, defB pas) : D1 vient de se libérer ; on
+    //    le maintient figé au départ puis il rattrape.
+    //  - 'stuck' (both onScreen) : encore plaqué — freeze au milieu.
+    const isCarrierDef = defB[id].isCarrierDefender || defA[id].isCarrierDefender;
+    const aOn = !!defA[id].onScreen && isCarrierDef;
+    const bOn = !!defB[id].onScreen && isCarrierDef;
+    let screenMode: 'arriving' | 'leaving' | 'stuck' | null = null;
+    if (aOn && bOn) screenMode = 'stuck';
+    else if (!aOn && bOn) screenMode = 'arriving';
+    else if (aOn && !bOn) screenMode = 'leaving';
+
+    // Qualité d'écran applicable : lit l'annotation 'screen' sur le step
+    // pertinent. Pour 'leaving', c'est l'annotation du step idxA ; pour
+    // 'arriving'/'stuck', celle de idxB (sinon idxA en fallback).
+    let modeQuality = 50;
+    if (screenMode) {
+      const lookupSteps = screenMode === 'leaving'
+        ? [state.steps[idxA]]
+        : [state.steps[idxB], state.steps[idxA]];
+      for (const st of lookupSteps) {
+        if (!st) continue;
+        const sa = st.annotations.find((aa) => aa.type === 'screen');
+        if (sa) { modeQuality = sa.quality ?? 50; break; }
+      }
+    }
+    const freezeWidth = freezeWidthFromQuality(modeQuality);
+
+    // Time-remap qui FIGE D1 sur le poseur pendant une fraction de la
+    // transition (proportionnelle à la qualité d'écran). Pour les autres
+    // défenseurs ou hors écran, eased identique à localT.
+    const effT = screenMode === 'stuck'
+      // Stuck = freeze au milieu : compresse [0, 0.5] → [0, mid-w/2], plateau, etc.
+      ? (localT < 0.5 - freezeWidth / 2
+          ? (localT / (0.5 - freezeWidth / 2)) * 0.5
+          : localT > 0.5 + freezeWidth / 2
+            ? 0.5 + ((localT - (0.5 + freezeWidth / 2)) / (0.5 - freezeWidth / 2)) * 0.5
+            : 0.5)
+      : screenContactT(localT, freezeWidth, screenMode);
+
+    let p = lerpPoint(defA[id], defB[id], effT);
+
     // Le défenseur du porteur qui prend l'écran subit un easing FORT au
-    // sommet du contournement, modulé par la qualité de l'écran. Effet :
-    // une vraie pause sur l'écran solide/lockdown, le défenseur reste
-    // collé au poseur pendant que le porteur se dégage.
+    // sommet du contournement quand sa ligne croise un cluster, modulé par
+    // la qualité de l'écran. Cumulé avec le freeze ci-dessus pour des
+    // transitions vraiment palpables.
     const isCarrierDefenderTakingScreen = defB[id].isCarrierDefender && !!screen;
     const apexSlowness = isCarrierDefenderTakingScreen
       ? carrierApexSlownessFromQuality(carrierScreenQuality)
       : 0.3;
     const pair = pickStaggeredPair(defA[id], defB[id], candidates);
     if (pair) {
-      p = curveAroundStaggeredPair(defA[id], defB[id], pair[0], pair[1], localT);
+      p = curveAroundStaggeredPair(defA[id], defB[id], pair[0], pair[1], effT);
     } else {
       const blocking = pickBlockingCluster(defA[id], defB[id], candidates);
       if (blocking) {
-        p = curveAroundObstacle(defA[id], defB[id], blocking.center, blocking.radius, localT, apexSlowness);
-      } else if (isCarrierDefenderTakingScreen && carrierScreenObstacle) {
-        // Cas où la ligne droite defA→defB ne croise pas formellement le
-        // cluster (ex : defB est PILE sur l'écran car D1 a été "late"). On
-        // applique quand même la pause si la trajectoire passe à proximité.
-        const dx = defB[id].x - defA[id].x;
-        const dy = defB[id].y - defA[id].y;
-        const len = Math.hypot(dx, dy);
-        if (len > 0.01) {
-          const ux = dx / len, uy = dy / len;
-          const ox = carrierScreenObstacle.center.x - defA[id].x;
-          const oy = carrierScreenObstacle.center.y - defA[id].y;
-          const proj = ox * ux + oy * uy;
-          // Si l'obstacle est "en chemin" et que defB est près du cluster,
-          // on force la courbe avec apex slowness max.
-          const distToB = Math.hypot(
-            defB[id].x - carrierScreenObstacle.center.x,
-            defB[id].y - carrierScreenObstacle.center.y,
-          );
-          if (proj > 0 && distToB < carrierScreenObstacle.radius * 1.3) {
-            // Pas de courbe (defB est déjà sur l'obstacle) : on applique
-            // seulement le time-remap pour stagner à l'impact. La position
-            // reste sur la droite defA→defB, mais avec un easing fort.
-            const localTEased = localT + (apexSlowness * Math.sin(2 * Math.PI * localT)) / (2 * Math.PI);
-            p = {
-              x: defA[id].x + (defB[id].x - defA[id].x) * localTEased,
-              y: defA[id].y + (defB[id].y - defA[id].y) * localTEased,
-            };
-          }
-        }
+        p = curveAroundObstacle(defA[id], defB[id], blocking.center, blocking.radius, effT, apexSlowness);
       }
     }
     defPos[id] = {
