@@ -21,8 +21,10 @@ import type {
   ComputedDefense,
   DefenderId,
   DefenderPositions,
+  Matchups,
   Point,
 } from '../../types';
+import { carrierDefenderTarget, manTarget } from '../manDefense';
 import { getZoneLayout, mirrorZoneLayout } from '../../data/zones';
 import { DEFAULT_CLOSEOUT_BOOST, MIN_PLAYER_CLEARANCE_PX } from '../../data/physics';
 import {
@@ -57,6 +59,33 @@ interface ScreenerCluster {
   center: Point;
   radius: number;
   defenderToSkip: DefenderId;
+}
+
+/**
+ * Substitue, pour le carrier defender uniquement, sa position "prev" par sa
+ * cible homme-à-homme idéale. Utilisé au step 0 pour que detectScreen trouve
+ * les poseurs autour du porteur même quand defenseInitial est loin du jeu.
+ */
+function buildStep0DetectionPositions(
+  state: AppState,
+  off: AttackerPositions,
+  ballCarrier: AttackerId,
+  matchups: Matchups,
+  fallback: DefenderPositions
+): DefenderPositions {
+  const out: DefenderPositions = { ...fallback };
+  const hoop = getDefenseHoop(state);
+  (Object.entries(matchups) as [DefenderId, AttackerId][]).forEach(([dId, oId]) => {
+    const att = off[oId];
+    if (!att) return;
+    const rule = state.rules[dId];
+    const dist = rule?.distance ?? state.defenseDistance;
+    const target = oId === ballCarrier
+      ? carrierDefenderTarget(rule?.vsCarrier ?? 'coller', att, dist, hoop) ?? manTarget(att, dist, hoop)
+      : manTarget(att, dist, hoop);
+    if (target) out[dId] = target;
+  });
+  return out;
 }
 
 /**
@@ -148,15 +177,25 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     const prevOffEff = stepIdx > 0
       ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount)
       : curOff;
+    // Pour la détection d'écran à step 0, on substitue la position du
+    // carrier defender par sa cible homme-à-homme (cf. comment dans
+    // context.ts/buildStep0PrevPositions). Sinon detectScreen rate les
+    // écrans car D1 n'a pas encore "rejoint" le jeu.
+    const detectionPositions: DefenderPositions = stepIdx === 0
+      ? buildStep0DetectionPositions(state, curOff, carrier, matchupsForScreen, prevPositions)
+      : prevPositions;
     const screen = detectScreen(
-      curOff, carrier, matchupsForScreen, prevPositions, state.screenRadius, cur.forcedScreener, prevOffEff
+      curOff, carrier, matchupsForScreen, detectionPositions, state.screenRadius, cur.forcedScreener, prevOffEff
     );
     const offBallScreens = detectOffBallScreens(
-      curOff, carrier, matchupsForScreen, prevPositions, state.screenRadius, prevOffEff
+      curOff, carrier, matchupsForScreen, detectionPositions, state.screenRadius, prevOffEff
     );
     if (screen) {
       const sPos = curOff[screen.screener];
-      const sDef = prevPositions[screen.screenerDef];
+      // À step 0, on utilise la position de détection (cible homme-à-homme)
+      // pour D-screener afin que le cluster soit centré sur l'écran réel et
+      // non entre O3 et la défense initiale (qui est loin du jeu).
+      const sDef = detectionPositions[screen.screenerDef];
       const c = makeCluster(sPos, [sDef], PLAYER_CLUSTER_LINK_DIST_PX, PLAYER_CLUSTER_BASE_R_PX);
       screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: screen.screenerDef });
       // Cherche l'annotation 'screen' associée à ce poseur. Peut être sur le
@@ -173,7 +212,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     }
     offBallScreens.forEach((s) => {
       const sPos = curOff[s.screener];
-      const sDef = prevPositions[s.screenerDef];
+      const sDef = detectionPositions[s.screenerDef];
       const c = makeCluster(sPos, [sDef], PLAYER_CLUSTER_LINK_DIST_PX, PLAYER_CLUSTER_BASE_R_PX);
       screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: s.screenerDef });
     });
