@@ -71,6 +71,13 @@ export function followDefendersAtFrame(
     // D1 se "téléporterait" instantanément sur le porteur, court-circuitant
     // tout le réalisme du contact.
     if (skipIds && skipIds.has(dId)) continue;
+    // Si le moteur a marqué ce défenseur 'late' en raison d'une RECOVERY
+    // d'écran (screenPhase='recover'), on respecte sa position calculée
+    // (qui prend en compte la pénalité de vitesse) — sinon `followDefenders`
+    // le téléporterait au porteur, court-circuitant le recover. Pour les
+    // autres défenseurs late (raison non-écran : juste un déplacement long),
+    // on les laisse suivre comme avant.
+    if (slot.late && slot.screenPhase === 'recover') continue;
     const rule = state.rules[dId];
     if (!rule) continue;
     const dist = rule.distance ?? state.defenseDistance;
