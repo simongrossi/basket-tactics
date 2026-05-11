@@ -356,6 +356,16 @@ export interface DefenderRule {
    *  un pivot lent (60-80) sera souvent en retard sur les rotations, un
    *  meneur rapide (130-160) atteint sa cible plus souvent à temps. */
   maxSpeed?: number;
+  /** QI défensif d'anticipation (0-100, défaut 50). Module la capacité du
+   *  défenseur à lire le jeu et anticiper la trajectoire de l'attaquant
+   *  pendant la phase de recovery (après un écran notamment). Trois logiques
+   *  combinées (cf. anticipationTarget dans screenPhysics.ts) :
+   *  - Lookahead : vise la position FUTURE du porteur
+   *  - Basket-line bias : retourne sur l'axe ball-you-man
+   *  - Interception : résout le point de croisement optimal
+   *  À 0 : pure réaction (cible la position courante). À 100 : pleinement
+   *  anticipatif. Défaut 50 = équilibre. */
+  anticipation?: number;
   /** Comportement d'aide du défenseur. Default 'auto'. Voir `HelpMode`. */
   helpMode?: HelpMode;
   /** Rotation du corps du défenseur en degrés (range -90 à +90, default 0).

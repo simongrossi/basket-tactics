@@ -55,6 +55,7 @@ import {
 } from '../engine';
 import { recomputeDefenseFrameOrientations } from './frameAdjust';
 import {
+  anticipationTarget,
   findScreenQuality,
   screenPenaltyFromQuality,
 } from '../screenPhysics';
@@ -267,6 +268,39 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     const rawTarget = targets[dId];
     const matched = rawTarget.matchedTo;
 
+    // Anticipation IQ : pour le défenseur du porteur en recovery (juste
+    // sorti d'un écran), on biaise la cible vers la trajectoire FUTURE
+    // du porteur + l'axe ball-you-man (cf. anticipationTarget). Un
+    // défenseur "intelligent" coupe la course au lieu de la rattraper.
+    let smartTarget: Point = { x: rawTarget.x, y: rawTarget.y };
+    const isRecoveringHint =
+      stepIdx > 0 &&
+      !targets[dId].onScreen &&
+      rawTarget.isCarrierDefender &&
+      previousScreenQualityByDef[dId] !== undefined;
+    if (isRecoveringHint && rawTarget.matchedTo && offAtStep[rawTarget.matchedTo]) {
+      const carrierNow = offAtStep[rawTarget.matchedTo];
+      const carrierPrev = stepIdx > 0
+        ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount)[rawTarget.matchedTo]
+        : undefined;
+      const carrierVel: Point = carrierPrev
+        ? { x: carrierNow.x - carrierPrev.x, y: carrierNow.y - carrierPrev.y }
+        : { x: 0, y: 0 };
+      const iq = state.rules[dId]?.anticipation ?? 50;
+      const distRule = state.rules[dId]?.distance ?? state.defenseDistance;
+      const speedRule = state.rules[dId]?.maxSpeed ?? baseMaxSpeed;
+      smartTarget = anticipationTarget(
+        smartTarget,
+        from,
+        carrierNow,
+        carrierVel,
+        getDefenseHoop(state),
+        distRule,
+        speedRule,
+        iq
+      );
+    }
+
     // Lever C — Pré-relaxation de la cible : si la cible idéale chevauche un
     // attaquant non-matché, on la repousse à l'écart. Évite que la contrainte
     // de vitesse compare une distance qui mène DANS un autre joueur.
@@ -275,7 +309,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
       if (oId !== matched) nonMatchedAttackerPositions.push(pos);
     });
     const relaxed = pushOutOfMany(
-      { x: rawTarget.x, y: rawTarget.y },
+      smartTarget,
       nonMatchedAttackerPositions,
       MIN_PLAYER_CLEARANCE_PX
     );

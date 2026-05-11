@@ -205,6 +205,125 @@ export function forcedPushSignForRoute(start: Point, end: Point, route: Point): 
   return projection >= 0 ? 1 : -1;
 }
 
+/**
+ * Cible "anticipée" pour un défenseur en recovery (juste sorti d'un écran).
+ * Combine 3 logiques de basket-IQ :
+ *
+ *  A — LOOKAHEAD : projection future de l'attaquant le long de sa vitesse,
+ *      à `lookaheadSteps` step(s) en avant. La cible naive (man-target sur
+ *      O1 entre-deux) est calculée par rapport à cette position future, pas
+ *      sa position courante.
+ *
+ *  B — BASKET-LINE BIAS : au lieu de viser l'attaquant directement, on biaise
+ *      vers la ligne O1→panier (ball-you-man classique). Le défenseur retourne
+ *      sur l'axe de protection du panier, pas sur la queue de l'attaquant.
+ *
+ *  C — INTERCEPTION : résout la quadratique "où D1 et O1 vont se croiser"
+ *      étant donné leurs vitesses respectives. Le défenseur coupe la course
+ *      au lieu de rattraper. Dégénère gracieusement quand carrier statique
+ *      ou défenseur trop lent → fallback sur A.
+ *
+ * Le résultat est une moyenne pondérée des 3 logiques selon `iq` (0-100).
+ * À iq=0 : retourne `currentTarget` (pure réaction, comportement legacy).
+ * À iq=100 : pleinement A+B+C.
+ *
+ * @param currentTarget   cible homme-à-homme de base (man-target sur O1)
+ * @param defenderPos     position courante du défenseur
+ * @param carrierPos      position courante du porteur
+ * @param carrierVel      vélocité du porteur (px/step, depuis prev→cur)
+ * @param hoop            position du panier défendu
+ * @param defenseDistance écart défensif souhaité au porteur
+ * @param defenderSpeed   vitesse max du défenseur en px/step
+ * @param iq              intelligence défensive 0-100 (défaut 50)
+ */
+export function anticipationTarget(
+  currentTarget: Point,
+  defenderPos: Point,
+  carrierPos: Point,
+  carrierVel: Point,
+  hoop: Point,
+  defenseDistance: number,
+  defenderSpeed: number,
+  iq: number = 50
+): Point {
+  const q = clampQuality(iq) / 100;
+  if (q < 0.05) return currentTarget;
+
+  // --- A : Lookahead ---
+  const lookahead = 0.35 + q * 0.45; // 0.35 step à iq=0.05, 0.80 à iq=1
+  const futurePos: Point = {
+    x: carrierPos.x + carrierVel.x * lookahead,
+    y: carrierPos.y + carrierVel.y * lookahead,
+  };
+  const toBasketFromFuture = unit({ x: hoop.x - futurePos.x, y: hoop.y - futurePos.y });
+  const naiveTarget: Point = {
+    x: futurePos.x + toBasketFromFuture.x * defenseDistance,
+    y: futurePos.y + toBasketFromFuture.y * defenseDistance,
+  };
+
+  // --- B : Basket-line bias ---
+  const lineDir = unit({ x: hoop.x - carrierPos.x, y: hoop.y - carrierPos.y });
+  // Projection du défenseur sur l'axe O1→panier (depuis O1).
+  const cToD = { x: defenderPos.x - carrierPos.x, y: defenderPos.y - carrierPos.y };
+  const proj = cToD.x * lineDir.x + cToD.y * lineDir.y;
+  // Le défenseur retourne sur la ligne à une distance défensive
+  // (pas trop loin du porteur, pas dans la raquette).
+  const projClamped = Math.max(defenseDistance * 0.6, Math.min(defenseDistance * 2.2, proj));
+  const basketLineTarget: Point = {
+    x: carrierPos.x + lineDir.x * projClamped,
+    y: carrierPos.y + lineDir.y * projClamped,
+  };
+
+  // --- C : Interception (résolution quadratique pursuit curve) ---
+  // Le défenseur vise un point P tel que P = carrierPos + carrierVel * t et
+  // |P - defenderPos| = defenderSpeed * t (atteindre P juste à temps).
+  // ⇒ |carrierPos + carrierVel*t - defenderPos|² = (defenderSpeed * t)²
+  //   Aₜ² + Bt + C = 0, avec A = |Vc|² - Vd², B = 2·(carrier-def)·Vc, C = |carrier-def|².
+  let interceptionTarget = naiveTarget;
+  const carrierSpeed = Math.hypot(carrierVel.x, carrierVel.y);
+  if (carrierSpeed > 0.5 && defenderSpeed > carrierSpeed * 0.4) {
+    const rx = carrierPos.x - defenderPos.x;
+    const ry = carrierPos.y - defenderPos.y;
+    const aCoef = carrierSpeed * carrierSpeed - defenderSpeed * defenderSpeed;
+    const bCoef = 2 * (rx * carrierVel.x + ry * carrierVel.y);
+    const cCoef = rx * rx + ry * ry;
+    if (Math.abs(aCoef) > 1e-6) {
+      const disc = bCoef * bCoef - 4 * aCoef * cCoef;
+      if (disc >= 0) {
+        const sq = Math.sqrt(disc);
+        const t1 = (-bCoef - sq) / (2 * aCoef);
+        const t2 = (-bCoef + sq) / (2 * aCoef);
+        // Prendre la plus petite racine positive raisonnable (< 3 steps).
+        let t = -1;
+        if (t1 > 0 && t1 < 3) t = t1;
+        else if (t2 > 0 && t2 < 3) t = t2;
+        if (t > 0) {
+          interceptionTarget = {
+            x: carrierPos.x + carrierVel.x * t,
+            y: carrierPos.y + carrierVel.y * t,
+          };
+        }
+      }
+    }
+  }
+
+  // --- Mix pondéré ---
+  // Le coach voulait A+B+C combinés. Poids : C domine (calcul géométrique
+  // optimal), B aligne sur l'axe basket, A complète sur la position future.
+  // Le tout pondéré par iq pour permettre une montée progressive.
+  const cWeight = q * 0.45; // C contribue jusqu'à 45% à iq=100
+  const bWeight = q * 0.30; // B contribue jusqu'à 30%
+  const aWeight = q * 0.25; // A contribue jusqu'à 25%
+  // Le complément (1 - cWeight - bWeight - aWeight) reste sur currentTarget.
+  const baseW = 1 - cWeight - bWeight - aWeight;
+  return {
+    x: currentTarget.x * baseW + interceptionTarget.x * cWeight
+      + basketLineTarget.x * bWeight + naiveTarget.x * aWeight,
+    y: currentTarget.y * baseW + interceptionTarget.y * cWeight
+      + basketLineTarget.y * bWeight + naiveTarget.y * aWeight,
+  };
+}
+
 function clampQuality(quality: number): number {
   return Math.max(0, Math.min(100, quality));
 }
