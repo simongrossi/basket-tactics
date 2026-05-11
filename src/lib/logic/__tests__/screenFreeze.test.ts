@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { screenContactT } from '../screenPhysics';
+import { screenContactT, screenContactTangentRelease } from '../screenPhysics';
 
 describe('screenContactT — freeze sigmoïdal sur l\'écran', () => {
   it('quality 0 reste quasi-linéaire (ghost)', () => {
@@ -70,5 +70,16 @@ describe('screenContactT — freeze sigmoïdal sur l\'écran', () => {
         }
       }
     });
+  });
+});
+
+describe('screenContactTangentRelease — sortie tangentielle', () => {
+  it("ne s'active que pendant leaving et progresse doucement", () => {
+    expect(screenContactTangentRelease(0.8, 100, 'arriving')).toBe(0);
+    expect(screenContactTangentRelease(0.8, 100, 'stuck')).toBe(0);
+    expect(screenContactTangentRelease(0.8, 100, null)).toBe(0);
+    expect(screenContactTangentRelease(0.5, 100, 'leaving')).toBeCloseTo(0);
+    expect(screenContactTangentRelease(0.75, 100, 'leaving')).toBeGreaterThan(0);
+    expect(screenContactTangentRelease(0.95, 100, 'leaving')).toBeGreaterThan(0.8);
   });
 });

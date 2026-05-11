@@ -55,6 +55,7 @@ import {
   screenContactAdhesion,
   screenContactPhase,
   screenContactT,
+  screenContactTangentRelease,
   type ScreenContactMode,
 } from '../screenPhysics';
 
@@ -421,7 +422,11 @@ export function resolveFrameAt(
             ? defB[id]
             : midpoint(defA[id], defB[id]);
         const contactPoint = radialContactPoint(anchor, contactScreener);
-        p = lerpPoint(p, contactPoint, adhesion);
+        const release = screenContactTangentRelease(localT, modeQuality, screenMode);
+        const releasePoint = release > 0
+          ? tangentReleasePoint(contactPoint, contactScreener, defB[id], release, modeQuality)
+          : contactPoint;
+        p = lerpPoint(p, releasePoint, adhesion);
       }
     }
     defPos[id] = {
@@ -575,6 +580,37 @@ function radialContactPoint(point: Point, screener: Point): Point {
   return {
     x: screener.x + (away.x / len) * clearance,
     y: screener.y + (away.y / len) * clearance,
+  };
+}
+
+function tangentReleasePoint(
+  contactPoint: Point,
+  screener: Point,
+  target: Point,
+  progress: number,
+  quality: number
+): Point {
+  const radial = { x: contactPoint.x - screener.x, y: contactPoint.y - screener.y };
+  let radialLen = Math.hypot(radial.x, radial.y);
+  if (radialLen < 0.01) {
+    radial.x = 1;
+    radial.y = 0;
+    radialLen = 1;
+  }
+
+  const ux = radial.x / radialLen;
+  const uy = radial.y / radialLen;
+  const tangent = { x: -uy, y: ux };
+  const toTarget = { x: target.x - contactPoint.x, y: target.y - contactPoint.y };
+  const sign = tangent.x * toTarget.x + tangent.y * toTarget.y >= 0 ? 1 : -1;
+  const q = Math.max(0, Math.min(100, quality)) / 100;
+  const t = Math.max(0, Math.min(1, progress));
+  const tangentDist = PLAYER_MIN_CLEARANCE_PX * (0.35 + q * 0.35);
+  const outwardDist = PLAYER_MIN_CLEARANCE_PX * 0.10;
+
+  return {
+    x: contactPoint.x + tangent.x * sign * tangentDist * t + ux * outwardDist * t,
+    y: contactPoint.y + tangent.y * sign * tangentDist * t + uy * outwardDist * t,
   };
 }
 

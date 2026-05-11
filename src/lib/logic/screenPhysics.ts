@@ -97,6 +97,18 @@ export function screenContactAdhesion(
   return max;
 }
 
+export function screenContactTangentRelease(
+  localT: number,
+  quality: number,
+  mode: ScreenContactMode | null
+): number {
+  if (mode !== 'leaving') return 0;
+  const q = clampQuality(quality) / 100;
+  if (q < 0.05) return 0;
+  const releaseStart = 0.54 + q * 0.08;
+  return smoothstep(releaseStart, 0.98, localT);
+}
+
 export function findScreenQuality(
   steps: Array<Pick<Step, 'annotations'> | undefined>,
   screenerId?: AttackerId,

@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 import { resolveFrameAt } from '../playback/frameResolver';
 import { makeInitialState } from '../../data/initial';
 import { TEMPLATES } from '../../data/templates';
-import type { AppState, Annotation, Step } from '../../types';
+import type { AppState, Annotation, Point, Step } from '../../types';
 
 /**
  * Construit un scénario minimal 2 steps avec un écran O3→O1 entre les deux,
@@ -175,6 +175,14 @@ function buildOffBallRecoverScenario(quality: number = 100): AppState {
     },
   ];
   return state;
+}
+
+function tangentProjection(point: Point, origin: Point, screener: Point, target: Point): number {
+  const radial = { x: origin.x - screener.x, y: origin.y - screener.y };
+  const len = Math.hypot(radial.x, radial.y) || 1;
+  const tangent = { x: -radial.y / len, y: radial.x / len };
+  const sign = tangent.x * (target.x - origin.x) + tangent.y * (target.y - origin.y) >= 0 ? 1 : -1;
+  return ((point.x - origin.x) * tangent.x + (point.y - origin.y) * tangent.y) * sign;
 }
 
 describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)', () => {
@@ -383,6 +391,27 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
             .toBe(stuckSide);
         }
       }
+    });
+
+    it('en leaving, D1 sort tangentiellement du contact avant le recover pur', () => {
+      const state = buildRecoverScenario(100);
+      const start = resolveFrameAt(state, 1);
+      const early = resolveFrameAt(state, 1.5);
+      const late = resolveFrameAt(state, 1.8);
+      const end = resolveFrameAt(state, 2);
+      expect(start).not.toBeNull();
+      expect(early).not.toBeNull();
+      expect(late).not.toBeNull();
+      expect(end).not.toBeNull();
+
+      const origin = start!.defPos.D1;
+      const screener = state.steps[1].off.O3;
+      const target = end!.defPos.D1;
+      const earlyProj = tangentProjection(early!.defPos.D1, origin, screener, target);
+      const lateProj = tangentProjection(late!.defPos.D1, origin, screener, target);
+
+      expect(lateProj, 'D1 doit glisser autour du poseur avant de relancer son recover')
+        .toBeGreaterThan(earlyProj + 8);
     });
   });
 
