@@ -135,12 +135,19 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
   // Qualité de l'écran courant : 0-100, 50 par défaut. Module la pénalité de
   // vitesse appliquée au défenseur du porteur (Étape 12).
   let activeScreenQuality = 50;
-  if (state.defenseSystem === 'man' && stepIdx > 0) {
+  if (state.defenseSystem === 'man') {
     const cur = state.steps[stepIdx];
     const curOff = activeOffense(cur.off, state.playerCount);
     const carrier = activeBallCarrier(cur, state.playerCount);
-    const matchupsForScreen = getMatchupsAt(state.steps, stepIdx - 1, state.playerCount);
-    const prevOffEff = activeOffense(state.steps[stepIdx - 1].off, state.playerCount);
+    // À l'étape 0, on n'a pas de "prevOff" — on utilise les positions
+    // courantes comme proxy. La détection d'écran fonctionne quand même
+    // car elle repose sur la géométrie poseur/cible/porteur.
+    const matchupsForScreen = stepIdx > 0
+      ? getMatchupsAt(state.steps, stepIdx - 1, state.playerCount)
+      : getMatchupsAt(state.steps, 0, state.playerCount);
+    const prevOffEff = stepIdx > 0
+      ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount)
+      : curOff;
     const screen = detectScreen(
       curOff, carrier, matchupsForScreen, prevPositions, state.screenRadius, cur.forcedScreener, prevOffEff
     );
@@ -266,10 +273,14 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     // Vitesse effective = vitesse théorique × friction × pénalité écran.
     const effectiveMaxSpeed = maxSpeed * friction * screenContactPenalty;
 
-    // À l'étape 0, on considère que les défenseurs SONT à leur position idéale
-    // (le step 0 est un setup, pas une transition). La contrainte de vitesse
-    // ne s'applique qu'entre les étapes suivantes.
-    if (stepIdx === 0 || pathLen <= effectiveMaxSpeed) {
+    // À l'étape 0, on considère normalement que les défenseurs SONT à leur
+    // position idéale (setup, pas une transition). EXCEPTION : si le
+    // défenseur du porteur prend un écran, on applique quand même la
+    // contrainte — sinon en édition libre (single step) D1 traverserait
+    // l'écran et se collerait à O1, ce qui contredit physiquement la
+    // présence d'un poseur entre eux.
+    const skipSpeedConstraint = stepIdx === 0 && !isCarrierDefScreenedThisStep;
+    if (skipSpeedConstraint || pathLen <= effectiveMaxSpeed) {
       out[dId] = {
         x: to.x,
         y: to.y,
