@@ -97,9 +97,13 @@ export function pushOutOfMany(pos: Point, obstacles: Point[], minDist: number): 
 /**
  * Solveur de collisions itératif sur une carte de défenseurs.
  * Pour chaque défenseur, on le pousse hors :
- *  - de tous les attaquants SAUF son matchedTo
+ *  - de tous les attaquants SAUF son matchedTo (autorise la défense "coller")
  *  - de tous les autres défenseurs
  * On répète jusqu'à stabilité (ou maxIter).
+ *
+ * Note : pour les défenseurs en situation d'écran, la séparation visuelle
+ * du porteur est garantie en amont dans `applyScreenAdjustment` (via
+ * `pushOutOf` sur le porteur).
  *
  * Mute defPos en place. minDist = écart minimal entre centres
  * (typiquement 2 * PLAYER_RADIUS + buffer).

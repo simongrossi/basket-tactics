@@ -62,6 +62,41 @@ function pushOutOfScreener(target: Point, screenerPos: Point): Point {
 }
 
 /**
+ * Pousse un défenseur hors du porteur en respectant la clearance minimale.
+ * `direction` (optionnel) impose le côté de poussée : utile en mode "under"
+ * où D1 doit rester du côté opposé au panier, ou en "hedge agressif" où D5
+ * doit rester côté panier. Si direction non fournie, pousse radialement.
+ *
+ * Crucial pour les écrans : sans cela, à faible quality D1/D5 peuvent
+ * atterrir à <34px du porteur (chevauchement visuel) alors que la cible
+ * a été calculée avec une amplitude < clearance.
+ */
+function pushOutOfCarrier(
+  target: Point,
+  carrierPos: Point,
+  direction?: { x: number; y: number }
+): Point {
+  const minClearance = MIN_PLAYER_CLEARANCE_PX;
+  const dx = target.x - carrierPos.x;
+  const dy = target.y - carrierPos.y;
+  const d = Math.hypot(dx, dy);
+  if (d >= minClearance) return target;
+  if (direction) {
+    const dlen = Math.hypot(direction.x, direction.y) || 1;
+    return {
+      x: carrierPos.x + (direction.x / dlen) * minClearance,
+      y: carrierPos.y + (direction.y / dlen) * minClearance,
+    };
+  }
+  if (d < 0.01) return { x: carrierPos.x + minClearance, y: carrierPos.y };
+  const k = minClearance / d;
+  return {
+    x: carrierPos.x + dx * k,
+    y: carrierPos.y + dy * k,
+  };
+}
+
+/**
  * Détecte automatiquement un écran porteur :
  * un attaquant non-porteur se positionne près du défenseur du porteur.
  *
@@ -197,6 +232,8 @@ export function applyScreenAdjustment(
     // À q=0, on revient quasi à la cible de base pour préserver le cas "faux écran".
     target = lerpPoint(baseTarget, target, q * 0.85 + 0.15);
     target = pushOutOfScreener(target, screenerPos);
+    // Garantit la séparation visuelle avec le porteur (côté basket, route over).
+    target = pushOutOfCarrier(target, carrierPos, { x: nx, y: ny });
     return target;
   }
 
@@ -211,6 +248,8 @@ export function applyScreenAdjustment(
     };
     let target = lerpPoint(baseTarget, candidate, q * 0.85 + 0.15);
     target = pushOutOfScreener(target, screenerPos);
+    // D1 doit rester côté OPPOSÉ au panier par rapport à O1 (under = derrière).
+    target = pushOutOfCarrier(target, carrierPos, { x: -nx, y: -ny });
     return target;
   }
 
@@ -237,7 +276,10 @@ export function applyScreenAdjustment(
     };
     // Interpoler entre legacy (q=0) et aggressive (q=1).
     const blended = lerpPoint(legacyTarget, aggressiveTarget, q);
-    return pushOutOfScreener(blended, screenerPos);
+    let target = pushOutOfScreener(blended, screenerPos);
+    // D5 doit rester côté basket par rapport à O1 (devant lui).
+    target = pushOutOfCarrier(target, carrierPos, { x: nx, y: ny });
+    return target;
   }
 
   if (rule === 'hedge' && isCarrierDef) {
@@ -257,6 +299,11 @@ export function applyScreenAdjustment(
     };
     let target = lerpPoint(legacyTarget, stuckTarget, q);
     target = pushOutOfScreener(target, screenerPos);
+    // D1 reste côté porteur (route over), clearance garantie avec O1.
+    target = pushOutOfCarrier(target, carrierPos, {
+      x: perpX * sideOfCarrier,
+      y: perpY * sideOfCarrier,
+    });
     return target;
   }
 
@@ -278,8 +325,11 @@ export function applyScreenAdjustment(
       x: screenerPos.x + nx * lagBack + perpX * 8 * sideOfCarrier,
       y: screenerPos.y + ny * lagBack + perpY * 8 * sideOfCarrier,
     };
-    const blended = lerpPoint(legacyTarget, stuckTarget, q * 0.7);
-    return pushOutOfScreener(blended, screenerPos);
+    let target = lerpPoint(legacyTarget, stuckTarget, q * 0.7);
+    target = pushOutOfScreener(target, screenerPos);
+    // D1 en drop reste côté basket (over léger), clearance garantie avec O1.
+    target = pushOutOfCarrier(target, carrierPos, { x: nx, y: ny });
+    return target;
   }
 
   if (rule === 'blitz') {
@@ -312,6 +362,11 @@ export function applyScreenAdjustment(
       y: baseTarget.y + perpY * amplitude * (-sideOfCarrier),
     };
     target = pushOutOfScreener(target, screenerPos);
+    // D1 ferme le middle, du côté -sideOfCarrier (perpendiculaire au panier).
+    target = pushOutOfCarrier(target, carrierPos, {
+      x: perpX * (-sideOfCarrier),
+      y: perpY * (-sideOfCarrier),
+    });
     return target;
   }
   if (rule === 'ice' && isScreenerDef) {
@@ -325,6 +380,8 @@ export function applyScreenAdjustment(
   if (rule === 'weak' && isCarrierDef) {
     let target = { x: baseTarget.x + nx * 22, y: baseTarget.y + ny * 22 };
     target = pushOutOfScreener(target, screenerPos);
+    // weak = under léger, D1 côté panier (sous le poseur, prêt à recover).
+    target = pushOutOfCarrier(target, carrierPos, { x: nx, y: ny });
     return target;
   }
   if (rule === 'weak' && isScreenerDef) {
@@ -339,13 +396,18 @@ export function applyScreenAdjustment(
     return { x: screenerPos.x + nx * depthPx, y: screenerPos.y + ny * depthPx };
   }
   if (rule === 'peel-switch' && isCarrierDef) {
-    return pushOutOfScreener(
+    let target = pushOutOfScreener(
       {
         x: baseTarget.x + perpX * 14 * sideOfCarrier,
         y: baseTarget.y + perpY * 14 * sideOfCarrier,
       },
       screenerPos
     );
+    target = pushOutOfCarrier(target, carrierPos, {
+      x: perpX * sideOfCarrier,
+      y: perpY * sideOfCarrier,
+    });
+    return target;
   }
 
   return baseTarget;

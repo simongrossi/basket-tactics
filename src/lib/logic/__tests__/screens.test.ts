@@ -257,10 +257,13 @@ describe('applyScreenAdjustment', () => {
       expect(distToScreener).toBeLessThan(60);
     });
 
-    it('"hedge" quality 0 ≈ comportement legacy (D1 reste près de O1)', () => {
+    it('"hedge" quality 0 : D1 reste proche de O1 sans chevauchement', () => {
       const out = applyScreenAdjustment(baseTarget, screen, 'hedge', 'D1', off, 35, 'medium', undefined, 0);
-      const distToBase = Math.hypot(out.x - baseTarget.x, out.y - baseTarget.y);
-      expect(distToBase).toBeLessThan(25);
+      const distToCarrier = Math.hypot(out.x - off.O1.x, out.y - off.O1.y);
+      // Pas de chevauchement (distance ≥ MIN_PLAYER_CLEARANCE_PX = 34).
+      expect(distToCarrier).toBeGreaterThanOrEqual(33.5);
+      // Mais reste collé (pas plus loin que ~50px).
+      expect(distToCarrier).toBeLessThan(50);
     });
 
     it('"drop" + carrierDef : quality augmente le recul', () => {
@@ -269,6 +272,37 @@ describe('applyScreenAdjustment', () => {
       const dist0 = Math.hypot(d0.x - off.O1.x, d0.y - off.O1.y);
       const dist100 = Math.hypot(d100.x - off.O1.x, d100.y - off.O1.y);
       expect(dist100).toBeGreaterThan(dist0);
+    });
+
+    it("INVARIANT: aucun chevauchement défenseur ↔ porteur/poseur (toutes rules × toutes qualities)", () => {
+      // Distance minimale entre centres : 2 × PLAYER_RADIUS (= 32px sans buffer)
+      // pour garantir que les cercles ne se croisent jamais.
+      const MIN_NO_OVERLAP = 33.5;
+      const rules: Array<Parameters<typeof applyScreenAdjustment>[2]> = [
+        'over', 'under', 'hedge', 'drop', 'ice', 'weak', 'peel-switch',
+      ];
+      // baseTarget réaliste par défenseur (proche de son homme respectif).
+      const targets: Record<'D1' | 'D2', { x: number; y: number }> = {
+        D1: { x: off.O1.x, y: off.O1.y - 10 }, // près de O1 (cible carrierDef "coller")
+        D2: { x: off.O2.x, y: off.O2.y - 10 }, // près de O2 (cible screenerDef)
+      };
+      for (const rule of rules) {
+        for (const q of [0, 25, 50, 75, 100]) {
+          for (const dId of ['D1', 'D2'] as const) {
+            const out = applyScreenAdjustment(targets[dId], screen, rule, dId, off, 35, 'medium', undefined, q);
+            const distToCarrier = Math.hypot(out.x - off.O1.x, out.y - off.O1.y);
+            const distToScreener = Math.hypot(out.x - off.O2.x, out.y - off.O2.y);
+            // D2 défend O2 (le poseur), donc clearance vs O2 non requise pour D2.
+            if (dId === 'D1') {
+              expect(distToCarrier, `${rule}/q=${q}/${dId} vs O1`).toBeGreaterThanOrEqual(MIN_NO_OVERLAP);
+            }
+            if (dId === 'D2') {
+              expect(distToScreener, `${rule}/q=${q}/${dId} vs O2`).toBeGreaterThanOrEqual(0); // D2 peut "coller" O2
+              expect(distToCarrier, `${rule}/q=${q}/${dId} vs O1`).toBeGreaterThanOrEqual(MIN_NO_OVERLAP);
+            }
+          }
+        }
+      }
     });
   });
 });
