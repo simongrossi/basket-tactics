@@ -339,13 +339,21 @@ export function resolveFrameAt(
         off
       );
       if (contactScreener) {
-        // ANCRAGE du point de contact : pour 'leaving', on calcule depuis defA
-        // (la position où D1 était stuck à la fin du contact). Sinon, D1
-        // suivrait la trajectoire courbe en orbitant autour du poseur — il
-        // se retrouverait visuellement de l'AUTRE côté du poseur pendant la
-        // décohésion. Pour 'arriving'/'stuck', on garde l'ancrage dynamique
-        // depuis p (la trajectoire approche le contact côté carrier).
-        const anchor = screenMode === 'leaving' ? defA[id] : p;
+        // ANCRAGE du point de contact, STABLE pour toute la transition :
+        //  - arriving : anchor = defB (position stuck à la fin). D1 va vers
+        //    le contact, le côté est fixé par où il se retrouvera plaqué.
+        //  - leaving : anchor = defA (position stuck au début). D1 quitte
+        //    le contact, le côté est fixé par où il était plaqué.
+        //  - stuck : anchor = midpoint(defA, defB). D1 est plaqué tout au
+        //    long, on prend une moyenne stable.
+        // Sans ancrage stable, contactPoint = radialContactPoint(p, screener)
+        // flippait quand p traversait l'autre côté du poseur (orbite Bezier
+        // ou lerp vers une nouvelle position carrier).
+        const anchor = screenMode === 'leaving'
+          ? defA[id]
+          : screenMode === 'arriving'
+            ? defB[id]
+            : midpoint(defA[id], defB[id]);
         const contactPoint = radialContactPoint(anchor, contactScreener);
         p = lerpPoint(p, contactPoint, adhesion);
       }

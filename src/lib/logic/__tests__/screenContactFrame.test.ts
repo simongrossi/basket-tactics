@@ -244,6 +244,37 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
     });
   });
 
+  describe("Arriving — pas de basculement de côté pendant l'approche", () => {
+    it("en arriving, D1 ne flippe pas d'un côté à l'autre du poseur pendant le scrub", () => {
+      // Bug constaté : pendant l'approche, le contactPoint était recalculé
+      // depuis p (qui suit la Bezier ou un lerp vers défB qui peut être
+      // de l'autre côté du poseur). Quand p traversait l'axe, D1 visuellement
+      // sautait de gauche à droite. Fix : anchor = defB (stuck point final)
+      // pour 'arriving', donne un côté stable pour toute la transition.
+      const state = buildScreenScenario(100);
+      // Côté du stuck final (defB[D1] au step 1) par rapport au poseur.
+      const finalFrame = resolveFrameAt(state, 0.99);
+      expect(finalFrame).not.toBeNull();
+      const finalD1 = finalFrame!.defPos.D1;
+      const screener = finalFrame!.off.O3;
+      const finalSide = Math.sign(finalD1.x - screener.x);
+
+      // Pendant l'approche (stuck phase de arriving, localT > 0.3),
+      // D1 doit être du même côté que sa position finale.
+      for (let t = 0.30; t <= 0.95; t += 0.05) {
+        const frame = resolveFrameAt(state, t);
+        if (!frame) continue;
+        const d1 = frame.defPos.D1;
+        const screenerNow = frame.off.O3;
+        const sideNow = Math.sign(d1.x - screenerNow.x);
+        if (finalSide !== 0 && sideNow !== 0) {
+          expect(sideNow, `t=${t.toFixed(2)} : D1 ne doit pas être du côté opposé au stuck`)
+            .toBe(finalSide);
+        }
+      }
+    });
+  });
+
   describe("Recovery — pas d'orbite autour du poseur (bug 'rattrape à l'opposé')", () => {
     it('en leaving, D1 ne bascule pas du côté opposé au stuck point pendant la décohésion', () => {
       // Bug constaté : pendant la recovery, D1 partait orbiter du côté
