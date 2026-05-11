@@ -244,6 +244,87 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
     });
   });
 
+  describe("Anti-flicker — poseur qui se déplace entre les steps (systeme_basket-8)", () => {
+    it('D1 ne saute pas de côté à côté du poseur quand celui-ci se déplace significativement', () => {
+      // Reproduit le bug de systeme_basket-8.json : O3 se déplace de
+      // (470,380) à (338.58, 428.97) pendant le segment 1→2. Pendant le
+      // scrub, le poseur "traverse" l'axe defA→defB de D1 et la détection
+      // current-frame `screen` fire par intermittence → screenerObstacles
+      // apparaît/disparaît → curveAroundObstacle bascule → D1 saute.
+      // Le fix : screenerObstacles construit uniquement depuis screenA/B
+      // (stables), pas depuis screen interpolé.
+      const base = makeInitialState();
+      const state = {
+        ...base,
+        steps: [
+          {
+            off: {
+              O1: { x: 300, y: 470 },
+              O2: { x: 130, y: 380 },
+              O3: { x: 470, y: 380 },
+              O4: { x: 220, y: 230 },
+              O5: { x: 380, y: 230 },
+            },
+            ballCarrier: 'O1',
+            annotations: [
+              {
+                type: 'screen',
+                fromId: 'O3',
+                toId: null,
+                from: { x: 470, y: 380 },
+                to: { x: 338.58, y: 428.97 },
+                phase: 'end',
+              } as Annotation,
+            ],
+          },
+          {
+            off: {
+              O1: { x: 513, y: 322 },
+              O2: { x: 130, y: 380 },
+              O3: { x: 338.58, y: 428.97 },
+              O4: { x: 220, y: 230 },
+              O5: { x: 380, y: 230 },
+            },
+            ballCarrier: 'O1',
+            annotations: [],
+          },
+        ],
+        screenRule: 'hedge',
+        defenseInitial: {
+          D1: { x: 300, y: 380 },
+          D2: { x: 170, y: 310 },
+          D3: { x: 430, y: 310 },
+          D4: { x: 240, y: 160 },
+          D5: { x: 360, y: 160 },
+        },
+        activeStep: 0,
+      } as AppState;
+
+      // Échantillonne fin (1/60 step) pour détecter le flicker mid-segment.
+      // On ÉVITE le boundary t=1.0 où la frame bascule de "transition
+      // idxA=0→idxB=1" à "step idxA=1 fixe" (la frame source change
+      // d'algorithme et un saut natif peut apparaître).
+      let prev: { x: number; y: number } | null = null;
+      let maxJump = 0;
+      for (let f = 0; f < 60; f++) {
+        const t = f / 60;
+        const frame = resolveFrameAt(state, t);
+        if (!frame) continue;
+        const d1 = frame.defPos.D1;
+        if (prev) {
+          const jump = Math.hypot(d1.x - prev.x, d1.y - prev.y);
+          maxJump = Math.max(maxJump, jump);
+        }
+        prev = { x: d1.x, y: d1.y };
+      }
+      // Avant fix : sauts > 120px entre frames adjacents (D1 d'un côté du
+      // poseur à l'autre). Cible : sauts <30px (mouvement défensif fluide
+      // à ~110 px/step ⇒ ~1.8px/frame en idéal, marge pour pushes du
+      // résolveur de collisions sur le poseur mobile).
+      expect(maxJump, `saut max entre 2 frames adjacents mid-segment`).toBeLessThan(80);
+    });
+  });
+
   describe("Arriving — pas de basculement de côté pendant l'approche", () => {
     it("en arriving, D1 ne flippe pas d'un côté à l'autre du poseur pendant le scrub", () => {
       // Bug constaté : pendant l'approche, le contactPoint était recalculé
