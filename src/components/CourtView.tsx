@@ -44,6 +44,7 @@ import {
 } from '@/lib/data/court';
 import { clamp, distance } from '@/lib/logic/geometry';
 import { resolveFrameAt, type PlaybackFrame } from '@/lib/logic/playback/frameResolver';
+import { buildStep0DetectionPositions } from '@/lib/logic/step0Detection';
 import { usePlaybackAnimation } from '@/hooks/usePlaybackAnimation';
 import { ContextMenu } from './ContextMenu';
 import { ActionOrderBadges } from './overlays/ActionOrderBadges';
@@ -163,8 +164,15 @@ export function CourtView(props: CourtViewProps) {
     if (state.defenseSystem === 'man') {
       const matchups = getMatchupsAt(state.steps, state.activeStep - 1, state.playerCount);
       const defPosExtracted = extractDefPositions(defPos);
-      screen = detectScreen(off, carrier, matchups, defPosExtracted, state.screenRadius, cur.forcedScreener);
-      offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosExtracted, state.screenRadius);
+      // À step 0 : les défenseurs peuvent être "late" (bloqués loin de leur
+      // cible à cause d'un écran). On détecte l'écran à partir des cibles
+      // idéales pour que l'indicateur reste visible même si D1 n'a pas
+      // physiquement atteint le poseur.
+      const detectionPos = state.activeStep === 0
+        ? buildStep0DetectionPositions(state, off, carrier, matchups, defPosExtracted)
+        : defPosExtracted;
+      screen = detectScreen(off, carrier, matchups, detectionPos, state.screenRadius, cur.forcedScreener);
+      offBallScreens = detectOffBallScreens(off, carrier, matchups, detectionPos, state.screenRadius);
     }
     const carrierPos = off[carrier];
     const ballPos: Point = carrierPos

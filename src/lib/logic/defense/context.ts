@@ -20,7 +20,7 @@ import type {
 import { ballSide } from '../geometry';
 import { applySwitch, detectScreen, peelSwitchShouldFire } from '../screens';
 import { detectTriggers } from '../triggers';
-import { carrierDefenderTarget, manTarget } from '../manDefense';
+import { buildStep0DetectionPositions } from '../step0Detection';
 import {
   activeBallCarrier,
   activeDefenseInitial,
@@ -73,42 +73,6 @@ export interface DefenseFrameContext {
  * détecté sur cette étape, `step.switches` est inscrit dans le state pour
  * persistence (cf. computeDefenseTargets historiquement).
  */
-/**
- * Construit les positions défenseurs "prev" à utiliser à l'étape 0. On part
- * de `defenseInitial` puis on remplace la position du carrier defender par
- * sa cible homme-à-homme idéale (collée au porteur). Cela rapproche sa
- * "prevPosition" du jeu et permet à `detectScreen` de trouver les poseurs
- * autour du porteur — sinon, en édition libre (un seul step), D1 est resté
- * loin du jeu et aucun écran n'est jamais détecté par le moteur.
- */
-function buildStep0PrevPositions(
-  state: AppState,
-  off: AttackerPositions,
-  ballCarrier: AttackerId,
-  matchups: Matchups
-): DefenderPositions {
-  const base = activeDefenseInitial(state.defenseInitial, state.playerCount);
-  const hoop = getDefenseHoop(state);
-  const out: DefenderPositions = { ...base };
-
-  // Pour chaque défenseur, on substitue sa cible homme-à-homme idéale.
-  // Cela donne à `detectScreen` une géométrie cohérente avec ce qui sera
-  // effectivement rendu (chaque défenseur près de son homme), même quand
-  // `defenseInitial` est très éloigné de l'attaque en cours.
-  (Object.entries(matchups) as [DefenderId, AttackerId][]).forEach(([dId, oId]) => {
-    const att = off[oId];
-    if (!att) return;
-    const rule = state.rules[dId];
-    const dist = rule?.distance ?? state.defenseDistance;
-    const target = oId === ballCarrier
-      ? carrierDefenderTarget(rule?.vsCarrier ?? 'coller', att, dist, hoop) ?? manTarget(att, dist, hoop)
-      : manTarget(att, dist, hoop);
-    if (target) out[dId] = target;
-  });
-
-  return out;
-}
-
 export function buildDefenseFrameContext(
   state: AppState,
   stepIdx: number,
@@ -135,7 +99,10 @@ export function buildDefenseFrameContext(
   // de l'endroit où D1 va finir et permet la détection d'écran.
   const prevDefenderPositions: DefenderPositions =
     stepIdx === 0
-      ? buildStep0PrevPositions(state, off, ballCarrier, matchups)
+      ? buildStep0DetectionPositions(
+          state, off, ballCarrier, matchups,
+          activeDefenseInitial(state.defenseInitial, state.playerCount)
+        )
       : extractDefenderPositions(computeDefenseTargets(state, stepIdx - 1, false).positions);
 
   const prevOffAtStep: AttackerPositions | undefined =

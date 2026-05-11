@@ -21,10 +21,9 @@ import type {
   ComputedDefense,
   DefenderId,
   DefenderPositions,
-  Matchups,
   Point,
 } from '../../types';
-import { carrierDefenderTarget, manTarget } from '../manDefense';
+import { buildStep0DetectionPositions } from '../step0Detection';
 import { getZoneLayout, mirrorZoneLayout } from '../../data/zones';
 import { DEFAULT_CLOSEOUT_BOOST, MIN_PLAYER_CLEARANCE_PX } from '../../data/physics';
 import {
@@ -59,33 +58,6 @@ interface ScreenerCluster {
   center: Point;
   radius: number;
   defenderToSkip: DefenderId;
-}
-
-/**
- * Substitue, pour le carrier defender uniquement, sa position "prev" par sa
- * cible homme-à-homme idéale. Utilisé au step 0 pour que detectScreen trouve
- * les poseurs autour du porteur même quand defenseInitial est loin du jeu.
- */
-function buildStep0DetectionPositions(
-  state: AppState,
-  off: AttackerPositions,
-  ballCarrier: AttackerId,
-  matchups: Matchups,
-  fallback: DefenderPositions
-): DefenderPositions {
-  const out: DefenderPositions = { ...fallback };
-  const hoop = getDefenseHoop(state);
-  (Object.entries(matchups) as [DefenderId, AttackerId][]).forEach(([dId, oId]) => {
-    const att = off[oId];
-    if (!att) return;
-    const rule = state.rules[dId];
-    const dist = rule?.distance ?? state.defenseDistance;
-    const target = oId === ballCarrier
-      ? carrierDefenderTarget(rule?.vsCarrier ?? 'coller', att, dist, hoop) ?? manTarget(att, dist, hoop)
-      : manTarget(att, dist, hoop);
-    if (target) out[dId] = target;
-  });
-  return out;
 }
 
 /**

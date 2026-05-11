@@ -36,6 +36,7 @@ import {
 import { activeBallCarrier, activeOffense } from '../players';
 import { attackerTrajectoryAt, type MovementType } from '../playbackTrajectory';
 import { lerpAngleDeg } from '../angles';
+import { buildStep0DetectionPositions } from '../step0Detection';
 import {
   PLAYER_CLUSTER_BASE_R_PX,
   PLAYER_CLUSTER_LINK_DIST_PX,
@@ -166,9 +167,16 @@ export function resolveFrameAt(
     defenderIds.forEach((id) => {
       defPosLinear[id] = lerpPoint(defA[id], defB[id], localT);
     });
+    // À step 0 en édition libre : si un défenseur est "late" (bloqué loin de
+    // sa cible à cause d'un écran), sa position linéaire ne sera pas dans le
+    // rayon de détection autour du poseur. On substitue alors par sa cible
+    // homme-à-homme pour que l'indicateur d'écran continue à s'afficher.
+    const detectionPos: Record<DefenderId, Point> = (idxA === 0 && idxB === 0)
+      ? buildStep0DetectionPositions(state, off, carrier, matchups, defPosLinear)
+      : defPosLinear;
     const forced = (localT < 0.5 ? a : b).forcedScreener;
-    screen = detectScreen(off, carrier, matchups, defPosLinear, state.screenRadius, forced);
-    offBallScreens = detectOffBallScreens(off, carrier, matchups, defPosLinear, state.screenRadius);
+    screen = detectScreen(off, carrier, matchups, detectionPos, state.screenRadius, forced);
+    offBallScreens = detectOffBallScreens(off, carrier, matchups, detectionPos, state.screenRadius);
   }
 
   // ---------------------------------------------------------------------
