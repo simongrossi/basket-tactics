@@ -207,6 +207,70 @@ describe('applyScreenAdjustment', () => {
     const dDeep = Math.hypot(deep.x - screen.screenerPos.x, deep.y - screen.screenerPos.y);
     expect(dDeep).toBeGreaterThan(dShallow);
   });
+
+  describe('— quality modulation (refonte écran)', () => {
+    // Configuration : D1 défend O1, O2 pose écran. Cible de base de D1 = sur O1.
+    const baseTarget = { x: 300, y: 470 };
+
+    it('"over" quality 0 reste proche de la cible de base (O1) — faux écran', () => {
+      const out = applyScreenAdjustment(baseTarget, screen, 'over', 'D1', off, 35, 'medium', undefined, 0);
+      const distToBase = Math.hypot(out.x - baseTarget.x, out.y - baseTarget.y);
+      expect(distToBase).toBeLessThan(35);
+    });
+
+    it('"over" quality 100 plaque D1 sur le poseur (loin de O1)', () => {
+      const out = applyScreenAdjustment(baseTarget, screen, 'over', 'D1', off, 35, 'medium', undefined, 100);
+      const distToScreener = Math.hypot(out.x - screen.screenerPos.x, out.y - screen.screenerPos.y);
+      const distToCarrier = Math.hypot(out.x - off.O1.x, out.y - off.O1.y);
+      // D1 plus proche du poseur que du porteur
+      expect(distToScreener).toBeLessThan(distToCarrier);
+    });
+
+    it('"over" quality monotone : plus haut = D1 plus loin de O1', () => {
+      const d0 = applyScreenAdjustment(baseTarget, screen, 'over', 'D1', off, 35, 'medium', undefined, 0);
+      const d50 = applyScreenAdjustment(baseTarget, screen, 'over', 'D1', off, 35, 'medium', undefined, 50);
+      const d100 = applyScreenAdjustment(baseTarget, screen, 'over', 'D1', off, 35, 'medium', undefined, 100);
+      const dist = (p: { x: number; y: number }) =>
+        Math.hypot(p.x - off.O1.x, p.y - off.O1.y);
+      expect(dist(d50)).toBeGreaterThan(dist(d0));
+      expect(dist(d100)).toBeGreaterThan(dist(d50));
+    });
+
+    it('"under" quality 100 : D1 est BEHIND O1 (côté opposé au panier)', () => {
+      const out = applyScreenAdjustment(baseTarget, screen, 'under', 'D1', off, 35, 'medium', undefined, 100);
+      // panier (300, 75), O1 (300, 470). Vecteur O1→panier pointe vers y décroissant.
+      // BEHIND O1 = y plus grand que O1.
+      expect(out.y).toBeGreaterThan(off.O1.y);
+    });
+
+    it('"hedge" quality 100 : D5 (poseur defender) sort devant O1 côté panier', () => {
+      // D5 = screenerDef = D2 dans ce test setup.
+      const out = applyScreenAdjustment(baseTarget, screen, 'hedge', 'D2', off, 35, 'medium', undefined, 100);
+      // Panier en (300, 75), O1 en (300, 470). "Devant O1 côté panier" = y plus petit que O1.
+      expect(out.y).toBeLessThan(off.O1.y);
+    });
+
+    it('"hedge" quality 100 : D1 (carrier defender) est plaqué au poseur', () => {
+      const out = applyScreenAdjustment(baseTarget, screen, 'hedge', 'D1', off, 35, 'medium', undefined, 100);
+      const distToScreener = Math.hypot(out.x - screen.screenerPos.x, out.y - screen.screenerPos.y);
+      // D1 doit être proche du poseur (poussé hors par pushOutOfScreener, donc ~MIN_PLAYER_CLEARANCE).
+      expect(distToScreener).toBeLessThan(60);
+    });
+
+    it('"hedge" quality 0 ≈ comportement legacy (D1 reste près de O1)', () => {
+      const out = applyScreenAdjustment(baseTarget, screen, 'hedge', 'D1', off, 35, 'medium', undefined, 0);
+      const distToBase = Math.hypot(out.x - baseTarget.x, out.y - baseTarget.y);
+      expect(distToBase).toBeLessThan(25);
+    });
+
+    it('"drop" + carrierDef : quality augmente le recul', () => {
+      const d0 = applyScreenAdjustment(baseTarget, screen, 'drop', 'D1', off, 35, 'medium', undefined, 0);
+      const d100 = applyScreenAdjustment(baseTarget, screen, 'drop', 'D1', off, 35, 'medium', undefined, 100);
+      const dist0 = Math.hypot(d0.x - off.O1.x, d0.y - off.O1.y);
+      const dist100 = Math.hypot(d100.x - off.O1.x, d100.y - off.O1.y);
+      expect(dist100).toBeGreaterThan(dist0);
+    });
+  });
 });
 
 describe('detectOffBallScreens', () => {

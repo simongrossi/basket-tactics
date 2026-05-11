@@ -36,8 +36,19 @@ export function applyBaseTargetsLayer(
 ): void {
   const {
     state, off, ballCarrier, defenderIds, hoop, triggers, side, screen,
-    effectiveScreenRule, switchedThisStep, carrierPos,
+    effectiveScreenRule, switchedThisStep, carrierPos, step,
   } = ctx;
+
+  // Qualité de l'écran en cours, lue depuis l'annotation `screen` du step
+  // si elle existe (sinon 50 par défaut). Module à quel point D1 est
+  // "plaqué au poseur" via applyScreenAdjustment.
+  let screenQuality = 50;
+  if (screen) {
+    const sa = step.annotations.find(
+      (a) => a.type === 'screen' && a.fromId === screen.screener,
+    );
+    if (sa) screenQuality = sa.quality ?? 50;
+  }
 
   defenderIds.forEach((dId) => {
     const oId = matchups[dId];
@@ -88,7 +99,7 @@ export function applyBaseTargetsLayer(
     }
 
     if (screen && effectiveScreenRule !== 'switch') {
-      target = applyScreenAdjustment(target, screen, effectiveScreenRule, dId, off, state.screenRadius, state.dropDepth, hoop);
+      target = applyScreenAdjustment(target, screen, effectiveScreenRule, dId, off, state.screenRadius, state.dropDepth, hoop, screenQuality);
     }
 
     // Offset latéral selon le delta manuel d'orientation. Subtil, max ~12px

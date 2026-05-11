@@ -13,7 +13,7 @@ import type {
 } from '../types';
 import { HOOP } from '../data/court';
 import { MIN_PLAYER_CLEARANCE_PX } from '../data/physics';
-import { distance } from './geometry';
+import { distance, lerp as lerpPoint } from './geometry';
 
 /**
  * Filtre d'intention pour la détection d'écran : un attaquant qui PASSE par
@@ -159,7 +159,8 @@ export function applyScreenAdjustment(
   off: AttackerPositions,
   screenRadius: number = 35,
   dropDepth: DropDepth = 'medium',
-  hoop: Point = HOOP
+  hoop: Point = HOOP,
+  quality: number = 50
 ): Point {
   if (rule === 'switch') return baseTarget;
 
@@ -179,51 +180,82 @@ export function applyScreenAdjustment(
   const perpY = nx;
   const sideOfCarrier = Math.sign(carrierPos.x - screenerPos.x) || 1;
 
+  // q ∈ [0, 1] : 0 = ghost (effet quasi nul), 1 = lockdown (D1 plaqué).
+  const q = Math.max(0, Math.min(100, quality)) / 100;
+
   if (rule === 'over' && isCarrierDef) {
-    const screenTightness = 1 - Math.min(distance(screenerPos, baseTarget), screenRadius) / screenRadius;
-    const amplitude = 14 + screenTightness * 18;
+    // D1 est BLOQUÉ par le poseur, juste derrière lui côté basket.
+    // Position cible = sur le poseur, légèrement reculé (vers le panier).
+    // Distance par rapport à O1 ≈ |O1 - S| + lag, ce qui suffit à voir D1
+    // "stuck" pendant que O1 va prendre l'avantage.
+    const lagBack = 5 + 25 * q; // 5px à q=0, 30px à q=1, du côté basket
+    const sideOffset = 8 + 8 * q; // léger décalage perpendiculaire (route over)
     let target = {
-      x: baseTarget.x + perpX * amplitude * sideOfCarrier,
-      y: baseTarget.y + perpY * amplitude * sideOfCarrier,
+      x: screenerPos.x + nx * lagBack + perpX * sideOffset * sideOfCarrier,
+      y: screenerPos.y + ny * lagBack + perpY * sideOffset * sideOfCarrier,
     };
+    // À q=0, on revient quasi à la cible de base pour préserver le cas "faux écran".
+    target = lerpPoint(baseTarget, target, q * 0.85 + 0.15);
     target = pushOutOfScreener(target, screenerPos);
     return target;
   }
 
   if (rule === 'under' && isCarrierDef) {
-    let target = { x: baseTarget.x + nx * 36, y: baseTarget.y + ny * 36 };
+    // D1 passe SOUS l'écran : il est BEHIND O1 (côté opposé au basket), au
+    // niveau du poseur. O1 prend l'avance pour shooter pull-up ou attaquer
+    // si D5 est en drop. q module la distance derrière O1.
+    const lagBehind = 20 + 35 * q; // 20px à q=0, 55px à q=1, côté opposé au basket
+    const candidate = {
+      x: carrierPos.x - nx * lagBehind,
+      y: carrierPos.y - ny * lagBehind,
+    };
+    let target = lerpPoint(baseTarget, candidate, q * 0.85 + 0.15);
     target = pushOutOfScreener(target, screenerPos);
     return target;
   }
 
   if (rule === 'hedge' && isScreenerDef) {
+    // D5 sort agressivement DEVANT O1 (entre O1 et le panier). À q=0 reste
+    // à mi-chemin S↔C (= comportement legacy). À q=1 D5 est carrément
+    // devant O1 côté basket, pour neutraliser le porteur le temps que D1
+    // recover.
     const carrierToScreenDist = distance(carrierPos, screenerPos);
     const showT = Math.max(0, Math.min(1, (carrierToScreenDist - screenRadius) / screenRadius));
     const showPos = {
       x: (screenerPos.x + carrierPos.x) / 2 - nx * 6,
       y: (screenerPos.y + carrierPos.y) / 2 - ny * 6,
     };
-    return pushOutOfScreener(
-      {
-        x: showPos.x + (baseTarget.x - showPos.x) * showT,
-        y: showPos.y + (baseTarget.y - showPos.y) * showT,
-      },
-      screenerPos
-    );
+    const legacyTarget = {
+      x: showPos.x + (baseTarget.x - showPos.x) * showT,
+      y: showPos.y + (baseTarget.y - showPos.y) * showT,
+    };
+    // Position "agressive" : devant O1 côté basket
+    const aggressiveAdvance = 25 + 35 * q;
+    const aggressiveTarget = {
+      x: carrierPos.x + nx * aggressiveAdvance,
+      y: carrierPos.y + ny * aggressiveAdvance,
+    };
+    // Interpoler entre legacy (q=0) et aggressive (q=1).
+    const blended = lerpPoint(legacyTarget, aggressiveTarget, q);
+    return pushOutOfScreener(blended, screenerPos);
   }
 
   if (rule === 'hedge' && isCarrierDef) {
-    // En hedge, D5 sort temporairement vers le porteur (show). D1 doit
-    // passer over the top de l'écran en restant tight sur le porteur, pour
-    // que le couple D1/D5 ferme à la fois la pénétration et la rejection.
-    // Amplitude plus modérée qu'un 'over' pur — le hedge reste temporaire
-    // et D1 doit pouvoir recover quand D5 rentre.
+    // D1 est plaqué AU poseur côté porteur. C'est lui le "stuck on the
+    // screen" pendant que D5 montre devant. q module à quel point D1 est
+    // carrément collé au poseur (vs juste à côté de O1 comme avant).
     const tightness = 1 - Math.min(distance(screenerPos, baseTarget), screenRadius) / screenRadius;
-    const amplitude = 8 + tightness * 8;
-    let target = {
-      x: baseTarget.x + perpX * amplitude * sideOfCarrier,
-      y: baseTarget.y + perpY * amplitude * sideOfCarrier,
+    const legacyAmplitude = 8 + tightness * 8;
+    const legacyTarget = {
+      x: baseTarget.x + perpX * legacyAmplitude * sideOfCarrier,
+      y: baseTarget.y + perpY * legacyAmplitude * sideOfCarrier,
     };
+    // Position "plaqué au poseur" : sur S, légèrement côté porteur.
+    const stuckTarget = {
+      x: screenerPos.x + perpX * 15 * sideOfCarrier,
+      y: screenerPos.y + perpY * 15 * sideOfCarrier,
+    };
+    let target = lerpPoint(legacyTarget, stuckTarget, q);
     target = pushOutOfScreener(target, screenerPos);
     return target;
   }
@@ -233,13 +265,21 @@ export function applyScreenAdjustment(
     return { x: screenerPos.x + nx * depthPx, y: screenerPos.y + ny * depthPx };
   }
   if (rule === 'drop' && isCarrierDef) {
-    return pushOutOfScreener(
-      {
-        x: baseTarget.x + perpX * 14 * sideOfCarrier,
-        y: baseTarget.y + perpY * 14 * sideOfCarrier,
-      },
-      screenerPos
-    );
+    // En drop, D5 absorbe la pénétration. D1 doit over par-dessus en
+    // étant retardé proportionnellement à la qualité de l'écran. q=0 →
+    // léger décalage 14px (legacy), q=1 → D1 plaqué au poseur (mais
+    // moins que en hedge, car D5 prend la charge).
+    const legacyTarget = {
+      x: baseTarget.x + perpX * 14 * sideOfCarrier,
+      y: baseTarget.y + perpY * 14 * sideOfCarrier,
+    };
+    const lagBack = 5 + 18 * q;
+    const stuckTarget = {
+      x: screenerPos.x + nx * lagBack + perpX * 8 * sideOfCarrier,
+      y: screenerPos.y + ny * lagBack + perpY * 8 * sideOfCarrier,
+    };
+    const blended = lerpPoint(legacyTarget, stuckTarget, q * 0.7);
+    return pushOutOfScreener(blended, screenerPos);
   }
 
   if (rule === 'blitz') {

@@ -284,14 +284,11 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     // Vitesse effective = vitesse théorique × friction × pénalité écran.
     const effectiveMaxSpeed = maxSpeed * friction * screenContactPenalty;
 
-    // À l'étape 0, on considère normalement que les défenseurs SONT à leur
-    // position idéale (setup, pas une transition). EXCEPTION : si le
-    // défenseur du porteur prend un écran, on applique quand même la
-    // contrainte — sinon en édition libre (single step) D1 traverserait
-    // l'écran et se collerait à O1, ce qui contredit physiquement la
-    // présence d'un poseur entre eux.
-    const skipSpeedConstraint = stepIdx === 0 && !isCarrierDefScreenedThisStep;
-    if (skipSpeedConstraint || pathLen <= effectiveMaxSpeed) {
+    // À l'étape 0, les défenseurs SONT à leur position idéale (setup, pas
+    // une transition). Le réalisme post-écran est encodé dans la CIBLE elle-
+    // même (cf. applyScreenAdjustment, qui place D1 sur le poseur) — pas
+    // besoin de clamper la vitesse au step 0.
+    if (stepIdx === 0 || pathLen <= effectiveMaxSpeed) {
       out[dId] = {
         x: to.x,
         y: to.y,
