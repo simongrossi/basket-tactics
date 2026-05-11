@@ -71,6 +71,21 @@ interface ScreenerObstacle {
 }
 
 /**
+ * Mappe la qualité d'écran (0-100) sur le paramètre `apexSlowness` passé à
+ * `curveAroundObstacle` pour le défenseur du porteur :
+ *  - 0 (ghost)    → 0.30 (comportement par défaut, juste un frôlement)
+ *  - 50 (std)     → 0.75 (ralentissement marqué au sommet)
+ *  - 100 (lockdown) → 0.98 (quasi-pause, D1 reste collé au poseur)
+ *
+ * Choix : courbe linéaire entre 0.30 et 0.98. À 50 (défaut), on est déjà à
+ * 0.75 — visuellement le défenseur stagne nettement à l'impact.
+ */
+function carrierApexSlownessFromQuality(quality: number): number {
+  const q = Math.max(0, Math.min(100, quality));
+  return 0.30 + (q / 100) * (0.98 - 0.30);
+}
+
+/**
  * Résout la frame complète à l'instant `t` (en unités de step fractionnaires).
  * `t` est clampé à [0, steps.length - 1]. Retourne `null` si le scénario n'a
  * pas au moins 2 étapes (pas d'interpolation possible).
@@ -161,11 +176,26 @@ export function resolveFrameAt(
   //    écrans pendant le segment. Position MOYENNE A↔B → obstacle stable.
   // ---------------------------------------------------------------------
   const screenerObstacles: ScreenerObstacle[] = [];
+  // Cluster d'écran "principal" (porteur) — utilisé pour appliquer une pause
+  // au défenseur du porteur en fonction de la qualité de l'écran.
+  let carrierScreenObstacle: ScreenerObstacle | null = null;
+  let carrierScreenQuality = 50;
   if (screen) {
     const sPos = midpoint(offA[screen.screener], offB[screen.screener]);
     const sDef = midpoint(defA[screen.screenerDef], defB[screen.screenerDef]);
     const c = makeCluster(sPos, [sDef], PLAYER_CLUSTER_LINK_DIST_PX, PLAYER_CLUSTER_BASE_R_PX);
     screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: screen.screenerDef });
+    carrierScreenObstacle = { center: c.center, radius: c.radius, defenderToSkip: screen.screenerDef };
+    // Cherche la qualité dans l'annotation source (step idxB ou idxA).
+    const candidates = [state.steps[idxB], state.steps[idxA]];
+    for (const st of candidates) {
+      if (!st) continue;
+      const sa = st.annotations.find((aa) => aa.type === 'screen' && aa.fromId === screen.screener);
+      if (sa) {
+        carrierScreenQuality = sa.quality ?? 50;
+        break;
+      }
+    }
   }
   offBallScreens.forEach((s) => {
     const sPos = midpoint(offA[s.screener], offB[s.screener]);
@@ -181,13 +211,50 @@ export function resolveFrameAt(
   defenderIds.forEach((id) => {
     let p = lerpPoint(defA[id], defB[id], localT);
     const candidates = screenerObstacles.filter((o) => id !== o.defenderToSkip);
+    // Le défenseur du porteur qui prend l'écran subit un easing FORT au
+    // sommet du contournement, modulé par la qualité de l'écran. Effet :
+    // une vraie pause sur l'écran solide/lockdown, le défenseur reste
+    // collé au poseur pendant que le porteur se dégage.
+    const isCarrierDefenderTakingScreen = defB[id].isCarrierDefender && !!screen;
+    const apexSlowness = isCarrierDefenderTakingScreen
+      ? carrierApexSlownessFromQuality(carrierScreenQuality)
+      : 0.3;
     const pair = pickStaggeredPair(defA[id], defB[id], candidates);
     if (pair) {
       p = curveAroundStaggeredPair(defA[id], defB[id], pair[0], pair[1], localT);
     } else {
       const blocking = pickBlockingCluster(defA[id], defB[id], candidates);
       if (blocking) {
-        p = curveAroundObstacle(defA[id], defB[id], blocking.center, blocking.radius, localT);
+        p = curveAroundObstacle(defA[id], defB[id], blocking.center, blocking.radius, localT, apexSlowness);
+      } else if (isCarrierDefenderTakingScreen && carrierScreenObstacle) {
+        // Cas où la ligne droite defA→defB ne croise pas formellement le
+        // cluster (ex : defB est PILE sur l'écran car D1 a été "late"). On
+        // applique quand même la pause si la trajectoire passe à proximité.
+        const dx = defB[id].x - defA[id].x;
+        const dy = defB[id].y - defA[id].y;
+        const len = Math.hypot(dx, dy);
+        if (len > 0.01) {
+          const ux = dx / len, uy = dy / len;
+          const ox = carrierScreenObstacle.center.x - defA[id].x;
+          const oy = carrierScreenObstacle.center.y - defA[id].y;
+          const proj = ox * ux + oy * uy;
+          // Si l'obstacle est "en chemin" et que defB est près du cluster,
+          // on force la courbe avec apex slowness max.
+          const distToB = Math.hypot(
+            defB[id].x - carrierScreenObstacle.center.x,
+            defB[id].y - carrierScreenObstacle.center.y,
+          );
+          if (proj > 0 && distToB < carrierScreenObstacle.radius * 1.3) {
+            // Pas de courbe (defB est déjà sur l'obstacle) : on applique
+            // seulement le time-remap pour stagner à l'impact. La position
+            // reste sur la droite defA→defB, mais avec un easing fort.
+            const localTEased = localT + (apexSlowness * Math.sin(2 * Math.PI * localT)) / (2 * Math.PI);
+            p = {
+              x: defA[id].x + (defB[id].x - defA[id].x) * localTEased,
+              y: defA[id].y + (defB[id].y - defA[id].y) * localTEased,
+            };
+          }
+        }
       }
     }
     defPos[id] = {

@@ -140,9 +140,17 @@ export function resolvePlayerCollisions<
  * Easing qui ralentit autour de t=0.5 : la dérivée vaut 1+a aux extrémités
  * et 1-a au milieu. Visuellement, le défenseur ralentit en passant le
  * sommet du contournement (comme un humain qui négocie un écran).
+ *
+ * `a=0.3` (défaut) : freinage léger, "frôle" l'obstacle.
+ * `a→1.0` : quasi-pause au sommet (dérivée → 0). Sert au défenseur du
+ *           porteur qui prend un écran solide / lockdown.
+ *
+ * Note : `a` est clampé à [0, 1.0] sinon la dérivée passe négative au sommet
+ * (le joueur ferait marche arrière, visuellement absurde).
  */
 function easeSlowAtApex(t: number, a: number = 0.3): number {
-  return t + (a * Math.sin(2 * Math.PI * t)) / (2 * Math.PI);
+  const safeA = Math.max(0, Math.min(1.0, a));
+  return t + (safeA * Math.sin(2 * Math.PI * t)) / (2 * Math.PI);
 }
 
 /**
@@ -162,7 +170,8 @@ export function curveAroundObstacle(
   end: Point,
   obstacle: Point,
   obstacleRadius: number,
-  t: number
+  t: number,
+  apexSlowness: number = 0.3
 ): Point {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
@@ -202,8 +211,11 @@ export function curveAroundObstacle(
   const ctrlX = mx + perpX * 2 * peak * pushSign;
   const ctrlY = my + perpY * 2 * peak * pushSign;
 
-  // Easing pour ralentir au sommet du contournement (effet "négociation")
-  const te = easeSlowAtApex(t);
+  // Easing pour ralentir au sommet du contournement (effet "négociation").
+  // L'amplitude du ralentissement est paramétrable : 0.3 pour un évitement
+  // courant, jusqu'à 1.0 pour une vraie pause sur l'écran (le défenseur
+  // reste collé au poseur, le temps de négocier le contact).
+  const te = easeSlowAtApex(t, apexSlowness);
   const omt = 1 - te;
   return {
     x: omt * omt * start.x + 2 * omt * te * ctrlX + te * te * end.x,
