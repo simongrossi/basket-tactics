@@ -318,8 +318,8 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
         prev = { x: d1.x, y: d1.y };
       }
       // Avant fixes Phase 1 : sauts > 120px (D1 flippait d'un côté à l'autre).
-      // Après : trajectoire fluide, max ~quelques px par frame.
-      expect(maxJump, `saut max entre 2 frames adjacents mid-segment`).toBeLessThan(15);
+      // Après Phase 1 + Phase 2 : trajectoire fluide sub-pixel.
+      expect(maxJump, `saut max entre 2 frames adjacents mid-segment`).toBeLessThan(5);
     });
   });
 

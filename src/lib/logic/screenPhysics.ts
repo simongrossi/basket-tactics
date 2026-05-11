@@ -275,7 +275,28 @@ export function anticipationTarget(
   const proj = cToD.x * lineDir.x + cToD.y * lineDir.y;
   // Le défenseur retourne sur la ligne à une distance défensive
   // (pas trop loin du porteur, pas dans la raquette).
-  const projClamped = Math.max(defenseDistance * 0.6, Math.min(defenseDistance * 2.2, proj));
+  // Clamping LISSE : aux bornes, on rejoint la valeur de la borne via une
+  // courbe (smoothstep) au lieu d'un coude brutal. Évite que projClamped
+  // bascule abruptement quand proj franchit 0.6× ou 2.2× defenseDistance.
+  const lo = defenseDistance * 0.6;
+  const hi = defenseDistance * 2.2;
+  const margin = (hi - lo) * 0.15; // zone de transition autour de chaque borne
+  let projClamped: number;
+  if (proj < lo) {
+    projClamped = lo; // bien en dessous : reste à la borne
+  } else if (proj > hi) {
+    projClamped = hi;
+  } else if (proj < lo + margin) {
+    // transition lisse depuis lo
+    const t = smoothstep(0, 1, (proj - lo) / margin);
+    projClamped = lo + (proj - lo) * t;
+  } else if (proj > hi - margin) {
+    // transition lisse vers hi
+    const t = smoothstep(0, 1, (hi - proj) / margin);
+    projClamped = hi - (hi - proj) * t;
+  } else {
+    projClamped = proj; // milieu : identité
+  }
   const basketLineTarget: Point = {
     x: carrierPos.x + lineDir.x * projClamped,
     y: carrierPos.y + lineDir.y * projClamped,

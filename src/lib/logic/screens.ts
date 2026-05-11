@@ -48,6 +48,17 @@ function hasScreenIntent(
  * (deux joueurs ne peuvent pas se superposer physiquement). Si trop proche,
  * on pousse le point dans la direction opposée jusqu'à un dégagement minimum.
  */
+/**
+ * Smoothstep continu sur [edge0, edge1]. Remplace les `Math.max(0, Math.min(1, x))`
+ * pour éviter les discontinuités de dérivée aux bornes — ce qui crée un saut
+ * visuel quand une distance franchit le seuil.
+ */
+function smoothstep(edge0: number, edge1: number, x: number): number {
+  if (edge1 <= edge0) return x >= edge1 ? 1 : 0;
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
 function pushOutOfScreener(target: Point, screenerPos: Point): Point {
   const minClearance = MIN_PLAYER_CLEARANCE_PX;
   const dx = target.x - screenerPos.x;
@@ -288,7 +299,9 @@ export function applyScreenAdjustment(
     // devant O1 côté basket, pour neutraliser le porteur le temps que D1
     // recover.
     const carrierToScreenDist = distance(carrierPos, screenerPos);
-    const showT = Math.max(0, Math.min(1, (carrierToScreenDist - screenRadius) / screenRadius));
+    // smoothstep au lieu de clamp dur : la dérivée est nulle aux bornes,
+    // donc pas de discontinuité quand le porteur franchit le cercle d'écran.
+    const showT = smoothstep(screenRadius, 2 * screenRadius, carrierToScreenDist);
     const showPos = {
       x: (screenerPos.x + carrierPos.x) / 2 - nx * 6,
       y: (screenerPos.y + carrierPos.y) / 2 - ny * 6,
@@ -320,7 +333,9 @@ export function applyScreenAdjustment(
     // Géométriquement : on prend la direction (carrier → screener),
     // prolongée AU-DELÀ du screener d'une distance MIN_CLEARANCE pour
     // que D1 soit pile derrière le poseur, côté opposé au porteur.
-    const tightness = 1 - Math.min(distance(screenerPos, baseTarget), screenRadius) / screenRadius;
+    // smoothstep : la dérivée tend vers 0 au seuil, pas de saut d'amplitude
+    // quand baseTarget franchit le cercle d'écran.
+    const tightness = 1 - smoothstep(0, screenRadius, distance(screenerPos, baseTarget));
     const legacyAmplitude = 8 + tightness * 8;
     const legacyTarget = {
       x: baseTarget.x + perpX * legacyAmplitude * sideOfCarrier,
@@ -396,7 +411,7 @@ export function applyScreenAdjustment(
   // entre le porteur et l'écran pour fermer le middle. Le défenseur du
   // screener drop plus profond pour protéger le drive baseline.
   if (rule === 'ice' && isCarrierDef) {
-    const screenTightness = 1 - Math.min(distance(screenerPos, baseTarget), screenRadius) / screenRadius;
+    const screenTightness = 1 - smoothstep(0, screenRadius, distance(screenerPos, baseTarget));
     const amplitude = 18 + screenTightness * 16;
     let target = {
       // Note le -sideOfCarrier (vs +sideOfCarrier dans 'over') : on coupe

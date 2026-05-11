@@ -133,8 +133,11 @@ export function applyBaseTargetsLayer(
       : undefined;
 
     positions[dId] = {
-      x: Math.round(target.x),
-      y: Math.round(target.y),
+      // Pas d'arrondi : la position est consommée par l'interpolation
+      // de frame (sub-pixel). Round ici → bruit cumulé d'environ 0.5px
+      // par frame, soit jusqu'à 30px sur 60 frames.
+      x: target.x,
+      y: target.y,
       helpFactor,
       isCarrierDefender,
       matchedTo: oId as AttackerId,

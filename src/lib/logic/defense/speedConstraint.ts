@@ -410,8 +410,11 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     } else {
       const r = effectiveMaxSpeed / pathLen;
       out[dId] = {
-        x: Math.round(from.x + (to.x - from.x) * r),
-        y: Math.round(from.y + (to.y - from.y) * r),
+        // Pas d'arrondi : la position est consommée par interpolation
+        // de frame qui dégrade la précision si on round ici. Conserver
+        // les flottants pour une trajectoire continue.
+        x: from.x + (to.x - from.x) * r,
+        y: from.y + (to.y - from.y) * r,
         late: true,
         helpFactor: targets[dId].helpFactor,
         isCarrierDefender: targets[dId].isCarrierDefender,
@@ -439,11 +442,9 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
   // Solveur de collisions : aucun défenseur ne peut se superposer à un
   // autre joueur (sauf son matchedTo).
   resolvePlayerCollisions(out as unknown as Record<string, ComputedDefense[DefenderId]>, offAtStep, MIN_PLAYER_CLEARANCE_PX);
-  // Re-arrondit après résolution
-  defenderIds.forEach((dId) => {
-    out[dId].x = Math.round(out[dId].x);
-    out[dId].y = Math.round(out[dId].y);
-  });
+  // PAS d'arrondi ici : les positions sont consommées par l'interpolation
+  // de frame qui lerp en sub-pixel. Arrondir ferait varier la position de
+  // 0.5px d'une frame à l'autre → 30px d'erreur cumulée sur 60 frames.
 
   recomputeDefenseFrameOrientations(state, offAtStep, curCarrier, out);
 

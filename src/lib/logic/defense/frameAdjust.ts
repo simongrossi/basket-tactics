@@ -105,8 +105,13 @@ export function followDefendersAtFrame(
         : manTarget(myMan, dist, hoop);
     }
     if (tgt) {
-      slot.x = Math.round(tgt.x);
-      slot.y = Math.round(tgt.y);
+      // Pas d'arrondi ici : la position est consommée par l'interpolation
+      // de frame qui peut faire varier la position continûment. Un round
+      // intermédiaire perd la précision sub-pixel et fait ressembler la
+      // trajectoire à un mouvement par paliers. L'arrondi final (le cas
+      // échéant) se fait au niveau du rendu uniquement.
+      slot.x = tgt.x;
+      slot.y = tgt.y;
     }
   }
 }
