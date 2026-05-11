@@ -340,7 +340,12 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
       const d1 = frame!.defPos.D1;
       const o5 = frame!.off.O5;
       expect(d1.screenPhase).toBe('stuck');
-      expect(Math.hypot(d1.x - o5.x, d1.y - o5.y)).toBeLessThan(45);
+      // D1 doit être proche du poseur (au sens "à portée de contact"). Le
+      // contact est ancré au midpoint de la trajectoire du poseur (cf. fix
+      // anti-flicker), donc si O5 bouge pendant la transition la distance
+      // par rapport à sa position INTERPOLÉE peut être plus large. Tolérance
+      // étendue à 75px pour absorber les déplacements normaux du poseur.
+      expect(Math.hypot(d1.x - o5.x, d1.y - o5.y)).toBeLessThan(75);
     });
   });
 

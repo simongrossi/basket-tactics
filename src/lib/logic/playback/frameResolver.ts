@@ -200,14 +200,19 @@ export function resolveFrameAt(
   const screenerObstacles: ScreenerObstacle[] = [];
   // Cluster d'écran "principal" (porteur) — utilisé pour appliquer une pause
   // au défenseur du porteur en fonction de la qualité de l'écran.
+  //
+  // Position du poseur STABLE pour toute la transition (midpoint A↔B, pas
+  // interpolation courante). Sinon, si le poseur slip/roll pendant le
+  // segment, le cluster.center bouge → pickBlockingCluster bascule de côté
+  // → la Bezier vire d'un côté à l'autre → D1 saute visuellement.
   if (screen) {
-    const sPos = off[screen.screener];
+    const sPos = midpoint(offA[screen.screener], offB[screen.screener]);
     const sDef = midpoint(defA[screen.screenerDef], defB[screen.screenerDef]);
     const c = makeCluster(sPos, [sDef], PLAYER_CLUSTER_LINK_DIST_PX, PLAYER_CLUSTER_BASE_R_PX);
     screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: screen.screenerDef });
   }
   offBallScreens.forEach((s) => {
-    const sPos = off[s.screener];
+    const sPos = midpoint(offA[s.screener], offB[s.screener]);
     const sDef = midpoint(defA[s.screenerDef], defB[s.screenerDef]);
     const c = makeCluster(sPos, [sDef], PLAYER_CLUSTER_LINK_DIST_PX, PLAYER_CLUSTER_BASE_R_PX);
     screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: s.screenerDef });
@@ -351,16 +356,24 @@ export function resolveFrameAt(
     }
     const adhesion = screenContactAdhesion(localT, modeQuality, screenMode);
     if (adhesion > 0) {
+      // Position du poseur FIGÉE au moment du contact (pas l'interpolation
+      // courante). En basket réel, D1 reste où il s'est fait bumper — il
+      // ne suit pas le poseur qui slip ou roll après l'impact. Sans cet
+      // ancrage, si le poseur traverse l'axe defA→defB pendant le segment,
+      // contactPoint flip de côté → D1 saute visuellement.
+      //  - leaving : impact au début (idxA) → utiliser offA
+      //  - arriving / stuck : impact à la fin (idxB) → utiliser offB
+      const contactOff = screenMode === 'leaving' ? offA : offB;
       const contactScreener = carrierContactScreener(
         id,
         screenMode === 'leaving' ? screenA : screenB ?? screen ?? screenA,
-        off
+        contactOff
       ) ?? offBallContactScreener(
         screenMode === 'leaving' ? offBallContactA : offBallContactB ?? offBallContactNow ?? offBallContactA,
-        off
+        contactOff
       ) ?? annotationScreenerPoint(
         screenMode === 'leaving' ? [state.steps[idxA]] : [state.steps[idxB], state.steps[idxA]],
-        off
+        contactOff
       );
       if (contactScreener) {
         // ANCRAGE du point de contact, STABLE pour toute la transition :
