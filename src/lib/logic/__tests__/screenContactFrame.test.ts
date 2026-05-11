@@ -65,6 +65,90 @@ function buildScreenScenario(quality: number = 100): AppState {
   } as AppState;
 }
 
+function buildRecoverScenario(quality: number = 100): AppState {
+  const state = buildScreenScenario(quality);
+  state.steps = [
+    ...state.steps,
+    {
+      off: {
+        O1: { x: 390, y: 430 },
+        O2: { x: 130, y: 380 },
+        O3: { x: 470, y: 380 },
+        O4: { x: 220, y: 230 },
+        O5: { x: 380, y: 230 },
+      },
+      ballCarrier: 'O1',
+      annotations: [
+        {
+          type: 'dribble',
+          fromId: 'O1',
+          toId: null,
+          from: { x: 300, y: 470 },
+          to: { x: 390, y: 430 },
+        } as Annotation,
+      ],
+    },
+  ];
+  return state;
+}
+
+function buildOffBallScreenScenario(quality: number = 100): AppState {
+  const base = makeInitialState();
+  return {
+    ...base,
+    steps: [
+      {
+        off: {
+          O1: { x: 300, y: 470 },
+          O2: { x: 120, y: 380 },
+          O3: { x: 470, y: 380 },
+          O4: { x: 220, y: 360 },
+          O5: { x: 380, y: 230 },
+        },
+        ballCarrier: 'O1',
+        annotations: [
+          {
+            type: 'cut',
+            fromId: 'O2',
+            toId: null,
+            from: { x: 120, y: 380 },
+            to: { x: 220, y: 380 },
+          } as Annotation,
+          {
+            type: 'screen',
+            fromId: 'O4',
+            toId: 'O2',
+            from: { x: 220, y: 360 },
+            to: { x: 150, y: 380 },
+            quality,
+          } as Annotation,
+        ],
+      },
+      {
+        off: {
+          O1: { x: 300, y: 470 },
+          O2: { x: 220, y: 380 },
+          O3: { x: 470, y: 380 },
+          O4: { x: 150, y: 380 },
+          O5: { x: 380, y: 230 },
+        },
+        ballCarrier: 'O1',
+        annotations: [],
+      },
+    ],
+    defenseInitial: {
+      D1: { x: 300, y: 460 },
+      D2: { x: 150, y: 380 },
+      D3: { x: 460, y: 370 },
+      D4: { x: 220, y: 340 },
+      D5: { x: 380, y: 220 },
+    },
+    offBallScreenRule: 'chase',
+    screenRadius: 120,
+    activeStep: 0,
+  } as AppState;
+}
+
 describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)', () => {
   describe('Quality 100 (lockdown) — D1 doit rester collé au poseur', () => {
     const state = buildScreenScenario(100);
@@ -106,6 +190,57 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
         expect(dist, `t=${t.toFixed(2)} : D1 ne doit pas traverser le poseur`)
           .toBeGreaterThanOrEqual(15); // marge 1px pour les arrondis
       }
+    });
+
+    it("utilise la qualité du bon poseur quand plusieurs écrans existent sur le step", () => {
+      const multiScreenState = buildScreenScenario(100);
+      multiScreenState.steps[0].annotations = [
+        {
+          type: 'screen',
+          fromId: 'O2',
+          toId: 'O5',
+          from: { x: 130, y: 380 },
+          to: { x: 150, y: 380 },
+          quality: 0,
+        } as Annotation,
+        ...multiScreenState.steps[0].annotations,
+      ];
+
+      const frame = resolveFrameAt(multiScreenState, 0.7);
+      const d1 = frame!.defPos.D1;
+      const screener = frame!.off.O3;
+      const distToScreener = Math.hypot(d1.x - screener.x, d1.y - screener.y);
+      expect(distToScreener, "D1 doit lire la qualité lockdown de l'écran O3, pas le ghost O2")
+        .toBeLessThan(80);
+    });
+  });
+
+  describe('Recover après impact — le temps perdu se prolonge au step suivant', () => {
+    it('D1 reste late au step suivant un écran lockdown', () => {
+      const state = buildRecoverScenario(100);
+      const frame = resolveFrameAt(state, 2);
+      expect(frame).not.toBeNull();
+      expect(frame!.defPos.D1.late).toBe(true);
+    });
+
+    it('D1 récupère normalement après un ghost screen', () => {
+      const state = buildRecoverScenario(0);
+      const frame = resolveFrameAt(state, 2);
+      expect(frame).not.toBeNull();
+      expect(frame!.defPos.D1.late).toBe(false);
+    });
+  });
+
+  describe('Écran non-porteur — le défenseur du cutter perd aussi du temps', () => {
+    it('D2 reste proche du poseur pendant un pindown solide', () => {
+      const state = buildOffBallScreenScenario(100);
+      const frame = resolveFrameAt(state, 0.7);
+      expect(frame).not.toBeNull();
+      expect(frame!.offBallScreens.some((s) => s.cutterDef === 'D2' && s.screener === 'O4')).toBe(true);
+      const d2 = frame!.defPos.D2;
+      const screener = frame!.off.O4;
+      const distToScreener = Math.hypot(d2.x - screener.x, d2.y - screener.y);
+      expect(distToScreener).toBeLessThan(80);
     });
   });
 

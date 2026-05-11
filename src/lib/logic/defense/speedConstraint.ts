@@ -111,6 +111,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
   }
 
   let prevPositions: DefenderPositions;
+  let prevTargets: ReturnType<typeof computeDefenseTargets>['positions'] | null = null;
   if (stepIdx === 0) {
     if (state.defenseSystem === 'zone') {
       const baseLayout = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
@@ -122,7 +123,8 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
       prevPositions = activeDefenseInitial(state.defenseInitial, state.playerCount);
     }
   } else {
-    prevPositions = extractDefenderPositions(computeDefenseTargets(state, stepIdx - 1, false).positions);
+    prevTargets = computeDefenseTargets(state, stepIdx - 1, false).positions;
+    prevPositions = extractDefenderPositions(prevTargets);
   }
 
   const overrides = state.steps[stepIdx]?.defenseOverrides;
@@ -136,6 +138,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
   // Qualité de l'écran courant : 0-100, 50 par défaut. Module la pénalité de
   // vitesse appliquée au défenseur du porteur (Étape 12).
   let activeScreenQuality = 50;
+  const previousCarrierScreenQualityByDef: Partial<Record<DefenderId, number>> = {};
   if (state.defenseSystem === 'man') {
     const cur = state.steps[stepIdx];
     const curOff = activeOffense(cur.off, state.playerCount);
@@ -188,6 +191,41 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
       const c = makeCluster(sPos, [sDef], PLAYER_CLUSTER_LINK_DIST_PX, PLAYER_CLUSTER_BASE_R_PX);
       screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: s.screenerDef });
     });
+
+    if (stepIdx > 0) {
+      const prevIdx = stepIdx - 1;
+      const prevStep = state.steps[prevIdx];
+      const prevStepOff = activeOffense(prevStep.off, state.playerCount);
+      const prevCarrier = activeBallCarrier(prevStep, state.playerCount);
+      const prevMatchups = prevIdx > 0
+        ? getMatchupsAt(state.steps, prevIdx - 1, state.playerCount)
+        : getMatchupsAt(state.steps, 0, state.playerCount);
+      const prevPrevOff = prevIdx > 0
+        ? activeOffense(state.steps[prevIdx - 1].off, state.playerCount)
+        : prevStepOff;
+      const prevStepStartPositions: DefenderPositions = prevIdx === 0
+        ? buildStep0DetectionPositions(
+            state,
+            prevStepOff,
+            prevCarrier,
+            prevMatchups,
+            activeDefenseInitial(state.defenseInitial, state.playerCount)
+          )
+        : extractDefenderPositions(computeDefenseTargets(state, prevIdx - 1, false).positions);
+      const previousScreen = detectScreen(
+        prevStepOff,
+        prevCarrier,
+        prevMatchups,
+        prevStepStartPositions,
+        state.screenRadius,
+        prevStep.forcedScreener,
+        prevPrevOff
+      );
+      if (previousScreen) {
+        previousCarrierScreenQualityByDef[previousScreen.carrierDef] =
+          findScreenQuality([prevStep, state.steps[prevIdx - 1]], previousScreen.screener);
+      }
+    }
   }
 
   const out = {} as ComputedDefense;
@@ -278,8 +316,16 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     //   100 (lockdown) → ×0.18
     const isCarrierDefScreenedThisStep =
       targets[dId].onScreen === true && targets[dId].isCarrierDefender;
+    const isRecoveringFromCarrierScreen =
+      !isCarrierDefScreenedThisStep &&
+      targets[dId].isCarrierDefender &&
+      prevTargets?.[dId]?.onScreen === true &&
+      prevTargets[dId].isCarrierDefender &&
+      previousCarrierScreenQualityByDef[dId] !== undefined;
     const screenContactPenalty = isCarrierDefScreenedThisStep
       ? screenPenaltyFromQuality(activeScreenQuality)
+      : isRecoveringFromCarrierScreen
+        ? screenPenaltyFromQuality(previousCarrierScreenQualityByDef[dId] ?? 50)
       : 1.0;
     // Vitesse effective = vitesse théorique × friction × pénalité écran.
     const effectiveMaxSpeed = maxSpeed * friction * screenContactPenalty;
@@ -358,4 +404,17 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
   recomputeDefenseFrameOrientations(state, offAtStep, curCarrier, out);
 
   return out;
+}
+
+function findScreenQuality(
+  steps: Array<AppState['steps'][number] | undefined>,
+  screenerId: AttackerId,
+  fallback: number = 50
+): number {
+  for (const st of steps) {
+    if (!st) continue;
+    const ann = st.annotations.find((a) => a.type === 'screen' && a.fromId === screenerId);
+    if (ann) return ann.quality ?? fallback;
+  }
+  return fallback;
 }

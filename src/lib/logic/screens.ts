@@ -680,7 +680,13 @@ export function applyOffBallScreenAdjustment(
   const cy = cutDir.y / cutLen;
 
   if (rule === 'over' && isCutterDef) {
-    return pushOutOfScreener({ x: baseTarget.x + cx * 18, y: baseTarget.y + cy * 18 }, screenerPos);
+    return pushOutOfScreener(
+      {
+        x: screenerPos.x - cx * MIN_PLAYER_CLEARANCE_PX,
+        y: screenerPos.y - cy * MIN_PLAYER_CLEARANCE_PX,
+      },
+      screenerPos
+    );
   }
 
   if (rule === 'under' && isCutterDef) {
@@ -723,7 +729,10 @@ export function applyOffBallScreenAdjustment(
   // pindown ou stagger.
   if (rule === 'chase' && isCutterDef) {
     return pushOutOfScreener(
-      { x: baseTarget.x + cx * 24, y: baseTarget.y + cy * 24 },
+      {
+        x: screenerPos.x - cx * MIN_PLAYER_CLEARANCE_PX,
+        y: screenerPos.y - cy * MIN_PLAYER_CLEARANCE_PX,
+      },
       screenerPos
     );
   }

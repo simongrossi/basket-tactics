@@ -175,7 +175,8 @@ export function curveAroundObstacle(
   obstacle: Point,
   obstacleRadius: number,
   t: number,
-  apexSlowness: number = 0.3
+  apexSlowness: number = 0.3,
+  forcedPushSign?: number
 ): Point {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
@@ -204,7 +205,9 @@ export function curveAroundObstacle(
   const perpX = -uy;
   const perpY = ux;
   const cross = ox * perpX + oy * perpY;
-  const pushSign = cross >= 0 ? -1 : 1;
+  const pushSign = forcedPushSign !== undefined
+    ? (forcedPushSign >= 0 ? 1 : -1)
+    : (cross >= 0 ? -1 : 1);
 
   // Amplitude proportionnelle à la pénétration : un frôlement ne
   // produit qu'une mini courbe, une traversée profonde une grande.

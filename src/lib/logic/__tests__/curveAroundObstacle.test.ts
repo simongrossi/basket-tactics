@@ -40,4 +40,11 @@ describe('curveAroundObstacle apexSlowness — pause sur écran', () => {
     expect(endPoint.x).toBeCloseTo(100, 1);
     expect(endPoint.y).toBeCloseTo(0, 1);
   });
+
+  it('forcedPushSign impose le côté de contournement', () => {
+    const above = curveAroundObstacle(start, end, obstacle, radius, 0.5, 0.3, 1);
+    const below = curveAroundObstacle(start, end, obstacle, radius, 0.5, 0.3, -1);
+    expect(above.y).toBeGreaterThan(0);
+    expect(below.y).toBeLessThan(0);
+  });
 });

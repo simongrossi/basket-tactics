@@ -15,11 +15,13 @@ import type {
   DefenderId,
   DetectedOffBallScreen,
   Point,
+  ScreenRule,
 } from '@/lib/types';
 import {
   computeAttackerVisuals,
   effectiveDefensePositions,
   followDefendersAtFrame,
+  getDefenseHoop,
   getMatchupsAt,
   recomputeDefenseFrameOrientations,
 } from '../engine';
@@ -236,24 +238,11 @@ export function resolveFrameAt(
   const screenerObstacles: ScreenerObstacle[] = [];
   // Cluster d'écran "principal" (porteur) — utilisé pour appliquer une pause
   // au défenseur du porteur en fonction de la qualité de l'écran.
-  let carrierScreenObstacle: ScreenerObstacle | null = null;
-  let carrierScreenQuality = 50;
   if (screen) {
     const sPos = midpoint(offA[screen.screener], offB[screen.screener]);
     const sDef = midpoint(defA[screen.screenerDef], defB[screen.screenerDef]);
     const c = makeCluster(sPos, [sDef], PLAYER_CLUSTER_LINK_DIST_PX, PLAYER_CLUSTER_BASE_R_PX);
     screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: screen.screenerDef });
-    carrierScreenObstacle = { center: c.center, radius: c.radius, defenderToSkip: screen.screenerDef };
-    // Cherche la qualité dans l'annotation source (step idxB ou idxA).
-    const candidates = [state.steps[idxB], state.steps[idxA]];
-    for (const st of candidates) {
-      if (!st) continue;
-      const sa = st.annotations.find((aa) => aa.type === 'screen' && aa.fromId === screen.screener);
-      if (sa) {
-        carrierScreenQuality = sa.quality ?? 50;
-        break;
-      }
-    }
   }
   offBallScreens.forEach((s) => {
     const sPos = midpoint(offA[s.screener], offB[s.screener]);
@@ -282,12 +271,16 @@ export function resolveFrameAt(
     //    le maintient figé au départ puis il rattrape.
     //  - 'stuck' (both onScreen) : encore plaqué — freeze au milieu.
     const isCarrierDef = defB[id].isCarrierDefender || defA[id].isCarrierDefender;
-    const aOn = !!defA[id].onScreen && isCarrierDef;
-    const bOn = !!defB[id].onScreen && isCarrierDef;
+    const offBallContact = offBallScreens.find((s) => s.cutterDef === id);
+    const carrierContact = isCarrierDef && (!!defA[id].onScreen || !!defB[id].onScreen);
+    const aOn = (!!defA[id].onScreen && isCarrierDef) || !!offBallContact;
+    const bOn = (!!defB[id].onScreen && isCarrierDef) || !!offBallContact;
     let screenMode: 'arriving' | 'leaving' | 'stuck' | null = null;
-    if (aOn && bOn) screenMode = 'stuck';
-    else if (!aOn && bOn) screenMode = 'arriving';
-    else if (aOn && !bOn) screenMode = 'leaving';
+    if (carrierContact || offBallContact) {
+      if (aOn && bOn) screenMode = 'stuck';
+      else if (!aOn && bOn) screenMode = 'arriving';
+      else if (aOn && !bOn) screenMode = 'leaving';
+    }
 
     // Qualité d'écran applicable : lit l'annotation 'screen' sur le step
     // pertinent. Pour 'leaving', c'est l'annotation du step idxA ; pour
@@ -297,10 +290,10 @@ export function resolveFrameAt(
       const lookupSteps = screenMode === 'leaving'
         ? [state.steps[idxA]]
         : [state.steps[idxB], state.steps[idxA]];
-      for (const st of lookupSteps) {
-        if (!st) continue;
-        const sa = st.annotations.find((aa) => aa.type === 'screen');
-        if (sa) { modeQuality = sa.quality ?? 50; break; }
+      const screenerId = offBallContact?.screener ?? (screen?.carrierDef === id ? screen.screener : undefined);
+      modeQuality = findScreenQuality(lookupSteps, screenerId);
+      if (carrierContact) {
+        modeQuality = contactQualityForRule(modeQuality, effectiveScreenRuleForDef(state, id), screenMode);
       }
     }
     // Time-remap sigmoïdal qui FIGE D1 sur le poseur (smooth, sans
@@ -319,17 +312,32 @@ export function resolveFrameAt(
     // sommet du contournement quand sa ligne croise un cluster, modulé par
     // la qualité de l'écran. Cumulé avec le freeze ci-dessus pour des
     // transitions vraiment palpables.
-    const isCarrierDefenderTakingScreen = defB[id].isCarrierDefender && !!screen;
-    const apexSlowness = isCarrierDefenderTakingScreen
-      ? carrierApexSlownessFromQuality(carrierScreenQuality)
+    const apexSlowness = screenMode
+      ? carrierApexSlownessFromQuality(modeQuality)
       : 0.3;
+    const routePreference = screen?.carrierDef === id
+      ? carrierScreenRoutePreference(state, screen, off)
+      : offBallContact
+        ? offBallScreenRoutePreference(offBallContact, state.offBallScreenRule, off[carrier])
+        : null;
+    const forcedPushSign = routePreference
+      ? forcedPushSignForRoute(defA[id], defB[id], routePreference)
+      : undefined;
     const pair = pickStaggeredPair(defA[id], defB[id], candidates);
     if (pair) {
       p = curveAroundStaggeredPair(defA[id], defB[id], pair[0], pair[1], effT);
     } else {
       const blocking = pickBlockingCluster(defA[id], defB[id], candidates);
       if (blocking) {
-        p = curveAroundObstacle(defA[id], defB[id], blocking.center, blocking.radius, effT, apexSlowness);
+        p = curveAroundObstacle(
+          defA[id],
+          defB[id],
+          blocking.center,
+          blocking.radius,
+          effT,
+          apexSlowness,
+          forcedPushSign
+        );
       }
     }
     defPos[id] = {
@@ -403,4 +411,126 @@ function midpoint(a: Point, b: Point): Point {
 
 function lerpPoint(a: Point, b: Point, t: number): Point {
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+}
+
+function findScreenQuality(
+  steps: Array<{ annotations: AppState['steps'][number]['annotations'] } | undefined>,
+  screenerId?: AttackerId,
+  fallback: number = 50
+): number {
+  for (const st of steps) {
+    if (!st) continue;
+    const exact = screenerId
+      ? st.annotations.find((a) => a.type === 'screen' && a.fromId === screenerId)
+      : undefined;
+    const any = st.annotations.find((a) => a.type === 'screen');
+    const screenAnnotation = exact ?? (!screenerId ? any : undefined);
+    if (screenAnnotation) return screenAnnotation.quality ?? fallback;
+  }
+  return fallback;
+}
+
+function effectiveScreenRuleForDef(state: AppState, defenderId: DefenderId): ScreenRule {
+  const nav = state.rules[defenderId]?.screenNav;
+  return nav && nav !== 'auto' ? nav : state.screenRule;
+}
+
+function contactQualityForRule(
+  quality: number,
+  rule: ScreenRule,
+  mode: 'arriving' | 'leaving' | 'stuck'
+): number {
+  const multiplierByRule: Record<ScreenRule, number> = {
+    switch: 0,
+    over: 0.85,
+    under: 1.18,
+    hedge: 1.05,
+    drop: 0.95,
+    blitz: 0.9,
+    ice: 0.65,
+    weak: 1.08,
+    'peel-switch': 0.95,
+  };
+  const modeBonus = mode === 'leaving' ? 1.08 : 1;
+  return Math.max(0, Math.min(100, quality * multiplierByRule[rule] * modeBonus));
+}
+
+function carrierScreenRoutePreference(
+  state: AppState,
+  screen: NonNullable<PlaybackFrame['screen']>,
+  off: AttackerPositions
+): Point | null {
+  const screenerPos = off[screen.screener];
+  const carrierPos = off[screen.carrier];
+  if (!screenerPos || !carrierPos) return null;
+
+  const hoop = getDefenseHoop(state);
+  const toHoop = unit({ x: hoop.x - screenerPos.x, y: hoop.y - screenerPos.y });
+  const awayFromHoop = { x: -toHoop.x, y: -toHoop.y };
+  const perp = { x: -toHoop.y, y: toHoop.x };
+  const sToC = unit({ x: carrierPos.x - screenerPos.x, y: carrierPos.y - screenerPos.y });
+  const sideOfCarrier = sToC.x * perp.x + sToC.y * perp.y;
+  const rule = effectiveScreenRuleForDef(state, screen.carrierDef);
+
+  switch (rule) {
+    case 'under':
+    case 'weak':
+      return toHoop;
+    case 'ice':
+      return { x: perp.x * -sideOfCarrier, y: perp.y * -sideOfCarrier };
+    case 'switch':
+      return null;
+    case 'over':
+    case 'hedge':
+    case 'drop':
+    case 'blitz':
+    case 'peel-switch':
+    default:
+      return awayFromHoop;
+  }
+}
+
+function offBallScreenRoutePreference(
+  screen: DetectedOffBallScreen,
+  rule: AppState['offBallScreenRule'],
+  ballPos: Point | undefined
+): Point | null {
+  const cutDir = unit({
+    x: screen.cutterPos.x - screen.screenerPos.x,
+    y: screen.cutterPos.y - screen.screenerPos.y,
+  });
+  switch (rule) {
+    case 'over':
+    case 'chase':
+      return cutDir;
+    case 'under':
+      return { x: -cutDir.x, y: -cutDir.y };
+    case 'top-lock':
+      return ballPos
+        ? unit({ x: ballPos.x - screen.cutterPos.x, y: ballPos.y - screen.cutterPos.y })
+        : cutDir;
+    case 'switch':
+    case 'bump':
+    default:
+      return null;
+  }
+}
+
+function forcedPushSignForRoute(start: Point, end: Point, route: Point): number | undefined {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.01) return undefined;
+  const perp = { x: -dy / len, y: dx / len };
+  const routeLen = Math.hypot(route.x, route.y);
+  if (routeLen < 0.01) return undefined;
+  const projection = perp.x * (route.x / routeLen) + perp.y * (route.y / routeLen);
+  if (Math.abs(projection) < 0.05) return undefined;
+  return projection >= 0 ? 1 : -1;
+}
+
+function unit(v: Point): Point {
+  const len = Math.hypot(v.x, v.y);
+  if (len < 0.01) return { x: 0, y: 0 };
+  return { x: v.x / len, y: v.y / len };
 }
