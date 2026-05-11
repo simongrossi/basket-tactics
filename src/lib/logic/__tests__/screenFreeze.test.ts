@@ -1,91 +1,95 @@
 import { describe, it, expect } from 'vitest';
 
-// Reproductions locales des helpers (non exportés du frameResolver) pour
-// pouvoir les tester en isolation.
-
-function freezeWidthFromQuality(quality: number): number {
-  const q = Math.max(0, Math.min(100, quality)) / 100;
-  return q * 0.55;
-}
-
+// Reproduction locale du helper (non exporté) pour test en isolation.
 function screenContactT(
   localT: number,
-  freezeWidth: number,
-  mode: 'arriving' | 'leaving' | null
+  quality: number,
+  mode: 'arriving' | 'leaving' | 'stuck' | null
 ): number {
-  if (!mode || freezeWidth <= 0) return localT;
-  const w = Math.min(0.9, freezeWidth);
-  if (mode === 'arriving') {
-    const active = 1 - w;
-    return localT < active ? localT / active : 1;
-  }
-  return localT > w ? (localT - w) / (1 - w) : 0;
+  if (!mode) return localT;
+  const q = Math.max(0, Math.min(100, quality)) / 100;
+  const k = 1 + q * 12;
+  const center = mode === 'arriving'
+    ? 0.5 - q * 0.30
+    : mode === 'leaving'
+      ? 0.5 + q * 0.30
+      : 0.5;
+  const sig = (t: number) => 1 / (1 + Math.exp(-k * (t - center)));
+  const s0 = sig(0);
+  const s1 = sig(1);
+  const denom = s1 - s0;
+  if (denom < 1e-9) return localT;
+  return (sig(localT) - s0) / denom;
 }
 
-describe('screenContactT — freeze sur l\'écran', () => {
-  describe('quality 0 (ghost) — pas de freeze', () => {
-    it('passe localT inchangé pour arriving', () => {
-      const w = freezeWidthFromQuality(0);
-      expect(screenContactT(0.5, w, 'arriving')).toBeCloseTo(0.5);
-    });
-    it('passe localT inchangé pour leaving', () => {
-      const w = freezeWidthFromQuality(0);
-      expect(screenContactT(0.5, w, 'leaving')).toBeCloseTo(0.5);
-    });
+describe('screenContactT — freeze sigmoïdal sur l\'écran', () => {
+  it('quality 0 reste quasi-linéaire (ghost)', () => {
+    // Avec k=1 et center=0.5, la sigmoïde est presque linéaire en [0,1].
+    expect(screenContactT(0.5, 0, 'arriving')).toBeCloseTo(0.5, 1);
+    expect(screenContactT(0.5, 0, 'leaving')).toBeCloseTo(0.5, 1);
   });
 
-  describe('quality 100 (lockdown) — freeze maximal', () => {
-    const w = freezeWidthFromQuality(100);
-
-    it('arriving : atteint defB à t = 1-w puis y reste', () => {
-      // w ≈ 0.55, active = 0.45
-      expect(screenContactT(0.1, w, 'arriving')).toBeCloseTo(0.1 / 0.45);
-      expect(screenContactT(0.5, w, 'arriving')).toBe(1);
-      expect(screenContactT(0.9, w, 'arriving')).toBe(1);
-      expect(screenContactT(1.0, w, 'arriving')).toBe(1);
-    });
-
-    it('leaving : reste à 0 pendant [0, w] puis rattrape', () => {
-      expect(screenContactT(0.2, w, 'leaving')).toBe(0);
-      expect(screenContactT(0.5, w, 'leaving')).toBe(0);
-      // À t=0.55+, le mapping reprend (0.55→0, 1→1)
-      expect(screenContactT(0.6, w, 'leaving')).toBeCloseTo((0.6 - 0.55) / 0.45);
-      expect(screenContactT(1.0, w, 'leaving')).toBeCloseTo(1);
-    });
-  });
-
-  describe('quality 50 (std) — freeze modéré', () => {
-    const w = freezeWidthFromQuality(50); // 0.275
-
-    it('arriving : freeze dans les derniers 27% de la transition', () => {
-      // active = 0.725
-      const tFreeze = 1 - w; // 0.725
-      expect(screenContactT(tFreeze - 0.01, w, 'arriving')).toBeLessThan(1);
-      expect(screenContactT(tFreeze + 0.01, w, 'arriving')).toBe(1);
-    });
-
-    it('plus haut quality = plus large freeze (monotonie)', () => {
-      const w25 = freezeWidthFromQuality(25);
-      const w75 = freezeWidthFromQuality(75);
-      expect(w25).toBeLessThan(w);
-      expect(w).toBeLessThan(w75);
-    });
-  });
-
-  describe('continuité aux extrémités', () => {
-    it('t=0 → 0, t=1 → 1 quelle que soit la qualité (arriving)', () => {
-      [0, 25, 50, 75, 100].forEach((q) => {
-        const w = freezeWidthFromQuality(q);
-        expect(screenContactT(0, w, 'arriving')).toBe(0);
-        expect(screenContactT(1, w, 'arriving')).toBe(1);
+  it('continuité aux extrémités : f(0)=0, f(1)=1 pour tous les modes/qualités', () => {
+    [0, 25, 50, 75, 100].forEach((q) => {
+      (['arriving', 'leaving', 'stuck'] as const).forEach((mode) => {
+        expect(screenContactT(0, q, mode)).toBeCloseTo(0);
+        expect(screenContactT(1, q, mode)).toBeCloseTo(1);
       });
     });
-    it('t=0 → 0, t=1 → 1 quelle que soit la qualité (leaving)', () => {
-      [0, 25, 50, 75, 100].forEach((q) => {
-        const w = freezeWidthFromQuality(q);
-        expect(screenContactT(0, w, 'leaving')).toBe(0);
-        expect(screenContactT(1, w, 'leaving')).toBeCloseTo(1);
-      });
+  });
+
+  describe('arriving — D1 atteint defB tôt puis plateau', () => {
+    it('quality 100 : effT atteint ≥0.85 à localT=0.5', () => {
+      const v = screenContactT(0.5, 100, 'arriving');
+      expect(v).toBeGreaterThan(0.85);
+    });
+    it('quality 100 : plateau dans la seconde moitié (effT≥0.95 à 0.7)', () => {
+      const v = screenContactT(0.7, 100, 'arriving');
+      expect(v).toBeGreaterThan(0.95);
+    });
+    it('monotonie : plus haut quality = effT plus avancé à localT=0.4', () => {
+      const v0 = screenContactT(0.4, 0, 'arriving');
+      const v50 = screenContactT(0.4, 50, 'arriving');
+      const v100 = screenContactT(0.4, 100, 'arriving');
+      expect(v50).toBeGreaterThan(v0);
+      expect(v100).toBeGreaterThan(v50);
+    });
+  });
+
+  describe('leaving — D1 figé puis rattrape tard', () => {
+    it('quality 100 : effT reste ≤0.15 à localT=0.5', () => {
+      const v = screenContactT(0.5, 100, 'leaving');
+      expect(v).toBeLessThan(0.15);
+    });
+    it('quality 100 : effT toujours < 0.5 à localT=0.7', () => {
+      const v = screenContactT(0.7, 100, 'leaving');
+      expect(v).toBeLessThan(0.5);
+    });
+    it('monotonie : plus haut quality = effT plus retardé à localT=0.6', () => {
+      const v0 = screenContactT(0.6, 0, 'leaving');
+      const v50 = screenContactT(0.6, 50, 'leaving');
+      const v100 = screenContactT(0.6, 100, 'leaving');
+      expect(v50).toBeLessThan(v0);
+      expect(v100).toBeLessThan(v50);
+    });
+  });
+
+  describe('lissage (pas de discontinuité de dérivée)', () => {
+    it("la dérivée numérique reste bornée — pas de saut", () => {
+      // Approximation : la différence entre deux points proches reste petite.
+      const q = 100;
+      const step = 0.01;
+      for (const mode of ['arriving', 'leaving'] as const) {
+        for (let t = 0; t < 1; t += 0.05) {
+          const v1 = screenContactT(t, q, mode);
+          const v2 = screenContactT(t + step, q, mode);
+          const derivative = Math.abs(v2 - v1) / step;
+          // Avec une sigmoïde k=13, la dérivée max est k/4 ≈ 3.25
+          // (vs piecewise qui pouvait sauter de 0 à 1/(0.45) ≈ 2.2 brutalement).
+          // La sigmoïde garantit une transition douce.
+          expect(derivative).toBeLessThan(5);
+        }
+      }
     });
   });
 });

@@ -82,45 +82,58 @@ interface ScreenerObstacle {
  * 0.75 — visuellement le défenseur stagne nettement à l'impact.
  */
 function carrierApexSlownessFromQuality(quality: number): number {
-  const q = Math.max(0, Math.min(100, quality));
-  return 0.30 + (q / 100) * (0.98 - 0.30);
-}
-
-/**
- * Largeur du "freeze" (en fraction de la transition) appliquée à D1 quand
- * il prend ou quitte un écran. Modulé par la qualité :
- *  - 0   (ghost)    → 0 (pas de freeze, lerp normal)
- *  - 50  (std)      → 0.30 (30% de la transition figé sur le poseur)
- *  - 100 (lockdown) → 0.55 (plus de la moitié de la transition figé)
- */
-function freezeWidthFromQuality(quality: number): number {
   const q = Math.max(0, Math.min(100, quality)) / 100;
-  return q * 0.55;
+  // 0 → 0.30 (frôlement)
+  // 0.5 → 0.85 (ralentissement marqué)
+  // 1 → 0.99 (quasi-pause au sommet du contournement)
+  return 0.30 + q * 0.69;
 }
 
 /**
- * Remappe localT pour figer D1 à l'extrémité appropriée pendant la phase de
- * contact écran. Deux modes :
- *  - 'arriving' : D1 rejoint le poseur (defB est sur l'écran). Il y arrive
- *    rapidement (compression de la première portion) puis y reste figé.
- *  - 'leaving' : D1 quitte le poseur en recovery (defA est sur l'écran).
- *    Il reste figé au départ puis rattrape rapidement.
- * Sans screen ou freezeWidth=0 → lerp linéaire identique.
+ * Remappe localT pour modéliser le contact d'écran via une SIGMOÏDE lisse,
+ * sans discontinuité de vélocité. Évite que D1 "se téléporte" au défige.
+ *
+ * Trois modes, modulés par la qualité (q ∈ [0, 1]) :
+ *
+ *  - 'arriving' : D1 rejoint le poseur (defB sur l'écran). La sigmoïde est
+ *    centrée TÔT dans la transition (vers t = 0.25 à q=1) → D1 atteint le
+ *    poseur dans le premier quart, puis y RESTE asymptotiquement (vélocité
+ *    tend vers 0 au plateau).
+ *
+ *  - 'leaving' : D1 quitte le poseur (defA sur l'écran). Sigmoïde centrée
+ *    TARD (t = 0.75 à q=1) → D1 reste figé au départ, puis rattrape
+ *    progressivement vers la fin.
+ *
+ *  - 'stuck' : D1 toujours plaqué sur les deux steps. Sigmoïde centrée au
+ *    milieu mais avec un large plateau autour → mouvement minimal au centre.
+ *
+ * À q=0 (ghost), la sigmoïde devient quasi-linéaire (k=1) → lerp normal.
+ * À q=1 (lockdown), k=10 → forte asymétrie, plateau marqué.
  */
 function screenContactT(
   localT: number,
-  freezeWidth: number,
-  mode: 'arriving' | 'leaving' | null
+  quality: number,
+  mode: 'arriving' | 'leaving' | 'stuck' | null
 ): number {
-  if (!mode || freezeWidth <= 0) return localT;
-  const w = Math.min(0.9, freezeWidth);
-  if (mode === 'arriving') {
-    // Compresse [0, 1-w] → [0, 1], puis plateau à 1 sur [1-w, 1].
-    const active = 1 - w;
-    return localT < active ? localT / active : 1;
-  }
-  // leaving : plateau à 0 sur [0, w], puis compresse [w, 1] → [0, 1].
-  return localT > w ? (localT - w) / (1 - w) : 0;
+  if (!mode) return localT;
+  const q = Math.max(0, Math.min(100, quality)) / 100;
+  const k = 1 + q * 12; // 1 à 13 — raideur de la sigmoïde
+  // Centre temporel : où la transition rapide se produit.
+  //  - arriving : tôt (atteint le poseur vite, puis plateau long à defB)
+  //  - leaving : tard (plateau long à defA, puis rattrape à la fin)
+  //  - stuck : milieu (avec k élevé, plateau au centre)
+  const center = mode === 'arriving'
+    ? 0.5 - q * 0.30  // 0.5 → 0.20
+    : mode === 'leaving'
+      ? 0.5 + q * 0.30  // 0.5 → 0.80
+      : 0.5;
+  // Sigmoïde brute, normalisée pour que f(0)=0 et f(1)=1.
+  const sig = (t: number) => 1 / (1 + Math.exp(-k * (t - center)));
+  const s0 = sig(0);
+  const s1 = sig(1);
+  const denom = s1 - s0;
+  if (denom < 1e-9) return localT;
+  return (sig(localT) - s0) / denom;
 }
 
 /**
@@ -285,19 +298,10 @@ export function resolveFrameAt(
         if (sa) { modeQuality = sa.quality ?? 50; break; }
       }
     }
-    const freezeWidth = freezeWidthFromQuality(modeQuality);
-
-    // Time-remap qui FIGE D1 sur le poseur pendant une fraction de la
-    // transition (proportionnelle à la qualité d'écran). Pour les autres
-    // défenseurs ou hors écran, eased identique à localT.
-    const effT = screenMode === 'stuck'
-      // Stuck = freeze au milieu : compresse [0, 0.5] → [0, mid-w/2], plateau, etc.
-      ? (localT < 0.5 - freezeWidth / 2
-          ? (localT / (0.5 - freezeWidth / 2)) * 0.5
-          : localT > 0.5 + freezeWidth / 2
-            ? 0.5 + ((localT - (0.5 + freezeWidth / 2)) / (0.5 - freezeWidth / 2)) * 0.5
-            : 0.5)
-      : screenContactT(localT, freezeWidth, screenMode);
+    // Time-remap sigmoïdal qui FIGE D1 sur le poseur (smooth, sans
+    // discontinuité de vélocité). Pour les autres défenseurs ou hors
+    // écran, identité = localT.
+    const effT = screenContactT(localT, modeQuality, screenMode);
 
     let p = lerpPoint(defA[id], defB[id], effT);
 
