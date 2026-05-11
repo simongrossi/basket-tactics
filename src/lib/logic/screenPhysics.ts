@@ -55,17 +55,39 @@ export function screenContactPhase(
   const q = clampQuality(quality) / 100;
   if (mode === 'arriving') {
     if (localT < 0.18 + q * 0.08) return 'impact';
-    if (localT < 0.78 + q * 0.12) return 'stuck';
+    if (localT < 0.82 + q * 0.10) return 'stuck';
     return 'navigate';
   }
   if (mode === 'leaving') {
-    if (localT < 0.35 + q * 0.18) return 'stuck';
-    if (localT < 0.86) return 'navigate';
+    if (localT < 0.76 + q * 0.12) return 'stuck';
+    if (localT < 0.95) return 'navigate';
     return 'recover';
   }
   if (localT < 0.20) return 'impact';
   if (localT < 0.80) return 'stuck';
   return 'navigate';
+}
+
+export function screenContactAdhesion(
+  localT: number,
+  quality: number,
+  mode: ScreenContactMode | null
+): number {
+  if (!mode) return 0;
+  const q = clampQuality(quality) / 100;
+  if (q < 0.05) return 0;
+  const max = mode === 'leaving' ? 1 : 0.45 + q * 0.55;
+  if (mode === 'arriving') {
+    const settleStart = 0.30;
+    const settleEnd = 0.48 - q * 0.08;
+    const releaseStart = 0.78 + q * 0.12;
+    return max * smoothstep(settleStart, settleEnd, localT) * (1 - smoothstep(releaseStart, 1, localT));
+  }
+  if (mode === 'leaving') {
+    const holdEnd = 0.76 + q * 0.12;
+    return max * (1 - smoothstep(holdEnd, 0.98, localT));
+  }
+  return max * smoothstep(0, 0.18, localT) * (1 - smoothstep(0.78, 1, localT));
 }
 
 export function findScreenQuality(
@@ -185,6 +207,12 @@ export function forcedPushSignForRoute(start: Point, end: Point, route: Point): 
 
 function clampQuality(quality: number): number {
   return Math.max(0, Math.min(100, quality));
+}
+
+function smoothstep(edge0: number, edge1: number, t: number): number {
+  if (edge1 <= edge0) return t >= edge1 ? 1 : 0;
+  const x = Math.max(0, Math.min(1, (t - edge0) / (edge1 - edge0)));
+  return x * x * (3 - 2 * x);
 }
 
 function unit(v: Point): Point {

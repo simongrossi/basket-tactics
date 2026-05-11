@@ -1,6 +1,8 @@
 import type { Annotation, AnnotationType, AttackerId, Point, Step } from '@/lib/types';
 import { samplePolyline } from './polyline';
 
+const SCREEN_SET_FRACTION = 0.35;
+
 function annotationPolyline(ann: Annotation): Point[] {
   return ann.waypoints && ann.waypoints.length > 0
     ? [ann.from, ...ann.waypoints, ann.to]
@@ -17,10 +19,17 @@ export interface PlaybackTrajectory {
 
 const MOVEMENT_TYPES = new Set<AnnotationType>(['cut', 'dribble', 'screen']);
 
-function findMovementAnnotation(step: Step, playerId: AttackerId): Annotation | null {
-  return step.annotations.find(
+function findMovementAnnotations(step: Step, playerId: AttackerId): Annotation[] {
+  return step.annotations.filter(
     (a) => MOVEMENT_TYPES.has(a.type) && a.fromId === playerId,
-  ) ?? null;
+  );
+}
+
+function movementPriority(type: AnnotationType): number {
+  if (type === 'screen') return 3;
+  if (type === 'dribble') return 2;
+  if (type === 'cut') return 1;
+  return 0;
 }
 
 function lerp(a: Point, b: Point, t: number): Point {
@@ -35,7 +44,7 @@ function lerp(a: Point, b: Point, t: number): Point {
  * - aucune annotation de mouvement → idle (position constante).
  * - `cut` → ligne droite from → to.
  * - `dribble` → ligne droite from → to (la wave est purement visuelle, côté schéma).
- * - `screen` → vitesse double pour atteindre `to` à t=0.5, puis pinned ; isScreening=true à partir de t=0.5.
+ * - `screen` → arrive vite à `to`, puis reste planté ; isScreening=true dès que le poseur est fixé.
  *
  * Édition continue (Étape 10) : si l'annotation porte `tStart`/`tEnd`
  * (0..1), l'action n'occupe que [tStart, tEnd] dans le segment. Avant tStart
@@ -67,22 +76,28 @@ export function attackerTrajectoryAt(
   const candidates: Candidate[] = [];
   for (const checkIdx of [stepIdx, stepIdx + 1]) {
     if (checkIdx < 0 || checkIdx >= steps.length) continue;
-    const a = findMovementAnnotation(steps[checkIdx], playerId);
-    if (!a) continue;
-    const tSraw = a.tStart ?? 0;
-    const tEraw = a.tEnd ?? 1;
-    const absStart = checkIdx + tSraw;
-    const absEnd = checkIdx + tEraw;
-    // Ne garder que si la fenêtre chevauche la transition courante [stepIdx, stepIdx+1]
-    if (absEnd <= stepIdx || absStart >= stepIdx + 1) continue;
-    candidates.push({ ann: a, absStart, absEnd });
+    for (const a of findMovementAnnotations(steps[checkIdx], playerId)) {
+      const tSraw = a.tStart ?? 0;
+      const tEraw = a.tEnd ?? 1;
+      const absStart = checkIdx + tSraw;
+      const absEnd = checkIdx + tEraw;
+      // Ne garder que si la fenêtre chevauche la transition courante [stepIdx, stepIdx+1]
+      if (absEnd <= stepIdx || absStart >= stepIdx + 1) continue;
+      candidates.push({ ann: a, absStart, absEnd });
+    }
   }
 
   if (candidates.length === 0) {
     return { position: { ...fallback }, movementType: 'idle', isScreening: false };
   }
 
-  const active = candidates.find((c) => globalT >= c.absStart && globalT <= c.absEnd);
+  const active = candidates
+    .filter((c) => globalT >= c.absStart && globalT <= c.absEnd)
+    .sort((a, b) => {
+      const startDelta = b.absStart - a.absStart;
+      if (Math.abs(startDelta) > 1e-6) return startDelta;
+      return movementPriority(b.ann.type) - movementPriority(a.ann.type);
+    })[0];
   let chosen: Candidate;
   let actionT: number;
   if (active) {
@@ -91,7 +106,11 @@ export function attackerTrajectoryAt(
   } else {
     // Pas dans la fenêtre active : on prend la candidate la plus pertinente
     // (la première par absStart) et on snap aux extrémités.
-    chosen = candidates.sort((a, b) => a.absStart - b.absStart)[0];
+    chosen = candidates.sort((a, b) => {
+      const startDelta = a.absStart - b.absStart;
+      if (Math.abs(startDelta) > 1e-6) return startDelta;
+      return movementPriority(b.ann.type) - movementPriority(a.ann.type);
+    })[0];
     if (globalT < chosen.absStart) actionT = 0;
     else actionT = 1;
   }
@@ -111,10 +130,11 @@ export function attackerTrajectoryAt(
     return { position, movementType: 'dribble', isScreening: false };
   }
   if (ann.type === 'screen') {
-    if (actionT < 0.5) {
+    if (actionT < SCREEN_SET_FRACTION) {
+      const moveT = actionT / SCREEN_SET_FRACTION;
       const position = hasWaypoints
-        ? samplePolyline(annotationPolyline(ann), actionT * 2)
-        : lerp(ann.from, ann.to, actionT * 2);
+        ? samplePolyline(annotationPolyline(ann), moveT)
+        : lerp(ann.from, ann.to, moveT);
       return { position, movementType: 'screen', isScreening: false };
     }
     return { position: { ...ann.to }, movementType: 'screen', isScreening: true };

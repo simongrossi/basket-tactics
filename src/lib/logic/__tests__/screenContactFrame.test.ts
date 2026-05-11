@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolveFrameAt } from '../playback/frameResolver';
 import { makeInitialState } from '../../data/initial';
+import { TEMPLATES } from '../../data/templates';
 import type { AppState, Annotation, Step } from '../../types';
 
 /**
@@ -257,6 +258,26 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
       const frame = resolveFrameAt(state, 2);
       expect(frame).not.toBeNull();
       expect(frame!.defPos.D1.late).toBe(false);
+    });
+  });
+
+  describe('Template PNR central — poseur planté + défenseur collé', () => {
+    it("D1 reste collé à O5 quand l'écran est posé", () => {
+      const template = TEMPLATES.find((t) => t.id === 'pnr-central');
+      expect(template).toBeTruthy();
+      const state = {
+        ...makeInitialState(),
+        steps: structuredClone(template!.steps),
+        defenseInitial: structuredClone(template!.defenseInitial),
+        screenRule: 'hedge',
+        activeStep: 0,
+      } as AppState;
+      const frame = resolveFrameAt(state, 1.5);
+      expect(frame).not.toBeNull();
+      const d1 = frame!.defPos.D1;
+      const o5 = frame!.off.O5;
+      expect(d1.screenPhase).toBe('stuck');
+      expect(Math.hypot(d1.x - o5.x, d1.y - o5.y)).toBeLessThan(45);
     });
   });
 

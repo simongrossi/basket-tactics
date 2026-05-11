@@ -59,12 +59,30 @@ describe('attackerTrajectoryAt', () => {
     expect(r.isScreening).toBe(true);
   });
 
-  it('screen : à localT=0.25 (avant mi-segment), interpole à mi-chemin de A→B', () => {
+  it('screen : à localT=0.25, accélère vers le spot pour se planter vite', () => {
     const ann = { type: 'screen' as const, fromId: 'O5' as AttackerId, from: { x: 0, y: 0 }, to: { x: 100, y: 0 } };
     const steps = [step({}, [ann] as any), step({ O5: { x: 100, y: 0 } } as Partial<AttackerPositions>)];
     const r = attackerTrajectoryAt(steps, 0, 'O5', 0.25);
-    expect(r.position.x).toBeCloseTo(50, 5);
+    expect(r.position.x).toBeGreaterThan(70);
     expect(r.isScreening).toBe(false);
+  });
+
+  it('screen : à localT=0.4, déjà planté sur le spot', () => {
+    const ann = { type: 'screen' as const, fromId: 'O5' as AttackerId, from: { x: 0, y: 0 }, to: { x: 100, y: 0 } };
+    const steps = [step({}, [ann] as any), step({ O5: { x: 100, y: 0 } } as Partial<AttackerPositions>)];
+    const r = attackerTrajectoryAt(steps, 0, 'O5', 0.4);
+    expect(r.position).toEqual({ x: 100, y: 0 });
+    expect(r.isScreening).toBe(true);
+  });
+
+  it('screen : prioritaire si cut et screen existent sur le même joueur', () => {
+    const cut = { type: 'cut' as const, fromId: 'O5' as AttackerId, from: { x: 0, y: 0 }, to: { x: 80, y: 0 } };
+    const screen = { type: 'screen' as const, fromId: 'O5' as AttackerId, from: { x: 80, y: 0 }, to: { x: 100, y: 0 } };
+    const steps = [step({}, [cut, screen] as any), step({ O5: { x: 100, y: 0 } } as Partial<AttackerPositions>)];
+    const r = attackerTrajectoryAt(steps, 0, 'O5', 0.5);
+    expect(r.position).toEqual({ x: 100, y: 0 });
+    expect(r.movementType).toBe('screen');
+    expect(r.isScreening).toBe(true);
   });
 
   it('screen : à localT=0.75, pinned en to ; isScreening=true', () => {
