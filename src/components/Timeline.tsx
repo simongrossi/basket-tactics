@@ -25,6 +25,10 @@ interface TimelineProps {
   onSetPlaybackSpeed?: (s: number) => void;
 }
 
+/** Nombre de sous-frames affichables entre deux steps réels. À chaque clic
+ *  sur ◀ / ▶ (frame), on avance d'une fraction de step pour debug fin. */
+const SUBFRAMES_PER_STEP = 10;
+
 /**
  * Timeline des étapes avec scrubbing fluide + contrôles de lecture inline.
  * - clic sur un marqueur = activeStep
@@ -75,6 +79,16 @@ export function Timeline({
   };
 
   const displayT = scrubT ?? playbackT ?? state.activeStep;
+  const totalT = total > 1 ? total - 1 : 0;
+  const subStep = 1 / SUBFRAMES_PER_STEP;
+  // Numéro de frame courant : t × SUBFRAMES_PER_STEP, arrondi.
+  const currentFrameIdx = Math.round(displayT * SUBFRAMES_PER_STEP);
+  const totalFrames = Math.round(totalT * SUBFRAMES_PER_STEP);
+  const stepFromSubframe = (frameIdx: number) => Math.max(0, Math.min(totalT, frameIdx / SUBFRAMES_PER_STEP));
+  const goFrame = (delta: number) => {
+    const next = stepFromSubframe(currentFrameIdx + delta);
+    onScrub?.(next);
+  };
   const ratio = total > 1 ? displayT / (total - 1) : 0;
   const currentStepIdx = Math.round(displayT);
   const currentStep = state.steps[currentStepIdx];
@@ -239,6 +253,57 @@ export function Timeline({
               }}
             >
               ■
+            </button>
+            {/* Navigation frame-by-frame pour debug visuel fin. Chaque clic
+                avance/recule d'une sous-frame (= 1/10 de step). */}
+            <button
+              onClick={() => goFrame(-1)}
+              disabled={isPlaying || currentFrameIdx <= 0}
+              title="Frame précédente (1/10 step)"
+              style={{
+                fontSize: 11,
+                padding: '4px 6px',
+                borderRadius: 6,
+                border: '1px solid #fed7aa',
+                background: '#fff',
+                color: '#7c2d12',
+                cursor: isPlaying || currentFrameIdx <= 0 ? 'not-allowed' : 'pointer',
+                opacity: isPlaying || currentFrameIdx <= 0 ? 0.4 : 1,
+                flex: '0 0 auto',
+              }}
+            >
+              ◀
+            </button>
+            <span
+              title="Frame courante / total frames (résolution 1/10 de step)"
+              style={{
+                fontSize: 10,
+                color: '#57534e',
+                fontVariantNumeric: 'tabular-nums',
+                minWidth: 50,
+                textAlign: 'center',
+                flex: '0 0 auto',
+              }}
+            >
+              f{currentFrameIdx}/{totalFrames}
+            </span>
+            <button
+              onClick={() => goFrame(1)}
+              disabled={isPlaying || currentFrameIdx >= totalFrames}
+              title="Frame suivante (1/10 step)"
+              style={{
+                fontSize: 11,
+                padding: '4px 6px',
+                borderRadius: 6,
+                border: '1px solid #fed7aa',
+                background: '#fff',
+                color: '#7c2d12',
+                cursor: isPlaying || currentFrameIdx >= totalFrames ? 'not-allowed' : 'pointer',
+                opacity: isPlaying || currentFrameIdx >= totalFrames ? 0.4 : 1,
+                flex: '0 0 auto',
+              }}
+            >
+              ▶
             </button>
           </>
         )}

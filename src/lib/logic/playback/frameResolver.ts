@@ -299,9 +299,33 @@ export function resolveFrameAt(
       : offBallContact
         ? offBallScreenRoutePreference(offBallContact, state.offBallScreenRule, off[carrier])
         : null;
-    const forcedPushSign = routePreference
+    let forcedPushSign = routePreference
       ? forcedPushSignForRoute(defA[id], defB[id], routePreference)
       : undefined;
+    // Override pour mode 'stuck' : si defA et defB sont de côtés OPPOSÉS du
+    // poseur, le forcedPushSign basé sur la rule peut router D1 via la rule
+    // (ex hedge → awayFromHoop) au lieu de respecter le côté où il était.
+    // Conséquence visuelle : D1 plaqué à gauche du poseur saute à droite
+    // d'un coup en passant à travers le cluster. Fix : forcer le côté à
+    // matcher celui de defA (où D1 EST déjà), assure que le contournement
+    // se fait dans la continuité.
+    if (screenMode === 'stuck' && screenerObstacles.length > 0) {
+      const obs = screenerObstacles[0];
+      const segDx = defB[id].x - defA[id].x;
+      const segDy = defB[id].y - defA[id].y;
+      const segLen = Math.hypot(segDx, segDy);
+      if (segLen > 0.01) {
+        const perpX = -segDy / segLen;
+        const perpY = segDx / segLen;
+        const aToO = { x: obs.center.x - defA[id].x, y: obs.center.y - defA[id].y };
+        const aSide = aToO.x * perpX + aToO.y * perpY;
+        // Si defA est du côté +perp (aSide > 0), pushSign doit être -1 pour
+        // que le contournement aille DE L'AUTRE côté (sinon D1 se fait
+        // pousser dans le poseur). Convention de curveAroundObstacle :
+        // pushSign correspond au côté du point de contrôle.
+        forcedPushSign = aSide >= 0 ? -1 : 1;
+      }
+    }
     // Pendant la phase 'leaving' (recover), D1 ne doit PAS être routé autour
     // du poseur via Bezier — il sort du contact en ligne droite vers sa nouvelle
     // cible. La Bezier en recovery faisait orbiter D1 vers le côté OPPOSÉ
