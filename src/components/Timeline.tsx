@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import type { AppState } from '@/lib/types';
 import {
   formatClock,
@@ -25,9 +25,12 @@ interface TimelineProps {
   onSetPlaybackSpeed?: (s: number) => void;
 }
 
-/** Nombre de sous-frames affichables entre deux steps réels. À chaque clic
- *  sur ◀ / ▶ (frame), on avance d'une fraction de step pour debug fin. */
-const SUBFRAMES_PER_STEP = 10;
+/** Résolutions de navigation frame-by-frame. Au plus fin (60), chaque clic
+ *  correspond à un frame d'animation (~16ms à vitesse 1×, équivalent au tick
+ *  de playback). Au plus large (10), on saute par 1/10 de step pour avancer
+ *  vite. Raccourcis clavier ←/→ utilisent le mode fin par défaut. */
+const SUBFRAMES_FINE = 60;
+const SUBFRAMES_COARSE = 10;
 
 /**
  * Timeline des étapes avec scrubbing fluide + contrôles de lecture inline.
@@ -80,15 +83,40 @@ export function Timeline({
 
   const displayT = scrubT ?? playbackT ?? state.activeStep;
   const totalT = total > 1 ? total - 1 : 0;
-  const subStep = 1 / SUBFRAMES_PER_STEP;
-  // Numéro de frame courant : t × SUBFRAMES_PER_STEP, arrondi.
-  const currentFrameIdx = Math.round(displayT * SUBFRAMES_PER_STEP);
-  const totalFrames = Math.round(totalT * SUBFRAMES_PER_STEP);
-  const stepFromSubframe = (frameIdx: number) => Math.max(0, Math.min(totalT, frameIdx / SUBFRAMES_PER_STEP));
-  const goFrame = (delta: number) => {
-    const next = stepFromSubframe(currentFrameIdx + delta);
+  // Frame fine = unité d'animation (~60 par step). Frame coarse = 1/10 de
+  // step pour avancer rapidement entre deux moments distincts.
+  const currentFineIdx = Math.round(displayT * SUBFRAMES_FINE);
+  const totalFineFrames = Math.round(totalT * SUBFRAMES_FINE);
+  const goFineFrame = useCallback((delta: number) => {
+    const next = Math.max(0, Math.min(totalT, (currentFineIdx + delta) / SUBFRAMES_FINE));
     onScrub?.(next);
-  };
+  }, [currentFineIdx, totalT, onScrub]);
+  const goCoarseFrame = useCallback((delta: number) => {
+    const currentCoarse = Math.round(displayT * SUBFRAMES_COARSE);
+    const next = Math.max(0, Math.min(totalT, (currentCoarse + delta) / SUBFRAMES_COARSE));
+    onScrub?.(next);
+  }, [displayT, totalT, onScrub]);
+
+  // Raccourcis clavier ← / → (fine, +1/-1) et Shift+← / Shift+→ (coarse).
+  // Désactivés si focus sur un input ou si la lecture est en cours.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (isPlaying) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (e.shiftKey) goCoarseFrame(-1);
+        else goFineFrame(-1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (e.shiftKey) goCoarseFrame(1);
+        else goFineFrame(1);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isPlaying, goFineFrame, goCoarseFrame]);
   const ratio = total > 1 ? displayT / (total - 1) : 0;
   const currentStepIdx = Math.round(displayT);
   const currentStep = state.steps[currentStepIdx];
@@ -254,12 +282,32 @@ export function Timeline({
             >
               ■
             </button>
-            {/* Navigation frame-by-frame pour debug visuel fin. Chaque clic
-                avance/recule d'une sous-frame (= 1/10 de step). */}
+            {/* Navigation frame-by-frame pour debug visuel fin.
+                ⏪/⏩ : 1/10 de step (coarse, ~100ms à 1×). Aussi Shift+←/→.
+                ◀/▶ : 1/60 de step (fine, ~16ms à 1×, = un frame d'animation).
+                Aussi ←/→ au clavier. */}
             <button
-              onClick={() => goFrame(-1)}
-              disabled={isPlaying || currentFrameIdx <= 0}
-              title="Frame précédente (1/10 step)"
+              onClick={() => goCoarseFrame(-1)}
+              disabled={isPlaying || displayT <= 0}
+              title="Reculer 1/10 step (Shift+←)"
+              style={{
+                fontSize: 11,
+                padding: '4px 5px',
+                borderRadius: 6,
+                border: '1px solid #fed7aa',
+                background: '#fff',
+                color: '#7c2d12',
+                cursor: isPlaying || displayT <= 0 ? 'not-allowed' : 'pointer',
+                opacity: isPlaying || displayT <= 0 ? 0.4 : 1,
+                flex: '0 0 auto',
+              }}
+            >
+              ⏪
+            </button>
+            <button
+              onClick={() => goFineFrame(-1)}
+              disabled={isPlaying || currentFineIdx <= 0}
+              title="Reculer un frame (1/60 step ≈ 16ms, ←)"
               style={{
                 fontSize: 11,
                 padding: '4px 6px',
@@ -267,30 +315,30 @@ export function Timeline({
                 border: '1px solid #fed7aa',
                 background: '#fff',
                 color: '#7c2d12',
-                cursor: isPlaying || currentFrameIdx <= 0 ? 'not-allowed' : 'pointer',
-                opacity: isPlaying || currentFrameIdx <= 0 ? 0.4 : 1,
+                cursor: isPlaying || currentFineIdx <= 0 ? 'not-allowed' : 'pointer',
+                opacity: isPlaying || currentFineIdx <= 0 ? 0.4 : 1,
                 flex: '0 0 auto',
               }}
             >
               ◀
             </button>
             <span
-              title="Frame courante / total frames (résolution 1/10 de step)"
+              title="Frame fine courante / total (résolution 1/60 step). ←/→ clavier pour avancer fin, Shift+←/→ pour avancer grossier."
               style={{
                 fontSize: 10,
                 color: '#57534e',
                 fontVariantNumeric: 'tabular-nums',
-                minWidth: 50,
+                minWidth: 56,
                 textAlign: 'center',
                 flex: '0 0 auto',
               }}
             >
-              f{currentFrameIdx}/{totalFrames}
+              f{currentFineIdx}/{totalFineFrames}
             </span>
             <button
-              onClick={() => goFrame(1)}
-              disabled={isPlaying || currentFrameIdx >= totalFrames}
-              title="Frame suivante (1/10 step)"
+              onClick={() => goFineFrame(1)}
+              disabled={isPlaying || currentFineIdx >= totalFineFrames}
+              title="Avancer un frame (1/60 step ≈ 16ms, →)"
               style={{
                 fontSize: 11,
                 padding: '4px 6px',
@@ -298,12 +346,30 @@ export function Timeline({
                 border: '1px solid #fed7aa',
                 background: '#fff',
                 color: '#7c2d12',
-                cursor: isPlaying || currentFrameIdx >= totalFrames ? 'not-allowed' : 'pointer',
-                opacity: isPlaying || currentFrameIdx >= totalFrames ? 0.4 : 1,
+                cursor: isPlaying || currentFineIdx >= totalFineFrames ? 'not-allowed' : 'pointer',
+                opacity: isPlaying || currentFineIdx >= totalFineFrames ? 0.4 : 1,
                 flex: '0 0 auto',
               }}
             >
               ▶
+            </button>
+            <button
+              onClick={() => goCoarseFrame(1)}
+              disabled={isPlaying || displayT >= totalT}
+              title="Avancer 1/10 step (Shift+→)"
+              style={{
+                fontSize: 11,
+                padding: '4px 5px',
+                borderRadius: 6,
+                border: '1px solid #fed7aa',
+                background: '#fff',
+                color: '#7c2d12',
+                cursor: isPlaying || displayT >= totalT ? 'not-allowed' : 'pointer',
+                opacity: isPlaying || displayT >= totalT ? 0.4 : 1,
+                flex: '0 0 auto',
+              }}
+            >
+              ⏩
             </button>
           </>
         )}
