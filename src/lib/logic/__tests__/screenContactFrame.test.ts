@@ -149,6 +149,33 @@ function buildOffBallScreenScenario(quality: number = 100): AppState {
   } as AppState;
 }
 
+function buildOffBallRecoverScenario(quality: number = 100): AppState {
+  const state = buildOffBallScreenScenario(quality);
+  state.steps = [
+    ...state.steps,
+    {
+      off: {
+        O1: { x: 300, y: 470 },
+        O2: { x: 340, y: 330 },
+        O3: { x: 470, y: 380 },
+        O4: { x: 150, y: 380 },
+        O5: { x: 380, y: 230 },
+      },
+      ballCarrier: 'O1',
+      annotations: [
+        {
+          type: 'cut',
+          fromId: 'O2',
+          toId: null,
+          from: { x: 220, y: 380 },
+          to: { x: 340, y: 330 },
+        } as Annotation,
+      ],
+    },
+  ];
+  return state;
+}
+
 describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)', () => {
   describe('Quality 100 (lockdown) — D1 doit rester collé au poseur', () => {
     const state = buildScreenScenario(100);
@@ -167,6 +194,7 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
       // Et jamais à l'intérieur du poseur.
       expect(distToScreener, 'D1 doit respecter la clearance avec le poseur')
         .toBeGreaterThanOrEqual(33);
+      expect(d1.screenPhase).toBe('stuck');
     });
 
     it("à t=0.7 : D1 n'a pas encore récupéré (proche du poseur)", () => {
@@ -221,6 +249,7 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
       const frame = resolveFrameAt(state, 2);
       expect(frame).not.toBeNull();
       expect(frame!.defPos.D1.late).toBe(true);
+      expect(frame!.defPos.D1.screenPhase).toBe('recover');
     });
 
     it('D1 récupère normalement après un ghost screen', () => {
@@ -241,6 +270,15 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
       const screener = frame!.off.O4;
       const distToScreener = Math.hypot(d2.x - screener.x, d2.y - screener.y);
       expect(distToScreener).toBeLessThan(80);
+      expect(d2.screenPhase).toBe('stuck');
+    });
+
+    it('D2 reste en recover au step suivant un pindown solide', () => {
+      const state = buildOffBallRecoverScenario(100);
+      const frame = resolveFrameAt(state, 2);
+      expect(frame).not.toBeNull();
+      expect(frame!.defPos.D2.late).toBe(true);
+      expect(frame!.defPos.D2.screenPhase).toBe('recover');
     });
   });
 

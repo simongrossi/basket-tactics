@@ -128,6 +128,10 @@ export function applyBaseTargetsLayer(
       gazeLock: rule.gazeLock,
     });
 
+    const screenPhase = screen && effectiveScreenRule !== 'switch' && dId === screen.carrierDef
+      ? 'impact'
+      : undefined;
+
     positions[dId] = {
       x: Math.round(target.x),
       y: Math.round(target.y),
@@ -135,6 +139,7 @@ export function applyBaseTargetsLayer(
       isCarrierDefender,
       matchedTo: oId as AttackerId,
       onScreen: !!(screen && (dId === screen.carrierDef || dId === screen.screenerDef)),
+      screenPhase,
       switchedThisStep: switchedThisStep && !!(screen && (dId === screen.carrierDef || dId === screen.screenerDef)),
       denying: denying || undefined,
       helpTriggered: helpTriggered || undefined,

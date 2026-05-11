@@ -1,26 +1,5 @@
 import { describe, it, expect } from 'vitest';
-
-// Reproduction locale du helper (non exporté) pour test en isolation.
-function screenContactT(
-  localT: number,
-  quality: number,
-  mode: 'arriving' | 'leaving' | 'stuck' | null
-): number {
-  if (!mode) return localT;
-  const q = Math.max(0, Math.min(100, quality)) / 100;
-  const k = 1 + q * 12;
-  const center = mode === 'arriving'
-    ? 0.5 - q * 0.30
-    : mode === 'leaving'
-      ? 0.5 + q * 0.30
-      : 0.5;
-  const sig = (t: number) => 1 / (1 + Math.exp(-k * (t - center)));
-  const s0 = sig(0);
-  const s1 = sig(1);
-  const denom = s1 - s0;
-  if (denom < 1e-9) return localT;
-  return (sig(localT) - s0) / denom;
-}
+import { screenContactT } from '../screenPhysics';
 
 describe('screenContactT — freeze sigmoïdal sur l\'écran', () => {
   it('quality 0 reste quasi-linéaire (ghost)', () => {

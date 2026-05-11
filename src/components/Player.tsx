@@ -1,4 +1,4 @@
-import type { Point } from '@/lib/types';
+import type { Point, ScreenContactPhase } from '@/lib/types';
 import { PLAYER_RADIUS } from '@/lib/data/court';
 
 interface PlayerProps {
@@ -8,6 +8,7 @@ interface PlayerProps {
   isCarrierDefender?: boolean;
   isLate?: boolean;
   onScreen?: boolean;
+  screenPhase?: ScreenContactPhase;
   helpFactor?: number;
   facing?: Point;
   isOverridden?: boolean;
@@ -56,6 +57,7 @@ export function Player({
   isCarrierDefender,
   isLate,
   onScreen,
+  screenPhase,
   helpFactor,
   facing,
   isOverridden,
@@ -81,7 +83,10 @@ export function Player({
   let stroke = isAttacker ? '#4A1B0C' : '#042C53';
   let strokeWidth = 2;
   if (!isAttacker && showStateRings) {
-    if (isLate && showLateRing) {
+    if (screenPhase) {
+      stroke = screenPhaseColor(screenPhase);
+      strokeWidth = screenPhase === 'recover' ? 3 : 4;
+    } else if (isLate && showLateRing) {
       stroke = '#E24B4A';
       strokeWidth = 4;
     } else if (isCarrierDefender) {
@@ -242,6 +247,40 @@ export function Player({
           </text>
         </g>
       )}
+      {screenPhase && !isAttacker && showStateRings && (
+        <g pointerEvents="none">
+          <circle
+            cx={pos.x}
+            cy={pos.y}
+            r={r + 8}
+            fill="none"
+            stroke={screenPhaseColor(screenPhase)}
+            strokeWidth={2}
+            strokeDasharray={screenPhase === 'recover' ? '5 3' : undefined}
+            opacity={0.8}
+          />
+          <rect
+            x={pos.x + r - 1}
+            y={pos.y - r - 13}
+            width={screenPhaseLabel(screenPhase).length > 3 ? 30 : 24}
+            height={13}
+            rx={3}
+            fill="rgba(255,255,255,0.92)"
+            stroke={screenPhaseColor(screenPhase)}
+            strokeWidth={1}
+          />
+          <text
+            x={pos.x + r + (screenPhaseLabel(screenPhase).length > 3 ? 14 : 11)}
+            y={pos.y - r - 3}
+            fontSize={8}
+            fontWeight={700}
+            fill={screenPhaseColor(screenPhase)}
+            textAnchor="middle"
+          >
+            {screenPhaseLabel(screenPhase)}
+          </text>
+        </g>
+      )}
       {closingOut && !isAttacker && showStateRings && showCloseoutRing && (
         <g pointerEvents="none">
           {/* Anneau orange (closeout normal) ou rouge (over-closeout, déborde). */}
@@ -322,6 +361,26 @@ export function Player({
       )}
     </g>
   );
+}
+
+function screenPhaseColor(phase: ScreenContactPhase): string {
+  switch (phase) {
+    case 'approach': return '#6366F1';
+    case 'impact': return '#7C3AED';
+    case 'stuck': return '#BE123C';
+    case 'navigate': return '#D97706';
+    case 'recover': return '#059669';
+  }
+}
+
+function screenPhaseLabel(phase: ScreenContactPhase): string {
+  switch (phase) {
+    case 'approach': return 'SET';
+    case 'impact': return 'HIT';
+    case 'stuck': return 'STOP';
+    case 'navigate': return 'NAV';
+    case 'recover': return 'REC';
+  }
 }
 
 interface BallProps {

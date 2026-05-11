@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { screenPenaltyFromQuality } from '../defense/speedConstraint';
+import { screenPenaltyFromQuality } from '../screenPhysics';
 
 describe('screenPenaltyFromQuality — Étape 12', () => {
   it('quality 0 (ghost) → 1.0 (pas de ralentissement)', () => {

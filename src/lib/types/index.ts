@@ -528,6 +528,8 @@ export interface DetectedScreen {
   screenerPos: Point;
 }
 
+export type ScreenContactPhase = 'approach' | 'impact' | 'stuck' | 'navigate' | 'recover';
+
 export type Matchups = Record<DefenderId, AttackerId>;
 
 export interface ComputedDefender {
@@ -538,6 +540,7 @@ export interface ComputedDefender {
   isCarrierDefender: boolean;
   matchedTo: AttackerId;
   onScreen: boolean;
+  screenPhase?: ScreenContactPhase;
   switchedThisStep: boolean;
   zoneId?: string;
   isRotating?: boolean;

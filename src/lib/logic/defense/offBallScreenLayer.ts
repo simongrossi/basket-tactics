@@ -44,6 +44,9 @@ export function applyOffBallScreenLayer(
       positions[obs.screenerDef].y = Math.round(screenerTarget.y);
     }
     positions[obs.cutterDef].onScreen = true;
+    if (state.offBallScreenRule !== 'switch') {
+      positions[obs.cutterDef].screenPhase = 'impact';
+    }
     positions[obs.screenerDef].onScreen = true;
   }
 }

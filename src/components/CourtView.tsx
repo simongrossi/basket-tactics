@@ -587,6 +587,7 @@ export function CourtView(props: CourtViewProps) {
                       isCarrierDefender={p.isCarrierDefender}
                       isLate={p.late}
                       onScreen={p.onScreen}
+                      screenPhase={p.screenPhase}
                       helpFactor={p.helpFactor}
                       facing={p.facing}
                       isOverridden={!!state.steps[state.activeStep]?.defenseOverrides?.[id]}
@@ -816,4 +817,3 @@ function extractDefPositions(defPos: ComputedDefense): Record<DefenderId, Point>
   });
   return out;
 }
-

@@ -103,6 +103,7 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     isAttacker={false}
                     isCarrierDefender={p.isCarrierDefender}
                     onScreen={p.onScreen}
+                    screenPhase={p.screenPhase}
                     facing={p.facing}
                     orientation={p.orientation}
                     gazeOrientation={p.gazeOrientation}

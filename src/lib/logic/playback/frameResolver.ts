@@ -15,7 +15,6 @@ import type {
   DefenderId,
   DetectedOffBallScreen,
   Point,
-  ScreenRule,
 } from '@/lib/types';
 import {
   computeAttackerVisuals,
@@ -45,6 +44,18 @@ import {
   PLAYER_MIN_CLEARANCE_PX,
   PLAYER_OBSTACLE_RADIUS_PX,
 } from '@/lib/data/court';
+import {
+  carrierApexSlownessFromQuality,
+  carrierScreenRoutePreference,
+  contactQualityForRule,
+  effectiveScreenRuleForDef,
+  findScreenQuality,
+  forcedPushSignForRoute,
+  offBallScreenRoutePreference,
+  screenContactPhase,
+  screenContactT,
+  type ScreenContactMode,
+} from '../screenPhysics';
 
 export interface PlaybackFrame {
   off: AttackerPositions;
@@ -71,71 +82,6 @@ interface ScreenerObstacle {
   center: Point;
   radius: number;
   defenderToSkip: DefenderId;
-}
-
-/**
- * Mappe la qualité d'écran (0-100) sur le paramètre `apexSlowness` passé à
- * `curveAroundObstacle` pour le défenseur du porteur :
- *  - 0 (ghost)    → 0.30 (comportement par défaut, juste un frôlement)
- *  - 50 (std)     → 0.75 (ralentissement marqué au sommet)
- *  - 100 (lockdown) → 0.98 (quasi-pause, D1 reste collé au poseur)
- *
- * Choix : courbe linéaire entre 0.30 et 0.98. À 50 (défaut), on est déjà à
- * 0.75 — visuellement le défenseur stagne nettement à l'impact.
- */
-function carrierApexSlownessFromQuality(quality: number): number {
-  const q = Math.max(0, Math.min(100, quality)) / 100;
-  // 0 → 0.30 (frôlement)
-  // 0.5 → 0.85 (ralentissement marqué)
-  // 1 → 0.99 (quasi-pause au sommet du contournement)
-  return 0.30 + q * 0.69;
-}
-
-/**
- * Remappe localT pour modéliser le contact d'écran via une SIGMOÏDE lisse,
- * sans discontinuité de vélocité. Évite que D1 "se téléporte" au défige.
- *
- * Trois modes, modulés par la qualité (q ∈ [0, 1]) :
- *
- *  - 'arriving' : D1 rejoint le poseur (defB sur l'écran). La sigmoïde est
- *    centrée TÔT dans la transition (vers t = 0.25 à q=1) → D1 atteint le
- *    poseur dans le premier quart, puis y RESTE asymptotiquement (vélocité
- *    tend vers 0 au plateau).
- *
- *  - 'leaving' : D1 quitte le poseur (defA sur l'écran). Sigmoïde centrée
- *    TARD (t = 0.75 à q=1) → D1 reste figé au départ, puis rattrape
- *    progressivement vers la fin.
- *
- *  - 'stuck' : D1 toujours plaqué sur les deux steps. Sigmoïde centrée au
- *    milieu mais avec un large plateau autour → mouvement minimal au centre.
- *
- * À q=0 (ghost), la sigmoïde devient quasi-linéaire (k=1) → lerp normal.
- * À q=1 (lockdown), k=10 → forte asymétrie, plateau marqué.
- */
-function screenContactT(
-  localT: number,
-  quality: number,
-  mode: 'arriving' | 'leaving' | 'stuck' | null
-): number {
-  if (!mode) return localT;
-  const q = Math.max(0, Math.min(100, quality)) / 100;
-  const k = 1 + q * 12; // 1 à 13 — raideur de la sigmoïde
-  // Centre temporel : où la transition rapide se produit.
-  //  - arriving : tôt (atteint le poseur vite, puis plateau long à defB)
-  //  - leaving : tard (plateau long à defA, puis rattrape à la fin)
-  //  - stuck : milieu (avec k élevé, plateau au centre)
-  const center = mode === 'arriving'
-    ? 0.5 - q * 0.30  // 0.5 → 0.20
-    : mode === 'leaving'
-      ? 0.5 + q * 0.30  // 0.5 → 0.80
-      : 0.5;
-  // Sigmoïde brute, normalisée pour que f(0)=0 et f(1)=1.
-  const sig = (t: number) => 1 / (1 + Math.exp(-k * (t - center)));
-  const s0 = sig(0);
-  const s1 = sig(1);
-  const denom = s1 - s0;
-  if (denom < 1e-9) return localT;
-  return (sig(localT) - s0) / denom;
 }
 
 /**
@@ -255,6 +201,7 @@ export function resolveFrameAt(
   // 4. Positions défenseurs — interpolation linéaire + courbe d'évitement.
   // ---------------------------------------------------------------------
   const defPos = {} as ComputedDefense;
+  const defenseHoop = getDefenseHoop(state);
   // Défenseurs dont la position vient d'être calculée avec freeze/courbe/
   // easing (phase de contact d'écran). `followDefendersAtFrame` doit les
   // SAUTER, sinon il réécrit la position en suivant l'homme et annule tout
@@ -275,7 +222,7 @@ export function resolveFrameAt(
     const carrierContact = isCarrierDef && (!!defA[id].onScreen || !!defB[id].onScreen);
     const aOn = (!!defA[id].onScreen && isCarrierDef) || !!offBallContact;
     const bOn = (!!defB[id].onScreen && isCarrierDef) || !!offBallContact;
-    let screenMode: 'arriving' | 'leaving' | 'stuck' | null = null;
+    let screenMode: ScreenContactMode | null = null;
     if (carrierContact || offBallContact) {
       if (aOn && bOn) screenMode = 'stuck';
       else if (!aOn && bOn) screenMode = 'arriving';
@@ -300,6 +247,7 @@ export function resolveFrameAt(
     // discontinuité de vélocité). Pour les autres défenseurs ou hors
     // écran, identité = localT.
     const effT = screenContactT(localT, modeQuality, screenMode);
+    const phase = screenContactPhase(screenMode, localT, modeQuality);
     if (screenMode) {
       // Verrouille ce défenseur contre followDefendersAtFrame pour préserver
       // l'effet visuel du contact (freeze, courbe, easing).
@@ -316,7 +264,12 @@ export function resolveFrameAt(
       ? carrierApexSlownessFromQuality(modeQuality)
       : 0.3;
     const routePreference = screen?.carrierDef === id
-      ? carrierScreenRoutePreference(state, screen, off)
+      ? carrierScreenRoutePreference(
+          effectiveScreenRuleForDef(state, screen.carrierDef),
+          screen,
+          off,
+          defenseHoop
+        )
       : offBallContact
         ? offBallScreenRoutePreference(offBallContact, state.offBallScreenRule, off[carrier])
         : null;
@@ -353,6 +306,7 @@ export function resolveFrameAt(
       overClosed: defB[id].overClosed,
       denying: defB[id].denying,
       helpTriggered: defB[id].helpTriggered,
+      screenPhase: phase ?? defB[id].screenPhase,
       orientation: lerpAngleDeg(defA[id].orientation, defB[id].orientation, localT),
       gazeOrientation: lerpAngleDeg(defA[id].gazeOrientation, defB[id].gazeOrientation, localT),
       facing: lerpPoint(defA[id].facing, defB[id].facing, localT),
@@ -411,126 +365,4 @@ function midpoint(a: Point, b: Point): Point {
 
 function lerpPoint(a: Point, b: Point, t: number): Point {
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
-}
-
-function findScreenQuality(
-  steps: Array<{ annotations: AppState['steps'][number]['annotations'] } | undefined>,
-  screenerId?: AttackerId,
-  fallback: number = 50
-): number {
-  for (const st of steps) {
-    if (!st) continue;
-    const exact = screenerId
-      ? st.annotations.find((a) => a.type === 'screen' && a.fromId === screenerId)
-      : undefined;
-    const any = st.annotations.find((a) => a.type === 'screen');
-    const screenAnnotation = exact ?? (!screenerId ? any : undefined);
-    if (screenAnnotation) return screenAnnotation.quality ?? fallback;
-  }
-  return fallback;
-}
-
-function effectiveScreenRuleForDef(state: AppState, defenderId: DefenderId): ScreenRule {
-  const nav = state.rules[defenderId]?.screenNav;
-  return nav && nav !== 'auto' ? nav : state.screenRule;
-}
-
-function contactQualityForRule(
-  quality: number,
-  rule: ScreenRule,
-  mode: 'arriving' | 'leaving' | 'stuck'
-): number {
-  const multiplierByRule: Record<ScreenRule, number> = {
-    switch: 0,
-    over: 0.85,
-    under: 1.18,
-    hedge: 1.05,
-    drop: 0.95,
-    blitz: 0.9,
-    ice: 0.65,
-    weak: 1.08,
-    'peel-switch': 0.95,
-  };
-  const modeBonus = mode === 'leaving' ? 1.08 : 1;
-  return Math.max(0, Math.min(100, quality * multiplierByRule[rule] * modeBonus));
-}
-
-function carrierScreenRoutePreference(
-  state: AppState,
-  screen: NonNullable<PlaybackFrame['screen']>,
-  off: AttackerPositions
-): Point | null {
-  const screenerPos = off[screen.screener];
-  const carrierPos = off[screen.carrier];
-  if (!screenerPos || !carrierPos) return null;
-
-  const hoop = getDefenseHoop(state);
-  const toHoop = unit({ x: hoop.x - screenerPos.x, y: hoop.y - screenerPos.y });
-  const awayFromHoop = { x: -toHoop.x, y: -toHoop.y };
-  const perp = { x: -toHoop.y, y: toHoop.x };
-  const sToC = unit({ x: carrierPos.x - screenerPos.x, y: carrierPos.y - screenerPos.y });
-  const sideOfCarrier = sToC.x * perp.x + sToC.y * perp.y;
-  const rule = effectiveScreenRuleForDef(state, screen.carrierDef);
-
-  switch (rule) {
-    case 'under':
-    case 'weak':
-      return toHoop;
-    case 'ice':
-      return { x: perp.x * -sideOfCarrier, y: perp.y * -sideOfCarrier };
-    case 'switch':
-      return null;
-    case 'over':
-    case 'hedge':
-    case 'drop':
-    case 'blitz':
-    case 'peel-switch':
-    default:
-      return awayFromHoop;
-  }
-}
-
-function offBallScreenRoutePreference(
-  screen: DetectedOffBallScreen,
-  rule: AppState['offBallScreenRule'],
-  ballPos: Point | undefined
-): Point | null {
-  const cutDir = unit({
-    x: screen.cutterPos.x - screen.screenerPos.x,
-    y: screen.cutterPos.y - screen.screenerPos.y,
-  });
-  switch (rule) {
-    case 'over':
-    case 'chase':
-      return cutDir;
-    case 'under':
-      return { x: -cutDir.x, y: -cutDir.y };
-    case 'top-lock':
-      return ballPos
-        ? unit({ x: ballPos.x - screen.cutterPos.x, y: ballPos.y - screen.cutterPos.y })
-        : cutDir;
-    case 'switch':
-    case 'bump':
-    default:
-      return null;
-  }
-}
-
-function forcedPushSignForRoute(start: Point, end: Point, route: Point): number | undefined {
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const len = Math.hypot(dx, dy);
-  if (len < 0.01) return undefined;
-  const perp = { x: -dy / len, y: dx / len };
-  const routeLen = Math.hypot(route.x, route.y);
-  if (routeLen < 0.01) return undefined;
-  const projection = perp.x * (route.x / routeLen) + perp.y * (route.y / routeLen);
-  if (Math.abs(projection) < 0.05) return undefined;
-  return projection >= 0 ? 1 : -1;
-}
-
-function unit(v: Point): Point {
-  const len = Math.hypot(v.x, v.y);
-  if (len < 0.01) return { x: 0, y: 0 };
-  return { x: v.x / len, y: v.y / len };
 }
