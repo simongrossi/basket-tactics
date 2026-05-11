@@ -1,6 +1,6 @@
-# Bilan consolidé — Étapes 2 à 14
+# Bilan consolidé — Étapes 2 à 15
 
-> Mise à jour : **2026-05-11**.
+> Mise à jour : **2026-05-11** (post-sprint réalisme écrans).
 >
 > Document de synthèse des grandes étapes de travail menées en continu sur la branche `main`. Pour le détail technique, voir [`CHANGELOG.md`](../CHANGELOG.md) ou [`etat-avancement.md`](./etat-avancement.md).
 
@@ -13,7 +13,8 @@
 | **Timeline et édition continue** | 8 → 10b | Multi-track, phase début/fin, tStart/tEnd, cross-step | 426 |
 | **Réalisme physique** | 11 → 12 | Pénalité contact écran, qualité d'écran 0-100 | 433 |
 | **Temps absolu** | 13 | Timecode + shot clock 24s | 449 |
-| **Playbook imprimable** | 14 | Timings, qualité, synoptique dans le PDF | **460** |
+| **Playbook imprimable** | 14 | Timings, qualité, synoptique dans le PDF | 460 |
+| **Réalisme écrans (refonte)** | 15 | Freeze, route-aware, recover, anti-téléport | **493** |
 
 ## Bloc 1 — Défense de zone réaliste (Étapes 2 → 5)
 
@@ -93,9 +94,40 @@ Après Étape 11   426 tests   (visuel uniquement)
 Après Étape 12   433 tests   (+7   : screenPenaltyFromQuality)
 Après Étape 13   449 tests   (+16  : timecode utilities)
 Après Étape 14   460 tests   (+11  : annotationSummary, qualityLabel)
+Après Étape 15   493 tests   (+33  : screenContact frame, freeze sigmoïdal,
+                                     curve forcedPushSign, route-aware,
+                                     recover, off-ball, invariants)
                  ─────────
-TOTAL            +112 tests
+TOTAL            +145 tests
 ```
+
+## Bloc 7 — Refonte du réalisme des écrans (Étape 15)
+
+Sprint dédié au comportement défensif sur écran. Les Étapes 11 et 12 avaient introduit la pénalité de vitesse + qualité, mais le coach a constaté plusieurs problèmes :
+- D1 "glissait" sur le poseur sans contact visible
+- Téléportation autour du poseur lors d'un micro-décalage du porteur
+- D1 et O1 visuellement superposés en édition libre
+- Vélocité discontinue au défige (D1 saute brutalement)
+
+**Cause centrale** : `followDefendersAtFrame` réécrivait à chaque frame la position de D1 pour le re-coller sur son homme — court-circuitant tout le réalisme calculé en amont.
+
+**Corrections** :
+1. **`step0Detection.ts`** : substitue les positions de référence par les cibles homme-à-homme à step 0 → `detectScreen` fonctionne en édition libre.
+2. **Cibles modulées par qualité** dans `applyScreenAdjustment` : D1 plaqué au poseur (over/hedge), derrière le porteur (under). Helper `pushOutOfCarrier` pour garantir ≥34px de clearance.
+3. **`sideOfCarrier` continu** (projection normalisée) au lieu de `Math.sign` → fin du téléport à la traversée d'axe.
+4. **`screenContactT` sigmoïdal** dans frameResolver : freeze lisse sans discontinuité de vélocité. Modes `arriving`/`leaving`/`stuck`.
+5. **`screenLockedDefenders: Set<DefenderId>`** passé à `followDefendersAtFrame(skipIds)` → D1 conserve sa position calculée.
+6. **`isRecoveringFromCarrierScreen`** dans speedConstraint : la pénalité s'étale sur le step suivant (recover lent).
+7. **Routes route-aware** : `curveAroundObstacle(forcedPushSign)`, `contactQualityForRule` (under ×1.18, hedge ×1.05, over ×0.85, ice ×0.65).
+8. **Écrans non-porteur** : mode arriving/leaving/stuck étendu au cutterDef.
+
+**Invariants testés** :
+- Aucun chevauchement défenseur ↔ porteur/poseur (toutes rules × toutes qualities)
+- Continuité de position autour de l'axe poseur→panier (balayage 100px, jump <10px par 1px de drag)
+- Trajectoire de D1 ne traverse JAMAIS le rayon du poseur (échantillonnage 0 → 1)
+- D1 reste `late` après un lockdown, pas après un ghost (recover)
+
+Doc détaillée dans [`CHANGELOG.md > Étape 15`](../CHANGELOG.md).
 
 ## Architecture finale (modules clefs)
 
@@ -113,13 +145,21 @@ src/lib/
     stepMutations.ts              # Étape 9 (phase synchronisation)
     threatResolution.ts           # Étapes 3, 5 (designated coverers)
     baselineDrive.ts              # Étape 2d
+    step0Detection.ts             # Étape 15 (substitution pour detectScreen)
+    screens.ts                    # Étape 15 (applyScreenAdjustment quality,
+                                  #           sideOfCarrier continu, routes)
+    geometry.ts                   # Étape 15 (curveAroundObstacle forcedPushSign)
     defense/
-      speedConstraint.ts          # Étapes 11, 12 (screenPenaltyFromQuality)
+      speedConstraint.ts          # Étapes 11, 12, 15 (penalty + recover)
+      frameAdjust.ts              # Étape 15 (followDefendersAtFrame skipIds)
+    playback/
+      frameResolver.ts            # Étape 15 (screenContactT, routes, lock)
 src/components/
   Timeline.tsx                    # Étape 13 (horloge + shot clock)
   MultiTrackTimeline.tsx          # Étapes 8/9/10/10b/12 (édition)
   PlaybookView.tsx                # Étape 14 (PDF + synoptique)
   ParametresPanel.tsx             # Étape 13 (réglages timecode)
+  CourtView.tsx                   # Étape 15 (staticFrame avec détection step 0)
 src/hooks/
   useAppState.ts                  # Handlers : setAnnotationPhase/Timing/Quality
 ```
@@ -130,6 +170,9 @@ src/hooks/
 - **Pas de "rotation cascade" 5-stages** : quand un défenseur sort, ses voisins comblent partiellement (via `ballSideShifted`) mais pas via une vraie chaîne dynamique.
 - **Pas d'auto-decay sur la qualité d'écran** : un écran reste à sa qualité initiale toute la possession. Pour un comportement type "le pivot tient X secondes puis se dégage", il faudrait un `quality(t)`.
 - **Timecode décoratif** : le moteur ne consomme pas `secondsPerStep` — un step prend le même temps qu'avant côté physique, seul l'affichage change. Pour un vrai modèle physique en m/s, il faudrait recalibrer `maxSpeed` en fonction de `secondsPerStep`.
+- **Étape 15 — état de contact écran multi-phase explicite** : actuellement encodé via les flags `onScreen` defA/defB + le mode (arriving/leaving/stuck). Un vrai modèle (approche → impact → arrest → contournement → recover) avec durées propres reste à concevoir.
+- **Étape 15 — indicateur visuel dédié sur D1** ("contact", "bloqué", "recover") masqué par l'anneau `isCarrierDefender`.
+- **Étape 15 — recover off-ball** : `isRecoveringFromCarrierScreen` ne couvre que le carrier defender. Le cutterDef d'un pindown/flare/stagger n'a pas encore de mémoire de retard au step suivant.
 
 ## Pour la suite
 

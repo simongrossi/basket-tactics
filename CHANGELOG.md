@@ -59,6 +59,86 @@ Refonte significative de la défense de zone pour encoder les principes basket f
 - Helper `annotationSummary` extrait dans `src/lib/logic/pdfRecap.ts` pour testabilité.
 - Tests : 11 nouveaux cas (formatage des annotations, qualité, phase, cross-step, secondsPerStep variable). 449 → **460 tests verts**.
 
+#### Étape 15 — Refonte du réalisme des écrans (12 commits, 460 → 493 tests verts)
+
+Sprint dédié à la correction du comportement défensif sur écran. Plusieurs constats du coach :
+- D1 reculait visuellement, mais "recollait" l'attaquant trop vite (effet de glissement sans contact)
+- En édition libre (un seul step), aucune pénalité n'agissait — D1 traversait l'écran et se collait à O1
+- L'indicateur visuel d'écran disparaissait parfois (détection ratée)
+- Au moindre micro-décalage du porteur autour de l'axe poseur→panier, D1 se téléportait de l'autre côté du poseur
+- Pendant la lecture animée, D1 "glissait" sur le poseur sans vraie sensation de blocage
+
+##### Diagnostic central
+
+`followDefendersAtFrame` (chargé de re-glue chaque défenseur sur son homme en temps réel) **écrasait** la position calculée par le pipeline freeze/courbe/easing. Tout le réalisme calculé en amont était perdu à la dernière étape.
+
+##### Corrections
+
+**Détection & cibles**
+- À step 0 (édition libre), `detectScreen` utilisait `defenseInitial` (loin du jeu) → poseur jamais détecté. Substitution par les cibles homme-à-homme idéales (`buildStep0DetectionPositions` extrait dans [step0Detection.ts](src/lib/logic/step0Detection.ts)), réutilisée par `context.ts`, `speedConstraint.ts`, `CourtView.tsx` et `frameResolver.ts`.
+- Restoration de l'indicateur visuel `écran X → Y [rule]` à step 0 quand D1 ne peut physiquement pas atteindre le poseur.
+- `sideOfCarrier` passe de `Math.sign(carrier.x - screener.x)` (discontinu) à la **projection du vecteur normalisé poseur→porteur sur l'axe perpendiculaire** — continu dans [-1, 1] : plus de téléport lors d'une traversée d'axe.
+
+**Cibles déplacées vers le poseur**
+- `applyScreenAdjustment` reçoit maintenant `quality` en 9ᵉ paramètre. À q=0 garde le comportement legacy (faux écran), à q=100 plaque D1 sur le poseur.
+- Nouvelles positions par rule (D1 carrierDef) :
+  - **over** : juste derrière le poseur côté basket (lag 5→30px selon q)
+  - **hedge** : plaqué AU poseur, côté opposé au porteur (D1 littéralement bloqué)
+  - **under** : derrière O1 côté opposé au basket (20→55px de lag)
+  - **drop** : over léger, D5 prend la charge avec son drop profond
+- D5 (screenerDef) en hedge agressif : sort DEVANT O1 côté basket (25→60px selon q) au lieu de juste à mi-chemin.
+- Helper `pushOutOfCarrier` garantit ≥ MIN_PLAYER_CLEARANCE_PX (34px) entre défenseur et porteur dans toutes les rules — **plus de chevauchement visuel**, jamais.
+
+**Routes route-aware**
+- `curveAroundObstacle` accepte `forcedPushSign` pour imposer le côté de contournement selon la rule.
+- `carrierScreenRoutePreference` et `offBallScreenRoutePreference` calculent la direction préférée selon over/under/hedge/drop/ice/chase/top-lock.
+- `contactQualityForRule` module la durée de contact selon la rule basket-pertinente : under ×1.18, weak ×1.08, hedge ×1.05, over ×0.85, ice ×0.65, switch ×0.
+
+**Animation continue (frame resolver)**
+- Nouveau `screenContactT` (sigmoïde lisse, k=1→13 selon q) remplace l'ancienne fonction piecewise qui créait une discontinuité de vélocité au défige.
+  - `arriving` (q=100) : effT atteint 0.95 à mi-transition puis plateau long
+  - `leaving` (q=100) : D1 reste figé jusqu'à t≈0.7, puis rattrape en fin
+  - `stuck` : freeze au milieu
+- `carrierApexSlownessFromQuality` pousse à 0.99 à q=100 (quasi-pause au sommet du contournement).
+- **`screenLockedDefenders: Set<DefenderId>`** : les défenseurs en contact écran sont passés à `followDefendersAtFrame(skipIds)` qui les SAUTE → leur position calculée (freeze + courbe + easing) n'est plus écrasée.
+
+**Recover qui prolonge la pénalité**
+- `isRecoveringFromCarrierScreen` détecte les défenseurs qui SORTAIENT d'un écran au step précédent et conservent une pénalité de vitesse au step suivant. Le temps perdu n'est plus instantané, il s'étale sur le step de recover.
+- `previousCarrierScreenQualityByDef` mémorise la quality pour appliquer la bonne pénalité.
+
+**Écrans non-porteur**
+- Le mode `arriving`/`leaving`/`stuck` s'applique aussi au défenseur du cutter (`offBallContact`).
+- `applyOffBallScreenAdjustment` over/chase : cutterDef placé à `MIN_PLAYER_CLEARANCE` du screener (au lieu d'un offset arbitraire 18-24px qui ne respectait pas le clearance).
+
+**Speed constraint cohérent**
+- À l'arrivée sur écran (`isCarrierDefScreenedThisStep`), bypass du clamping de vitesse — sinon D1 s'arrêtait paradoxalement EN AVANT du poseur. La pénalité s'applique uniquement au step de recover.
+
+**Solveur de collisions**
+- `resolvePlayerCollisions` reste avec exclusion `matchedTo` (préserve la défense "coller" normale). La clearance vs porteur est gérée en amont dans `applyScreenAdjustment` par `pushOutOfCarrier`.
+
+##### Tests
+
+Nouveaux fichiers et invariants ajoutés :
+- `screenContactFrame.test.ts` : 8 tests de bout-en-bout via `resolveFrameAt`
+  - D1 à t=0.5 doit être au contact du poseur (≤50px) avec clearance respectée (≥33px)
+  - D1 à t=0.7 n'a pas encore récupéré
+  - Trajectoire de D1 ne traverse JAMAIS le rayon du poseur
+  - Recover : D1 reste `late` après un lockdown, pas après un ghost
+  - Off-ball : D2 stuck sur O4 pendant un pindown
+  - Multi-screen : D1 lit la qualité du bon poseur
+- `screenFreeze.test.ts` : 8 tests sur la sigmoïde (monotonie, continuité, dérivée bornée)
+- `screenQuality.test.ts` : 7 tests sur `screenPenaltyFromQuality`
+- `curveAroundObstacle.test.ts` : 4 + 1 tests (apex slowness + `forcedPushSign`)
+- `screens.test.ts` : +9 tests sur les nouvelles cibles par rule, l'invariant de non-chevauchement (toutes rules × toutes qualities), la continuité de position autour de l'axe poseur→panier
+
+**460 → 493 tests verts** (+33).
+
+##### Limites encore ouvertes
+
+- **État de contact écran multi-phase explicite** : actuellement encodé via les flags `onScreen` de defA/defB + le mode (arriving/leaving/stuck). Un vrai modèle de phase (approche → impact → arrest → contournement → recover) avec durées propres reste à concevoir.
+- **Indicateur visuel dédié** : D1 affiche son anneau `isCarrierDefender` qui masque l'état "contact écran". Un badge spécifique "stuck"/"recover" aurait sa place.
+- **Off-ball : pas encore de mémoire de retard au step suivant** : le `isRecoveringFromCarrierScreen` ne couvre que le carrier defender. Étendre au cutter defender (pindown, flare, stagger, hammer) reste à faire.
+
 #### Étape 13 — Timecode (24s possession)
 - Nouveaux champs `AppState.secondsPerStep` (défaut 4) et `possessionSeconds` (défaut 24).
 - Module `src/lib/logic/timecode.ts` : `realStepToSeconds`, `shotClockAt`, `totalDurationSeconds`, `formatClock`, `formatShotClock`.

@@ -2,7 +2,7 @@
 
 > Vue consolidée de **ce qui est fait**, **ce qui est en cours**, et **ce qui reste à faire**, pour ne rien oublier entre deux sessions de travail.
 >
-> Mise à jour : **2026-05-11**.
+> Mise à jour : **2026-05-11** (post-sprint Étape 15 réalisme écrans).
 >
 > Pour la roadmap exhaustive des actions FIBA, voir [`fiba-actions-roadmap.md`](./fiba-actions-roadmap.md).
 
@@ -134,6 +134,45 @@ Le moteur reste step-based, mais l'affichage parle désormais le langage du bask
 - Module [`timecode.ts`](../src/lib/logic/timecode.ts) : `formatClock`, `formatShotClock`, `realStepToSeconds`, `shotClockAt`, `totalDurationSeconds`.
 - Timeline principale : affiche `0:08 / 0:16` + badge **⏱ shot clock** (jaune sous 5s, rouge **VIOL.** si la possession est dépassée).
 - MultiTrackTimeline : entête de chaque transition annotée avec son timing absolu (`0.0s`, `4.0s`…).
+
+### Étape 15 — Refonte du réalisme des écrans
+
+Sprint dédié au réalisme défensif sur écran. Le coach a signalé plusieurs problèmes successifs :
+- D1 "glissait" sur le poseur sans vrai contact
+- Téléportation autour du poseur lors d'un micro-décalage du porteur
+- D1 et O1 visuellement superposés en édition libre
+- Au défige, D1 sautait brutalement vers son homme (vélocité discontinue)
+
+**Diagnostic central** (cf. bilan dans le commit d929d73) : `followDefendersAtFrame` réécrivait à chaque frame la position de D1 pour le re-coller sur son homme, court-circuitant TOUT le travail amont (freeze, courbe Bezier, apex slowness, time-remap).
+
+**Briques refondues** :
+
+1. **Détection à step 0** ([step0Detection.ts](../src/lib/logic/step0Detection.ts)) — substitue les positions de référence par les cibles homme-à-homme idéales pour que `detectScreen` trouve les poseurs même quand `defenseInitial` est loin du jeu.
+
+2. **Cibles modulées par qualité** ([screens.ts](../src/lib/logic/screens.ts)) — `applyScreenAdjustment(quality)` place D1 sur le poseur (over/hedge) ou derrière le porteur (under), selon la rule et la qualité. Helper `pushOutOfCarrier` garantit ≥ 34px de clearance.
+
+3. **`sideOfCarrier` continu** — projection du vecteur normalisé poseur→porteur sur l'axe perpendiculaire (au lieu de `Math.sign`). Plus de téléport à la traversée d'axe.
+
+4. **Animation freeze sigmoïdal** ([frameResolver.ts](../src/lib/logic/playback/frameResolver.ts)) — `screenContactT` (k=1→13 selon q) sans discontinuité de vélocité. Modes `arriving`/`leaving`/`stuck`.
+
+5. **Protection contre `followDefendersAtFrame`** — `screenLockedDefenders: Set<DefenderId>` listant les défenseurs en contact, passé en `skipIds` pour que leur position calculée ne soit pas écrasée.
+
+6. **Recover** ([speedConstraint.ts](../src/lib/logic/defense/speedConstraint.ts)) — `isRecoveringFromCarrierScreen` applique la pénalité de vitesse au step SUIVANT (recover lent) en plus du step de contact. `previousCarrierScreenQualityByDef` mémorise la quality.
+
+7. **Trajectoire route-aware** — `curveAroundObstacle(forcedPushSign)` impose le côté de contournement selon la rule. `contactQualityForRule` module la durée de contact (under ×1.18, hedge ×1.05, over ×0.85, etc.).
+
+8. **Écrans non-porteur** — mode arriving/leaving/stuck étendu au défenseur du cutter. Cibles `applyOffBallScreenAdjustment` over/chase à clearance respectée.
+
+### Tests
+- **493 tests verts** après l'Étape 15 (vs 460 avant, +33).
+- Nouveau fichier `screenContactFrame.test.ts` : tests de bout-en-bout via `resolveFrameAt` (pas seulement les briques en isolation).
+- Invariant non-chevauchement testé sur toutes rules × toutes qualities.
+- Invariant continuité testé par balayage du porteur autour de l'axe poseur→panier.
+
+### Limites encore ouvertes
+- État de contact multi-phase explicite (approche → impact → arrest → contournement → recover) avec durées propres
+- Indicateur visuel dédié sur D1 ("contact", "bloqué", "recover")
+- Mémoire de retard étendue aux défenseurs de cutters (off-ball recover)
 
 ### Étape 14 — PDF lisible quand les actions se chevauchent
 
