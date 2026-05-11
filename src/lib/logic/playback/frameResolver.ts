@@ -266,6 +266,11 @@ export function resolveFrameAt(
   // 4. Positions défenseurs — interpolation linéaire + courbe d'évitement.
   // ---------------------------------------------------------------------
   const defPos = {} as ComputedDefense;
+  // Défenseurs dont la position vient d'être calculée avec freeze/courbe/
+  // easing (phase de contact d'écran). `followDefendersAtFrame` doit les
+  // SAUTER, sinon il réécrit la position en suivant l'homme et annule tout
+  // le réalisme du contact.
+  const screenLockedDefenders = new Set<DefenderId>();
   defenderIds.forEach((id) => {
     const candidates = screenerObstacles.filter((o) => id !== o.defenderToSkip);
 
@@ -302,6 +307,11 @@ export function resolveFrameAt(
     // discontinuité de vélocité). Pour les autres défenseurs ou hors
     // écran, identité = localT.
     const effT = screenContactT(localT, modeQuality, screenMode);
+    if (screenMode) {
+      // Verrouille ce défenseur contre followDefendersAtFrame pour préserver
+      // l'effet visuel du contact (freeze, courbe, easing).
+      screenLockedDefenders.add(id);
+    }
 
     let p = lerpPoint(defA[id], defB[id], effT);
 
@@ -347,7 +357,7 @@ export function resolveFrameAt(
   // 5. Suivi en temps réel des défenseurs sur leur homme + résolution de
   //    collisions strictes + ré-orientation finale.
   // ---------------------------------------------------------------------
-  followDefendersAtFrame(defPos, off, carrier, state, idxA, idxB);
+  followDefendersAtFrame(defPos, off, carrier, state, idxA, idxB, screenLockedDefenders);
   resolvePlayerCollisions(
     defPos as unknown as Record<string, ComputedDefense[DefenderId]>,
     off,

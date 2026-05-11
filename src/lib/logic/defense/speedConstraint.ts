@@ -288,7 +288,13 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
     // une transition). Le réalisme post-écran est encodé dans la CIBLE elle-
     // même (cf. applyScreenAdjustment, qui place D1 sur le poseur) — pas
     // besoin de clamper la vitesse au step 0.
-    if (stepIdx === 0 || pathLen <= effectiveMaxSpeed) {
+    //
+    // Cas du défenseur QUI ARRIVE sur un écran : sa cible est déjà sur le
+    // poseur. Clamper la vitesse le ferait s'arrêter EN AVANT du poseur,
+    // visuellement proche du porteur — l'inverse de l'effet désiré. On laisse
+    // D1 atteindre sa cible "plaqué au poseur" ; la pénalité de vitesse
+    // s'appliquera au STEP SUIVANT quand il devra recover (sortir de l'écran).
+    if (stepIdx === 0 || pathLen <= effectiveMaxSpeed || isCarrierDefScreenedThisStep) {
       out[dId] = {
         x: to.x,
         y: to.y,

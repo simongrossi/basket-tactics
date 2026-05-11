@@ -21,6 +21,7 @@ import type {
   AttackerId,
   AttackerPositions,
   ComputedDefense,
+  DefenderId,
   Point,
 } from '../../types';
 import { carrierDefenderTarget, manTarget, offBallStanceTarget } from '../manDefense';
@@ -37,6 +38,9 @@ import { getDefenseHoop } from '../engine';
  *  - Off-ball → `offBallStanceTarget` (stance, ball) ou `manTarget` (sag/behind)
  *  - Skipped si l'utilisateur a posé un placement manuel (`defenseOverrides`)
  *    sur l'une des deux étapes du segment — sa position imposée prime.
+ *  - Skipped si le défenseur est dans `skipIds` (typiquement les défenseurs
+ *    en phase de contact d'écran, dont la position a déjà été calculée avec
+ *    freeze/courbe/easing et ne doit pas être réécrite).
  *
  * NB : aide (`helpFactor`, `helpAim`), closeout, denying restent ceux calculés
  * par `effectiveDefensePositions` aux étapes A/B et interpolés. Cette fonction
@@ -48,7 +52,8 @@ export function followDefendersAtFrame(
   ballCarrier: AttackerId,
   state: AppState,
   idxA: number,
-  idxB: number
+  idxB: number,
+  skipIds?: ReadonlySet<DefenderId>
 ): void {
   const carrierPos = off[ballCarrier];
   const hoop = getDefenseHoop(state);
@@ -61,6 +66,11 @@ export function followDefendersAtFrame(
     // Placement manuel sur l'une des deux étapes → la position imposée prime,
     // on garde l'interpolation linéaire entre override(A) et calc(B) ou inverse.
     if (overridesA[dId] || overridesB[dId]) continue;
+    // Phase de contact d'écran → la position a été calculée avec freeze +
+    // courbe + apex slowness. Ne PAS la réécrire en suivant l'homme : sinon
+    // D1 se "téléporterait" instantanément sur le porteur, court-circuitant
+    // tout le réalisme du contact.
+    if (skipIds && skipIds.has(dId)) continue;
     const rule = state.rules[dId];
     if (!rule) continue;
     const dist = rule.distance ?? state.defenseDistance;

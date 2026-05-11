@@ -312,26 +312,40 @@ export function applyScreenAdjustment(
   }
 
   if (rule === 'hedge' && isCarrierDef) {
-    // D1 est plaqué AU poseur côté porteur. C'est lui le "stuck on the
-    // screen" pendant que D5 montre devant. q module à quel point D1 est
-    // carrément collé au poseur (vs juste à côté de O1 comme avant).
+    // D1 est plaqué AU poseur (route over qui a échoué sur l'écran). Le
+    // poseur est entre lui et le porteur. D1 doit se retrouver DU CÔTÉ
+    // OPPOSÉ au porteur par rapport au poseur — c'est-à-dire qu'il est
+    // BLOQUÉ par le poseur, qui est entre lui et O1.
+    //
+    // Géométriquement : on prend la direction (carrier → screener),
+    // prolongée AU-DELÀ du screener d'une distance MIN_CLEARANCE pour
+    // que D1 soit pile derrière le poseur, côté opposé au porteur.
     const tightness = 1 - Math.min(distance(screenerPos, baseTarget), screenRadius) / screenRadius;
     const legacyAmplitude = 8 + tightness * 8;
     const legacyTarget = {
       x: baseTarget.x + perpX * legacyAmplitude * sideOfCarrier,
       y: baseTarget.y + perpY * legacyAmplitude * sideOfCarrier,
     };
-    // Position "plaqué au poseur" : sur S, légèrement côté porteur.
+    // Direction carrier → screener (unitaire) : continue jusqu'à dépasser
+    // le poseur du clearance minimal. D1 se retrouve "derrière" le poseur
+    // par rapport au porteur.
+    const cToSx = screenerPos.x - carrierPos.x;
+    const cToSy = screenerPos.y - carrierPos.y;
+    const cToSLen = Math.hypot(cToSx, cToSy) || 1;
+    const cToSUx = cToSx / cToSLen;
+    const cToSUy = cToSy / cToSLen;
     const stuckTarget = {
-      x: screenerPos.x + perpX * 15 * sideOfCarrier,
-      y: screenerPos.y + perpY * 15 * sideOfCarrier,
+      x: screenerPos.x + cToSUx * MIN_PLAYER_CLEARANCE_PX * 0.7,
+      y: screenerPos.y + cToSUy * MIN_PLAYER_CLEARANCE_PX * 0.7,
     };
     let target = lerpPoint(legacyTarget, stuckTarget, q);
     target = pushOutOfScreener(target, screenerPos);
-    // D1 reste côté porteur (route over), clearance garantie avec O1.
+    // Clearance avec O1 garantie en poussant dans la direction
+    // (target → carrier inversée) — si target est déjà du côté opposé,
+    // pushOutOfCarrier ne change rien.
     target = pushOutOfCarrier(target, carrierPos, {
-      x: perpX * sideOfCarrier,
-      y: perpY * sideOfCarrier,
+      x: cToSUx, // direction carrier → screener → au-delà
+      y: cToSUy,
     });
     return target;
   }
