@@ -76,18 +76,25 @@ export function screenContactAdhesion(
   if (!mode) return 0;
   const q = clampQuality(quality) / 100;
   if (q < 0.05) return 0;
-  const max = mode === 'leaving' ? 1 : 0.45 + q * 0.55;
+  const max = 0.45 + q * 0.55; // 0.45 à q=0.05, 1.0 à q=1
+  // CONTINUITÉ AUX BOUNDARIES :
+  //  - arriving : 0 → max (montée pendant le contact, FINIT à max)
+  //  - stuck    : max → max (plaqué tout au long)
+  //  - leaving  : max → 0 (descente après l'impact)
+  // Cela garantit que l'adhésion à la FIN d'un segment de mode N matche
+  // l'adhésion au DÉBUT du segment suivant de mode N+1, évitant les
+  // sauts visuels du défenseur quand on franchit un step boundary.
   if (mode === 'arriving') {
     const settleStart = 0.30;
     const settleEnd = 0.48 - q * 0.08;
-    const releaseStart = 0.78 + q * 0.12;
-    return max * smoothstep(settleStart, settleEnd, localT) * (1 - smoothstep(releaseStart, 1, localT));
+    return max * smoothstep(settleStart, settleEnd, localT);
   }
   if (mode === 'leaving') {
     const holdEnd = 0.76 + q * 0.12;
     return max * (1 - smoothstep(holdEnd, 0.98, localT));
   }
-  return max * smoothstep(0, 0.18, localT) * (1 - smoothstep(0.78, 1, localT));
+  // stuck : plaqué tout au long.
+  return max;
 }
 
 export function findScreenQuality(

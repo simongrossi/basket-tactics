@@ -114,12 +114,19 @@ export function resolvePlayerCollisions<
   defPos: Record<string, D>,
   off: Record<string, Point>,
   minDist: number,
-  maxIter: number = 8
+  maxIter: number = 8,
+  skipIds?: ReadonlySet<string>
 ): void {
   const epsilon = 0.5;
   for (let iter = 0; iter < maxIter; iter++) {
     let anyMoved = false;
     for (const dId in defPos) {
+      // Skip défenseurs verrouillés (cf. screenLockedDefenders dans
+      // frameResolver) : leur position vient de la lerp engine et NE DOIT
+      // PAS être perturbée par le résolveur, qui peut flipper d'un côté
+      // à l'autre quand les obstacles interpolés se déplacent — créant
+      // un saut visuel entre deux frames consécutifs.
+      if (skipIds && skipIds.has(dId)) continue;
       const p = defPos[dId];
       const matched = p.matchedTo;
       const obstacles: Point[] = [];

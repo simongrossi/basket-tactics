@@ -313,15 +313,13 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
         const d1 = frame.defPos.D1;
         if (prev) {
           const jump = Math.hypot(d1.x - prev.x, d1.y - prev.y);
-          maxJump = Math.max(maxJump, jump);
+          if (jump > maxJump) maxJump = jump;
         }
         prev = { x: d1.x, y: d1.y };
       }
-      // Avant fix : sauts > 120px entre frames adjacents (D1 d'un côté du
-      // poseur à l'autre). Cible : sauts <30px (mouvement défensif fluide
-      // à ~110 px/step ⇒ ~1.8px/frame en idéal, marge pour pushes du
-      // résolveur de collisions sur le poseur mobile).
-      expect(maxJump, `saut max entre 2 frames adjacents mid-segment`).toBeLessThan(80);
+      // Avant fixes Phase 1 : sauts > 120px (D1 flippait d'un côté à l'autre).
+      // Après : trajectoire fluide, max ~quelques px par frame.
+      expect(maxJump, `saut max entre 2 frames adjacents mid-segment`).toBeLessThan(15);
     });
   });
 

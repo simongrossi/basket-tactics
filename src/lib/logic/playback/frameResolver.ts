@@ -161,9 +161,14 @@ export function resolveFrameAt(
   let screenB: ReturnType<typeof detectScreen> = null;
   let offBallScreensA: DetectedOffBallScreen[] = [];
   let offBallScreensB: DetectedOffBallScreen[] = [];
-  const carrier = localT < 0.5
-    ? carrierA
-    : carrierB;
+  // STABILISATION DU CARRIER : on n'utilise PLUS le switch à t=0.5
+  // (`carrier = localT < 0.5 ? carrierA : carrierB`) qui créait un saut de
+  // contexte à mi-segment lors d'une passe. On prend systématiquement le
+  // carrier de DESTINATION (carrierB) pour toute la transition. La balle
+  // visuellement vole d'A à B via `computeBallFrame`, indépendamment du
+  // flag carrier. Le contexte d'écran reste cohérent pendant tout le
+  // segment ; les détections endpoints (screenA/B) couvrent les deux cas.
+  const carrier = carrierB;
   let screen: ReturnType<typeof detectScreen> = null;
   let offBallScreens: DetectedOffBallScreen[] = [];
   if (state.defenseSystem === 'man') {
@@ -181,14 +186,11 @@ export function resolveFrameAt(
     defenderIds.forEach((id) => {
       defPosLinear[id] = lerpPoint(defA[id], defB[id], localT);
     });
-    // À step 0 en édition libre : si un défenseur est "late" (bloqué loin de
-    // sa cible à cause d'un écran), sa position linéaire ne sera pas dans le
-    // rayon de détection autour du poseur. On substitue alors par sa cible
-    // homme-à-homme pour que l'indicateur d'écran continue à s'afficher.
     const detectionPos: Record<DefenderId, Point> = (idxA === 0 && idxB === 0)
       ? buildStep0DetectionPositions(state, off, carrier, matchups, defPosLinear)
       : defPosLinear;
-    const forced = (localT < 0.5 ? a : b).forcedScreener;
+    // forcedScreener pris UNIQUEMENT sur step B (pas de bascule à t=0.5).
+    const forced = b.forcedScreener;
     screen = detectScreen(off, carrier, matchups, detectionPos, state.screenRadius, forced);
     offBallScreens = detectOffBallScreens(off, carrier, matchups, detectionPos, state.screenRadius);
   }
@@ -247,7 +249,10 @@ export function resolveFrameAt(
     //  - 'leaving' (defA onScreen, defB pas) : D1 vient de se libérer ; on
     //    le maintient figé au départ puis il rattrape.
     //  - 'stuck' (both onScreen) : encore plaqué — freeze au milieu.
-    const isCarrierDef = defB[id].isCarrierDefender || defA[id].isCarrierDefender;
+    // Stable : on prend uniquement defB pour ce flag (le step de destination).
+    // Le OR avec defA créait un saut de contexte mid-segment quand un défenseur
+    // changeait de rôle (carrier↔off-ball) pendant la transition (ex passe).
+    const isCarrierDef = defB[id].isCarrierDefender;
     const carrierContactA = screenA?.carrierDef === id;
     const carrierContactB = screenB?.carrierDef === id;
     const offBallContactA = offBallScreensA.find((s) => s.cutterDef === id);
@@ -290,20 +295,22 @@ export function resolveFrameAt(
     // écran, identité = localT.
     const effT = screenContactT(localT, modeQuality, screenMode);
     const phase = screenContactPhase(screenMode, localT, modeQuality);
-    if (screenMode) {
-      // Verrouille ce défenseur contre followDefendersAtFrame pour préserver
-      // l'effet visuel du contact (freeze, courbe, easing).
-      screenLockedDefenders.add(id);
-    } else if (isCarrierDef && hasScreenAnnotationFor(a, carrierA, id) ||
-               isCarrierDef && hasScreenAnnotationFor(b, carrierB, id)) {
-      // Verrou supplémentaire : si l'utilisateur a DESSINÉ une annotation
-      // 'screen' sur step A ou B mais que la géométrie ne l'a pas détectée
-      // (poseur loin de D1 aux endpoints, ex systeme_basket-8 où O3 slip
-      // de 140px pendant le segment), on verrouille quand même D1 contre
-      // followDefendersAtFrame. Sinon D1 colle O1 en temps réel, croise
-      // O3 mid-segment, et le résolveur de collisions le flippe d'un côté
-      // à l'autre → saut visuel inexpliqué. Pas de mode/freeze/courbe
-      // appliqué (la détection moteur a manqué), juste la stabilisation.
+    // Décision de verrouillage contre followDefendersAtFrame. Plusieurs
+    // conditions cumulatives pour assurer la continuité visuelle :
+    const isInRecoveryA = defA[id].screenPhase === 'recover' && defA[id].late;
+    const isInRecoveryB = defB[id].screenPhase === 'recover' && defB[id].late;
+    const isImpactA = defA[id].screenPhase === 'impact';
+    const isImpactB = defB[id].screenPhase === 'impact';
+    // Annotation utilisateur dans step A ou B (poseur slip non détecté
+    // par la géométrie). Ne lock que pour le défenseur du porteur.
+    const hasUserScreen = isCarrierDef && (hasScreenAnnotationFor(a, carrierA, id) || hasScreenAnnotationFor(b, carrierB, id));
+    // Pour la stabilisation, on lock SEULEMENT si l'écran a une qualité
+    // non-triviale. À quality < 10 (ghost = faux écran), l'utilisateur
+    // indique explicitement qu'il n'y a pas de vrai contact ; D1 doit
+    // suivre O1 normalement. Sinon, on bloque pour préserver le réalisme.
+    const meaningfulQuality = modeQuality >= 10;
+    if ((screenMode && meaningfulQuality) || hasUserScreen ||
+        ((isInRecoveryA || isInRecoveryB || isImpactA || isImpactB) && meaningfulQuality)) {
       screenLockedDefenders.add(id);
     }
 
@@ -447,7 +454,9 @@ export function resolveFrameAt(
   resolvePlayerCollisions(
     defPos as unknown as Record<string, ComputedDefense[DefenderId]>,
     off,
-    PLAYER_MIN_CLEARANCE_PX
+    PLAYER_MIN_CLEARANCE_PX,
+    8,
+    screenLockedDefenders
   );
   recomputeDefenseFrameOrientations(state, off, carrier, defPos);
 
@@ -513,17 +522,27 @@ function annotationScreenerFor(
 }
 
 /**
- * Vrai si l'utilisateur a dessiné une annotation 'screen' dans `step` pour
- * le défenseur `defenderId` (= carrierDef du carrier). Sert à stabiliser le
- * défenseur du porteur contre followDefendersAtFrame quand la géométrie ne
- * détecte pas formellement l'écran.
+ * Vrai si l'utilisateur a dessiné une annotation 'screen' avec une qualité
+ * NON-NULLE dans `step` pour le porteur. Sert à stabiliser le défenseur du
+ * porteur contre followDefendersAtFrame quand la géométrie ne détecte pas
+ * formellement l'écran. À quality=0 (ghost = faux écran), le lock ne fire
+ * pas et D1 continue à suivre O1 normalement.
  */
 function hasScreenAnnotationFor(
   step: AppState['steps'][number] | undefined,
   carrier: AttackerId,
   _defenderId: DefenderId
 ): boolean {
-  return annotationScreenerFor(step, carrier) !== undefined;
+  if (!step) return false;
+  const ann = step.annotations.find(
+    (a) => a.type === 'screen' && a.fromId !== carrier && (a.toId == null || a.toId === carrier)
+  );
+  if (!ann) return false;
+  // Quality ≥ 10 = écran "réel" (au moins loose). Quality < 10 = ghost,
+  // l'utilisateur indique explicitement que c'est un faux écran, donc on
+  // n'applique aucune stabilisation spéciale.
+  const quality = ann.quality ?? 50;
+  return quality >= 10;
 }
 
 function carrierContactScreener(
