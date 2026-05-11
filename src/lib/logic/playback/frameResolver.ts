@@ -302,10 +302,16 @@ export function resolveFrameAt(
     const forcedPushSign = routePreference
       ? forcedPushSignForRoute(defA[id], defB[id], routePreference)
       : undefined;
-    const pair = pickStaggeredPair(defA[id], defB[id], candidates);
+    // Pendant la phase 'leaving' (recover), D1 ne doit PAS être routé autour
+    // du poseur via Bezier — il sort du contact en ligne droite vers sa nouvelle
+    // cible. La Bezier en recovery faisait orbiter D1 vers le côté OPPOSÉ
+    // au stuck point (selon forcedPushSign), créant le bug "il rattrape le
+    // retard à l'opposé du cercle puis revient".
+    const allowCurve = screenMode !== 'leaving';
+    const pair = allowCurve ? pickStaggeredPair(defA[id], defB[id], candidates) : null;
     if (pair) {
       p = curveAroundStaggeredPair(defA[id], defB[id], pair[0], pair[1], effT);
-    } else {
+    } else if (allowCurve) {
       const blocking = pickBlockingCluster(defA[id], defB[id], candidates);
       if (blocking) {
         p = curveAroundObstacle(
@@ -333,7 +339,14 @@ export function resolveFrameAt(
         off
       );
       if (contactScreener) {
-        const contactPoint = radialContactPoint(p, contactScreener);
+        // ANCRAGE du point de contact : pour 'leaving', on calcule depuis defA
+        // (la position où D1 était stuck à la fin du contact). Sinon, D1
+        // suivrait la trajectoire courbe en orbitant autour du poseur — il
+        // se retrouverait visuellement de l'AUTRE côté du poseur pendant la
+        // décohésion. Pour 'arriving'/'stuck', on garde l'ancrage dynamique
+        // depuis p (la trajectoire approche le contact côté carrier).
+        const anchor = screenMode === 'leaving' ? defA[id] : p;
+        const contactPoint = radialContactPoint(anchor, contactScreener);
         p = lerpPoint(p, contactPoint, adhesion);
       }
     }

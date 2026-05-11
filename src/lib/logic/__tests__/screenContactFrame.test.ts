@@ -244,6 +244,38 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
     });
   });
 
+  describe("Recovery — pas d'orbite autour du poseur (bug 'rattrape à l'opposé')", () => {
+    it('en leaving, D1 ne bascule pas du côté opposé au stuck point pendant la décohésion', () => {
+      // Bug constaté : pendant la recovery, D1 partait orbiter du côté
+      // opposé au stuck point via la Bezier (forcedPushSign basé sur la rule
+      // pointait à l'opposé du stuck side). Fix : Bezier désactivée en
+      // 'leaving', et l'adhésion ancre le contactPoint sur defA (stuck),
+      // pas sur p courant.
+      const state = buildRecoverScenario(100);
+      // Stuck point à la fin du step 1 (juste avant la transition recovery).
+      const stuckFrame = resolveFrameAt(state, 0.99);
+      expect(stuckFrame).not.toBeNull();
+      const stuckD1 = stuckFrame!.defPos.D1;
+      const screener = stuckFrame!.off.O3;
+      const stuckSide = Math.sign(stuckD1.x - screener.x);
+
+      // Pendant la phase stuck de la recovery (localT du segment 1→2 < ~0.85),
+      // D1 doit rester côté `stuckSide`. Au-delà il peut se rapprocher de O1
+      // qui est de l'autre côté, mais sans flip brutal au milieu.
+      for (let t = 1.05; t <= 1.7; t += 0.05) {
+        const frame = resolveFrameAt(state, t);
+        if (!frame) continue;
+        const d1 = frame.defPos.D1;
+        const screenerNow = frame.off.O3;
+        const sideNow = Math.sign(d1.x - screenerNow.x);
+        if (stuckSide !== 0 && sideNow !== 0) {
+          expect(sideNow, `t=${t.toFixed(2)} : D1 ne doit pas orbiter de l'autre côté`)
+            .toBe(stuckSide);
+        }
+      }
+    });
+  });
+
   describe('Recover après impact — le temps perdu se prolonge au step suivant', () => {
     it('D1 reste late au step suivant un écran lockdown', () => {
       const state = buildRecoverScenario(100);
