@@ -74,25 +74,42 @@ function pushOutOfScreener(target: Point, screenerPos: Point): Point {
 function pushOutOfCarrier(
   target: Point,
   carrierPos: Point,
-  direction?: { x: number; y: number }
+  preferredDir?: { x: number; y: number }
 ): Point {
   const minClearance = MIN_PLAYER_CLEARANCE_PX;
   const dx = target.x - carrierPos.x;
   const dy = target.y - carrierPos.y;
   const d = Math.hypot(dx, dy);
   if (d >= minClearance) return target;
-  if (direction) {
-    const dlen = Math.hypot(direction.x, direction.y) || 1;
-    return {
-      x: carrierPos.x + (direction.x / dlen) * minClearance,
-      y: carrierPos.y + (direction.y / dlen) * minClearance,
-    };
+  // Construction d'une direction de poussée CONTINUE :
+  // - on part de la direction radiale (target - carrier), qui est toujours
+  //   bien définie tant que d > 0.01.
+  // - on AJOUTE la direction préférée (sideOfCarrier × perp) qui guide vers
+  //   la bonne route (over/under/etc.). Quand sideOfCarrier ≈ 0, la
+  //   préférée est ~nulle → on retombe sur le radial pur (continu).
+  //   Quand sideOfCarrier ≈ ±1, la préférée domine → côté privilégié.
+  // Cette somme normalisée évite les sauts à la transition de signe.
+  let dirX = dx;
+  let dirY = dy;
+  if (d > 0.01) {
+    dirX = dx / d;
+    dirY = dy / d;
+  } else {
+    // Target colle au porteur. On part d'une orientation arbitraire +y.
+    dirX = 0;
+    dirY = 1;
   }
-  if (d < 0.01) return { x: carrierPos.x + minClearance, y: carrierPos.y };
-  const k = minClearance / d;
+  if (preferredDir) {
+    // On pondère la direction préférée par sa magnitude (sideOfCarrier ∈
+    // [-1, 1]) — pas de normalisation, pour éviter le flip à magnitude faible.
+    // Coefficient 2 pour que la préférée domine quand |sideOfCarrier| > 0.5.
+    dirX += preferredDir.x * 2;
+    dirY += preferredDir.y * 2;
+  }
+  const dlen = Math.hypot(dirX, dirY) || 1;
   return {
-    x: carrierPos.x + dx * k,
-    y: carrierPos.y + dy * k,
+    x: carrierPos.x + (dirX / dlen) * minClearance,
+    y: carrierPos.y + (dirY / dlen) * minClearance,
   };
 }
 
@@ -213,7 +230,19 @@ export function applyScreenAdjustment(
   const ny = dirToHoop.y / len;
   const perpX = -ny;
   const perpY = nx;
-  const sideOfCarrier = Math.sign(carrierPos.x - screenerPos.x) || 1;
+  // SIDE OF CARRIER — version géométriquement continue.
+  // On NORMALISE le vecteur poseur→porteur puis on projette sur l'axe
+  // perpendiculaire à l'axe poseur→panier. Cela donne `sideOfCarrier`
+  // strictement continu dans [-1, 1] :
+  //  - le porteur tourne autour du poseur → la projection varie sans saut
+  //  - le porteur traverse l'axe poseur→panier → sideOfCarrier passe par 0
+  //    proprement (pas de flip de signe par Math.sign)
+  // Math.sign créerait une téléportation d'un côté à l'autre quand le porteur
+  // change de côté pour un micro-décalage.
+  const sToCx = carrierPos.x - screenerPos.x;
+  const sToCy = carrierPos.y - screenerPos.y;
+  const sToCLen = Math.hypot(sToCx, sToCy) || 1;
+  const sideOfCarrier = (sToCx * perpX + sToCy * perpY) / sToCLen;
 
   // q ∈ [0, 1] : 0 = ghost (effet quasi nul), 1 = lockdown (D1 plaqué).
   const q = Math.max(0, Math.min(100, quality)) / 100;

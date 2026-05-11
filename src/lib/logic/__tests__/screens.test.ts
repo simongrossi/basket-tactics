@@ -274,6 +274,38 @@ describe('applyScreenAdjustment', () => {
       expect(dist100).toBeGreaterThan(dist0);
     });
 
+    it("INVARIANT: pas de téléportation quand le porteur traverse l'axe poseur→panier", () => {
+      // Sans lissage, sideOfCarrier flip de ±1 quand le porteur cross l'axe →
+      // D1 se téléporte d'un côté à l'autre du poseur sur un micro-décalage.
+      // Vérification : sur un balayage continu de la position du porteur autour
+      // de l'axe, la position de D1 doit varier continûment.
+      const rules: Array<Parameters<typeof applyScreenAdjustment>[2]> = [
+        'over', 'under', 'hedge', 'drop', 'ice', 'weak', 'peel-switch',
+      ];
+      for (const rule of rules) {
+        let prev: { x: number; y: number } | null = null;
+        // Balayage du porteur en X, autour de l'axe (screenerPos.x = 310).
+        for (let xOff = -50; xOff <= 50; xOff += 1) {
+          const offMoved = {
+            ...off,
+            O1: { x: screen.screenerPos.x + xOff, y: off.O1.y },
+          };
+          const out = applyScreenAdjustment(
+            { x: offMoved.O1.x, y: offMoved.O1.y - 10 },
+            { ...screen, carrierPos: offMoved.O1 } as never,
+            rule, 'D1', offMoved, 35, 'medium', undefined, 50
+          );
+          if (prev) {
+            const jump = Math.hypot(out.x - prev.x, out.y - prev.y);
+            // Pour 1px de décalage du porteur, D1 ne doit pas bouger de plus
+            // de 10px (= échelle raisonnable pour un easing continu).
+            expect(jump, `${rule} : saut entre xOff=${xOff - 1} et ${xOff}`).toBeLessThan(10);
+          }
+          prev = out;
+        }
+      }
+    });
+
     it("INVARIANT: aucun chevauchement défenseur ↔ porteur/poseur (toutes rules × toutes qualities)", () => {
       // Distance minimale entre centres : 2 × PLAYER_RADIUS (= 32px sans buffer)
       // pour garantir que les cercles ne se croisent jamais.
