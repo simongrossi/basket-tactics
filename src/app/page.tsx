@@ -17,6 +17,7 @@ import { PlaybookView } from '@/components/PlaybookView';
 import { PlayerTimelineModal } from '@/components/PlayerTimelineModal';
 import { MultiTrackTimeline } from '@/components/MultiTrackTimeline';
 import { MetricsBar } from '@/components/MetricsBar';
+import { MetricsChart } from '@/components/MetricsChart';
 import { CoachDiagnosticsOverlay } from '@/components/CoachDiagnosticsOverlay';
 import { effectiveDefensePositions, getDefenseHoop, detectStepScreenAction } from '@/lib/logic/engine';
 import { computeMetrics } from '@/lib/logic/metrics';
@@ -331,6 +332,11 @@ export default function Page() {
             />
           )}
           {metrics && <MetricsBar metrics={metrics} bestAction={bestAction} screenAction={screenAction} />}
+          <MetricsChart
+            state={app.state}
+            activeStep={app.state.activeStep}
+            onSetActiveStep={app.setActiveStep}
+          />
         </div>
 
         {!presentMode && (

@@ -6,6 +6,35 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### UX — Graphique d'évolution des métriques
+
+Mini line chart sous la `Timeline` qui affiche l'évolution d'une métrique
+défensive au fil des étapes. Le coach voit d'un coup d'œil les étapes les
+plus dangereuses (pic de gap max) ou les plus engagées (pic d'aide).
+
+**Nouveau composant** `src/components/MetricsChart.tsx` :
+- 4 métriques sélectionnables : `maxGap`, `paintCoverage`, `lateCount`,
+  `helpFactorTotal`.
+- Affichage SVG fait main (pas de lib charting — overkill pour un mini-graphe).
+- Marqueur rouge sur le step actif (ligne verticale en pointillés).
+- Clic sur un point = navigation au step (`onSetActiveStep`).
+- Tooltip natif au hover : `Étape N — métrique: valeur`.
+- État replié par défaut (bouton "📈 graphique métrique" en bas-droite
+  de la timeline). Quand déplié, sélecteur de métrique + bouton ✕.
+
+**Performance** : à chaque render, `effectiveDefensePositions` est appelée
+pour chaque step (déjà memoizée via WeakMap dans engine), puis
+`computeMetrics` (pure). Mémoizé sur `[state, metric]`.
+
+**Câblage** dans `page.tsx` : ajouté juste après `MetricsBar` (qui montre
+l'étape active). Reçoit `state`, `activeStep`, `onSetActiveStep`.
+
+Pas de tests dédiés (composant React purement présentationnel). Les
+fonctions appelées (`computeMetrics`, `effectiveDefensePositions`) sont
+déjà testées.
+
+Roadmap : `#3 Graphique de métriques` marqué 🟢.
+
 ### UX — Templates défensifs utilisateur
 
 Permet de sauvegarder ses **propres presets défensifs** (snapshot

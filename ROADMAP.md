@@ -310,14 +310,12 @@ v1 : composant `ActionOrderBadges` rendu dans les vignettes `StepThumbnail` du p
 #### 🟢 Mode fantôme (ghosting) (v1)
 Implémenté : toggle `state.showGhosts`. Quand actif (et `activeStep > 0` et hors lecture/scrub), `GhostLayer` dans `CourtView` affiche les positions de l'étape N-1 en cercles pointillés (orange pour attaquants, bleu pour défenseurs) à 35% d'opacité, sans label. Visualise le vecteur de déplacement entre les deux étapes.
 
-#### ⚪ Graphique de métriques
-**Quoi.** Un mini-graphe ligne sous la `Timeline` montrant l'évolution d'une métrique au fil des étapes : "gap max" (attaquant le plus libre), "paint coverage" (défenseurs proches du panier), ou "late count". Permet de voir d'un coup d'œil quelles étapes sont les plus dangereuses.
-
-**Implémentation.** Nouveau composant `MetricsChart` qui prend `state` et calcule `computeMetrics(off, defPos, carrier, hoop)` pour chaque step (les fonctions sont déjà pures). Dessine un SVG path depuis l'array de valeurs, un point par étape, ligne reliant les points. Petite lib SVG faite main (pas de Chart.js — overkill pour un mini-graphe). Toggle dans le DefensePanel pour choisir quelle métrique afficher (gap max / paint / late count).
-
-**Effort** ~1h · **Risque** 🟢 · **Valeur** haut.
-
-**Tradeoff.** Le calcul à chaque render de toutes les étapes peut être coûteux (~10 étapes × `effectiveDefensePositions` + `computeMetrics`). À memoiser sur `state` via `useMemo`. Si lent, batch le calcul dans un effect dédié.
+#### 🟢 Graphique de métriques (livré 2026-05-12)
+Composant `MetricsChart` sous la Timeline. 4 métriques sélectionnables
+(maxGap / paintCoverage / lateCount / helpFactorTotal). SVG fait main,
+marqueur rouge sur step actif, clic = navigation. État replié par défaut
+(bouton "📈 graphique métrique"). Mémoizé sur `[state, metric]`.
+`computeMetrics` × `effectiveDefensePositions` cachée via WeakMap.
 
 ### Édition avancée
 
@@ -394,7 +392,7 @@ travail" est rempli.
 |---|---|---|---|---|
 | ~~1~~ | ~~Saisie numérique sliders~~ — 🟢 livré 2026-05-12 | — | — | — |
 | 2 | Snap-to-grid | 45min | 🟢 | Moyen |
-| 3 | Graphique métriques | 1h | 🟢 | Haut |
+| ~~3~~ | ~~Graphique métriques~~ — 🟢 livré 2026-05-12 | — | — | — |
 | 4 | Sélection multiple | 2h | 🟡 | Haut |
 | 5 | Mode présentation | 45min | 🟢 | Haut (tablette) |
 | 6 | Export GIF/vidéo | 3-4h | 🟡 | **Très haut** (partage) |
