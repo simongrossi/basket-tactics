@@ -10,6 +10,19 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
 ## Livré récemment (mai 2026)
 
+- 🟢 **Cycle modularité — découpage des 6 plus gros fichiers** (2026-05-12) :
+  - **`scriptedGenerators.ts` : 1502 → 92 lignes** (barrel) — 57 générateurs FIBA répartis par tier (helpers + tier1/2/3). Ajouter une action = 1 sous-fichier + 1 ligne.
+  - **`useAppState.ts` : 967 → 510 lignes** — toute la logique métier extraite en 8 namespaces de transformations pures `(state, ...args) => state` dans `src/lib/state/transforms/`. **61 nouveaux tests** unitaires sur ces transforms (sans setup React).
+  - **`CourtView.tsx` : 902 → 446 lignes** — extraction des hooks `useCourtFrame` (frame statique/scrub/playback) et `useCourtPointerHandlers` (drag + tracé annotations en rAF-coalesced). Sous-composants `<CourtPlayersLayer>` (sprites + screener gaze override) et `<CourtMenus>` (context menus + zone region).
+  - **`ContextMenu.tsx` : 897 → 22 lignes** — dispatch pur. Logique éclatée dans 5 modules : `popupHooks` (clamp + drag), `ToolBar`, `sharedRows`, `DefenderMenu`, `AttackerMenu`.
+  - **`screens.ts` : 822 → barrel + 5 modules** — épicentre des bugs récurrents, isolé en `helpers.ts`, `detectCarrierScreen.ts`, `carrierScreenAdjust.ts`, `detectOffBallScreens.ts`, `offBallScreenAdjust.ts`. Ajouter une rule défensive = 1 fichier ciblé.
+  - **`coachDiagnostics.ts` : 834 → barrel + 13 rules** — pattern **registry de règles** : chaque diagnostic vit dans `rules/<name>.ts` sous forme `(ctx) => CoachDiagnostic[]`. Ajouter un diagnostic basket = 1 fichier + 1 entrée dans le registry. Plus aucune lecture des 833 autres lignes.
+  - **API publique strictement inchangée** sur les 6 fichiers : zéro caller modifié.
+  - **541 → 602 tests verts** (+61 sur les transforms purs `useAppState`, possibles seulement après extraction).
+  - 4 nouveaux patterns documentés dans [docs/architecture.md § Modularité & refactoring](docs/architecture.md#modularité--refactoring) : barrel + dossier, transforms purs + hook mince, hooks + sous-composants, registry de règles.
+  - Historique complet : [docs/refactoring-history.md](docs/refactoring-history.md). Méthode reproductible pour les prochains gros fichiers.
+  - **Audit moteur défensif** : ~70 % des concepts basket élémentaires couverts. **10 trous métier** identifiés et ajoutés à § 1 (mismatch tracking, reject screen, hard/soft hedge, snake dribble, empty side PnR, dig/double post, defensive 3 sec, switch policy granulaire, top-lock timing, bumping cutters). + **box-out/rebond** noté en § 4 comme demi-jeu manquant.
+
 - 🟢 **Refacto moteur défensif en couches** (2026-05-10) :
   - **`engine.ts` : 982 → 117 lignes** (-88%). Le calcul des cibles défensives (`computeDefenseTargets`, ~290 lignes monolithique) découpé en pipeline de 6 couches isolées dans `src/lib/logic/defense/` : context → baseTargets → pnrRotations → offBallScreen → trap → directives → postPassOrientation. Chaque couche est testable en isolation derrière une signature `(positions, [matchups,] ctx) → void`.
   - `effectiveDefensePositions` (contrainte vitesse + closeout + friction + collisions, ~235 l) sortie dans `defense/speedConstraint.ts`. `followDefendersAtFrame` + `recomputeDefenseFrameOrientations` dans `defense/frameAdjust.ts`. `computeAttackerVisuals` dans `attackerVisuals.ts`. `detectStepScreenAction` dans `events/triggerDetector.ts`.
@@ -102,6 +115,183 @@ Implémenté dans `lib/logic/trap.ts` (polygones, helper picker, position cible)
 v1 : `state.attackingDirection: 'up' | 'down'` + threading `hoop?: Point` dans manDefense / help / screens / triggers / metrics / trap / geometry.
 v2 : zone defense directionnelle (`computeZoneTargets` accepte `hoop`, `mirrorZoneLayout(layout)` miroite polygones et homePos autour de y=540).
 **v3 — distinction visuelle des paniers** : en mode fullCourt, anneau orange pointillé (`#F97316`) + label "🎯 visé" autour du panier ciblé par l'attaque, et petit cercle bleu sobre (`#3b82f6`) + "🛡 protégé" autour du panier défendu. Suit `state.attackingDirection`. Pas d'effet en demi-terrain (le panier est toujours en haut). Implémenté dans `CourtBackground`, propagé depuis `CourtView` et `StepThumbnail`.
+
+### Concepts défensifs basket à compléter
+
+Audit moteur défensif (mai 2026) → ~70 % des concepts élémentaires couverts.
+Restent **10 trous métier** à instruire, par ordre de valeur basket.
+
+> ⚠️ Item séparé hors de cette liste : **box-out / rebond après tir** —
+> demi-jeu absent du moteur. Tracé dans § 4 "Dette technique" comme chantier
+> autonome (changement de scope : ajoute le rebond comme événement, pas
+> seulement le placement défensif).
+
+#### 🔴 Critiques
+
+##### ⚪ Mismatch tracking après switch
+**Quoi.** Quand un switch laisse un D5 (pivot) sur le meneur, la défense ne
+réagit pas. Pas de **scram switch** (renvoi du mismatch via 3ᵉ défenseur)
+ni de cross-match correctif (rebalance automatique des matchups).
+
+**Pourquoi basket.** Un mismatch laissé = post-up garanti ou drive easy. En
+match c'est la première chose qu'on attaque ; en défense c'est le premier
+réflexe à corriger.
+
+**Implémentation.** (a) Détection : à chaque switch, comparer le profil
+hauteur/poste du nouveau couple (D5 vs O1 = mismatch -2 catégories →
+flag `mismatchAfterSwitch` sur `ComputedDefender`). (b) Scram switch :
+nouvelle `screenRule` ou heuristique post-switch qui propose un 3ᵉ
+échange si un défenseur compatible est proche. (c) Diagnostic coach
+existe déjà partiellement (`switch-mismatch` warning) — à enrichir.
+
+**Effort** ~3-4h · **Risque** 🟡 · **Valeur** **très haut**.
+
+##### ⚪ Reject screen detection
+**Quoi.** Porteur qui **refuse l'écran** (jab du côté du screen + drive
+opposé). La défense reste piégée par-dessus l'écran qui n'a pas eu lieu —
+elle a anticipé le contact et s'est positionnée en conséquence.
+
+**Pourquoi basket.** Le reject est une lecture offensive standard contre
+une couverture trop agressive (hedge/blitz). Sans détection, le moteur
+sur-anticipe : D1 est placé over alors que O1 fonce dans l'autre sens.
+
+**Implémentation.** Dans [`screens/detectCarrierScreen.ts`](src/lib/logic/screens/detectCarrierScreen.ts),
+comparer la direction du dribble entre step N-1 → N : si l'angle
+(porteur→screener) diverge nettement après s'être rapproché (jab puis
+fuite), considérer l'écran comme rejeté → `detectScreen` retourne null
+ou flag `rejected: true`. La couverture (`applyScreenAdjustment`) doit
+alors retomber sur l'individuel + closeout.
+
+**Effort** ~2-3h · **Risque** 🟡 · **Valeur** haut.
+
+##### ⚪ Hard hedge vs soft hedge
+**Quoi.** Aujourd'hui une seule implémentation de `hedge`. Or :
+- **Hard hedge** : D5 sort à 2 pas devant le porteur (vraie barricade,
+  oblige le porteur à reculer), pendant que D1 chase over.
+- **Soft show** : D5 montre brièvement (1/2 pas) puis recover vite sur
+  son homme. D1 doit chase encore plus vite.
+
+**Pourquoi basket.** Deux philosophies opposées. Hard hedge → contre les
+shooters menace 3pts. Soft show → contre les non-shooters (on laisse pas
+le big trop loin de son homme).
+
+**Implémentation.** Ajouter un slider `hedgeAggression: 0–100` (default
+50) sur `ScreenRule='hedge'` au niveau team OU dans `DefenderRule` du
+D5 spécifique. Module les variables `lagBack` et `aggressiveAdvance`
+dans [`carrierScreenAdjust.ts`](src/lib/logic/screens/carrierScreenAdjust.ts)
+section `hedge`. À 0 = legacy soft show. À 100 = hard hedge plaqué.
+
+**Effort** ~1-2h · **Risque** 🟢 · **Valeur** haut.
+
+##### ⚪ Snake dribble
+**Quoi.** Dribble qui **recule pour reprendre l'écran** (jab + retreat
+pour re-déclencher l'avantage). Pas détecté actuellement, la défense ne
+s'y adapte pas.
+
+**Pourquoi basket.** Lecture offensive standard quand le premier passage
+de l'écran n'a pas créé d'avantage. La défense doit rester engagée sur
+le couple porteur/poseur au lieu de relâcher.
+
+**Implémentation.** Comparer la position du porteur sur N-2, N-1, N : si
+le porteur s'est éloigné puis se rapproche du poseur (forme en V ou U),
+flag `snakeDribble: true` sur la `DetectedScreen`. Conserver la
+couverture initiale au lieu de la relâcher (pas de transition vers
+recover tant que le snake n'est pas fini).
+
+**Effort** ~2-3h · **Risque** 🟡 · **Valeur** moyen-haut.
+
+#### 🟠 Moyens — patterns courants non couverts
+
+##### ⚪ Empty side PnR (côté faible vide)
+**Quoi.** PnR exécuté sur le côté du terrain où il n'y a pas de
+coéquipier (côté faible vide). Pas détecté, la couverture optimale change
+pourtant : **ice** impossible (pas de fond à fermer → le porteur prendrait
+le baseline en 1c0), **under** devient naturel (pas de skip pass à
+défendre côté faible).
+
+**Implémentation.** Helper `isEmptySidePnR(screen, off)` qui retourne
+true si aucun attaquant ≠ porteur/poseur côté faible (x du même signe
+que la perpendiculaire à l'axe S→panier). Si true, désactiver `ice` dans
+la liste de rules proposées + diagnostic coach "empty side → under
+recommandé".
+
+**Effort** ~2h · **Risque** 🟢 · **Valeur** moyen.
+
+##### ⚪ Dig / double au post
+**Quoi.** Quand un attaquant est en **post-up** (dos au panier près du
+cercle), le low man peut **digger** (toucher la balle puis recover) ou
+**doubler** (rester à 2 sur le post). Aujourd'hui aucun des deux.
+
+**Pourquoi basket.** Le post-up est une menace que les défenses traitent
+toujours avec un help anticipé. Sans dig/double, le pivot a un 1c1 propre
+à chaque possession post.
+
+**Implémentation.** Trigger `post` existe déjà ([`triggers.ts`](src/lib/logic/triggers.ts)).
+Ajouter dans [`help.ts`](src/lib/logic/help.ts) une route `postDig` :
+quand trigger post actif, le défenseur naturel du shooter le plus loin
+fait un dig timed (50% du chemin vers le pivot puis recover). Variante
+`postDouble` : il reste collé jusqu'à passe sortante. Sliders
+`state.postDigIntensity` et `state.postDoubleEnabled`.
+
+**Effort** ~3-4h · **Risque** 🟡 · **Valeur** moyen.
+
+##### ⚪ Defensive 3 seconds (règle FIBA)
+**Quoi.** Un défenseur ne peut pas rester >3 sec dans sa raquette sans
+être à un bras d'un attaquant. Pas modélisé.
+
+**Pourquoi basket.** Règle qui force le pivot défensif à sortir
+périodiquement, empêche les défenses de packer la raquette en
+permanence. Impact tactique réel.
+
+**Implémentation.** Simulation step-based : compter les steps consécutifs
+où un défenseur est dans la paint sans `dist(att) < 50px`. À ≥3 steps,
+poser un diagnostic coach `defensive-3sec-violation`. Bonus : pénalité
+visuelle (anneau rouge clignotant). Pas de pénalité réelle sur la
+simulation (pas de score à modéliser).
+
+**Effort** ~2h · **Risque** 🟢 · **Valeur** moyen.
+
+##### ⚪ Politique de switch granulaire (team-level)
+**Quoi.** Aujourd'hui : `screenRule` global + override par défenseur.
+Manque la granularité **"switch 1-3 only"** (les guards switchent entre
+eux mais pas avec les bigs) vs **"switch all"** (peu importe le
+mismatch) vs **"no switch"**.
+
+**Implémentation.** Nouveau `state.switchPolicy: 'none' | '1-3' | '1-4' |
+'all' | 'specific'`. En mode `'1-3'`, `applySwitch` ne s'applique que si
+les deux défenseurs sont rank 1, 2, ou 3 (positions guard). En
+`'specific'`, on lit une matrice `state.switchMatrix[d1][d2]: boolean`.
+Slider dans `DefensePanel`.
+
+**Effort** ~2h · **Risque** 🟢 · **Valeur** moyen-haut.
+
+##### ⚪ Top-lock off-ball avec timing
+**Quoi.** `top-lock` existe en position statique (le D du cutter se met
+côté ballon en permanence). Manque le concept **"top-lock sur la
+première utilisation, then chase sur la 2ᵉ"** — un shooter qui sort
+deux pindowns d'affilée n'est top-locké qu'au premier.
+
+**Implémentation.** Suivre le nombre de screens hors-ballon traversés
+par un même cutter dans la séquence courante (compteur par AttackerId
+dans le contexte de frame). Si compteur ≥ 2, basculer `top-lock` →
+`chase`. Reset compteur sur passe entrante (la séquence est consommée).
+
+**Effort** ~2h · **Risque** 🟡 · **Valeur** moyen.
+
+##### ⚪ Bumping the cutter — réaction automatique
+**Quoi.** `bump` existe comme rule explicite. Manque la **réaction
+automatique** : quand un cut est détecté ([`detectCuts`](src/lib/logic/threatResolution.ts)
+le fait déjà côté diagnostic), un défenseur sur la trajectoire devrait
+légèrement contacter (offset 8-12px latéral) pour ralentir.
+
+**Implémentation.** Dans une nouvelle couche ou dans `help.ts`, après
+`detectCuts`, identifier le défenseur le plus proche de la trajectoire
+prev → cur du cutter. S'il est à <40px de la ligne ET pas occupé par
+trigger, appliquer un petit offset perpendiculaire qui le rapproche du
+cutter (effet "bump léger"). Slider global `state.autoBumpCutters` pour
+on/off.
+
+**Effort** ~2-3h · **Risque** 🟡 · **Valeur** moyen.
 
 ---
 
@@ -222,6 +412,7 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 
 ## Synthèse priorisation (chantiers ⚪ restants)
 
+### UX / Produit
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
 | 1 | Saisie numérique sliders | 30min | 🟢 | Moyen |
@@ -233,7 +424,28 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 | 7 | Templates utilisateurs | 1h30 | 🟢 | Haut |
 | 8 | Annotations texte libres | 2h | 🟡 | Haut |
 
-**Total restant** : ~12-13h en restant sur des v1 simples.
+### Logique basket — concepts défensifs manquants (audit mai 2026)
+| # | Chantier | Effort | Risque | Valeur |
+|---|---|---|---|---|
+| B1 | Mismatch tracking + scram switch | 3-4h | 🟡 | **Très haut** |
+| B2 | Reject screen detection | 2-3h | 🟡 | Haut |
+| B3 | Hard / soft hedge (slider aggression) | 1-2h | 🟢 | Haut |
+| B4 | Snake dribble detection | 2-3h | 🟡 | Moyen-haut |
+| B5 | Empty side PnR | 2h | 🟢 | Moyen |
+| B6 | Dig / double au post | 3-4h | 🟡 | Moyen |
+| B7 | Defensive 3 sec (diag coach) | 2h | 🟢 | Moyen |
+| B8 | Switch policy granulaire (1-3 / all) | 2h | 🟢 | Moyen-haut |
+| B9 | Top-lock off-ball avec timing | 2h | 🟡 | Moyen |
+| B10 | Bumping cutters automatique | 2-3h | 🟡 | Moyen |
+
+**Total UX/Produit restant** : ~12-13h en restant sur des v1 simples.
+**Total logique basket restant** : ~22-28h pour les 10 items.
+
+**Ordre conseillé logique basket** : B3 → B1 → B8 → B2 → B7 → B5 → B4 → B6 →
+B9 → B10. B3 est un quick win (slider sur une rule existante). B1 et B8
+sont les plus impactants pour le réalisme défensif. B7 est triviale et
+pédagogique. Les détections (B2/B4) viennent ensuite, plus complexes
+géométriquement.
 
 **Ordre conseillé pour enchaîner** : 1 → 5 → 7 → 3 → 2 → 8 → 4 → 6 (du moins risqué au plus risqué, valeur croissante). Le bloc (1 + 5 + 7) est ~3h pour 3 quick wins très visibles. (3 + 2) ajoute 2h pour deux UX impactants. (8 + 4) sont les plus complexes côté UX. (6) est le plus impactant pour la diffusion mais le plus délicat techniquement — à garder pour la fin.
 
@@ -248,39 +460,97 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 
 ## 4. Dette technique & refactos restants
 
-La passe de refacto de mai 2026 a découpé `engine.ts` (982 → 117 lignes) et `CourtView.tsx` (1222 → 811 lignes), centralisé les constantes physiques, et regroupé les overlays. Reste 3 gros morceaux identifiés dans le plan original :
+La passe de refacto de mai 2026 a découpé `engine.ts` (982 → 117 lignes) et `CourtView.tsx` (1222 → 811 lignes), centralisé les constantes physiques, et regroupé les overlays.
 
-### ⚪ A4 — Casser `scriptedGenerators.ts` (1491 lignes)
+**Cycle modularité (mai 2026, post-refacto)** — 6 gros fichiers découpés
+sans changement de comportement. Cf. [docs/refactoring-history.md](docs/refactoring-history.md)
+pour les patterns réutilisables (barrel + dossier, transforms purs + hook
+mince, hooks + sous-composants, registry de règles).
 
-50 generators d'actions FIBA (PnR, cuts, screens, handoffs…) dans un seul fichier monolithique. Chaque action = 30+ lignes de trajectoire hardcodée → duplication massive (calcul du `carrierBaseSign`, fallbacks de coin, polylines de cuts).
+### 🟢 A4 — `scriptedGenerators.ts` (1502 → 92 LOC) — barrel + tier1/2/3
 
-**Plan** :
-- `src/lib/logic/scripted/trajectoryBuilder.ts` — helpers `moveTo(point, frames)`, `screenAt(point, hold)`, `cutTo(point, via?)`, `dribbleTo(point)`. Génère le polyline + waypoints + flags attendus par `playbackTrajectory.ts`.
-- Un fichier par famille d'action : `actions/pickAndRoll.ts` (PnR + slip + reject + drag), `actions/cuts.ts` (back-cut, flare, ucla), `actions/screens.ts` (staggered, elevator, hammer, ram, wide, wiper), `actions/handoff.ts`, `actions/dribbleActions.ts`.
-- `scripted/index.ts` — registry `{ kind: ScriptedKind → generator }`. Le switch/dispatch actuel devient `registry[kind](params)`.
-- Estimation : ~2 jours, P2.
+57 générateurs d'actions FIBA répartis par tier dans `src/lib/logic/scriptedGenerators/` :
+- `helpers.ts` — géométrie commune + type `Generator`
+- `tier1.ts` — 19 actions de base (PnR, cuts, screens, drive, shoot, iso)
+- `tier2.ts` — 30 variantes (cuts spécialisés, off-ball, PnR variants, combos)
+- `tier3.ts` — 9 sets d'entrée (horns, floppy, pistol, ucla, diamond…)
+- `scriptedGenerators.ts` (index) — mapping action FIBA → générateur
 
-### ⚪ A5 — Démêler `useAppState.ts` (766 lignes)
+Pour ajouter une action FIBA : écrire `genFooBar` dans le bon tier + une
+ligne `'foo-bar': t<N>.genFooBar` dans le mapping.
 
-Hook géant qui mélange state global + persistance localStorage + 20+ action handlers + recompilation scénario. Hard à tester, refactors risqués, pas de boundaries claires.
+### 🟢 A5 — `useAppState.ts` (967 → 510 LOC) — transforms purs
 
-**Plan** :
-- `src/state/store.ts` — state nu + setters atomiques.
-- `src/state/actions/` — un fichier par domaine (`playerActions.ts`, `scenarioActions.ts`, `defenseActions.ts`, `annotationActions.ts`, `zoneActions.ts`). Chaque action = fonction pure `(state, payload) → newState`.
-- `src/state/persistence.ts` — load/save localStorage + migrations de schéma.
-- `useAppState.ts` réduit à de la glue : compose les actions, appelle `recompileScenarioSteps()` aux bons moments.
-- Migration vers Zustand optionnelle (pas une obligation).
-- Estimation : ~1.5 jour, P2.
+Hook réduit à **persistance + history + câblage**. La logique des
+mutations vit dans 8 namespaces de fonctions pures `(state, ...args) =>
+state` dans `src/lib/state/transforms/` :
+- `stepTransforms` · `annotationTransforms` · `defenseTransforms` · `attackerTransforms`
+- `zoneTransforms` · `scenarioTransforms` · `defensiveScriptedTransforms` · `coreTransforms`
 
-### ⚪ A6 — Tests composants
+61 tests unitaires ajoutés sur ces transforms (sans React, sans
+localStorage). Total : **602 tests verts**.
 
-Aujourd'hui zéro test sur `src/components/`. Le hook `usePlaybackAnimation` (extrait en A2) et les overlays isolés (A2.3) sont devenus testables.
+### 🟢 A6 — Tests composants
 
-**Plan** :
-- Tests `usePlaybackAnimation` (transitions step, fin de lecture, reprise depuis scrub).
-- Tests sur les overlays isolés (`HeatmapOverlay`, `FieldOfViewOverlay`, `PassLanesOverlay`, `ThreatOverlay`) avec inputs frames mockés.
-- Pas la peine de tester CourtView de bout en bout — trop de surface, ROI faible.
-- Estimation : ~2 jours, P3 (à faire après A2 — fait — donc débloqué).
+Couvert par les 61 nouveaux tests sur les transforms `useAppState` (cf.
+A5) + tests existants sur `polyline`, `dribbleWave`, `frameResolver`,
+`appStateHistory`, etc. Les sous-composants extraits de CourtView /
+ContextMenu sont testables, à compléter si besoin.
+
+### 🟢 A7 — `CourtView.tsx` (902 → 446 LOC) — hooks + sous-composants
+
+- `hooks/useCourtFrame.ts` — calcule staticFrame / scrubFrame / playFrame + threats
+- `hooks/useCourtPointerHandlers.ts` — drag joueurs (rAF) + tracé d'annotations
+- `components/court/CourtPlayersLayer.tsx` — sprites + screener gaze override
+- `components/court/CourtMenus.tsx` — context menus (def/att) + zone region
+
+### 🟢 A8 — `ContextMenu.tsx` (897 → 22 LOC) — dispatch + 5 modules
+
+- `popupHooks.ts` · `ToolBar.tsx` · `sharedRows.tsx` · `DefenderMenu.tsx` · `AttackerMenu.tsx`
+
+Ajouter une row à un menu = éditer le fichier dédié, plus de scroll de 900 l.
+
+### 🟢 A9 — `screens.ts` (822 → barrel + 5 modules)
+
+Épicentre des bugs récurrents, isolé en domaines clairs :
+- `helpers.ts` · `detectCarrierScreen.ts` · `carrierScreenAdjust.ts`
+- `detectOffBallScreens.ts` · `offBallScreenAdjust.ts`
+
+Ajouter une rule défensive (over/under/hedge/…) = éditer 1 fichier ciblé.
+
+### 🟢 A10 — `coachDiagnostics.ts` (834 → barrel + 13 rules) — registry pattern
+
+Pattern de registry : chaque diagnostic vit dans `rules/<name>.ts` sous
+forme `(ctx) => CoachDiagnostic[]`. Pour ajouter un diagnostic basket :
+créer 1 fichier dans `rules/` + 1 entrée dans `REGISTRY`. Plus aucune
+lecture des 833 autres lignes.
+
+### ⚪ A11 — Box-out / rebond après tir (demi-jeu manquant)
+
+**Quoi.** Le moteur ne réagit pas au tir. Aucun box-out, aucun
+positionnement de rebond, aucune transition possession. C'est un
+**demi-jeu** du basket complètement absent.
+
+**Pourquoi c'est dans dette technique (pas dans § 1 Logique basket).**
+Parce que c'est un changement de **scope** du moteur, pas un raffinement
+d'une couche existante : il faut ajouter un type d'événement (le tir
+comme moment qui termine la séquence), une nouvelle phase de simulation
+(box-out → rebond → outlet), et probablement un nouveau type de step
+(`step.kind: 'play' | 'shot' | 'rebound'`).
+
+**Plan haut niveau** :
+- Annotation `shoot` existe → l'enrichir avec `shotOutcome: 'made' | 'missed' | 'blocked'`.
+- Nouvelle couche défense `boxOutLayer` qui s'active sur step shooting :
+  chaque défenseur fait un box-out sur son homme (offset vers le panier).
+- Modèle de rebond simple : probabilité par zone + profil (bigs +30 %,
+  guards -10 %), tirage déterministe.
+- Outlet pass : si rebond défensif, possession bascule, nouveau step de
+  transition.
+- Estimation : **5-8 jours**, P2. C'est une feature majeure.
+
+**Décision projet** : pas avant que les 10 items § 1 Concepts défensifs
+soient instruits. Le moteur actuel sert très bien à enseigner la défense
+de placement ; le rebond est une couche au-dessus.
 
 ### ⚪ Mode "Play IA — voir un match jouer tout seul" (parties B1-B5 du plan)
 
