@@ -691,6 +691,13 @@ export interface AppState {
    *  N+`hedgeRecoveryDelay`, l'écran est ignoré pour D5 (retour homme-à-homme),
    *  même si la rule globale est encore 'hedge'. */
   hedgeRecoveryDelay?: number;
+  /** C.5 — Tag-then-switch dynamic. Quand un low man tag est désigné sur
+   *  un roller PnR ET que le roller est très proche du panier (≤ 150 px),
+   *  basculer en switch implicite : le low man PREND le roller (matchups
+   *  swappés), le défenseur du screener part sur l'orphelin du low man.
+   *  Évite que le low man recover trop tard sur son homme original quand
+   *  le roller a déjà attaqué le panier. Default false (opt-in). */
+  tagThenSwitchEnabled?: boolean;
   /** Seuil de severity à partir duquel un switch est considéré comme un
    *  mismatch tactique (déclenche scram + diagnostic coach + badge visuel).
    *  Range 1..4. Default 2 (= D5 sur O3 minimum). */
