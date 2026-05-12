@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import type {
   AppState,
   DefenderId,
@@ -874,7 +875,11 @@ function MassRow({ label, children }: { label: string; children: React.ReactNode
 }
 
 /** Select "appliquer à tous" : option `—` neutre, dispatch au choix d'une
- *  vraie valeur, puis se réinitialise pour permettre de re-pousser. */
+ *  vraie valeur, puis se réinitialise (state local) pour permettre de
+ *  re-pousser la MÊME valeur consécutivement. Controlled pour fiabilité —
+ *  l'approche uncontrolled `defaultValue=""` + `e.target.value=''` était
+ *  cassée sous React 19 (concurrent rendering ne synchronisait pas le DOM
+ *  avec la réinitialisation après onPick). */
 function MassSelect({
   options,
   onPick,
@@ -882,14 +887,20 @@ function MassSelect({
   options: [value: string, label: string][];
   onPick: (value: string) => void;
 }) {
+  const [value, setValue] = useState('');
   return (
     <select
-      defaultValue=""
+      value={value}
       onChange={(e) => {
         const v = e.target.value;
-        if (!v) return;
+        if (!v) {
+          setValue('');
+          return;
+        }
         onPick(v);
-        e.target.value = '';
+        // Reset après le dispatch pour que la prochaine sélection (même
+        // valeur ou autre) déclenche bien un onChange.
+        setValue('');
       }}
       style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
     >
