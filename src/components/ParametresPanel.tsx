@@ -119,6 +119,12 @@ export function ParametresPanel({ state, onPatch, onSetPlayerCount }: Parametres
           onChange={(v) => onPatch({ showCoachDiagnostics: v })}
         />
         <LegendCheckboxLine
+          checked={state.showDetectionBadges !== false}
+          label="badges détections (reject / snake / empty / 3 sec)"
+          sample="line" color="#ea580c"
+          onChange={(v) => onPatch({ showDetectionBadges: v })}
+        />
+        <LegendCheckboxLine
           checked={!!state.showHeatmap}
           label="heatmap zones"
           sample="gradient" color=""

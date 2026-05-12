@@ -587,10 +587,10 @@ hautement valorisantes.
 
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
-| A.1 | **Visu nouvelles features défensives dans `DefensePanel`** : toggles UI pour `unwindRejectedScreens` (B2 V2), `snakeKeepCoverage` (B4 V2), `autoBumpCutters` (B10), `postCoverage` (B6 dropdown). Aujourd'hui settings tapables en code mais inaccessibles côté coach. | ~1h | 🟢 | **Très haut** |
+| ~~A.1~~ | ~~Visu nouvelles features défensives dans `DefensePanel`~~ — 🟢 livré 2026-05-12 | — | — | — |
 | A.2 | Mode présentation v2 — fullscreen navigateur natif (`document.documentElement.requestFullscreen()`) | <30min | 🟢 | Moyen |
 | A.3 | Annotations texte libres (outil `T`, dépôt + édition d'une note sur le terrain) | 2h | 🟡 | Haut |
-| A.4 | V3 visu sur détections : badges/overlays pour reject screen (B2), snake dribble (B4), empty side PnR (B5), defensive 3-sec (B7). Aujourd'hui en text-only dans diag coach. | 2h | 🟢 | Moyen-haut |
+| ~~A.4~~ | ~~V3 visu sur détections : badges/overlays~~ — 🟢 livré 2026-05-12 | — | — | — |
 
 ---
 

@@ -59,9 +59,15 @@ import { useCourtPointerHandlers } from '@/hooks/useCourtPointerHandlers';
 import { CourtPlayersLayer } from './court/CourtPlayersLayer';
 import { CourtMenus, type CtxMenuState, type ZoneRegionMenuState } from './court/CourtMenus';
 import { SnapGuideOverlay } from './court/SnapGuideOverlay';
+import { DetectionBadgesOverlay } from './court/DetectionBadgesOverlay';
+import type { CoachDiagnostic } from '@/lib/logic/coachDiagnostics';
 
 interface CourtViewProps {
   state: AppState;
+  /** A.4 — Diagnostics coach déjà calculés en amont (page.tsx).
+   *  Le composant en filtre les patterns visuellement importants
+   *  pour les rendre en SVG (DetectionBadgesOverlay). */
+  diagnostics?: CoachDiagnostic[];
   onMoveAttacker: (id: AttackerId, x: number, y: number) => void;
   onMoveDefender: (id: DefenderId, x: number, y: number) => void;
   onBeginPlayerDrag?: () => void;
@@ -349,6 +355,16 @@ export function CourtView(props: CourtViewProps) {
         <CourtPlayersLayer state={state} frame={frame} selectedDefenders={selectedDefenders} />
 
         {/* ---- Overlays avant (au-dessus des sprites) ---- */}
+        {/* A.4 — Badges détections (reject screen, snake, empty side, def 3sec).
+            Rendus APRÈS les joueurs pour passer au-dessus, AVANT les threats
+            badges pour pouvoir cohabiter sans masquer. */}
+        {state.showDetectionBadges !== false && props.diagnostics && (
+          <DetectionBadgesOverlay
+            diagnostics={props.diagnostics}
+            off={frame.off}
+            defPos={frame.defPos}
+          />
+        )}
         {/* Badges % de menace + flèche meilleure action — rendus APRÈS les
             joueurs pour passer AU-DESSUS des icônes (~17px de rayon). */}
         {threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="badges" />}

@@ -222,6 +222,7 @@ export default function Page() {
             )}
             <CourtView
               state={app.state}
+              diagnostics={coachDiagnostics}
               onMoveAttacker={app.moveAttacker}
               onMoveDefender={app.moveDefender}
               onBeginPlayerDrag={app.beginPlayerDrag}

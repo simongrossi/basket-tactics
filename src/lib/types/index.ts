@@ -678,6 +678,11 @@ export interface AppState {
    *  (pas de re-arm à zéro). Pratiquement : on force la couverture du
    *  step N à utiliser screen=screen-detected-at-N-2. Default false (opt-in). */
   snakeKeepCoverage?: boolean;
+  /** A.4 — Affiche les badges visuels SVG sur le terrain pour les patterns
+   *  détectés (reject screen, snake dribble, empty side PnR, defensive 3 sec).
+   *  Lit les diagnostics coach déjà calculés. Default true. Désactiver pour
+   *  alléger la vue pendant une présentation. */
+  showDetectionBadges?: boolean;
   /** Seuil de severity à partir duquel un switch est considéré comme un
    *  mismatch tactique (déclenche scram + diagnostic coach + badge visuel).
    *  Range 1..4. Default 2 (= D5 sur O3 minimum). */

@@ -6,6 +6,53 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### A.1 + A.4 — UI accessible + badges détections sur le terrain
+
+Deux chantiers de la Phase A (audit roadmap) livrés ensemble pour
+rendre accessibles côté coach les features défensives développées lors
+de la session 2026-05-12.
+
+#### A.1 — Couvertures avancées dans `DefensePanel`
+
+Nouvelle section "Couvertures avancées" (sous-titre "Réactions auto
+sur patterns détectés") avec 4 contrôles :
+
+1. **post-up** (dropdown) → `state.postCoverage` (`'none'` / `'dig'` / `'double'`)
+2. **bump auto sur cutters** (toggle) → `state.autoBumpCutters`
+3. **unwind sur reject screen** (toggle) → `state.unwindRejectedScreens`
+4. **maintenir couv. sur snake** (toggle) → `state.snakeKeepCoverage`
+
+Toutes désactivées par défaut (rétrocompat). Tooltips explicites sur
+l'effet basket de chaque option.
+
+#### A.4 — Badges détections sur le terrain
+
+Nouvel overlay SVG `court/DetectionBadgesOverlay.tsx` qui lit les
+`CoachDiagnostic[]` déjà calculés en amont (zero re-computation) et
+rend 4 types de badges :
+
+- **REJECT** (orange) près du porteur + flèche vers le poseur abandonné
+  → tag `'reject-screen'`
+- **SNAKE** (orange) près du porteur → tag `'snake-dribble'`
+- **EMPTY SIDE** (jaune) entre le couple PnR → tag `'empty-side-pnr'`
+- **3 SEC** (rouge avec anneau pulsant SVG `<animate>`) sur le défenseur
+  en violation → tag `'defensive-3sec'`
+
+Setting `state.showDetectionBadges?: boolean` (default `true`), toggle
+dans `ParametresPanel` à côté de "lecture coach".
+
+#### Câblage
+
+- `page.tsx` propage `coachDiagnostics` (déjà memoized via `useMemo`)
+  à `CourtView` via nouvelle prop optionnelle `diagnostics?: CoachDiagnostic[]`
+- `CourtView` rend l'overlay entre `<CourtPlayersLayer>` et le
+  `<ThreatOverlay>` badges pour cohabiter sans masquer
+
+TS clean, 714 tests verts inchangés (composants présentationnels).
+
+Roadmap : A.1 et A.4 marqués 🟢. Reste A.2 (fullscreen v2) + A.3
+(annotations texte) pour finir la phase A.
+
 ### Logique V2 — couvertures réactives (Trap v3 + B2 V2 + B4 V2 + Undo v2)
 
 Trois extensions de comportements défensifs livrés en V1 + marquage de
