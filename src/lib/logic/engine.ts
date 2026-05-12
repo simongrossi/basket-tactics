@@ -21,6 +21,7 @@ import { applyOffBallScreenLayer } from './defense/offBallScreenLayer';
 import { applyTrapLayer } from './defense/trapLayer';
 import { applyDirectiveLayer } from './defense/directiveLayer';
 import { applyCutterBumpLayer } from './defense/cutterBumpLayer';
+import { applyPostCoverageLayer } from './defense/postCoverageLayer';
 import { applyPostPassOrientationLayer } from './defense/postPassOrientation';
 
 export type DetectedSwitchPair = [DefenderId, DefenderId];
@@ -89,6 +90,9 @@ export function computeDefenseTargets(
   applyOffBallScreenLayer(positions, matchups, ctx);
   // Couche 4 — Trap auto (porteur en zone de trappe).
   applyTrapLayer(positions, matchups, ctx);
+  // Couche 4.5 — Couverture post-up auto (B6) — dig ou double sur pivot.
+  // Opt-in via state.postCoverage. Requiert aussi trigger post actif.
+  applyPostCoverageLayer(positions, matchups, ctx);
   // Couche 5 — Directives défensives scriptées (step.defensiveDirectives).
   applyDirectiveLayer(positions, ctx);
   // Couche 5.5 — Bump auto sur cutters (B10). Opt-in via state.autoBumpCutters.

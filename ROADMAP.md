@@ -10,17 +10,34 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
 ## Livré récemment (mai 2026)
 
-- 🟢 **Audit défensif — 4 critiques livrés (B1-B4)** (2026-05-12) :
-  Toute la liste 🔴 critique de l'audit moteur défensif traitée en une session.
-  Détail commit par commit ci-dessous, vue d'ensemble :
-  - **B1** Mismatch tracking + scram switch (correction auto post-switch)
-  - **B2** Reject screen detection (porteur refuse l'écran anticipé)
-  - **B3** Hard hedge vs soft hedge (slider `state.hedgeAggression`)
-  - **B4** Snake dribble detection (V sur 3 steps, double usage écran)
-  - **541 → 641 tests verts** (+100 nouveaux tests, dont 39 sur B1-B4).
-  - 3 nouveaux helpers purs : `mismatchTracking`, `detectRejectedScreen`,
-    `detectSnakeDribble`. 3 nouvelles règles coach : scram-switch enrichi,
-    rejected-screen, snake-dribble.
+- 🟢 **Audit défensif — TOUS les concepts B1-B10 livrés** (2026-05-12) :
+  Toute la liste de l'audit moteur défensif (4 critiques 🔴 + 6 moyens 🟠)
+  traitée en une session. **541 → 678 tests verts (+137 tests, dont 59 sur B1-B10)**.
+
+  **🔴 Critiques (B1-B4)** :
+  - **B1** Mismatch tracking + scram switch (correction auto post-switch) — 17 tests
+  - **B2** Reject screen detection (porteur refuse l'écran anticipé) — 9 tests
+  - **B3** Hard hedge vs soft hedge (slider `state.hedgeAggression`) — 5 tests
+  - **B4** Snake dribble detection (V sur 3 steps, double usage écran) — 8 tests
+
+  **🟠 Moyens (B5-B10)** :
+  - **B5** Empty side PnR (helper + diag avec recommandation contextuelle) — 5 tests
+  - **B6** Dig / double au post (couche 4.5, dig 30 % / double 50 %) — 4 tests
+  - **B7** Defensive 3 sec (règle FIBA, diag coach) — 4 tests
+  - **B8** Switch policy granulaire (`'all' / '1-3' / '1-4' / 'none'`) — 10 tests
+  - **B9** Top-lock off-ball avec timing (bascule auto top-lock → chase) — 10 tests
+  - **B10** Bumping cutters automatique (couche 5.5, offset sur cuts détectés) — 4 tests
+
+  **Nouveaux modules** :
+  - 6 helpers purs : `mismatchTracking`, `detectRejectedScreen`,
+    `detectSnakeDribble`, `emptySidePnR`, `cutterScreenChain`,
+    `switchAllowed`.
+  - 2 nouvelles couches du pipeline : `cutterBumpLayer` (5.5),
+    `postCoverageLayer` (4.5).
+  - 5 nouvelles règles coach : scram-switch enrichi, rejected-screen,
+    snake-dribble, defensive-3sec, empty-side-pnr.
+  - 6 nouveaux settings opt-in : `scramSwitchEnabled`, `mismatchThreshold`,
+    `hedgeAggression`, `switchPolicy`, `autoBumpCutters`, `postCoverage`.
 
 - 🟢 **B1 — Mismatch tracking + scram switch** (2026-05-12) :
   - **Détection** : `mismatchSeverity(D, A) = |defenderRank - attackerRank|`, range 0..4. Propagé sur chaque `ComputedDefender`, visible à chaque step y compris en l'absence de switch (le coach voit aussi les bad matchups manuels).
@@ -223,23 +240,12 @@ sur la fenêtre N-2 / N pour éviter le double recover.
 Helper pur `isEmptySidePnR` + règle coach. 'critical' si ice sur empty
 (drive 1c0), 'good' si under/weak. 5 tests. **650 tests verts**.
 
-##### ⚪ Dig / double au post
-**Quoi.** Quand un attaquant est en **post-up** (dos au panier près du
-cercle), le low man peut **digger** (toucher la balle puis recover) ou
-**doubler** (rester à 2 sur le post). Aujourd'hui aucun des deux.
-
-**Pourquoi basket.** Le post-up est une menace que les défenses traitent
-toujours avec un help anticipé. Sans dig/double, le pivot a un 1c1 propre
-à chaque possession post.
-
-**Implémentation.** Trigger `post` existe déjà ([`triggers.ts`](src/lib/logic/triggers.ts)).
-Ajouter dans [`help.ts`](src/lib/logic/help.ts) une route `postDig` :
-quand trigger post actif, le défenseur naturel du shooter le plus loin
-fait un dig timed (50% du chemin vers le pivot puis recover). Variante
-`postDouble` : il reste collé jusqu'à passe sortante. Sliders
-`state.postDigIntensity` et `state.postDoubleEnabled`.
-
-**Effort** ~3-4h · **Risque** 🟡 · **Valeur** moyen.
+##### 🟢 Dig / double au post (V1 livré 2026-05-12)
+Nouvelle couche 4.5 du pipeline défensif (`postCoverageLayer`). Setting
+`state.postCoverage: 'none' | 'dig' | 'double'` (opt-in). Quand trigger
+post actif + couverture ≠ none, un défenseur low man (≠ carrierDef, le
+plus proche du pivot, non occupé) fait 30 % du chemin ('dig') ou 50 %
+('double') vers le pivot. 4 tests. **678 tests verts**.
 
 ##### 🟢 Defensive 3 seconds (V1 livré 2026-05-12)
 Diagnostic coach quand un défenseur stationne 3 steps consécutifs dans
@@ -395,7 +401,10 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 | 7 | Templates utilisateurs | 1h30 | 🟢 | Haut |
 | 8 | Annotations texte libres | 2h | 🟡 | Haut |
 
-### Logique basket — concepts défensifs manquants (audit mai 2026)
+### Logique basket — concepts défensifs manquants (audit mai 2026) — ✅ tous livrés (2026-05-12)
+Tous les items B1-B10 de la liste sont marqués 🟢. **+59 nouveaux tests
+(541 → 678)**. Détail commit par commit ci-dessus dans "Livré récemment".
+
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
 | ~~B1~~ | ~~Mismatch tracking + scram switch~~ — 🟢 livré 2026-05-12 | — | — | — |
@@ -403,7 +412,7 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 | ~~B3~~ | ~~Hard / soft hedge (slider aggression)~~ — 🟢 livré 2026-05-12 | — | — | — |
 | ~~B4~~ | ~~Snake dribble detection~~ — 🟢 V1 livré 2026-05-12 | — | — | — |
 | ~~B5~~ | ~~Empty side PnR~~ — 🟢 livré 2026-05-12 | — | — | — |
-| B6 | Dig / double au post | 3-4h | 🟡 | Moyen |
+| ~~B6~~ | ~~Dig / double au post~~ — 🟢 livré 2026-05-12 | — | — | — |
 | ~~B7~~ | ~~Defensive 3 sec (diag coach)~~ — 🟢 livré 2026-05-12 | — | — | — |
 | ~~B8~~ | ~~Switch policy granulaire~~ — 🟢 livré 2026-05-12 | — | — | — |
 | ~~B9~~ | ~~Top-lock off-ball avec timing~~ — 🟢 livré 2026-05-12 | — | — | — |

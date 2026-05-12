@@ -660,6 +660,14 @@ export interface AppState {
    *  offset de 12px vers le cutter. Filet de sécurité pour les cuts non
    *  marqués. Default false (opt-in). Cf. `defense/cutterBumpLayer.ts`. */
   autoBumpCutters?: boolean;
+  /** B6 — couverture défensive auto sur post-up.
+   *  - 'none'   : laisser le défenseur naturel en 1c1 (default, rétrocompat)
+   *  - 'dig'    : un défenseur 'low man' fait 30% du chemin vers le pivot
+   *               (faux help, recover naturel à l'étape suivante)
+   *  - 'double' : un défenseur reste à mi-chemin pour doubler activement
+   *  Le trigger `state.triggers.post` doit aussi être activé pour que la
+   *  couverture s'applique (deux switches indépendants : détection + réaction). */
+  postCoverage?: 'none' | 'dig' | 'double';
   /** Seuil de severity à partir duquel un switch est considéré comme un
    *  mismatch tactique (déclenche scram + diagnostic coach + badge visuel).
    *  Range 1..4. Default 2 (= D5 sur O3 minimum). */

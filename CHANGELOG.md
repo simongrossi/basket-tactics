@@ -6,6 +6,31 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### B6 — Dig / double au post
+
+Couverture défensive auto sur post-up. Quand un attaquant est posté en
+low post (trigger `post` actif), un défenseur "low man" peut digger
+(faux help) ou doubler activement.
+
+**Nouvelle couche** `defense/postCoverageLayer.ts` (4.5 du pipeline,
+entre `trapLayer` et `directiveLayer`) :
+- Identifie le carrierDef (reste sur le pivot) et le digger candidat
+  (défenseur ≠ carrierDef le plus proche du pivot, helpFactor < 0.5,
+  pas de pnrRole).
+- 'dig' : digger fait 30 % du chemin vers le pivot + helpFactor = 0.6
+  + pnrRole = 'stunt' (anneau bleu pâle visu).
+- 'double' : digger fait 50 % du chemin + helpFactor = 0.9 (anneau
+  help violet plein).
+
+**Setting** : `state.postCoverage?: 'none' | 'dig' | 'double'`
+(default `'none'`, opt-in). Requiert aussi `state.triggers.post = true`
+pour que le post soit détecté.
+
+**Tests** : 4 (none = no-op, dig rapproche, double > dig, sans trigger =
+no-op). **674 → 678 tests verts**.
+
+Roadmap : B6 marqué 🟢. **Liste B complète (B1-B10) entièrement livrée**.
+
 ### B10 — Bumping cutters automatique
 
 Réaction défensive auto sur cuts non marqués : un défenseur sur la
