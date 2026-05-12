@@ -362,14 +362,17 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 
 **Tradeoff.** `gif.js` ajoute du poids au bundle. Alternative : faire tourner l'encodage sur un Web Worker. Pour MP4 c'est natif, zéro dépendance, mais le support est plus capricieux. **Pragmatique** : commencer par GIF, ajouter MP4 plus tard en option utilisateur ("format : GIF / MP4").
 
-### ⚪ Templates utilisateurs (presets perso)
-**Quoi.** 6 presets défensifs sont aujourd'hui fournis dans [`defensePresets.ts`](src/lib/data/defensePresets.ts). Permettre à l'utilisateur de sauvegarder ses propres combos (snapshot de `screenRule + offBallScreenRule + dropDepth + triggers + 5 DefenderRule + offBallStance par défenseur`) sous un nom, et les recharger. Idem côté offensif (templates de système : steps + ballCarrier + initial pos + label).
+### 🟢 Templates utilisateurs — presets défensifs (livré 2026-05-12)
+Defense presets perso sauvegardables/rechargeables. Étend `UserLibrary`
+existante avec `defensePresets?: UserDefensePreset[]`. Snapshot inclut
+les 16 champs défensifs (rules + screen + offBall + triggers + B1-B10).
+UI dédiée dans `DefensePanel` (vert distinct des presets globaux bleus).
+10 tests unitaires. **688 tests verts**.
 
-**Implémentation.** Nouveau état `state.userPresets: { defense: UserDefensePreset[]; offense: UserOffenseTemplate[] }` (sérialisé localStorage, donc dans la sauvegarde existante). Format identique à `DefensePreset` mais avec un `id` UUID + `name` + `createdAt`. Boutons "💾 sauvegarder ce preset" sous le panneau défense (et dans la section bibliothèque côté offense), "🗑 supprimer" dans le menu de chaque preset perso. Distinction visuelle : presets globaux en bleu, presets perso en vert avec icône utilisateur.
-
-**Effort** ~1h30 · **Risque** 🟢 · **Valeur** haut.
-
-**Tradeoff.** Le localStorage a une limite ~5MB. Avec des templates offensifs riches (5 étapes × 5 attaquants × annotations), ~50 templates max raisonnable. Pas un blocker à court terme. **À ajouter plus loin** : export/import individuel (JSON file) pour partager entre utilisateurs ou sauvegarder hors localStorage.
+**Côté offensif** : déjà couvert par `SavedSystem` + `useLibrary` (la
+bibliothèque utilisateur). Format différent (snapshot complet d'un
+système avec steps + défense), mais le besoin "sauvegarder son
+travail" est rempli.
 
 ### ⚪ Annotations textuelles libres
 **Quoi.** Pouvoir déposer une note texte n'importe où sur le terrain ("trap si le 5 monte", "force baseline", "skip pass option"). Distincte des flèches d'action — c'est du commentaire libre, pour expliquer l'intention.
@@ -395,7 +398,7 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 | 4 | Sélection multiple | 2h | 🟡 | Haut |
 | 5 | Mode présentation | 45min | 🟢 | Haut (tablette) |
 | 6 | Export GIF/vidéo | 3-4h | 🟡 | **Très haut** (partage) |
-| 7 | Templates utilisateurs | 1h30 | 🟢 | Haut |
+| ~~7~~ | ~~Templates utilisateurs~~ — 🟢 livré 2026-05-12 | — | — | — |
 | 8 | Annotations texte libres | 2h | 🟡 | Haut |
 
 ### Logique basket — concepts défensifs manquants (audit mai 2026) — ✅ tous livrés (2026-05-12)

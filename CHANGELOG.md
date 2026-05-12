@@ -6,6 +6,44 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### UX — Templates défensifs utilisateur
+
+Permet de sauvegarder ses **propres presets défensifs** (snapshot
+des réglages courants : rules, screen, off-ball, triggers, distance,
+maxSpeed, closeout, denial + B1-B10) sous un nom et les recharger.
+
+**Stockage** : étend `UserLibrary` existante (déjà persistée localStorage
+via `useLibrary`) avec un champ `defensePresets?: UserDefensePreset[]`.
+Pas de nouveau storage à gérer.
+
+**Nouveaux helpers purs** dans `src/lib/data/library.ts` :
+- `snapshotDefensePreset(state, name, description?)` : capture les
+  champs défensifs courants (16 champs au total).
+- `applyUserDefensePreset(state, preset)` : applique sur un AppState,
+  conserve steps + activeStep + attaquants.
+- `addDefensePreset` / `deleteDefensePreset` / `renameDefensePreset` :
+  CRUD pures sur la `UserLibrary`.
+
+**Hook `useLibrary`** : nouveaux callbacks `saveDefensePreset` /
+`loadDefensePreset` / `deleteDefensePreset` / `renameDefensePreset`.
+
+**UI** : nouvelle sous-section "✚ Mes presets" dans `DefensePanel`,
+sous les presets globaux. Bouton "💾 sauvegarder" qui prompt un nom et
+capture l'état actuel. Liste des presets perso avec :
+- Bouton 👤 [nom] pour appliquer (avec confirm)
+- Bouton 🗑 pour supprimer (avec confirm)
+- Distinction visuelle : presets globaux en bleu, presets perso en
+  vert (`bg-green-50`, border `bbf7d0`)
+
+**Câblage** dans `page.tsx` : extraction du patch défensif via destructuring
++ application via `app.patch(defensePatch)` (préserve steps + UI).
+
+**Tests** : 10 unitaires sur le snapshot + apply + CRUD (création,
+ajout multiple, suppression, renommage, no-op id inconnu, deep clone
+des rules, préservation closeoutBoost). **678 → 688 tests verts**.
+
+Roadmap : `#5 Templates utilisateurs` marqué 🟢.
+
 ### UX — Saisie numérique sur les sliders
 
 Le composant `<Slider>` partagé (`src/components/ui.tsx`) gagne un

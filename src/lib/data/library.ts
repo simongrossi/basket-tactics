@@ -46,8 +46,46 @@ export interface SavedFolder {
   createdAt: number;
 }
 
+/**
+ * Preset défensif utilisateur — capture les réglages de défense **seuls**
+ * (pas les attaquants ni les steps), applicable à n'importe quel système.
+ *
+ * Format inspiré de `DefensePreset` (presets fournis dans `defensePresets.ts`)
+ * mais avec metadata utilisateur (id, name, createdAt). Persisté dans la même
+ * `UserLibrary` que les SavedSystem pour mutualiser le storage.
+ */
+export interface UserDefensePreset {
+  id: string;
+  name: string;
+  description?: string;
+  /** Timestamp Unix ms de création. */
+  createdAt: number;
+  // ----- Champs défensifs (subset de l'AppState) -----
+  defenseSystem: DefenseSystem;
+  screenRule: ScreenRule;
+  dropDepth: DropDepth;
+  offBallScreenRule: OffBallScreenRule;
+  defenseDistance: number;
+  defenseMaxSpeed: number;
+  triggers: AppState['triggers'];
+  rules: DefenderRules;
+  closeoutBoost?: number;
+  denyAggressiveness?: number;
+  // ----- B1-B10 additions -----
+  scramSwitchEnabled?: boolean;
+  mismatchThreshold?: number;
+  hedgeAggression?: number;
+  switchPolicy?: 'all' | '1-3' | '1-4' | 'none';
+  autoBumpCutters?: boolean;
+  postCoverage?: 'none' | 'dig' | 'double';
+}
+
 export interface UserLibrary {
   folders: SavedFolder[];
+  /** Presets défensifs utilisateur. Optionnel pour rétrocompat avec les
+   *  bibliothèques sauvegardées avant la v1.1 (sera initialisé à `[]` au
+   *  premier chargement). */
+  defensePresets?: UserDefensePreset[];
   /** Version du schéma — sert pour migrations futures. */
   version: 1;
 }
@@ -270,6 +308,97 @@ export function importFolderJSON(lib: UserLibrary, json: string): UserLibrary {
     })),
   };
   return { ...lib, folders: [...lib.folders, imported] };
+}
+
+// ============================================================
+// Defense presets utilisateur (CRUD + snapshot/apply)
+// ============================================================
+
+/** Capture les réglages défensifs courants en `UserDefensePreset`. */
+export function snapshotDefensePreset(
+  state: AppState,
+  name: string,
+  description?: string
+): UserDefensePreset {
+  return {
+    id: uid('preset'),
+    name,
+    description,
+    createdAt: Date.now(),
+    defenseSystem: state.defenseSystem,
+    screenRule: state.screenRule,
+    dropDepth: state.dropDepth,
+    offBallScreenRule: state.offBallScreenRule,
+    defenseDistance: state.defenseDistance,
+    defenseMaxSpeed: state.defenseMaxSpeed,
+    triggers: { ...state.triggers },
+    rules: structuredClone(state.rules),
+    closeoutBoost: state.closeoutBoost,
+    denyAggressiveness: state.denyAggressiveness,
+    scramSwitchEnabled: state.scramSwitchEnabled,
+    mismatchThreshold: state.mismatchThreshold,
+    hedgeAggression: state.hedgeAggression,
+    switchPolicy: state.switchPolicy,
+    autoBumpCutters: state.autoBumpCutters,
+    postCoverage: state.postCoverage,
+  };
+}
+
+/** Applique un `UserDefensePreset` sur un `AppState`. Conserve les steps,
+ *  attaquants et UI inchangés. */
+export function applyUserDefensePreset(
+  state: AppState,
+  preset: UserDefensePreset
+): AppState {
+  return {
+    ...state,
+    defenseSystem: preset.defenseSystem,
+    screenRule: preset.screenRule,
+    dropDepth: preset.dropDepth,
+    offBallScreenRule: preset.offBallScreenRule,
+    defenseDistance: preset.defenseDistance,
+    defenseMaxSpeed: preset.defenseMaxSpeed,
+    triggers: { ...preset.triggers },
+    rules: structuredClone(preset.rules),
+    closeoutBoost: preset.closeoutBoost ?? state.closeoutBoost,
+    denyAggressiveness: preset.denyAggressiveness ?? state.denyAggressiveness,
+    scramSwitchEnabled: preset.scramSwitchEnabled,
+    mismatchThreshold: preset.mismatchThreshold,
+    hedgeAggression: preset.hedgeAggression,
+    switchPolicy: preset.switchPolicy,
+    autoBumpCutters: preset.autoBumpCutters,
+    postCoverage: preset.postCoverage,
+  };
+}
+
+export function addDefensePreset(
+  lib: UserLibrary,
+  preset: UserDefensePreset
+): UserLibrary {
+  return {
+    ...lib,
+    defensePresets: [...(lib.defensePresets ?? []), preset],
+  };
+}
+
+export function deleteDefensePreset(lib: UserLibrary, id: string): UserLibrary {
+  return {
+    ...lib,
+    defensePresets: (lib.defensePresets ?? []).filter((p) => p.id !== id),
+  };
+}
+
+export function renameDefensePreset(
+  lib: UserLibrary,
+  id: string,
+  newName: string
+): UserLibrary {
+  return {
+    ...lib,
+    defensePresets: (lib.defensePresets ?? []).map((p) =>
+      p.id === id ? { ...p, name: newName } : p
+    ),
+  };
 }
 
 export const __libraryStorageKey = LIBRARY_STORAGE_KEY;

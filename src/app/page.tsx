@@ -349,6 +349,18 @@ export default function Page() {
               onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
               scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
               onToggleScriptedDefense={app.toggleScriptedDefense}
+              userDefensePresets={lib.library.defensePresets}
+              onSaveDefensePreset={(name) => lib.saveDefensePreset(app.state, name)}
+              onApplyUserDefensePreset={(preset) => {
+                // Extrait les champs défensifs du preset (le reste = metadata
+                // ignorée). Applique via `patch` pour préserver steps + UI.
+                const {
+                  id: _id, name: _name, description: _desc, createdAt: _t,
+                  ...defensePatch
+                } = preset;
+                app.patch(defensePatch);
+              }}
+              onDeleteDefensePreset={lib.deleteDefensePreset}
             />
           </div>
         )}

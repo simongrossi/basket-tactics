@@ -11,6 +11,7 @@ import type {
 } from '@/lib/types';
 import { Panel, Section, Slider, CheckboxLine, Button, COLORS } from './ui';
 import { DEFENSE_PRESETS, type DefensePreset } from '@/lib/data/defensePresets';
+import type { UserDefensePreset } from '@/lib/data/library';
 import { SimulationSection } from './SimulationSection';
 import { getActiveDefenderIds } from '@/lib/logic/players';
 
@@ -28,6 +29,11 @@ interface DefensePanelProps {
   onClearAllDefenseOverrides: () => void;
   scriptedDefenseEnabled?: boolean;
   onToggleScriptedDefense: () => void;
+  // ----- Presets perso (B5 — templates utilisateurs côté défense) -----
+  userDefensePresets?: UserDefensePreset[];
+  onSaveDefensePreset?: (name: string) => void;
+  onApplyUserDefensePreset?: (preset: UserDefensePreset) => void;
+  onDeleteDefensePreset?: (id: string) => void;
 }
 
 export function DefensePanel(props: DefensePanelProps) {
@@ -90,6 +96,100 @@ export function DefensePanel(props: DefensePanelProps) {
             </button>
           ))}
         </div>
+
+        {/* ----- Presets perso (B5) — snapshot des réglages défensifs courants ----- */}
+        {props.onSaveDefensePreset && (
+          <div style={{ marginTop: 10, borderTop: `1px dashed ${c.border}`, paddingTop: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#15803d', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                ✚ Mes presets
+              </span>
+              <button
+                onClick={() => {
+                  const name = prompt('Nom du preset défensif :', '');
+                  if (name && name.trim()) {
+                    props.onSaveDefensePreset!(name.trim());
+                  }
+                }}
+                style={{
+                  fontSize: 10,
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  border: '1px solid #16a34a',
+                  background: '#16a34a',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+                title="Sauvegarder l'état défensif actuel (rules + screen + offBall + triggers + B1-B10) comme preset perso"
+              >
+                💾 sauvegarder
+              </button>
+            </div>
+            {(props.userDefensePresets ?? []).length === 0 ? (
+              <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', padding: '4px 0' }}>
+                Aucun preset perso. Clique 💾 pour capturer l'état actuel.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {(props.userDefensePresets ?? []).map((preset) => (
+                  <div
+                    key={preset.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '4px 6px',
+                      borderRadius: 5,
+                      border: '1px solid #bbf7d0',
+                      background: '#f0fdf4',
+                    }}
+                  >
+                    <button
+                      onClick={() => {
+                        if (confirm(`Appliquer le preset perso "${preset.name}" ?`)) {
+                          props.onApplyUserDefensePreset!(preset);
+                        }
+                      }}
+                      title={`Créé le ${new Date(preset.createdAt).toLocaleDateString('fr-FR')}`}
+                      style={{
+                        flex: 1,
+                        textAlign: 'left',
+                        fontSize: 11,
+                        padding: 0,
+                        border: 'none',
+                        background: 'transparent',
+                        color: '#14532d',
+                        cursor: 'pointer',
+                        fontWeight: 500,
+                      }}
+                    >
+                      👤 {preset.name}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Supprimer "${preset.name}" ?`)) {
+                          props.onDeleteDefensePreset!(preset.id);
+                        }
+                      }}
+                      title="Supprimer ce preset"
+                      style={{
+                        fontSize: 10,
+                        padding: '0 4px',
+                        border: 'none',
+                        background: 'transparent',
+                        color: '#94a3b8',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      🗑
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </Section>
 
       <Section theme="defense" label="Type de défense" open>

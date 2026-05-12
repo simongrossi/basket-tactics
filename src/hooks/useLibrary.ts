@@ -7,6 +7,7 @@ import {
   saveLibrary,
   type UserLibrary,
   type SavedSystem,
+  type UserDefensePreset,
   snapshotFromAppState,
   applySavedSystem,
   addSystemToFolder,
@@ -18,6 +19,11 @@ import {
   deleteFolder as deleteFolderFn,
   exportFolderJSON,
   importFolderJSON,
+  snapshotDefensePreset,
+  applyUserDefensePreset,
+  addDefensePreset as addDefensePresetFn,
+  deleteDefensePreset as deleteDefensePresetFn,
+  renameDefensePreset as renameDefensePresetFn,
 } from '@/lib/data/library';
 
 /**
@@ -102,6 +108,31 @@ export function useLibrary() {
     setLibrary((lib) => importFolderJSON(lib, json));
   }, []);
 
+  // ----- Defense presets utilisateur (équivalent défensif des templates) -----
+
+  const saveDefensePreset = useCallback(
+    (state: AppState, name: string, description?: string) => {
+      const preset = snapshotDefensePreset(state, name, description);
+      setLibrary((lib) => addDefensePresetFn(lib, preset));
+      return preset.id;
+    },
+    []
+  );
+
+  const loadDefensePreset = useCallback(
+    (state: AppState, preset: UserDefensePreset): AppState =>
+      applyUserDefensePreset(state, preset),
+    []
+  );
+
+  const deleteDefensePreset = useCallback((id: string) => {
+    setLibrary((lib) => deleteDefensePresetFn(lib, id));
+  }, []);
+
+  const renameDefensePreset = useCallback((id: string, newName: string) => {
+    setLibrary((lib) => renameDefensePresetFn(lib, id, newName));
+  }, []);
+
   return {
     library,
     hydrated,
@@ -115,5 +146,9 @@ export function useLibrary() {
     deleteFolder,
     exportFolder,
     importFolder,
+    saveDefensePreset,
+    loadDefensePreset,
+    deleteDefensePreset,
+    renameDefensePreset,
   };
 }
