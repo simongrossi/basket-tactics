@@ -684,6 +684,13 @@ export interface AppState {
    *  Lit les diagnostics coach déjà calculés. Default true. Désactiver pour
    *  alléger la vue pendant une présentation. */
   showDetectionBadges?: boolean;
+  /** C.3 — Hedge length : nombre de steps consécutifs où D5 maintient le
+   *  hedge avant de FORCER le recover. Range 1..3 (1 = soft show, 3 =
+   *  hard hedge prolongé). Si `undefined`, comportement legacy (D5 reste
+   *  en hedge tant que l'écran est détecté). Effet : à partir du step
+   *  N+`hedgeRecoveryDelay`, l'écran est ignoré pour D5 (retour homme-à-homme),
+   *  même si la rule globale est encore 'hedge'. */
+  hedgeRecoveryDelay?: number;
   /** Seuil de severity à partir duquel un switch est considéré comme un
    *  mismatch tactique (déclenche scram + diagnostic coach + badge visuel).
    *  Range 1..4. Default 2 (= D5 sur O3 minimum). */

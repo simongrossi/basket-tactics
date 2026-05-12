@@ -28,3 +28,4 @@ export { detectRejectedScreen, type RejectedScreen } from './detectRejectedScree
 export { detectSnakeDribble, type SnakeDribble } from './detectSnakeDribble';
 export { isEmptySidePnR } from './emptySidePnR';
 export { countCutterScreenChain, cuttersInScreenChain } from './cutterScreenChain';
+export { consecutiveHedgeSteps } from './hedgeStepCounter';

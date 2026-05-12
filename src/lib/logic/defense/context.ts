@@ -20,6 +20,7 @@ import type {
 import { ballSide } from '../geometry';
 import {
   applySwitch,
+  consecutiveHedgeSteps,
   detectRejectedScreen,
   detectScreen,
   detectSnakeDribble,
@@ -179,11 +180,23 @@ export function buildDefenseFrameContext(
 
   // Règle effective : on regarde l'override individuel du défenseur du porteur,
   // sinon on retombe sur la règle globale.
-  const effectiveScreenRule: ScreenRule = (() => {
+  let effectiveScreenRule: ScreenRule = (() => {
     if (!screen) return state.screenRule;
     const nav = state.rules[screen.carrierDef]?.screenNav;
     return nav && nav !== 'auto' ? nav : state.screenRule;
   })();
+
+  // C.3 — Hedge length : si la rule effective est 'hedge' ET un délai de
+  // recovery est configuré (`state.hedgeRecoveryDelay`), on compte les
+  // steps consécutifs où le même poseur a déjà été dans un écran. Au-delà
+  // du seuil, on FORCE recovery en basculant à 'over' (D1 chase normalement,
+  // D5 retombe sur son homme). Pas de modification si delay non défini.
+  if (screen && effectiveScreenRule === 'hedge' && state.hedgeRecoveryDelay) {
+    const count = consecutiveHedgeSteps(state, stepIdx, screen.screener);
+    if (count > state.hedgeRecoveryDelay) {
+      effectiveScreenRule = 'over';
+    }
+  }
 
   // B8 — politique de switch team-level (filtre par-dessus screenRule).
   const switchPolicy: SwitchPolicy = state.switchPolicy ?? 'all';

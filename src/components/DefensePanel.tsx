@@ -546,6 +546,33 @@ export function DefensePanel(props: DefensePanelProps) {
                 />
               </div>
             )}
+            {/* C.3 — Hedge length : nombre de steps consécutifs avant
+             *  recovery forcé. 1 = soft show, 3 = hard hedge prolongé. */}
+            {state.screenRule === 'hedge' && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+                <span
+                  style={{ fontSize: 11, color: '#475569', minWidth: 60, cursor: 'help' }}
+                  title="Nombre de steps consécutifs où D5 maintient le hedge avant de FORCER recovery (D5 retombe sur son homme). 'auto' = D5 reste sorti tant que l'écran est détecté (comportement legacy). 1 = soft show timed (D5 ne sort qu'un step). 2 = standard. 3 = hard hedge prolongé."
+                >
+                  durée
+                </span>
+                <select
+                  value={state.hedgeRecoveryDelay ?? 'auto'}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    props.onPatch({
+                      hedgeRecoveryDelay: v === 'auto' ? undefined : parseInt(v),
+                    });
+                  }}
+                  style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
+                >
+                  <option value="auto">auto (legacy, illimité)</option>
+                  <option value={1}>1 step (soft show timed)</option>
+                  <option value={2}>2 steps (standard)</option>
+                  <option value={3}>3 steps (hard prolongé)</option>
+                </select>
+              </div>
+            )}
             {/* B8 — Switch policy team-level. Visible quand la consigne est
              *  'switch' ou 'peel-switch'. Filtre additionnel : refuse les
              *  switchs entre certains couples même si la rule globale dit oui. */}
