@@ -371,6 +371,21 @@ export function resolveFrameAt(
       // contactPoint flip de côté → D1 saute visuellement.
       //  - leaving : impact au début (idxA) → utiliser offA
       //  - arriving / stuck : impact à la fin (idxB) → utiliser offB
+      // ANCRAGE du point de contact, STABLE pour toute la transition :
+      //  - arriving : anchor = defB (position stuck à la fin). D1 va vers
+      //    le contact, le côté est fixé par où il se retrouvera plaqué.
+      //  - leaving : anchor = defA (position stuck au début). D1 quitte
+      //    le contact, le côté est fixé par où il était plaqué.
+      //  - stuck : anchor = midpoint(defA, defB). D1 est plaqué tout au
+      //    long, on prend une moyenne stable.
+      // Sans ancrage stable, contactPoint = radialContactPoint(p, screener)
+      // flippait quand p traversait l'autre côté du poseur (orbite Bezier
+      // ou lerp vers une nouvelle position carrier).
+      const anchor = screenMode === 'leaving'
+        ? defA[id]
+        : screenMode === 'arriving'
+          ? defB[id]
+          : midpoint(defA[id], defB[id]);
       const contactScreener = screenContactScreenerPoint({
         contact,
         mode: screenMode,
@@ -380,23 +395,9 @@ export function resolveFrameAt(
         stepB: state.steps[idxB],
         ctxA,
         ctxB,
+        anchor,
       });
       if (contactScreener) {
-        // ANCRAGE du point de contact, STABLE pour toute la transition :
-        //  - arriving : anchor = defB (position stuck à la fin). D1 va vers
-        //    le contact, le côté est fixé par où il se retrouvera plaqué.
-        //  - leaving : anchor = defA (position stuck au début). D1 quitte
-        //    le contact, le côté est fixé par où il était plaqué.
-        //  - stuck : anchor = midpoint(defA, defB). D1 est plaqué tout au
-        //    long, on prend une moyenne stable.
-        // Sans ancrage stable, contactPoint = radialContactPoint(p, screener)
-        // flippait quand p traversait l'autre côté du poseur (orbite Bezier
-        // ou lerp vers une nouvelle position carrier).
-        const anchor = screenMode === 'leaving'
-          ? defA[id]
-          : screenMode === 'arriving'
-            ? defB[id]
-            : midpoint(defA[id], defB[id]);
         const contactPoint = radialContactPoint(anchor, contactScreener);
         const release = screenContactTangentRelease(localT, modeQuality, screenMode);
         const releasePoint = release > 0

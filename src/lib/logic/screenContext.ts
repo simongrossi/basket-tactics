@@ -16,6 +16,7 @@ import { detectOffBallScreens, detectScreen } from './screens';
 import { makeCluster } from './geometry';
 import {
   contactQualityForRule,
+  contactQualityForOffBallRule,
   effectiveScreenRuleForDef,
   findScreenQuality,
   type ScreenContactMode,
@@ -103,8 +104,12 @@ export function buildSegmentScreenObstacles(
 
   if (ctxA.screen) add(ctxA.screen.screener, ctxA.screen.screenerDef);
   if (ctxB.screen) add(ctxB.screen.screener, ctxB.screen.screenerDef);
-  ctxA.offBallScreens.forEach((s) => add(s.screener, s.screenerDef));
-  ctxB.offBallScreens.forEach((s) => add(s.screener, s.screenerDef));
+  ctxA.offBallScreens.forEach((s) => {
+    offBallScreeners(s).forEach((screenContact) => add(screenContact.screener, screenContact.screenerDef));
+  });
+  ctxB.offBallScreens.forEach((s) => {
+    offBallScreeners(s).forEach((screenContact) => add(screenContact.screener, screenContact.screenerDef));
+  });
   return out;
 }
 
@@ -126,7 +131,9 @@ export function appendStepScreenObstacles(
   };
 
   if (ctx.screen) add(ctx.screen.screener, ctx.screen.screenerDef);
-  ctx.offBallScreens.forEach((s) => add(s.screener, s.screenerDef));
+  ctx.offBallScreens.forEach((s) => {
+    offBallScreeners(s).forEach((screenContact) => add(screenContact.screener, screenContact.screenerDef));
+  });
 }
 
 export function screenQualityByDef(
@@ -174,17 +181,26 @@ export function defenderScreenContact(params: {
     const lookupSteps = mode === 'leaving'
       ? [params.state.steps[params.idxA]]
       : [params.state.steps[params.idxB], params.state.steps[params.idxA]];
-    const contactScreen = mode === 'leaving'
-      ? params.ctxA.screen
-      : params.ctxB.screen ?? params.currentCtx?.screen ?? params.ctxA.screen;
-    const screenerId = offBallContact?.screener ??
-      (contactScreen?.carrierDef === params.defenderId ? contactScreen.screener : undefined);
-    quality = findScreenQuality(lookupSteps, screenerId);
     if (carrierContact) {
+      const contactScreen = mode === 'leaving'
+        ? params.ctxA.screen
+        : params.ctxB.screen ?? params.currentCtx?.screen ?? params.ctxA.screen;
+      const screenerId = contactScreen?.carrierDef === params.defenderId
+        ? contactScreen.screener
+        : undefined;
+      quality = findScreenQuality(lookupSteps, screenerId);
       quality = contactQualityForRule(
         quality,
         effectiveScreenRuleForDef(params.state, params.defenderId),
         mode
+      );
+    } else if (offBallContact) {
+      quality = offBallScreenQuality(lookupSteps, offBallContact);
+      quality = contactQualityForOffBallRule(
+        quality,
+        params.state.offBallScreenRule,
+        mode,
+        offBallContact.type
       );
     }
   }
@@ -224,6 +240,7 @@ export function screenContactScreenerPoint(params: {
   stepB: AppState['steps'][number];
   ctxA: ScreenContext;
   ctxB: ScreenContext;
+  anchor?: Point;
 }): Point | null {
   const contactOff = params.mode === 'leaving' ? params.offA : params.offB;
   const contactScreen = params.mode === 'leaving'
@@ -237,7 +254,9 @@ export function screenContactScreenerPoint(params: {
     ? contactOff[contactScreen.screener] ?? null
     : null;
   if (fromCarrier) return fromCarrier;
-  if (offBallContact) return contactOff[offBallContact.screener] ?? offBallContact.screenerPos;
+  if (offBallContact) {
+    return offBallScreenContactPoint(offBallContact, contactOff, params.anchor);
+  }
   return annotationScreenerPoint(
     params.mode === 'leaving' ? [params.stepA] : [params.stepB, params.stepA],
     contactOff
@@ -253,6 +272,26 @@ export function offBallScreenQuality(
   return Math.max(primary, findScreenQuality(steps, screen.secondScreener));
 }
 
+export function offBallScreeners(screen: DetectedOffBallScreen): Array<{
+  screener: AttackerId;
+  screenerDef: DefenderId;
+  screenerPos: Point;
+}> {
+  const out = [{
+    screener: screen.screener,
+    screenerDef: screen.screenerDef,
+    screenerPos: screen.screenerPos,
+  }];
+  if (screen.secondScreener && screen.secondScreenerDef && screen.secondScreenerPos) {
+    out.push({
+      screener: screen.secondScreener,
+      screenerDef: screen.secondScreenerDef,
+      screenerPos: screen.secondScreenerPos,
+    });
+  }
+  return out;
+}
+
 function annotationScreenerPoint(
   steps: Array<AppState['steps'][number] | undefined>,
   off: AttackerPositions
@@ -264,6 +303,38 @@ function annotationScreenerPoint(
     return off[id] ?? ann.to ?? ann.from;
   }
   return null;
+}
+
+function offBallScreenContactPoint(
+  screen: DetectedOffBallScreen,
+  off: AttackerPositions,
+  anchor?: Point
+): Point {
+  const screeners = offBallScreeners(screen).map((s) => ({
+    ...s,
+    pos: off[s.screener] ?? s.screenerPos,
+  }));
+  if (screeners.length === 1) return screeners[0].pos;
+
+  if (screen.type === 'elevator') {
+    return {
+      x: screeners.reduce((sum, s) => sum + s.pos.x, 0) / screeners.length,
+      y: screeners.reduce((sum, s) => sum + s.pos.y, 0) / screeners.length,
+    };
+  }
+
+  if (!anchor) return screeners[0].pos;
+  return screeners.reduce((best, s) => {
+    const bestDist = distanceSquared(anchor, best.pos);
+    const dist = distanceSquared(anchor, s.pos);
+    return dist < bestDist ? s : best;
+  }).pos;
+}
+
+function distanceSquared(a: Point, b: Point): number {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return dx * dx + dy * dy;
 }
 
 function midpoint(a: Point, b: Point): Point {

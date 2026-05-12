@@ -678,43 +678,60 @@ export function applyOffBallScreenAdjustment(
   rule: OffBallScreenRule,
   defenderId: DefenderId,
   off: AttackerPositions,
-  ballPos: Point
+  ballPos: Point,
+  quality: number = 50
 ): Point {
   if (rule === 'switch') return baseTarget;
 
   const isCutterDef = defenderId === screen.cutterDef;
-  const isScreenerDef = defenderId === screen.screenerDef;
+  const isScreenerDef =
+    defenderId === screen.screenerDef || defenderId === screen.secondScreenerDef;
   if (!isCutterDef && !isScreenerDef) return baseTarget;
+  const q = Math.max(0, Math.min(100, quality)) / 100;
+  if (q < 0.05) return baseTarget;
 
-  const screenerPos = screen.screenerPos;
+  const screeners = offBallScreenerContacts(screen, off);
+  const screenerPos = pickOffBallContactScreener(screen, screeners, baseTarget);
   const cutterPos = screen.cutterPos;
 
   const cutDir = { x: cutterPos.x - screenerPos.x, y: cutterPos.y - screenerPos.y };
   const cutLen = Math.hypot(cutDir.x, cutDir.y) || 1;
   const cx = cutDir.x / cutLen;
   const cy = cutDir.y / cutLen;
+  const perpX = -cy;
+  const perpY = cx;
+  const doubleScreenBonus = screeners.length > 1 ? 1 : 0;
 
   if (rule === 'over' && isCutterDef) {
-    return pushOutOfScreener(
+    return pushOutOfScreeners(
       {
-        x: screenerPos.x - cx * MIN_PLAYER_CLEARANCE_PX,
-        y: screenerPos.y - cy * MIN_PLAYER_CLEARANCE_PX,
+        x: screenerPos.x - cx * (MIN_PLAYER_CLEARANCE_PX + q * 8),
+        y: screenerPos.y - cy * (MIN_PLAYER_CLEARANCE_PX + q * 8),
       },
-      screenerPos
+      screeners
     );
   }
 
   if (rule === 'under' && isCutterDef) {
-    return pushOutOfScreener({ x: baseTarget.x - cx * 22, y: baseTarget.y - cy * 22 }, screenerPos);
+    const toBall = { x: ballPos.x - cutterPos.x, y: ballPos.y - cutterPos.y };
+    const awayFromBallSide = (perpX * toBall.x + perpY * toBall.y) >= 0 ? -1 : 1;
+    const lag = 24 + q * 26 + doubleScreenBonus * 14;
+    const wrap = (10 + q * 18 + doubleScreenBonus * 8) * awayFromBallSide;
+    return pushOutOfScreeners(
+      {
+        x: baseTarget.x - cx * lag + perpX * wrap,
+        y: baseTarget.y - cy * lag + perpY * wrap,
+      },
+      screeners
+    );
   }
 
   if (rule === 'bump' && isScreenerDef) {
-    const perpX = -cy;
-    const perpY = cx;
+    const ownScreener = screeners.find((s) => s.defender === defenderId)?.pos ?? screenerPos;
     const sideOfCutter = Math.sign(cutterPos.x - screenerPos.x) || 1;
     return {
-      x: screenerPos.x + perpX * 12 * sideOfCutter,
-      y: screenerPos.y + perpY * 12 * sideOfCutter,
+      x: ownScreener.x + perpX * (10 + q * 8) * sideOfCutter,
+      y: ownScreener.y + perpY * (10 + q * 8) * sideOfCutter,
     };
   }
 
@@ -724,17 +741,15 @@ export function applyOffBallScreenAdjustment(
   // la perpendiculaire et on prend le signe. Le défenseur est aussi shifté
   // d'une touche vers le screener (high side) pour matérialiser le contact.
   if (rule === 'top-lock' && isCutterDef) {
-    const perpX = -cy;
-    const perpY = cx;
     const toBallX = ballPos.x - cutterPos.x;
     const toBallY = ballPos.y - cutterPos.y;
     const sideOfBall = Math.sign(perpX * toBallX + perpY * toBallY) || 1;
-    return pushOutOfScreener(
+    return pushOutOfScreeners(
       {
-        x: baseTarget.x + perpX * 16 * sideOfBall - cx * 4,
-        y: baseTarget.y + perpY * 16 * sideOfBall - cy * 4,
+        x: baseTarget.x + perpX * (10 + q * 16) * sideOfBall - cx * (4 + q * 5),
+        y: baseTarget.y + perpY * (10 + q * 16) * sideOfBall - cy * (4 + q * 5),
       },
-      screenerPos
+      screeners
     );
   }
 
@@ -743,16 +758,56 @@ export function applyOffBallScreenAdjustment(
   // marquée vers le cutter, jamais en retrait. Pour shooter qui sort de
   // pindown ou stagger.
   if (rule === 'chase' && isCutterDef) {
-    return pushOutOfScreener(
+    return pushOutOfScreeners(
       {
-        x: screenerPos.x - cx * MIN_PLAYER_CLEARANCE_PX,
-        y: screenerPos.y - cy * MIN_PLAYER_CLEARANCE_PX,
+        x: screenerPos.x - cx * (MIN_PLAYER_CLEARANCE_PX + q * 10),
+        y: screenerPos.y - cy * (MIN_PLAYER_CLEARANCE_PX + q * 10),
       },
-      screenerPos
+      screeners
     );
   }
 
   return baseTarget;
+}
+
+function offBallScreenerContacts(
+  screen: DetectedOffBallScreen,
+  off: AttackerPositions
+): Array<{ defender: DefenderId; pos: Point }> {
+  const out = [{ defender: screen.screenerDef, pos: off[screen.screener] ?? screen.screenerPos }];
+  if (screen.secondScreener && screen.secondScreenerDef && screen.secondScreenerPos) {
+    out.push({
+      defender: screen.secondScreenerDef,
+      pos: off[screen.secondScreener] ?? screen.secondScreenerPos,
+    });
+  }
+  return out;
+}
+
+function pickOffBallContactScreener(
+  screen: DetectedOffBallScreen,
+  screeners: Array<{ defender: DefenderId; pos: Point }>,
+  anchor: Point
+): Point {
+  if (screeners.length === 1) return screeners[0].pos;
+  if (screen.type === 'elevator') {
+    return {
+      x: screeners.reduce((sum, s) => sum + s.pos.x, 0) / screeners.length,
+      y: screeners.reduce((sum, s) => sum + s.pos.y, 0) / screeners.length,
+    };
+  }
+  return screeners.reduce((best, s) => {
+    const bestDist = distance(anchor, best.pos);
+    const dist = distance(anchor, s.pos);
+    return dist < bestDist ? s : best;
+  }).pos;
+}
+
+function pushOutOfScreeners(
+  target: Point,
+  screeners: Array<{ defender: DefenderId; pos: Point }>
+): Point {
+  return screeners.reduce((p, s) => pushOutOfScreener(p, s.pos), target);
 }
 
 export function applySwitchOffBall(

@@ -6,6 +6,7 @@ import type {
   DetectedOffBallScreen,
   DetectedScreen,
   OffBallScreenRule,
+  OffBallScreenType,
   Point,
   ScreenContactPhase,
   ScreenRule,
@@ -149,6 +150,29 @@ export function contactQualityForRule(
   };
   const modeBonus = mode === 'leaving' ? 1.08 : 1;
   return clampQuality(quality * multiplierByRule[rule] * modeBonus);
+}
+
+export function contactQualityForOffBallRule(
+  quality: number,
+  rule: OffBallScreenRule,
+  mode: ScreenContactMode,
+  screenType?: OffBallScreenType
+): number {
+  const multiplierByRule: Record<OffBallScreenRule, number> = {
+    switch: 0,
+    over: 0.82,
+    under: 1.22,
+    bump: 0.78,
+    'top-lock': 0.95,
+    chase: 0.9,
+  };
+  const doubleBonus = screenType === 'stagger'
+    ? 1.12
+    : screenType === 'elevator'
+      ? 1.2
+      : 1;
+  const modeBonus = mode === 'leaving' ? 1.08 : 1;
+  return clampQuality(quality * multiplierByRule[rule] * doubleBonus * modeBonus);
 }
 
 export function carrierScreenRoutePreference(

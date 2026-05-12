@@ -521,6 +521,27 @@ export function pathArcLength(
   return len;
 }
 
+export function pathAroundScreensLength(
+  start: Point,
+  end: Point,
+  obstacles: { center: Point; radius: number }[],
+  samples: number = 12
+): number {
+  const pair = pickStaggeredPair(start, end, obstacles);
+  if (pair) {
+    let len = 0;
+    let prev = curveAroundStaggeredPair(start, end, pair[0], pair[1], 0);
+    for (let i = 1; i <= samples; i += 1) {
+      const t = i / samples;
+      const p = curveAroundStaggeredPair(start, end, pair[0], pair[1], t);
+      len += distance(prev, p);
+      prev = p;
+    }
+    return len;
+  }
+  return pathArcLength(start, end, pickBlockingCluster(start, end, obstacles), samples);
+}
+
 /**
  * Friction de proximité : retourne un multiplicateur de vitesse ∈ [floor, 1]
  * basé sur la distance minimum atteinte entre le segment start→end et tous

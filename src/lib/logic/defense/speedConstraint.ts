@@ -28,8 +28,7 @@ import { getZoneLayout, mirrorZoneLayout } from '../../data/zones';
 import { DEFAULT_CLOSEOUT_BOOST, MIN_PLAYER_CLEARANCE_PX } from '../../data/physics';
 import { closeoutProfileBonus } from '../help';
 import {
-  pathArcLength,
-  pickBlockingCluster,
+  pathAroundScreensLength,
   proximityFriction,
   pushOutOfMany,
   resolvePlayerCollisions,
@@ -364,8 +363,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
     // d'écran, on calcule la longueur de la trajectoire courbe Bezier (celle
     // que CourtView trace pendant le scrub). Le défenseur "paie" le détour.
     const candidates = screenerObstacles.filter((o) => dId !== o.defenderToSkip);
-    const blocking = pickBlockingCluster(from, to, candidates);
-    const pathLen = pathArcLength(from, to, blocking);
+    const pathLen = pathAroundScreensLength(from, to, candidates);
 
     // Lever B — Friction de proximité : si le trajet frôle un joueur non-
     // matché (attaquant non visé OU autre défenseur), on baisse la vitesse

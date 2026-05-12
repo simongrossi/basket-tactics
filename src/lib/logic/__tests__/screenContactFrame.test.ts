@@ -477,6 +477,80 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
       expect(frame!.defPos.D2.late).toBe(true);
       expect(frame!.defPos.D2.screenPhase).toBe('recover');
     });
+
+    it("D2 trajectoire ne traverse jamais le rayon du poseur off-ball", () => {
+      const state = buildOffBallScreenScenario(100);
+      const screener = state.steps[1].off.O4;
+      for (let t = 0; t <= 1.0001; t += 0.05) {
+        const frame = resolveFrameAt(state, t);
+        if (!frame) continue;
+        const d2 = frame.defPos.D2;
+        const dist = Math.hypot(d2.x - screener.x, d2.y - screener.y);
+        expect(dist, `t=${t.toFixed(2)} : D2 ne doit pas traverser le poseur off-ball`)
+          .toBeGreaterThanOrEqual(15);
+      }
+    });
+
+    it("D2 à ghost off-ball (quality 0) suit son homme normalement", () => {
+      const state = buildOffBallScreenScenario(0);
+      const frame = resolveFrameAt(state, 0.7);
+      const d2 = frame!.defPos.D2;
+      const cutter = frame!.off.O2;
+      const screener = frame!.off.O4;
+      const distToCutter = Math.hypot(d2.x - cutter.x, d2.y - cutter.y);
+      const distToScreener = Math.hypot(d2.x - screener.x, d2.y - screener.y);
+      // À ghost, le cutterDef ignore le poseur et reste sur O2.
+      expect(distToCutter).toBeLessThan(distToScreener);
+    });
+
+    it("contactQualityForOffBallRule applique bonus stagger × under", () => {
+      // Vérifie que la modulation par rule + type est bien appliquée
+      // dans le pipeline complet : un under (×1.22) sur un stagger (×1.12)
+      // doit produire une quality plus élevée que le raw quality d'entrée.
+      // Test indirect via la durée de recovery : un stagger en under est
+      // plus pénalisant qu'un pindown en chase à quality équivalente.
+      const stateUnder: AppState = {
+        ...buildOffBallScreenScenario(80),
+        offBallScreenRule: 'under',
+      };
+      const stateChase: AppState = {
+        ...buildOffBallScreenScenario(80),
+        offBallScreenRule: 'chase',
+      };
+      // Récupère D2 phase à mi-segment. En 'under' (boost +22%), D2 doit
+      // être encore en mode 'stuck' à un t où 'chase' commencerait déjà
+      // à se libérer. Comparaison de distance au poseur à t=0.75.
+      const frameUnder = resolveFrameAt(stateUnder, 0.75);
+      const frameChase = resolveFrameAt(stateChase, 0.75);
+      const distUnder = Math.hypot(
+        frameUnder!.defPos.D2.x - frameUnder!.off.O4.x,
+        frameUnder!.defPos.D2.y - frameUnder!.off.O4.y
+      );
+      const distChase = Math.hypot(
+        frameChase!.defPos.D2.x - frameChase!.off.O4.x,
+        frameChase!.defPos.D2.y - frameChase!.off.O4.y
+      );
+      // 'under' doit retenir D2 PLUS près du poseur que 'chase' (bonus rule).
+      expect(distUnder).toBeLessThanOrEqual(distChase + 5);
+    });
+
+    it("trajectoire D2 fluide pendant un pindown solide (pas de saut > 15px)", () => {
+      const state = buildOffBallScreenScenario(100);
+      let prev: { x: number; y: number } | null = null;
+      let maxJump = 0;
+      for (let f = 0; f < 60; f++) {
+        const t = f / 60;
+        const frame = resolveFrameAt(state, t);
+        if (!frame) continue;
+        const d2 = frame.defPos.D2;
+        if (prev) {
+          const jump = Math.hypot(d2.x - prev.x, d2.y - prev.y);
+          if (jump > maxJump) maxJump = jump;
+        }
+        prev = { x: d2.x, y: d2.y };
+      }
+      expect(maxJump, "trajectoire D2 doit être fluide pendant le contact off-ball").toBeLessThan(15);
+    });
   });
 
   describe('Quality 0 (ghost) — D1 récupère son homme normalement', () => {

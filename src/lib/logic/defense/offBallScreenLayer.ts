@@ -7,6 +7,8 @@ import {
   applySwitchOffBall,
   detectOffBallScreens,
 } from '../screens';
+import { offBallScreenQuality, offBallScreeners } from '../screenContext';
+import { contactQualityForOffBallRule } from '../screenPhysics';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
 
@@ -21,6 +23,13 @@ export function applyOffBallScreenLayer(
     off, ballCarrier, matchups, prevDefenderPositions, state.screenRadius, prevOffAtStep
   );
   for (const obs of offBallScreens) {
+    const rawQuality = offBallScreenQuality([ctx.step, state.steps[ctx.stepIdx - 1]], obs);
+    const contactQuality = contactQualityForOffBallRule(
+      rawQuality,
+      state.offBallScreenRule,
+      'arriving',
+      obs.type
+    );
     if (state.offBallScreenRule === 'switch') {
       const newMatchups = applySwitchOffBall(matchups, obs);
       // Mute matchups en place pour que les couches suivantes voient le switch.
@@ -31,22 +40,40 @@ export function applyOffBallScreenLayer(
     } else {
       const cutterTarget = applyOffBallScreenAdjustment(
         { x: positions[obs.cutterDef].x, y: positions[obs.cutterDef].y },
-        obs, state.offBallScreenRule, obs.cutterDef, off, carrierPos
+        obs, state.offBallScreenRule, obs.cutterDef, off, carrierPos, contactQuality
       );
       positions[obs.cutterDef].x = Math.round(cutterTarget.x);
       positions[obs.cutterDef].y = Math.round(cutterTarget.y);
 
       const screenerTarget = applyOffBallScreenAdjustment(
         { x: positions[obs.screenerDef].x, y: positions[obs.screenerDef].y },
-        obs, state.offBallScreenRule, obs.screenerDef, off, carrierPos
+        obs, state.offBallScreenRule, obs.screenerDef, off, carrierPos, contactQuality
       );
       positions[obs.screenerDef].x = Math.round(screenerTarget.x);
       positions[obs.screenerDef].y = Math.round(screenerTarget.y);
+
+      if (obs.secondScreenerDef && positions[obs.secondScreenerDef]) {
+        const secondScreenerTarget = applyOffBallScreenAdjustment(
+          { x: positions[obs.secondScreenerDef].x, y: positions[obs.secondScreenerDef].y },
+          obs,
+          state.offBallScreenRule,
+          obs.secondScreenerDef,
+          off,
+          carrierPos,
+          contactQuality
+        );
+        positions[obs.secondScreenerDef].x = Math.round(secondScreenerTarget.x);
+        positions[obs.secondScreenerDef].y = Math.round(secondScreenerTarget.y);
+      }
     }
     positions[obs.cutterDef].onScreen = true;
-    if (state.offBallScreenRule !== 'switch') {
+    if (state.offBallScreenRule !== 'switch' && contactQuality >= 10) {
       positions[obs.cutterDef].screenPhase = 'impact';
     }
-    positions[obs.screenerDef].onScreen = true;
+    offBallScreeners(obs).forEach((screenContact) => {
+      if (positions[screenContact.screenerDef]) {
+        positions[screenContact.screenerDef].onScreen = true;
+      }
+    });
   }
 }
