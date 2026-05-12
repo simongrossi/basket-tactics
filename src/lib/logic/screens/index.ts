@@ -27,3 +27,4 @@ export {
 export { detectRejectedScreen, type RejectedScreen } from './detectRejectedScreen';
 export { detectSnakeDribble, type SnakeDribble } from './detectSnakeDribble';
 export { isEmptySidePnR } from './emptySidePnR';
+export { countCutterScreenChain, cuttersInScreenChain } from './cutterScreenChain';

@@ -6,6 +6,36 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### B9 — Top-lock off-ball avec timing
+
+Quand un cutter sort son **2ᵉ écran consécutif** (chaîne ≥ 2), la
+couverture `top-lock` (verrouillage côté ballon) devient inadaptée — le
+cutter est déjà décollé du verrouillage initial. Bascule automatique
+vers `chase` (trail derrière le shooter) **pour ce cutter uniquement**.
+
+**Nouveau module** `screens/cutterScreenChain.ts` :
+- `countCutterScreenChain(state, stepIdx, cutter, depth=3)` : compte les
+  écrans off-ball détectés sur les K derniers steps impliquant le cutter.
+- `cuttersInScreenChain(state, stepIdx, candidates, depth, threshold)` :
+  retourne le Set des cutters au-dessus du seuil (default 2).
+
+**Câblage** dans `defense/offBallScreenLayer.ts` :
+- Calcul une fois par couche (Set partagé entre les écrans détectés)
+- `effectiveRule` par cutter : `'top-lock' → 'chase'` si dans la chaîne
+- Tous les `applyOffBallScreenAdjustment` et `applySwitchOffBall` utilisent
+  `effectiveRule` au lieu de `state.offBallScreenRule` directement
+
+**Comportement** :
+- Seul `state.offBallScreenRule === 'top-lock'` déclenche le calcul de
+  chaîne (autres rules : pas d'overhead, ni de bascule).
+- Cutters non en chaîne : top-lock classique conservé.
+- Cutters en chaîne (≥ 2 écrans dans 3 steps) : `chase` appliqué.
+
+**Tests** : 10 (7 helper unitaires + 3 d'intégration sur le pipeline
+défense). **660 → 670 tests verts**.
+
+Roadmap : B9 marqué 🟢.
+
 ### B8 — Switch policy granulaire (team-level)
 
 Filtre additionnel par-dessus `screenRule = 'switch'` ou `'peel-switch'`.

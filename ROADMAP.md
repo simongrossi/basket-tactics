@@ -252,18 +252,10 @@ Filtre additionnel par-dessus `screenRule = 'switch'`/'peel-switch'.
 Helper `switchAllowed` + câblage dans `defense/context.ts` + UI dans
 `DefensePanel`. 10 tests. **660 tests verts**.
 
-##### ⚪ Top-lock off-ball avec timing
-**Quoi.** `top-lock` existe en position statique (le D du cutter se met
-côté ballon en permanence). Manque le concept **"top-lock sur la
-première utilisation, then chase sur la 2ᵉ"** — un shooter qui sort
-deux pindowns d'affilée n'est top-locké qu'au premier.
-
-**Implémentation.** Suivre le nombre de screens hors-ballon traversés
-par un même cutter dans la séquence courante (compteur par AttackerId
-dans le contexte de frame). Si compteur ≥ 2, basculer `top-lock` →
-`chase`. Reset compteur sur passe entrante (la séquence est consommée).
-
-**Effort** ~2h · **Risque** 🟡 · **Valeur** moyen.
+##### 🟢 Top-lock off-ball avec timing (V1 livré 2026-05-12)
+Helper `cuttersInScreenChain` + câblage dans `offBallScreenLayer`. Bascule
+auto `top-lock → chase` pour les cutters avec ≥ 2 écrans dans 3 steps.
+10 tests (7 unit + 3 intégration). **670 tests verts**.
 
 ##### ⚪ Bumping the cutter — réaction automatique
 **Quoi.** `bump` existe comme rule explicite. Manque la **réaction
@@ -422,7 +414,7 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 | B6 | Dig / double au post | 3-4h | 🟡 | Moyen |
 | ~~B7~~ | ~~Defensive 3 sec (diag coach)~~ — 🟢 livré 2026-05-12 | — | — | — |
 | ~~B8~~ | ~~Switch policy granulaire~~ — 🟢 livré 2026-05-12 | — | — | — |
-| B9 | Top-lock off-ball avec timing | 2h | 🟡 | Moyen |
+| ~~B9~~ | ~~Top-lock off-ball avec timing~~ — 🟢 livré 2026-05-12 | — | — | — |
 | B10 | Bumping cutters automatique | 2-3h | 🟡 | Moyen |
 
 **Total UX/Produit restant** : ~12-13h en restant sur des v1 simples.
