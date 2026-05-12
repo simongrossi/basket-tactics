@@ -37,12 +37,21 @@ src/
 │   ├── SimulationSection.tsx     # section simulation Monte Carlo
 │   │
 │   │   — Terrain SVG interactif —
-│   ├── CourtView.tsx             # SVG interactif du terrain
+│   ├── CourtView.tsx             # câblage : viewBox + overlays + clic-droit (446 l)
+│   ├── court/                    # sous-composants de CourtView (cf. § CourtView)
+│   │   ├── CourtPlayersLayer.tsx #   sprites + screener gaze override
+│   │   └── CourtMenus.tsx        #   context menus (def/att) + zone region menu
 │   ├── Court.tsx                 # arrière-plan terrain (lignes)
 │   ├── Player.tsx                # cercle + bras défensifs + ballon
 │   ├── Annotations.tsx           # flèches passe/dribble/course/écran
 │   ├── Timeline.tsx              # scrubber horizontal sous le terrain
-│   ├── ContextMenu.tsx           # menu clic-droit sur défenseur
+│   ├── ContextMenu.tsx           # dispatch defender / attacker (22 l)
+│   ├── contextMenu/              # menus contextuels (cf. § ContextMenu)
+│   │   ├── popupHooks.ts         #   useClampedPosition + useDraggablePopup
+│   │   ├── ToolBar.tsx           #   barre d'outils move/pass/dribble/cut/screen
+│   │   ├── sharedRows.tsx        #   Row + OverrideSliderRow + GazeLockButton
+│   │   ├── DefenderMenu.tsx      #   17 rows tactiques défenseur
+│   │   └── AttackerMenu.tsx      #   carrier / screener / profil / orientation / main
 │   ├── StepThumbnail.tsx         # rendu statique réutilisable (export)
 │   │
 │   │   — Overlays SVG —
@@ -70,8 +79,21 @@ src/
 │   ├── CoachDiagnostics.tsx      # diagnostics coach (avertissements tactiques)
 │   └── HelpDebugOverlay.tsx      # overlay de debug des vecteurs d'aide
 ├── hooks/
-│   └── useAppState.ts    # état central + tous les callbacks
+│   ├── useAppState.ts             # état central — persistance + history + câblage transforms (510 l)
+│   ├── useCourtFrame.ts           # calcule staticFrame / scrubFrame / playFrame (+ threats)
+│   └── useCourtPointerHandlers.ts # drag joueurs + tracé d'annotations (rAF-coalesced)
 └── lib/
+    ├── state/transforms/          # transformations pures AppState → AppState (cf. § useAppState)
+    │   ├── index.ts               #   barrel — namespaces par domaine
+    │   ├── shared.ts              #   markStepAsManual + recompileScenarioSteps + mutateActionsScope
+    │   ├── stepTransforms.ts      #   CRUD step + label + ballCarrier
+    │   ├── annotationTransforms.ts#   CRUD annotation + timing / quality / phase + forcedScreener
+    │   ├── defenseTransforms.ts   #   rules / profils / presets / système / switchs / overrides
+    │   ├── attackerTransforms.ts  #   hand / orientation / profil offensif
+    │   ├── zoneTransforms.ts      #   overrides régionaux + zoneConfig
+    │   ├── scenarioTransforms.ts  #   actions scriptées + branches (branch-aware)
+    │   ├── defensiveScriptedTransforms.ts # actions défensives scriptées
+    │   └── coreTransforms.ts      #   tool / template / import / patch / playerCount / resetAll
     ├── data/
     │   ├── court.ts                    # constantes terrain, panier, dimensions
     │   ├── initial.ts                  # AppState par défaut
@@ -104,7 +126,13 @@ src/
     │   ├── manDefense.ts               # marquage individuel + stances
     │   ├── help.ts                     # logique d'aide (sag baseline + triggers)
     │   ├── triggers.ts                 # détection drive / post-up / paint
-    │   ├── screens.ts                  # détection + ajustement écrans (porteur + non-porteur). 'hedge' bouge D5 (show) ET D1 (over the top).
+    │   ├── screens/                    # moteur d'écrans — découpé en 5 modules (cf. § Moteur d'écrans)
+    │   │   ├── index.ts                #   barrel — re-exporte l'API publique
+    │   │   ├── helpers.ts              #   intent filter, smoothstep, push-out clearance
+    │   │   ├── detectCarrierScreen.ts  #   detectScreen (PnR / drag / ghost)
+    │   │   ├── carrierScreenAdjust.ts  #   applyScreenAdjustment + peelSwitchShouldFire + applySwitch
+    │   │   ├── detectOffBallScreens.ts #   detect + upgrade stagger / elevator / flex / hammer
+    │   │   └── offBallScreenAdjust.ts  #   applyOffBallScreenAdjustment + applySwitchOffBall
     │   ├── zoneDefense.ts              # ownership polygonal de zone
     │   ├── trap.ts                     # choix du défenseur en aide-trap
     │   ├── metrics.ts                  # métriques défensives (gap, paint coverage, passes)
@@ -129,7 +157,12 @@ src/
     │   ├── defensiveCompilation.ts     # compilation des actions scriptées → directives
     │   ├── defensiveDefaults.ts        # valeurs par défaut des actions défensives
     │   ├── scriptedActionMigration.ts  # migration des anciens formats d'actions
-    │   ├── scriptedGenerators.ts       # générateurs d'actions scriptées (PNR, etc.)  ⚠ 1491 l, à découper (cf. ROADMAP § A4)
+    │   ├── scriptedGenerators.ts       # barrel — câblage action FIBA → générateur (92 l)
+    │   ├── scriptedGenerators/         # 57 générateurs scriptés, découpés par tier
+    │   │   ├── helpers.ts              #   géométrie commune + types Generator
+    │   │   ├── tier1.ts                #   19 actions de base (PnR, cuts, screens, drive…)
+    │   │   ├── tier2.ts                #   30 variantes (off-ball, PnR variants, combos…)
+    │   │   └── tier3.ts                #   9 sets d'entrée (horns, floppy, pistol, ucla…)
     │   ├── compileScenario.ts          # compilation complète d'un scénario
     │   ├── pnrRotations.ts             # rotations défensives sur PNR
     │   ├── screenAction.ts             # logique d'action sur écran
@@ -148,6 +181,60 @@ src/
     └── types/
         └── index.ts                    # tous les types
 ```
+
+## Modularité & refactoring
+
+Plusieurs fichiers stratégiques ont été éclatés en sous-modules au fil des
+itérations. Trois motifs reviennent :
+
+### 1. Barrel + dossier (logique métier dense)
+
+Quand un fichier de logique pure dépasse ~700 lignes ET contient plusieurs
+domaines distincts, on le remplace par un dossier homonyme avec un `index.ts`
+de ré-export. Les imports `from '@/lib/logic/<name>'` continuent de marcher
+sans modification (résolution `<name>/index.ts`).
+
+Exemples :
+- **`screens/`** (ex `screens.ts` 822 l → 5 modules) — `detectCarrierScreen`,
+  `carrierScreenAdjust`, `detectOffBallScreens`, `offBallScreenAdjust`,
+  `helpers`. Ajouter une nouvelle rule défensive = éditer 1 fichier ciblé.
+- **`scriptedGenerators/`** (ex `scriptedGenerators.ts` 1502 l → tier1/2/3 +
+  helpers + barrel 92 l) — ajouter une action FIBA = éditer 1 sous-fichier +
+  1 ligne de câblage.
+
+### 2. Transformations pures + hook mince (state React)
+
+Le hook `useAppState` ne fait plus que persistance + history + câblage. Toute
+la **logique métier** des mutations d'état vit dans `lib/state/transforms/`,
+sous forme de fonctions pures `(state, ...args) => state`. Le hook ré-expose
+chacune via `useCallback((args) => setStateWithHistory(s => stepTx.foo(s, args)))`.
+
+Bénéfices :
+- Transformations testables sans React (`stepTx.addStep(initialState)`).
+- Le hook devient lisible : ~20 lignes par section au lieu de 967 entremêlées.
+- API publique inchangée : zero risque côté callers (page.tsx, CourtView…).
+
+### 3. Hooks + sous-composants (gros composant React)
+
+Quand un composant React dépasse ~700 lignes et mélange état pointer / calcul
+de frame / rendu, on extrait :
+- Les sources d'état → **hooks dédiés** (`useCourtFrame`, `useCourtPointerHandlers`).
+- Les sections de JSX → **sous-composants** (`<CourtPlayersLayer>`,
+  `<CourtMenus>`, `contextMenu/DefenderMenu`, `contextMenu/AttackerMenu`).
+- Les helpers de layout réutilisés → **modules partagés** (`sharedRows.tsx`,
+  `popupHooks.ts`).
+
+Exemples : **`CourtView`** (902 → 446 l), **`ContextMenu`** (897 → 22 l).
+
+### Bilan des refontes
+
+| Fichier | Avant | Après | Modules extraits |
+|---|---:|---:|---|
+| `scriptedGenerators.ts` | 1502 | 92 | helpers + tier1 + tier2 + tier3 |
+| `useAppState.ts` | 967 | 510 | 8 namespaces `state/transforms/` (purs) |
+| `CourtView.tsx` | 902 | 446 | `useCourtFrame` · `useCourtPointerHandlers` · `<CourtPlayersLayer>` · `<CourtMenus>` |
+| `ContextMenu.tsx` | 897 | 22 | popupHooks + ToolBar + sharedRows + DefenderMenu + AttackerMenu |
+| `screens.ts` | 822 | barrel | helpers + 2 detect + 2 adjust |
 
 ## Flux de données
 
@@ -185,10 +272,10 @@ L'utilisateur peut **drag** un défenseur sur le terrain → la position est éc
 
 ### Pourquoi le moteur est-il pur ?
 
-Toute la logique défensive (engine.ts, defense/*.ts, screens.ts, etc.) est **pure** : entrée = `AppState`, sortie = positions. Aucun hook React, aucun localStorage, aucun side-effect.
+Toute la logique défensive (engine.ts, defense/*.ts, screens/, etc.) est **pure** : entrée = `AppState`, sortie = positions. Aucun hook React, aucun localStorage, aucun side-effect.
 
 Avantages :
-- Testable isolément (cf. [testing.md](testing.md) — ~336 tests Vitest dans 27 fichiers : engine, screens, metrics, help, trap, manDefense, geometry, threats, offense, simulator, orientation, zone, directives défensives scriptées…)
+- Testable isolément (cf. [testing.md](testing.md) — 541 tests Vitest dans 46 fichiers : engine, screens, metrics, help, trap, manDefense, geometry, threats, offense, simulator, orientation, zone, directives défensives scriptées…)
 - Réutilisable en SSR / export PDF / preview
 - Le rendu peut s'appuyer dessus sans gérer d'état intermédiaire
 

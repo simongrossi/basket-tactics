@@ -6,6 +6,23 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Modularité — découpage des gros fichiers
+
+Refonte structurelle visant à **réduire le risque** de chaque nouvelle feature
+basket. Les fichiers les plus volumineux ont été éclatés en sous-modules
+cohérents sans changer l'API publique. Documentation détaillée :
+[docs/refactoring-history.md](./docs/refactoring-history.md).
+
+| Fichier | Avant | Après | Modules extraits |
+|---|---:|---:|---|
+| `lib/logic/scriptedGenerators.ts` | 1502 | 92 | helpers + tier1/2/3 |
+| `hooks/useAppState.ts` | 967 | 510 | 8 namespaces `lib/state/transforms/` (purs) |
+| `components/CourtView.tsx` | 902 | 446 | `useCourtFrame` · `useCourtPointerHandlers` · `<CourtPlayersLayer>` · `<CourtMenus>` |
+| `components/ContextMenu.tsx` | 897 | 22 | popupHooks + ToolBar + sharedRows + DefenderMenu + AttackerMenu |
+| `lib/logic/screens.ts` | 822 | barrel | helpers + 2 detect + 2 adjust |
+
+Pas de changement de comportement runtime, 541 tests verts.
+
 ### Étapes 2 à 5 — Réflexes défensifs avancés en zone
 
 Refonte significative de la défense de zone pour encoder les principes basket fondamentaux qui doivent l'emporter sur la simple ownership géométrique. Documentation : [docs/logique-defensive.md > Réflexes défensifs avancés](./docs/logique-defensive.md#réflexes-défensifs-avancés-étapes-2-4).
