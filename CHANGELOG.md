@@ -20,6 +20,7 @@ cohérents sans changer l'API publique. Documentation détaillée :
 | `components/CourtView.tsx` | 902 | 446 | `useCourtFrame` · `useCourtPointerHandlers` · `<CourtPlayersLayer>` · `<CourtMenus>` |
 | `components/ContextMenu.tsx` | 897 | 22 | popupHooks + ToolBar + sharedRows + DefenderMenu + AttackerMenu |
 | `lib/logic/screens.ts` | 822 | barrel | helpers + 2 detect + 2 adjust |
+| `lib/logic/coachDiagnostics.ts` | 834 | barrel + 13 rules | registry pattern, 1 fichier par règle |
 
 Pas de changement de comportement runtime, 541 tests verts.
 

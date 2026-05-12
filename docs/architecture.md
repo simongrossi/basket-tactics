@@ -175,7 +175,11 @@ src/
     │   │
     │   │   — Zone et situations —
     │   ├── zoneSituations.ts           # détection de situations de zone (overload, skip)
-    │   └── coachDiagnostics.ts         # génération des avertissements coach
+    │   └── coachDiagnostics/           # diagnostics coach — registry de règles (cf. § Diagnostics coach)
+    │       ├── index.ts                #   orchestrateur + registry + computeCoachDiagnostics
+    │       ├── types.ts                #   CoachDiagnostic, CoachSeverity, Rule, RuleContext
+    │       ├── helpers.ts              #   profileTag, withProfile, sideOf, isCornerAttacker
+    │       └── rules/                  #   13 règles, une par fichier (closeoutLong, switchMismatch, …)
     ├── constants/
     │   └── gameplay.ts                 # DRIBBLE_THRESHOLD_PX, POST_HOLD_THRESHOLD_PX
     └── types/
@@ -235,6 +239,25 @@ Exemples : **`CourtView`** (902 → 446 l), **`ContextMenu`** (897 → 22 l).
 | `CourtView.tsx` | 902 | 446 | `useCourtFrame` · `useCourtPointerHandlers` · `<CourtPlayersLayer>` · `<CourtMenus>` |
 | `ContextMenu.tsx` | 897 | 22 | popupHooks + ToolBar + sharedRows + DefenderMenu + AttackerMenu |
 | `screens.ts` | 822 | barrel | helpers + 2 detect + 2 adjust |
+| `coachDiagnostics.ts` | 834 | barrel + 13 rules | registry pattern, 1 fichier par règle |
+
+### Pattern 4 — Registry de règles (coachDiagnostics)
+
+Quand un fichier contient une **liste numérotée de règles** indépendantes
+qui consomment toutes le même contexte (ex: "1. closeout long", "2. switch
+mismatch", "3. pick-and-roll", …), on extrait :
+
+- Un **type `Rule`** = `(ctx: RuleContext) => CoachDiagnostic[]` (signature commune).
+- Un **`RuleContext`** = données pré-calculées une seule fois par étape
+  (positions, défenseurs actifs, profils, hoop…).
+- Une **règle par fichier** dans `rules/<name>.ts` (chacune purement testable).
+- Un **registry** (`Rule[]` ordonné) dans `index.ts` qui itère et concatène.
+
+Bénéfices :
+- Ajouter une règle = créer 1 fichier + 1 entrée dans le tableau.
+- Chaque règle est testable unitairement sans monter tout le moteur.
+- L'ordre du registry est explicite et documenté (utile pour les dédups
+  post-collecte type "corner-* prime sur pass-open").
 
 ## Flux de données
 

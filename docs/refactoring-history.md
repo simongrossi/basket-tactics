@@ -189,6 +189,52 @@ domaine.
 
 ---
 
+## 6. `coachDiagnostics.ts` → `coachDiagnostics/` registry (834 → barrel + 13 rules)
+
+**Pattern** : **registry de règles** (nouveau pattern).
+
+**Problème** : une fonction `computeCoachDiagnostics` de 730 lignes contenant
+12 sections numérotées dans un seul flot. Chaque "règle" (closeout long,
+switch mismatch, baseline drive, P&R, zone situations, etc.) s'enchaînait dans
+le même `out: CoachDiagnostic[]` avec des conditions imbriquées. Ajouter un
+diagnostic obligeait à scroller pour trouver la bonne section, et à
+re-tester l'ensemble.
+
+**Découpe** :
+
+| Fichier | Rôle |
+|---|---|
+| `types.ts` | `CoachDiagnostic` · `CoachSeverity` · `RuleContext` · `Rule = (ctx) => CoachDiagnostic[]` |
+| `helpers.ts` | `profileTag` · `withProfile` · `isOutsideThreat` · `sideOf` · `isCornerAttacker` |
+| `rules/closeoutLong.ts` | over-closeout / closeout long / late simple |
+| `rules/switchMismatch.ts` | switch détecté ce step |
+| `rules/attackerJump.ts` | saut > 4m (téléportation utilisateur) |
+| `rules/baselineDriveCoverage.ts` | ligne de fond ouverte / fermée / late |
+| `rules/offBallCuts.ts` | coupes hors-ballon vers le panier |
+| `rules/matchupOrphans.ts` | défenseur en aide, matchup naturel orphelin |
+| `rules/pickAndRoll.ts` | actions PnR (roll/pop/slip/ghost/reject/snake/re-screen) + couverture (ice/weak/peel-switch) + low-man tag + X-out + pop-recover |
+| `rules/zoneSituations.ts` | overload / high-post / short-corner / skip rotation |
+| `rules/offBallScreens.ts` | stagger / elevator / flex / hammer / pindown-late |
+| `rules/cornerAbandoned.ts` | corner faible abandonné |
+| `rules/passOpen.ts` | skip vers menace ouverte (dédupé contre `corner-*`) |
+| `rules/paintNoHelp.ts` | pénétration sans aide |
+| `rules/tacticalReads.ts` | lectures offensives auto |
+| `index.ts` | orchestrateur : build ctx → itère registry → dédup → finalizer "all-good" |
+
+**Convention** : chaque règle est une **fonction pure** `(ctx) => CoachDiagnostic[]`.
+
+**Ordre du registry** : significatif. `passOpen` doit s'exécuter après
+`cornerAbandoned` car l'orchestrateur dédupe les pass-open déjà couverts par
+un corner-* (la version corner est plus granulaire).
+
+**Pour ajouter un nouveau diagnostic** :
+1. Créer `rules/<myDiag>.ts` qui exporte `(ctx) => CoachDiagnostic[]`.
+2. Ajouter l'import + l'entrée dans `REGISTRY` dans `index.ts`.
+3. Tester unitairement : `myDiagRule(fakeCtx)` doit retourner les bonnes
+   phrases. Pas de mock React ni de moteur défense complet.
+
+---
+
 ## Méthode reproductible
 
 Quand on identifie un nouveau gros fichier candidat :
