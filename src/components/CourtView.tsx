@@ -58,6 +58,7 @@ import { useCourtFrame } from '@/hooks/useCourtFrame';
 import { useCourtPointerHandlers } from '@/hooks/useCourtPointerHandlers';
 import { CourtPlayersLayer } from './court/CourtPlayersLayer';
 import { CourtMenus, type CtxMenuState, type ZoneRegionMenuState } from './court/CourtMenus';
+import { SnapGuideOverlay } from './court/SnapGuideOverlay';
 
 interface CourtViewProps {
   state: AppState;
@@ -113,7 +114,7 @@ export function CourtView(props: CourtViewProps) {
   const closeZoneRegionMenu = useCallback(() => setZoneRegionMenu(null), []);
 
   // Pointer/drag + tracé d'annotation.
-  const { pending, svgPoint, onPointerDown, onPointerMove, onPointerUp } =
+  const { pending, snapTarget, svgPoint, onPointerDown, onPointerMove, onPointerUp } =
     useCourtPointerHandlers({
       state,
       svgRef,
@@ -210,6 +211,13 @@ export function CourtView(props: CourtViewProps) {
       >
         <ArrowMarkers />
         <CourtBackground fullCourt={state.fullCourt} attackingDirection={state.attackingDirection} />
+
+        {/* #2 — Feedback visuel snap-to-grid pendant le drag avec Ctrl/Cmd. */}
+        <SnapGuideOverlay
+          target={snapTarget}
+          attackingDirection={state.attackingDirection}
+          courtHeight={state.fullCourt ? FULL_COURT_HEIGHT : COURT.height}
+        />
 
         {/* ---- Couches zone (overlay + edit) ---- */}
         {state.defenseSystem === 'zone' && (() => {

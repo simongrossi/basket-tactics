@@ -6,6 +6,42 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### UX — Snap-to-grid (Ctrl/Cmd + drag)
+
+Pendant le drag d'un joueur avec **Ctrl** (PC) ou **Cmd** (Mac) enfoncé,
+la position s'aimante sur les lignes clés du terrain FIBA. Feedback
+visuel : ligne cyan pointillée affichée pendant le snap actif.
+
+**Cibles** (seuil 8 px) :
+- Ligne médiane verticale (x = 300)
+- Bords de la raquette (PAINT.x1 / x2 / y1 / y2)
+- Ligne des lancers francs (y = 235)
+- Arc à 3 points (rayon 250 depuis HOOP)
+- Blocs bas (HOOP.x ± 70, HOOP.y + 80)
+
+Le plus proche gagne en cas de multi-candidats. Si aucun dans le seuil,
+point inchangé.
+
+**Nouveau module** `src/lib/logic/snapToGrid.ts` — fonction pure
+`snapToGrid(p, threshold=8, hoop=HOOP)` retourne `{point, snappedTo}`.
+
+**Nouveau composant** `src/components/court/SnapGuideOverlay.tsx` —
+rendu de la ligne snappée en cyan pointillé (lignes) ou point cyan plein
+(blocs bas).
+
+**Câblage** : `useCourtPointerHandlers` lit `e.ctrlKey || e.metaKey`
+pendant `onPointerMove` et `onPointerUp`, applique le snap, expose
+`snapTarget` pour le rendu visuel.
+
+**Adaptation full court** : utilise `HOOP_OPPOSITE` quand
+`state.attackingDirection === 'down'` (snap autour du bon panier).
+
+**Tests** : 11 unitaires (no-snap loin, snap médiane, paint left/right/
+bottom, free-throw, arc 3pts, blocs gauche/droit, priorité plus proche,
+threshold custom). **688 → 699 tests verts**.
+
+Roadmap : `#2 Snap-to-grid` marqué 🟢.
+
 ### UX — Graphique d'évolution des métriques
 
 Mini line chart sous la `Timeline` qui affiche l'évolution d'une métrique

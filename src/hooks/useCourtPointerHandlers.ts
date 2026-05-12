@@ -21,6 +21,8 @@ import { COURT, FULL_COURT_INNER_MAX_Y, PLAYER_PICK_RADIUS_PX } from '@/lib/data
 import { clamp, distance } from '@/lib/logic/geometry';
 import { activeOffense, getActiveDefenderIds } from '@/lib/logic/players';
 import { simplifyPolyline } from '@/lib/logic/polyline';
+import { snapToGrid, type SnapTarget } from '@/lib/logic/snapToGrid';
+import { HOOP, HOOP_OPPOSITE } from '@/lib/data/court';
 
 export interface PendingAnnotation {
   type: Tool;
@@ -54,6 +56,10 @@ interface UseCourtPointerHandlersOptions {
 export interface UseCourtPointerHandlersResult {
   pending: PendingAnnotation | null;
   dragging: { id: PlayerId; isDef: boolean } | null;
+  /** Cible de snap active pendant le drag courant (Ctrl/Cmd enfoncé). Null
+   *  si pas de snap. Utilisé par CourtView pour afficher un visuel de
+   *  feedback (highlight de la ligne sur laquelle on s'aimante). */
+  snapTarget: SnapTarget | null;
   /** Helper pour convertir un événement clavier/souris en point SVG.
    *  Exposé pour permettre au caller de l'utiliser dans d'autres handlers
    *  (ex. context menu). */
@@ -85,6 +91,7 @@ export function useCourtPointerHandlers(
   const dragRafRef = useRef<number | null>(null);
   const lastDragPointRef = useRef<{ x: number; y: number } | null>(null);
   const [pending, setPending] = useState<PendingAnnotation | null>(null);
+  const [snapTarget, setSnapTarget] = useState<SnapTarget | null>(null);
 
   const svgPoint = useCallback(
     (evt: React.PointerEvent | PointerEvent | React.MouseEvent): Point => {
@@ -214,9 +221,21 @@ export function useCourtPointerHandlers(
       const pt = svgPoint(e);
       if (dragging && state.tool === 'move') {
         const maxY = state.fullCourt ? FULL_COURT_INNER_MAX_Y : COURT.innerMaxY;
-        const x = clamp(Math.round(pt.x), COURT.marginX, COURT.innerMaxX);
-        const y = clamp(Math.round(pt.y), COURT.marginY, maxY);
-        queueDragMove(dragging.id, dragging.isDef, x, y);
+        let x = clamp(pt.x, COURT.marginX, COURT.innerMaxX);
+        let y = clamp(pt.y, COURT.marginY, maxY);
+        // #2 — Snap-to-grid : si Ctrl (PC) ou Cmd (Mac) est enfoncé pendant
+        // le drag, magnétiser aux lignes clés du terrain (3pts, raquette,
+        // blocs bas, ligne médiane). Visuel de feedback via snapTarget.
+        if (e.ctrlKey || e.metaKey) {
+          const hoop = state.attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP;
+          const snap = snapToGrid({ x, y }, 8, hoop);
+          x = snap.point.x;
+          y = snap.point.y;
+          setSnapTarget(snap.snappedTo);
+        } else if (snapTarget !== null) {
+          setSnapTarget(null);
+        }
+        queueDragMove(dragging.id, dragging.isDef, Math.round(x), Math.round(y));
         return;
       }
       if (pending) {
@@ -241,7 +260,7 @@ export function useCourtPointerHandlers(
         }
       }
     },
-    [dragging, findPlayerAt, pending, queueDragMove, state.fullCourt, state.tool, svgPoint]
+    [dragging, findPlayerAt, pending, queueDragMove, snapTarget, state.attackingDirection, state.fullCourt, state.tool, svgPoint]
   );
 
   const onPointerUp = useCallback(
@@ -249,9 +268,17 @@ export function useCourtPointerHandlers(
       if (dragging) {
         const pt = svgPoint(e);
         const maxY = state.fullCourt ? FULL_COURT_INNER_MAX_Y : COURT.innerMaxY;
-        const x = clamp(Math.round(pt.x), COURT.marginX, COURT.innerMaxX);
-        const y = clamp(Math.round(pt.y), COURT.marginY, maxY);
-        queueDragMove(dragging.id, dragging.isDef, x, y);
+        let x = clamp(pt.x, COURT.marginX, COURT.innerMaxX);
+        let y = clamp(pt.y, COURT.marginY, maxY);
+        // Snap final au release si Ctrl/Cmd encore enfoncé.
+        if (e.ctrlKey || e.metaKey) {
+          const hoop = state.attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP;
+          const snap = snapToGrid({ x, y }, 8, hoop);
+          x = snap.point.x;
+          y = snap.point.y;
+        }
+        setSnapTarget(null); // cleanup feedback visuel
+        queueDragMove(dragging.id, dragging.isDef, Math.round(x), Math.round(y));
         flushDragMove();
         onCommitPlayerDrag?.();
         setDragging(null);
@@ -296,5 +323,5 @@ export function useCourtPointerHandlers(
     ]
   );
 
-  return { pending, dragging, svgPoint, onPointerDown, onPointerMove, onPointerUp };
+  return { pending, dragging, snapTarget, svgPoint, onPointerDown, onPointerMove, onPointerUp };
 }

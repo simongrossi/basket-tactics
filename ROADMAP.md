@@ -292,14 +292,12 @@ moteur en bénéficient sans modification côté caller. 678 tests verts.
 
 Implémenté dans `hooks/useKeyboardShortcuts.ts`. Skip auto si le focus est dans un input/textarea/select/contenteditable, ou si une modif (Ctrl/Cmd/Alt) est enfoncée.
 
-#### ⚪ Snap-to-grid
-**Quoi.** Pendant le drag d'un joueur, si `Ctrl` est enfoncé, sa position se "magnétise" sur les lignes clés du terrain : ligne 3pts (rayon 250 depuis HOOP), raquette (rectangle PAINT), blocs bas (`HOOP.x ± 70, HOOP.y + 80`), homepos des zones, ligne médiane.
-
-**Implémentation.** Dans [`CourtView.onPointerMove`](src/components/CourtView.tsx), quand `e.ctrlKey && dragging`, après calcul de la position, passer par un helper `snapToGrid(pt, lines, threshold)` qui retourne la ligne la plus proche si distance < seuil (e.g. 8px). Le helper vit dans `geometry.ts`. Visuel optionnel : afficher la ligne magnétisée en surbrillance pendant le drag.
-
-**Effort** ~45min · **Risque** 🟢 · **Valeur** moyen.
-
-**Tradeoff.** Le seuil de snap doit être conservateur sinon le drag devient frustrant. Sur tablette pas de Ctrl → le snap n'est accessible qu'au desktop, ce qui est OK pour v1.
+#### 🟢 Snap-to-grid (livré 2026-05-12)
+Module pur `lib/logic/snapToGrid.ts` + overlay visuel
+`court/SnapGuideOverlay.tsx`. Activé pendant le drag d'un joueur avec
+**Ctrl** (PC) ou **Cmd** (Mac). 9 cibles : médiane, 4 bords raquette,
+LF, arc 3pts, 2 blocs bas. Seuil 8 px. Mode fullCourt adapté via
+`HOOP_OPPOSITE`. 11 tests. **699 tests verts**.
 
 ### Visualisation & feedback
 
@@ -391,7 +389,7 @@ travail" est rempli.
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
 | ~~1~~ | ~~Saisie numérique sliders~~ — 🟢 livré 2026-05-12 | — | — | — |
-| 2 | Snap-to-grid | 45min | 🟢 | Moyen |
+| ~~2~~ | ~~Snap-to-grid~~ — 🟢 livré 2026-05-12 | — | — | — |
 | ~~3~~ | ~~Graphique métriques~~ — 🟢 livré 2026-05-12 | — | — | — |
 | 4 | Sélection multiple | 2h | 🟡 | Haut |
 | 5 | Mode présentation | 45min | 🟢 | Haut (tablette) |
