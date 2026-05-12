@@ -563,6 +563,161 @@ Ce qu'il faut pour que ça marche :
 
 ---
 
-## Hors roadmap court terme
+## 5. Audit transverse (2026-05-12) — chantiers restants par phase
 
-Idées plus lointaines (modélisation agent, mode coach audio, multi-utilisateur, IA défensive en édition) : voir [IDEAS.md § Idées plus loin](IDEAS.md).
+Audit complet de l'état du moteur sur 5 dimensions (technique, logique
+basket, trajectoires, vitesse réelle, notion du temps). Ce qui suit
+ordonne les **chantiers identifiés mais non livrés**, par phases qui
+respectent leurs dépendances logiques.
+
+> 📌 La priorisation suit 3 principes :
+> 1. **Quick wins avant features lourdes** — UI accessible avant
+>    nouvelles features qui n'auraient pas de surface utilisateur.
+> 2. **Foundations avant superstructures** — la notion du temps
+>    (durée per step) débloque shot clock, end-of-clock defense, etc.
+> 3. **Réalisme modéré avant changement de scope** — affiner le moteur
+>    existant avant d'ajouter le rebond (= demi-jeu = +5-8 jours).
+
+---
+
+### Phase A — Quick wins UI accessible (~3-4h total)
+
+Features livrées en code mais sans surface UI dédiée, ou UX simples
+hautement valorisantes.
+
+| # | Chantier | Effort | Risque | Valeur |
+|---|---|---|---|---|
+| A.1 | **Visu nouvelles features défensives dans `DefensePanel`** : toggles UI pour `unwindRejectedScreens` (B2 V2), `snakeKeepCoverage` (B4 V2), `autoBumpCutters` (B10), `postCoverage` (B6 dropdown). Aujourd'hui settings tapables en code mais inaccessibles côté coach. | ~1h | 🟢 | **Très haut** |
+| A.2 | Mode présentation v2 — fullscreen navigateur natif (`document.documentElement.requestFullscreen()`) | <30min | 🟢 | Moyen |
+| A.3 | Annotations texte libres (outil `T`, dépôt + édition d'une note sur le terrain) | 2h | 🟡 | Haut |
+| A.4 | V3 visu sur détections : badges/overlays pour reject screen (B2), snake dribble (B4), empty side PnR (B5), defensive 3-sec (B7). Aujourd'hui en text-only dans diag coach. | 2h | 🟢 | Moyen-haut |
+
+---
+
+### Phase B — Notion du temps (foundation, ~1 jour)
+
+Aujourd'hui : steps abstraits, durée uniforme 2 s, pas de shot clock.
+Cette phase pose les fondations pour la suite (closeout réaliste, end-of-clock defense, etc.).
+
+| # | Chantier | Effort | Risque | Valeur |
+|---|---|---|---|---|
+| B.1 | **Durée individuelle par step** : nouveau champ `step.duration?: number` (s, default 2). `PLAYBACK_STEP_DURATION_MS` devient default. La timeline affiche `t=` cumulé. | 3-4h | 🟡 | Haut |
+| B.2 | **Shot clock display** (24 s NBA / 14 s reset) : décrémente au fil des steps (basé sur leur durée cumulée). Couleurs vert/jaune/rouge selon temps restant. | 1-2h | 🟢 | Moyen-haut |
+| B.3 | **End-of-clock defense awareness** : `defensiveContext.timeRemaining` lu par les couches. À <5 s : `contest mode` (no fouls, all-hands-up). | 2h | 🟡 | Moyen |
+| B.4 | **Synchronisation cross-actor** : `annotation.tStart/tEnd` en secondes ABSOLUES plutôt que fraction du step. Permet à O1 (dribble 1.5s) et O5 (cut 0.8s) de finir à des moments différents. | 4-6h | 🟡 | Moyen |
+
+---
+
+### Phase C — Réalisme physique modéré (~1-2 semaines)
+
+Affinement du moteur défensif existant. Pas de changement de scope —
+juste plus de fidélité tactique.
+
+| # | Chantier | Effort | Risque | Valeur |
+|---|---|---|---|---|
+| C.1 | **Closeout footwork** : sprint au début, freinage avec high hands quand près du shooter. Modélisé via courbe d'accélération sur la dernière transition. | 2-3j | 🟡 | Haut |
+| C.2 | **Help-and-recover timing** : aide N steps configurables puis recover. Aujourd'hui retour instantané au step suivant. Lié à B.1 (durée step). | 3j | 🟡 | Haut |
+| C.3 | **Hedge length** : combien de steps D5 sort avant recovery (1 vs 2 vs 3). Setting `hedgeRecoveryDelay: number`. | 1-2j | 🟢 | Moyen-haut |
+| C.4 | **Pre-rotation shift** : anticipation AVANT que l'écran soit posé (slider `anticipation` existe mais ne shift pas pré-screen). Module les positions du step où l'attaquant s'approche. | 1-2j | 🟡 | Moyen |
+| C.5 | **Tag-then-switch dynamic** : low man tag, puis switch onto roller au lieu de revenir. Décision step-based selon dist roller/panier. | 1-2j | 🟡 | Moyen |
+| C.6 | **Help angle** : court angle (épaule) vs angle ouvert (face panier). Aujourd'hui binaire via `bodyOrientationMode`. Nuance angulaire continue. | 1-2j | 🟡 | Moyen |
+| C.7 | **Read offensive action chains** : flare → curl → fade. Le moteur détecte chaque écran isolément, pas de continuité de pattern. | 2-3j | 🔴 | Moyen-haut |
+
+---
+
+### Phase D — Trajectoires raffinées (~1-2 semaines)
+
+| # | Chantier | Effort | Risque | Valeur |
+|---|---|---|---|---|
+| D.1 | **Lissage cross-step easing** : easing par défenseur (slow start/end, sprint au milieu). Aujourd'hui linéaire entre 2 steps. | 1-2j | 🟢 | Moyen-haut |
+| D.2 | **Inertie / momentum** : un changement de direction brutal coûte du temps. Modélisé via courbe `acceleration(dt)`. Joueurs moins "robotiques". | 2-3j | 🟡 | Haut (réalisme visuel) |
+| D.3 | **Trajectoires de passes variées** : lob (parabole haute), bounce (rebond au sol = 2 paraboles), skip (longue, parabole plate). Aujourd'hui passe rectiligne 2D + parabole z. | 1-2j | 🟢 | Moyen |
+| D.4 | **Pathfinding A* défensif** : un défenseur va en ligne droite vers sa cible, `resolvePlayerCollisions` corrige a posteriori. A* simplifié sur obstacles dynamiques éviterait le bruit. | 3-4j | 🔴 | Moyen |
+| D.5 | **Anti-collision pendant l'interpolation** : `resolvePlayerCollisions` agit sur les cibles, pas sur les positions interpolées entre steps. Collisions transitoires visibles. | 1-2j | 🟡 | Moyen |
+
+---
+
+### Phase E — Changement de scope (le gros)
+
+| # | Chantier | Effort | Risque | Valeur |
+|---|---|---|---|---|
+| E.1 | **A11 — Box-out / rebond après tir** | 5-8j | 🟡 | **Très haut** — demi-jeu manquant |
+| E.2 | Export GIF / vidéo | 3-4h | 🟡 | **Très haut** — diffusion |
+
+Détail A11 (cf. section 4 plus haut) : enrichir `annotation.shoot` avec
+`shotOutcome`, nouvelle couche `boxOutLayer`, modèle de rebond, transition
+de possession. Reset shot clock à 14 s (rebond offensif) ou switch possession.
+
+---
+
+### Phase F — Concepts spécialisés haute compétition
+
+| # | Chantier | Effort | Risque | Valeur |
+|---|---|---|---|---|
+| F.1 | **Junk defenses** (box-and-1, triangle-and-2, diamond-and-1) : 1-2 chasseurs en homme + reste en zone. Nouveau `state.defenseSystem: 'junk'`. | 3-4j | 🟡 | Moyen (niveau pro) |
+| F.2 | **Press full-court / half-court** : pression tout terrain. Nouvelle `defensePressure: 'half' \| 'full'`. Trap au franchissement central. | 3-4j | 🔴 | Moyen |
+| F.3 | **Free throw rebound positioning** : 5v5 spécifique sur le rebond LF (joueurs alignés sur les blocs). | 1-2j | 🟢 | Moyen |
+| F.4 | **End-of-quarter foul to give** : foul stratégique pour réinitialiser horloge. | 1j | 🟢 | Faible |
+| F.5 | **Late shot clock defense** : pas de fouls, contest tout. Couplé à B.3. | 1j | 🟢 | Moyen |
+
+---
+
+### Phase G — Calibration vitesse réelle (~2-3 jours)
+
+Aujourd'hui : D1 max 1.96 m/s ≈ 7 km/h = **22 % d'un sprint NBA réel**.
+Calibré pour les **mouvements tactiques**, pas les sprints. À expliciter
+ou affiner.
+
+| # | Chantier | Effort | Risque | Valeur |
+|---|---|---|---|---|
+| G.1 | **Doc calibration explicite** : section dans `physics.md` qui dit "vitesse = trot tactique, pas sprint NBA". Aujourd'hui implicite. | 30min | 🟢 | Moyen (clarté) |
+| G.2 | **Vitesses variables par contexte** : sprint = ×2 pendant 1 step. Setting `state.sprintBoost: boolean`. | 1-2j | 🟡 | Moyen |
+| G.3 | **Différenciation accélération vs top speed** : un guard atteint 9 m/s mais met 2 s à y arriver. Aujourd'hui binaire. | 2-3j | 🟡 | Haut (réalisme) |
+| G.4 | **Profil athlétique** au-delà du poste : `playerSpeedProfile: 'élite' \| 'standard' \| 'lent'` override `MAX_SPEED_BY_POSITION`. | 1j | 🟢 | Moyen |
+
+---
+
+### Phase H — Tests composants React (~3-4 jours)
+
+Aujourd'hui : zéro test sur `src/components/`. Convention du projet, OK
+historique mais limite à terme. Si on veut renforcer :
+
+| # | Chantier | Effort | Risque | Valeur |
+|---|---|---|---|---|
+| H.1 | Setup `@testing-library/react` + `jsdom` | 2h | 🟢 | (foundation) |
+| H.2 | Tests CourtView pointer handlers (drag single, drag groupé, marquee, snap) | 1-2j | 🟡 | Haut |
+| H.3 | Tests MetricsChart, MetricsBar, DefensePanel toggle | 1j | 🟢 | Moyen |
+| H.4 | Tests ContextMenu (DefenderMenu, AttackerMenu) | 1j | 🟢 | Moyen |
+
+---
+
+### Phase I — Mode Play IA (repoussé bas de pile)
+
+Cf. section "A12" plus haut. Game loop autonome 5v5 (B1-B5 du plan
+original). **1-2 semaines** d'effort. Repoussé par décision projet.
+
+---
+
+### Synthèse — ordre conseillé
+
+**Cette semaine** (~6h) : A.1 + A.2 + A.3 + B.1 → débloque shot clock,
+défense end-of-clock, plus de finesse coach.
+
+**Cette semaine étendue** (~3-4j) : A.* complet + B.* complet → fondations
+temps + UI accessibles. Le moteur passe à 100% utilisable côté coach.
+
+**Mois suivant** (~2 semaines) : C.* (réalisme physique modéré) +
+quelques D.* (lissage, trajectoires de passes). Le moteur passe d'un
+simulateur "tactique" à un simulateur "tactique + visuel réaliste".
+
+**Trimestre suivant** : E.1 (box-out/rebond, demi-jeu) — le changement
+de scope qui ouvre le jeu complet. Suivi de F.* selon les besoins.
+
+**À traiter en parallèle dès que possible** : G.1 (doc calibration) qui
+clarifie le scope du moteur (tactique vs sprint réel).
+
+**Long terme** : H.* (tests composants) + I.* (Play IA).
+
+---
+
+## Hors roadmap court terme
