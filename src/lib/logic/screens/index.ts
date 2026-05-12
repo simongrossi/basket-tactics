@@ -24,3 +24,4 @@ export {
   applyOffBallScreenAdjustment,
   applySwitchOffBall,
 } from './offBallScreenAdjust';
+export { detectRejectedScreen, type RejectedScreen } from './detectRejectedScreen';

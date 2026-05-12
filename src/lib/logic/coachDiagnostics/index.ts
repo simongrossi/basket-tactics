@@ -45,6 +45,7 @@ import { baselineDriveRule } from './rules/baselineDriveCoverage';
 import { offBallCutsRule } from './rules/offBallCuts';
 import { matchupOrphansRule } from './rules/matchupOrphans';
 import { pickAndRollRule } from './rules/pickAndRoll';
+import { rejectedScreenRule } from './rules/rejectedScreen';
 import { zoneSituationsRule } from './rules/zoneSituations';
 import { offBallScreensRule } from './rules/offBallScreens';
 import { cornerAbandonedRule } from './rules/cornerAbandoned';
@@ -60,6 +61,7 @@ const REGISTRY: Rule[] = [
   offBallCutsRule,
   matchupOrphansRule,
   pickAndRollRule,
+  rejectedScreenRule,
   zoneSituationsRule,
   offBallScreensRule,
   cornerAbandonedRule,

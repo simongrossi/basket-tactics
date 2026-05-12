@@ -159,23 +159,20 @@ réflexe à corriger.
   severity).
 - 17 tests (12 unitaires + 5 intégration). **619 tests verts**.
 
-##### ⚪ Reject screen detection
-**Quoi.** Porteur qui **refuse l'écran** (jab du côté du screen + drive
-opposé). La défense reste piégée par-dessus l'écran qui n'a pas eu lieu —
-elle a anticipé le contact et s'est positionnée en conséquence.
+##### 🟢 Reject screen detection (V1 livré 2026-05-12)
+**Quoi.** Détecte le porteur qui refuse l'écran (jab + drive opposé)
+quand la défense l'a anticipé.
 
-**Pourquoi basket.** Le reject est une lecture offensive standard contre
-une couverture trop agressive (hedge/blitz). Sans détection, le moteur
-sur-anticipe : D1 est placé over alors que O1 fonce dans l'autre sens.
+**Livré V1 (diagnostic-only)** :
+- Helper pur `screens/detectRejectedScreen.ts` : retourne `RejectedScreen`
+  avec IDs et métriques (`prevDistance`, `curDistance`, `awayness`).
+- Règle coach `coachDiagnostics/rules/rejectedScreen.ts` : 'warning' si
+  sharp (dot ≤ -0.7), 'info' si marge.
+- 9 tests unitaires. **633 tests verts**.
 
-**Implémentation.** Dans [`screens/detectCarrierScreen.ts`](src/lib/logic/screens/detectCarrierScreen.ts),
-comparer la direction du dribble entre step N-1 → N : si l'angle
-(porteur→screener) diverge nettement après s'être rapproché (jab puis
-fuite), considérer l'écran comme rejeté → `detectScreen` retourne null
-ou flag `rejected: true`. La couverture (`applyScreenAdjustment`) doit
-alors retomber sur l'individuel + closeout.
-
-**Effort** ~2-3h · **Risque** 🟡 · **Valeur** haut.
+**Limite V1** : la défense n'est pas modifiée par la détection (pas de
+"unwind" de la couverture sur-anticipée). À voir en V2 (mémoire d'intent
++ retour à la couverture homme-à-homme classique).
 
 ##### 🟢 Hard hedge vs soft hedge (livré 2026-05-12)
 **Quoi.** Sépare l'axe quality (côté offense) de l'axe aggression (côté
@@ -436,7 +433,7 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
 | ~~B1~~ | ~~Mismatch tracking + scram switch~~ — 🟢 livré 2026-05-12 | — | — | — |
-| B2 | Reject screen detection | 2-3h | 🟡 | Haut |
+| ~~B2~~ | ~~Reject screen detection~~ — 🟢 V1 livré 2026-05-12 | — | — | — |
 | ~~B3~~ | ~~Hard / soft hedge (slider aggression)~~ — 🟢 livré 2026-05-12 | — | — | — |
 | B4 | Snake dribble detection | 2-3h | 🟡 | Moyen-haut |
 | B5 | Empty side PnR | 2h | 🟢 | Moyen |

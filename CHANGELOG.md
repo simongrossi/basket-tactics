@@ -6,6 +6,40 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### B2 — Reject screen detection
+
+Détecte le pattern offensif où le porteur **refuse l'écran** anticipé par
+la défense (jab + drive opposé). La défense reste piégée par-dessus
+l'écran qui n'a pas eu lieu.
+
+**Algorithme** (4 critères tous obligatoires) :
+1. Le porteur a bougé ≥ 25 px entre N-1 et N
+2. À N-1, un attaquant ≠ porteur était dans `screenRadius × 1.5` du
+   défenseur du porteur ET dans 80 px du porteur (= candidat poseur)
+3. Le mouvement du porteur a une composante opposée au poseur (dot ≤ -0.3)
+4. La distance porteur ↔ poseur a augmenté d'au moins 20 px
+
+**Nouveau module** `src/lib/logic/screens/detectRejectedScreen.ts`,
+exporté via le barrel `screens/`. Retourne `RejectedScreen | null` avec
+les IDs concernés (carrier/screener/leurs défenseurs) + métriques.
+
+**Nouvelle règle coach** `coachDiagnostics/rules/rejectedScreen.ts` :
+- 'warning' si reject **sharp** (dot ≤ -0.7 = retraite directe)
+- 'info' si reject de marge (dot dans [-0.7, -0.3])
+- Messages typés vocabulaire coach ("Reject écran : O1 refuse O5 et vire
+  opposé — défense sur-anticipée").
+
+**V1 — diagnostic-only** : la défense n'est pas modifiée par la détection.
+Le coach voit l'analyse a posteriori. V2 (plus tard) : ajuster la
+couverture pour ne pas sur-anticiper (mémoire d'intent).
+
+**Tests** : 9 unitaires (no prevOff, mouvement insuffisant, reject net,
+reject sharp, approche normale, pas de candidat, divergence insuffisante,
+mouvement perpendiculaire = pas un reject, mapping screenerDef).
+**624 → 633 tests verts**.
+
+Roadmap : B2 marqué 🟢.
+
 ### B3 — Hard hedge vs soft hedge
 
 Sépare l'axe **quality** (qualité de l'écran posé, côté offense) de l'axe
