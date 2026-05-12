@@ -20,6 +20,7 @@ import { applyPnRRotationsLayer } from './defense/pnrLayer';
 import { applyOffBallScreenLayer } from './defense/offBallScreenLayer';
 import { applyTrapLayer } from './defense/trapLayer';
 import { applyDirectiveLayer } from './defense/directiveLayer';
+import { applyCutterBumpLayer } from './defense/cutterBumpLayer';
 import { applyPostPassOrientationLayer } from './defense/postPassOrientation';
 
 export type DetectedSwitchPair = [DefenderId, DefenderId];
@@ -90,6 +91,10 @@ export function computeDefenseTargets(
   applyTrapLayer(positions, matchups, ctx);
   // Couche 5 — Directives défensives scriptées (step.defensiveDirectives).
   applyDirectiveLayer(positions, ctx);
+  // Couche 5.5 — Bump auto sur cutters (B10). Opt-in via state.autoBumpCutters.
+  // S'applique AVANT le recalc d'orientation pour que les bras suivent la
+  // nouvelle position.
+  applyCutterBumpLayer(positions, matchups, ctx);
   // Couche 6 — Recalcul orientation final depuis les positions ajustées.
   applyPostPassOrientationLayer(positions, ctx);
 

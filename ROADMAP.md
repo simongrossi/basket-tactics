@@ -257,20 +257,12 @@ Helper `cuttersInScreenChain` + câblage dans `offBallScreenLayer`. Bascule
 auto `top-lock → chase` pour les cutters avec ≥ 2 écrans dans 3 steps.
 10 tests (7 unit + 3 intégration). **670 tests verts**.
 
-##### ⚪ Bumping the cutter — réaction automatique
-**Quoi.** `bump` existe comme rule explicite. Manque la **réaction
-automatique** : quand un cut est détecté ([`detectCuts`](src/lib/logic/threatResolution.ts)
-le fait déjà côté diagnostic), un défenseur sur la trajectoire devrait
-légèrement contacter (offset 8-12px latéral) pour ralentir.
-
-**Implémentation.** Dans une nouvelle couche ou dans `help.ts`, après
-`detectCuts`, identifier le défenseur le plus proche de la trajectoire
-prev → cur du cutter. S'il est à <40px de la ligne ET pas occupé par
-trigger, appliquer un petit offset perpendiculaire qui le rapproche du
-cutter (effet "bump léger"). Slider global `state.autoBumpCutters` pour
-on/off.
-
-**Effort** ~2-3h · **Risque** 🟡 · **Valeur** moyen.
+##### 🟢 Bumping the cutter — réaction automatique (V1 livré 2026-05-12)
+Nouvelle couche 5.5 du pipeline défensif (`cutterBumpLayer`). Détecte les
+cuts via `detectCuts`, trouve le défenseur le plus proche de la
+trajectoire (≤ 40px, pas le cutterDef, pas en aide active), applique un
+offset de 12px vers le cutter. Setting `state.autoBumpCutters` (opt-in).
+4 tests. **674 tests verts**.
 
 ---
 
@@ -415,7 +407,7 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 | ~~B7~~ | ~~Defensive 3 sec (diag coach)~~ — 🟢 livré 2026-05-12 | — | — | — |
 | ~~B8~~ | ~~Switch policy granulaire~~ — 🟢 livré 2026-05-12 | — | — | — |
 | ~~B9~~ | ~~Top-lock off-ball avec timing~~ — 🟢 livré 2026-05-12 | — | — | — |
-| B10 | Bumping cutters automatique | 2-3h | 🟡 | Moyen |
+| ~~B10~~ | ~~Bumping cutters automatique~~ — 🟢 livré 2026-05-12 | — | — | — |
 
 **Total UX/Produit restant** : ~12-13h en restant sur des v1 simples.
 **Total logique basket restant** : ~22-28h pour les 10 items.

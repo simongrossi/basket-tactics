@@ -655,6 +655,11 @@ export interface AppState {
    *  Le filtre ne s'applique QUE quand la rule effective est 'switch' ou
    *  'peel-switch'. Default 'all' (équivalent ancien comportement). */
   switchPolicy?: 'all' | '1-3' | '1-4' | 'none';
+  /** B10 — bump auto sur cutters. Quand un cut hors-ballon est détecté, un
+   *  défenseur sur la trajectoire (≤ 40px de la ligne prev→cur) reçoit un
+   *  offset de 12px vers le cutter. Filet de sécurité pour les cuts non
+   *  marqués. Default false (opt-in). Cf. `defense/cutterBumpLayer.ts`. */
+  autoBumpCutters?: boolean;
   /** Seuil de severity à partir duquel un switch est considéré comme un
    *  mismatch tactique (déclenche scram + diagnostic coach + badge visuel).
    *  Range 1..4. Default 2 (= D5 sur O3 minimum). */

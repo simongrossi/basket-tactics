@@ -6,6 +6,29 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### B10 — Bumping cutters automatique
+
+Réaction défensive auto sur cuts non marqués : un défenseur sur la
+trajectoire prev → cur du cutter reçoit un offset de 12px **vers le
+cutter** (effet "léger contact"). Filet de sécurité quand le cutter
+n'est marqué par personne directement.
+
+**Nouvelle couche** `defense/cutterBumpLayer.ts` (5.5 du pipeline,
+entre `directiveLayer` et `postPassOrientationLayer`) :
+- Utilise `detectCuts` (déjà existant) pour identifier les cuts.
+- Filtre les bumpers candidats : ≠ cutterDef (déjà sur le cutter),
+  `helpFactor` < 0.3 (pas occupé en aide active), pas de `pnrRole`.
+- Critère perpendiculaire : ≤ 40px de la ligne prev → cur du cutter.
+- Au max 1 bumper par cut (le plus proche).
+
+**Setting** : `state.autoBumpCutters?: boolean` (default `false`, opt-in
+pour préserver la rétrocompat).
+
+**Tests** : 4 (default off = no-op, activé = au moins 1 défenseur shifté,
+cutterDef intact, cutter statique = no-op). **670 → 674 tests verts**.
+
+Roadmap : B10 marqué 🟢.
+
 ### B9 — Top-lock off-ball avec timing
 
 Quand un cutter sort son **2ᵉ écran consécutif** (chaîne ≥ 2), la
