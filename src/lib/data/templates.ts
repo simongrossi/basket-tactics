@@ -525,6 +525,194 @@ const HAMMER: Template = {
 };
 
 // ============================================================
+// 🧪 SCREEN LAB — DEV (banc de test exhaustif des écrans)
+// ============================================================
+// 12 étapes qui enchaînent les principaux comportements d'écran +
+// les cas pathologiques (trajectoires qui se croisent, poseur sur
+// porteur, etc.). À utiliser pour valider visuellement n'importe
+// quel changement dans le pipeline d'écran.
+//
+// Mode d'emploi : charger le système, naviguer step par step
+// (label de chaque étape = scénario testé), vérifier que :
+//   - aucun joueur ne se superpose (règle absolue, cf. PLAYER-CLEARANCE.md)
+//   - D1 réagit correctement à chaque type d'écran selon la rule globale
+//   - les badges/indicateurs UI affichent les bons patterns détectés
+
+const labOff_neutral: AttackerPositions = {
+  O1: { x: 300, y: 470 },
+  O2: { x: 100, y: 380 },
+  O3: { x: 500, y: 380 },
+  O4: { x: 180, y: 200 },
+  O5: { x: 420, y: 200 },
+};
+
+// PnR top : O5 descend poser un écran haut sur D1
+const labOff_pnrApproach: AttackerPositions = { ...labOff_neutral, O5: { x: 360, y: 280 } };
+const labOff_pnrContact: AttackerPositions = { ...labOff_neutral, O5: { x: 320, y: 380 } };
+const labOff_pnrUse: AttackerPositions = { ...labOff_pnrContact, O1: { x: 380, y: 360 } };
+const labOff_pnrRoll: AttackerPositions = { ...labOff_pnrUse, O5: { x: 320, y: 200 } };
+
+// Snake : O1 attaque, recule, ré-attaque le MÊME poseur
+const labOff_snakeRetreat: AttackerPositions = { ...labOff_pnrUse, O1: { x: 280, y: 440 } };
+const labOff_snakeReEngage: AttackerPositions = { ...labOff_snakeRetreat, O1: { x: 380, y: 360 } };
+
+// Reject : O1 vire opposé au poseur
+const labOff_reject: AttackerPositions = { ...labOff_pnrContact, O1: { x: 240, y: 400 } };
+
+// Pindown : O3 descend pour libérer O2
+const labOff_pindownSetup: AttackerPositions = {
+  O1: { x: 300, y: 470 }, O2: { x: 80, y: 380 }, O3: { x: 100, y: 250 },
+  O4: { x: 220, y: 200 }, O5: { x: 380, y: 200 },
+};
+const labOff_pindownContact: AttackerPositions = { ...labOff_pindownSetup, O3: { x: 100, y: 330 } };
+
+// Flare : O3 monte écran AWAY pour O2 (O2 va dans l'angle opposé au porteur)
+const labOff_flareSetup: AttackerPositions = {
+  O1: { x: 460, y: 380 }, O2: { x: 220, y: 380 }, O3: { x: 280, y: 320 },
+  O4: { x: 180, y: 200 }, O5: { x: 380, y: 200 },
+};
+const labOff_flareContact: AttackerPositions = {
+  ...labOff_flareSetup,
+  O3: { x: 250, y: 360 },
+  O2: { x: 130, y: 420 }, // O2 fade vers le coin
+};
+
+// Stagger : O3 + O4 successifs pour O2
+const labOff_staggerSetup: AttackerPositions = {
+  O1: { x: 460, y: 380 }, O2: { x: 100, y: 380 }, O3: { x: 200, y: 300 },
+  O4: { x: 280, y: 240 }, O5: { x: 420, y: 200 },
+};
+const labOff_staggerThrough: AttackerPositions = {
+  ...labOff_staggerSetup,
+  O2: { x: 330, y: 220 }, // O2 a traversé les 2 écrans
+};
+
+// Cross-trajectory torture (cas systeme_basket-10) : O1 dribble vers la droite,
+// O5 vient au milieu — leurs trajectoires linéaires se croisent
+const labOff_crossA: AttackerPositions = {
+  O1: { x: 200, y: 450 }, O2: { x: 100, y: 380 }, O3: { x: 100, y: 220 },
+  O4: { x: 180, y: 200 }, O5: { x: 460, y: 280 },
+};
+const labOff_crossB: AttackerPositions = {
+  ...labOff_crossA,
+  O1: { x: 520, y: 360 }, // dribble vers la droite
+  O5: { x: 280, y: 380 }, // pose un écran au centre
+};
+
+// Poseur EXACTEMENT sur porteur (cas pathologique anti-overlap)
+const labOff_overlap: AttackerPositions = {
+  O1: { x: 300, y: 400 }, O2: { x: 100, y: 380 }, O3: { x: 300, y: 400 }, // O3 PILE sur O1
+  O4: { x: 180, y: 200 }, O5: { x: 420, y: 200 },
+};
+
+const SCREEN_LAB: Template = {
+  id: 'screen-lab',
+  name: '🧪 Screen Lab (dev)',
+  description:
+    "Banc de test exhaustif des écrans : 12 étapes qui enchaînent PnR, snake, reject, pindown, flare, stagger, et 2 cas pathologiques (trajectoires qui se croisent, poseur sur porteur). À utiliser pour valider tout changement dans le pipeline d'écran.",
+  defenseInitial: defaultDef(labOff_neutral),
+  steps: [
+    { label: '01 — Setup neutre', off: labOff_neutral, ballCarrier: 'O1', annotations: [] },
+    {
+      label: '02 — High PnR : approche',
+      off: labOff_pnrApproach,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'cut', fromId: 'O5', toId: null, from: labOff_neutral.O5, to: labOff_pnrApproach.O5 } as Annotation,
+      ],
+    },
+    {
+      label: '03 — High PnR : contact',
+      off: labOff_pnrContact,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'screen', fromId: 'O5', toId: 'O1', from: labOff_pnrApproach.O5, to: labOff_pnrContact.O5, phase: 'end' } as Annotation,
+      ],
+    },
+    {
+      label: '04 — High PnR : O1 dribble',
+      off: labOff_pnrUse,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'dribble', fromId: 'O1', toId: null, from: labOff_pnrContact.O1, to: labOff_pnrUse.O1 } as Annotation,
+      ],
+    },
+    {
+      label: '05 — High PnR : roll',
+      off: labOff_pnrRoll,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'cut', fromId: 'O5', toId: null, from: labOff_pnrUse.O5, to: labOff_pnrRoll.O5 } as Annotation,
+      ],
+    },
+    {
+      label: '06 — Snake : retreat',
+      off: labOff_snakeRetreat,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'dribble', fromId: 'O1', toId: null, from: labOff_pnrRoll.O1, to: labOff_snakeRetreat.O1 } as Annotation,
+      ],
+    },
+    {
+      label: '07 — Snake : re-engage',
+      off: labOff_snakeReEngage,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'dribble', fromId: 'O1', toId: null, from: labOff_snakeRetreat.O1, to: labOff_snakeReEngage.O1 } as Annotation,
+      ],
+    },
+    {
+      label: '08 — Reject : O1 vire opposé',
+      off: labOff_reject,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'dribble', fromId: 'O1', toId: null, from: labOff_snakeReEngage.O1, to: labOff_reject.O1 } as Annotation,
+      ],
+    },
+    {
+      label: '09 — Pindown : O3 down screen pour O2',
+      off: labOff_pindownContact,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'screen', fromId: 'O3', toId: 'O2', from: labOff_pindownSetup.O3, to: labOff_pindownContact.O3, phase: 'end' } as Annotation,
+      ],
+    },
+    {
+      label: '10 — Flare : O3 away screen pour O2',
+      off: labOff_flareContact,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'screen', fromId: 'O3', toId: 'O2', from: labOff_flareSetup.O3, to: labOff_flareContact.O3, phase: 'end' } as Annotation,
+        { type: 'cut', fromId: 'O2', toId: null, from: labOff_flareSetup.O2, to: labOff_flareContact.O2 } as Annotation,
+      ],
+    },
+    {
+      label: '11 — Stagger : O3 + O4 successifs',
+      off: labOff_staggerThrough,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'cut', fromId: 'O2', toId: null, from: labOff_staggerSetup.O2, to: labOff_staggerThrough.O2 } as Annotation,
+      ],
+    },
+    {
+      label: '12 — ⚠ Cross-trajectory torture',
+      off: labOff_crossB,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'dribble', fromId: 'O1', toId: null, from: labOff_crossA.O1, to: labOff_crossB.O1 } as Annotation,
+        { type: 'screen', fromId: 'O5', toId: 'O1', from: labOff_crossA.O5, to: labOff_crossB.O5, phase: 'end' } as Annotation,
+      ],
+    },
+    {
+      label: '13 — ⚠ Poseur PILE sur porteur (test push-out)',
+      off: labOff_overlap,
+      ballCarrier: 'O1',
+      annotations: [],
+    },
+  ],
+};
+
+// ============================================================
 // EXPORT
 // ============================================================
 export const TEMPLATES: Template[] = [
@@ -535,6 +723,7 @@ export const TEMPLATES: Template[] = [
   UCLA_CUT,
   FLOPPY,
   HAMMER,
+  SCREEN_LAB,
 ];
 
 export function findTemplate(id: string): Template | undefined {

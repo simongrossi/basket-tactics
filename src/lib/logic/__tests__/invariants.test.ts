@@ -25,7 +25,15 @@ const DEF_IDS: DefenderId[] = ['D1', 'D2', 'D3', 'D4', 'D5'];
 const COLLISION_TOL = 1; // tolérance à 1px pour les arrondis Math.round
 
 describe('Invariants sur les playbooks de la bibliothèque', () => {
-  TEMPLATES.forEach((tpl) => {
+  // Le template "Screen Lab" est une GALERIE de scénarios pour validation
+  // manuelle (chaque étape = snapshot indépendant). Il contient
+  // volontairement des cas pathologiques (poseur sur porteur) et des
+  // inter-scènes téléportées qui ne respectent pas les invariants de
+  // continuité. On l'exclut donc des tests d'invariant ; ses cas sont
+  // couverts par les tests unitaires dédiés.
+  const REGULAR_TEMPLATES = TEMPLATES.filter((t) => t.id !== 'screen-lab');
+
+  REGULAR_TEMPLATES.forEach((tpl) => {
     describe(`playbook "${tpl.name}"`, () => {
       const state = appStateFromTemplate(tpl);
 
