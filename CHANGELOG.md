@@ -22,7 +22,9 @@ cohérents sans changer l'API publique. Documentation détaillée :
 | `lib/logic/screens.ts` | 822 | barrel | helpers + 2 detect + 2 adjust |
 | `lib/logic/coachDiagnostics.ts` | 834 | barrel + 13 rules | registry pattern, 1 fichier par règle |
 
-Pas de changement de comportement runtime, 541 tests verts.
+Pas de changement de comportement runtime, **602 tests verts** (+61 nouveaux
+tests sur les transforms purs `useAppState`, possibles depuis l'extraction
+en fonctions pures — cf. `src/lib/state/__tests__/`).
 
 ### Étapes 2 à 5 — Réflexes défensifs avancés en zone
 

@@ -17,6 +17,14 @@ npm run test:watch # mode watch local
 src/lib/
 ├── data/__tests__/
 │   └── defensiveActionsCatalog.test.ts
+├── state/__tests__/                 # transforms purs extraites de useAppState
+│   ├── annotationTransforms.test.ts # 13 tests
+│   ├── attackerTransforms.test.ts   # 5 tests
+│   ├── coreTransforms.test.ts       # 4 tests
+│   ├── defenseTransforms.test.ts    # 11 tests
+│   ├── scenarioTransforms.test.ts   # 9 tests
+│   ├── stepTransforms.test.ts       # 12 tests
+│   └── zoneTransforms.test.ts       # 7 tests
 └── logic/__tests__/
     ├── applyDirective.test.ts
     ├── coachDiagnostics.test.ts (via invariants)
@@ -45,7 +53,25 @@ Les tests vivent à côté du code testé sous `__tests__/`. Le pattern d'inclus
 
 ## Couverture actuelle
 
-**~198 tests** dans 21 fichiers — logique défensive, simulation, orientation, invariants playbooks, rim protection, utilitaires zone, et actions défensives scriptées. Voir [CHANGELOG.md § 0.6.0](../CHANGELOG.md) pour le détail des ajouts récents.
+**602 tests** dans 53 fichiers — logique défensive, simulation, orientation,
+invariants playbooks, rim protection, utilitaires zone, actions défensives
+scriptées, et **transforms purs `useAppState`** (extraits du hook React pour
+être testables sans setup React).
+
+Voir [CHANGELOG.md](../CHANGELOG.md) pour le détail des ajouts récents.
+
+### `state/__tests__/*` — transforms purs
+
+61 tests sur les 8 modules de transformations `AppState → AppState` extraits
+de `useAppState` (cf. [refactoring-history.md § 2](refactoring-history.md#2-useappstatets--wrapper--libstatetransforms-967--510-loc)).
+Couvrent : CRUD step, annotations (timing/quality/phase + clamp cross-step),
+rules défense + profils + presets + zone↔man + overrides, attackers
+(hand/orientation/profil), zones (overrides régionaux + resnap au changement
+de type), scénarios (actions main + branches branch-aware), transversal
+(tool, patch, playerCount, reset).
+
+Aucun mock React nécessaire — chaque transform se teste comme
+`stepTx.addStep(makeInitialState())`.
 
 ### `engine.test.ts`
 - `getMatchupsAt` : matchups de base, application d'un switch, cumul de plusieurs switches sur étapes successives, immuabilité de `baseMatchups`.

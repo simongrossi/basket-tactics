@@ -298,7 +298,7 @@ L'utilisateur peut **drag** un défenseur sur le terrain → la position est éc
 Toute la logique défensive (engine.ts, defense/*.ts, screens/, etc.) est **pure** : entrée = `AppState`, sortie = positions. Aucun hook React, aucun localStorage, aucun side-effect.
 
 Avantages :
-- Testable isolément (cf. [testing.md](testing.md) — 541 tests Vitest dans 46 fichiers : engine, screens, metrics, help, trap, manDefense, geometry, threats, offense, simulator, orientation, zone, directives défensives scriptées…)
+- Testable isolément (cf. [testing.md](testing.md) — 602 tests Vitest dans 53 fichiers : engine, screens, metrics, help, trap, manDefense, geometry, threats, offense, simulator, orientation, zone, directives défensives scriptées, **transforms purs `useAppState`**…)
 - Réutilisable en SSR / export PDF / preview
 - Le rendu peut s'appuyer dessus sans gérer d'état intermédiaire
 
