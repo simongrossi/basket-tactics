@@ -11,6 +11,15 @@
 //   1   → lockdown (D1 plaqué au poseur, écran "parfait")
 //   0.5 → standard
 //
+// Convention de hedgeAggression (0..100, défaut 50) — B3 :
+//   Pilote l'extension du hedge sur le défenseur du POSEUR (D5) :
+//   - 0  → soft show : D5 se contente d'un mi-chemin S↔C, recover rapide
+//   - 50 → hedge standard (legacy)
+//   - 100 → hard hedge : D5 sort à 2 pas devant O1, barricade physique
+//   INDÉPENDANT de quality : un excellent écran (q=100) avec soft show
+//   (agg=0) reste un show timide ; un écran moyen (q=50) avec hard hedge
+//   (agg=100) verra D5 sortir agressif quand même.
+//
 // Modèle géométrique commun à toutes les rules :
 //   n  = (hoop - screener) normalisé  → "vers le panier"
 //   perp = perpendiculaire à n (rotation 90°)
@@ -40,7 +49,10 @@ export function applyScreenAdjustment(
   screenRadius: number = 35,
   dropDepth: DropDepth = 'medium',
   hoop: Point = HOOP,
-  quality: number = 50
+  quality: number = 50,
+  /** B3 — agressivité du hedge (0..100). N'affecte que le block `hedge` sur
+   *  le défenseur du poseur. Default 50 = comportement standard. */
+  hedgeAggression: number = 50
 ): Point {
   if (rule === 'switch') return baseTarget;
 
@@ -76,6 +88,10 @@ export function applyScreenAdjustment(
 
   // q ∈ [0, 1] : 0 = ghost (effet quasi nul), 1 = lockdown (D1 plaqué).
   const q = Math.max(0, Math.min(100, quality)) / 100;
+
+  // hedgeAgg ∈ [0, 1] : 0 = soft show, 1 = hard hedge. Axe INDÉPENDANT de q.
+  // Cf. doc en haut de fichier.
+  const hedgeAgg = Math.max(0, Math.min(100, hedgeAggression)) / 100;
 
   // ----- OVER (D1 par-dessus l'écran) -----
   if (rule === 'over' && isCarrierDef) {
@@ -116,10 +132,16 @@ export function applyScreenAdjustment(
 
   // ----- HEDGE (show & recover) -----
   if (rule === 'hedge' && isScreenerDef) {
-    // D5 sort agressivement DEVANT O1 (entre O1 et le panier). À q=0 reste
-    // à mi-chemin S↔C (= comportement legacy). À q=1 D5 est carrément
-    // devant O1 côté basket, pour neutraliser le porteur le temps que D1
-    // recover.
+    // D5 sort entre le porteur et le panier. Deux axes orthogonaux :
+    //  - QUALITY  module si D5 commet vraiment (q≈0 → écran fantôme → soft)
+    //  - AGGRESSION (B3) module à quelle distance D5 sort si l'écran est posé
+    //
+    // À aggression=0 : soft show — D5 reste à mi-chemin S↔C (legacy court).
+    // À aggression=1 : hard hedge — D5 plaqué à ~60px devant O1, vraie barricade.
+    //
+    // Le facteur de mélange combine les deux : `q * hedgeAgg`. Si l'écran
+    // n'a pas vraiment été posé (q=0), même un coach en hard-hedge mode
+    // verra D5 retomber sur la cible de base.
     const carrierToScreenDist = distance(carrierPos, screenerPos);
     // smoothstep au lieu de clamp dur : la dérivée est nulle aux bornes,
     // donc pas de discontinuité quand le porteur franchit le cercle d'écran.
@@ -132,14 +154,17 @@ export function applyScreenAdjustment(
       x: showPos.x + (baseTarget.x - showPos.x) * showT,
       y: showPos.y + (baseTarget.y - showPos.y) * showT,
     };
-    // Position "agressive" : devant O1 côté basket
-    const aggressiveAdvance = 25 + 35 * q;
+    // Position "agressive" : devant O1 côté basket. L'amplitude scale avec
+    // hedgeAgg : à 0 = 25px (soft show), à 1 = 60px (hard hedge).
+    const aggressiveAdvance = 25 + 35 * hedgeAgg;
     const aggressiveTarget = {
       x: carrierPos.x + nx * aggressiveAdvance,
       y: carrierPos.y + ny * aggressiveAdvance,
     };
-    // Interpoler entre legacy (q=0) et aggressive (q=1).
-    const blended = lerpPoint(legacyTarget, aggressiveTarget, q);
+    // Blend basé sur quality × aggression : l'écran doit être posé (q > 0)
+    // ET le coach doit avoir choisi un hedge agressif pour voir D5 sortir.
+    const blendFactor = q * hedgeAgg;
+    const blended = lerpPoint(legacyTarget, aggressiveTarget, blendFactor);
     let target = pushOutOfScreener(blended, screenerPos);
     // D5 doit rester côté basket par rapport à O1 (devant lui).
     target = pushOutOfCarrier(target, carrierPos, { x: nx, y: ny });

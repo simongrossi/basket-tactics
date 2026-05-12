@@ -372,6 +372,20 @@ export function DefensePanel(props: DefensePanelProps) {
                 </select>
               </div>
             )}
+            {/* B3 — Agressivité du hedge. Visible seulement quand rule = hedge.
+             *  0 = soft show, 100 = hard hedge (barricade devant O1). */}
+            {state.screenRule === 'hedge' && (
+              <div title="Distance à laquelle D5 sort sur le porteur dans le hedge. 0 = soft show (recover rapide), 100 = hard hedge (barricade à 60px devant O1). Indépendant de la qualité de l'écran.">
+                <Slider
+                  label="agressivité"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={state.hedgeAggression ?? 50}
+                  onChange={(v) => props.onPatch({ hedgeAggression: v })}
+                />
+              </div>
+            )}
             {/* Scram switch (B1) — correction automatique de mismatch après switch.
              *  Visible quand la consigne est 'switch' ou 'peel-switch' (les deux
              *  rules qui produisent un échange de matchups). */}

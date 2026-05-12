@@ -100,7 +100,7 @@ export function applyBaseTargetsLayer(
     }
 
     if (screen && effectiveScreenRule !== 'switch') {
-      target = applyScreenAdjustment(target, screen, effectiveScreenRule, dId, off, state.screenRadius, state.dropDepth, hoop, screenQuality);
+      target = applyScreenAdjustment(target, screen, effectiveScreenRule, dId, off, state.screenRadius, state.dropDepth, hoop, screenQuality, state.hedgeAggression ?? 50);
     }
 
     // Offset latéral selon le delta manuel d'orientation. Subtil, max ~12px

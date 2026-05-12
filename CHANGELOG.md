@@ -6,6 +6,32 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### B3 — Hard hedge vs soft hedge
+
+Sépare l'axe **quality** (qualité de l'écran posé, côté offense) de l'axe
+**aggression** (intensité de la sortie défensive, côté défense). Avant,
+les deux étaient conflés sur `q` → impossible de combiner un excellent
+écran avec une couverture soft show, ou un écran moyen avec un hard hedge.
+
+**Nouveau setting** : `state.hedgeAggression?: number` (0..100, default 50).
+
+**Comportement** :
+- `aggression = 0` (soft show) : D5 sort à 25px du porteur, recover vite
+- `aggression = 50` (standard) : équivalent ancien comportement
+- `aggression = 100` (hard hedge) : D5 sort à 60px DEVANT O1, barricade
+
+**Indépendance des axes** : le `blendFactor = q × hedgeAgg`. Un écran
+fantôme (q=0) reste fantôme même en hard hedge ; un écran solide (q=1)
+avec soft show reste un show timide.
+
+**UI** : slider "agressivité" dans `DefensePanel`, visible uniquement
+quand `screenRule === 'hedge'`.
+
+**Tests** : 5 nouveaux (soft, hard, monotone sur distance au poseur,
+indépendance vs quality, default). **619 → 624 tests verts**.
+
+Roadmap : B3 marqué 🟢.
+
 ### B1 — Mismatch tracking + scram switch
 
 Détection automatique des mismatches créés par un switch porteur, avec

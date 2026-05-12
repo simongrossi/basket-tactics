@@ -177,24 +177,19 @@ alors retomber sur l'individuel + closeout.
 
 **Effort** ~2-3h · **Risque** 🟡 · **Valeur** haut.
 
-##### ⚪ Hard hedge vs soft hedge
-**Quoi.** Aujourd'hui une seule implémentation de `hedge`. Or :
-- **Hard hedge** : D5 sort à 2 pas devant le porteur (vraie barricade,
-  oblige le porteur à reculer), pendant que D1 chase over.
-- **Soft show** : D5 montre brièvement (1/2 pas) puis recover vite sur
-  son homme. D1 doit chase encore plus vite.
+##### 🟢 Hard hedge vs soft hedge (livré 2026-05-12)
+**Quoi.** Sépare l'axe quality (côté offense) de l'axe aggression (côté
+défense). Slider `state.hedgeAggression` (0..100, default 50) qui module
+la sortie de D5 sur le porteur en hedge.
 
-**Pourquoi basket.** Deux philosophies opposées. Hard hedge → contre les
-shooters menace 3pts. Soft show → contre les non-shooters (on laisse pas
-le big trop loin de son homme).
-
-**Implémentation.** Ajouter un slider `hedgeAggression: 0–100` (default
-50) sur `ScreenRule='hedge'` au niveau team OU dans `DefenderRule` du
-D5 spécifique. Module les variables `lagBack` et `aggressiveAdvance`
-dans [`carrierScreenAdjust.ts`](src/lib/logic/screens/carrierScreenAdjust.ts)
-section `hedge`. À 0 = legacy soft show. À 100 = hard hedge plaqué.
-
-**Effort** ~1-2h · **Risque** 🟢 · **Valeur** haut.
+**Livré** :
+- Argument `hedgeAggression` ajouté à `applyScreenAdjustment` (passé
+  depuis `baseTargets.ts` via `state.hedgeAggression ?? 50`).
+- Bloc `hedge && isScreenerDef` refondu : `aggressiveAdvance = 25 + 35 *
+  hedgeAgg` (au lieu de `35 * q`), blendFactor = `q × hedgeAgg`.
+- Indépendance des axes : q=0 (ghost) reste ghost même en hard hedge.
+- Slider UI dans `DefensePanel`, visible seulement quand rule=hedge.
+- 5 tests dédiés (soft, hard, monotone, independence, default). **624 tests**.
 
 ##### ⚪ Snake dribble
 **Quoi.** Dribble qui **recule pour reprendre l'écran** (jab + retreat
@@ -442,7 +437,7 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 |---|---|---|---|---|
 | ~~B1~~ | ~~Mismatch tracking + scram switch~~ — 🟢 livré 2026-05-12 | — | — | — |
 | B2 | Reject screen detection | 2-3h | 🟡 | Haut |
-| B3 | Hard / soft hedge (slider aggression) | 1-2h | 🟢 | Haut |
+| ~~B3~~ | ~~Hard / soft hedge (slider aggression)~~ — 🟢 livré 2026-05-12 | — | — | — |
 | B4 | Snake dribble detection | 2-3h | 🟡 | Moyen-haut |
 | B5 | Empty side PnR | 2h | 🟢 | Moyen |
 | B6 | Dig / double au post | 3-4h | 🟡 | Moyen |

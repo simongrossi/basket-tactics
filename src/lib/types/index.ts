@@ -652,6 +652,13 @@ export interface AppState {
   /** Master switch pour les badges visuels mismatch + SCRAM (B1). Default
    *  true. Désactiver pour alléger le rendu pendant une présentation. */
   showMismatchBadges?: boolean;
+  /** B3 — agressivité du hedge sur écran porteur (0..100). Module la
+   *  distance à laquelle D5 sort sur le porteur quand `screenRule === 'hedge'` :
+   *  0 = soft show (D5 retourne vite sur son homme), 50 = standard,
+   *  100 = hard hedge (D5 plaqué devant O1, barricade physique). Default 50.
+   *  Axe INDÉPENDANT de la `quality` de l'écran : un excellent écran avec
+   *  soft show reste timide, un écran moyen avec hard hedge sort agressif. */
+  hedgeAggression?: number;
   screenRadius: number;
   dropDepth: DropDepth;
   showHelpLines: boolean;

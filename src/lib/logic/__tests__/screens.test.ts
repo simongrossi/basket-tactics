@@ -532,3 +532,101 @@ describe('applySwitchOffBall', () => {
     expect(out.D5).toBe('O5');
   });
 });
+
+describe('applyScreenAdjustment — hedgeAggression (B3)', () => {
+  // O1 porteur AU CONTACT de O2 poseur (écran engagé) → hedge actif.
+  // Le panier est en (300, 75), donc nx ≈ 0, ny ≈ -1 (vers le haut).
+  const screen: DetectedScreen = {
+    screener: 'O2',
+    screenerDef: 'D2',
+    carrier: 'O1',
+    carrierDef: 'D1',
+    screenerPos: { x: 310, y: 380 },
+  };
+  const off: AttackerPositions = {
+    O1: { x: 305, y: 410 }, // ~30px du poseur, hedge engagé
+    O2: { x: 310, y: 380 },
+    O3: { x: 600, y: 0 },
+    O4: { x: 0, y: 500 },
+    O5: { x: 600, y: 500 },
+  };
+  // Position de base de D2 : derrière O2 (côté panier).
+  const baseTarget = { x: 310, y: 310 };
+
+  it('hedge soft (aggression=0) → D5 reste proche du legacy showPos (mi-chemin)', () => {
+    const softOut = applyScreenAdjustment(
+      baseTarget, screen, 'hedge', 'D2', off,
+      35, 'medium', { x: 300, y: 75 }, 100 /* q max */, 0 /* hedge soft */
+    );
+    // En soft show, D2 doit rester proche du midpoint S↔C (autour de y~395)
+    // PLUTÔT que d'avancer vers le panier (y bas).
+    // baseTarget.y = 310, midpoint y ≈ 395, on attend softOut entre les deux.
+    expect(softOut.y).toBeGreaterThan(baseTarget.y);
+  });
+
+  it('hedge hard (aggression=100) → D5 plaqué devant O1 côté panier', () => {
+    const hardOut = applyScreenAdjustment(
+      baseTarget, screen, 'hedge', 'D2', off,
+      35, 'medium', { x: 300, y: 75 }, 100 /* q max */, 100 /* hard hedge */
+    );
+    // En hard hedge, D2 doit être DEVANT O1 (entre O1 et le panier), donc
+    // y < O1.y. La distance entre D2 et O1 doit être ≥ MIN_CLEARANCE.
+    expect(hardOut.y).toBeLessThan(off.O1.y);
+  });
+
+  it('aggression monotone : hard hedge sort plus haut (vers le panier) que soft', () => {
+    const softOut = applyScreenAdjustment(
+      baseTarget, screen, 'hedge', 'D2', off,
+      35, 'medium', { x: 300, y: 75 }, 80, 0
+    );
+    const hardOut = applyScreenAdjustment(
+      baseTarget, screen, 'hedge', 'D2', off,
+      35, 'medium', { x: 300, y: 75 }, 80, 100
+    );
+    // En hard hedge, D2 sort DEVANT O1 vers le panier (y plus petit).
+    // En soft hedge, D2 reste près du screener (y plus grand, proche midpoint).
+    // Convention : panier en haut (y faible), donc hardOut.y < softOut.y.
+    expect(hardOut.y).toBeLessThan(softOut.y);
+  });
+
+  it("aggression indépendant de quality : à q=0 (ghost) hard hedge reste retenu", () => {
+    // Si l'écran n'est pas vraiment posé (q=0), même un hard hedge revient
+    // proche du legacy (le blendFactor = q * hedgeAgg = 0).
+    const ghostHard = applyScreenAdjustment(
+      baseTarget, screen, 'hedge', 'D2', off,
+      35, 'medium', { x: 300, y: 75 }, 0 /* q=0 */, 100 /* hard hedge */
+    );
+    const ghostSoft = applyScreenAdjustment(
+      baseTarget, screen, 'hedge', 'D2', off,
+      35, 'medium', { x: 300, y: 75 }, 0, 0
+    );
+    // Les deux doivent être très proches (différence < 5 px).
+    expect(Math.hypot(ghostHard.x - ghostSoft.x, ghostHard.y - ghostSoft.y))
+      .toBeLessThan(5);
+  });
+
+  it('default (aggression 50) éloigne plus que soft mais moins que hard', () => {
+    // Métrique stable : distance D2↔screener. Plus l'aggression monte, plus
+    // D2 s'éloigne du poseur (sort en avant du couple). pushOutOfCarrier
+    // ne change pas ce ranking (la clearance avec O1 ne déplace D2 que
+    // marginalement par rapport à la distance au poseur).
+    const softOut = applyScreenAdjustment(
+      baseTarget, screen, 'hedge', 'D2', off,
+      35, 'medium', { x: 300, y: 75 }, 100, 0
+    );
+    const hardOut = applyScreenAdjustment(
+      baseTarget, screen, 'hedge', 'D2', off,
+      35, 'medium', { x: 300, y: 75 }, 100, 100
+    );
+    const defaultOut = applyScreenAdjustment(
+      baseTarget, screen, 'hedge', 'D2', off,
+      35, 'medium', { x: 300, y: 75 }, 100, 50
+    );
+    const sp = screen.screenerPos;
+    const dSoft = Math.hypot(softOut.x - sp.x, softOut.y - sp.y);
+    const dDefault = Math.hypot(defaultOut.x - sp.x, defaultOut.y - sp.y);
+    const dHard = Math.hypot(hardOut.x - sp.x, hardOut.y - sp.y);
+    expect(dDefault).toBeGreaterThan(dSoft);
+    expect(dDefault).toBeLessThan(dHard);
+  });
+});
