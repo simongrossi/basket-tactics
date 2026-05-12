@@ -431,6 +431,66 @@ export function DefensePanel(props: DefensePanelProps) {
             </div>
           </Section>
 
+          {/* ====================================================================
+              Couvertures avancées (audit B-series, mai 2026)
+              Réactions défensives auto sur patterns détectés. Toutes opt-in.
+              ==================================================================== */}
+          <Section theme="defense" label="Couvertures avancées">
+            <div
+              style={{ fontSize: 10, color: '#64748b', marginBottom: 6, fontStyle: 'italic' }}
+              title="Réactions défensives auto à des patterns détectés (post-up, cuts, reject screen, snake dribble). Toutes désactivées par défaut pour préserver le comportement standard."
+            >
+              Réactions auto sur patterns détectés
+            </div>
+
+            {/* B6 — Couverture post-up */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+              <span
+                style={{ fontSize: 11, color: '#475569', minWidth: 70, cursor: 'help' }}
+                title="Couverture défensive auto quand le trigger post-up est actif. 'none' = laisser le 1c1. 'dig' = un défenseur low man fait 30% du chemin vers le pivot puis recover (faux help). 'double' = il reste à 50% (double team réel)."
+              >
+                post-up
+              </span>
+              <select
+                value={state.postCoverage ?? 'none'}
+                onChange={(e) =>
+                  props.onPatch({
+                    postCoverage: e.target.value as 'none' | 'dig' | 'double',
+                  })
+                }
+                style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
+              >
+                <option value="none">none (1c1 strict)</option>
+                <option value="dig">dig (30 % chemin + recover)</option>
+                <option value="double">double (50 % chemin, team actif)</option>
+              </select>
+            </div>
+
+            {/* B10 — Bump cutters auto */}
+            <CheckboxLine
+              checked={!!state.autoBumpCutters}
+              label="bump auto sur cutters"
+              onChange={(v) => props.onPatch({ autoBumpCutters: v })}
+              title="Quand un cut hors-ballon est détecté (attaquant qui coupe vers le panier), un défenseur sur la trajectoire reçoit un offset de 12px vers le cutter (effet 'léger contact'). Filet de sécurité pour les cuts non marqués. Critères : défenseur ≠ cutterDef, ≤ 40px de la ligne, pas en aide active, pas en rotation PnR."
+            />
+
+            {/* B2 V2 — Unwind reject */}
+            <CheckboxLine
+              checked={!!state.unwindRejectedScreens}
+              label="unwind sur reject screen"
+              onChange={(v) => props.onPatch({ unwindRejectedScreens: v })}
+              title="Quand le porteur refuse l'écran (vire opposé, awayness ≤ -0.7), la défense relâche la couverture sur-anticipée. L'écran est traité comme inexistant pour ce step : D5 retombe sur O5 (natural) au lieu de rester en hedge."
+            />
+
+            {/* B4 V2 — Snake keep coverage */}
+            <CheckboxLine
+              checked={!!state.snakeKeepCoverage}
+              label="maintenir couv. sur snake"
+              onChange={(v) => props.onPatch({ snakeKeepCoverage: v })}
+              title="Quand un snake dribble est détecté (porteur engagé → retraite → ré-engagé sur le même poseur, V sur 3 steps), la quality effective de l'écran est forcée à 90 minimum. La 2ᵉ utilisation est traitée comme un lockdown au lieu d'un re-arm."
+            />
+          </Section>
+
           <Section theme="defense" label="Écran porteur" open>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }}>consigne</span>
