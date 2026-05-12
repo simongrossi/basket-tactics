@@ -6,6 +6,30 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### UX — Saisie numérique sur les sliders
+
+Le composant `<Slider>` partagé (`src/components/ui.tsx`) gagne un
+`<input type="number">` à droite du range. Permet de taper une valeur
+exacte au clavier plutôt que viser au curseur.
+
+**Comportement** :
+- Le slider et l'input partagent la même `value` propulsée par le parent.
+- Pendant la frappe : buffer local non clampé (n'interrompt pas la saisie).
+- Validation au **blur**, **Enter**, ou re-perte de focus : clamp dans
+  `[min, max]` puis snap au `step`.
+- **Escape** : annule la saisie en cours, retour à la dernière valeur.
+
+Tous les sliders du moteur en bénéficient automatiquement (distance défense,
+maxSpeed, helpPct par défenseur, ballPressure / rotationSpeed /
+verticalOffset zone, hedgeAggression, etc.) — pas de modification côté
+caller.
+
+**Tests** : pas de tests dédiés (composant React purement présentationnel,
+testé indirectement via les 678 tests existants qui couvrent les flux qui
+manipulent les valeurs). TS clean.
+
+Roadmap : `#1 Saisie numérique sur les sliders` marqué 🟢.
+
 ### B6 — Dig / double au post
 
 Couverture défensive auto sur post-up. Quand un attaquant est posté en

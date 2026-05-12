@@ -278,14 +278,11 @@ Objectif : réduire la friction lors de la création de systèmes complexes.
 
 ### Interactivité & raccourcis
 
-#### ⚪ Saisie numérique sur les sliders
-**Quoi.** Un `<input type="number">` à côté de chaque `<Slider>` (distance défense, maxSpeed, screenRadius, helpPct par défenseur, ballPressure / rotationSpeed / verticalOffset zone). Permet de taper `42` au lieu de viser au curseur.
-
-**Implémentation.** Modifier le composant `Slider` dans [`src/components/ui.tsx`](src/components/ui.tsx) pour ajouter un input contrôlé qui partage la même valeur. Quand on tape, on appelle le `onChange` du slider. Garde-fou : clamp dans `[min, max]` au blur. Le slider et l'input restent synchrones.
-
-**Effort** ~30min · **Risque** 🟢 · **Valeur** moyen.
-
-**Tradeoff.** Risque visuel : ajout d'un champ peut serrer le layout des panneaux. À tester avec le panneau défense qui est déjà chargé.
+#### 🟢 Saisie numérique sur les sliders (livré 2026-05-12)
+`<input type="number">` ajouté à droite de chaque `<Slider>` dans
+[`src/components/ui.tsx`](src/components/ui.tsx). Buffer local pendant la
+frappe, clamp + snap au blur/Enter, Escape annule. Tous les sliders du
+moteur en bénéficient sans modification côté caller. 678 tests verts.
 
 #### 🟢 Raccourcis clavier
 - `Espace` : play/pause
@@ -392,7 +389,7 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 ### UX / Produit
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
-| 1 | Saisie numérique sliders | 30min | 🟢 | Moyen |
+| ~~1~~ | ~~Saisie numérique sliders~~ — 🟢 livré 2026-05-12 | — | — | — |
 | 2 | Snap-to-grid | 45min | 🟢 | Moyen |
 | 3 | Graphique métriques | 1h | 🟢 | Haut |
 | 4 | Sélection multiple | 2h | 🟡 | Haut |

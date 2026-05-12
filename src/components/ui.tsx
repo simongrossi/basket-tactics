@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import type { ReactNode } from 'react';
 
 export const COLORS = {
@@ -128,9 +129,44 @@ interface SliderProps {
   title?: string;
 }
 
+/**
+ * Slider horizontal avec :
+ *  - `<input type="range">` pour le glissement souris / tactile
+ *  - `<input type="number">` à droite pour la saisie directe au clavier
+ *
+ * Les deux entrées partagent la même `value` propulsée par le caller. La
+ * saisie texte se valide au `blur` ou à `Enter` (clamp dans [min, max]) ;
+ * tant que l'utilisateur tape, on garde la valeur brute en local pour ne
+ * pas perturber la frappe avec des arrondis intermédiaires.
+ */
 export function Slider({ label, min, max, step, value, onChange, title }: SliderProps) {
-  // Affichage : entier si step >= 1, sinon une décimale (suffisant pour 0.1 step).
-  const display = step < 1 ? value.toFixed(step < 0.1 ? 2 : 1) : String(Math.round(value));
+  // Buffer local pour la saisie texte. Synchronisé avec `value` quand on est
+  // hors focus ; pendant le focus, l'utilisateur peut taper librement (y
+  // compris des valeurs hors bornes) — clampées au blur.
+  const [text, setText] = React.useState<string>(() => formatValue(value, step));
+  const [focused, setFocused] = React.useState(false);
+  React.useEffect(() => {
+    if (!focused) setText(formatValue(value, step));
+  }, [value, step, focused]);
+
+  const commit = () => {
+    const parsed = parseFloat(text);
+    if (Number.isFinite(parsed)) {
+      const clamped = Math.max(min, Math.min(max, parsed));
+      // Snap au step pour éviter les valeurs "exotiques" tapées (e.g. 42.7
+      // sur un step 2 → 42).
+      const snapped = step >= 1
+        ? Math.round(clamped / step) * step
+        : Math.round(clamped / step) * step;
+      onChange(snapped);
+      setText(formatValue(snapped, step));
+    } else {
+      // Saisie non parseable → on remet la dernière valeur valide.
+      setText(formatValue(value, step));
+    }
+    setFocused(false);
+  };
+
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }} title={title}>
       <span
@@ -154,9 +190,50 @@ export function Slider({ label, min, max, step, value, onChange, title }: Slider
         onChange={(e) => onChange(parseFloat(e.target.value))}
         style={{ flex: 1 }}
       />
-      <span style={{ fontSize: 11, color: '#475569', minWidth: 28, textAlign: 'right' }}>{display}</span>
+      <input
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={focused ? text : formatValue(value, step)}
+        onFocus={() => {
+          setFocused(true);
+          setText(formatValue(value, step));
+        }}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            commit();
+            (e.target as HTMLInputElement).blur();
+          } else if (e.key === 'Escape') {
+            setText(formatValue(value, step));
+            setFocused(false);
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+        // Cache les flèches up/down natives — elles dupliquent le slider.
+        style={{
+          width: 44,
+          fontSize: 11,
+          color: '#475569',
+          textAlign: 'right',
+          border: '1px solid #e2e8f0',
+          borderRadius: 3,
+          padding: '1px 3px',
+          background: '#fff',
+        }}
+      />
     </div>
   );
+}
+
+/** Mise en forme cohérente avec l'ancien `display` : entier si step ≥ 1,
+ *  sinon 1 décimale (ou 2 si step < 0.1). */
+function formatValue(v: number, step: number): string {
+  if (step < 0.1) return v.toFixed(2);
+  if (step < 1) return v.toFixed(1);
+  return String(Math.round(v));
 }
 
 interface CheckboxLineProps {
