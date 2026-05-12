@@ -10,6 +10,15 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
 ## Livré récemment (mai 2026)
 
+- 🟢 **B1 — Mismatch tracking + scram switch** (2026-05-12) :
+  - **Détection** : `mismatchSeverity(D, A) = |defenderRank - attackerRank|`, range 0..4. Propagé sur chaque `ComputedDefender`, visible à chaque step y compris en l'absence de switch (le coach voit aussi les bad matchups manuels).
+  - **Scram switch** correctif (opt-in via `state.scramSwitchEnabled`) : après un switch porteur qui crée un mismatch ≥ seuil, un défenseur tiers ≤ 200px de l'attaquant exposé prend le mismatch ; le défenseur en mismatch part sur l'attaquant naturel du scrameur. Algo basket-correct : tie-break côté porteur (menace immédiate), métrique d'amélioration sur le **pire** mismatch (pas la somme).
+  - **Visuel** : badge sous le sprite défenseur — orange (severity 2), rouge (≥3), bleu "SCRAM" si scram appliqué.
+  - **UI** : toggle + sélecteur de seuil dans `DefensePanel` (visible seulement avec rule `switch` ou `peel-switch`).
+  - **Diagnostic coach** enrichi en 4 niveaux selon severity (good/critical/warning/info).
+  - 17 tests (12 unitaires + 5 intégration). **602 → 619 tests verts**.
+  - Premier item de la liste **B** (audit défensif) livré.
+
 - 🟢 **Cycle modularité — découpage des 6 plus gros fichiers** (2026-05-12) :
   - **`scriptedGenerators.ts` : 1502 → 92 lignes** (barrel) — 57 générateurs FIBA répartis par tier (helpers + tier1/2/3). Ajouter une action = 1 sous-fichier + 1 ligne.
   - **`useAppState.ts` : 967 → 510 lignes** — toute la logique métier extraite en 8 namespaces de transformations pures `(state, ...args) => state` dans `src/lib/state/transforms/`. **61 nouveaux tests** unitaires sur ces transforms (sans setup React).
@@ -128,23 +137,27 @@ Restent **10 trous métier** à instruire, par ordre de valeur basket.
 
 #### 🔴 Critiques
 
-##### ⚪ Mismatch tracking après switch
-**Quoi.** Quand un switch laisse un D5 (pivot) sur le meneur, la défense ne
-réagit pas. Pas de **scram switch** (renvoi du mismatch via 3ᵉ défenseur)
-ni de cross-match correctif (rebalance automatique des matchups).
+##### 🟢 Mismatch tracking après switch (livré 2026-05-12)
+**Quoi.** Détection automatique des mismatches créés par un switch porteur
+(D5 sur O1 = severity 4, etc.) + **scram switch** correctif (3ᵉ échange
+défensif qui rétablit les matchups au moins partiellement).
 
 **Pourquoi basket.** Un mismatch laissé = post-up garanti ou drive easy. En
 match c'est la première chose qu'on attaque ; en défense c'est le premier
 réflexe à corriger.
 
-**Implémentation.** (a) Détection : à chaque switch, comparer le profil
-hauteur/poste du nouveau couple (D5 vs O1 = mismatch -2 catégories →
-flag `mismatchAfterSwitch` sur `ComputedDefender`). (b) Scram switch :
-nouvelle `screenRule` ou heuristique post-switch qui propose un 3ᵉ
-échange si un défenseur compatible est proche. (c) Diagnostic coach
-existe déjà partiellement (`switch-mismatch` warning) — à enrichir.
-
-**Effort** ~3-4h · **Risque** 🟡 · **Valeur** **très haut**.
+**Livré** :
+- Module `defense/mismatchTracking.ts` : `defenderRank` / `attackerRank` /
+  `mismatchSeverity` / `applyScramSwitch` (algo basket-correct : tie-break
+  côté porteur, métrique d'amélioration sur le pire mismatch pas la somme).
+- Câblage dans `defense/context.ts` après `applySwitch` natif.
+- Propagation `mismatchSeverity` + `scrammedThisStep` sur `ComputedDefender`.
+- Badge visuel sous le sprite défenseur (orange/rouge/bleu SCRAM).
+- Toggle + slider de seuil dans `DefensePanel` (visible seulement avec
+  rule `switch` ou `peel-switch`).
+- Diagnostic coach enrichi (4 niveaux : good/critical/warning/info selon
+  severity).
+- 17 tests (12 unitaires + 5 intégration). **619 tests verts**.
 
 ##### ⚪ Reject screen detection
 **Quoi.** Porteur qui **refuse l'écran** (jab du côté du screen + drive
@@ -427,7 +440,7 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 ### Logique basket — concepts défensifs manquants (audit mai 2026)
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
-| B1 | Mismatch tracking + scram switch | 3-4h | 🟡 | **Très haut** |
+| ~~B1~~ | ~~Mismatch tracking + scram switch~~ — 🟢 livré 2026-05-12 | — | — | — |
 | B2 | Reject screen detection | 2-3h | 🟡 | Haut |
 | B3 | Hard / soft hedge (slider aggression) | 1-2h | 🟢 | Haut |
 | B4 | Snake dribble detection | 2-3h | 🟡 | Moyen-haut |

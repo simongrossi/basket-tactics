@@ -15,7 +15,7 @@ function makeAction(id: string): ScriptedAction {
 }
 
 function makeBranch(id: string, actions: ScriptedAction[] = []): ScenarioBranch {
-  return { id, label: id, condition: { kind: 'always' }, actions };
+  return { id, label: id, divergeAfterActionId: 'root', actions };
 }
 
 describe('scenarioTransforms — actions main', () => {
@@ -32,7 +32,7 @@ describe('scenarioTransforms — actions main', () => {
       ...makeAction('a1'),
       params: { actor: 'O3', target: 'O5' } as never,
     } as unknown as ScriptedAction);
-    expect((s1.scriptedActions?.[0] as { params: { actor: string } }).params.actor).toBe('O3');
+    expect((s1.scriptedActions?.[0] as unknown as { params: { actor: string } }).params.actor).toBe('O3');
   });
 
   it("deleteScriptedAction supprime + libère les steps generatedBy", () => {

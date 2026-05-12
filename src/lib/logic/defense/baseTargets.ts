@@ -28,6 +28,7 @@ import {
 } from '../manDefense';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
+import { mismatchSeverity } from './mismatchTracking';
 
 export function applyBaseTargetsLayer(
   positions: Record<DefenderId, DefenderTarget>,
@@ -36,7 +37,7 @@ export function applyBaseTargetsLayer(
 ): void {
   const {
     state, off, ballCarrier, defenderIds, hoop, triggers, side, screen,
-    effectiveScreenRule, switchedThisStep, carrierPos, step,
+    effectiveScreenRule, switchedThisStep, carrierPos, step, scrammedSwitch,
   } = ctx;
 
   // Qualité de l'écran en cours, lue depuis l'annotation `screen` du step
@@ -132,6 +133,16 @@ export function applyBaseTargetsLayer(
       ? 'impact'
       : undefined;
 
+    // Mismatch severity sur le matchup FINAL (post-switch + post-scram).
+    // Toujours ≥ 0 ; mais on évite le bruit visuel en ne propageant la
+    // valeur que si elle est ≥ 1 (severity 0 = matchup naturel = aucun
+    // indicateur). Le seuil de "warning" pour le visuel + diagnostic
+    // coach est piloté par `state.mismatchThreshold` (default 2) dans
+    // les couches en aval.
+    const severity = mismatchSeverity(dId, oId as AttackerId);
+    const scrammedThisStep =
+      !!scrammedSwitch && (dId === scrammedSwitch.from || dId === scrammedSwitch.to);
+
     positions[dId] = {
       // Pas d'arrondi : la position est consommée par l'interpolation
       // de frame (sub-pixel). Round ici → bruit cumulé d'environ 0.5px
@@ -144,6 +155,8 @@ export function applyBaseTargetsLayer(
       onScreen: !!(screen && (dId === screen.carrierDef || dId === screen.screenerDef)),
       screenPhase,
       switchedThisStep: switchedThisStep && !!(screen && (dId === screen.carrierDef || dId === screen.screenerDef)),
+      mismatchSeverity: severity > 0 ? severity : undefined,
+      scrammedThisStep: scrammedThisStep || undefined,
       denying: denying || undefined,
       helpTriggered: helpTriggered || undefined,
       orientation: orient.bodyOrientation,

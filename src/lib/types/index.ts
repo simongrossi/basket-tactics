@@ -552,6 +552,17 @@ export interface ComputedDefender {
   onScreen: boolean;
   screenPhase?: ScreenContactPhase;
   switchedThisStep: boolean;
+  /** Severity du mismatch entre ce défenseur et son matchup actuel.
+   *  |defenderRank - attackerRank| dans [0..4]. 0 = matchup naturel
+   *  (D2 sur O2). ≥2 = mismatch tactique à traiter. Recalculé à chaque
+   *  step après application des switchs / scrams. Visualisation : badge
+   *  ⚠ orange/rouge sur le sprite quand severity ≥ 2.
+   *  Cf. `defense/mismatchTracking.ts`. */
+  mismatchSeverity?: number;
+  /** Vrai si CE step a appliqué un scram switch (3ᵉ échange correctif)
+   *  qui implique ce défenseur. Le défenseur a soit pris le mismatch
+   *  (`to` du scram) soit s'en est délesté (`from`). */
+  scrammedThisStep?: boolean;
   zoneId?: string;
   isRotating?: boolean;
   /** Le défenseur est en closeout sur cette transition (le ballon vient
@@ -629,6 +640,18 @@ export interface AppState {
   triggers: DefenseTriggers;
   rules: DefenderRules;
   screenRule: ScreenRule;
+  /** Active le SCRAM SWITCH automatique : après un switch porteur qui crée
+   *  un mismatch ≥ `mismatchThreshold`, un défenseur tiers proche prend
+   *  l'attaquant exposé. Default `false` (opt-in) pour préserver l'historique
+   *  des scénarios sauvegardés. Cf. `defense/mismatchTracking.ts`. */
+  scramSwitchEnabled?: boolean;
+  /** Seuil de severity à partir duquel un switch est considéré comme un
+   *  mismatch tactique (déclenche scram + diagnostic coach + badge visuel).
+   *  Range 1..4. Default 2 (= D5 sur O3 minimum). */
+  mismatchThreshold?: number;
+  /** Master switch pour les badges visuels mismatch + SCRAM (B1). Default
+   *  true. Désactiver pour alléger le rendu pendant une présentation. */
+  showMismatchBadges?: boolean;
   screenRadius: number;
   dropDepth: DropDepth;
   showHelpLines: boolean;

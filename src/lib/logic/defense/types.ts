@@ -15,6 +15,12 @@ export interface DefenderTarget {
   onScreen: boolean;
   screenPhase?: ScreenContactPhase;
   switchedThisStep: boolean;
+  /** Cf. `ComputedDefender.mismatchSeverity` — propagé tel quel à travers
+   *  speedConstraint. */
+  mismatchSeverity?: number;
+  /** Cf. `ComputedDefender.scrammedThisStep` — true si le défenseur est
+   *  impliqué dans un scram switch (correction de mismatch post-switch). */
+  scrammedThisStep?: boolean;
   denying?: boolean;
   helpTriggered?: boolean;
   pnrRole?: 'tag' | 'x-out' | 'stunt';

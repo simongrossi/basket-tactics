@@ -19,6 +19,7 @@ import type {
 } from '../../types';
 import { ballSide } from '../geometry';
 import { applySwitch, detectScreen, peelSwitchShouldFire } from '../screens';
+import { applyScramSwitch, type ScramSwitch } from './mismatchTracking';
 import { detectTriggers } from '../triggers';
 import { buildStep0DetectionPositions } from '../step0Detection';
 import {
@@ -65,6 +66,11 @@ export interface DefenseFrameContext {
   switchedThisStep: boolean;
   /** Switch détecté pour cette étape, à persister explicitement hors moteur. */
   detectedSwitch?: [DefenderId, DefenderId];
+  /** Scram switch éventuellement appliqué après le switch porteur (3ᵉ échange
+   *  correctif quand le switch a créé un mismatch ≥ seuil). Null si pas
+   *  applicable ou désactivé (`state.scramSwitchEnabled` faux).
+   *  Cf. `defense/mismatchTracking.ts`. */
+  scrammedSwitch: ScramSwitch | null;
 }
 
 /**
@@ -136,6 +142,22 @@ export function buildDefenseFrameContext(
     }
   }
 
+  // SCRAM SWITCH (B1) : opt-in via `state.scramSwitchEnabled`. Si le switch
+  // ci-dessus a créé un mismatch ≥ seuil, on cherche un défenseur tiers
+  // géographiquement proche qui prend l'attaquant exposé. Restore les
+  // matchups au moins partiellement (ex : D5 sur O1 → D3 vient prendre O1,
+  // D5 part sur O3). Cf. `mismatchTracking.applyScramSwitch`.
+  let scrammedSwitch: ScramSwitch | null = null;
+  if (switchedThisStep && screen && state.scramSwitchEnabled) {
+    const scram = applyScramSwitch(matchups, screen, off, prevDefenderPositions, {
+      threshold: state.mismatchThreshold ?? 2,
+    });
+    if (scram.scram) {
+      matchups = scram.matchups;
+      scrammedSwitch = scram.scram;
+    }
+  }
+
   const prevOff = stepIdx > 0 ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount) : null;
   const hoop = getDefenseHoop(state);
   const triggers = detectTriggers(off, prevOff, ballCarrier, state.triggers, hoop);
@@ -159,6 +181,7 @@ export function buildDefenseFrameContext(
     effectiveScreenRule,
     switchedThisStep,
     detectedSwitch,
+    scrammedSwitch,
   };
 
   return { ctx, matchups };

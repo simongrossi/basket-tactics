@@ -372,6 +372,39 @@ export function DefensePanel(props: DefensePanelProps) {
                 </select>
               </div>
             )}
+            {/* Scram switch (B1) — correction automatique de mismatch après switch.
+             *  Visible quand la consigne est 'switch' ou 'peel-switch' (les deux
+             *  rules qui produisent un échange de matchups). */}
+            {(state.screenRule === 'switch' || state.screenRule === 'peel-switch') && (
+              <div style={{ marginTop: 6, padding: 6, background: '#fef3c7', borderRadius: 4, border: '1px solid #fcd34d' }}>
+                <CheckboxLine
+                  checked={!!state.scramSwitchEnabled}
+                  label="scram switch auto"
+                  onChange={(v) => props.onPatch({ scramSwitchEnabled: v })}
+                  title="Après un switch qui crée un mismatch (D5 sur meneur ou D1 sur pivot), un 3ᵉ défenseur proche prend l'attaquant exposé. Restore au moins partiellement les matchups."
+                />
+                {state.scramSwitchEnabled && (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+                    <span
+                      style={{ fontSize: 11, color: '#475569', minWidth: 60, cursor: 'help' }}
+                      title="Severity minimale pour déclencher le scram. 1 = tout switch corrigé. 2 = mismatch standard (D5↔O3). 3 = gros mismatch (D5↔O2). 4 = mismatch extrême (D5↔O1)."
+                    >
+                      seuil
+                    </span>
+                    <select
+                      value={state.mismatchThreshold ?? 2}
+                      onChange={(e) => props.onPatch({ mismatchThreshold: parseInt(e.target.value) })}
+                      style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
+                    >
+                      <option value={1}>1 — tout switch</option>
+                      <option value={2}>2 — mismatch standard</option>
+                      <option value={3}>3 — gros mismatch</option>
+                      <option value={4}>4 — extrême</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
             <Button theme="defense" fullWidth onClick={props.onResetSwitches}>
               annuler les switches actifs
             </Button>

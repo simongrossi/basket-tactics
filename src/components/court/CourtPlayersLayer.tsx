@@ -93,6 +93,10 @@ export function CourtPlayersLayer({ state, frame }: CourtPlayersLayerProps) {
             overClosed={p.overClosed}
             denying={p.denying}
             pnrRole={p.pnrRole}
+            mismatchSeverity={p.mismatchSeverity}
+            scrammedThisStep={p.scrammedThisStep}
+            mismatchThreshold={state.mismatchThreshold ?? 2}
+            showMismatchBadges={state.showMismatchBadges !== false}
             orientation={p.orientation}
             gazeOrientation={p.gazeOrientation}
             armBallSide={p.armBallSide}

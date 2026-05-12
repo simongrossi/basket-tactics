@@ -6,6 +6,51 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### B1 — Mismatch tracking + scram switch
+
+Détection automatique des mismatches créés par un switch porteur, avec
+correction optionnelle par **scram switch** (3ᵉ échange défensif).
+
+**Nouveau module** `src/lib/logic/defense/mismatchTracking.ts` :
+- `defenderRank(D1..D5)` / `attackerRank(O1..O5)` → 1..5 (1 meneur, 5 pivot)
+- `mismatchSeverity(d, a)` = `|defenderRank - attackerRank|`, range 0..4
+- `applyScramSwitch(matchups, screen, off, def, options)` :
+  - Identifie le pire mismatch post-switch (tie-break : côté porteur)
+  - Cherche un défenseur tiers ≤ 200px de l'attaquant exposé
+  - Applique un 2ᵉ swap si la réduction du **pire** mismatch est ≥ 2
+  - Refuse si le candidat lui-même crée un nouveau mismatch > seuil
+
+**Câblage** dans `src/lib/logic/defense/context.ts` : après `applySwitch`
+classique, si `state.scramSwitchEnabled` est true, on tente le scram.
+Résultat propagé via `ctx.scrammedSwitch` aux couches en aval.
+
+**Settings** (nouveaux champs `AppState`) :
+- `scramSwitchEnabled?: boolean` (default `false`, opt-in)
+- `mismatchThreshold?: number` (default 2 = mismatch D5↔O3 minimum)
+- `showMismatchBadges?: boolean` (default true)
+
+**Propagation** : `ComputedDefender` gagne `mismatchSeverity?` et
+`scrammedThisStep?`. Affichés à chaque step y compris en l'absence de
+scram (sert au coach pour repérer les bad matchups manuels).
+
+**Visuel** : nouveau badge sous le sprite défenseur — orange (severity 2),
+rouge (≥3), bleu "SCRAM" si scram appliqué. Toggle global possible.
+
+**Diagnostic coach** enrichi (`switchMismatch.ts`) :
+- Scram appliqué → 'good' avec phrase explicative (qui prend qui)
+- Severity ≥ 3 → 'critical' (mismatch extrême à exploiter)
+- Severity ≥ threshold → 'warning' (avec valeur de severity affichée)
+- Severity < threshold → 'info' (switch neutre)
+
+**Settings UI** : nouveau bloc dans `DefensePanel` (visible uniquement
+quand `screenRule ∈ {'switch', 'peel-switch'}`) — toggle + sélecteur de
+seuil (1 = tout switch corrigé, 4 = scram seulement sur mismatch extrême).
+
+**Tests** : 12 unitaires sur `mismatchTracking` (rank/severity/scram) +
+5 d'intégration sur le pipeline complet. **602 → 619 tests verts**.
+
+Roadmap : B1 marqué 🟢 (premier item de la liste B audit défensif livré).
+
 ### Modularité — découpage des gros fichiers
 
 Refonte structurelle visant à **réduire le risque** de chaque nouvelle feature

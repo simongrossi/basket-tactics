@@ -41,6 +41,18 @@ interface PlayerProps {
   showForcedScreenerBadge?: boolean;
   /** Rôle PnR (P1) — affiche un anneau distinct selon la rotation. */
   pnrRole?: 'tag' | 'x-out' | 'stunt';
+  /** Severity du mismatch après switch (B1). Range 0–4. Affiche un badge ⚠
+   *  orange (severity 2) ou rouge (severity ≥3) à côté du défenseur quand
+   *  ≥ `mismatchThreshold`. Si scram switch appliqué, badge bleu "SCRAM". */
+  mismatchSeverity?: number;
+  /** Vrai si CE défenseur a été impliqué dans un scram switch à cette étape
+   *  (cf. `defense/mismatchTracking.ts`). Badge bleu "SCRAM" prioritaire sur
+   *  le badge mismatch standard. */
+  scrammedThisStep?: boolean;
+  /** Seuil à partir duquel on affiche le badge mismatch. Default 2. */
+  mismatchThreshold?: number;
+  /** Master switch pour les badges mismatch / scram. Default true. */
+  showMismatchBadges?: boolean;
   /**
    * Attaquant en position d'écran posé. Aucun rendu spécifique dans Player :
    * le cue visuel est piloté en amont par CourtView via `gazeOrientation`
@@ -76,6 +88,10 @@ export function Player({
   showDenyingRing = true,
   showForcedScreenerBadge = true,
   pnrRole,
+  mismatchSeverity,
+  scrammedThisStep,
+  mismatchThreshold = 2,
+  showMismatchBadges = true,
   isScreening: _isScreening,
 }: PlayerProps) {
   const fill = isAttacker ? '#D85A30' : '#378ADD';
@@ -245,6 +261,44 @@ export function Player({
           >
             {pnrRole === 'tag' ? 'TAG' : pnrRole === 'x-out' ? 'X' : 'STUNT'}
           </text>
+        </g>
+      )}
+      {/* Badge mismatch (B1) — défenseur sur attaquant de rang trop éloigné.
+       *  Affiché uniquement côté défenseur, quand severity ≥ threshold (2 par
+       *  défaut). Couleur escalade : orange (sev 2) → rouge (sev ≥ 3). Si
+       *  scram switch impliqué : badge bleu "SCRAM" prioritaire. */}
+      {!isAttacker && showMismatchBadges && (scrammedThisStep || (mismatchSeverity !== undefined && mismatchSeverity >= mismatchThreshold)) && (
+        <g pointerEvents="none">
+          {(() => {
+            const isScram = !!scrammedThisStep;
+            const severe = !isScram && mismatchSeverity !== undefined && mismatchSeverity >= 3;
+            const bg = isScram ? '#1D4ED8' : severe ? '#DC2626' : '#EA580C';
+            const label = isScram ? 'SCRAM' : `⚠ ${mismatchSeverity}`;
+            const w = isScram ? 38 : 24;
+            return (
+              <>
+                <rect
+                  x={pos.x - r - w}
+                  y={pos.y + r + 2}
+                  width={w}
+                  height={12}
+                  rx={3}
+                  fill={bg}
+                  opacity={0.94}
+                />
+                <text
+                  x={pos.x - r - w / 2}
+                  y={pos.y + r + 11}
+                  fontSize={9}
+                  fontWeight={700}
+                  fill="#fff"
+                  textAnchor="middle"
+                >
+                  {label}
+                </text>
+              </>
+            );
+          })()}
         </g>
       )}
       {screenPhase && !isAttacker && showStateRings && (
