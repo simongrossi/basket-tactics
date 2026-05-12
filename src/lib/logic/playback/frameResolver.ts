@@ -439,6 +439,18 @@ export function resolveFrameAt(
         p = lerpPoint(p, releasePoint, adhesion);
       }
     }
+    // Anti-superposition pour défenseurs en screen lock : single-pass
+    // pushOutOfMany contre TOUS les attaquants (matched compris, règle
+    // absolue cf. PLAYER-CLEARANCE.md). `resolvePlayerCollisions` plus bas
+    // skippe ces défenseurs pour éviter le flicker côté-à-côté ; mais
+    // l'adhesion peut produire une position à < 34 px d'un attaquant
+    // non-matched (typiquement le poseur), il faut compenser ici.
+    // Single pass = pas d'oscillation = pas de flicker.
+    if (screenLockedDefenders.has(id) || (screenMode && contact.carrierContact) || contact.offBallContact) {
+      const obs: Point[] = [];
+      for (const aId of attackerIds) obs.push(off[aId]);
+      p = pushOutOfMany(p, obs, PLAYER_MIN_CLEARANCE_PX);
+    }
     defPos[id] = {
       x: p.x,
       y: p.y,

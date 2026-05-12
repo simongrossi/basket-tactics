@@ -414,8 +414,15 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
         prev = { x: d1.x, y: d1.y };
       }
       // Avant fixes Phase 1 : sauts > 120px (D1 flippait d'un côté à l'autre).
-      // Après Phase 1 + Phase 2 : trajectoire fluide sub-pixel.
-      expect(maxJump, `saut max entre 2 frames adjacents mid-segment`).toBeLessThan(5);
+      // Après Phase 1 + Phase 2 : trajectoire fluide sub-pixel (~5 px).
+      // 2026-05-13 — relâché à 18 px : la règle ABSOLUE d'anti-superposition
+      // (cf. docs/PLAYER-CLEARANCE.md) impose un push-out single-pass après
+      // l'adhésion d'écran. Sur ce scénario où le poseur se déplace de 138 px
+      // entre les 2 steps, le push direction change ~13 px à un endroit.
+      // Trade-off accepté : empilement visible (≥ 4 px d'overlap) > secousse
+      // momentanée de 13 px sur un cas extrême. Le coach a explicitement
+      // demandé zéro chevauchement, peu importe.
+      expect(maxJump, `saut max entre 2 frames adjacents mid-segment`).toBeLessThan(18);
     });
   });
 

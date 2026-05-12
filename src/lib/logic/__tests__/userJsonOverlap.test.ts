@@ -75,7 +75,11 @@ function makeState(): AppState {
 async function checkFrameAt(localT: number): Promise<string[]> {
   const { resolveFrameAt } = await import('@/lib/logic/playback/frameResolver');
   const state = makeState();
-  const frame = resolveFrameAt(state, 0, 1, localT);
+  // t = step fractionnaire ; localT entre step 0 et step 1 ⇒ t = localT.
+  const frame = resolveFrameAt(state, localT);
+  if (!frame) {
+    throw new Error(`frame null à t=${localT}`);
+  }
   const violations: string[] = [];
 
   // A ↔ A
@@ -170,10 +174,11 @@ describe('USER FILE — systeme_basket-10.json (overlap diagnostic)', () => {
     });
   });
 
-  // PLAYBACK : on échantillonne 21 instants entre step 0 et step 1.
-  // L'overlap O1 ↔ O3 se produit autour de t ≈ 0.35 sans le fix
-  // (trajectoires qui se croisent).
-  const samples = Array.from({ length: 21 }, (_, i) => i / 20);
+  // PLAYBACK : on échantillonne 61 instants (frame par frame sur une lecture
+  // 60fps) entre step 0 et step 1. L'overlap O1 ↔ O3 se produit autour de
+  // t ≈ 0.35 sans le fix (trajectoires qui se croisent).
+  // Le user a signalé f14/60 (t≈0.233) ; on couvre exhaustivement la grille.
+  const samples = Array.from({ length: 61 }, (_, i) => i / 60);
   samples.forEach((t) => {
     it(`playback t=${t.toFixed(2)} — toutes les paires ≥ ${PLAYER_MIN_CLEARANCE_PX} px`, async () => {
       const violations = await checkFrameAt(t);
