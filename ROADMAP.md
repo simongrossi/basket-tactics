@@ -10,34 +10,48 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
 ## Livré récemment (mai 2026)
 
-- 🟢 **Audit défensif — TOUS les concepts B1-B10 livrés** (2026-05-12) :
-  Toute la liste de l'audit moteur défensif (4 critiques 🔴 + 6 moyens 🟠)
-  traitée en une session. **541 → 678 tests verts (+137 tests, dont 59 sur B1-B10)**.
+- 🟢 **Session 2026-05-12 — Grande session 4 phases** : **27 commits**,
+  **541 → 714 tests verts (+173)**. Récap complet dans
+  [docs/session-2026-05-12.md](docs/session-2026-05-12.md).
 
-  **🔴 Critiques (B1-B4)** :
-  - **B1** Mismatch tracking + scram switch (correction auto post-switch) — 17 tests
-  - **B2** Reject screen detection (porteur refuse l'écran anticipé) — 9 tests
-  - **B3** Hard hedge vs soft hedge (slider `state.hedgeAggression`) — 5 tests
-  - **B4** Snake dribble detection (V sur 3 steps, double usage écran) — 8 tests
+  **Phase 1 — Refactoring modularité (6 commits, +61 tests)** :
+  6 plus gros fichiers du repo éclatés. 4 patterns documentés
+  (barrel + dossier, transforms purs + hook mince, hooks + sous-composants,
+  **registry de règles**). API publique strictement inchangée.
 
-  **🟠 Moyens (B5-B10)** :
-  - **B5** Empty side PnR (helper + diag avec recommandation contextuelle) — 5 tests
-  - **B6** Dig / double au post (couche 4.5, dig 30 % / double 50 %) — 4 tests
-  - **B7** Defensive 3 sec (règle FIBA, diag coach) — 4 tests
-  - **B8** Switch policy granulaire (`'all' / '1-3' / '1-4' / 'none'`) — 10 tests
-  - **B9** Top-lock off-ball avec timing (bascule auto top-lock → chase) — 10 tests
-  - **B10** Bumping cutters automatique (couche 5.5, offset sur cuts détectés) — 4 tests
+  **Phase 2 — Audit défensif B1-B10 (10 commits, +59 tests)** :
+  10 concepts basket manquants identifiés et tous livrés :
+  - **🔴 Critiques** : B1 mismatch+scram · B2 reject detect · B3 hard/soft
+    hedge · B4 snake detect
+  - **🟠 Moyens** : B5 empty side · B6 dig/double · B7 def 3sec ·
+    B8 switch policy · B9 top-lock timing · B10 bump cutters
 
-  **Nouveaux modules** :
-  - 6 helpers purs : `mismatchTracking`, `detectRejectedScreen`,
+  **Phase 3 — UX panneau gauche (5 commits, +21 tests)** :
+  #1 saisie num sliders · #2 snap-to-grid (Ctrl/Cmd) · #3 graphique
+  métriques · #4 sélection multiple · #5 templates user.
+
+  **Phase 4 — V2/v3 défensif (2 commits, +15 tests)** :
+  Trap v3 (coexistence avec écran) · B2 V2 (unwind reject) · B4 V2
+  (snake keep coverage) · Undo/Redo v2 marqué (déjà fait).
+
+  **Nouveaux modules / patterns** :
+  - **6 helpers purs** : `mismatchTracking`, `detectRejectedScreen`,
     `detectSnakeDribble`, `emptySidePnR`, `cutterScreenChain`,
     `switchAllowed`.
-  - 2 nouvelles couches du pipeline : `cutterBumpLayer` (5.5),
-    `postCoverageLayer` (4.5).
-  - 5 nouvelles règles coach : scram-switch enrichi, rejected-screen,
+  - **2 nouvelles couches du pipeline défensif** :
+    `postCoverageLayer` (4.5), `cutterBumpLayer` (5.5).
+  - **6 nouveaux settings opt-in** : `scramSwitchEnabled`,
+    `mismatchThreshold`, `hedgeAggression`, `switchPolicy`,
+    `autoBumpCutters`, `postCoverage` (+ `unwindRejectedScreens` et
+    `snakeKeepCoverage` pour les V2).
+  - **5 nouvelles règles coach** : scram-switch enrichi, rejected-screen,
     snake-dribble, defensive-3sec, empty-side-pnr.
-  - 6 nouveaux settings opt-in : `scramSwitchEnabled`, `mismatchThreshold`,
-    `hedgeAggression`, `switchPolicy`, `autoBumpCutters`, `postCoverage`.
+  - **8 modules de transforms purs** extraits de useAppState
+    (testables sans React).
+
+  Toutes les nouvelles features défensives sont **opt-in** pour
+  préserver la rétrocompat. Tests à 100% verts à chaque commit, TS
+  strict, API publique inchangée sur les refactos.
 
 - 🟢 **B1 — Mismatch tracking + scram switch** (2026-05-12) :
   - **Détection** : `mismatchSeverity(D, A) = |defenderRank - attackerRank|`, range 0..4. Propagé sur chaque `ComputedDefender`, visible à chaque step y compris en l'absence de switch (le coach voit aussi les bad matchups manuels).
@@ -389,52 +403,54 @@ travail" est rempli.
 
 ## Synthèse priorisation (chantiers ⚪ restants)
 
-### UX / Produit
+### UX / Produit — 3 chantiers restants
+
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
-| ~~1~~ | ~~Saisie numérique sliders~~ — 🟢 livré 2026-05-12 | — | — | — |
-| ~~2~~ | ~~Snap-to-grid~~ — 🟢 livré 2026-05-12 | — | — | — |
-| ~~3~~ | ~~Graphique métriques~~ — 🟢 livré 2026-05-12 | — | — | — |
-| ~~4~~ | ~~Sélection multiple (V1)~~ — 🟢 livré 2026-05-12 | — | — | — |
-| 5 | Mode présentation | 45min | 🟢 | Haut (tablette) |
+| 5 | Mode présentation v2 (fullscreen navigateur natif) | <30min | 🟢 | Moyen |
 | 6 | Export GIF/vidéo | 3-4h | 🟡 | **Très haut** (partage) |
-| ~~7~~ | ~~Templates utilisateurs~~ — 🟢 livré 2026-05-12 | — | — | — |
 | 8 | Annotations texte libres | 2h | 🟡 | Haut |
 
-### Logique basket — concepts défensifs manquants (audit mai 2026) — ✅ tous livrés (2026-05-12)
-Tous les items B1-B10 de la liste sont marqués 🟢. **+59 nouveaux tests
-(541 → 678)**. Détail commit par commit ci-dessus dans "Livré récemment".
+✅ **Livré 2026-05-12** : 1 (saisie num sliders), 2 (snap-to-grid),
+3 (graphique métriques), 4 (sélection multiple V1), 7 (templates user).
 
-| # | Chantier | Effort | Risque | Valeur |
-|---|---|---|---|---|
-| ~~B1~~ | ~~Mismatch tracking + scram switch~~ — 🟢 livré 2026-05-12 | — | — | — |
-| ~~B2~~ | ~~Reject screen detection~~ — 🟢 V1 livré 2026-05-12 | — | — | — |
-| ~~B3~~ | ~~Hard / soft hedge (slider aggression)~~ — 🟢 livré 2026-05-12 | — | — | — |
-| ~~B4~~ | ~~Snake dribble detection~~ — 🟢 V1 livré 2026-05-12 | — | — | — |
-| ~~B5~~ | ~~Empty side PnR~~ — 🟢 livré 2026-05-12 | — | — | — |
-| ~~B6~~ | ~~Dig / double au post~~ — 🟢 livré 2026-05-12 | — | — | — |
-| ~~B7~~ | ~~Defensive 3 sec (diag coach)~~ — 🟢 livré 2026-05-12 | — | — | — |
-| ~~B8~~ | ~~Switch policy granulaire~~ — 🟢 livré 2026-05-12 | — | — | — |
-| ~~B9~~ | ~~Top-lock off-ball avec timing~~ — 🟢 livré 2026-05-12 | — | — | — |
-| ~~B10~~ | ~~Bumping cutters automatique~~ — 🟢 livré 2026-05-12 | — | — | — |
+### Logique basket — concepts défensifs (audit mai 2026) — ✅ TOUS LIVRÉS (2026-05-12)
 
-**Total UX/Produit restant** : ~12-13h en restant sur des v1 simples.
-**Total logique basket restant** : ~22-28h pour les 10 items.
+Audit du moteur défensif → 10 concepts manquants identifiés et tous
+livrés en une session. **+74 nouveaux tests** (B1-B10 + V2/v3).
 
-**Ordre conseillé logique basket** : B3 → B1 → B8 → B2 → B7 → B5 → B4 → B6 →
-B9 → B10. B3 est un quick win (slider sur une rule existante). B1 et B8
-sont les plus impactants pour le réalisme défensif. B7 est triviale et
-pédagogique. Les détections (B2/B4) viennent ensuite, plus complexes
-géométriquement.
+| # | Chantier | Version | Tests |
+|---|---|---|---:|
+| ~~B1~~ | Mismatch tracking + scram switch | V1 | 17 |
+| ~~B2~~ | Reject screen detection | V1 diag + V2 unwind | 9+4 |
+| ~~B3~~ | Hard / soft hedge | V1 | 5 |
+| ~~B4~~ | Snake dribble detection | V1 diag + V2 keep coverage | 8+4 |
+| ~~B5~~ | Empty side PnR | V1 | 5 |
+| ~~B6~~ | Dig / double au post | V1 | 4 |
+| ~~B7~~ | Defensive 3 sec (FIBA) | V1 | 4 |
+| ~~B8~~ | Switch policy granulaire | V1 | 10 |
+| ~~B9~~ | Top-lock off-ball avec timing | V1 | 10 |
+| ~~B10~~ | Bumping cutters automatique | V1 | 4 |
+| ~~Trap v3~~ | Coexistence trap + écran | v3 | 7 |
+| ~~Undo/Redo v2~~ | Coalescing drag | (déjà fait) | — |
 
-**Ordre conseillé pour enchaîner** : 1 → 5 → 7 → 3 → 2 → 8 → 4 → 6 (du moins risqué au plus risqué, valeur croissante). Le bloc (1 + 5 + 7) est ~3h pour 3 quick wins très visibles. (3 + 2) ajoute 2h pour deux UX impactants. (8 + 4) sont les plus complexes côté UX. (6) est le plus impactant pour la diffusion mais le plus délicat techniquement — à garder pour la fin.
+**Total UX/Produit restant** : ~5-7h pour les 3 chantiers ⚪.
+**Total logique basket restant** : 0 (tous livrés).
+
+Détail complet dans [docs/session-2026-05-12.md](docs/session-2026-05-12.md).
+
+**Ordre conseillé UX restant** : 5 (mode présentation v2, <30min, quick
+win tablette) → 8 (annotations texte, valeur haute) → 6 (export vidéo,
+le plus impactant pour le partage).
 
 **Limites v3 documentées sur les chantiers déjà v2** :
-- **Trap** : gestion explicite quand un écran est aussi détecté simultanément (aujourd'hui le trap est skip si screen ≠ null)
-- **Staggered** : ✅ double courbe Bezier réelle livrée en v3 (`pickStaggeredPair` + `curveAroundStaggeredPair`).
-- **Inversion HOOP** : ✅ rendu visuel "🎯 visé" / "🛡 protégé" livré en v3.
-- **Closeout / Denial** : ✅ tunables globaux livrés en v3. ✅ override par règle individuelle livré (DefenderRule.closeoutBoost / denyAggressiveness) — slider dans le menu contextuel défenseur avec affichage "global" / valeur + bouton ↻ pour reset.
-- ~~**Undo/Redo** : coalescing pendant un drag continu~~ — 🟢 livré via `commitCoalescedHistory`
+- ✅ **Trap v3** livré : coexistence trap + écran (cf. section "Trap v3" plus haut).
+- ✅ **Staggered v3** livré : double courbe Bezier (`pickStaggeredPair` + `curveAroundStaggeredPair`).
+- ✅ **Inversion HOOP v3** livré : rendu visuel "🎯 visé" / "🛡 protégé".
+- ✅ **Closeout / Denial** : tunables globaux + override par règle individuelle.
+- ✅ **Undo/Redo v2** : coalescing drag via `commitCoalescedHistory`.
+- ✅ **B2 V2** : unwind reject (cf. section B2 plus haut).
+- ✅ **B4 V2** : snake keep coverage (cf. section B4 plus haut).
 
 ---
 

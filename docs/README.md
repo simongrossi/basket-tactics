@@ -8,6 +8,7 @@ Cette documentation couvre tous les aspects du projet, de l'architecture à la s
 |----------|-------|
 | [architecture.md](architecture.md) | Stack technique, structure des dossiers, flux de données |
 | [refactoring-history.md](refactoring-history.md) | Découpages structurels successifs, patterns réutilisables, méthode reproductible |
+| [session-2026-05-12.md](session-2026-05-12.md) | Récap de la grande session de mai 2026 — refacto + audit défensif + UX (27 commits, +173 tests) |
 | [data-model.md](data-model.md) | Forme de l'`AppState`, types, persistance |
 | [concepts-basket.md](concepts-basket.md) | Vocabulaire basket : écrans, défense de zone, denial, switch… |
 | [GAME-ENGINE.md](GAME-ENGINE.md) | **Cartographie de tout le moteur** : individuel / collectif / physique, avec règles, constantes, pipeline |

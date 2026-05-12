@@ -53,10 +53,10 @@ Les tests vivent à côté du code testé sous `__tests__/`. Le pattern d'inclus
 
 ## Couverture actuelle
 
-**602 tests** dans 53 fichiers — logique défensive, simulation, orientation,
+**714 tests** dans 69 fichiers — logique défensive, simulation, orientation,
 invariants playbooks, rim protection, utilitaires zone, actions défensives
-scriptées, et **transforms purs `useAppState`** (extraits du hook React pour
-être testables sans setup React).
+scriptées, transforms purs `useAppState`, **et tous les nouveaux concepts
+basket B1-B10 + V2/v3** (cf. [session-2026-05-12.md](session-2026-05-12.md)).
 
 Voir [CHANGELOG.md](../CHANGELOG.md) pour le détail des ajouts récents.
 

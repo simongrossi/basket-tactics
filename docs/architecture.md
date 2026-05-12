@@ -32,15 +32,17 @@ src/
 │   ├── DefensePanel.tsx          # panneau droit — bleu, défense
 │   ├── ScenarioPanel.tsx         # panneau scénario (directives scriptées)
 │   ├── LibraryPanel.tsx          # panneau bibliothèque de systèmes
-│   ├── MetricsBar.tsx            # barre de métriques défensives
+│   ├── MetricsBar.tsx            # barre de métriques défensives (étape active)
+│   ├── MetricsChart.tsx          # évolution d'une métrique au fil des étapes (mini line chart)
 │   ├── ParametresPanel.tsx       # panneau paramètres avancés
 │   ├── SimulationSection.tsx     # section simulation Monte Carlo
 │   │
 │   │   — Terrain SVG interactif —
 │   ├── CourtView.tsx             # câblage : viewBox + overlays + clic-droit (446 l)
 │   ├── court/                    # sous-composants de CourtView (cf. § CourtView)
-│   │   ├── CourtPlayersLayer.tsx #   sprites + screener gaze override
-│   │   └── CourtMenus.tsx        #   context menus (def/att) + zone region menu
+│   │   ├── CourtPlayersLayer.tsx #   sprites + screener gaze override + halo sélection (#4)
+│   │   ├── CourtMenus.tsx        #   context menus (def/att) + zone region menu
+│   │   └── SnapGuideOverlay.tsx  #   #2 feedback visuel snap-to-grid (cyan pointillé)
 │   ├── Court.tsx                 # arrière-plan terrain (lignes)
 │   ├── Player.tsx                # cercle + bras défensifs + ballon
 │   ├── Annotations.tsx           # flèches passe/dribble/course/écran
@@ -113,11 +115,15 @@ src/
     │   │   ├── types.ts                # type partagé DefenderTarget
     │   │   ├── context.ts              # DefenseFrameContext + buildDefenseFrameContext (setup phase)
     │   │   ├── baseTargets.ts          # couche 1 : base man-to-man + help + screen-on-target + orientation initiale
+    │   │   ├── rimProtectionLayer.ts   # couche 1.5 : protection rim ("pas d'easy basket")
     │   │   ├── pnrLayer.ts             # couche 2 : rotations PnR (low-man tag + X-out + nail stunt)
-    │   │   ├── offBallScreenLayer.ts   # couche 3 : écrans hors-ballon (mute matchups si switch)
-    │   │   ├── trapLayer.ts            # couche 4 : trap auto en zone de trappe
+    │   │   ├── offBallScreenLayer.ts   # couche 3 : écrans hors-ballon (mute matchups si switch) — B9 top-lock→chase auto
+    │   │   ├── trapLayer.ts            # couche 4 : trap auto (Trap v3 : coexistence avec écran porteur)
+    │   │   ├── postCoverageLayer.ts    # couche 4.5 : B6 dig/double sur post-up détecté
     │   │   ├── directiveLayer.ts       # couche 5 : directives défensives scriptées (step.defensiveDirectives)
+    │   │   ├── cutterBumpLayer.ts      # couche 5.5 : B10 bump auto sur cuts détectés
     │   │   ├── postPassOrientation.ts  # couche 6 : recalcul orientation final depuis positions ajustées
+    │   │   ├── mismatchTracking.ts     # B1 : rank + severity + scram switch + switch policy (B8)
     │   │   ├── zoneTargets.ts          # branche zone (ownership polygonal + tracking d'attaquant)
     │   │   ├── speedConstraint.ts      # effectiveDefensePositions : vitesse max + closeout + friction + collisions
     │   │   └── frameAdjust.ts          # followDefendersAtFrame + recomputeDefenseFrameOrientations (post-passes playback)
@@ -126,13 +132,17 @@ src/
     │   ├── manDefense.ts               # marquage individuel + stances
     │   ├── help.ts                     # logique d'aide (sag baseline + triggers)
     │   ├── triggers.ts                 # détection drive / post-up / paint
-    │   ├── screens/                    # moteur d'écrans — découpé en 5 modules (cf. § Moteur d'écrans)
+    │   ├── screens/                    # moteur d'écrans — découpé en modules thématiques
     │   │   ├── index.ts                #   barrel — re-exporte l'API publique
     │   │   ├── helpers.ts              #   intent filter, smoothstep, push-out clearance
     │   │   ├── detectCarrierScreen.ts  #   detectScreen (PnR / drag / ghost)
-    │   │   ├── carrierScreenAdjust.ts  #   applyScreenAdjustment + peelSwitchShouldFire + applySwitch
+    │   │   ├── carrierScreenAdjust.ts  #   applyScreenAdjustment + B3 hedgeAggression
     │   │   ├── detectOffBallScreens.ts #   detect + upgrade stagger / elevator / flex / hammer
-    │   │   └── offBallScreenAdjust.ts  #   applyOffBallScreenAdjustment + applySwitchOffBall
+    │   │   ├── offBallScreenAdjust.ts  #   applyOffBallScreenAdjustment + applySwitchOffBall
+    │   │   ├── detectRejectedScreen.ts #   B2 : pattern reject (porteur s'éloigne du poseur)
+    │   │   ├── detectSnakeDribble.ts   #   B4 : V sur 3 steps (entry → retraite → return)
+    │   │   ├── emptySidePnR.ts         #   B5 : isEmptySidePnR (côté faible vide)
+    │   │   └── cutterScreenChain.ts    #   B9 : compteur écrans hors-ballon par cutter
     │   ├── zoneDefense.ts              # ownership polygonal de zone
     │   ├── trap.ts                     # choix du défenseur en aide-trap
     │   ├── metrics.ts                  # métriques défensives (gap, paint coverage, passes)
@@ -298,7 +308,7 @@ L'utilisateur peut **drag** un défenseur sur le terrain → la position est éc
 Toute la logique défensive (engine.ts, defense/*.ts, screens/, etc.) est **pure** : entrée = `AppState`, sortie = positions. Aucun hook React, aucun localStorage, aucun side-effect.
 
 Avantages :
-- Testable isolément (cf. [testing.md](testing.md) — 602 tests Vitest dans 53 fichiers : engine, screens, metrics, help, trap, manDefense, geometry, threats, offense, simulator, orientation, zone, directives défensives scriptées, **transforms purs `useAppState`**…)
+- Testable isolément (cf. [testing.md](testing.md) — 714 tests Vitest dans 69 fichiers : engine, screens, metrics, help, trap, manDefense, geometry, threats, offense, simulator, orientation, zone, directives défensives scriptées, transforms purs `useAppState`, **+ tous les concepts B1-B10 et V2/v3**…)
 - Réutilisable en SSR / export PDF / preview
 - Le rendu peut s'appuyer dessus sans gérer d'état intermédiaire
 
