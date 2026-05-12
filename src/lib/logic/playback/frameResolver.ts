@@ -127,7 +127,20 @@ export function resolveFrameAt(
     attackerIsScreening[id] = traj.isScreening;
     let p = traj.position;
 
-    if (traj.movementType === 'cut' || traj.movementType === 'idle') {
+    // Évitement d'obstacles : appliqué pour TOUS les types de mouvement
+    // (cut, idle, dribble). Avant : seulement cut/idle ; conséquence — un
+    // porteur en dribble dont la trajectoire passe pile sur un autre joueur
+    // se faisait pousser violemment par le solveur d'anti-superposition en
+    // 1.b (jusqu'à 30 px en 1 frame, effet de téléport visible à f435/436
+    // dans le Screen Lab). En courbant LA TRAJECTOIRE en amont via une
+    // Bezier autour de l'obstacle, le dribble dévie en douceur — plus de
+    // snap. Le `screen` movementType reste exclu : le poseur DOIT atteindre
+    // sa position de pose, pas l'éviter.
+    if (
+      traj.movementType === 'cut' ||
+      traj.movementType === 'idle' ||
+      traj.movementType === 'dribble'
+    ) {
       const obstacles: ScreenObstacle[] = [];
       attackerIds.forEach((other) => {
         if (other === id) return;

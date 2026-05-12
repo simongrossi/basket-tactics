@@ -62,9 +62,17 @@ export function attackerTrajectoryAt(
   localT: number,
 ): PlaybackTrajectory {
   const cur = steps[stepIdx];
-  const fallback = cur.off[playerId];
+  const next = steps[stepIdx + 1];
+  // Fallback "idle" : lerp linéaire entre la position au step source et au step
+  // suivant. Si on garde uniquement cur.off (legacy), l'attaquant SANS annotation
+  // reste figé jusqu'au boundary et SNAPPE de la totalité du delta en une frame
+  // (bug f435/436 du Screen Lab : O2 sautait 141 px à la dernière frame
+  // de la transition vers son nouvel emplacement).
+  const idleStart = cur.off[playerId];
+  const idleEnd = next ? next.off[playerId] : idleStart;
+  const idleAt = (t: number): Point => lerp(idleStart, idleEnd ?? idleStart, t);
   if (stepIdx + 1 >= steps.length) {
-    return { position: { ...fallback }, movementType: 'idle', isScreening: false };
+    return { position: { ...idleStart }, movementType: 'idle', isScreening: false };
   }
 
   // Sélection de l'annotation active : on regarde l'annotation sur step idxA
@@ -88,7 +96,7 @@ export function attackerTrajectoryAt(
   }
 
   if (candidates.length === 0) {
-    return { position: { ...fallback }, movementType: 'idle', isScreening: false };
+    return { position: idleAt(Math.max(0, Math.min(1, localT))), movementType: 'idle', isScreening: false };
   }
 
   const active = candidates
@@ -139,5 +147,5 @@ export function attackerTrajectoryAt(
     }
     return { position: { ...ann.to }, movementType: 'screen', isScreening: true };
   }
-  return { position: { ...fallback }, movementType: 'idle', isScreening: false };
+  return { position: idleAt(Math.max(0, Math.min(1, localT))), movementType: 'idle', isScreening: false };
 }
