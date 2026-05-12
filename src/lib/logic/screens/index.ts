@@ -25,3 +25,4 @@ export {
   applySwitchOffBall,
 } from './offBallScreenAdjust';
 export { detectRejectedScreen, type RejectedScreen } from './detectRejectedScreen';
+export { detectSnakeDribble, type SnakeDribble } from './detectSnakeDribble';

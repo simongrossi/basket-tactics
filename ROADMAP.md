@@ -10,6 +10,18 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
 ## Livré récemment (mai 2026)
 
+- 🟢 **Audit défensif — 4 critiques livrés (B1-B4)** (2026-05-12) :
+  Toute la liste 🔴 critique de l'audit moteur défensif traitée en une session.
+  Détail commit par commit ci-dessous, vue d'ensemble :
+  - **B1** Mismatch tracking + scram switch (correction auto post-switch)
+  - **B2** Reject screen detection (porteur refuse l'écran anticipé)
+  - **B3** Hard hedge vs soft hedge (slider `state.hedgeAggression`)
+  - **B4** Snake dribble detection (V sur 3 steps, double usage écran)
+  - **541 → 641 tests verts** (+100 nouveaux tests, dont 39 sur B1-B4).
+  - 3 nouveaux helpers purs : `mismatchTracking`, `detectRejectedScreen`,
+    `detectSnakeDribble`. 3 nouvelles règles coach : scram-switch enrichi,
+    rejected-screen, snake-dribble.
+
 - 🟢 **B1 — Mismatch tracking + scram switch** (2026-05-12) :
   - **Détection** : `mismatchSeverity(D, A) = |defenderRank - attackerRank|`, range 0..4. Propagé sur chaque `ComputedDefender`, visible à chaque step y compris en l'absence de switch (le coach voit aussi les bad matchups manuels).
   - **Scram switch** correctif (opt-in via `state.scramSwitchEnabled`) : après un switch porteur qui crée un mismatch ≥ seuil, un défenseur tiers ≤ 200px de l'attaquant exposé prend le mismatch ; le défenseur en mismatch part sur l'attaquant naturel du scrameur. Algo basket-correct : tie-break côté porteur (menace immédiate), métrique d'amélioration sur le **pire** mismatch (pas la somme).
@@ -188,22 +200,22 @@ la sortie de D5 sur le porteur en hedge.
 - Slider UI dans `DefensePanel`, visible seulement quand rule=hedge.
 - 5 tests dédiés (soft, hard, monotone, independence, default). **624 tests**.
 
-##### ⚪ Snake dribble
-**Quoi.** Dribble qui **recule pour reprendre l'écran** (jab + retreat
-pour re-déclencher l'avantage). Pas détecté actuellement, la défense ne
-s'y adapte pas.
+##### 🟢 Snake dribble (V1 livré 2026-05-12)
+**Quoi.** Détecte le V sur 3 steps : porteur engagé → retraite → ré-engagé
+sur le même poseur.
 
-**Pourquoi basket.** Lecture offensive standard quand le premier passage
-de l'écran n'a pas créé d'avantage. La défense doit rester engagée sur
-le couple porteur/poseur au lieu de relâcher.
+**Livré V1 (diagnostic-only)** :
+- Helper pur `screens/detectSnakeDribble.ts` : retourne `SnakeDribble` avec
+  les 3 distances (entry/peak/return).
+- Règle coach `coachDiagnostics/rules/snakeDribble.ts` : 'warning' si V
+  marqué (peak > 1.5 × entry), 'info' sinon.
+- Critère segment-par-segment (pas total) : un snake parfait revient pile
+  au point d'engagement, donc total ≈ 0.
+- 8 tests unitaires. **641 tests verts**.
 
-**Implémentation.** Comparer la position du porteur sur N-2, N-1, N : si
-le porteur s'est éloigné puis se rapproche du poseur (forme en V ou U),
-flag `snakeDribble: true` sur la `DetectedScreen`. Conserver la
-couverture initiale au lieu de la relâcher (pas de transition vers
-recover tant que le snake n'est pas fini).
-
-**Effort** ~2-3h · **Risque** 🟡 · **Valeur** moyen-haut.
+**Limite V1** : la défense ne maintient pas la couverture engagée pendant
+la retraite (re-arme à zéro à chaque step). V2 : mémoire de couverture
+sur la fenêtre N-2 / N pour éviter le double recover.
 
 #### 🟠 Moyens — patterns courants non couverts
 
@@ -435,7 +447,7 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 | ~~B1~~ | ~~Mismatch tracking + scram switch~~ — 🟢 livré 2026-05-12 | — | — | — |
 | ~~B2~~ | ~~Reject screen detection~~ — 🟢 V1 livré 2026-05-12 | — | — | — |
 | ~~B3~~ | ~~Hard / soft hedge (slider aggression)~~ — 🟢 livré 2026-05-12 | — | — | — |
-| B4 | Snake dribble detection | 2-3h | 🟡 | Moyen-haut |
+| ~~B4~~ | ~~Snake dribble detection~~ — 🟢 V1 livré 2026-05-12 | — | — | — |
 | B5 | Empty side PnR | 2h | 🟢 | Moyen |
 | B6 | Dig / double au post | 3-4h | 🟡 | Moyen |
 | B7 | Defensive 3 sec (diag coach) | 2h | 🟢 | Moyen |

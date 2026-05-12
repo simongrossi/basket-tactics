@@ -6,6 +6,39 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### B4 — Snake dribble detection
+
+Détecte le pattern offensif où le porteur **utilise l'écran, recule, et
+re-utilise le même écran** (V-shape sur 3 steps). Différent de B2 :
+reject = refus sans contact, snake = double usage avec retraite au milieu.
+
+**Algorithme** (V strict sur 3 steps) :
+- Step N-2 : carrier engagé sur poseur (distance ≤ `screenRadius × 2`)
+- Step N-1 : retraite réelle (distance vs N-2 ≥ 25 px)
+- Step N : ré-engagé sur poseur (distance vs N-1 ≤ -25 px, ET ≤ `screenRadius × 2`)
+- Mouvement du porteur ≥ 25 px sur **chaque** segment (pas le total — un
+  snake parfait revient PILE à sa position d'engagement)
+- Le candidat retenu = celui qui maximise `upDelta + downDelta` (V le plus
+  prononcé). Permet de distinguer 2 écrans concurrents.
+
+**Nouveau module** `src/lib/logic/screens/detectSnakeDribble.ts`, exporté
+via le barrel `screens/`. Retourne `SnakeDribble | null` avec les IDs + les
+3 distances (entry / peak / return) pour le diagnostic.
+
+**Nouvelle règle coach** `coachDiagnostics/rules/snakeDribble.ts` :
+- 'warning' si V très marqué (peak > 1.5 × entry)
+- 'info' sinon, avec les 3 valeurs de distance affichées
+
+**V1 — diagnostic-only**. V2 : la défense devrait maintenir la couverture
+engagée pendant la retraite plutôt que de re-armer à zéro.
+
+**Tests** : 8 unitaires (no history, V parfait, micro-jitter, retraite
+insuffisante, pas de ré-engagement, pas d'engagement initial, choix du V
+le plus marqué entre 2 candidats, mapping matchups).
+**633 → 641 tests verts**.
+
+Roadmap : B4 marqué 🟢 (V1). Liste B critiques (B1-B4) entièrement traitée.
+
 ### B2 — Reject screen detection
 
 Détecte le pattern offensif où le porteur **refuse l'écran** anticipé par

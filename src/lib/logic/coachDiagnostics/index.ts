@@ -46,6 +46,7 @@ import { offBallCutsRule } from './rules/offBallCuts';
 import { matchupOrphansRule } from './rules/matchupOrphans';
 import { pickAndRollRule } from './rules/pickAndRoll';
 import { rejectedScreenRule } from './rules/rejectedScreen';
+import { snakeDribbleRule } from './rules/snakeDribble';
 import { zoneSituationsRule } from './rules/zoneSituations';
 import { offBallScreensRule } from './rules/offBallScreens';
 import { cornerAbandonedRule } from './rules/cornerAbandoned';
@@ -62,6 +63,7 @@ const REGISTRY: Rule[] = [
   matchupOrphansRule,
   pickAndRollRule,
   rejectedScreenRule,
+  snakeDribbleRule,
   zoneSituationsRule,
   offBallScreensRule,
   cornerAbandonedRule,
