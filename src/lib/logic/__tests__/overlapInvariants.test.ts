@@ -1,13 +1,10 @@
-// Invariants stricts d'anti-superposition (régression mai 2026) :
-//   1. Tout défenseur ↔ TOUT attaquant non-matched ≥ PLAYER_MIN_CLEARANCE_PX
-//   2. Tout défenseur ↔ tout autre défenseur ≥ PLAYER_MIN_CLEARANCE_PX
-//   3. Cas pathologique : O3 (poseur) placé EXACTEMENT sur O1 (porteur) avec
-//      tag-then-switch activé → engine doit conserver les invariants.
-//   4. Override manuel : D5 placé sur O3 (non matché) → engine doit le pousser.
+// Invariants stricts d'anti-superposition (règle absolue mai 2026) :
+// AUCUN joueur ne peut chevaucher un autre, peu importe :
+//   - équipe (attaquant ↔ défenseur, attaquant ↔ attaquant, défenseur ↔ défenseur)
+//   - matching (D matché à O ne PEUT PAS se poser sur lui — pas d'exception)
 //
-// La clearance attaquant ↔ attaquant est gérée AU NIVEAU DU DRAG par
-// `pushOutOfOtherPlayers` dans `playerMove.ts` (le coach ne peut plus
-// physiquement les superposer). Cf. commit eedfccd.
+// Tous les couples doivent respecter `PLAYER_MIN_CLEARANCE_PX = 34 px`
+// (≈ 2 × rayon sprite + 2 px de marge). Cf. docs/PLAYER-CLEARANCE.md.
 
 import { describe, expect, it } from 'vitest';
 import { makeInitialState, makeStep } from '@/lib/data/initial';
@@ -39,18 +36,17 @@ describe('DIAG superposition complète', () => {
     const allDefIds = ['D1', 'D2', 'D3', 'D4', 'D5'] as const;
     const allOffIds = ['O1', 'O2', 'O3', 'O4', 'O5'] as const;
 
-    // INVARIANT 1 : tout défenseur ↔ TOUT attaquant non-matched ≥ clearance.
+    // INVARIANT 1 : tout défenseur ↔ TOUT attaquant ≥ clearance.
+    // AUCUNE exception, y compris D matché à son O.
     allDefIds.forEach((dId) => {
       const dPos = def[dId];
-      const matched = dPos.matchedTo;
       allOffIds.forEach((oId) => {
-        if (oId === matched) return; // matched : peut coller
         const oPos = off[oId];
         const dist = Math.hypot(dPos.x - oPos.x, dPos.y - oPos.y);
         if (dist < PLAYER_MIN_CLEARANCE_PX - 0.5) {
-          console.log(`OVERLAP : ${dId}(match=${matched}) ↔ ${oId} = ${dist.toFixed(1)}px`);
+          console.log(`OVERLAP : ${dId}(match=${dPos.matchedTo}) ↔ ${oId} = ${dist.toFixed(1)}px`);
         }
-        expect(dist, `${dId}(match=${matched}) ↔ ${oId}`).toBeGreaterThanOrEqual(
+        expect(dist, `${dId}(match=${dPos.matchedTo}) ↔ ${oId}`).toBeGreaterThanOrEqual(
           PLAYER_MIN_CLEARANCE_PX - 0.5
         );
       });
@@ -102,8 +98,29 @@ describe('DIAG superposition complète', () => {
     const def = effectiveDefensePositions(state, 0);
     const distD5_O3 = Math.hypot(def.D5.x - off.O3.x, def.D5.y - off.O3.y);
     console.log(`D5 placé sur O3 (matched=${def.D5.matchedTo}) : dist après engine = ${distD5_O3.toFixed(1)}px`);
-    if (def.D5.matchedTo !== 'O3') {
-      expect(distD5_O3).toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.5);
-    }
+    // Règle absolue : même si matched, pas de superposition.
+    expect(distD5_O3).toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.5);
+  });
+
+  it('override matched : D1 placé pile sur O1 (son homme) → engine pousse à clearance (pas d\'exception coller)', () => {
+    const s0 = makeInitialState();
+    const off: AttackerPositions = {
+      O1: { x: 300, y: 470 },
+      O2: { x: 130, y: 380 },
+      O3: { x: 500, y: 380 },
+      O4: { x: 220, y: 230 },
+      O5: { x: 380, y: 230 },
+    };
+    const state: AppState = {
+      ...s0,
+      steps: [{
+        ...makeStep(off, 'O1', []),
+        defenseOverrides: { D1: { x: 300, y: 470 } }, // D1 PILE sur O1 (son matched)
+      }],
+      activeStep: 0,
+    };
+    const def = effectiveDefensePositions(state, 0);
+    const distD1_O1 = Math.hypot(def.D1.x - off.O1.x, def.D1.y - off.O1.y);
+    expect(distD1_O1).toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.5);
   });
 });

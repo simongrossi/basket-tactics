@@ -128,10 +128,16 @@ export function resolvePlayerCollisions<
       // un saut visuel entre deux frames consécutifs.
       if (skipIds && skipIds.has(dId)) continue;
       const p = defPos[dId];
-      const matched = p.matchedTo;
       const obstacles: Point[] = [];
+      // INVARIANT GLOBAL ANTI-SUPERPOSITION : aucun joueur ne peut chevaucher
+      // un autre, qu'il soit son homme matché ou non. Cf. docs/PLAYER-CLEARANCE.md.
+      // L'ancienne exception "matched coller" autorisait D à se poser sur
+      // son O ; visuellement = sprites empilés. Le coach demande zéro
+      // superposition, point. Le manTarget/screenAdjust placent déjà D à
+      // ≥ MIN_PLAYER_CLEARANCE_PX dans tous les cas standards ; la suppression
+      // de l'exception ne fait que clamper les overrides manuels et bords.
       for (const aId in off) {
-        if (aId !== matched) obstacles.push(off[aId]);
+        obstacles.push(off[aId]);
       }
       for (const otherId in defPos) {
         if (otherId !== dId) obstacles.push({ x: defPos[otherId].x, y: defPos[otherId].y });
