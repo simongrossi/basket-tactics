@@ -321,6 +321,7 @@ export type OffBallStance = 'sag' | 'deny-3q' | 'fronting' | 'behind' | 'stunt';
 export type BodyOrientationMode =
   | 'auto'
   | 'open'
+  | 'open-weighted' // C.6 — open stance avec poids continu basé sur distances
   | 'face-man'
   | 'face-ball'
   | 'pass-lane-flat'

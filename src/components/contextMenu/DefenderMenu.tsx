@@ -310,6 +310,7 @@ export function DefenderMenu({
         >
           <option value="auto">auto (selon stance)</option>
           <option value="open">ouvert homme/ballon</option>
+          <option value="open-weighted">ouvert pondéré (distances)</option>
           <option value="face-man">face à mon homme</option>
           <option value="face-ball">face au porteur</option>
           <option value="pass-lane-flat">ligne passe à plat</option>

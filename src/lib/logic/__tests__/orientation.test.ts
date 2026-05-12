@@ -359,3 +359,63 @@ describe('lerpAngleDeg', () => {
     expect(Math.abs(angleDiff(result, 0))).toBeLessThan(0.5);
   });
 });
+
+describe('C.6 — bodyOrientationMode "open-weighted"', () => {
+  // Setup commun : défenseur à (300, 300), ballon et homme à des distances
+  // contrôlées pour valider le poids.
+
+  it("à distances égales, équivalent au mode 'open' (50/50)", () => {
+    const equalDist = computeDefenderOrientation({
+      defenderPos: { x: 300, y: 300 },
+      manPos: { x: 200, y: 300 },   // homme à 100px ouest
+      ballPos: { x: 400, y: 300 },  // ballon à 100px est
+      stance: 'sag',
+      bodyMode: 'open-weighted',
+    });
+    const openMode = computeDefenderOrientation({
+      defenderPos: { x: 300, y: 300 },
+      manPos: { x: 200, y: 300 },
+      ballPos: { x: 400, y: 300 },
+      stance: 'sag',
+      bodyMode: 'open',
+    });
+    expect(Math.abs(angleDiff(equalDist.bodyOrientation, openMode.bodyOrientation))).toBeLessThan(1);
+  });
+
+  it("homme proche, ballon loin → corps tend vers l'homme (face-man)", () => {
+    const r = computeDefenderOrientation({
+      defenderPos: { x: 300, y: 300 },
+      manPos: { x: 320, y: 300 },   // homme à 20px (proche)
+      ballPos: { x: 500, y: 300 },  // ballon à 200px (loin)
+      stance: 'sag',
+      bodyMode: 'open-weighted',
+    });
+    // Angle vers l'homme = 90° (est). Angle vers ballon = 90° aussi (même direction est).
+    // Test plus pertinent : changer la direction.
+    const r2 = computeDefenderOrientation({
+      defenderPos: { x: 300, y: 300 },
+      manPos: { x: 300, y: 280 },   // homme à 20px au NORD
+      ballPos: { x: 500, y: 300 },  // ballon à 200px à l'EST
+      stance: 'sag',
+      bodyMode: 'open-weighted',
+    });
+    // homme proche → poids vers homme (nord = 0°). Ballon loin → moins de poids vers est (90°).
+    // weightBall = 20 / (20 + 200) = 0.09 → presque 100 % vers nord (manAngle).
+    // Donc r2.bodyOrientation devrait être proche de 0° (avec un peu de tilt vers est).
+    expect(Math.abs(angleDiff(r2.bodyOrientation, 0))).toBeLessThan(15);
+  });
+
+  it("ballon proche, homme loin → corps tend vers le ballon (face-ball)", () => {
+    const r = computeDefenderOrientation({
+      defenderPos: { x: 300, y: 300 },
+      manPos: { x: 300, y: 100 },   // homme à 200px nord
+      ballPos: { x: 300, y: 320 },  // ballon à 20px sud
+      stance: 'sag',
+      bodyMode: 'open-weighted',
+    });
+    // weightBall = 200 / (200 + 20) = 0.91 → presque face au ballon (sud = 180°)
+    // Tolérance 20° pour tenir compte du blendAngleDeg (interpolation
+    // angulaire qui n'est pas un lerp scalaire).
+    expect(Math.abs(angleDiff(r.bodyOrientation, 180))).toBeLessThan(20);
+  });
+});

@@ -343,6 +343,23 @@ function computeDefenderBodyOrientation(input: {
     switch (bodyMode) {
       case 'open':
         return blendAngleDeg(manAngle, ballAngle, 0.5);
+      case 'open-weighted': {
+        // C.6 — Open stance avec poids CONTINU basé sur les distances.
+        // Basket réel : un défenseur regarde plus l'HOMME quand celui-ci
+        // est proche (menace immédiate de cut/move), et plus le BALLON
+        // quand le ballon est proche (menace de passe). Ratio continu.
+        //
+        // Calcul :
+        //   weightBall = distMan / (distMan + distBall)
+        //   - distMan grande → weightBall ↑ (homme loin, regarde ballon)
+        //   - distMan petite → weightBall ↓ (homme près, regarde homme)
+        //   À distances égales → weightBall = 0.5 (= mode 'open' classique).
+        const distMan = Math.hypot(manPos.x - defenderPos.x, manPos.y - defenderPos.y);
+        const distBall = Math.hypot(ballPos.x - defenderPos.x, ballPos.y - defenderPos.y);
+        const totalDist = distMan + distBall;
+        const weightBall = totalDist > 0.001 ? distMan / totalDist : 0.5;
+        return blendAngleDeg(manAngle, ballAngle, weightBall);
+      }
       case 'face-man':
         return manAngle;
       case 'face-ball':
