@@ -246,19 +246,11 @@ Diagnostic coach quand un défenseur stationne 3 steps consécutifs dans
 la raquette sans marquer (≤ 50 px d'un attaquant). Pas de pénalité simulée.
 Règle `defensiveThreeSecondsRule` dans le registry. 4 tests. **645 tests**.
 
-##### ⚪ Politique de switch granulaire (team-level)
-**Quoi.** Aujourd'hui : `screenRule` global + override par défenseur.
-Manque la granularité **"switch 1-3 only"** (les guards switchent entre
-eux mais pas avec les bigs) vs **"switch all"** (peu importe le
-mismatch) vs **"no switch"**.
-
-**Implémentation.** Nouveau `state.switchPolicy: 'none' | '1-3' | '1-4' |
-'all' | 'specific'`. En mode `'1-3'`, `applySwitch` ne s'applique que si
-les deux défenseurs sont rank 1, 2, ou 3 (positions guard). En
-`'specific'`, on lit une matrice `state.switchMatrix[d1][d2]: boolean`.
-Slider dans `DefensePanel`.
-
-**Effort** ~2h · **Risque** 🟢 · **Valeur** moyen-haut.
+##### 🟢 Politique de switch granulaire (V1 livré 2026-05-12)
+4 policies au niveau team : `'all'` (default), `'1-3'`, `'1-4'`, `'none'`.
+Filtre additionnel par-dessus `screenRule = 'switch'`/'peel-switch'.
+Helper `switchAllowed` + câblage dans `defense/context.ts` + UI dans
+`DefensePanel`. 10 tests. **660 tests verts**.
 
 ##### ⚪ Top-lock off-ball avec timing
 **Quoi.** `top-lock` existe en position statique (le D du cutter se met
@@ -429,7 +421,7 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 | ~~B5~~ | ~~Empty side PnR~~ — 🟢 livré 2026-05-12 | — | — | — |
 | B6 | Dig / double au post | 3-4h | 🟡 | Moyen |
 | ~~B7~~ | ~~Defensive 3 sec (diag coach)~~ — 🟢 livré 2026-05-12 | — | — | — |
-| B8 | Switch policy granulaire (1-3 / all) | 2h | 🟢 | Moyen-haut |
+| ~~B8~~ | ~~Switch policy granulaire~~ — 🟢 livré 2026-05-12 | — | — | — |
 | B9 | Top-lock off-ball avec timing | 2h | 🟡 | Moyen |
 | B10 | Bumping cutters automatique | 2-3h | 🟡 | Moyen |
 

@@ -645,6 +645,16 @@ export interface AppState {
    *  l'attaquant exposé. Default `false` (opt-in) pour préserver l'historique
    *  des scénarios sauvegardés. Cf. `defense/mismatchTracking.ts`. */
   scramSwitchEnabled?: boolean;
+  /** B8 — politique de switch au niveau team. Filtre additionnel par-dessus
+   *  `screenRule` : même si la rule globale est 'switch', le filtre peut
+   *  bloquer l'application si les défenseurs concernés ne sont pas autorisés.
+   *  - 'all'  : switch tous matchups (default)
+   *  - '1-3'  : switch seulement si les deux défenseurs sont rank ≤ 3 (guards/wings)
+   *  - '1-4'  : switch sauf si l'un des deux est le pivot (D5)
+   *  - 'none' : jamais switcher (override la rule 'switch' → no-op)
+   *  Le filtre ne s'applique QUE quand la rule effective est 'switch' ou
+   *  'peel-switch'. Default 'all' (équivalent ancien comportement). */
+  switchPolicy?: 'all' | '1-3' | '1-4' | 'none';
   /** Seuil de severity à partir duquel un switch est considéré comme un
    *  mismatch tactique (déclenche scram + diagnostic coach + badge visuel).
    *  Range 1..4. Default 2 (= D5 sur O3 minimum). */

@@ -6,6 +6,32 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### B8 — Switch policy granulaire (team-level)
+
+Filtre additionnel par-dessus `screenRule = 'switch'` ou `'peel-switch'`.
+Le coach choisit quels couples de défenseurs peuvent switcher :
+
+- `'all'`  : switch tous matchups (default, rétrocompat)
+- `'1-3'`  : seulement entre D1/D2/D3 (guards + wings)
+- `'1-4'`  : sauf si l'un des deux est D5 (pivot protégé)
+- `'none'` : annule tout switch (équivalent rule `'over'` etc.)
+
+**Nouveau helper** `switchAllowed(policy, d1, d2)` dans
+`defense/mismatchTracking.ts`. Câblé dans `defense/context.ts` :
+chaque tentative de `applySwitch` est filtrée avant application.
+
+**Setting** : `state.switchPolicy?: 'all' | '1-3' | '1-4' | 'none'` (default `'all'`).
+
+**UI** : sélecteur dans `DefensePanel`, visible quand `screenRule ∈
+{'switch', 'peel-switch'}`. Placé avant le bloc Scram (logique :
+filtre policy d'abord, scram ensuite).
+
+**Tests** : 10 (helper unitaire pour les 4 policies, intégration avec
+6 scénarios : default, none, 1-3 sur D1↔D5, 1-4 sur D1↔D5, 1-4 autorise
+D1↔D4, 1-3 autorise D1↔D2). **650 → 660 tests verts**.
+
+Roadmap : B8 marqué 🟢.
+
 ### B5 — Empty side PnR
 
 Détecte un PnR exécuté sur un côté du terrain où aucun autre attaquant

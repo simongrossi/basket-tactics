@@ -386,6 +386,29 @@ export function DefensePanel(props: DefensePanelProps) {
                 />
               </div>
             )}
+            {/* B8 — Switch policy team-level. Visible quand la consigne est
+             *  'switch' ou 'peel-switch'. Filtre additionnel : refuse les
+             *  switchs entre certains couples même si la rule globale dit oui. */}
+            {(state.screenRule === 'switch' || state.screenRule === 'peel-switch') && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+                <span
+                  style={{ fontSize: 11, color: '#475569', minWidth: 60, cursor: 'help' }}
+                  title="Filtre les switchs autorisés au niveau team. 'all' = comportement standard. '1-3' = guards+wings entre eux (pas avec les bigs). '1-4' = pas le pivot. 'none' = annule tout switch."
+                >
+                  policy
+                </span>
+                <select
+                  value={state.switchPolicy ?? 'all'}
+                  onChange={(e) => props.onPatch({ switchPolicy: e.target.value as 'all' | '1-3' | '1-4' | 'none' })}
+                  style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
+                >
+                  <option value="all">all (switch partout)</option>
+                  <option value="1-3">1-3 (guards/wings only)</option>
+                  <option value="1-4">1-4 (sauf pivot)</option>
+                  <option value="none">none (annule)</option>
+                </select>
+              </div>
+            )}
             {/* Scram switch (B1) — correction automatique de mismatch après switch.
              *  Visible quand la consigne est 'switch' ou 'peel-switch' (les deux
              *  rules qui produisent un échange de matchups). */}

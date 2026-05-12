@@ -19,7 +19,12 @@ import type {
 } from '../../types';
 import { ballSide } from '../geometry';
 import { applySwitch, detectScreen, peelSwitchShouldFire } from '../screens';
-import { applyScramSwitch, type ScramSwitch } from './mismatchTracking';
+import {
+  applyScramSwitch,
+  switchAllowed,
+  type ScramSwitch,
+  type SwitchPolicy,
+} from './mismatchTracking';
 import { detectTriggers } from '../triggers';
 import { buildStep0DetectionPositions } from '../step0Detection';
 import {
@@ -124,16 +129,23 @@ export function buildDefenseFrameContext(
     return nav && nav !== 'auto' ? nav : state.screenRule;
   })();
 
+  // B8 — politique de switch team-level (filtre par-dessus screenRule).
+  const switchPolicy: SwitchPolicy = state.switchPolicy ?? 'all';
+  const canSwitch = (s: typeof screen): s is NonNullable<typeof screen> =>
+    !!s && switchAllowed(switchPolicy, s.carrierDef, s.screenerDef);
+
   let switchedThisStep = false;
   let detectedSwitch: [DefenderId, DefenderId] | undefined;
-  if (screen && effectiveScreenRule === 'switch') {
+  if (screen && effectiveScreenRule === 'switch' && canSwitch(screen)) {
     matchups = applySwitch(matchups, screen);
     switchedThisStep = true;
     detectedSwitch = [screen.carrierDef, screen.screenerDef];
   }
   // PEEL-SWITCH : couverture commence en drop, mais si le porteur a dépassé
   // le défenseur du screener à cette étape, le switch se déclenche.
-  if (screen && effectiveScreenRule === 'peel-switch' && !switchedThisStep) {
+  // La switchPolicy filtre AUSSI ce switch (pas de switch hors couples
+  // autorisés même si peel-switch était la rule).
+  if (screen && effectiveScreenRule === 'peel-switch' && !switchedThisStep && canSwitch(screen)) {
     const sDefPos = prevDefenderPositions[screen.screenerDef];
     if (sDefPos && peelSwitchShouldFire(off, screen, sDefPos, getDefenseHoop(state))) {
       matchups = applySwitch(matchups, screen);

@@ -223,3 +223,34 @@ export function computeAllMismatchSeverities(
   });
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Switch policy (B8)
+// ---------------------------------------------------------------------------
+
+export type SwitchPolicy = 'all' | '1-3' | '1-4' | 'none';
+
+/**
+ * Détermine si un switch entre deux défenseurs est autorisé par la politique
+ * de switch au niveau team. Filtre additionnel par-dessus `screenRule` :
+ * permet au coach de configurer "switch entre guards seulement", "switch
+ * sauf le pivot", etc.
+ *
+ *  - 'all'  : autorise toujours
+ *  - '1-3'  : autorise si les deux défenseurs sont rank ≤ 3 (D1/D2/D3)
+ *  - '1-4'  : autorise si aucun des deux n'est le pivot (D5)
+ *  - 'none' : refuse toujours (override la rule 'switch')
+ */
+export function switchAllowed(
+  policy: SwitchPolicy,
+  d1: DefenderId,
+  d2: DefenderId
+): boolean {
+  if (policy === 'all') return true;
+  if (policy === 'none') return false;
+  const r1 = defenderRank(d1);
+  const r2 = defenderRank(d2);
+  if (policy === '1-3') return r1 <= 3 && r2 <= 3;
+  if (policy === '1-4') return r1 <= 4 && r2 <= 4;
+  return true;
+}
