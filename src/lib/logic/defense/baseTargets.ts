@@ -38,6 +38,7 @@ export function applyBaseTargetsLayer(
   const {
     state, off, ballCarrier, defenderIds, hoop, triggers, side, screen,
     effectiveScreenRule, switchedThisStep, carrierPos, step, scrammedSwitch,
+    snakeDribble,
   } = ctx;
 
   // Qualité de l'écran en cours, lue depuis l'annotation `screen` du step
@@ -49,6 +50,16 @@ export function applyBaseTargetsLayer(
       (a) => a.type === 'screen' && a.fromId === screen.screener,
     );
     if (sa) screenQuality = sa.quality ?? 50;
+  }
+
+  // B4 V2 — Si un snake dribble est détecté (V sur 3 steps) ET state.
+  // snakeKeepCoverage est actif, on BOOST la quality du screen courant
+  // à 90 minimum. Effet basket : la défense traite la 2ᵉ utilisation de
+  // l'écran comme un VRAI lockdown (D1 plaqué au poseur, D5 hedge fort)
+  // au lieu de re-armer depuis zéro. Bien sûr requiert qu'un écran soit
+  // aussi détecté à ce step (sinon rien à booster).
+  if (state.snakeKeepCoverage && snakeDribble && screen) {
+    screenQuality = Math.max(screenQuality, 90);
   }
 
   defenderIds.forEach((dId) => {

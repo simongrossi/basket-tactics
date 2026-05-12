@@ -146,8 +146,10 @@ v2 : `pickBlockingCluster` fusionne tous les obstacles bloquants en super-cluste
 ### 🟢 Stunt and recover (v1)
 Implémenté : nouvelle `OffBallStance: 'stunt'` avec blend 0.4 dans `offBallStanceTarget`. Position intermédiaire entre behind et fronting, biaisée vers le ballon — le "recover" est naturel via le retour à `'sag'` à l'étape suivante.
 
-### 🟢 Trap en corner / sideline (v2)
-Implémenté dans `lib/logic/trap.ts` (polygones, helper picker, position cible) + trigger `state.triggers.trap` + override appliqué dans `engine.computeDefenseTargets`. **v2** : 4 zones au lieu de 2 — coins baseline (gauche/droite, y < 200) + sidelines mi-terrain (gauche/droite, y ∈ [200, 460]). ⚪ **À venir v3** : gestion explicite quand un écran est aussi détecté simultanément (aujourd'hui le trap est désactivé si screen ≠ null).
+### 🟢 Trap en corner / sideline (v3)
+Implémenté dans `lib/logic/trap.ts` (polygones, helper picker, position cible) + trigger `state.triggers.trap` + override appliqué dans `engine.computeDefenseTargets`.
+- **v2** : 4 zones au lieu de 2 — coins baseline (gauche/droite, y < 200) + sidelines mi-terrain (gauche/droite, y ∈ [200, 460]).
+- **v3 (2026-05-12)** : coexistence trap + écran porteur. Le trap s'applique même avec un écran, sauf `'blitz'` (déjà un trap PnR) et `'switch'` (matchups swappés). `pickTrapHelper` exclut le `screenerDef`. 7 tests.
 
 ### 🟢 Inversion HOOP (v3, man + zone + visuel)
 v1 : `state.attackingDirection: 'up' | 'down'` + threading `hoop?: Point` dans manDefense / help / screens / triggers / metrics / trap / geometry.
@@ -199,9 +201,10 @@ quand la défense l'a anticipé.
   sharp (dot ≤ -0.7), 'info' si marge.
 - 9 tests unitaires. **633 tests verts**.
 
-**Limite V1** : la défense n'est pas modifiée par la détection (pas de
-"unwind" de la couverture sur-anticipée). À voir en V2 (mémoire d'intent
-+ retour à la couverture homme-à-homme classique).
+🟢 **V2 livré (2026-05-12)** : `state.unwindRejectedScreens` (opt-in).
+Quand un reject SHARP (awayness ≤ -0.7) est détecté, l'écran est forcé
+à `null` dans le `DefenseFrameContext` → la défense retombe sur la
+couverture homme-à-homme pure. 4 tests intégration. **710 tests**.
 
 ##### 🟢 Hard hedge vs soft hedge (livré 2026-05-12)
 **Quoi.** Sépare l'axe quality (côté offense) de l'axe aggression (côté
@@ -230,9 +233,11 @@ sur le même poseur.
   au point d'engagement, donc total ≈ 0.
 - 8 tests unitaires. **641 tests verts**.
 
-**Limite V1** : la défense ne maintient pas la couverture engagée pendant
-la retraite (re-arme à zéro à chaque step). V2 : mémoire de couverture
-sur la fenêtre N-2 / N pour éviter le double recover.
+🟢 **V2 livré (2026-05-12)** : `state.snakeKeepCoverage` (opt-in). Quand
+un snake est détecté au step N (retour), `screenQuality` effective est
+forcée à **90 minimum** dans `baseTargets`. La 2ᵉ utilisation est traitée
+comme un lockdown (D1 plaqué, D5 hedge fort) au lieu d'un re-arm.
+4 tests intégration. **714 tests**.
 
 #### 🟠 Moyens — patterns courants non couverts
 

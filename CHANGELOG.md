@@ -6,6 +6,54 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Logique V2 — couvertures réactives (Trap v3 + B2 V2 + B4 V2 + Undo v2)
+
+Trois extensions de comportements défensifs livrés en V1 + marquage de
+l'Undo v2 (déjà fait via `commitCoalescedHistory`).
+
+#### Trap v3 — coexistence trap + écran porteur
+
+Avant v3, le trap était **désactivé dès qu'un écran était détecté**.
+Trop conservateur : un écran dans une zone de trap est typiquement LE
+moment où la défense veut trapper.
+
+v3 : trap appliqué **même avec un écran**, sauf 2 cas spéciaux :
+- `'blitz'` : la rule est déjà un trap PnR.
+- `'switch'` : matchups swappés.
+
+`pickTrapHelper` exclut désormais le `screenerDef` via nouveau paramètre
+`excludeDefenders?: Set<DefenderId>`.
+
+7 tests (`trapV3Coexistence.test.ts`).
+
+#### B2 V2 — unwind reject screen
+
+V1 (commit `f54cb3e`) était diagnostic-only. V2 (opt-in via
+`state.unwindRejectedScreens`) : quand un reject **SHARP** (`awayness ≤
+-0.7`) est détecté, l'écran est forcé à `null` dans le
+`DefenseFrameContext`. La défense retombe sur la couverture homme-à-homme
+pure (D5 sur O5, D1 sur O1).
+
+4 tests (`b2V2UnwindRejectedScreen.test.ts`).
+
+#### B4 V2 — snake keep coverage
+
+V1 détectait le V pattern mais la couverture se relâchait au sommet
+puis re-armait à zéro. V2 (opt-in via `state.snakeKeepCoverage`) :
+quand un snake est détecté au step N, `screenQuality` effective forcée
+à **90 minimum** dans `baseTargets`. La 2ᵉ utilisation est traitée
+comme un lockdown au lieu d'un re-arm.
+
+4 tests (`b4V2SnakeKeepCoverage.test.ts`).
+
+#### Undo/Redo v2 — déjà livré
+
+Marqué 🟢 — le coalescing existe via `commitCoalescedHistory` +
+`dragHistoryAnchorRef`. Un drag = 1 entrée undo. Réutilisé par la
+sélection multiple pour les drags groupés.
+
+**710 → 714 tests verts** (+15 sur les 3 V2 + Trap v3).
+
 ### UX — Sélection multiple de défenseurs
 
 Permet de sélectionner plusieurs défenseurs et de les déplacer ensemble.

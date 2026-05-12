@@ -22,8 +22,10 @@ import {
   applySwitch,
   detectRejectedScreen,
   detectScreen,
+  detectSnakeDribble,
   peelSwitchShouldFire,
   type RejectedScreen,
+  type SnakeDribble,
 } from '../screens';
 import {
   applyScramSwitch,
@@ -86,6 +88,11 @@ export interface DefenseFrameContext {
    *  flag `state.unwindRejectedScreens` détermine si la défense réagit
    *  (auquel cas `screen` a été forcé à null). */
   rejectedScreen: RejectedScreen | null;
+  /** B4 V2 — Snake dribble détecté à ce step (V sur N-2/N-1/N). Quand
+   *  `state.snakeKeepCoverage` est actif, la couche `baseTargets` boost
+   *  la quality effective de l'écran à 90 minimum → la défense maintient
+   *  son engagement au lieu de re-armer à zéro sur la 2ᵉ utilisation. */
+  snakeDribble: SnakeDribble | null;
 }
 
 /**
@@ -130,6 +137,23 @@ export function buildDefenseFrameContext(
   let screen = detectScreen(
     off, ballCarrier, matchups, prevDefenderPositions, state.screenRadius, step.forcedScreener, prevOffAtStep
   );
+
+  // B4 V2 — Détection snake dribble (V sur 3 steps). Lu plus tard par
+  // baseTargets pour booster la quality si state.snakeKeepCoverage est actif.
+  let snakeDribble: SnakeDribble | null = null;
+  if (stepIdx >= 2) {
+    const prevPrevOff = activeOffense(state.steps[stepIdx - 2].off, state.playerCount);
+    if (prevOffAtStep) {
+      snakeDribble = detectSnakeDribble(
+        off,
+        prevOffAtStep,
+        prevPrevOff,
+        ballCarrier,
+        matchups,
+        state.screenRadius
+      );
+    }
+  }
 
   // B2 V2 — Unwind reject screen.
   // Si un reject SHARP (porteur vire opposé net, dot ≤ -0.7) est détecté à
@@ -227,6 +251,7 @@ export function buildDefenseFrameContext(
     detectedSwitch,
     scrammedSwitch,
     rejectedScreen,
+    snakeDribble,
   };
 
   return { ctx, matchups };
