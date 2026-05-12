@@ -51,6 +51,22 @@ interface UseCourtPointerHandlersOptions {
   onAddAnnotation: (a: Annotation) => void;
   /** Fermeture du context menu sur n'importe quel pointerDown gauche. */
   onClearContextMenu: () => void;
+  // ----- #4 Sélection multiple -----
+  /** IDs défenseurs actuellement sélectionnés (visuel + drag groupé). */
+  selectedDefenders?: Set<DefenderId>;
+  /** Toggle d'un défenseur via Shift+clic. */
+  onToggleDefenderSelection?: (dId: DefenderId) => void;
+  /** Remplace la sélection (utilisé par le marquee). */
+  onSetDefenderSelection?: (ids: DefenderId[]) => void;
+  /** Clear total de la sélection (clic dans le vide sans modifier). */
+  onClearDefenderSelection?: () => void;
+}
+
+export interface MarqueeRect {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
 }
 
 export interface UseCourtPointerHandlersResult {
@@ -60,6 +76,9 @@ export interface UseCourtPointerHandlersResult {
    *  si pas de snap. Utilisé par CourtView pour afficher un visuel de
    *  feedback (highlight de la ligne sur laquelle on s'aimante). */
   snapTarget: SnapTarget | null;
+  /** Rectangle du marquee en cours (Shift+drag dans le vide). Null si pas
+   *  de marquee actif. CourtView l'affiche en SVG semi-transparent. */
+  marquee: MarqueeRect | null;
   /** Helper pour convertir un événement clavier/souris en point SVG.
    *  Exposé pour permettre au caller de l'utiliser dans d'autres handlers
    *  (ex. context menu). */
@@ -84,6 +103,10 @@ export function useCourtPointerHandlers(
     onMoveDefenderDuringDrag,
     onAddAnnotation,
     onClearContextMenu,
+    selectedDefenders,
+    onToggleDefenderSelection,
+    onSetDefenderSelection,
+    onClearDefenderSelection,
   } = opts;
 
   const [dragging, setDragging] = useState<{ id: PlayerId; isDef: boolean } | null>(null);
@@ -92,6 +115,17 @@ export function useCourtPointerHandlers(
   const lastDragPointRef = useRef<{ x: number; y: number } | null>(null);
   const [pending, setPending] = useState<PendingAnnotation | null>(null);
   const [snapTarget, setSnapTarget] = useState<SnapTarget | null>(null);
+
+  // #4 — Marquee + drag groupé.
+  const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
+  const marqueeStartRef = useRef<Point | null>(null);
+  /** Positions initiales des défenseurs sélectionnés au début d'un drag
+   *  groupé. Utilisé pour calculer le delta à appliquer. */
+  const groupDragInitialRef = useRef<{
+    anchorId: DefenderId;
+    initial: Point;
+    others: Map<DefenderId, Point>;
+  } | null>(null);
 
   const svgPoint = useCallback(
     (evt: React.PointerEvent | PointerEvent | React.MouseEvent): Point => {
@@ -187,12 +221,71 @@ export function useCourtPointerHandlers(
       const pt = svgPoint(e);
 
       if (state.tool === 'move') {
+        const id = target?.getAttribute('data-id') as PlayerId | null;
+
+        // #4 — Sélection multiple (mode move uniquement, ne conflicte pas
+        // avec le Shift+freehand des autres tools).
+        if (e.shiftKey) {
+          // Shift+clic sur défenseur → toggle sélection, pas de drag.
+          if (id && id.startsWith('D') && onToggleDefenderSelection) {
+            onToggleDefenderSelection(id as DefenderId);
+            return;
+          }
+          // Shift+clic dans le vide → start marquee.
+          if (!id) {
+            marqueeStartRef.current = pt;
+            setMarquee({ x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y });
+            svgRef.current?.setPointerCapture(e.pointerId);
+            return;
+          }
+        }
+
+        // Click dans le vide sans shift → clear sélection si existante.
+        if (!id) {
+          if (selectedDefenders && selectedDefenders.size > 0) {
+            onClearDefenderSelection?.();
+          }
+          return;
+        }
+
+        // Click sur défenseur SÉLECTIONNÉ (sans shift) → drag groupé.
+        if (
+          id.startsWith('D') &&
+          selectedDefenders &&
+          selectedDefenders.has(id as DefenderId) &&
+          selectedDefenders.size >= 2
+        ) {
+          // Capture des positions initiales pour calculer le delta.
+          const stepDef = state.steps[state.activeStep]?.defenseOverrides;
+          const others = new Map<DefenderId, Point>();
+          selectedDefenders.forEach((dId) => {
+            if (dId === id) return;
+            const p = stepDef?.[dId] ?? state.defenseInitial[dId];
+            if (p) others.set(dId, { x: p.x, y: p.y });
+          });
+          const anchorPos = stepDef?.[id as DefenderId] ?? state.defenseInitial[id as DefenderId];
+          groupDragInitialRef.current = {
+            anchorId: id as DefenderId,
+            initial: { x: anchorPos.x, y: anchorPos.y },
+            others,
+          };
+          onBeginPlayerDrag?.();
+          lastDragPointRef.current = null;
+          dragMoveRef.current = null;
+          setDragging({ id, isDef: true });
+          svgRef.current?.setPointerCapture(e.pointerId);
+          return;
+        }
+
+        // Click sur joueur non sélectionné → drag single + clear sélection.
+        if (selectedDefenders && selectedDefenders.size > 0) {
+          onClearDefenderSelection?.();
+        }
         if (!target) return;
-        const id = target.getAttribute('data-id') as PlayerId;
         onBeginPlayerDrag?.();
         lastDragPointRef.current = null;
         dragMoveRef.current = null;
-        setDragging({ id, isDef: id.startsWith('D') });
+        setDragging({ id: id as PlayerId, isDef: id!.startsWith('D') });
         svgRef.current?.setPointerCapture(e.pointerId);
         return;
       }
@@ -219,6 +312,19 @@ export function useCourtPointerHandlers(
   const onPointerMove = useCallback(
     (e: React.PointerEvent) => {
       const pt = svgPoint(e);
+
+      // #4 — Marquee en cours (Shift+drag dans le vide).
+      if (marqueeStartRef.current) {
+        const start = marqueeStartRef.current;
+        setMarquee({
+          x1: Math.min(start.x, pt.x),
+          y1: Math.min(start.y, pt.y),
+          x2: Math.max(start.x, pt.x),
+          y2: Math.max(start.y, pt.y),
+        });
+        return;
+      }
+
       if (dragging && state.tool === 'move') {
         const maxY = state.fullCourt ? FULL_COURT_INNER_MAX_Y : COURT.innerMaxY;
         let x = clamp(pt.x, COURT.marginX, COURT.innerMaxX);
@@ -234,6 +340,23 @@ export function useCourtPointerHandlers(
           setSnapTarget(snap.snappedTo);
         } else if (snapTarget !== null) {
           setSnapTarget(null);
+        }
+        // #4 — Si on est en drag groupé, applique le même delta aux autres
+        // défenseurs sélectionnés AVANT le queue de l'ancre (sinon le delta
+        // serait calculé après la mise à jour de l'ancre par queue).
+        const group = groupDragInitialRef.current;
+        if (group) {
+          const dx = Math.round(x) - group.initial.x;
+          const dy = Math.round(y) - group.initial.y;
+          group.others.forEach((initPos, otherId) => {
+            const nx = clamp(initPos.x + dx, COURT.marginX, COURT.innerMaxX);
+            const ny = clamp(initPos.y + dy, COURT.marginY, maxY);
+            (onMoveDefenderDuringDrag ?? onMoveDefender)(
+              otherId,
+              Math.round(nx),
+              Math.round(ny)
+            );
+          });
         }
         queueDragMove(dragging.id, dragging.isDef, Math.round(x), Math.round(y));
         return;
@@ -265,6 +388,30 @@ export function useCourtPointerHandlers(
 
   const onPointerUp = useCallback(
     (e: React.PointerEvent) => {
+      // #4 — Finalisation du marquee.
+      if (marqueeStartRef.current && marquee) {
+        // Collecte les défenseurs dans le rectangle.
+        const activeDefs = getActiveDefenderIds(state.playerCount);
+        const stepDef = state.steps[state.activeStep]?.defenseOverrides;
+        const inRect: DefenderId[] = [];
+        for (const dId of activeDefs) {
+          const p = stepDef?.[dId] ?? state.defenseInitial[dId];
+          if (!p) continue;
+          if (
+            p.x >= marquee.x1 &&
+            p.x <= marquee.x2 &&
+            p.y >= marquee.y1 &&
+            p.y <= marquee.y2
+          ) {
+            inRect.push(dId);
+          }
+        }
+        onSetDefenderSelection?.(inRect);
+        marqueeStartRef.current = null;
+        setMarquee(null);
+        return;
+      }
+
       if (dragging) {
         const pt = svgPoint(e);
         const maxY = state.fullCourt ? FULL_COURT_INNER_MAX_Y : COURT.innerMaxY;
@@ -278,6 +425,26 @@ export function useCourtPointerHandlers(
           y = snap.point.y;
         }
         setSnapTarget(null); // cleanup feedback visuel
+
+        // #4 — Si group drag, applique le delta final aux autres via les
+        // handlers `DuringDrag` (pas d'undo individuel). Le `commitPlayerDrag`
+        // qui suit coalesce TOUT le drag (ancre + groupe) en une seule
+        // entrée d'historique.
+        const group = groupDragInitialRef.current;
+        if (group) {
+          const dx = Math.round(x) - group.initial.x;
+          const dy = Math.round(y) - group.initial.y;
+          group.others.forEach((initPos, otherId) => {
+            const nx = clamp(initPos.x + dx, COURT.marginX, COURT.innerMaxX);
+            const ny = clamp(initPos.y + dy, COURT.marginY, maxY);
+            (onMoveDefenderDuringDrag ?? onMoveDefender)(
+              otherId,
+              Math.round(nx),
+              Math.round(ny)
+            );
+          });
+          groupDragInitialRef.current = null;
+        }
         queueDragMove(dragging.id, dragging.isDef, Math.round(x), Math.round(y));
         flushDragMove();
         onCommitPlayerDrag?.();
@@ -323,5 +490,14 @@ export function useCourtPointerHandlers(
     ]
   );
 
-  return { pending, dragging, snapTarget, svgPoint, onPointerDown, onPointerMove, onPointerUp };
+  return {
+    pending,
+    dragging,
+    snapTarget,
+    marquee,
+    svgPoint,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+  };
 }

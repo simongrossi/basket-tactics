@@ -15,7 +15,7 @@
 // La logique métier vit dans les hooks et sous-composants ; ce fichier est
 // surtout du câblage.
 
-import { useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import type {
   AppState,
   AttackerId,
@@ -99,6 +99,31 @@ export function CourtView(props: CourtViewProps) {
   const [zoneRegionMenu, setZoneRegionMenu] = useState<ZoneRegionMenuState | null>(null);
   const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null);
 
+  // #4 — Sélection multiple de défenseurs. State éphémère (UI), pas dans
+  // AppState (pas de persistance, pas d'undo individuel).
+  const [selectedDefenders, setSelectedDefenders] = useState<Set<DefenderId>>(new Set());
+  const toggleDefenderSelection = useCallback((dId: DefenderId) => {
+    setSelectedDefenders((prev) => {
+      const next = new Set(prev);
+      if (next.has(dId)) next.delete(dId);
+      else next.add(dId);
+      return next;
+    });
+  }, []);
+  const setDefenderSelection = useCallback((ids: DefenderId[]) => {
+    setSelectedDefenders(new Set(ids));
+  }, []);
+  const clearDefenderSelection = useCallback(() => setSelectedDefenders(new Set()), []);
+  // Esc clear la sélection.
+  useEffect(() => {
+    if (selectedDefenders.size === 0) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') clearDefenderSelection();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [selectedDefenders.size, clearDefenderSelection]);
+
   // Frame courante (statique / scrub / play) + threats.
   const { frame, threatData } = useCourtFrame({
     state,
@@ -113,8 +138,8 @@ export function CourtView(props: CourtViewProps) {
   const closeCtxMenu = useCallback(() => setCtxMenu(null), []);
   const closeZoneRegionMenu = useCallback(() => setZoneRegionMenu(null), []);
 
-  // Pointer/drag + tracé d'annotation.
-  const { pending, snapTarget, svgPoint, onPointerDown, onPointerMove, onPointerUp } =
+  // Pointer/drag + tracé d'annotation + marquee.
+  const { pending, snapTarget, marquee, svgPoint, onPointerDown, onPointerMove, onPointerUp } =
     useCourtPointerHandlers({
       state,
       svgRef,
@@ -127,6 +152,10 @@ export function CourtView(props: CourtViewProps) {
       onMoveDefenderDuringDrag: props.onMoveDefenderDuringDrag,
       onAddAnnotation: props.onAddAnnotation,
       onClearContextMenu: closeCtxMenu,
+      selectedDefenders,
+      onToggleDefenderSelection: toggleDefenderSelection,
+      onSetDefenderSelection: setDefenderSelection,
+      onClearDefenderSelection: clearDefenderSelection,
     });
 
   // Clic-droit : suppression directe sur une annotation, sinon ouverture
@@ -317,7 +346,7 @@ export function CourtView(props: CourtViewProps) {
         )}
 
         {/* ---- Sprites joueurs ---- */}
-        <CourtPlayersLayer state={state} frame={frame} />
+        <CourtPlayersLayer state={state} frame={frame} selectedDefenders={selectedDefenders} />
 
         {/* ---- Overlays avant (au-dessus des sprites) ---- */}
         {/* Badges % de menace + flèche meilleure action — rendus APRÈS les
@@ -399,7 +428,60 @@ export function CourtView(props: CourtViewProps) {
         })()}
         <Ball pos={frame.ballPos} inFlight={frame.ballInFlight} />
         {threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="badges" />}
+
+        {/* #4 — Rectangle de sélection (marquee) pendant Shift+drag dans le vide. */}
+        {marquee && (
+          <rect
+            x={marquee.x1}
+            y={marquee.y1}
+            width={marquee.x2 - marquee.x1}
+            height={marquee.y2 - marquee.y1}
+            fill="rgba(6, 182, 212, 0.12)"
+            stroke="#06b6d4"
+            strokeWidth={1.5}
+            strokeDasharray="4 3"
+            pointerEvents="none"
+          />
+        )}
       </svg>
+
+      {/* #4 — Mini panneau d'info quand la sélection multiple est active. */}
+      {selectedDefenders.size > 0 && !props.isPlaying && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 14,
+            right: 14,
+            background: 'rgba(6, 182, 212, 0.92)',
+            color: '#fff',
+            padding: '4px 10px',
+            borderRadius: 6,
+            fontSize: 11,
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+          }}
+        >
+          <span>🔗 {selectedDefenders.size} défenseur{selectedDefenders.size > 1 ? 's' : ''} sélectionné{selectedDefenders.size > 1 ? 's' : ''}</span>
+          <button
+            onClick={clearDefenderSelection}
+            style={{
+              border: 'none',
+              background: 'rgba(255,255,255,0.25)',
+              color: '#fff',
+              fontSize: 10,
+              padding: '2px 6px',
+              borderRadius: 3,
+              cursor: 'pointer',
+            }}
+            title="Vider la sélection (Esc)"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* ---- Badge "lecture en cours" ---- */}
       {props.isPlaying && (

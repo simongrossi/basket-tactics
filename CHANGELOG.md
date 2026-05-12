@@ -6,6 +6,38 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### UX — Sélection multiple de défenseurs
+
+Permet de sélectionner plusieurs défenseurs et de les déplacer ensemble.
+Halo cyan pointillé autour des sélectionnés + mini panneau info en haut-
+droite "🔗 N défenseurs sélectionnés".
+
+**Modes de sélection** (mode `move` uniquement, ne conflicte pas avec
+le Shift+freehand des autres tools) :
+- **Shift+clic** sur un défenseur → toggle dans la sélection
+- **Shift+drag dans le vide** → marquee (rectangle de sélection), tous
+  les défenseurs dans le rect sont sélectionnés au relâcher
+- **Clic dans le vide sans modifier** → vide la sélection
+- **Échap** → vide la sélection
+
+**Drag groupé** : clic sans modifier sur un défenseur sélectionné (≥ 2)
+→ tous les défenseurs sélectionnés bougent avec le même delta. **1 seule
+entrée d'historique** pour tout le drag (utilise beginPlayerDrag /
+moveDefenderDuringDrag / commitPlayerDrag — déjà conçu pour ça).
+
+**Câblage** :
+- State éphémère `selectedDefenders: Set<DefenderId>` dans CourtView
+  (pas dans AppState : pas de persistance, pas d'undo individuel)
+- Esc listener via useEffect
+- Marquee state + `groupDragInitialRef` dans `useCourtPointerHandlers`
+- Halo cyan dans `Player.tsx` via nouvelle prop `isSelected`
+- Rect SVG semi-transparent rendu en fin de SVG dans CourtView
+
+TS clean, 699 tests existants verts (pas de tests dédiés ajoutés sur les
+handlers de pointer — composant UI complexe testé manuellement).
+
+Roadmap : `#4 Sélection multiple` marqué 🟢.
+
 ### UX — Snap-to-grid (Ctrl/Cmd + drag)
 
 Pendant le drag d'un joueur avec **Ctrl** (PC) ou **Cmd** (Mac) enfoncé,

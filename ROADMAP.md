@@ -322,14 +322,13 @@ Implémenté dans `useAppState` : pile `historyRef` (past/future) cap à 50, wra
 
 ⚪ **À venir v2** : coalescing pendant le drag (un drag continu = une entrée dans la pile, pas une par mouvement de pointeur).
 
-#### ⚪ Sélection multiple
-**Quoi.** Pouvoir sélectionner plusieurs défenseurs avec `Shift+clic` ou un marquee (rectangle de sélection au drag dans le vide). Ensuite : drag groupé qui les déplace ensemble, ou modification de `helpPct` / `priority` qui s'applique à tous.
-
-**Implémentation.** Nouveau state `selectedDefenders: DefenderId[]` dans `useAppState` (ou local CourtView). Modifier `Player` pour afficher un highlight (contour épais cyan) quand sélectionné. Marquee : `onPointerDown` sur le terrain hors d'un joueur démarre un rectangle de sélection rendu en SVG, `onPointerUp` finalise et collecte les défenseurs dans la zone. Action groupée : nouveau menu "actions sur sélection" ou un panneau qui apparaît quand `selected.length > 1`. `Shift+drag` sur un joueur sélectionné déplace tous ensemble (delta appliqué à chacun).
-
-**Effort** ~2h · **Risque** 🟡 · **Valeur** haut.
-
-**Tradeoffs.** Nouvelles touches qui peuvent entrer en conflit (Shift+clic est aujourd'hui inutilisé, OK ; Shift+drag aussi). Pour l'undo/redo, les actions groupées doivent être un seul commit dans la pile (`setStateWithHistory` une fois, pas N fois) — penser à coalescer via une nouvelle méthode `moveDefenderGroup` ou un wrapper qui désactive temporairement le push.
+#### 🟢 Sélection multiple (V1 livré 2026-05-12)
+State éphémère `selectedDefenders: Set<DefenderId>` dans CourtView.
+Shift+clic = toggle, Shift+drag dans le vide = marquee, Esc = clear,
+clic sur défenseur sélectionné = drag groupé (delta appliqué à tous,
+1 entrée undo via le pattern beginPlayerDrag/DuringDrag/commitPlayerDrag
+existant). Halo cyan + mini panneau info. 699 tests verts. **V2** : édition
+groupée des `DefenderRule` (helpPct, priority…), pas couverte en V1.
 
 **Découpage suggéré** : (a) sélection visible + marquee, (b) drag groupé, (c) édition groupée des règles. 3 commits.
 
@@ -391,7 +390,7 @@ travail" est rempli.
 | ~~1~~ | ~~Saisie numérique sliders~~ — 🟢 livré 2026-05-12 | — | — | — |
 | ~~2~~ | ~~Snap-to-grid~~ — 🟢 livré 2026-05-12 | — | — | — |
 | ~~3~~ | ~~Graphique métriques~~ — 🟢 livré 2026-05-12 | — | — | — |
-| 4 | Sélection multiple | 2h | 🟡 | Haut |
+| ~~4~~ | ~~Sélection multiple (V1)~~ — 🟢 livré 2026-05-12 | — | — | — |
 | 5 | Mode présentation | 45min | 🟢 | Haut (tablette) |
 | 6 | Export GIF/vidéo | 3-4h | 🟡 | **Très haut** (partage) |
 | ~~7~~ | ~~Templates utilisateurs~~ — 🟢 livré 2026-05-12 | — | — | — |

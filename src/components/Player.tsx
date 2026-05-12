@@ -53,6 +53,9 @@ interface PlayerProps {
   mismatchThreshold?: number;
   /** Master switch pour les badges mismatch / scram. Default true. */
   showMismatchBadges?: boolean;
+  /** #4 — Défenseur sélectionné (sélection multiple). Affiche un halo cyan
+   *  autour du sprite. Visuel UI seulement, pas dans l'AppState. */
+  isSelected?: boolean;
   /**
    * Attaquant en position d'écran posé. Aucun rendu spécifique dans Player :
    * le cue visuel est piloté en amont par CourtView via `gazeOrientation`
@@ -92,6 +95,7 @@ export function Player({
   scrammedThisStep,
   mismatchThreshold = 2,
   showMismatchBadges = true,
+  isSelected,
   isScreening: _isScreening,
 }: PlayerProps) {
   const fill = isAttacker ? '#D85A30' : '#378ADD';
@@ -120,6 +124,21 @@ export function Player({
 
   return (
     <g data-id={id} style={{ cursor: 'grab' }}>
+      {/* #4 — Halo de sélection multiple (cyan pointillé). Rendu en
+       *  premier pour passer sous tous les autres anneaux. */}
+      {isSelected && !isAttacker && (
+        <circle
+          cx={pos.x}
+          cy={pos.y}
+          r={r + 9}
+          fill="none"
+          stroke="#06b6d4"
+          strokeWidth={2.5}
+          strokeDasharray="3 3"
+          opacity={0.9}
+          pointerEvents="none"
+        />
+      )}
       <g pointerEvents="none">
         {/* Pictogramme stylisé FIBA : 2 arcs symétriques courbés.
          *
