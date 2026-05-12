@@ -6,6 +6,28 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### B5 — Empty side PnR
+
+Détecte un PnR exécuté sur un côté du terrain où aucun autre attaquant
+n'est présent. Couverture défensive optimale change : ice contre-indiqué
+(pas de baseline à fermer → drive 1c0), under naturel (pas de skip pass).
+
+**Helper pur** `screens/emptySidePnR.ts > isEmptySidePnR(screen, off, hoop)` :
+projette les autres attaquants sur la perpendiculaire à l'axe poseur→panier
+et vérifie qu'aucun n'est du même côté que le porteur. Tolérance ±5px pour
+les attaquants sur l'axe (ne cassent pas le empty).
+
+**Règle coach** `coachDiagnostics/rules/emptySidePnR.ts` :
+- 'info' systématique si pattern détecté (contexte au coach)
+- 'critical' si screenRule = `ice` (drive 1c0 imminent — recommander under/hedge)
+- 'good' si screenRule = `under` ou `weak` (cohérent)
+
+**Tests** : 5 (côté opposé pur, attaquant même côté = false, attaquants en
+masse côté opposé, porteur sur l'axe, attaquants sur l'axe ignorés).
+**645 → 650 tests verts**.
+
+Roadmap : B5 marqué 🟢.
+
 ### B7 — Defensive 3 seconds (règle FIBA)
 
 Diagnostic coach quand un défenseur stationne 3 steps consécutifs dans

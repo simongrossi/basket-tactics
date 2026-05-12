@@ -219,20 +219,9 @@ sur la fenêtre N-2 / N pour éviter le double recover.
 
 #### 🟠 Moyens — patterns courants non couverts
 
-##### ⚪ Empty side PnR (côté faible vide)
-**Quoi.** PnR exécuté sur le côté du terrain où il n'y a pas de
-coéquipier (côté faible vide). Pas détecté, la couverture optimale change
-pourtant : **ice** impossible (pas de fond à fermer → le porteur prendrait
-le baseline en 1c0), **under** devient naturel (pas de skip pass à
-défendre côté faible).
-
-**Implémentation.** Helper `isEmptySidePnR(screen, off)` qui retourne
-true si aucun attaquant ≠ porteur/poseur côté faible (x du même signe
-que la perpendiculaire à l'axe S→panier). Si true, désactiver `ice` dans
-la liste de rules proposées + diagnostic coach "empty side → under
-recommandé".
-
-**Effort** ~2h · **Risque** 🟢 · **Valeur** moyen.
+##### 🟢 Empty side PnR (V1 livré 2026-05-12)
+Helper pur `isEmptySidePnR` + règle coach. 'critical' si ice sur empty
+(drive 1c0), 'good' si under/weak. 5 tests. **650 tests verts**.
 
 ##### ⚪ Dig / double au post
 **Quoi.** Quand un attaquant est en **post-up** (dos au panier près du
@@ -437,7 +426,7 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 | ~~B2~~ | ~~Reject screen detection~~ — 🟢 V1 livré 2026-05-12 | — | — | — |
 | ~~B3~~ | ~~Hard / soft hedge (slider aggression)~~ — 🟢 livré 2026-05-12 | — | — | — |
 | ~~B4~~ | ~~Snake dribble detection~~ — 🟢 V1 livré 2026-05-12 | — | — | — |
-| B5 | Empty side PnR | 2h | 🟢 | Moyen |
+| ~~B5~~ | ~~Empty side PnR~~ — 🟢 livré 2026-05-12 | — | — | — |
 | B6 | Dig / double au post | 3-4h | 🟡 | Moyen |
 | ~~B7~~ | ~~Defensive 3 sec (diag coach)~~ — 🟢 livré 2026-05-12 | — | — | — |
 | B8 | Switch policy granulaire (1-3 / all) | 2h | 🟢 | Moyen-haut |
