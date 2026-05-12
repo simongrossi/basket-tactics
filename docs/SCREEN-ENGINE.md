@@ -331,6 +331,48 @@ npm run dev → bibliothèque → 🧪 Lab PnR / Pindown / Flare / Cross
 
 ---
 
+## ⏱ Règle de réalisme — durée d'un système
+
+**Une possession FIBA = 24 secondes au shot clock**, dont environ
+**6s pour remonter la balle** → reste **18s d'action effective**.
+Un système conçu pour le moteur ne doit JAMAIS dépasser cette
+borne, sinon il est physiquement irréaliste.
+
+`PLAYBACK_STEP_DURATION_MS = 2000` (2s par transition).
+
+| Système type | Steps | Transitions | Durée |
+|--------------|-------|-------------|-------|
+| Action courte (PnR roll) | 4-5 | 3-4 | 6-8s |
+| Action moyenne (snake) | 4-5 | 3-4 | 6-8s |
+| Action enchaînée | 6-7 | 5-6 | 10-12s |
+| **MAXIMUM ABSOLU** | **10** | **9** | **18s** |
+
+### À RESPECTER
+
+✅ **Tout nouveau template = ≤ 10 steps.** Verrouillé par le test
+`aucun Lab dev ne dépasse 18 secondes` dans
+`screenLabSanity.test.ts`.
+
+✅ **Préférer 4-6 steps par scénario** (= 6-10s d'action). Un
+public-and-roll réel s'exécute en 3-5 secondes ; une action complète
+NBA-classique en 8-12s.
+
+✅ **Si un test multi-scénarios est nécessaire, SPLITTER en
+plusieurs templates focalisés** plutôt qu'un gros système.
+Exemple Lab PnR (5 steps) + Lab Snake (4 steps) + Lab Reject (3 steps)
+au lieu d'un seul Lab à 8 steps.
+
+### À INTERDIRE
+
+❌ **Pas de système > 18 secondes.** Si tu as besoin de plus, le
+scénario n'est pas une possession — c'est plusieurs séquences, à
+modéliser comme plusieurs systèmes.
+
+❌ **Pas de "padding" avec des steps statiques** ("setup neutre"
+sans action). Démarrer directement à la position d'action.
+
+---
+
 ## 🚧 Limites connues et chantiers ouverts
 
 ### Limites acceptées

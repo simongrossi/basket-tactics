@@ -18,7 +18,14 @@ import { PLAYER_MIN_CLEARANCE_PX } from '@/lib/data/court';
 
 const DEF_IDS = ['D1', 'D2', 'D3', 'D4', 'D5'] as const;
 const ATT_IDS = ['O1', 'O2', 'O3', 'O4', 'O5'] as const;
-const LAB_IDS = ['screen-lab-pnr', 'screen-lab-pindown', 'screen-lab-offball', 'screen-lab-stress'] as const;
+const LAB_IDS = [
+  'screen-lab-pnr',
+  'screen-lab-snake',
+  'screen-lab-reject',
+  'screen-lab-pindown',
+  'screen-lab-offball',
+  'screen-lab-stress',
+] as const;
 
 function buildState(tplId: string): AppState {
   const tpl = TEMPLATES.find((t) => t.id === tplId)!;
@@ -76,10 +83,21 @@ LAB_IDS.forEach((tplId) => {
 });
 
 describe('🧪 Screen Lab — meta', () => {
-  it('les 4 templates dev sont inscrits dans TEMPLATES', () => {
+  it('les 6 templates dev sont inscrits dans TEMPLATES', () => {
     LAB_IDS.forEach((id) => {
       const tpl = TEMPLATES.find((t) => t.id === id);
       expect(tpl, `template ${id} inscrit`).toBeDefined();
+    });
+  });
+
+  // Règle réalisme : un système ne doit jamais dépasser 9 transitions
+  // (= 18 secondes effectives = remontée + action). Cf. docs/SCREEN-ENGINE.md.
+  it('aucun Lab dev ne dépasse 18 secondes (9 transitions max)', () => {
+    LAB_IDS.forEach((id) => {
+      const tpl = TEMPLATES.find((t) => t.id === id)!;
+      const transitions = tpl.steps.length - 1;
+      const durationSeconds = transitions * 2;
+      expect(durationSeconds, `${tpl.name} : ${durationSeconds}s`).toBeLessThanOrEqual(18);
     });
   });
 });

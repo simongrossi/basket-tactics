@@ -21,7 +21,14 @@ import type { AppState } from '@/lib/types';
 
 const ATT_IDS = ['O1', 'O2', 'O3', 'O4', 'O5'] as const;
 const DEF_IDS = ['D1', 'D2', 'D3', 'D4', 'D5'] as const;
-const LAB_IDS = ['screen-lab-pnr', 'screen-lab-pindown', 'screen-lab-offball', 'screen-lab-stress'] as const;
+const LAB_IDS = [
+  'screen-lab-pnr',
+  'screen-lab-snake',
+  'screen-lab-reject',
+  'screen-lab-pindown',
+  'screen-lab-offball',
+  'screen-lab-stress',
+] as const;
 
 // Seuil de téléport. Au-delà de cette valeur (px par frame), le coach
 // perçoit un saut net.

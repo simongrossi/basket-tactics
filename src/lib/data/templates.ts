@@ -608,16 +608,17 @@ const labOff_overlap: AttackerPositions = {
   O4: { x: 180, y: 200 }, O5: { x: 420, y: 200 },
 };
 
-// ----------------- Template 1 : PnR + Snake + Reject -----------------
-// NOTE : on s'appuie sur l'idle lerp pour la trajectoire smooth entre steps
-// (cf. fix attackerTrajectoryAt). Pas d'annotations de mouvement redondantes
-// (elles snappent au boundary à cause de la convention de timing). Seul
-// l'annotation `screen` sur le step de contact est utile pour l'UI.
+// IMPORTANT — durée réaliste : `PLAYBACK_STEP_DURATION_MS = 2000` (2s par
+// transition). Une possession FIBA = 24s, soit ~18s effectives après remontée
+// de balle. Un système ne doit JAMAIS dépasser ~9 transitions (= 18s).
+// Idéalement un scénario tactique court (PnR, snake) = 3-5 transitions = 6-10s.
+
+// ----------------- Template 1 : PnR Roll (court, 5 steps = 8s) -----------------
 const SCREEN_LAB_PNR: Template = {
   id: 'screen-lab-pnr',
-  name: '🧪 Lab PnR (dev)',
+  name: '🧪 Lab PnR Roll (dev)',
   description:
-    "Banc de test écran porteur : approche → contact → dribble → roll → snake (V) → reject. 8 steps continus, O1 porteur + O5 poseur, autres joueurs statiques.",
+    "Banc de test écran porteur classique : approche → contact → dribble → roll. 5 steps continus (= 8s, réaliste). O1 porteur + O5 poseur.",
   defenseInitial: defaultDef(labOff_neutral),
   steps: [
     { label: '01 — Setup neutre', off: labOff_neutral, ballCarrier: 'O1', annotations: [] },
@@ -631,9 +632,37 @@ const SCREEN_LAB_PNR: Template = {
     },
     { label: '04 — High PnR : O1 dribble', off: labOff_pnrUse, ballCarrier: 'O1', annotations: [], forcedScreener: 'O5' },
     { label: '05 — High PnR : roll', off: labOff_pnrRoll, ballCarrier: 'O1', annotations: [] },
-    { label: '06 — Snake : retreat', off: labOff_snakeRetreat, ballCarrier: 'O1', annotations: [] },
-    { label: '07 — Snake : re-engage', off: labOff_snakeReEngage, ballCarrier: 'O1', annotations: [] },
-    { label: '08 — Reject : O1 vire opposé', off: labOff_reject, ballCarrier: 'O1', annotations: [] },
+  ],
+};
+
+// ----------------- Template 1b : Snake dribble (4 steps = 6s) -----------------
+// Démarre à la position post-contact (= juste après la pose), pas de setup
+// neutre pour rester compact. Le snake teste le V (engage → retreat → re-engage).
+const SCREEN_LAB_SNAKE: Template = {
+  id: 'screen-lab-snake',
+  name: '🧪 Lab Snake dribble (dev)',
+  description:
+    "Banc de test snake dribble : O1 engage l'écran, recule, ré-attaque le MÊME poseur. 4 steps continus (= 6s). Active `snakeKeepCoverage` pour valider la V2.",
+  defenseInitial: defaultDef(labOff_pnrContact),
+  steps: [
+    { label: '01 — Contact initial', off: labOff_pnrContact, ballCarrier: 'O1', annotations: [], forcedScreener: 'O5' },
+    { label: '02 — O1 engage', off: labOff_pnrUse, ballCarrier: 'O1', annotations: [] },
+    { label: '03 — O1 retreat', off: labOff_snakeRetreat, ballCarrier: 'O1', annotations: [] },
+    { label: '04 — O1 re-engage', off: labOff_snakeReEngage, ballCarrier: 'O1', annotations: [], forcedScreener: 'O5' },
+  ],
+};
+
+// ----------------- Template 1c : Reject (3 steps = 4s) -----------------
+const SCREEN_LAB_REJECT: Template = {
+  id: 'screen-lab-reject',
+  name: '🧪 Lab Reject screen (dev)',
+  description:
+    "Banc de test reject screen : O1 fait un fake d'usage puis vire SEC côté opposé au poseur. 3 steps continus (= 4s). Active `unwindRejectedScreens` pour valider la V2.",
+  defenseInitial: defaultDef(labOff_pnrApproach),
+  steps: [
+    { label: '01 — Setup avec O5 en approche', off: labOff_pnrApproach, ballCarrier: 'O1', annotations: [] },
+    { label: '02 — Contact (fake)', off: labOff_pnrContact, ballCarrier: 'O1', annotations: [], forcedScreener: 'O5' },
+    { label: '03 — Reject : O1 vire opposé', off: labOff_reject, ballCarrier: 'O1', annotations: [] },
   ],
 };
 
@@ -715,6 +744,8 @@ export const TEMPLATES: Template[] = [
   FLOPPY,
   HAMMER,
   SCREEN_LAB_PNR,
+  SCREEN_LAB_SNAKE,
+  SCREEN_LAB_REJECT,
   SCREEN_LAB_PINDOWN,
   SCREEN_LAB_OFFBALL,
   SCREEN_LAB_STRESS,
