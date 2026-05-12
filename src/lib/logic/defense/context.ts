@@ -18,7 +18,13 @@ import type {
   Step,
 } from '../../types';
 import { ballSide } from '../geometry';
-import { applySwitch, detectScreen, peelSwitchShouldFire } from '../screens';
+import {
+  applySwitch,
+  detectRejectedScreen,
+  detectScreen,
+  peelSwitchShouldFire,
+  type RejectedScreen,
+} from '../screens';
 import {
   applyScramSwitch,
   switchAllowed,
@@ -76,6 +82,10 @@ export interface DefenseFrameContext {
    *  applicable ou désactivé (`state.scramSwitchEnabled` faux).
    *  Cf. `defense/mismatchTracking.ts`. */
   scrammedSwitch: ScramSwitch | null;
+  /** B2 V2 — Reject screen détecté à ce step. Exposé pour visu/debug. Le
+   *  flag `state.unwindRejectedScreens` détermine si la défense réagit
+   *  (auquel cas `screen` a été forcé à null). */
+  rejectedScreen: RejectedScreen | null;
 }
 
 /**
@@ -117,9 +127,31 @@ export function buildDefenseFrameContext(
 
   const prevOffAtStep: AttackerPositions | undefined =
     stepIdx > 0 ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount) : undefined;
-  const screen = detectScreen(
+  let screen = detectScreen(
     off, ballCarrier, matchups, prevDefenderPositions, state.screenRadius, step.forcedScreener, prevOffAtStep
   );
+
+  // B2 V2 — Unwind reject screen.
+  // Si un reject SHARP (porteur vire opposé net, dot ≤ -0.7) est détecté à
+  // ce step, on ANNULE la détection d'écran : la défense a sur-anticipé,
+  // mais le coach a activé l'unwind → retour à la couverture homme-à-homme
+  // pure (D1 chase O1 normalement, D5 retombe sur O5). Le diag coach `reject-
+  // screen` continue de signaler le pattern (refait sa détection).
+  let rejectedScreen: RejectedScreen | null = null;
+  if (state.unwindRejectedScreens && prevOffAtStep) {
+    rejectedScreen = detectRejectedScreen(
+      off,
+      prevOffAtStep,
+      ballCarrier,
+      matchups,
+      prevDefenderPositions,
+      state.screenRadius
+    );
+    if (rejectedScreen && rejectedScreen.awayness <= -0.7) {
+      // Reject SHARP confirmé → on traite comme s'il n'y avait pas d'écran.
+      screen = null;
+    }
+  }
 
   // Règle effective : on regarde l'override individuel du défenseur du porteur,
   // sinon on retombe sur la règle globale.
@@ -194,6 +226,7 @@ export function buildDefenseFrameContext(
     switchedThisStep,
     detectedSwitch,
     scrammedSwitch,
+    rejectedScreen,
   };
 
   return { ctx, matchups };

@@ -668,6 +668,16 @@ export interface AppState {
    *  Le trigger `state.triggers.post` doit aussi être activé pour que la
    *  couverture s'applique (deux switches indépendants : détection + réaction). */
   postCoverage?: 'none' | 'dig' | 'double';
+  /** B2 V2 — Quand un reject screen SHARP est détecté (porteur vire opposé
+   *  net, awayness ≤ -0.7), la défense relâche la couverture sur-anticipée :
+   *  l'écran est traité comme inexistant pour ce step, retour à l'individuel
+   *  pur. Default false (opt-in). */
+  unwindRejectedScreens?: boolean;
+  /** B4 V2 — Quand un snake dribble est détecté (V sur 3 steps), la défense
+   *  maintient son engagement sur le poseur pendant la retraite intermédiaire
+   *  (pas de re-arm à zéro). Pratiquement : on force la couverture du
+   *  step N à utiliser screen=screen-detected-at-N-2. Default false (opt-in). */
+  snakeKeepCoverage?: boolean;
   /** Seuil de severity à partir duquel un switch est considéré comme un
    *  mismatch tactique (déclenche scram + diagnostic coach + badge visuel).
    *  Range 1..4. Default 2 (= D5 sur O3 minimum). */
