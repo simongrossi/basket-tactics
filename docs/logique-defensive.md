@@ -43,7 +43,7 @@ C'est le seul point d'entrée appelé par le rendu. Tout le reste est interne.
 ```
 effectiveDefensePositions(state, stepIdx)
   │
-  ├── computeDefenseTargets(state, stepIdx, mutate=true)
+  ├── computeDefenseTargets(state, stepIdx)
   │     │
   │     ├── if (state.defenseSystem === 'zone'):
   │     │     return computeZoneDefenseTargets(...)
@@ -52,6 +52,7 @@ effectiveDefensePositions(state, stepIdx)
   │     ├── prevDefenderPositions = positions précédentes (récursion)
   │     ├── screen = detectScreen(off, carrier, matchups, prevDef, screenRadius)
   │     ├── if (screen && rule==='switch') matchups = applySwitch(matchups, screen)
+  │     │     et retourne detectedSwitch pour persistance explicite
   │     ├── triggers = detectTriggers(off, prevOff, ballCarrier, state.triggers)
   │     │
   │     ├── pour chaque défenseur dId:

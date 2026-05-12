@@ -148,7 +148,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
 }
 
 function computeEffectiveDefensePositions(state: AppState, stepIdx: number): ComputedDefense {
-  const { positions: targets } = computeDefenseTargets(state, stepIdx, true);
+  const { positions: targets } = computeDefenseTargets(state, stepIdx);
   const defenderIds = getActiveDefenderIds(state.playerCount);
   const curStep = state.steps[stepIdx];
   const curCarrier = activeBallCarrier(curStep, state.playerCount);

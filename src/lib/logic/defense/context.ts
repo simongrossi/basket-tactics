@@ -63,20 +63,19 @@ export interface DefenseFrameContext {
   effectiveScreenRule: ScreenRule;
   /** Vrai si un switch a été appliqué sur l'écran porteur à cette étape. */
   switchedThisStep: boolean;
+  /** Switch détecté pour cette étape, à persister explicitement hors moteur. */
+  detectedSwitch?: [DefenderId, DefenderId];
 }
 
 /**
- * Construit le contexte de frame défensive + initialise les matchups (qui
- * peuvent être mutés par les couches : switch, off-ball switch).
- *
- * Effet de bord assumé : si `mutateStepForSwitch === true` ET qu'un switch est
- * détecté sur cette étape, `step.switches` est inscrit dans le state pour
- * persistence (cf. computeDefenseTargets historiquement).
+ * Construit le contexte de frame défensive + initialise les matchups.
+ * Le switch on-ball détecté est appliqué au matchup LOCAL de cette frame,
+ * puis exposé via `detectedSwitch`. Sa persistance dans `step.switches`
+ * est volontairement explicite et hors moteur.
  */
 export function buildDefenseFrameContext(
   state: AppState,
-  stepIdx: number,
-  mutateStepForSwitch: boolean
+  stepIdx: number
 ): { ctx: DefenseFrameContext; matchups: Matchups } {
   const step = state.steps[stepIdx];
   const off = activeOffense(step.off, state.playerCount);
@@ -103,7 +102,7 @@ export function buildDefenseFrameContext(
           state, off, ballCarrier, matchups,
           activeDefenseInitial(state.defenseInitial, state.playerCount)
         )
-      : extractDefenderPositions(computeDefenseTargets(state, stepIdx - 1, false).positions);
+      : extractDefenderPositions(computeDefenseTargets(state, stepIdx - 1).positions);
 
   const prevOffAtStep: AttackerPositions | undefined =
     stepIdx > 0 ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount) : undefined;
@@ -120,12 +119,11 @@ export function buildDefenseFrameContext(
   })();
 
   let switchedThisStep = false;
+  let detectedSwitch: [DefenderId, DefenderId] | undefined;
   if (screen && effectiveScreenRule === 'switch') {
     matchups = applySwitch(matchups, screen);
     switchedThisStep = true;
-    if (mutateStepForSwitch && !step.switches) {
-      step.switches = [[screen.carrierDef, screen.screenerDef]];
-    }
+    detectedSwitch = [screen.carrierDef, screen.screenerDef];
   }
   // PEEL-SWITCH : couverture commence en drop, mais si le porteur a dépassé
   // le défenseur du screener à cette étape, le switch se déclenche.
@@ -134,9 +132,7 @@ export function buildDefenseFrameContext(
     if (sDefPos && peelSwitchShouldFire(off, screen, sDefPos, getDefenseHoop(state))) {
       matchups = applySwitch(matchups, screen);
       switchedThisStep = true;
-      if (mutateStepForSwitch && !step.switches) {
-        step.switches = [[screen.carrierDef, screen.screenerDef]];
-      }
+      detectedSwitch = [screen.carrierDef, screen.screenerDef];
     }
   }
 
@@ -162,6 +158,7 @@ export function buildDefenseFrameContext(
     screen,
     effectiveScreenRule,
     switchedThisStep,
+    detectedSwitch,
   };
 
   return { ctx, matchups };

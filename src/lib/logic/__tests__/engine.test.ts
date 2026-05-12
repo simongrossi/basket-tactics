@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { computeDefenseTargets, getMatchupsAt, effectiveDefensePositions } from '../engine';
+import {
+  computeDefenseTargets,
+  effectiveDefensePositions,
+  getMatchupsAt,
+  persistDetectedSwitchForStep,
+  persistDetectedSwitchesThroughStep,
+} from '../engine';
 import { makeInitialState, makeStep, initialOff, baseMatchups } from '../../data/initial';
 import type { AppState, AttackerPositions } from '../../types';
 
@@ -91,7 +97,7 @@ describe('computeDefenseTargets — défense individuelle', () => {
     expect(positions.D1.y).toBeLessThan(s.steps[0].off.O1.y);
   });
 
-  it("écrit un switch détecté dans state.steps[i].switches quand mutateStepForSwitch=true et règle=switch", () => {
+  it("retourne un switch détecté sans muter l'étape", () => {
     const s = cloneState();
     s.screenRule = 'switch';
     // Place O2 (poseur) près de D1 (déf du porteur, en (300,380)) ET à <80px du porteur O1 (300,470)
@@ -100,13 +106,13 @@ describe('computeDefenseTargets — défense individuelle', () => {
       O2: { x: 305, y: 405 },
     };
     s.steps[0] = { ...s.steps[0], off };
-    const { positions } = computeDefenseTargets(s, 0, true);
-    expect(s.steps[0].switches).toBeDefined();
-    expect(s.steps[0].switches!.length).toBe(1);
+    const { positions, detectedSwitch } = computeDefenseTargets(s, 0);
+    expect(detectedSwitch).toEqual(['D1', 'D2']);
+    expect(s.steps[0].switches).toBeUndefined();
     expect(positions.D1.switchedThisStep || positions.D2.switchedThisStep).toBe(true);
   });
 
-  it("ne mute PAS l'étape quand mutateStepForSwitch=false même si écran détecté", () => {
+  it("persiste explicitement un switch détecté dans une nouvelle référence d'état", () => {
     const s = cloneState();
     s.screenRule = 'switch';
     const off: AttackerPositions = {
@@ -114,8 +120,51 @@ describe('computeDefenseTargets — défense individuelle', () => {
       O2: { x: 305, y: 405 },
     };
     s.steps[0] = { ...s.steps[0], off };
-    computeDefenseTargets(s, 0, false);
+    const next = persistDetectedSwitchForStep(s, 0);
     expect(s.steps[0].switches).toBeUndefined();
+    expect(next).not.toBe(s);
+    expect(next.steps[0].switches).toEqual([['D1', 'D2']]);
+  });
+
+  it("ne mute PAS l'étape quand on calcule les targets même si écran détecté", () => {
+    const s = cloneState();
+    s.screenRule = 'switch';
+    const off: AttackerPositions = {
+      ...s.steps[0].off,
+      O2: { x: 305, y: 405 },
+    };
+    s.steps[0] = { ...s.steps[0], off };
+    computeDefenseTargets(s, 0);
+    expect(s.steps[0].switches).toBeUndefined();
+  });
+
+  it("effectiveDefensePositions ne persiste pas de switch par effet de bord", () => {
+    const s = cloneState();
+    s.screenRule = 'switch';
+    s.steps[0] = {
+      ...s.steps[0],
+      off: { ...s.steps[0].off, O2: { x: 305, y: 405 } },
+    };
+    effectiveDefensePositions(s, 0);
+    expect(s.steps[0].switches).toBeUndefined();
+  });
+
+  it('peut persister les switches détectés sur plusieurs steps explicitement', () => {
+    const s = cloneState();
+    s.screenRule = 'switch';
+    s.steps = [
+      {
+        ...s.steps[0],
+        off: { ...s.steps[0].off, O2: { x: 305, y: 405 } },
+      },
+      {
+        ...s.steps[0],
+        off: { ...s.steps[0].off, O2: { x: 305, y: 405 } },
+      },
+    ];
+    const next = persistDetectedSwitchesThroughStep(s, 1);
+    expect(next.steps[0].switches).toEqual([['D1', 'D2']]);
+    expect(next.steps[1].switches).toBeDefined();
   });
 });
 

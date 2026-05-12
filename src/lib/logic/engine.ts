@@ -22,6 +22,8 @@ import { applyTrapLayer } from './defense/trapLayer';
 import { applyDirectiveLayer } from './defense/directiveLayer';
 import { applyPostPassOrientationLayer } from './defense/postPassOrientation';
 
+export type DetectedSwitchPair = [DefenderId, DefenderId];
+
 /** Panier de référence côté défense pour cet AppState (selon attackingDirection). */
 export function getDefenseHoop(state: AppState): Point {
   return state.attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP;
@@ -48,23 +50,30 @@ export function getMatchupsAt(steps: Step[], stepIdx: number, playerCount: AppSt
   return m;
 }
 
+export interface DefenseTargetsResult {
+  positions: Record<DefenderId, DefenderTarget>;
+  matchupsApplied: Matchups;
+  detectedSwitch?: DetectedSwitchPair;
+}
+
 /**
  * Calcule les positions cibles "idéales" des défenseurs sur une étape donnée,
  * sans tenir compte de la contrainte de vitesse (pas de "retard").
  *
- * Cette fonction peut aussi MUTER l'étape pour y inscrire un switch détecté.
- * (effet de bord assumé pour la persistance des switches)
+ * Fonction pure : un switch détecté est appliqué au matchup local de cette
+ * frame et exposé via `detectedSwitch`, mais `state.steps[i].switches` n'est
+ * jamais écrit ici. La persistance vit dans `persistDetectedSwitchForStep`.
  */
 export function computeDefenseTargets(
   state: AppState,
   stepIdx: number,
-  mutateStepForSwitch: boolean = true
-): { positions: Record<DefenderId, DefenderTarget>; matchupsApplied: Matchups } {
+  _legacyMutateStepForSwitch: boolean = false
+): DefenseTargetsResult {
   if (state.defenseSystem === 'zone') {
     return computeZoneDefenseTargets(state, stepIdx);
   }
 
-  const { ctx, matchups } = buildDefenseFrameContext(state, stepIdx, mutateStepForSwitch);
+  const { ctx, matchups } = buildDefenseFrameContext(state, stepIdx);
   const positions = {} as Record<DefenderId, DefenderTarget>;
 
   // Couche 1 — base man-to-man + help + screen-on-target + orientation initiale.
@@ -84,7 +93,29 @@ export function computeDefenseTargets(
   // Couche 6 — Recalcul orientation final depuis les positions ajustées.
   applyPostPassOrientationLayer(positions, ctx);
 
-  return { positions, matchupsApplied: matchups };
+  return { positions, matchupsApplied: matchups, detectedSwitch: ctx.detectedSwitch };
+}
+
+export function persistDetectedSwitchForStep(state: AppState, stepIdx: number): AppState {
+  const step = state.steps[stepIdx];
+  if (!step || state.defenseSystem === 'zone' || step.switches) return state;
+  const detected = computeDefenseTargets(state, stepIdx).detectedSwitch;
+  if (!detected) return state;
+  const steps = [...state.steps];
+  steps[stepIdx] = { ...step, switches: [detected] };
+  return { ...state, steps };
+}
+
+export function persistDetectedSwitchesThroughStep(
+  state: AppState,
+  stepIdx: number = state.steps.length - 1
+): AppState {
+  const max = Math.min(Math.max(0, stepIdx), state.steps.length - 1);
+  let next = state;
+  for (let i = 0; i <= max; i += 1) {
+    next = persistDetectedSwitchForStep(next, i);
+  }
+  return next;
 }
 
 // `computeZoneDefenseTargets` extrait dans `./defense/zoneTargets.ts`.

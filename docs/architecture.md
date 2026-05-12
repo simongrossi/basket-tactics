@@ -202,11 +202,12 @@ computeDefenseTargets(state, stepIdx)
 └── Branche man (par défaut) :
     │
     │   ── Setup ──
-    ├── buildDefenseFrameContext(state, stepIdx, mutateStepForSwitch)
+    ├── buildDefenseFrameContext(state, stepIdx)
     │   ├── getMatchupsAt(steps, stepIdx-1)        # cumule les switches passés
     │   ├── prevDefenderPositions (récursion N-1, ou setup si N=0)
     │   ├── detectScreen + détermine effectiveScreenRule
-    │   ├── applySwitch() si rule === 'switch' (mute step.switches)
+    │   ├── applySwitch() si rule === 'switch' (matchup local seulement)
+    │   ├── detectedSwitch retourné pour persistance explicite
     │   ├── peelSwitchShouldFire() → switch tardif si porteur a dépassé
     │   ├── detectTriggers (drive/post/paint)
     │   └── ballSide, hoop, prevOff

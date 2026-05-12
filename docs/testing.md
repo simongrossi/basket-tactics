@@ -49,7 +49,7 @@ Les tests vivent à côté du code testé sous `__tests__/`. Le pattern d'inclus
 
 ### `engine.test.ts`
 - `getMatchupsAt` : matchups de base, application d'un switch, cumul de plusieurs switches sur étapes successives, immuabilité de `baseMatchups`.
-- `computeDefenseTargets` (man) : 5 défenseurs renvoyés, `isCarrierDefender` correct, `helpFactor=0` et `onScreen=false` au setup, position du carrier defender entre porteur et panier, écriture de switch dans `state.steps[i].switches` quand `mutateStepForSwitch=true` + règle=`switch`, **non**-mutation quand `mutateStepForSwitch=false`.
+- `computeDefenseTargets` (man) : 5 défenseurs renvoyés, `isCarrierDefender` correct, `helpFactor=0` et `onScreen=false` au setup, position du carrier defender entre porteur et panier, `detectedSwitch` retourné sans mutation, persistance explicite via `persistDetectedSwitchForStep`, et absence d'effet de bord dans `effectiveDefensePositions`.
 - `computeDefenseTargets` (zone) : matchups dérivés du tracking, `helpFactor=0` toujours, pas d'écran appliqué.
 - `effectiveDefensePositions` : pas de lateness à l'étape 0 (setup), lateness aux étapes >0 quand maxSpeed est trop bas, respect strict des `defenseOverrides`.
 - `effectiveDefensePositions — closeout dynamique` : pas de closeout à l'étape 0, pas de closeout si `ballCarrier` n'a pas changé, `closingOut=true` sur le seul défenseur du nouveau porteur quand le ballon change de mains, le bump ×1.4 réduit la lateness (la distance parcourue dépasse `defenseMaxSpeed`), pas de closeout en zone.

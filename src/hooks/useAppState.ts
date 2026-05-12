@@ -25,6 +25,7 @@ import type { Template } from '@/lib/data/templates';
 import type { DefensePreset } from '@/lib/data/defensePresets';
 import type { DefenderProfile } from '@/lib/data/defenderProfiles';
 import { compileScenario, newScriptedActionId } from '@/lib/logic/compileScenario';
+import { persistDetectedSwitchesThroughStep } from '@/lib/logic/engine';
 import { migrateScriptedActions } from '@/lib/logic/scriptedActionMigration';
 import { normalizePlayerCount, normalizeStateForPlayerCount } from '@/lib/logic/players';
 import {
@@ -183,6 +184,11 @@ export function useAppState() {
     if (persisted) setState(persisted);
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    setState((cur) => persistDetectedSwitchesThroughStep(cur));
+  }, [hydrated, state]);
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
