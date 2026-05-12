@@ -37,6 +37,7 @@ import { activeBallCarrier, activeOffense } from '../players';
 import { attackerTrajectoryAt, type MovementType } from '../playbackTrajectory';
 import { lerpAngleDeg } from '../angles';
 import { buildStep0DetectionPositions } from '../step0Detection';
+import { closeoutEasing } from '../closeoutEasing';
 import {
   PLAYER_MIN_CLEARANCE_PX,
   PLAYER_OBSTACLE_RADIUS_PX,
@@ -271,7 +272,15 @@ export function resolveFrameAt(
     // Time-remap sigmoïdal qui FIGE D1 sur le poseur (smooth, sans
     // discontinuité de vélocité). Pour les autres défenseurs ou hors
     // écran, identité = localT.
-    const effT = screenContactT(localT, modeQuality, screenMode);
+    let effT = screenContactT(localT, modeQuality, screenMode);
+    // C.1 — Closeout footwork : si ce défenseur est en closeout et PAS
+    // déjà en screen mode (le screen easing prime), applique un easing
+    // sprint(65 %) puis freinage(35 %) sur la transition. Visuellement :
+    // il s'élance fort, arrive "in control" avec bras hauts.
+    // Cf. `lib/logic/closeoutEasing.ts`.
+    if (!screenMode && defB[id].closingOut) {
+      effT = closeoutEasing(effT);
+    }
     const phase = screenContactPhase(screenMode, localT, modeQuality);
     // Décision de verrouillage contre followDefendersAtFrame. Plusieurs
     // conditions cumulatives pour assurer la continuité visuelle :
