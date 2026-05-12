@@ -18,7 +18,7 @@ import type {
 } from '../../types';
 import { DEFAULT_DENY_AGGRESSIVENESS } from '../../data/physics';
 import { computeHelpTarget, leaveAttackerCostMultiplier } from '../help';
-import { applyScreenAdjustment } from '../screens';
+import { applyScreenAdjustment, detectImminentScreen } from '../screens';
 import { computeDefenderOrientation } from '../orientation';
 import {
   carrierDefenderTarget,
@@ -38,8 +38,17 @@ export function applyBaseTargetsLayer(
   const {
     state, off, ballCarrier, defenderIds, hoop, triggers, side, screen,
     effectiveScreenRule, switchedThisStep, carrierPos, step, scrammedSwitch,
-    snakeDribble,
+    snakeDribble, prevOff, prevDefenderPositions,
   } = ctx;
+
+  // C.4 — Pre-rotation : si aucun écran porteur n'est encore détecté MAIS
+  // qu'un attaquant approche du défenseur du porteur (en mouvement, dans la
+  // zone proche), on calcule un imminent. Le défenseur du porteur sera
+  // ensuite shifté de ~10 px vers le screener attendu (épaule tournée).
+  // Désactivé par défaut (`state.preRotationEnabled`).
+  const imminent = state.preRotationEnabled && !screen
+    ? detectImminentScreen(off, prevOff, ballCarrier, matchups, prevDefenderPositions, state.screenRadius)
+    : null;
 
   // Qualité de l'écran en cours, lue depuis l'annotation `screen` du step
   // si elle existe (sinon 50 par défaut). Module à quel point D1 est
@@ -112,6 +121,20 @@ export function applyBaseTargetsLayer(
 
     if (screen && effectiveScreenRule !== 'switch') {
       target = applyScreenAdjustment(target, screen, effectiveScreenRule, dId, off, state.screenRadius, state.dropDepth, hoop, screenQuality, state.hedgeAggression ?? 50);
+    }
+
+    // C.4 — Pre-rotation : si pas d'écran encore détecté MAIS un attaquant
+    // est en approche (imminent), shifte le carrierDef de ~10 px vers le
+    // screener attendu. Effet : épaule tournée, position pré-armée.
+    if (imminent && isCarrierDefender) {
+      const dx = imminent.screenerPos.x - target.x;
+      const dy = imminent.screenerPos.y - target.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const SHIFT_PX = 10;
+      target = {
+        x: target.x + (dx / len) * SHIFT_PX,
+        y: target.y + (dy / len) * SHIFT_PX,
+      };
     }
 
     // Offset latéral selon le delta manuel d'orientation. Subtil, max ~12px

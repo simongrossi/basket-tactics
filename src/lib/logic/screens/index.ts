@@ -29,3 +29,4 @@ export { detectSnakeDribble, type SnakeDribble } from './detectSnakeDribble';
 export { isEmptySidePnR } from './emptySidePnR';
 export { countCutterScreenChain, cuttersInScreenChain } from './cutterScreenChain';
 export { consecutiveHedgeSteps } from './hedgeStepCounter';
+export { detectImminentScreen, type ImminentScreen } from './detectImminentScreen';

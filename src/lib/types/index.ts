@@ -698,6 +698,13 @@ export interface AppState {
    *  Évite que le low man recover trop tard sur son homme original quand
    *  le roller a déjà attaqué le panier. Default false (opt-in). */
   tagThenSwitchEnabled?: boolean;
+  /** C.4 — Pre-rotation : le défenseur du porteur anticipe un écran IMMINENT
+   *  (un attaquant en mouvement vers lui, encore hors du rayon de détection
+   *  mais proche). Quand activé, sa cible est légèrement shiftée du côté
+   *  "intérieur" (entre lui et le poseur en approche) pour pré-fermer la
+   *  route over/under. Défaut false (opt-in). Effet ≈ 8-12 px de shift,
+   *  insuffisant pour modifier le marquage mais visible sur le terrain. */
+  preRotationEnabled?: boolean;
   /** Seuil de severity à partir duquel un switch est considéré comme un
    *  mismatch tactique (déclenche scram + diagnostic coach + badge visuel).
    *  Range 1..4. Default 2 (= D5 sur O3 minimum). */

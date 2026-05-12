@@ -489,6 +489,22 @@ export function DefensePanel(props: DefensePanelProps) {
               onChange={(v) => props.onPatch({ snakeKeepCoverage: v })}
               title="Quand un snake dribble est détecté (porteur engagé → retraite → ré-engagé sur le même poseur, V sur 3 steps), la quality effective de l'écran est forcée à 90 minimum. La 2ᵉ utilisation est traitée comme un lockdown au lieu d'un re-arm."
             />
+
+            {/* C.4 — Pre-rotation */}
+            <CheckboxLine
+              checked={!!state.preRotationEnabled}
+              label="pré-rotation sur écran imminent"
+              onChange={(v) => props.onPatch({ preRotationEnabled: v })}
+              title="Le défenseur du porteur anticipe un écran QUI ARRIVE (attaquant en mouvement, encore hors du rayon de détection mais proche) en shiftant légèrement (~10 px) son épaule vers le poseur attendu. Effet visuel : pied préparé, route over/under pré-fermée. Pas de modification du marquage."
+            />
+
+            {/* C.5 — Tag-then-switch */}
+            <CheckboxLine
+              checked={!!state.tagThenSwitchEnabled}
+              label="tag-then-switch sur roller"
+              onChange={(v) => props.onPatch({ tagThenSwitchEnabled: v })}
+              title="Quand le low man fait un tag sur un roller PnR ET que le roller arrive très près du panier (≤ 150 px), bascule en switch implicite : le low man PREND le roller (matchups swappés), le défenseur du screener part sur l'orphelin du low man. Évite le scénario classique du low man qui recover trop tard."
+            />
           </Section>
 
           <Section theme="defense" label="Écran porteur" open>
