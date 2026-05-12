@@ -223,6 +223,10 @@ export default function Page() {
               state={app.state}
               onMoveAttacker={app.moveAttacker}
               onMoveDefender={app.moveDefender}
+              onBeginPlayerDrag={app.beginPlayerDrag}
+              onMoveAttackerDuringDrag={app.moveAttackerDuringDrag}
+              onMoveDefenderDuringDrag={app.moveDefenderDuringDrag}
+              onCommitPlayerDrag={app.commitPlayerDrag}
               onAddAnnotation={app.addAnnotation}
               onUpdateRule={app.updateRule}
               onClearDefenseOverride={app.clearDefenseOverride}

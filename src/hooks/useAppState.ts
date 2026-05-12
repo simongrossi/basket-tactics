@@ -20,7 +20,7 @@ import type {
   PlayerCount,
 } from '@/lib/types';
 import { makeInitialState, makeStep, initialOff, initialDef } from '@/lib/data/initial';
-import { getZoneLayout, mirrorZoneLayout } from '@/lib/data/zones';
+import { getZoneLayout } from '@/lib/data/zones';
 import type { Template } from '@/lib/data/templates';
 import type { DefensePreset } from '@/lib/data/defensePresets';
 import type { DefenderProfile } from '@/lib/data/defenderProfiles';
@@ -28,12 +28,12 @@ import { compileScenario, newScriptedActionId } from '@/lib/logic/compileScenari
 import { migrateScriptedActions } from '@/lib/logic/scriptedActionMigration';
 import { normalizePlayerCount, normalizeStateForPlayerCount } from '@/lib/logic/players';
 import {
-  setPlayerPositionAt,
   upsertMovementAnnotation,
   upsertPassAnnotation,
   removeAnnotation as removeAnnotationFromSteps,
 } from '@/lib/logic/stepMutations';
 import { ensureAnnotationsForMovement, reconcileMovementAnnotations } from '@/lib/logic/migrateAnnotations';
+import { moveAttackerInState, moveDefenderInState } from '@/lib/logic/playerMove';
 
 const STORAGE_KEY = 'basket-tactics-state-v1';
 
@@ -66,6 +66,14 @@ function loadFromStorage(): AppState | null {
 }
 
 const HISTORY_LIMIT = 50;
+
+function pushHistorySnapshot(history: { past: AppState[]; future: AppState[] }, snapshot: AppState): void {
+  history.past.push(snapshot);
+  if (history.past.length > HISTORY_LIMIT) {
+    history.past.shift();
+  }
+  history.future = [];
+}
 
 // ============================================================
 // Helpers scénario scripté
@@ -113,11 +121,14 @@ export function useAppState() {
   // (sinon hydration mismatch).
   const [state, setState] = useState<AppState>(() => makeInitialState());
   const [hydrated, setHydrated] = useState(false);
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   // Pile undo/redo. Pas dans le state principal pour ne pas re-rendre à chaque
   // push. setStateWithHistory pousse l'état précédent dans `past` et vide
   // `future`. undo/redo utilisent setState brut pour ne pas se ré-historiser.
   const historyRef = useRef<{ past: AppState[]; future: AppState[] }>({ past: [], future: [] });
+  const dragHistoryAnchorRef = useRef<AppState | null>(null);
 
   const setStateWithHistory: typeof setState = useCallback((updater) => {
     setState((prev) => {
@@ -125,12 +136,25 @@ export function useAppState() {
         ? (updater as (s: AppState) => AppState)(prev)
         : updater;
       if (next === prev) return prev;
-      historyRef.current.past.push(prev);
-      if (historyRef.current.past.length > HISTORY_LIMIT) {
-        historyRef.current.past.shift();
-      }
-      historyRef.current.future = [];
+      pushHistorySnapshot(historyRef.current, prev);
       return next;
+    });
+  }, []);
+
+  const beginPlayerDrag = useCallback(() => {
+    if (!dragHistoryAnchorRef.current) {
+      dragHistoryAnchorRef.current = stateRef.current;
+    }
+  }, []);
+
+  const commitPlayerDrag = useCallback(() => {
+    const anchor = dragHistoryAnchorRef.current;
+    dragHistoryAnchorRef.current = null;
+    if (!anchor) return;
+    setState((cur) => {
+      if (cur === anchor) return cur;
+      pushHistorySnapshot(historyRef.current, anchor);
+      return cur;
     });
   }, []);
 
@@ -227,49 +251,19 @@ export function useAppState() {
   }, []);
 
   const moveAttacker = useCallback((id: AttackerId, x: number, y: number) => {
-    setStateWithHistory((s) => {
-      const steps = setPlayerPositionAt(s.steps, s.activeStep, id, { x, y });
-      // Préserver la sémantique manualOverride si le step venait du scénario.
-      if (s.activeStep > 0 && steps[s.activeStep].generatedBy) {
-        const next = [...steps];
-        next[s.activeStep] = { ...next[s.activeStep], manualOverride: true };
-        return { ...s, steps: next };
-      }
-      return { ...s, steps };
-    });
+    setStateWithHistory((s) => moveAttackerInState(s, id, { x, y }));
   }, []);
 
   const moveDefender = useCallback((id: DefenderId, x: number, y: number) => {
-    setStateWithHistory((s) => {
-      // En mode édition zones : drag d'un défenseur = drag de son homePos.
-      // Plus intuitif que de créer un override manuel — le défenseur reste
-      // un défenseur de zone, son ancrage suit le drag, et l'engine continue
-      // à le faire suivre les attaquants dans son rayon de responsabilité.
-      if (s.defenseSystem === 'zone' && s.zoneEditMode) {
-        const baseLayout = getZoneLayout(s.zoneConfig.type, s.zoneConfig.verticalOffset ?? 0);
-        const oriented = s.attackingDirection === 'down' ? mirrorZoneLayout(baseLayout) : baseLayout;
-        const region = oriented.find((r) => r.assignedTo === id);
-        if (region) {
-          const cur = s.zoneOverrides?.[region.id] ?? {};
-          return {
-            ...s,
-            zoneOverrides: {
-              ...(s.zoneOverrides ?? {}),
-              [region.id]: { ...cur, homePos: { x: Math.round(x), y: Math.round(y) } },
-            },
-          };
-        }
-      }
-      // Sinon (man defense, ou zone hors édition) : override manuel pour
-      // l'étape active. Le moteur respectera cette position.
-      const steps = [...s.steps];
-      const cur = { ...steps[s.activeStep] };
-      cur.defenseOverrides = { ...cur.defenseOverrides, [id]: { x, y } };
-      steps[s.activeStep] = cur;
-      const defenseInitial =
-        s.activeStep === 0 ? { ...s.defenseInitial, [id]: { x, y } } : s.defenseInitial;
-      return { ...s, steps, defenseInitial };
-    });
+    setStateWithHistory((s) => moveDefenderInState(s, id, { x, y }));
+  }, []);
+
+  const moveAttackerDuringDrag = useCallback((id: AttackerId, x: number, y: number) => {
+    setState((s) => moveAttackerInState(s, id, { x, y }));
+  }, []);
+
+  const moveDefenderDuringDrag = useCallback((id: DefenderId, x: number, y: number) => {
+    setState((s) => moveDefenderInState(s, id, { x, y }));
   }, []);
 
   const clearDefenseOverride = useCallback((id: DefenderId) => {
@@ -929,6 +923,10 @@ export function useAppState() {
     deleteStep,
     moveAttacker,
     moveDefender,
+    beginPlayerDrag,
+    commitPlayerDrag,
+    moveAttackerDuringDrag,
+    moveDefenderDuringDrag,
     addAnnotation,
     deleteLastAnnotation,
     deleteAnnotation,

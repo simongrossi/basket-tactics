@@ -68,12 +68,94 @@ interface ScreenerCluster {
   defenderToSkip: DefenderId;
 }
 
+interface EffectiveDefenseCacheDeps {
+  steps: AppState['steps'];
+  step: AppState['steps'][number] | undefined;
+  prevStep: AppState['steps'][number] | undefined;
+  defenseInitial: AppState['defenseInitial'];
+  rules: AppState['rules'];
+  triggers: AppState['triggers'];
+  zoneConfig: AppState['zoneConfig'];
+  zoneOverrides: AppState['zoneOverrides'];
+  scriptedActions: AppState['scriptedActions'];
+  attackerProfiles: AppState['attackerProfiles'];
+  defenseSystem: AppState['defenseSystem'];
+  playerCount: AppState['playerCount'];
+  defenseDistance: AppState['defenseDistance'];
+  defenseMaxSpeed: AppState['defenseMaxSpeed'];
+  screenRule: AppState['screenRule'];
+  screenRadius: AppState['screenRadius'];
+  dropDepth: AppState['dropDepth'];
+  offBallScreenRule: AppState['offBallScreenRule'];
+  closeoutBoost: AppState['closeoutBoost'];
+  denyAggressiveness: AppState['denyAggressiveness'];
+  attackingDirection: AppState['attackingDirection'];
+  defenseScriptedDirectivesEnabled: AppState['defenseScriptedDirectivesEnabled'];
+}
+
+interface EffectiveDefenseCacheEntry {
+  deps: EffectiveDefenseCacheDeps;
+  value: ComputedDefense;
+}
+
+const effectiveDefenseCache = new WeakMap<AppState, Map<number, EffectiveDefenseCacheEntry>>();
+
+function effectiveDefenseDeps(state: AppState, stepIdx: number): EffectiveDefenseCacheDeps {
+  return {
+    steps: state.steps,
+    step: state.steps[stepIdx],
+    prevStep: state.steps[stepIdx - 1],
+    defenseInitial: state.defenseInitial,
+    rules: state.rules,
+    triggers: state.triggers,
+    zoneConfig: state.zoneConfig,
+    zoneOverrides: state.zoneOverrides,
+    scriptedActions: state.scriptedActions,
+    attackerProfiles: state.attackerProfiles,
+    defenseSystem: state.defenseSystem,
+    playerCount: state.playerCount,
+    defenseDistance: state.defenseDistance,
+    defenseMaxSpeed: state.defenseMaxSpeed,
+    screenRule: state.screenRule,
+    screenRadius: state.screenRadius,
+    dropDepth: state.dropDepth,
+    offBallScreenRule: state.offBallScreenRule,
+    closeoutBoost: state.closeoutBoost,
+    denyAggressiveness: state.denyAggressiveness,
+    attackingDirection: state.attackingDirection,
+    defenseScriptedDirectivesEnabled: state.defenseScriptedDirectivesEnabled,
+  };
+}
+
+function sameEffectiveDefenseDeps(a: EffectiveDefenseCacheDeps, b: EffectiveDefenseCacheDeps): boolean {
+  return Object.keys(a).every((key) => {
+    const k = key as keyof EffectiveDefenseCacheDeps;
+    return a[k] === b[k];
+  });
+}
+
 /**
  * Calcule les positions effectives en appliquant la contrainte de vitesse max.
  * Si un défenseur ne peut atteindre sa cible, il est marqué "late" et reste
  * en chemin.
  */
 export function effectiveDefensePositions(state: AppState, stepIdx: number): ComputedDefense {
+  const deps = effectiveDefenseDeps(state, stepIdx);
+  let stateCache = effectiveDefenseCache.get(state);
+  if (!stateCache) {
+    stateCache = new Map();
+    effectiveDefenseCache.set(state, stateCache);
+  }
+  const cached = stateCache.get(stepIdx);
+  if (cached && sameEffectiveDefenseDeps(cached.deps, deps)) {
+    return cached.value;
+  }
+  const value = computeEffectiveDefensePositions(state, stepIdx);
+  stateCache.set(stepIdx, { deps, value });
+  return value;
+}
+
+function computeEffectiveDefensePositions(state: AppState, stepIdx: number): ComputedDefense {
   const { positions: targets } = computeDefenseTargets(state, stepIdx, true);
   const defenderIds = getActiveDefenderIds(state.playerCount);
   const curStep = state.steps[stepIdx];

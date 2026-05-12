@@ -66,6 +66,10 @@ interface CourtViewProps {
   state: AppState;
   onMoveAttacker: (id: AttackerId, x: number, y: number) => void;
   onMoveDefender: (id: DefenderId, x: number, y: number) => void;
+  onBeginPlayerDrag?: () => void;
+  onMoveAttackerDuringDrag?: (id: AttackerId, x: number, y: number) => void;
+  onMoveDefenderDuringDrag?: (id: DefenderId, x: number, y: number) => void;
+  onCommitPlayerDrag?: () => void;
   onAddAnnotation: (a: Annotation) => void;
   onUpdateRule: (dId: DefenderId, patch: Partial<AppState['rules'][DefenderId]>) => void;
   onApplyDefenderProfile: (dId: DefenderId, profile: import('@/lib/data/defenderProfiles').DefenderProfile) => void;
@@ -109,6 +113,9 @@ export function CourtView(props: CourtViewProps) {
   const { state } = props;
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<{ id: PlayerId; isDef: boolean } | null>(null);
+  const dragMoveRef = useRef<{ id: PlayerId; isDef: boolean; x: number; y: number } | null>(null);
+  const dragRafRef = useRef<number | null>(null);
+  const lastDragPointRef = useRef<{ x: number; y: number } | null>(null);
   const [pending, setPending] = useState<PendingAnnotation | null>(null);
   type CtxMenuState =
     | { kind: 'defender'; dId: DefenderId; x: number; y: number }
@@ -244,6 +251,72 @@ export function CourtView(props: CourtViewProps) {
     [state]
   );
 
+  const queueDragMove = useCallback(
+    (id: PlayerId, isDef: boolean, x: number, y: number) => {
+      dragMoveRef.current = { id, isDef, x, y };
+      if (dragRafRef.current !== null) return;
+      dragRafRef.current = window.requestAnimationFrame(() => {
+        dragRafRef.current = null;
+        const move = dragMoveRef.current;
+        dragMoveRef.current = null;
+        if (!move) return;
+        const last = lastDragPointRef.current;
+        if (last && last.x === move.x && last.y === move.y) return;
+        lastDragPointRef.current = { x: move.x, y: move.y };
+        if (move.isDef) {
+          (props.onMoveDefenderDuringDrag ?? props.onMoveDefender)(
+            move.id as DefenderId,
+            move.x,
+            move.y
+          );
+        } else {
+          (props.onMoveAttackerDuringDrag ?? props.onMoveAttacker)(
+            move.id as AttackerId,
+            move.x,
+            move.y
+          );
+        }
+      });
+    },
+    [
+      props.onMoveAttacker,
+      props.onMoveAttackerDuringDrag,
+      props.onMoveDefender,
+      props.onMoveDefenderDuringDrag,
+    ]
+  );
+
+  const flushDragMove = useCallback(() => {
+    if (dragRafRef.current !== null) {
+      window.cancelAnimationFrame(dragRafRef.current);
+      dragRafRef.current = null;
+    }
+    const move = dragMoveRef.current;
+    dragMoveRef.current = null;
+    if (!move) return;
+    const last = lastDragPointRef.current;
+    if (last && last.x === move.x && last.y === move.y) return;
+    lastDragPointRef.current = { x: move.x, y: move.y };
+    if (move.isDef) {
+      (props.onMoveDefenderDuringDrag ?? props.onMoveDefender)(move.id as DefenderId, move.x, move.y);
+    } else {
+      (props.onMoveAttackerDuringDrag ?? props.onMoveAttacker)(move.id as AttackerId, move.x, move.y);
+    }
+  }, [
+    props.onMoveAttacker,
+    props.onMoveAttackerDuringDrag,
+    props.onMoveDefender,
+    props.onMoveDefenderDuringDrag,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (dragRafRef.current !== null) {
+        window.cancelAnimationFrame(dragRafRef.current);
+      }
+    };
+  }, []);
+
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button === 2) return;
     setCtxMenu(null);
@@ -254,6 +327,9 @@ export function CourtView(props: CourtViewProps) {
     if (state.tool === 'move') {
       if (!target) return;
       const id = target.getAttribute('data-id') as PlayerId;
+      props.onBeginPlayerDrag?.();
+      lastDragPointRef.current = null;
+      dragMoveRef.current = null;
       setDragging({ id, isDef: id.startsWith('D') });
       svgRef.current?.setPointerCapture(e.pointerId);
       return;
@@ -282,8 +358,7 @@ export function CourtView(props: CourtViewProps) {
       const maxY = state.fullCourt ? FULL_COURT_INNER_MAX_Y : COURT.innerMaxY;
       const x = clamp(Math.round(pt.x), COURT.marginX, COURT.innerMaxX);
       const y = clamp(Math.round(pt.y), COURT.marginY, maxY);
-      if (dragging.isDef) props.onMoveDefender(dragging.id as DefenderId, x, y);
-      else props.onMoveAttacker(dragging.id as AttackerId, x, y);
+      queueDragMove(dragging.id, dragging.isDef, x, y);
       return;
     }
     if (pending) {
@@ -309,8 +384,15 @@ export function CourtView(props: CourtViewProps) {
     }
   };
 
-  const onPointerUp = () => {
+  const onPointerUp = (e: React.PointerEvent) => {
     if (dragging) {
+      const pt = svgPoint(e);
+      const maxY = state.fullCourt ? FULL_COURT_INNER_MAX_Y : COURT.innerMaxY;
+      const x = clamp(Math.round(pt.x), COURT.marginX, COURT.innerMaxX);
+      const y = clamp(Math.round(pt.y), COURT.marginY, maxY);
+      queueDragMove(dragging.id, dragging.isDef, x, y);
+      flushDragMove();
+      props.onCommitPlayerDrag?.();
       setDragging(null);
       return;
     }
@@ -417,6 +499,7 @@ export function CourtView(props: CourtViewProps) {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
       >
         <ArrowMarkers />
         <CourtBackground fullCourt={state.fullCourt} attackingDirection={state.attackingDirection} />
