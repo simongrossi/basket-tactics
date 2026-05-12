@@ -18,6 +18,28 @@ Toute fonction qui mute une position de joueur doit :
 2. Appeler explicitement `pushOutOfMany(target, others, PLAYER_MIN_CLEARANCE_PX)` avant le write.
 3. Ajouter un test dans `overlapInvariants.test.ts`.
 
+## Règle 1bis — Moteur physique d'écran
+
+**Avant toute modification du pipeline d'écran** (détection, response,
+animation, layers défensifs), lire impérativement
+[docs/SCREEN-ENGINE.md](docs/SCREEN-ENGINE.md).
+
+Ce document liste les règles **impératives** et les patterns
+**interdits** accumulés sur tous les bugs résolus mai 2026. Chaque
+ligne représente un retour en arrière à ne pas refaire :
+- Anti-flicker des défenseurs en contact d'écran
+- Convention de timing des annotations
+- Idle lerp pour attaquants sans annotation
+- Anchor stable du point de contact
+- Push-out single-pass après adhesion
+- Etc.
+
+Si tu touches à `screens/`, `playback/frameResolver.ts`,
+`defense/baseTargets.ts`, `defense/pnrLayer.ts`, ou
+`playbackTrajectory.ts` : relire ce doc d'abord, et lancer
+**tous** les tests `screens*` + `overlap*` + `userJson*` + `screenLab*`
+avant de commit.
+
 ## Règle 2 — Commit + push systématiques après chaque modif testable
 
 Sinon le user ne voit pas la modif sur son `npm run dev` en cours et
