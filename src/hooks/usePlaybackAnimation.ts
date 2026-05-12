@@ -7,7 +7,7 @@
 // déterministe et insensible aux re-renders qui réinitialisent le rAF.
 
 import { useEffect, useRef } from 'react';
-import { PLAYBACK_STEP_DURATION_MS } from '@/lib/data/physics';
+import { playbackTickAtElapsed } from '@/lib/logic/playbackClock';
 
 interface UsePlaybackAnimationParams {
   /** Activation de la boucle. Quand passe à true, démarre. À false, stop. */
@@ -43,10 +43,8 @@ export function usePlaybackAnimation(params: UsePlaybackAnimationParams): void {
 
   useEffect(() => {
     if (!isPlaying) return;
-    const stepDuration = PLAYBACK_STEP_DURATION_MS / speed;
-    // Décale l'origine pour que `elapsed = now - playStart` reflète déjà
-    // l'instant t demandé. Permet de reprendre depuis la pause.
-    const playStart = performance.now() - startTRef.current * stepDuration;
+    const playStart = performance.now();
+    const startT = startTRef.current;
 
     const tick = () => {
       const totalSteps = totalStepsRef.current;
@@ -55,14 +53,14 @@ export function usePlaybackAnimation(params: UsePlaybackAnimationParams): void {
         return;
       }
       const elapsed = performance.now() - playStart;
-      const globalT = elapsed / stepDuration;
-      if (globalT >= totalSteps) {
+      const tickInfo = playbackTickAtElapsed({ startT, elapsedMs: elapsed, speed, totalSteps });
+      if (tickInfo.ended) {
         window.clearInterval(intervalId);
-        onTickRef.current(totalSteps);
+        onTickRef.current(tickInfo.t);
         onEndRef.current?.();
         return;
       }
-      onTickRef.current(globalT);
+      onTickRef.current(tickInfo.t);
     };
 
     const intervalId = window.setInterval(tick, TICK_INTERVAL_MS);

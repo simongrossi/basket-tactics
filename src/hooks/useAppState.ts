@@ -24,6 +24,13 @@ import { getZoneLayout } from '@/lib/data/zones';
 import type { Template } from '@/lib/data/templates';
 import type { DefensePreset } from '@/lib/data/defensePresets';
 import type { DefenderProfile } from '@/lib/data/defenderProfiles';
+import {
+  commitCoalescedHistory,
+  pushHistorySnapshot,
+  redoFromHistory,
+  undoFromHistory,
+  type AppStateHistory,
+} from '@/lib/logic/appStateHistory';
 import { compileScenario, newScriptedActionId } from '@/lib/logic/compileScenario';
 import { persistDetectedSwitchesThroughStep } from '@/lib/logic/engine';
 import { migrateScriptedActions } from '@/lib/logic/scriptedActionMigration';
@@ -64,16 +71,6 @@ function loadFromStorage(): AppState | null {
   } catch {
     return null;
   }
-}
-
-const HISTORY_LIMIT = 50;
-
-function pushHistorySnapshot(history: { past: AppState[]; future: AppState[] }, snapshot: AppState): void {
-  history.past.push(snapshot);
-  if (history.past.length > HISTORY_LIMIT) {
-    history.past.shift();
-  }
-  history.future = [];
 }
 
 // ============================================================
@@ -128,7 +125,7 @@ export function useAppState() {
   // Pile undo/redo. Pas dans le state principal pour ne pas re-rendre à chaque
   // push. setStateWithHistory pousse l'état précédent dans `past` et vide
   // `future`. undo/redo utilisent setState brut pour ne pas se ré-historiser.
-  const historyRef = useRef<{ past: AppState[]; future: AppState[] }>({ past: [], future: [] });
+  const historyRef = useRef<AppStateHistory>({ past: [], future: [] });
   const dragHistoryAnchorRef = useRef<AppState | null>(null);
 
   const setStateWithHistory: typeof setState = useCallback((updater) => {
@@ -153,30 +150,17 @@ export function useAppState() {
     dragHistoryAnchorRef.current = null;
     if (!anchor) return;
     setState((cur) => {
-      if (cur === anchor) return cur;
-      pushHistorySnapshot(historyRef.current, anchor);
+      commitCoalescedHistory(historyRef.current, anchor, cur);
       return cur;
     });
   }, []);
 
   const undo = useCallback(() => {
-    setState((cur) => {
-      const past = historyRef.current.past;
-      if (past.length === 0) return cur;
-      const prev = past.pop()!;
-      historyRef.current.future.push(cur);
-      return prev;
-    });
+    setState((cur) => undoFromHistory(historyRef.current, cur));
   }, []);
 
   const redo = useCallback(() => {
-    setState((cur) => {
-      const future = historyRef.current.future;
-      if (future.length === 0) return cur;
-      const next = future.pop()!;
-      historyRef.current.past.push(cur);
-      return next;
-    });
+    setState((cur) => redoFromHistory(historyRef.current, cur));
   }, []);
 
   useEffect(() => {
