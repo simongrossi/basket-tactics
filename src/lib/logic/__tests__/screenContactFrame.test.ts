@@ -177,6 +177,94 @@ function buildOffBallRecoverScenario(quality: number = 100): AppState {
   return state;
 }
 
+function buildOffBallDoubleScreenScenario(
+  primaryQuality: number = 0,
+  secondQuality: number = 100,
+  rule: AppState['offBallScreenRule'] = 'under'
+): AppState {
+  const base = makeInitialState();
+  return {
+    ...base,
+    steps: [
+      {
+        off: {
+          O1: { x: 300, y: 470 },
+          O2: { x: 120, y: 380 },
+          O3: { x: 470, y: 380 },
+          O4: { x: 170, y: 405 },
+          O5: { x: 230, y: 405 },
+        },
+        ballCarrier: 'O1',
+        annotations: [
+          {
+            type: 'cut',
+            fromId: 'O2',
+            toId: null,
+            from: { x: 120, y: 380 },
+            to: { x: 220, y: 380 },
+          } as Annotation,
+          {
+            type: 'screen',
+            fromId: 'O4',
+            toId: 'O2',
+            from: { x: 170, y: 405 },
+            to: { x: 170, y: 405 },
+            quality: primaryQuality,
+          } as Annotation,
+          {
+            type: 'screen',
+            fromId: 'O5',
+            toId: 'O2',
+            from: { x: 230, y: 405 },
+            to: { x: 230, y: 405 },
+            quality: secondQuality,
+          } as Annotation,
+        ],
+      },
+      {
+        off: {
+          O1: { x: 300, y: 470 },
+          O2: { x: 220, y: 380 },
+          O3: { x: 470, y: 380 },
+          O4: { x: 170, y: 405 },
+          O5: { x: 230, y: 405 },
+        },
+        ballCarrier: 'O1',
+        annotations: [],
+      },
+      {
+        off: {
+          O1: { x: 300, y: 470 },
+          O2: { x: 340, y: 330 },
+          O3: { x: 470, y: 380 },
+          O4: { x: 170, y: 405 },
+          O5: { x: 230, y: 405 },
+        },
+        ballCarrier: 'O1',
+        annotations: [
+          {
+            type: 'cut',
+            fromId: 'O2',
+            toId: null,
+            from: { x: 220, y: 380 },
+            to: { x: 340, y: 330 },
+          } as Annotation,
+        ],
+      },
+    ],
+    defenseInitial: {
+      D1: { x: 300, y: 460 },
+      D2: { x: 190, y: 405 },
+      D3: { x: 460, y: 370 },
+      D4: { x: 170, y: 430 },
+      D5: { x: 230, y: 430 },
+    },
+    offBallScreenRule: rule,
+    screenRadius: 90,
+    activeStep: 0,
+  } as AppState;
+}
+
 function tangentProjection(point: Point, origin: Point, screener: Point, target: Point): number {
   const radial = { x: origin.x - screener.x, y: origin.y - screener.y };
   const len = Math.hypot(radial.x, radial.y) || 1;
@@ -532,6 +620,75 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
       );
       // 'under' doit retenir D2 PLUS près du poseur que 'chase' (bonus rule).
       expect(distUnder).toBeLessThanOrEqual(distChase + 5);
+    });
+
+    it('D2 lit la qualité du second poseur et reste bloqué sur un stagger', () => {
+      const state = buildOffBallDoubleScreenScenario(0, 100, 'under');
+      const frame = resolveFrameAt(state, 0.7);
+      expect(frame).not.toBeNull();
+      const stagger = frame!.offBallScreens.find((s) => s.cutterDef === 'D2' && s.cutter === 'O2');
+      expect(stagger?.type).toBe('stagger');
+      expect(stagger?.secondScreener).toBe('O5');
+
+      const d2 = frame!.defPos.D2;
+      const distToO4 = Math.hypot(d2.x - frame!.off.O4.x, d2.y - frame!.off.O4.y);
+      const distToO5 = Math.hypot(d2.x - frame!.off.O5.x, d2.y - frame!.off.O5.y);
+      expect(Math.min(distToO4, distToO5)).toBeLessThan(75);
+      expect(d2.screenPhase).toBe('stuck');
+    });
+
+    it('un under off-ball double coûte plus de temps de recover qu’un chase', () => {
+      const under = resolveFrameAt(buildOffBallDoubleScreenScenario(100, 100, 'under'), 2);
+      const chase = resolveFrameAt(buildOffBallDoubleScreenScenario(100, 100, 'chase'), 2);
+      expect(under).not.toBeNull();
+      expect(chase).not.toBeNull();
+
+      const underGap = Math.hypot(
+        under!.defPos.D2.x - under!.off.O2.x,
+        under!.defPos.D2.y - under!.off.O2.y
+      );
+      const chaseGap = Math.hypot(
+        chase!.defPos.D2.x - chase!.off.O2.x,
+        chase!.defPos.D2.y - chase!.off.O2.y
+      );
+      expect(underGap).toBeGreaterThan(chaseGap + 8);
+      expect(under!.defPos.D2.screenPhase).toBe('recover');
+    });
+
+    it('D2 sort tangentiellement du contact après un stagger off-ball', () => {
+      const state = buildOffBallDoubleScreenScenario(0, 100, 'under');
+      const start = resolveFrameAt(state, 1);
+      const early = resolveFrameAt(state, 1.5);
+      const late = resolveFrameAt(state, 1.8);
+      const end = resolveFrameAt(state, 2);
+      expect(start).not.toBeNull();
+      expect(early).not.toBeNull();
+      expect(late).not.toBeNull();
+      expect(end).not.toBeNull();
+
+      const distToO4 = Math.hypot(
+        start!.defPos.D2.x - state.steps[1].off.O4.x,
+        start!.defPos.D2.y - state.steps[1].off.O4.y
+      );
+      const distToO5 = Math.hypot(
+        start!.defPos.D2.x - state.steps[1].off.O5.x,
+        start!.defPos.D2.y - state.steps[1].off.O5.y
+      );
+      const screener = distToO5 < distToO4 ? state.steps[1].off.O5 : state.steps[1].off.O4;
+      const earlyProj = tangentProjection(
+        early!.defPos.D2,
+        start!.defPos.D2,
+        screener,
+        end!.defPos.D2
+      );
+      const lateProj = tangentProjection(
+        late!.defPos.D2,
+        start!.defPos.D2,
+        screener,
+        end!.defPos.D2
+      );
+
+      expect(lateProj).toBeGreaterThan(earlyProj + 5);
     });
 
     it("trajectoire D2 fluide pendant un pindown solide (pas de saut > 15px)", () => {

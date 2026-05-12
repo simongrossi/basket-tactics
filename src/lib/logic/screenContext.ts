@@ -162,8 +162,16 @@ export function defenderScreenContact(params: {
 }): DefenderScreenContact {
   const carrierContactA = params.ctxA.screen?.carrierDef === params.defenderId;
   const carrierContactB = params.ctxB.screen?.carrierDef === params.defenderId;
-  const offBallContactA = params.ctxA.offBallScreens.find((s) => s.cutterDef === params.defenderId);
-  const offBallContactB = params.ctxB.offBallScreens.find((s) => s.cutterDef === params.defenderId);
+  const offBallContactA = bestOffBallContactForDef(
+    params.ctxA.offBallScreens,
+    params.defenderId,
+    [params.state.steps[params.idxA], params.state.steps[params.idxA - 1]]
+  );
+  const offBallContactB = bestOffBallContactForDef(
+    params.ctxB.offBallScreens,
+    params.defenderId,
+    [params.state.steps[params.idxB], params.state.steps[params.idxA]]
+  );
   const offBallContact = offBallContactB ?? offBallContactA;
   const carrierContact = params.isCarrierDef && (carrierContactA || carrierContactB);
   const aOn = carrierContactA || !!offBallContactA;
@@ -329,6 +337,26 @@ function offBallScreenContactPoint(
     const dist = distanceSquared(anchor, s.pos);
     return dist < bestDist ? s : best;
   }).pos;
+}
+
+function bestOffBallContactForDef(
+  screens: DetectedOffBallScreen[],
+  defenderId: DefenderId,
+  steps: Array<AppState['steps'][number] | undefined>
+): DetectedOffBallScreen | undefined {
+  const contacts = screens.filter((s) => s.cutterDef === defenderId);
+  if (contacts.length <= 1) return contacts[0];
+  return contacts.reduce((best, screen) => {
+    const bestScore = offBallScreenQuality(steps, best) + doubleScreenScore(best);
+    const score = offBallScreenQuality(steps, screen) + doubleScreenScore(screen);
+    return score > bestScore ? screen : best;
+  });
+}
+
+function doubleScreenScore(screen: DetectedOffBallScreen): number {
+  if (screen.type === 'elevator') return 12;
+  if (screen.type === 'stagger') return 8;
+  return 0;
 }
 
 function distanceSquared(a: Point, b: Point): number {
