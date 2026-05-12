@@ -54,12 +54,17 @@ export function isInTrapZone(carrierPos: Point, hoop?: Point): boolean {
 }
 
 /** Sélectionne le défenseur (autre que le carrierDef) le plus proche du
- *  porteur pour venir trapper. Retourne null si aucun candidat trouvable. */
+ *  porteur pour venir trapper. Retourne null si aucun candidat trouvable.
+ *
+ *  `excludeDefenders` (optionnel) : IDs additionnels à exclure du choix.
+ *  Utilisé par la couche trap quand un écran est aussi en cours (Trap v3)
+ *  pour éviter de choisir le `screenerDef` qui est déjà engagé sur l'écran. */
 export function pickTrapHelper(
   off: AttackerPositions,
   defPositions: DefenderPositions,
   matchups: Matchups,
-  ballCarrier: AttackerId
+  ballCarrier: AttackerId,
+  excludeDefenders?: ReadonlySet<DefenderId>
 ): DefenderId | null {
   let carrierDef: DefenderId | null = null;
   (Object.entries(matchups) as [DefenderId, AttackerId][]).forEach(([d, o]) => {
@@ -74,6 +79,7 @@ export function pickTrapHelper(
   let bestDist = Infinity;
   (Object.keys(defPositions) as DefenderId[]).forEach((dId) => {
     if (dId === carrierDef) return;
+    if (excludeDefenders?.has(dId)) return;
     const d = distance(defPositions[dId], carrier);
     if (d < bestDist) {
       bestDist = d;

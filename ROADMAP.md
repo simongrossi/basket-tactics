@@ -320,7 +320,7 @@ marqueur rouge sur step actif, clic = navigation. État replié par défaut
 #### 🟢 Undo / Redo (v1)
 Implémenté dans `useAppState` : pile `historyRef` (past/future) cap à 50, wrapper `setStateWithHistory` qui pousse l'état précédent à chaque mutation utilisateur. `undo` / `redo` exposés. Raccourcis `Ctrl/Cmd+Z` (undo) et `Ctrl/Cmd+Shift+Z` ou `Ctrl/Cmd+Y` (redo) câblés dans `useKeyboardShortcuts`.
 
-⚪ **À venir v2** : coalescing pendant le drag (un drag continu = une entrée dans la pile, pas une par mouvement de pointeur).
+🟢 **v2 livré** : coalescing pendant le drag via `commitCoalescedHistory` + `dragHistoryAnchorRef` dans [`appStateHistory.ts`](src/lib/logic/appStateHistory.ts). Un drag continu = **1 seule entrée** dans la pile undo (snapshot pris au `beginPlayerDrag`, push différé au `commitPlayerDrag`). Réutilisé par la sélection multiple (#4) pour qu'un drag groupé soit aussi une seule entrée.
 
 #### 🟢 Sélection multiple (V1 livré 2026-05-12)
 State éphémère `selectedDefenders: Set<DefenderId>` dans CourtView.
@@ -429,7 +429,7 @@ géométriquement.
 - **Staggered** : ✅ double courbe Bezier réelle livrée en v3 (`pickStaggeredPair` + `curveAroundStaggeredPair`).
 - **Inversion HOOP** : ✅ rendu visuel "🎯 visé" / "🛡 protégé" livré en v3.
 - **Closeout / Denial** : ✅ tunables globaux livrés en v3. ✅ override par règle individuelle livré (DefenderRule.closeoutBoost / denyAggressiveness) — slider dans le menu contextuel défenseur avec affichage "global" / valeur + bouton ↻ pour reset.
-- **Undo/Redo** : coalescing pendant un drag continu (1 entrée pile au lieu de N)
+- ~~**Undo/Redo** : coalescing pendant un drag continu~~ — 🟢 livré via `commitCoalescedHistory`
 
 ---
 
