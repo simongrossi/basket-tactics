@@ -6,6 +6,22 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### B7 — Defensive 3 seconds (règle FIBA)
+
+Diagnostic coach quand un défenseur stationne 3 steps consécutifs dans
+la raquette sans marquer un attaquant proche (> 50 px = "à un bras"). Pas
+de pénalité simulée — uniquement un signal au coach.
+
+**Module** : `coachDiagnostics/rules/defensiveThreeSeconds.ts`. Récupère
+les positions défensives et offensives aux 3 derniers steps via
+`effectiveDefensePositions` (déjà memoizé). Émet 1 warning par défenseur
+qui viole la règle.
+
+**Tests** : 4 (no history, violation 3 steps, marqueur proche, sortie de
+raquette intermédiaire). **641 → 645 tests verts**.
+
+Roadmap : B7 marqué 🟢.
+
 ### B4 — Snake dribble detection
 
 Détecte le pattern offensif où le porteur **utilise l'écran, recule, et

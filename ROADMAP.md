@@ -252,21 +252,10 @@ fait un dig timed (50% du chemin vers le pivot puis recover). Variante
 
 **Effort** ~3-4h · **Risque** 🟡 · **Valeur** moyen.
 
-##### ⚪ Defensive 3 seconds (règle FIBA)
-**Quoi.** Un défenseur ne peut pas rester >3 sec dans sa raquette sans
-être à un bras d'un attaquant. Pas modélisé.
-
-**Pourquoi basket.** Règle qui force le pivot défensif à sortir
-périodiquement, empêche les défenses de packer la raquette en
-permanence. Impact tactique réel.
-
-**Implémentation.** Simulation step-based : compter les steps consécutifs
-où un défenseur est dans la paint sans `dist(att) < 50px`. À ≥3 steps,
-poser un diagnostic coach `defensive-3sec-violation`. Bonus : pénalité
-visuelle (anneau rouge clignotant). Pas de pénalité réelle sur la
-simulation (pas de score à modéliser).
-
-**Effort** ~2h · **Risque** 🟢 · **Valeur** moyen.
+##### 🟢 Defensive 3 seconds (V1 livré 2026-05-12)
+Diagnostic coach quand un défenseur stationne 3 steps consécutifs dans
+la raquette sans marquer (≤ 50 px d'un attaquant). Pas de pénalité simulée.
+Règle `defensiveThreeSecondsRule` dans le registry. 4 tests. **645 tests**.
 
 ##### ⚪ Politique de switch granulaire (team-level)
 **Quoi.** Aujourd'hui : `screenRule` global + override par défenseur.
@@ -450,7 +439,7 @@ Bouton "🎥 exporter GIF / MP4" à côté du bouton playbook PDF actuel. Choix 
 | ~~B4~~ | ~~Snake dribble detection~~ — 🟢 V1 livré 2026-05-12 | — | — | — |
 | B5 | Empty side PnR | 2h | 🟢 | Moyen |
 | B6 | Dig / double au post | 3-4h | 🟡 | Moyen |
-| B7 | Defensive 3 sec (diag coach) | 2h | 🟢 | Moyen |
+| ~~B7~~ | ~~Defensive 3 sec (diag coach)~~ — 🟢 livré 2026-05-12 | — | — | — |
 | B8 | Switch policy granulaire (1-3 / all) | 2h | 🟢 | Moyen-haut |
 | B9 | Top-lock off-ball avec timing | 2h | 🟡 | Moyen |
 | B10 | Bumping cutters automatique | 2-3h | 🟡 | Moyen |
