@@ -31,6 +31,7 @@ import {
   curveAroundStaggeredPair,
   pickBlockingCluster,
   pickStaggeredPair,
+  pushOutOfMany,
   resolvePlayerCollisions,
 } from '../geometry';
 import { activeBallCarrier, activeOffense } from '../players';
@@ -151,6 +152,29 @@ export function resolveFrameAt(
 
     off[id] = p;
   });
+
+  // 1.b — Anti-superposition attaquant ↔ attaquant pendant l'interpolation.
+  // Sans ce solveur, deux attaquants dont les trajectoires SE CROISENT (ex :
+  // O1 dribble vers la droite + O3 vient poser un écran au milieu) peuvent
+  // être visuellement empilés à mi-segment. La règle absolue
+  // (cf. docs/PLAYER-CLEARANCE.md) interdit toute superposition, frame par
+  // frame. On itère 5 passes (suffisant pour 5 attaquants).
+  for (let iter = 0; iter < 5; iter++) {
+    let moved = false;
+    for (const id of attackerIds) {
+      const p = off[id];
+      const obstacles: Point[] = [];
+      for (const other of attackerIds) {
+        if (other !== id) obstacles.push(off[other]);
+      }
+      const pushed = pushOutOfMany(p, obstacles, PLAYER_MIN_CLEARANCE_PX);
+      if (Math.abs(pushed.x - p.x) > 0.1 || Math.abs(pushed.y - p.y) > 0.1) {
+        off[id] = pushed;
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
 
   // ---------------------------------------------------------------------
   // 2. Porteur courant + détection d'écrans (uniquement en man-to-man).
@@ -442,6 +466,11 @@ export function resolveFrameAt(
   //    collisions strictes + ré-orientation finale.
   // ---------------------------------------------------------------------
   followDefendersAtFrame(defPos, off, carrier, state, idxA, idxB, screenLockedDefenders);
+  // Anti-superposition pendant l'interpolation. Les défenseurs "stuck" sur
+  // un écran (`screenLockedDefenders`) sont SKIP : leurs positions endpoints
+  // (engine) sont déjà à ≥ MIN_CLEARANCE de tous les joueurs ; les pousser
+  // ici crée du flicker visuel quand l'obstacle interpolé se déplace.
+  // La clearance attaquant↔attaquant est elle gérée plus haut (étape 1.b).
   resolvePlayerCollisions(
     defPos as unknown as Record<string, ComputedDefense[DefenderId]>,
     off,

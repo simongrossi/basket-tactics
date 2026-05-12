@@ -56,17 +56,30 @@ attaquants + tous les autres défenseurs**, sans exception.
 
 ### Niveau 3 — Playback (frame interpolation)
 
-`src/lib/logic/playback/frameResolver.ts:445` appelle
-`resolvePlayerCollisions` après l'interpolation des défenseurs entre
-deux steps. Un set `screenLockedDefenders` SKIP la résolution pour les
-défenseurs en contact d'écran (anti-jitter visuel).
+Deux solveurs distincts pendant l'animation entre 2 steps :
+
+**3a. Attaquants entre eux** (`frameResolver.ts` étape 1.b) :
+`pushOutOfMany` itéré 5 passes sur les positions interpolées de tous
+les attaquants. **Aucune exception.** Indispensable quand les
+trajectoires de 2 attaquants SE CROISENT (ex : O1 dribble vers la
+droite + O3 vient poser un écran au milieu — sans ce solveur, ils sont
+visuellement empilés à t≈0.35). Cf. systeme_basket-10.json, scénario
+reproducteur dans `userJsonOverlap.test.ts`.
+
+**3b. Défenseurs** (`frameResolver.ts` étape 5) : `resolvePlayerCollisions`
+sur tous les défenseurs après leur interpolation. Le set
+`screenLockedDefenders` SKIP la résolution pour les défenseurs en
+contact d'écran (anti-flicker visuel).
 
 > ⚠️ Limite connue : pendant l'interpolation d'un écran de qualité
 > élevée, un défenseur "stuck" sur le poseur peut techniquement passer
-> à < 34 px d'un autre joueur le temps d'une frame. C'est volontaire
-> pour éviter le tremblement visuel quand les obstacles bougent
-> rapidement. **À considérer comme une limite de l'interpolation, pas
-> une violation de la règle au niveau du step.**
+> à < 34 px d'un autre joueur le temps d'une frame. Volontaire — sans
+> ce skip, D1 flippe de 60+ px d'un côté à l'autre du poseur quand
+> l'obstacle interpolé se déplace mid-segment (3 tests garde-fous dans
+> `screenContactFrame.test.ts`). Les positions ENDPOINTS (engine) sont
+> elles toujours à ≥ 34 px ; le visuel transitoire reste lisible parce
+> que D1 reste plaqué au poseur (qui n'overlap pas l'attaquant en
+> question grâce au niveau 3a).
 
 ## Tests garde-fous
 
