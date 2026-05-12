@@ -1,19 +1,32 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+// Composant principal du terrain. Rôle :
+//
+//  1. Conteneur SVG + viewBox (fullCourt ou half)
+//  2. Délégation des hooks :
+//     - `useCourtFrame` : calcule la frame courante (statique / scrub / play)
+//     - `useCourtPointerHandlers` : drag joueurs + tracé d'annotations
+//  3. Délégation des composants :
+//     - `<CourtPlayersLayer>` : sprites attaquants + défenseurs + ballon
+//     - `<CourtMenus>` : context menus (def/att) + zone region menu
+//  4. Composition des overlays (zone, matchups, FOV, threats, helplines, etc.)
+//  5. Gestion locale du context menu (state) et du clic-droit sur annotation
+//
+// La logique métier vit dans les hooks et sous-composants ; ce fichier est
+// surtout du câblage.
+
+import { useState, useRef, useCallback } from 'react';
 import type {
   AppState,
   AttackerId,
   DefenderId,
-  PlayerId,
   Annotation,
   Tool,
   Point,
   ComputedDefense,
-  DetectedOffBallScreen,
 } from '@/lib/types';
 import { CourtBackground, ArrowMarkers } from './Court';
-import { Player, Ball } from './Player';
+import { Ball } from './Player';
 import { AnnotationView } from './Annotations';
 import {
   Matchups,
@@ -26,41 +39,25 @@ import { ZoneCoverage } from './overlays/ZoneCoverage';
 import { PassLanesOverlay } from './overlays/PassLanesOverlay';
 import { HelpDebugOverlay } from './overlays/HelpDebugOverlay';
 import { FieldOfViewOverlay } from './overlays/FieldOfViewOverlay';
-import {
-  effectiveDefensePositions,
-  getMatchupsAt,
-  computeAttackerVisuals,
-} from '@/lib/logic/engine';
-import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
-import { detectTriggers } from '@/lib/logic/triggers';
 import { getZoneLayout, mirrorZoneLayout, applyZoneOverrides } from '@/lib/data/zones';
-import { ZoneEditOverlay, ZoneRegionMenu } from './overlays/ZoneEditOverlay';
+import { ZoneEditOverlay } from './overlays/ZoneEditOverlay';
 import {
   COURT,
   FULL_COURT_HEIGHT,
-  FULL_COURT_INNER_MAX_Y,
-  PLAYER_PICK_RADIUS_PX,
   PLAYER_RADIUS,
 } from '@/lib/data/court';
-import { clamp, distance } from '@/lib/logic/geometry';
-import { resolveFrameAt, type PlaybackFrame } from '@/lib/logic/playback/frameResolver';
-import { buildStep0DetectionPositions } from '@/lib/logic/step0Detection';
-import { usePlaybackAnimation } from '@/hooks/usePlaybackAnimation';
-import { ContextMenu } from './ContextMenu';
+import { distance } from '@/lib/logic/geometry';
 import { ActionOrderBadges } from './overlays/ActionOrderBadges';
 import { HeatmapOverlay } from './overlays/HeatmapOverlay';
 import { ThreatOverlay } from './overlays/ThreatOverlay';
 import { BestActionOverlay } from './overlays/BestActionOverlay';
 import { GhostLayer } from './overlays/GhostLayer';
-import { computeAttackerThreats } from '@/lib/logic/threats';
 import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offense';
-import {
-  activeBallCarrier,
-  activeOffense,
-  getActiveDefenderIds,
-  isActiveAttacker,
-} from '@/lib/logic/players';
-import { simplifyPolyline } from '@/lib/logic/polyline';
+import { getActiveDefenderIds, isActiveAttacker } from '@/lib/logic/players';
+import { useCourtFrame } from '@/hooks/useCourtFrame';
+import { useCourtPointerHandlers } from '@/hooks/useCourtPointerHandlers';
+import { CourtPlayersLayer } from './court/CourtPlayersLayer';
+import { CourtMenus, type CtxMenuState, type ZoneRegionMenuState } from './court/CourtMenus';
 
 interface CourtViewProps {
   state: AppState;
@@ -95,336 +92,46 @@ interface CourtViewProps {
   playbackStartT?: number;
 }
 
-interface PendingAnnotation {
-  type: Tool;
-  fromId: AttackerId;
-  from: Point;
-  to: Point;
-  toId?: AttackerId | null;
-  /** Buffer brut du tracé freehand (Shift+drag), ~1 point par pointermove.
-   *  Simplifié à la fin du drag pour produire `waypoints`. */
-  freehandPath?: Point[];
-  /** Waypoints simplifiés affichés en preview pendant le drag (mis à jour
-   *  toutes les 40 ms environ pour suivre la souris sans saturer le DOM). */
-  waypoints?: Point[];
-}
-
 export function CourtView(props: CourtViewProps) {
   const { state } = props;
   const svgRef = useRef<SVGSVGElement>(null);
-  const [dragging, setDragging] = useState<{ id: PlayerId; isDef: boolean } | null>(null);
-  const dragMoveRef = useRef<{ id: PlayerId; isDef: boolean; x: number; y: number } | null>(null);
-  const dragRafRef = useRef<number | null>(null);
-  const lastDragPointRef = useRef<{ x: number; y: number } | null>(null);
-  const [pending, setPending] = useState<PendingAnnotation | null>(null);
-  type CtxMenuState =
-    | { kind: 'defender'; dId: DefenderId; x: number; y: number }
-    | { kind: 'attacker'; oId: AttackerId; x: number; y: number };
-  const [zoneRegionMenu, setZoneRegionMenu] = useState<{ regionId: string; x: number; y: number } | null>(null);
+  const [zoneRegionMenu, setZoneRegionMenu] = useState<ZoneRegionMenuState | null>(null);
   const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null);
-  const [playFrame, setPlayFrame] = useState<PlaybackFrame | null>(null);
 
-  // Playback animation. Le state vit ici parce qu'il est consommé par le
-  // rendu, mais le calcul de la frame est délégué à `resolveFrameAt` (pure)
-  // et la boucle de tick à `usePlaybackAnimation`.
-  const stateRef = useRef(state);
-  stateRef.current = state;
-
-  const handleTick = useCallback((t: number) => {
-    const cur = stateRef.current;
-    const totalSteps = cur.steps.length - 1;
-    if (totalSteps <= 0) return;
-    if (t >= totalSteps) {
-      setPlayFrame(null);
-      props.onPlaybackTick?.(totalSteps);
-      return;
-    }
-    props.onPlaybackTick?.(t);
-    const frame = resolveFrameAt(cur, t);
-    if (frame) setPlayFrame(frame);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  usePlaybackAnimation({
+  // Frame courante (statique / scrub / play) + threats.
+  const { frame, threatData } = useCourtFrame({
+    state,
     isPlaying: props.isPlaying,
-    speed: props.playbackSpeed,
-    totalSteps: state.steps.length - 1,
-    startT: props.playbackStartT ?? 0,
-    onTick: handleTick,
-    onEnd: props.onPlaybackEnd,
+    playbackSpeed: props.playbackSpeed,
+    playbackStartT: props.playbackStartT ?? 0,
+    scrubT: props.scrubT,
+    onPlaybackTick: props.onPlaybackTick,
+    onPlaybackEnd: props.onPlaybackEnd,
   });
 
-  // Reset du playFrame quand la lecture s'arrête (pause / fin externe).
-  useEffect(() => {
-    if (!props.isPlaying) setPlayFrame(null);
-  }, [props.isPlaying]);
+  const closeCtxMenu = useCallback(() => setCtxMenu(null), []);
+  const closeZoneRegionMenu = useCallback(() => setZoneRegionMenu(null), []);
 
-
-  // Computed (static frame)
-  const staticFrame = useMemo<PlaybackFrame>(() => {
-    const cur = state.steps[state.activeStep];
-    const off = activeOffense(cur.off, state.playerCount);
-    const carrier = activeBallCarrier(cur, state.playerCount);
-    const defPos = effectiveDefensePositions(state, state.activeStep);
-    let screen: ReturnType<typeof detectScreen> = null;
-    let offBallScreens: DetectedOffBallScreen[] = [];
-    if (state.defenseSystem === 'man') {
-      const matchups = getMatchupsAt(state.steps, state.activeStep - 1, state.playerCount);
-      const defPosExtracted = extractDefPositions(defPos);
-      // À step 0 : les défenseurs peuvent être "late" (bloqués loin de leur
-      // cible à cause d'un écran). On détecte l'écran à partir des cibles
-      // idéales pour que l'indicateur reste visible même si D1 n'a pas
-      // physiquement atteint le poseur.
-      const detectionPos = state.activeStep === 0
-        ? buildStep0DetectionPositions(state, off, carrier, matchups, defPosExtracted)
-        : defPosExtracted;
-      screen = detectScreen(off, carrier, matchups, detectionPos, state.screenRadius, cur.forcedScreener);
-      offBallScreens = detectOffBallScreens(off, carrier, matchups, detectionPos, state.screenRadius);
-    }
-    const carrierPos = off[carrier];
-    const ballPos: Point = carrierPos
-      ? { x: carrierPos.x + 16, y: carrierPos.y - 16 }
-      : { x: 0, y: 0 };
-    return {
-      off,
-      defPos,
-      carrier,
-      screen,
-      offBallScreens,
-      stepIdx: state.activeStep,
-      ballPos,
-      ballInFlight: false,
-      attVisuals: computeAttackerVisuals(state, state.activeStep),
-      attackerIsScreening: {},
-      attackerMovementType: {},
-    };
-  }, [state]);
-
-  // Scrub frame (interpolation entre étapes pendant le drag de la timeline).
-  // Réutilise `resolveFrameAt` (même logique que la lecture continue) avec
-  // un stepIdx arrondi pour afficher l'étape la plus proche du curseur.
-  const scrubFrame = useMemo<PlaybackFrame | null>(() => {
-    if (props.scrubT == null) return null;
-    const totalSteps = state.steps.length - 1;
-    if (totalSteps <= 0) return null;
-    const t = Math.max(0, Math.min(totalSteps, props.scrubT));
-    return resolveFrameAt(state, t, { stepIdx: Math.round(t) });
-  }, [props.scrubT, state]);
-
-  const frame = playFrame ?? scrubFrame ?? staticFrame;
-  const threatData = state.showThreats
-    ? computeAttackerThreats(
-        frame.off,
-        frame.defPos,
-        frame.carrier,
-        undefined,
-        state.attackerProfiles
-      )
-    : null;
-
-  // Pointer events
-  const svgPoint = useCallback((evt: React.PointerEvent | PointerEvent): Point => {
-    const svg = svgRef.current!;
-    const pt = svg.createSVGPoint();
-    pt.x = evt.clientX;
-    pt.y = evt.clientY;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return { x: 0, y: 0 };
-    const transformed = pt.matrixTransform(ctm.inverse());
-    return { x: transformed.x, y: transformed.y };
-  }, []);
-
-  const findPlayerAt = useCallback(
-    (pt: Point): PlayerId | null => {
-      const cur = state.steps[state.activeStep];
-      const off = activeOffense(cur.off, state.playerCount);
-      for (const id in off) {
-        if (distance(off[id as AttackerId], pt) < PLAYER_PICK_RADIUS_PX) return id as AttackerId;
-      }
-      const activeDefenders = new Set(getActiveDefenderIds(state.playerCount));
-      for (const id in state.defenseInitial) {
-        if (!activeDefenders.has(id as DefenderId)) continue;
-        if (distance(state.defenseInitial[id as DefenderId], pt) < PLAYER_PICK_RADIUS_PX) return id as DefenderId;
-      }
-      return null;
-    },
-    [state]
-  );
-
-  const queueDragMove = useCallback(
-    (id: PlayerId, isDef: boolean, x: number, y: number) => {
-      dragMoveRef.current = { id, isDef, x, y };
-      if (dragRafRef.current !== null) return;
-      dragRafRef.current = window.requestAnimationFrame(() => {
-        dragRafRef.current = null;
-        const move = dragMoveRef.current;
-        dragMoveRef.current = null;
-        if (!move) return;
-        const last = lastDragPointRef.current;
-        if (last && last.x === move.x && last.y === move.y) return;
-        lastDragPointRef.current = { x: move.x, y: move.y };
-        if (move.isDef) {
-          (props.onMoveDefenderDuringDrag ?? props.onMoveDefender)(
-            move.id as DefenderId,
-            move.x,
-            move.y
-          );
-        } else {
-          (props.onMoveAttackerDuringDrag ?? props.onMoveAttacker)(
-            move.id as AttackerId,
-            move.x,
-            move.y
-          );
-        }
-      });
-    },
-    [
-      props.onMoveAttacker,
-      props.onMoveAttackerDuringDrag,
-      props.onMoveDefender,
-      props.onMoveDefenderDuringDrag,
-    ]
-  );
-
-  const flushDragMove = useCallback(() => {
-    if (dragRafRef.current !== null) {
-      window.cancelAnimationFrame(dragRafRef.current);
-      dragRafRef.current = null;
-    }
-    const move = dragMoveRef.current;
-    dragMoveRef.current = null;
-    if (!move) return;
-    const last = lastDragPointRef.current;
-    if (last && last.x === move.x && last.y === move.y) return;
-    lastDragPointRef.current = { x: move.x, y: move.y };
-    if (move.isDef) {
-      (props.onMoveDefenderDuringDrag ?? props.onMoveDefender)(move.id as DefenderId, move.x, move.y);
-    } else {
-      (props.onMoveAttackerDuringDrag ?? props.onMoveAttacker)(move.id as AttackerId, move.x, move.y);
-    }
-  }, [
-    props.onMoveAttacker,
-    props.onMoveAttackerDuringDrag,
-    props.onMoveDefender,
-    props.onMoveDefenderDuringDrag,
-  ]);
-
-  useEffect(() => {
-    return () => {
-      if (dragRafRef.current !== null) {
-        window.cancelAnimationFrame(dragRafRef.current);
-      }
-    };
-  }, []);
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (e.button === 2) return;
-    setCtxMenu(null);
-    if (props.isPlaying) return;
-    const target = (e.target as Element).closest('g[data-id]');
-    const pt = svgPoint(e);
-
-    if (state.tool === 'move') {
-      if (!target) return;
-      const id = target.getAttribute('data-id') as PlayerId;
-      props.onBeginPlayerDrag?.();
-      lastDragPointRef.current = null;
-      dragMoveRef.current = null;
-      setDragging({ id, isDef: id.startsWith('D') });
-      svgRef.current?.setPointerCapture(e.pointerId);
-      return;
-    }
-
-    const fromId = (target?.getAttribute('data-id') as PlayerId | null) ?? findPlayerAt(pt);
-    if (!fromId || !fromId.startsWith('O')) return;
-    const from = { ...state.steps[state.activeStep].off[fromId as AttackerId] };
-    // Shift+drag = tracé freehand : on enregistre la trajectoire de la souris
-    // pour produire une annotation avec waypoints (V-cut, L-cut, courbe libre).
-    // Pas applicable à `pass` (la passe reste rectiligne par convention).
-    const freehand = e.shiftKey && state.tool !== 'pass';
-    setPending({
-      type: state.tool,
-      fromId: fromId as AttackerId,
-      from,
-      to: pt,
-      freehandPath: freehand ? [from] : undefined,
+  // Pointer/drag + tracé d'annotation.
+  const { pending, svgPoint, onPointerDown, onPointerMove, onPointerUp } =
+    useCourtPointerHandlers({
+      state,
+      svgRef,
+      isPlaying: props.isPlaying,
+      onBeginPlayerDrag: props.onBeginPlayerDrag,
+      onCommitPlayerDrag: props.onCommitPlayerDrag,
+      onMoveAttacker: props.onMoveAttacker,
+      onMoveDefender: props.onMoveDefender,
+      onMoveAttackerDuringDrag: props.onMoveAttackerDuringDrag,
+      onMoveDefenderDuringDrag: props.onMoveDefenderDuringDrag,
+      onAddAnnotation: props.onAddAnnotation,
+      onClearContextMenu: closeCtxMenu,
     });
-    svgRef.current?.setPointerCapture(e.pointerId);
-  };
 
-  const onPointerMove = (e: React.PointerEvent) => {
-    const pt = svgPoint(e);
-    if (dragging && state.tool === 'move') {
-      const maxY = state.fullCourt ? FULL_COURT_INNER_MAX_Y : COURT.innerMaxY;
-      const x = clamp(Math.round(pt.x), COURT.marginX, COURT.innerMaxX);
-      const y = clamp(Math.round(pt.y), COURT.marginY, maxY);
-      queueDragMove(dragging.id, dragging.isDef, x, y);
-      return;
-    }
-    if (pending) {
-      const target = (e.target as Element).closest('g[data-id]');
-      const overId = (target?.getAttribute('data-id') as PlayerId | null) ?? findPlayerAt(pt);
-      const toId = overId && overId.startsWith('O') ? (overId as AttackerId) : null;
-      if (pending.freehandPath) {
-        // Mode freehand : on échantillonne tous les ~6 px pour ne pas saturer
-        // le buffer (un drag long peut générer des centaines de points sinon).
-        const last = pending.freehandPath[pending.freehandPath.length - 1];
-        const sampled = distance(last, pt) >= 6
-          ? [...pending.freehandPath, pt]
-          : pending.freehandPath;
-        // Waypoints affichés en preview = polyline simplifiée intermédiaire
-        // (sans `from`/`to` finaux). Tolérance 5 px : équilibre lisibilité /
-        // fidélité au geste.
-        const simplified = simplifyPolyline([...sampled, pt], 5);
-        const waypoints = simplified.slice(1, -1);
-        setPending({ ...pending, to: pt, toId, freehandPath: sampled, waypoints });
-      } else {
-        setPending({ ...pending, to: pt, toId });
-      }
-    }
-  };
-
-  const onPointerUp = (e: React.PointerEvent) => {
-    if (dragging) {
-      const pt = svgPoint(e);
-      const maxY = state.fullCourt ? FULL_COURT_INNER_MAX_Y : COURT.innerMaxY;
-      const x = clamp(Math.round(pt.x), COURT.marginX, COURT.innerMaxX);
-      const y = clamp(Math.round(pt.y), COURT.marginY, maxY);
-      queueDragMove(dragging.id, dragging.isDef, x, y);
-      flushDragMove();
-      props.onCommitPlayerDrag?.();
-      setDragging(null);
-      return;
-    }
-    if (pending) {
-      const d = distance(pending.from, pending.to);
-      if (d < 15) {
-        setPending(null);
-        return;
-      }
-      // Si freehand : simplifier le buffer brut → waypoints finaux. Tolérance
-      // 6 px = courbes franches préservées, micro-tremblements souris ignorés.
-      let waypoints: Point[] | undefined;
-      if (pending.freehandPath && pending.freehandPath.length > 2) {
-        const fullPath = [...pending.freehandPath, pending.to];
-        const simplified = simplifyPolyline(fullPath, 6);
-        const inner = simplified.slice(1, -1);
-        if (inner.length > 0) waypoints = inner;
-      }
-      props.onAddAnnotation({
-        type: pending.type as Annotation['type'],
-        fromId: pending.fromId,
-        toId: pending.toId ?? null,
-        from: pending.from,
-        to: pending.to,
-        ...(waypoints ? { waypoints } : {}),
-      });
-      setPending(null);
-    }
-  };
-
+  // Clic-droit : suppression directe sur une annotation, sinon ouverture
+  // du context menu du joueur sous le curseur (avec fallback proximité si
+  // un poseur d'écran masque le data-id).
   const onContextMenu = (e: React.MouseEvent) => {
-    // Annotation : suppression directe au clic-droit sur la flèche
     const annotationG = (e.target as Element).closest('g[data-annotation-idx]');
     const annoIdxStr = annotationG?.getAttribute('data-annotation-idx');
     if (annoIdxStr !== null && annoIdxStr !== undefined) {
@@ -446,7 +153,7 @@ export function CourtView(props: CourtViewProps) {
     } else {
       // Fallback : cherche le joueur le plus proche du point cliqué (couvre
       // le cas où un poseur d'écran est rendu au-dessus, masquant le data-id).
-      const pt = svgPoint(e as unknown as React.PointerEvent);
+      const pt = svgPoint(e);
       let bestDist = Infinity;
       (Object.entries(frame.defPos) as [DefenderId, ComputedDefense[DefenderId]][]).forEach(
         ([id, p]) => {
@@ -503,6 +210,8 @@ export function CourtView(props: CourtViewProps) {
       >
         <ArrowMarkers />
         <CourtBackground fullCourt={state.fullCourt} attackingDirection={state.attackingDirection} />
+
+        {/* ---- Couches zone (overlay + edit) ---- */}
         {state.defenseSystem === 'zone' && (() => {
           const activeDefenders = new Set(getActiveDefenderIds(state.playerCount));
           const base = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
@@ -545,6 +254,8 @@ export function CourtView(props: CourtViewProps) {
           }
           return <ZoneOverlay layout={zoneLayout} show />;
         })()}
+
+        {/* ---- Matchups vs ZoneCoverage ---- */}
         {state.defenseSystem === 'zone' ? (() => {
           const activeDefenders = new Set(getActiveDefenderIds(state.playerCount));
           const base = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
@@ -568,6 +279,8 @@ export function CourtView(props: CourtViewProps) {
             highlightSwitches={state.showSwitchMatchups !== false}
           />
         )}
+
+        {/* ---- Overlays arrière (sous les sprites) ---- */}
         <HeatmapOverlay
           defPos={frame.defPos}
           off={frame.off}
@@ -594,130 +307,11 @@ export function CourtView(props: CourtViewProps) {
         {state.showGhosts && state.activeStep > 0 && !props.isPlaying && props.scrubT == null && (
           <GhostLayer state={state} stepIdx={state.activeStep - 1} currentStepIdx={state.activeStep} />
         )}
-        <g>
-          {(() => {
-            const screenerIds = new Set<AttackerId>();
-            if (frame.screen?.screener) screenerIds.add(frame.screen.screener);
-            frame.offBallScreens.forEach((s) => screenerIds.add(s.screener));
-            const forcedScreenerId = state.steps[state.activeStep]?.forcedScreener;
 
-            /**
-             * Retourne un gazeOrientation de remplacement (en degrés, convention
-             * horaire depuis le NORD) pour un attaquant poseur d'écran.
-             *
-             * Quand l'attaquant est en position d'écran ET que frame.screen est
-             * détecté, on oriente son regard vers le défenseur du porteur
-             * (carrierDef) — c'est la cible naturelle du poseur lors d'un pick.
-             *
-             * Retourne undefined si l'une des conditions n'est pas remplie (pas
-             * de screen détecté, positions manquantes), auquel le caller revient
-             * sur la valeur standard issue de attVisuals.
-             *
-             * Note clamp : Player.tsx applique gazeOrientation brut sans clamp
-             * interne. L'angle produit ici est géométriquement cohérent — le
-             * poseur est placé face au défenseur qu'il écran, donc l'angle
-             * résultant reste dans ±90° du corps. Pas de clamp explicite nécessaire.
-             */
-            const screenerGazeOverride = (id: AttackerId): number | undefined => {
-              if (!frame.attackerIsScreening?.[id]) return undefined;
-              if (!frame.screen) return undefined;
-              const carrierDefId = frame.screen.carrierDef;
-              const target = frame.defPos[carrierDefId];
-              if (!target) return undefined;
-              const screenerPos = frame.off[id];
-              if (!screenerPos) return undefined;
-              const dx = target.x - screenerPos.x;
-              const dy = target.y - screenerPos.y;
-              // atan2 donne l'angle trigonométrique (0=est, CCW). On convertit en
-              // convention horaire depuis le NORD : angle = atan2(dx, -dy) en degrés.
-              return (Math.atan2(dx, -dy) * 180) / Math.PI;
-            };
+        {/* ---- Sprites joueurs ---- */}
+        <CourtPlayersLayer state={state} frame={frame} />
 
-            return (
-              <>
-                {(Object.entries(frame.off) as [AttackerId, Point][])
-                  .filter(([id]) => !screenerIds.has(id))
-                  .map(([id, pos]) => {
-                    const gazeOverride = screenerGazeOverride(id);
-                    const finalGaze = gazeOverride !== undefined
-                      ? gazeOverride
-                      : frame.attVisuals[id]?.gazeOrientation;
-                    return (
-                      <Player
-                        key={id}
-                        id={id}
-                        pos={pos}
-                        isAttacker
-                        isForcedScreener={id === forcedScreenerId}
-                        showLockBadges={state.showLockBadges !== false}
-                        showForcedScreenerBadge={state.showForcedScreenerBadge !== false}
-                        orientation={frame.attVisuals[id]?.orientation}
-                        gazeOrientation={finalGaze}
-                        facing={frame.attVisuals[id]?.facing}
-                        armBallSide={frame.attVisuals[id]?.armBallSide}
-                        armManSide={frame.attVisuals[id]?.armManSide}
-                        isScreening={frame.attackerIsScreening?.[id] === true}
-                      />
-                    );
-                  })}
-                {(Object.entries(frame.defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(
-                  ([id, p]) => (
-                    <Player
-                      key={id}
-                      id={id}
-                      pos={p}
-                      isAttacker={false}
-                      isCarrierDefender={p.isCarrierDefender}
-                      isLate={p.late}
-                      onScreen={p.onScreen}
-                      screenPhase={p.screenPhase}
-                      helpFactor={p.helpFactor}
-                      facing={p.facing}
-                      isOverridden={!!state.steps[state.activeStep]?.defenseOverrides?.[id]}
-                      closingOut={p.closingOut}
-                      overClosed={p.overClosed}
-                      denying={p.denying}
-                      pnrRole={p.pnrRole}
-                      orientation={p.orientation}
-                      gazeOrientation={p.gazeOrientation}
-                      armBallSide={p.armBallSide}
-                      armManSide={p.armManSide}
-                      showStateRings={state.showStateRings !== false}
-                      showLockBadges={state.showLockBadges !== false}
-                      showLateRing={state.showLateRing !== false}
-                      showCloseoutRing={state.showCloseoutRing !== false}
-                      showDenyingRing={state.showDenyingRing !== false}
-                    />
-                  )
-                )}
-                {Array.from(screenerIds).map((id) => {
-                  if (!frame.off[id]) return null;
-                  const gazeOverride = screenerGazeOverride(id);
-                  const finalGaze = gazeOverride !== undefined
-                    ? gazeOverride
-                    : frame.attVisuals[id]?.gazeOrientation;
-                  return (
-                    <Player
-                      key={`screener-${id}`}
-                      id={id}
-                      pos={frame.off[id]}
-                      isAttacker
-                      isForcedScreener={id === forcedScreenerId}
-                      showLockBadges={state.showLockBadges !== false}
-                      showForcedScreenerBadge={state.showForcedScreenerBadge !== false}
-                      orientation={frame.attVisuals[id]?.orientation}
-                      gazeOrientation={finalGaze}
-                      facing={frame.attVisuals[id]?.facing}
-                      armBallSide={frame.attVisuals[id]?.armBallSide}
-                      armManSide={frame.attVisuals[id]?.armManSide}
-                      isScreening={frame.attackerIsScreening?.[id] === true}
-                    />
-                  );
-                })}
-              </>
-            );
-          })()}
-        </g>
+        {/* ---- Overlays avant (au-dessus des sprites) ---- */}
         {/* Badges % de menace + flèche meilleure action — rendus APRÈS les
             joueurs pour passer AU-DESSUS des icônes (~17px de rayon). */}
         {threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="badges" />}
@@ -728,6 +322,8 @@ export function CourtView(props: CourtViewProps) {
           if (!best) return null;
           return <BestActionOverlay off={frame.off} carrier={carrier} best={best} show />;
         })()}
+
+        {/* ---- Annotations + preview ---- */}
         <g>
           {state.steps[frame.stepIdx]?.annotations
             .map((annotation, index) => ({ annotation, index }))
@@ -753,6 +349,7 @@ export function CourtView(props: CourtViewProps) {
             ))}
           {pending && pending.from && <AnnotationView annotation={pending as Annotation} preview />}
         </g>
+
         <PassLanesOverlay
           off={frame.off}
           defPos={frame.defPos}
@@ -761,9 +358,7 @@ export function CourtView(props: CourtViewProps) {
           showContested={state.showContestedPass !== false}
           showBlocked={state.showBlockedPass !== false}
         />
-        {state.showHelpDebug && (
-          <HelpDebugOverlay defPos={frame.defPos} />
-        )}
+        {state.showHelpDebug && <HelpDebugOverlay defPos={frame.defPos} />}
         {state.showScreenIndicators !== false && (
           <ScreenIndicator
             screen={frame.screen}
@@ -797,6 +392,8 @@ export function CourtView(props: CourtViewProps) {
         <Ball pos={frame.ballPos} inFlight={frame.ballInFlight} />
         {threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="badges" />}
       </svg>
+
+      {/* ---- Badge "lecture en cours" ---- */}
       {props.isPlaying && (
         <div
           style={{
@@ -822,81 +419,28 @@ export function CourtView(props: CourtViewProps) {
           </span>
         </div>
       )}
-      {ctxMenu?.kind === 'defender' && (
-        <ContextMenu
-          kind="defender"
-          dId={ctxMenu.dId}
-          x={ctxMenu.x}
-          y={ctxMenu.y}
-          rule={state.rules[ctxMenu.dId]}
-          hasOverride={!!state.steps[state.activeStep]?.defenseOverrides?.[ctxMenu.dId]}
-          isCarrierDefender={frame.defPos[ctxMenu.dId]?.isCarrierDefender}
-          tool={state.tool}
-          onSetTool={props.onSetTool}
-          onUpdate={(p) => props.onUpdateRule(ctxMenu.dId, p)}
-          onApplyProfile={(profile) => props.onApplyDefenderProfile(ctxMenu.dId, profile)}
-          onClearOverride={() => props.onClearDefenseOverride(ctxMenu.dId)}
-          onClose={() => setCtxMenu(null)}
-        />
-      )}
-      {ctxMenu?.kind === 'attacker' && (() => {
-        const oId = ctxMenu.oId;
-        const cur = state.steps[state.activeStep];
-        return (
-          <ContextMenu
-            kind="attacker"
-            oId={oId}
-            x={ctxMenu.x}
-            y={ctxMenu.y}
-            isCarrier={cur ? activeBallCarrier(cur, state.playerCount) === oId : false}
-            isForcedScreener={cur?.forcedScreener === oId}
-            hasAnnotations={(cur?.annotations ?? []).some((a) => a.fromId === oId)}
-            dominantHand={state.attackerHands?.[oId] ?? 'right'}
-            offensiveProfile={state.attackerProfiles?.[oId] ?? 'creator'}
-            tool={state.tool}
-            onSetTool={props.onSetTool}
-            onMakeCarrier={() => props.onSetBallCarrier(oId)}
-            onForceScreener={() => props.onSetForcedScreener(oId)}
-            onClearForcedScreener={() => props.onSetForcedScreener(null)}
-            onClearAnnotations={() => props.onClearAnnotationsFor(oId)}
-            onSetDominantHand={(h) => props.onSetAttackerHand(oId, h)}
-            onSetOffensiveProfile={(p) => props.onSetAttackerProfile(oId, p)}
-            bodyOrientation={state.attackerOrientations?.[oId]?.body}
-            gazeOrientation={state.attackerOrientations?.[oId]?.gaze}
-            onSetBodyOrientation={(v) => props.onSetAttackerOrientation(oId, { body: v })}
-            onSetGazeOrientation={(v) => props.onSetAttackerOrientation(oId, { gaze: v })}
-            onClose={() => setCtxMenu(null)}
-          />
-        );
-      })()}
-      {zoneRegionMenu && state.defenseSystem === 'zone' && state.zoneEditMode && (() => {
-        const base = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
-        const oriented = state.attackingDirection === 'down' ? mirrorZoneLayout(base) : base;
-        const activeDefenders = new Set(getActiveDefenderIds(state.playerCount));
-        const layout = applyZoneOverrides(oriented, state.zoneOverrides).filter((z) =>
-          activeDefenders.has(z.assignedTo)
-        );
-        const region = layout.find((r) => r.id === zoneRegionMenu.regionId);
-        if (!region) return null;
-        return (
-          <ZoneRegionMenu
-            region={region}
-            x={zoneRegionMenu.x}
-            y={zoneRegionMenu.y}
-            onUpdate={(patch) => props.onSetZoneOverride(zoneRegionMenu.regionId, patch)}
-            onReset={() => props.onClearZoneOverride(zoneRegionMenu.regionId)}
-            onClose={() => setZoneRegionMenu(null)}
-          />
-        );
-      })()}
+
+      {/* ---- Menus contextuels ---- */}
+      <CourtMenus
+        state={state}
+        frame={frame}
+        ctxMenu={ctxMenu}
+        zoneRegionMenu={zoneRegionMenu}
+        onSetTool={props.onSetTool}
+        onCloseCtxMenu={closeCtxMenu}
+        onCloseZoneRegionMenu={closeZoneRegionMenu}
+        onUpdateRule={props.onUpdateRule}
+        onApplyDefenderProfile={props.onApplyDefenderProfile}
+        onClearDefenseOverride={props.onClearDefenseOverride}
+        onSetBallCarrier={props.onSetBallCarrier}
+        onSetForcedScreener={props.onSetForcedScreener}
+        onClearAnnotationsFor={props.onClearAnnotationsFor}
+        onSetAttackerHand={props.onSetAttackerHand}
+        onSetAttackerProfile={props.onSetAttackerProfile}
+        onSetAttackerOrientation={props.onSetAttackerOrientation}
+        onSetZoneOverride={props.onSetZoneOverride}
+        onClearZoneOverride={props.onClearZoneOverride}
+      />
     </div>
   );
-}
-
-function extractDefPositions(defPos: ComputedDefense): Record<DefenderId, Point> {
-  const out = {} as Record<DefenderId, Point>;
-  (Object.entries(defPos) as [DefenderId, ComputedDefense[DefenderId]][]).forEach(([id, p]) => {
-    out[id] = { x: p.x, y: p.y };
-  });
-  return out;
 }

@@ -1,0 +1,158 @@
+// Calcule la PlaybackFrame courante de CourtView :
+//
+//  - `staticFrame` (mémoïsée sur state)         → frame de l'étape active
+//  - `scrubFrame`  (mémoïsée sur scrubT)        → interpolation timeline drag
+//  - `playFrame`   (state, posé par handleTick) → frame de la lecture continue
+//
+// La frame effective = playFrame ?? scrubFrame ?? staticFrame.
+//
+// On en dérive `threatData` (anneaux de menace) si `state.showThreats`.
+//
+// Câble aussi `usePlaybackAnimation` et expose son tick au caller via
+// `onPlaybackTick` (pour mettre à jour le slider parent).
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type {
+  AppState,
+  ComputedDefense,
+  DefenderId,
+  DetectedOffBallScreen,
+  Point,
+} from '@/lib/types';
+import {
+  computeAttackerVisuals,
+  effectiveDefensePositions,
+  getMatchupsAt,
+} from '@/lib/logic/engine';
+import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
+import { activeBallCarrier, activeOffense } from '@/lib/logic/players';
+import { buildStep0DetectionPositions } from '@/lib/logic/step0Detection';
+import { resolveFrameAt, type PlaybackFrame } from '@/lib/logic/playback/frameResolver';
+import { computeAttackerThreats } from '@/lib/logic/threats';
+import { usePlaybackAnimation } from '@/hooks/usePlaybackAnimation';
+
+interface UseCourtFrameOptions {
+  state: AppState;
+  isPlaying: boolean;
+  playbackSpeed: number;
+  playbackStartT: number;
+  scrubT: number | null | undefined;
+  onPlaybackTick?: (t: number) => void;
+  onPlaybackEnd?: () => void;
+}
+
+export interface UseCourtFrameResult {
+  frame: PlaybackFrame;
+  threatData: ReturnType<typeof computeAttackerThreats> | null;
+}
+
+function extractDefPositions(defPos: ComputedDefense): Record<DefenderId, Point> {
+  const out = {} as Record<DefenderId, Point>;
+  (Object.entries(defPos) as [DefenderId, ComputedDefense[DefenderId]][]).forEach(([id, p]) => {
+    out[id] = { x: p.x, y: p.y };
+  });
+  return out;
+}
+
+export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
+  const { state, isPlaying, playbackSpeed, playbackStartT, scrubT, onPlaybackTick, onPlaybackEnd } = opts;
+
+  const [playFrame, setPlayFrame] = useState<PlaybackFrame | null>(null);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  const handleTick = useCallback((t: number) => {
+    const cur = stateRef.current;
+    const totalSteps = cur.steps.length - 1;
+    if (totalSteps <= 0) return;
+    if (t >= totalSteps) {
+      setPlayFrame(null);
+      onPlaybackTick?.(totalSteps);
+      return;
+    }
+    onPlaybackTick?.(t);
+    const frame = resolveFrameAt(cur, t);
+    if (frame) setPlayFrame(frame);
+    // onPlaybackTick volontairement hors deps : on lit stateRef, et changer
+    // d'identité de callback ne doit pas re-créer la boucle d'animation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  usePlaybackAnimation({
+    isPlaying,
+    speed: playbackSpeed,
+    totalSteps: state.steps.length - 1,
+    startT: playbackStartT,
+    onTick: handleTick,
+    onEnd: onPlaybackEnd,
+  });
+
+  // Reset du playFrame quand la lecture s'arrête (pause / fin externe).
+  useEffect(() => {
+    if (!isPlaying) setPlayFrame(null);
+  }, [isPlaying]);
+
+  // Frame statique (étape active, sans interpolation).
+  const staticFrame = useMemo<PlaybackFrame>(() => {
+    const cur = state.steps[state.activeStep];
+    const off = activeOffense(cur.off, state.playerCount);
+    const carrier = activeBallCarrier(cur, state.playerCount);
+    const defPos = effectiveDefensePositions(state, state.activeStep);
+    let screen: ReturnType<typeof detectScreen> = null;
+    let offBallScreens: DetectedOffBallScreen[] = [];
+    if (state.defenseSystem === 'man') {
+      const matchups = getMatchupsAt(state.steps, state.activeStep - 1, state.playerCount);
+      const defPosExtracted = extractDefPositions(defPos);
+      // À step 0 : les défenseurs peuvent être "late" (bloqués loin de leur
+      // cible à cause d'un écran). On détecte l'écran à partir des cibles
+      // idéales pour que l'indicateur reste visible même si D1 n'a pas
+      // physiquement atteint le poseur.
+      const detectionPos = state.activeStep === 0
+        ? buildStep0DetectionPositions(state, off, carrier, matchups, defPosExtracted)
+        : defPosExtracted;
+      screen = detectScreen(off, carrier, matchups, detectionPos, state.screenRadius, cur.forcedScreener);
+      offBallScreens = detectOffBallScreens(off, carrier, matchups, detectionPos, state.screenRadius);
+    }
+    const carrierPos = off[carrier];
+    const ballPos: Point = carrierPos
+      ? { x: carrierPos.x + 16, y: carrierPos.y - 16 }
+      : { x: 0, y: 0 };
+    return {
+      off,
+      defPos,
+      carrier,
+      screen,
+      offBallScreens,
+      stepIdx: state.activeStep,
+      ballPos,
+      ballInFlight: false,
+      attVisuals: computeAttackerVisuals(state, state.activeStep),
+      attackerIsScreening: {},
+      attackerMovementType: {},
+    };
+  }, [state]);
+
+  // Scrub frame (interpolation entre étapes pendant le drag de la timeline).
+  // Même logique que la lecture continue avec un stepIdx arrondi pour afficher
+  // l'étape la plus proche du curseur.
+  const scrubFrame = useMemo<PlaybackFrame | null>(() => {
+    if (scrubT == null) return null;
+    const totalSteps = state.steps.length - 1;
+    if (totalSteps <= 0) return null;
+    const t = Math.max(0, Math.min(totalSteps, scrubT));
+    return resolveFrameAt(state, t, { stepIdx: Math.round(t) });
+  }, [scrubT, state]);
+
+  const frame = playFrame ?? scrubFrame ?? staticFrame;
+  const threatData = state.showThreats
+    ? computeAttackerThreats(
+        frame.off,
+        frame.defPos,
+        frame.carrier,
+        undefined,
+        state.attackerProfiles
+      )
+    : null;
+
+  return { frame, threatData };
+}
