@@ -21,20 +21,13 @@ import type {
   ComputedDefense,
   DefenderId,
   DefenderPositions,
-  DetectedOffBallScreen,
   Point,
 } from '../../types';
 import { buildStep0DetectionPositions } from '../step0Detection';
 import { getZoneLayout, mirrorZoneLayout } from '../../data/zones';
 import { DEFAULT_CLOSEOUT_BOOST, MIN_PLAYER_CLEARANCE_PX } from '../../data/physics';
-import {
-  PLAYER_CLUSTER_BASE_R_PX,
-  PLAYER_CLUSTER_LINK_DIST_PX,
-} from '../../data/court';
 import { closeoutProfileBonus } from '../help';
-import { detectOffBallScreens, detectScreen } from '../screens';
 import {
-  makeCluster,
   pathArcLength,
   pickBlockingCluster,
   proximityFriction,
@@ -56,17 +49,16 @@ import {
 import { recomputeDefenseFrameOrientations } from './frameAdjust';
 import {
   anticipationTarget,
-  findScreenQuality,
   screenPenaltyFromQuality,
 } from '../screenPhysics';
+import {
+  appendStepScreenObstacles,
+  detectScreenContext,
+  screenQualityByDef,
+  type ScreenObstacle,
+} from '../screenContext';
 
 export { screenPenaltyFromQuality } from '../screenPhysics';
-
-interface ScreenerCluster {
-  center: Point;
-  radius: number;
-  defenderToSkip: DefenderId;
-}
 
 interface EffectiveDefenseCacheDeps {
   steps: AppState['steps'];
@@ -211,7 +203,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
   // en une seule masse). Seulement en défense individuelle — la zone n'a pas de
   // détection d'écran formelle. Mirroite la logique de CourtView pour que la
   // physique du moteur et le rendu du scrub utilisent les MÊMES obstacles.
-  const screenerObstacles: ScreenerCluster[] = [];
+  const screenerObstacles: ScreenObstacle[] = [];
   // Qualité des écrans courants/précédents : 0-100, 50 par défaut. Module
   // la pénalité de vitesse par défenseur, porteur comme hors-ballon.
   const currentScreenQualityByDef: Partial<Record<DefenderId, number>> = {};
@@ -236,35 +228,20 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
     const detectionPositions: DefenderPositions = stepIdx === 0
       ? buildStep0DetectionPositions(state, curOff, carrier, matchupsForScreen, prevPositions)
       : prevPositions;
-    const screen = detectScreen(
-      curOff, carrier, matchupsForScreen, detectionPositions, state.screenRadius, cur.forcedScreener, prevOffEff
-    );
-    const offBallScreens = detectOffBallScreens(
-      curOff, carrier, matchupsForScreen, detectionPositions, state.screenRadius, prevOffEff
-    );
-    if (screen) {
-      const sPos = curOff[screen.screener];
-      // À step 0, on utilise la position de détection (cible homme-à-homme)
-      // pour D-screener afin que le cluster soit centré sur l'écran réel et
-      // non entre O3 et la défense initiale (qui est loin du jeu).
-      const sDef = detectionPositions[screen.screenerDef];
-      const c = makeCluster(sPos, [sDef], PLAYER_CLUSTER_LINK_DIST_PX, PLAYER_CLUSTER_BASE_R_PX);
-      screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: screen.screenerDef });
-      currentScreenQualityByDef[screen.carrierDef] = findScreenQuality(
-        [state.steps[stepIdx], state.steps[stepIdx - 1]],
-        screen.screener
-      );
-    }
-    offBallScreens.forEach((s) => {
-      const sPos = curOff[s.screener];
-      const sDef = detectionPositions[s.screenerDef];
-      const c = makeCluster(sPos, [sDef], PLAYER_CLUSTER_LINK_DIST_PX, PLAYER_CLUSTER_BASE_R_PX);
-      screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: s.screenerDef });
-      currentScreenQualityByDef[s.cutterDef] = offBallScreenQuality(
-        [state.steps[stepIdx], state.steps[stepIdx - 1]],
-        s
-      );
+    const ctx = detectScreenContext({
+      off: curOff,
+      carrier,
+      matchups: matchupsForScreen,
+      defenderPositions: detectionPositions,
+      screenRadius: state.screenRadius,
+      forcedScreener: cur.forcedScreener,
+      prevOff: prevOffEff,
     });
+    appendStepScreenObstacles(screenerObstacles, ctx, curOff, detectionPositions);
+    Object.assign(
+      currentScreenQualityByDef,
+      screenQualityByDef(ctx, [state.steps[stepIdx], state.steps[stepIdx - 1]])
+    );
 
     if (stepIdx > 0) {
       const prevIdx = stepIdx - 1;
@@ -286,33 +263,19 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
             activeDefenseInitial(state.defenseInitial, state.playerCount)
           )
         : extractDefenderPositions(computeDefenseTargets(state, prevIdx - 1, false).positions);
-      const previousScreen = detectScreen(
-        prevStepOff,
-        prevCarrier,
-        prevMatchups,
-        prevStepStartPositions,
-        state.screenRadius,
-        prevStep.forcedScreener,
-        prevPrevOff
-      );
-      if (previousScreen) {
-        previousScreenQualityByDef[previousScreen.carrierDef] =
-          findScreenQuality([prevStep, state.steps[prevIdx - 1]], previousScreen.screener);
-      }
-      const previousOffBallScreens = detectOffBallScreens(
-        prevStepOff,
-        prevCarrier,
-        prevMatchups,
-        prevStepStartPositions,
-        state.screenRadius,
-        prevPrevOff
-      );
-      previousOffBallScreens.forEach((s) => {
-        previousScreenQualityByDef[s.cutterDef] = offBallScreenQuality(
-          [prevStep, state.steps[prevIdx - 1]],
-          s
-        );
+      const previousCtx = detectScreenContext({
+        off: prevStepOff,
+        carrier: prevCarrier,
+        matchups: prevMatchups,
+        defenderPositions: prevStepStartPositions,
+        screenRadius: state.screenRadius,
+        forcedScreener: prevStep.forcedScreener,
+        prevOff: prevPrevOff,
       });
+      Object.assign(
+        previousScreenQualityByDef,
+        screenQualityByDef(previousCtx, [prevStep, state.steps[prevIdx - 1]])
+      );
     }
   }
 
@@ -531,13 +494,4 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
   recomputeDefenseFrameOrientations(state, offAtStep, curCarrier, out);
 
   return out;
-}
-
-function offBallScreenQuality(
-  steps: Array<AppState['steps'][number] | undefined>,
-  screen: DetectedOffBallScreen
-): number {
-  const primary = findScreenQuality(steps, screen.screener);
-  if (!screen.secondScreener) return primary;
-  return Math.max(primary, findScreenQuality(steps, screen.secondScreener));
 }

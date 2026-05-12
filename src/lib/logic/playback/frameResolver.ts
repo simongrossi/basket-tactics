@@ -14,6 +14,7 @@ import type {
   ComputedDefense,
   DefenderId,
   DetectedOffBallScreen,
+  DetectedScreen,
   Point,
 } from '@/lib/types';
 import {
@@ -24,12 +25,10 @@ import {
   getMatchupsAt,
   recomputeDefenseFrameOrientations,
 } from '../engine';
-import { detectOffBallScreens, detectScreen } from '../screens';
 import {
   computeBallFrame,
   curveAroundObstacle,
   curveAroundStaggeredPair,
-  makeCluster,
   pickBlockingCluster,
   pickStaggeredPair,
   resolvePlayerCollisions,
@@ -39,31 +38,36 @@ import { attackerTrajectoryAt, type MovementType } from '../playbackTrajectory';
 import { lerpAngleDeg } from '../angles';
 import { buildStep0DetectionPositions } from '../step0Detection';
 import {
-  PLAYER_CLUSTER_BASE_R_PX,
-  PLAYER_CLUSTER_LINK_DIST_PX,
   PLAYER_MIN_CLEARANCE_PX,
   PLAYER_OBSTACLE_RADIUS_PX,
 } from '@/lib/data/court';
 import {
   carrierApexSlownessFromQuality,
   carrierScreenRoutePreference,
-  contactQualityForRule,
   effectiveScreenRuleForDef,
-  findScreenQuality,
   forcedPushSignForRoute,
   offBallScreenRoutePreference,
   screenContactAdhesion,
   screenContactPhase,
   screenContactT,
   screenContactTangentRelease,
-  type ScreenContactMode,
 } from '../screenPhysics';
+import {
+  buildSegmentScreenObstacles,
+  defenderScreenContact,
+  detectScreenContext,
+  emptyScreenContext,
+  hasCarrierScreenAnnotation,
+  screenContactScreenerPoint,
+  type ScreenContext,
+  type ScreenObstacle,
+} from '../screenContext';
 
 export interface PlaybackFrame {
   off: AttackerPositions;
   defPos: ComputedDefense;
   carrier: AttackerId;
-  screen: ReturnType<typeof detectScreen>;
+  screen: DetectedScreen | null;
   offBallScreens: DetectedOffBallScreen[];
   stepIdx: number;
   ballPos: Point;
@@ -78,12 +82,6 @@ export interface ResolveFrameOptions {
    *  (utilisé par le playback continu). Le scrub passe `Math.round(t)`
    *  pour afficher le step le plus proche du curseur. */
   stepIdx?: number;
-}
-
-interface ScreenerObstacle {
-  center: Point;
-  radius: number;
-  defenderToSkip: DefenderId;
 }
 
 /**
@@ -128,7 +126,7 @@ export function resolveFrameAt(
     let p = traj.position;
 
     if (traj.movementType === 'cut' || traj.movementType === 'idle') {
-      const obstacles: ScreenerObstacle[] = [];
+      const obstacles: ScreenObstacle[] = [];
       attackerIds.forEach((other) => {
         if (other === id) return;
         obstacles.push({
@@ -158,10 +156,9 @@ export function resolveFrameAt(
   // ---------------------------------------------------------------------
   const carrierA = activeBallCarrier(a, state.playerCount);
   const carrierB = activeBallCarrier(b, state.playerCount);
-  let screenA: ReturnType<typeof detectScreen> = null;
-  let screenB: ReturnType<typeof detectScreen> = null;
-  let offBallScreensA: DetectedOffBallScreen[] = [];
-  let offBallScreensB: DetectedOffBallScreen[] = [];
+  let ctxA: ScreenContext = emptyScreenContext();
+  let ctxB: ScreenContext = emptyScreenContext();
+  let currentCtx: ScreenContext = emptyScreenContext();
   // STABILISATION DU CARRIER : on n'utilise PLUS le switch à t=0.5
   // (`carrier = localT < 0.5 ? carrierA : carrierB`) qui créait un saut de
   // contexte à mi-segment lors d'une passe. On prend systématiquement le
@@ -170,17 +167,29 @@ export function resolveFrameAt(
   // flag carrier. Le contexte d'écran reste cohérent pendant tout le
   // segment ; les détections endpoints (screenA/B) couvrent les deux cas.
   const carrier = carrierB;
-  let screen: ReturnType<typeof detectScreen> = null;
+  let screen: DetectedScreen | null = null;
   let offBallScreens: DetectedOffBallScreen[] = [];
   if (state.defenseSystem === 'man') {
     const matchupsA = getMatchupsAt(state.steps, Math.max(0, idxA - 1), state.playerCount);
     const matchupsB = getMatchupsAt(state.steps, Math.max(0, idxB - 1), state.playerCount);
     const defPlainA = plainDefPositions(defA);
     const defPlainB = plainDefPositions(defB);
-    screenA = detectScreen(offA, carrierA, matchupsA, defPlainA, state.screenRadius, a.forcedScreener);
-    screenB = detectScreen(offB, carrierB, matchupsB, defPlainB, state.screenRadius, b.forcedScreener);
-    offBallScreensA = detectOffBallScreens(offA, carrierA, matchupsA, defPlainA, state.screenRadius);
-    offBallScreensB = detectOffBallScreens(offB, carrierB, matchupsB, defPlainB, state.screenRadius);
+    ctxA = detectScreenContext({
+      off: offA,
+      carrier: carrierA,
+      matchups: matchupsA,
+      defenderPositions: defPlainA,
+      screenRadius: state.screenRadius,
+      forcedScreener: a.forcedScreener,
+    });
+    ctxB = detectScreenContext({
+      off: offB,
+      carrier: carrierB,
+      matchups: matchupsB,
+      defenderPositions: defPlainB,
+      screenRadius: state.screenRadius,
+      forcedScreener: b.forcedScreener,
+    });
 
     const matchups = getMatchupsAt(state.steps, Math.max(0, idxB - 1), state.playerCount);
     const defPosLinear = {} as Record<DefenderId, Point>;
@@ -192,15 +201,23 @@ export function resolveFrameAt(
       : defPosLinear;
     // forcedScreener pris UNIQUEMENT sur step B (pas de bascule à t=0.5).
     const forced = b.forcedScreener;
-    screen = detectScreen(off, carrier, matchups, detectionPos, state.screenRadius, forced);
-    offBallScreens = detectOffBallScreens(off, carrier, matchups, detectionPos, state.screenRadius);
+    currentCtx = detectScreenContext({
+      off,
+      carrier,
+      matchups,
+      defenderPositions: detectionPos,
+      screenRadius: state.screenRadius,
+      forcedScreener: forced,
+    });
+    screen = currentCtx.screen;
+    offBallScreens = currentCtx.offBallScreens;
   }
 
   // ---------------------------------------------------------------------
   // 3. Obstacles "cluster" (poseur + son défenseur) pour contourner les
   //    écrans pendant le segment. Position MOYENNE A↔B → obstacle stable.
   // ---------------------------------------------------------------------
-  const screenerObstacles: ScreenerObstacle[] = [];
+  const screenerObstacles: ScreenObstacle[] = [];
   // Clusters d'écran (porteur + off-ball) construits UNIQUEMENT depuis les
   // détections STABLES aux endpoints (screenA, screenB), pas depuis la
   // détection courante interpolée `screen`. Pourquoi :
@@ -213,22 +230,7 @@ export function resolveFrameAt(
   // En n'utilisant que les endpoints, le cluster est soit présent toute la
   // transition (screen détecté à un endpoint), soit absent toute la
   // transition. Pas de flicker.
-  const seenScreenerDefs = new Set<DefenderId>();
-  const addClusterFromScreen = (
-    screenerId: AttackerId,
-    screenerDef: DefenderId
-  ) => {
-    if (seenScreenerDefs.has(screenerDef)) return;
-    seenScreenerDefs.add(screenerDef);
-    const sPos = midpoint(offA[screenerId], offB[screenerId]);
-    const sDef = midpoint(defA[screenerDef], defB[screenerDef]);
-    const c = makeCluster(sPos, [sDef], PLAYER_CLUSTER_LINK_DIST_PX, PLAYER_CLUSTER_BASE_R_PX);
-    screenerObstacles.push({ center: c.center, radius: c.radius, defenderToSkip: screenerDef });
-  };
-  if (screenA) addClusterFromScreen(screenA.screener, screenA.screenerDef);
-  if (screenB) addClusterFromScreen(screenB.screener, screenB.screenerDef);
-  offBallScreensA.forEach((s) => addClusterFromScreen(s.screener, s.screenerDef));
-  offBallScreensB.forEach((s) => addClusterFromScreen(s.screener, s.screenerDef));
+  screenerObstacles.push(...buildSegmentScreenObstacles(ctxA, ctxB, offA, offB, defA, defB));
 
   // ---------------------------------------------------------------------
   // 4. Positions défenseurs — interpolation linéaire + courbe d'évitement.
@@ -254,43 +256,18 @@ export function resolveFrameAt(
     // Le OR avec defA créait un saut de contexte mid-segment quand un défenseur
     // changeait de rôle (carrier↔off-ball) pendant la transition (ex passe).
     const isCarrierDef = defB[id].isCarrierDefender;
-    const carrierContactA = screenA?.carrierDef === id;
-    const carrierContactB = screenB?.carrierDef === id;
-    const offBallContactA = offBallScreensA.find((s) => s.cutterDef === id);
-    const offBallContactB = offBallScreensB.find((s) => s.cutterDef === id);
-    const offBallContact = offBallContactB ?? offBallContactA;
-    // Détection STABLE basée uniquement sur les endpoints A/B. On exclut
-    // `screen`/`offBallScreens` (détections courantes interpolées) qui
-    // peuvent fire/unfire pendant le scrub si D1 et le poseur se croisent
-    // mid-segment — créant un flicker de screenMode → de effT → de
-    // l'adhésion → D1 saute visuellement.
-    const carrierContact = isCarrierDef && (carrierContactA || carrierContactB);
-    const aOn = carrierContactA || !!offBallContactA;
-    const bOn = carrierContactB || !!offBallContactB;
-    let screenMode: ScreenContactMode | null = null;
-    if (carrierContact || offBallContact) {
-      if (aOn && bOn) screenMode = 'stuck';
-      else if (!aOn && bOn) screenMode = 'arriving';
-      else if (aOn && !bOn) screenMode = 'leaving';
-    }
-
-    // Qualité d'écran applicable : lit l'annotation 'screen' sur le step
-    // pertinent. Pour 'leaving', c'est l'annotation du step idxA ; pour
-    // 'arriving'/'stuck', celle de idxB (sinon idxA en fallback).
-    let modeQuality = 50;
-    if (screenMode) {
-      const lookupSteps = screenMode === 'leaving'
-        ? [state.steps[idxA]]
-        : [state.steps[idxB], state.steps[idxA]];
-      const contactScreen = screenMode === 'leaving'
-        ? screenA
-        : screenB ?? screen ?? screenA;
-      const screenerId = offBallContact?.screener ?? (contactScreen?.carrierDef === id ? contactScreen.screener : undefined);
-      modeQuality = findScreenQuality(lookupSteps, screenerId);
-      if (carrierContact) {
-        modeQuality = contactQualityForRule(modeQuality, effectiveScreenRuleForDef(state, id), screenMode);
-      }
-    }
+    const contact = defenderScreenContact({
+      state,
+      defenderId: id,
+      isCarrierDef,
+      ctxA,
+      ctxB,
+      currentCtx,
+      idxA,
+      idxB,
+    });
+    const screenMode = contact.mode;
+    const modeQuality = contact.quality;
     // Time-remap sigmoïdal qui FIGE D1 sur le poseur (smooth, sans
     // discontinuité de vélocité). Pour les autres défenseurs ou hors
     // écran, identité = localT.
@@ -304,7 +281,8 @@ export function resolveFrameAt(
     const isImpactB = defB[id].screenPhase === 'impact';
     // Annotation utilisateur dans step A ou B (poseur slip non détecté
     // par la géométrie). Ne lock que pour le défenseur du porteur.
-    const hasUserScreen = isCarrierDef && (hasScreenAnnotationFor(a, carrierA, id) || hasScreenAnnotationFor(b, carrierB, id));
+    const hasUserScreen = isCarrierDef &&
+      (hasCarrierScreenAnnotation(a, carrierA) || hasCarrierScreenAnnotation(b, carrierB));
     // Pour la stabilisation, on lock SEULEMENT si l'écran a une qualité
     // non-triviale. À quality < 10 (ghost = faux écran), l'utilisateur
     // indique explicitement qu'il n'y a pas de vrai contact ; D1 doit
@@ -331,8 +309,8 @@ export function resolveFrameAt(
           off,
           defenseHoop
         )
-      : offBallContact
-        ? offBallScreenRoutePreference(offBallContact, state.offBallScreenRule, off[carrier])
+      : contact.offBallContact
+        ? offBallScreenRoutePreference(contact.offBallContact, state.offBallScreenRule, off[carrier])
         : null;
     let forcedPushSign = routePreference
       ? forcedPushSignForRoute(defA[id], defB[id], routePreference)
@@ -385,7 +363,7 @@ export function resolveFrameAt(
       }
     }
     const adhesion = screenContactAdhesion(localT, modeQuality, screenMode);
-    if (adhesion > 0) {
+    if (adhesion > 0 && screenMode) {
       // Position du poseur FIGÉE au moment du contact (pas l'interpolation
       // courante). En basket réel, D1 reste où il s'est fait bumper — il
       // ne suit pas le poseur qui slip ou roll après l'impact. Sans cet
@@ -393,18 +371,16 @@ export function resolveFrameAt(
       // contactPoint flip de côté → D1 saute visuellement.
       //  - leaving : impact au début (idxA) → utiliser offA
       //  - arriving / stuck : impact à la fin (idxB) → utiliser offB
-      const contactOff = screenMode === 'leaving' ? offA : offB;
-      const contactScreener = carrierContactScreener(
-        id,
-        screenMode === 'leaving' ? screenA : (screenB ?? screenA),
-        contactOff
-      ) ?? offBallContactScreener(
-        screenMode === 'leaving' ? offBallContactA : (offBallContactB ?? offBallContactA),
-        contactOff
-      ) ?? annotationScreenerPoint(
-        screenMode === 'leaving' ? [state.steps[idxA]] : [state.steps[idxB], state.steps[idxA]],
-        contactOff
-      );
+      const contactScreener = screenContactScreenerPoint({
+        contact,
+        mode: screenMode,
+        offA,
+        offB,
+        stepA: state.steps[idxA],
+        stepB: state.steps[idxB],
+        ctxA,
+        ctxB,
+      });
       if (contactScreener) {
         // ANCRAGE du point de contact, STABLE pour toute la transition :
         //  - arriving : anchor = defB (position stuck à la fin). D1 va vers
@@ -511,63 +487,6 @@ function plainDefPositions(def: ComputedDefense): Record<DefenderId, Point> {
   return out;
 }
 
-/**
- * Si l'utilisateur a dessiné une annotation 'screen' dans `step` ciblant
- * `carrier` (toId ou implicite), retourne l'attaquant qui en est le poseur.
- */
-function annotationScreenerFor(
-  step: AppState['steps'][number] | undefined,
-  carrier: AttackerId
-): AttackerId | undefined {
-  if (!step) return undefined;
-  const ann = step.annotations.find(
-    (a) => a.type === 'screen' && a.fromId !== carrier && (a.toId == null || a.toId === carrier)
-  );
-  return ann?.fromId;
-}
-
-/**
- * Vrai si l'utilisateur a dessiné une annotation 'screen' avec une qualité
- * NON-NULLE dans `step` pour le porteur. Sert à stabiliser le défenseur du
- * porteur contre followDefendersAtFrame quand la géométrie ne détecte pas
- * formellement l'écran. À quality=0 (ghost = faux écran), le lock ne fire
- * pas et D1 continue à suivre O1 normalement.
- */
-function hasScreenAnnotationFor(
-  step: AppState['steps'][number] | undefined,
-  carrier: AttackerId,
-  _defenderId: DefenderId
-): boolean {
-  if (!step) return false;
-  const ann = step.annotations.find(
-    (a) => a.type === 'screen' && a.fromId !== carrier && (a.toId == null || a.toId === carrier)
-  );
-  if (!ann) return false;
-  // Quality ≥ 10 = écran "réel" (au moins loose). Quality < 10 = ghost,
-  // l'utilisateur indique explicitement que c'est un faux écran, donc on
-  // n'applique aucune stabilisation spéciale.
-  const quality = ann.quality ?? 50;
-  return quality >= 10;
-}
-
-function carrierContactScreener(
-  defenderId: DefenderId,
-  screen: ReturnType<typeof detectScreen>,
-  off: AttackerPositions
-): Point | null {
-  if (!screen || screen.carrierDef !== defenderId) return null;
-  const screener = off[screen.screener];
-  return screener ?? null;
-}
-
-function offBallContactScreener(
-  screen: DetectedOffBallScreen | undefined,
-  off: AttackerPositions
-): Point | null {
-  if (!screen) return null;
-  return off[screen.screener] ?? screen.screenerPos;
-}
-
 function radialContactPoint(point: Point, screener: Point): Point {
   const away = { x: point.x - screener.x, y: point.y - screener.y };
   let len = Math.hypot(away.x, away.y);
@@ -612,17 +531,4 @@ function tangentReleasePoint(
     x: contactPoint.x + tangent.x * sign * tangentDist * t + ux * outwardDist * t,
     y: contactPoint.y + tangent.y * sign * tangentDist * t + uy * outwardDist * t,
   };
-}
-
-function annotationScreenerPoint(
-  steps: Array<AppState['steps'][number] | undefined>,
-  off: AttackerPositions
-): Point | null {
-  for (const st of steps) {
-    const ann = st?.annotations.find((a) => a.type === 'screen');
-    if (!ann) continue;
-    const id = ann.fromId as AttackerId;
-    return off[id] ?? ann.to ?? ann.from;
-  }
-  return null;
 }
