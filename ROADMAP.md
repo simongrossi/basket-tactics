@@ -613,15 +613,69 @@ Cette phase pose les fondations pour la suite (closeout réaliste, end-of-clock 
 Affinement du moteur défensif existant. Pas de changement de scope —
 juste plus de fidélité tactique.
 
-| # | Chantier | Effort | Risque | Valeur |
-|---|---|---|---|---|
-| C.1 | **Closeout footwork** : sprint au début, freinage avec high hands quand près du shooter. Modélisé via courbe d'accélération sur la dernière transition. | 2-3j | 🟡 | Haut |
-| C.2 | **Help-and-recover timing** : aide N steps configurables puis recover. Aujourd'hui retour instantané au step suivant. Lié à B.1 (durée step). | 3j | 🟡 | Haut |
-| C.3 | **Hedge length** : combien de steps D5 sort avant recovery (1 vs 2 vs 3). Setting `hedgeRecoveryDelay: number`. | 1-2j | 🟢 | Moyen-haut |
-| C.4 | **Pre-rotation shift** : anticipation AVANT que l'écran soit posé (slider `anticipation` existe mais ne shift pas pré-screen). Module les positions du step où l'attaquant s'approche. | 1-2j | 🟡 | Moyen |
-| C.5 | **Tag-then-switch dynamic** : low man tag, puis switch onto roller au lieu de revenir. Décision step-based selon dist roller/panier. | 1-2j | 🟡 | Moyen |
-| C.6 | **Help angle** : court angle (épaule) vs angle ouvert (face panier). Aujourd'hui binaire via `bodyOrientationMode`. Nuance angulaire continue. | 1-2j | 🟡 | Moyen |
-| C.7 | **Read offensive action chains** : flare → curl → fade. Le moteur détecte chaque écran isolément, pas de continuité de pattern. | 2-3j | 🔴 | Moyen-haut |
+| # | Chantier | Effort | Risque | Valeur | Statut |
+|---|---|---|---|---|---|
+| ~~C.1~~ | ~~**Closeout footwork** : sprint+freinage via `closeoutEasing`~~ | — | — | — | 🟢 livré 2026-05-12 (7 tests, 721 verts) |
+| C.2 | **Help-and-recover timing** : aide N steps configurables puis recover. Aujourd'hui retour instantané au step suivant. Lié à B.1 (durée step). | 3-4h V1 / 3j V2 | 🟡 | Haut | ⚪ détaillé ci-dessous |
+| ~~C.3~~ | ~~**Hedge length** : `hedgeRecoveryDelay` (1..3 steps)~~ | — | — | — | 🟢 livré 2026-05-12 (8 tests, 732 verts) |
+| ~~C.4~~ | ~~**Pre-rotation shift** : anticipation pré-écran (~10 px)~~ | — | — | — | 🟢 livré 2026-05-12 (10 tests, 746 verts) |
+| ~~C.5~~ | ~~**Tag-then-switch dynamic** : `tagThenSwitchEnabled`~~ | — | — | — | 🟢 livré 2026-05-12 (4 tests, 736 verts) |
+| ~~C.6~~ | ~~**Help angle** : mode `open-weighted` (distances)~~ | — | — | — | 🟢 livré 2026-05-12 (3 tests, 724 verts) |
+| C.7 | **Read offensive action chains** : flare → curl → fade. Le moteur détecte chaque écran isolément, pas de continuité de pattern. | 6-8h V1+V2 | 🟡 | Moyen-haut | ⚪ détaillé ci-dessous |
+
+#### ⚪ C.2 — Help-and-recover timing — détail du plan
+
+**Problème actuel.** Un défenseur aide au step N (helpTriggered=true), puis
+revient instantanément sur son homme au step N+1. Pas de notion "il faut
+1-2 secondes avant recovery", donc en match enchaîné rapidement, l'aide
+disparaît avant même que la menace passe.
+
+**V1 (livrable sans dépendance B.1)** — compteur step-based.
+- Helper pur `defense/helpStepCounter.ts` : `consecutiveHelpSteps(state, stepIdx, defenderId)` qui compte combien de steps consécutifs en remontant ont eu `helpTriggered === true` sur ce défenseur. Pattern strictement identique à `consecutiveHedgeSteps` (C.3) → utilise `approxDefenderPositions` pour éviter récursion.
+- Setting opt-in `state.helpStickiness?: number` (range 1-3, default undefined = comportement legacy).
+- Couche d'intégration `defense/helpStickyLayer.ts` (après baseTargets, avant pnrLayer) : si le défenseur n'est plus en `helpTriggered` à ce step MAIS l'était au step précédent ET `consecutiveHelpSteps(stepIdx-1) < helpStickiness`, on **maintient** sa position d'aide (offset vers le porteur) pour ce step.
+- UI : slider "durée d'aide" dans la section *Couvertures avancées* (valeurs auto/1/2/3 steps).
+- Tests : 4-5 (helper + 2-3 intégration + monotonie).
+
+**V2 (avec B.1 step.duration livré)** — conversion temps réel.
+- `helpStickiness` devient un seuil en **ms** (range 0-2000, default undefined).
+- `consecutiveHelpSteps` retourne le **temps cumulé** au lieu d'un compteur.
+- Plus fidèle basket (1.2 s d'aide ≈ standard NBA).
+
+**Estimation** : V1 3-4h, V2 +2h une fois B.1 livré.
+
+#### ⚪ C.7 — Read offensive action chains — détail du plan
+
+**Problème actuel.** Une action complexe = enchaînement de plusieurs
+écrans (flare → curl → fade, stagger sequential, re-screen, curl-into-cut)
+est détectée step par step **sans continuité**. La défense ne "lit" pas
+la séquence — elle réagit au 2ᵉ acte comme si le 1er n'avait jamais eu
+lieu, donc se fait avoir par les mêmes patterns en boucle.
+
+**V1 — Chain detection only (pas de modif comportement).**
+- Helper pur `screens/detectScreenChain.ts` qui scanne N-2 / N-1 / N (lookback 3 frames) pour identifier 4 patterns :
+  - **`re-screen`** : même poseur sur même cutter à 2 steps non consécutifs (déjà partiellement couvert par C.4 snake mais pour le porteur uniquement)
+  - **`stagger-sequential`** : 2 poseurs différents successivement sur le même cutter (≤ 2 steps d'écart)
+  - **`flare-then-fade`** : cutter écran-flare au step N-2/N-1, puis fade hors-ballon vers le coin au step N (delta y du cutter inversé)
+  - **`curl-then-recut`** : cutter coupe (vers panier), ressort (loin du panier au step suivant), recoupe (vers panier au 3ᵉ)
+- Retour `ScreenChain | null` avec `type`, `cutter: AttackerId`, `steps: [stepIdx, ...]`.
+- Règles coach dédiées dans `coachDiagnostics/rules/screenChain.ts` (4 sous-règles, 1 par pattern).
+- Badge SVG visuel par chaîne détectée (chaînon `🔗` sur le cutter, info-bulle au hover).
+
+**V2 — La défense réagit.**
+- Setting opt-in `state.readScreenChainsEnabled?: boolean`.
+- Effet par pattern :
+  - `re-screen` détecté → +20 quality effective sur le 2ᵉ acte
+  - `stagger-sequential` → bascule `top-lock → chase` au 2ᵉ poseur (déjà fait par C.B9 cutterScreenChain — réutiliser ce câblage)
+  - `flare-then-fade` → le défenseur du cutter passe en `gazeLock: 'opponent'` pour rester avec le shooter (no help)
+  - `curl-then-recut` → le défenseur du cutter shifte 8 px vers la ligne 3 points (anticipation du recut)
+- Pas de modification matchups, juste qualité/règles locales.
+
+**Tests** : 4 patterns × (1-2 cas négatifs + 1 cas positif) + 2 cas intégration V2 = ~12 tests.
+
+**Estimation** : 4-5h V1, +2h V2.
+
+**Risque 🟡** : intersection avec C.4 (snake) et B9 (cutterScreenChain) — doit être conçu pour ne pas double-déclencher.
 
 ---
 
@@ -654,11 +708,129 @@ de possession. Reset shot clock à 14 s (rebond offensif) ou switch possession.
 
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
-| F.1 | **Junk defenses** (box-and-1, triangle-and-2, diamond-and-1) : 1-2 chasseurs en homme + reste en zone. Nouveau `state.defenseSystem: 'junk'`. | 3-4j | 🟡 | Moyen (niveau pro) |
-| F.2 | **Press full-court / half-court** : pression tout terrain. Nouvelle `defensePressure: 'half' \| 'full'`. Trap au franchissement central. | 3-4j | 🔴 | Moyen |
-| F.3 | **Free throw rebound positioning** : 5v5 spécifique sur le rebond LF (joueurs alignés sur les blocs). | 1-2j | 🟢 | Moyen |
-| F.4 | **End-of-quarter foul to give** : foul stratégique pour réinitialiser horloge. | 1j | 🟢 | Faible |
-| F.5 | **Late shot clock defense** : pas de fouls, contest tout. Couplé à B.3. | 1j | 🟢 | Moyen |
+| F.1 | **Junk defenses** (box-and-1, triangle-and-2, diamond-and-1) | 6h V1 / 2j V2 | 🟡 | Moyen-haut |
+| F.2 | **Press full/half-court** : pression tout terrain | 10-12h V1 | 🔴 | Moyen |
+| F.3 | **Free throw rebound positioning** : 5v5 sur le rebond LF | 4h V1 | 🟢 | Moyen |
+| F.4 | **End-of-quarter foul to give** : foul stratégique | 2-3h V1 | 🟢 | Faible (diag only) |
+| F.5 | **Late shot clock defense** : modulation globale | 3h V1 | 🟢 | Moyen |
+
+#### ⚪ F.1 — Junk defenses — détail du plan
+
+**Concept.** Défense hybride : 3-4 joueurs en zone autour de la raquette,
+1-2 chasseurs en homme strict sur les shooters adverses. Utilisé en
+niveau lycée/college NCAA contre une équipe à 1-2 stars marqués.
+
+**V1 — Box-and-1 seul.**
+- Nouveau `DefenseSystem`: `'junk'` à côté de `'man'` / `'zone'`.
+- Nouveau champ `state.junkConfig?: { type: 'box-and-1'; chaser: AttackerId }`.
+- Couche dédiée `defense/junkLayer.ts` exécutée **avant baseTargets** (ou en remplacement) quand `defenseSystem === 'junk'` :
+  - 4 défenseurs (≠ chaser's defender) sur 4 slots prédéfinis (corners de la raquette : 2 hauts, 2 bas).
+  - 1 défenseur sur `chaser` en marquage strict via override `vsCarrier: 'topside'` + `offBallStance: 'deny-3q'`.
+- Slot zone géométrique = `(hoop.x ± 80, hoop.y ± 60)`, calibré FIBA.
+- Le défenseur du chaser **ne quitte jamais** le chaser (helpMode='disabled' forcé).
+- UI : select `Système → junk` → sous-options "type" + "chaser (par nom)".
+- Réutilise les briques offBallStance/vsCarrier existantes. Aucune refonte matchups.
+- Tests : 4-5 (positions box, chaser suit, chaser tag-along, switch désactivé).
+
+**V2 — Triangle-and-2 + Diamond-and-1.**
+- Étend `junkConfig.type` à `'triangle-and-2' | 'diamond-and-1'`.
+- `triangle-and-2` : 3 défenseurs en triangle (1 haut, 2 bas) + **2 chasseurs**.
+- `diamond-and-1` : 4 défenseurs en diamant (1 haut, 2 ailes, 1 bas) + 1 chasseur. Géométrie 1-2-1 typique NCAA.
+
+**Estimation** : V1 6h, V2 +6h. **Valeur** : permet de simuler des
+défenses non-conventionnelles très demandées par les coachs lycée/U18.
+
+#### ⚪ F.2 — Press full/half-court — détail du plan
+
+**Concept.** Pression tout terrain : la défense reste côté offensif après
+une réussite et harcèle la remise en jeu / la montée de balle. Très
+chronophage à implémenter car contredit l'hypothèse "tout le jeu côté
+défense" du moteur actuel.
+
+**V1 — Half-court trap presse "2-2-1".**
+- Nouveau flag `state.pressMode?: 'half-court' | undefined` (V1 ne fait pas full-court).
+- Géométrie quand `pressMode === 'half-court'` :
+  - 2 défenseurs sur la ligne médiane (D2, D3) en `vsCarrier: 'topside'`
+  - 2 défenseurs dans la zone de relais (D1, D4) en `offBallStance: 'fronting'`
+  - 1 protecteur arrière au centre du terrain (D5) en `behind`
+- Trigger trap : **réutilise** `applyTrap` existant. Quand le porteur franchit la ligne médiane (côté offensif), 2 défenseurs proches sautent dessus.
+- Inversion partielle de `getDefenseHoop` : les défenseurs regardent vers leur propre panier (le panier OFFENSE pendant la presse).
+- Pas de "vrai" full-court : pas de simulation d'inbounds, pas de turnover, pas de retraite si la presse est cassée.
+- UI : sélecteur "Pression : aucune / half-court" dans DefensePanel.
+- Tests : 4-5 (positions presse, trap au franchissement, orientation joueurs).
+
+**V2 — Full-court + retreat.**
+- `pressMode: 'full-court'` : positions encore plus hautes (côté inbound).
+- Retraite progressive si porteur dépasse la ligne médiane (60 % du chemin → retour homme-à-homme).
+
+**Estimation** : V1 10-12h (le plus coûteux des F.*), V2 +2j.
+**Risque 🔴** : touche `getDefenseHoop` (orientation par défaut des défenseurs) et plusieurs hypothèses du moteur. **À éviter sauf demande coach explicite.**
+
+#### ⚪ F.3 — FT rebound positioning — détail du plan
+
+**Concept.** Sur un lancer franc, les 10 joueurs occupent 6 slots
+normalisés autour de la raquette (NBA/FIBA rules). Defense prend cases
+1-3 (intérieures, plus proches du panier), offense prend cases 2-4.
+
+**V1 — Positions statiques.**
+- Nouveau champ `Step.context?: 'live-play' | 'free-throw'` (default `'live-play'`).
+- Quand `context === 'free-throw'` :
+  - Positions des 10 joueurs **forcées** sur les 6 slots normalisés relatifs au panier :
+    - Defense slots 1+3 (bas de la raquette) + 1 trail (libre throw line) + 1 weak-side outlet (3pt opposé)
+    - Offense slots 2+4 (proches panier) + 1 shooter sur ligne de tir + 1 outlet
+  - 1 attaquant supplémentaire en backcourt (transition defense).
+- Setup automatique via `applyFreeThrowSetup(state)` au moment où on convertit un step.
+- UI : bouton "convertir en LF" dans le panneau étape.
+- Pas de simulation du tir lui-même — juste positions statiques visualisables (utile pour rappels visuels coach).
+- Tests : 3-4 (setup applique 10 positions, contexte préservé sur step suivant, conversion réversible).
+
+**Estimation** : V1 4h. Pas de V2 prévue (sauf à ajouter rebond offensif/défensif post-shot, qui touche E.1).
+
+#### ⚪ F.4 — End-of-quarter foul to give — détail du plan
+
+**Concept.** Si l'équipe en défense a < 5 fautes au quart-temps, elle
+peut "foul to give" sur les dernières secondes pour empêcher un
+tir-au-buzzer. Stratégie ultra-courante NBA/EuroLeague.
+
+**V1 — Diagnostic + badge.**
+- Nouveau champ `step.clockSeconds?: number` (sec restantes au quart). Si absent, helper inactif.
+- Nouveau champ `state.defenseTeamFouls?: number` (fautes équipe défense au quart, default 0). Range 0-5.
+- Helper pur `defense/detectFoulToGiveOpportunity.ts` qui détecte :
+  - `step.clockSeconds < 5`
+  - `state.defenseTeamFouls < 5`
+  - Porteur en mouvement vers le panier (`triggers.drive === true` ou delta vers hoop > 30 px)
+- Affiche un **badge SVG** sur le défenseur du porteur : cercle rouge `🟥 FOUL TO GIVE` + info-bulle.
+- Pas de modif des positions (V1 = coach voit l'opportunité, agit en plaçant manuellement).
+- Tests : 4-5 (positifs + 3 négatifs : fautes ≥ 5, clock > 5s, pas de drive).
+
+**V2 — La défense modifie sa trajectoire.**
+- Sous condition `state.foulToGiveAutoEnabled`, le carrierDef change de cible pour intercepter physiquement (collision target sur le porteur).
+- Ajoute un flag `step.simulatedFoul: DefenderId` qui freeze le step suivant.
+
+**Estimation** : V1 2-3h (juste détection + badge), V2 +3h.
+
+#### ⚪ F.5 — Late shot clock defense — détail du plan
+
+**Concept.** Sous les 5 dernières secondes du shot clock, la défense
+sait que l'attaquant DOIT shooter. Donc : contest tout, no fouls, no
+help (pas besoin de couvrir un dump-off ou un kick-out).
+
+**V1 — Modulation globale.**
+- Nouveau champ `step.shotClockRemaining?: number` (sec restantes au shot clock, default 24).
+- Setting `state.lateShotClockDefenseEnabled?: boolean` (opt-in).
+- Effet quand `shotClockRemaining < 5` ET flag activé :
+  - Tous les `closeoutBoost` boostés ×1.3 (closeout encore plus rapide)
+  - Tous les `helpMode` forcés à `'passive'` (no help, contest direct)
+  - Tous les `vsCarrier` poussés vers `'contester'` (haute pression sur le porteur)
+- Couche d'intégration `defense/lateShotClockLayer.ts` (après baseTargets, avant pnrLayer) : applique les modulations en mutant `positions` et flags.
+- UI : checkbox + champ "shot clock restant" dans le step panel.
+- Tests : 4-5 (modulation active, pas active si flag off, pas active si clock > 5).
+
+**V2 — Intégration timeline.**
+- Calcul automatique de `shotClockRemaining` à partir des durées cumulées (dépend B.1 et B.2).
+- Reset auto à 24/14 sur tir / rebond offensif (dépend E.1).
+
+**Estimation** : V1 3h. V2 dépend de B.1+B.2+E.1 livrés.
 
 ---
 
@@ -700,23 +872,51 @@ original). **1-2 semaines** d'effort. Repoussé par décision projet.
 
 ### Synthèse — ordre conseillé
 
-**Cette semaine** (~6h) : A.1 + A.2 + A.3 + B.1 → débloque shot clock,
+**Phase C — état au 2026-05-12** : 5/7 livrés (C.1, C.3, C.4, C.5, C.6).
+Reste **C.2** (3-4h V1) et **C.7** (6-8h V1+V2).
+
+**Cette semaine** (~6h) : A.2 + A.3 + B.1 → débloque shot clock,
 défense end-of-clock, plus de finesse coach.
 
 **Cette semaine étendue** (~3-4j) : A.* complet + B.* complet → fondations
 temps + UI accessibles. Le moteur passe à 100% utilisable côté coach.
 
-**Mois suivant** (~2 semaines) : C.* (réalisme physique modéré) +
+**Mois suivant** (~2 semaines) : C.2 + C.7 (réalisme défensif final) +
 quelques D.* (lissage, trajectoires de passes). Le moteur passe d'un
 simulateur "tactique" à un simulateur "tactique + visuel réaliste".
 
+**Quick wins F.* à intercaler** : F.4 + F.5 (~5-6h cumulés) — ajoutent
+2 sliders de réalisme à faible coût, surtout après B.1 livré (champ
+clock natif).
+
 **Trimestre suivant** : E.1 (box-out/rebond, demi-jeu) — le changement
-de scope qui ouvre le jeu complet. Suivi de F.* selon les besoins.
+de scope qui ouvre le jeu complet. Suivi de F.1 (junk) + F.3 (FT
+rebound) selon les besoins.
 
 **À traiter en parallèle dès que possible** : G.1 (doc calibration) qui
 clarifie le scope du moteur (tactique vs sprint réel).
 
+**À reporter sauf demande explicite** : F.2 (press full-court, 10-12h
+V1, refonte `getDefenseHoop`).
+
 **Long terme** : H.* (tests composants) + I.* (Play IA).
+
+### Récap statut phase C+F (mai 2026)
+
+| Item | Statut | Tests | Commit |
+|------|--------|-------|--------|
+| C.1 Closeout footwork | 🟢 livré | 7 | `8b65aa6` |
+| C.2 Help-and-recover | ⚪ détaillé (V1 sans dép, V2 dép B.1) | — | — |
+| C.3 Hedge length | 🟢 livré | 8 | `5758086` |
+| C.4 Pre-rotation | 🟢 livré | 10 | `9f2e21a` |
+| C.5 Tag-then-switch | 🟢 livré | 4 | `18bf440` |
+| C.6 Help angle continu | 🟢 livré | 3 | `0c3d9ae` |
+| C.7 Action chains | ⚪ détaillé (V1 chain detection, V2 réaction) | — | — |
+| F.1 Junk defenses | ⚪ détaillé (V1 box-and-1) | — | — |
+| F.2 Press | ⚪ détaillé (V1 half-court) | — | — |
+| F.3 FT rebound | ⚪ détaillé (V1 positions statiques) | — | — |
+| F.4 Foul to give | ⚪ détaillé (V1 diag+badge) | — | — |
+| F.5 Late shot clock | ⚪ détaillé (V1 modulation globale) | — | — |
 
 ---
 
