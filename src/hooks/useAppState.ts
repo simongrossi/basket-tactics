@@ -199,6 +199,10 @@ export function useAppState() {
     setStateWithHistory((s) => stepTx.setBallCarrier(s, carrier));
   }, [setStateWithHistory]);
 
+  const convertStepToFreeThrow = useCallback(() => {
+    setStateWithHistory(stepTx.convertStepToFreeThrow);
+  }, [setStateWithHistory]);
+
   // -- Joueurs (positions) --
   // Note : moves utilisent `playerMove` directement (déjà extrait), pas un
   // transform dédié, pour éviter une double indirection sur le chemin chaud.
@@ -490,6 +494,7 @@ export function useAppState() {
     clearAllDefenseOverridesActiveStep,
     setStepLabel,
     setBallCarrier,
+    convertStepToFreeThrow,
     loadTemplate,
     clearDefenseOverride,
     applyDefensePreset,

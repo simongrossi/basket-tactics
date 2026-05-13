@@ -13,6 +13,9 @@ interface OffensePanelProps {
   onSetStepLabel: (idx: number, label: string) => void;
   onSetBallCarrier: (carrier: AttackerId) => void;
   onDeleteAnnotation: (idx: number) => void;
+  /** F.3 — Convertit le step actif en setup de lancer franc (10 positions
+   *  réglementaires sur le couloir des LF + tireur + outlets 3pt). */
+  onConvertToFreeThrow?: () => void;
   tool: Tool;
   onSetTool: (t: Tool) => void;
 }
@@ -158,6 +161,14 @@ export function OffensePanel(props: OffensePanelProps) {
                     </span>
                   )}
                   {s.switches && <span style={{ fontSize: 10, color: '#999' }}>↔</span>}
+                  {s.context === 'free-throw' && (
+                    <span
+                      style={{ fontSize: 10, color: '#92400e', background: '#fef3c7', padding: '1px 4px', borderRadius: 3, fontWeight: 600 }}
+                      title="Lancer franc — positions réglementaires figées"
+                    >
+                      🏀 LF
+                    </span>
+                  )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#78716c' }}>
                   <span>porteur</span>
@@ -245,6 +256,32 @@ export function OffensePanel(props: OffensePanelProps) {
           <Button theme="offense" onClick={props.onDuplicateStep}>dup.</Button>
           <Button theme="offense" onClick={props.onDeleteStep}>suppr.</Button>
         </div>
+        {props.onConvertToFreeThrow && (
+          <div style={{ marginTop: 4 }}>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('Convertir cette étape en lancer franc ? Les 10 joueurs seront repositionnés sur les emplacements réglementaires.')) {
+                  props.onConvertToFreeThrow!();
+                }
+              }}
+              style={{
+                width: '100%',
+                fontSize: 10,
+                padding: '4px 6px',
+                borderRadius: 4,
+                border: '1px solid #f59e0b',
+                background: '#fff',
+                color: '#92400e',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+              title="Force les 10 positions sur les 6 slots du couloir LF + tireur + outlets 3pt. Marque le step comme context='free-throw'."
+            >
+              🏀 convertir en lancer franc
+            </button>
+          </div>
+        )}
       </Section>
     </Panel>
   );

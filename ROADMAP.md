@@ -710,7 +710,7 @@ de possession. Reset shot clock à 14 s (rebond offensif) ou switch possession.
 |---|---|---|---|---|
 | F.1 | **Junk defenses** (box-and-1, triangle-and-2, diamond-and-1) | 6h V1 / 2j V2 | 🟡 | Moyen-haut |
 | F.2 | **Press full/half-court** : pression tout terrain | 10-12h V1 | 🔴 | Moyen |
-| F.3 | **Free throw rebound positioning** : 5v5 sur le rebond LF | 4h V1 | 🟢 | Moyen |
+| ~~F.3~~ | ~~**Free throw rebound positioning** : 10 positions canoniques + transform + badge UI~~ | — | — | — | 🟢 livré 2026-05-13 (11 tests, 899 verts) |
 | F.4 | **End-of-quarter foul to give** : foul stratégique | 2-3h V1 | 🟢 | Faible (diag only) |
 | F.5 | **Late shot clock defense** : modulation globale | 3h V1 | 🟢 | Moyen |
 

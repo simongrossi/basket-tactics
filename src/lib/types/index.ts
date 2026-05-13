@@ -115,6 +115,10 @@ export interface Step {
    *  ne pas les considérer pour le matching manualOverride, etc. Les positions
    *  sont interpolées linéairement. */
   isInterpolated?: boolean;
+  /** F.3 — Contexte du step. `'free-throw'` indique un lancer franc : les 10
+   *  positions sont sur les 6 slots du couloir LF (blocks défense + slots
+   *  offense + outlets 3pt). Default implicite : `'live-play'`. */
+  context?: 'live-play' | 'free-throw';
 }
 
 // =============================================================

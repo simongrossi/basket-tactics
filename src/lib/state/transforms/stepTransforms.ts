@@ -4,6 +4,7 @@
 
 import type { AppState, AttackerId, Step } from '@/lib/types';
 import { makeStep } from '@/lib/data/initial';
+import { buildFreeThrowSetup } from '@/lib/logic/freeThrowSetup';
 
 export function setActiveStep(s: AppState, idx: number): AppState {
   return { ...s, activeStep: Math.max(0, Math.min(s.steps.length - 1, idx)) };
@@ -55,4 +56,41 @@ export function setBallCarrier(s: AppState, carrier: AttackerId): AppState {
   const steps = [...s.steps];
   steps[s.activeStep] = { ...steps[s.activeStep], ballCarrier: carrier };
   return { ...s, steps };
+}
+
+/**
+ * F.3 — Convertit le step actif en setup de lancer franc (rebound
+ * positioning FIBA 5v5). Force les 10 positions sur les 6 slots du
+ * couloir LF + 1 tireur + 2 outlets 3pt. Pose `step.context = 'free-throw'`
+ * pour permettre aux couches en aval (UI, diagnostics) de réagir. Le
+ * tireur devient le ballCarrier. Les annotations existantes sont effacées
+ * (le LF est un setup figé, pas une action).
+ *
+ * Pour revenir au jeu live, l'utilisateur supprime le step ou en duplique
+ * un précédent.
+ */
+export function convertStepToFreeThrow(s: AppState): AppState {
+  const ft = buildFreeThrowSetup();
+  const cur = s.steps[s.activeStep];
+  if (!cur) return s;
+  const steps = [...s.steps];
+  steps[s.activeStep] = {
+    ...cur,
+    off: ft.off,
+    ballCarrier: ft.shooter,
+    annotations: [],
+    context: 'free-throw',
+    // Force les défenseurs sur leurs positions LF (sinon le moteur les
+    // recalcule sur les attaquants en mode man-to-man et casse le setup).
+    defenseOverrides: ft.def,
+    // Pas d'écran à un LF — clear toute détection forcée.
+    forcedScreener: undefined,
+    // Marque comme override manuel pour préserver le step en cas de
+    // recompilation de scénario.
+    manualOverride: true,
+  };
+  // Synchronise `defenseInitial` quand on convertit le step 0 (édition libre).
+  const defenseInitial =
+    s.activeStep === 0 ? ft.def : s.defenseInitial;
+  return { ...s, steps, defenseInitial };
 }

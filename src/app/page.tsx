@@ -173,6 +173,7 @@ export default function Page() {
               onSetStepLabel={app.setStepLabel}
               onSetBallCarrier={app.setBallCarrier}
               onDeleteAnnotation={app.deleteAnnotation}
+              onConvertToFreeThrow={app.convertStepToFreeThrow}
               tool={app.state.tool}
               onSetTool={app.setTool}
             />
