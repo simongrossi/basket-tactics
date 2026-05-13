@@ -7,6 +7,13 @@ import type {
 import { HOOP } from '../data/court';
 import { distance } from './geometry';
 import { computeAttackerThreats, shotZoneFor } from './threats';
+import {
+  buildEJO,
+  corridorBlockers,
+  readEJP,
+  EJO_CORRIDOR_WIDE_PX,
+  type EJPSector,
+} from './tactical';
 
 /**
  * Phase B de la simulation : évaluation des options offensives depuis l'état
@@ -74,6 +81,60 @@ function nearestDefenderDistance(pos: Point, defPos: ComputedDefense): number {
   return min;
 }
 
+function nearestDefenderPos(pos: Point, defPos: ComputedDefense): Point | null {
+  let min = Infinity;
+  let best: Point | null = null;
+  Object.values(defPos).forEach((d) => {
+    const p = { x: d.x, y: d.y };
+    const dd = distance(p, pos);
+    if (dd < min) {
+      min = dd;
+      best = p;
+    }
+  });
+  return best;
+}
+
+function defenderPositionsRecord(defPos: ComputedDefense): Record<string, Point> {
+  const out: Record<string, Point> = {};
+  for (const [id, d] of Object.entries(defPos)) {
+    out[id] = { x: d.x, y: d.y };
+  }
+  return out;
+}
+
+/** Bearing world (0° = nord, horaire) du vecteur `from → to` en degrés. */
+function bearingDegFromTo(from: Point, to: Point): number {
+  const vx = to.x - from.x;
+  const vy = to.y - from.y;
+  return (Math.atan2(vx, -vy) * 180) / Math.PI;
+}
+
+// =============================================================
+// Tuning EJO / EJP (branche A — enrichissement Mérand/Vandevelde)
+// =============================================================
+
+/** Pénalité par défenseur dans le couloir ballon→panier (large = 2.5 m). */
+export const DRIVE_CORRIDOR_BLOCKER_PENALTY = 0.25;
+/** Plancher de la pénalité de couloir saturé (ne va pas à 0 — un drive reste
+ *  toujours faisable, même contre 3 hommes alignés). */
+export const DRIVE_CORRIDOR_FLOOR = 0.25;
+
+/** Facteur appliqué à la receivability d'une passe selon le secteur EJP du
+ *  défenseur le plus proche du receveur, dans le référentiel du receveur
+ *  (qui regarde le ballon). `front` = défenseur entre ballon et receveur =
+ *  passe à risque ; `back` = défenseur trailing = ligne ouverte. */
+export const PASS_EJP_FACTOR: Record<EJPSector, number> = {
+  front: 0.75,
+  frontLeft: 0.9,
+  frontRight: 0.9,
+  left: 1.0,
+  right: 1.0,
+  backLeft: 1.1,
+  backRight: 1.1,
+  back: 1.2,
+};
+
 export function evaluateOffensiveOptions(
   off: AttackerPositions,
   defPos: ComputedDefense,
@@ -111,8 +172,19 @@ export function evaluateOffensiveOptions(
     };
     const driveZone = shotZoneFor(distance(drivePos, hoop));
     const driveContest = nearestDefenderDistance(drivePos, defPos);
+    // Couloir ballon→panier (EJO large, 2.5 m) — pénalité par défenseur dans
+    // l'axe (Vandevelde : action de jeu direct contre couloir saturé).
+    const ejo = buildEJO(carrierPos, hoop, EJO_CORRIDOR_WIDE_PX);
+    const blockers = corridorBlockers(ejo, defenderPositionsRecord(defPos));
+    const corridorOpenness = Math.max(
+      DRIVE_CORRIDOR_FLOOR,
+      1 - DRIVE_CORRIDOR_BLOCKER_PENALTY * blockers.length,
+    );
     const driveShotQ =
-      FG_BY_ZONE[driveZone] * contestMultiplier(driveContest) * DRIVE_QUALITY_PENALTY;
+      FG_BY_ZONE[driveZone] *
+      contestMultiplier(driveContest) *
+      DRIVE_QUALITY_PENALTY *
+      corridorOpenness;
     const drivePts = shotPointsFor(driveZone);
     actions.push({
       type: 'drive',
@@ -133,12 +205,23 @@ export function evaluateOffensiveOptions(
     const recPos = off[oId];
     const recZone = shotZoneFor(distance(recPos, hoop));
     const recPts = shotPointsFor(recZone);
-    const ev = t.receivability * t.shotQuality * recPts;
+    // Lecture EJP : on suppose que le receveur fait face au ballon (il
+    // s'attend à la passe). Un défenseur en `front` est entre le ballon et
+    // le receveur — passe à risque ; `back` = trailing, ligne ouverte.
+    const nearestDef = nearestDefenderPos(recPos, defPos);
+    let ejpFactor = 1;
+    if (nearestDef) {
+      const receiverFacesBall = bearingDegFromTo(recPos, carrierPos);
+      const ejp = readEJP(recPos, receiverFacesBall, nearestDef);
+      ejpFactor = PASS_EJP_FACTOR[ejp.sector];
+    }
+    const adjustedReceivability = Math.min(1, t.receivability * ejpFactor);
+    const ev = adjustedReceivability * t.shotQuality * recPts;
     actions.push({
       type: 'pass-shoot',
       targetId: oId,
       expectedPoints: ev,
-      successRate: t.receivability,
+      successRate: adjustedReceivability,
       scoreProbability: t.shotQuality,
       shotPoints: recPts,
       shotPos: recPos,

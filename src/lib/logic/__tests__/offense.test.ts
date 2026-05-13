@@ -91,4 +91,56 @@ describe('evaluateOffensiveOptions', () => {
       expect(actions[i - 1].expectedPoints).toBeGreaterThanOrEqual(actions[i].expectedPoints);
     }
   });
+
+  it('drive : EV chute fortement quand le couloir ballon→panier est saturé', () => {
+    // Couloir EJO large = 92.5 px de demi-largeur autour de l'axe x=300.
+    // Configurations comparées : défenseurs HORS couloir (drive ouvert) vs
+    // défenseurs DANS couloir (jeu direct bloqué). On garde les défenseurs
+    // loin du carrier ET de la position projetée du drive pour isoler
+    // l'effet du couloir (pas celui du contest).
+    const defOpen = makeDefPos({
+      D1: { x: 50, y: 300 },   // hors couloir (largement à gauche)
+      D2: { x: 550, y: 300 },  // hors couloir (largement à droite)
+      D3: { x: 0, y: 0 }, D4: { x: 0, y: 0 }, D5: { x: 0, y: 0 },
+    });
+    const defBlocked = makeDefPos({
+      D1: { x: 305, y: 300 },  // dans couloir (sur l'axe x=300, y au milieu)
+      D2: { x: 295, y: 200 },  // dans couloir (sur l'axe, y plus haut)
+      D3: { x: 0, y: 0 }, D4: { x: 0, y: 0 }, D5: { x: 0, y: 0 },
+    });
+    const openActions = evaluateOffensiveOptions(off, defOpen, 'O1', HOOP);
+    const blockedActions = evaluateOffensiveOptions(off, defBlocked, 'O1', HOOP);
+    const openDrive = openActions.find((a) => a.type === 'drive')!;
+    const blockedDrive = blockedActions.find((a) => a.type === 'drive')!;
+    expect(openDrive).toBeDefined();
+    expect(blockedDrive).toBeDefined();
+    // Avec 2 bloqueurs, EV doit être divisée par 2 (facteur 1 - 0.25*2 = 0.5).
+    expect(blockedDrive.expectedPoints).toBeLessThan(openDrive.expectedPoints * 0.7);
+  });
+
+  it('passe : receivability réduite quand défenseur en front du receveur', () => {
+    // Receveur O5 au panier, porteur O1 au top. Le receveur fait face au
+    // ballon (sud depuis O5). Défenseur juste sud de O5 = secteur `front`.
+    const defFront = makeDefPos({
+      D1: { x: 0, y: 0 }, D2: { x: 0, y: 0 }, D3: { x: 0, y: 0 },
+      D4: { x: 0, y: 0 },
+      D5: { x: 305, y: 150 }, // sud de O5 (95) — `front` du receveur
+    });
+    // Même défenseur, mais NORD du receveur = secteur `back`.
+    const defBack = makeDefPos({
+      D1: { x: 0, y: 0 }, D2: { x: 0, y: 0 }, D3: { x: 0, y: 0 },
+      D4: { x: 0, y: 0 },
+      D5: { x: 305, y: 40 }, // nord de O5 — derrière le receveur
+    });
+    const front = evaluateOffensiveOptions(off, defFront, 'O1', HOOP);
+    const back = evaluateOffensiveOptions(off, defBack, 'O1', HOOP);
+    const passFront = front.find(
+      (a) => a.type === 'pass-shoot' && a.targetId === 'O5',
+    )!;
+    const passBack = back.find(
+      (a) => a.type === 'pass-shoot' && a.targetId === 'O5',
+    )!;
+    // Défenseur en front → receivability écrasée ; en back → ligne ouverte.
+    expect(passFront.successRate).toBeLessThan(passBack.successRate);
+  });
 });
