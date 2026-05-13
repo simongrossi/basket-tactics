@@ -732,6 +732,41 @@ const SCREEN_LAB_STRESS: Template = {
   ],
 };
 
+// ----------------- Template Help-recover (C.2) — 4 steps = 6s -----------------
+// Scénario : O1 attaque la raquette (drive trigger ON) → D3 quitte O3 pour
+// aider → O1 ressort kick out (drive OFF). Avec helpStickiness=2/3, D3 doit
+// glisser progressivement vers O3 au lieu de snap-back instantanément.
+const labOff_helpStart: AttackerPositions = {
+  O1: { x: 300, y: 480 }, O2: { x: 100, y: 380 }, O3: { x: 530, y: 380 },
+  O4: { x: 180, y: 200 }, O5: { x: 420, y: 200 },
+};
+const labOff_helpDrive: AttackerPositions = {
+  ...labOff_helpStart,
+  O1: { x: 280, y: 200 }, // dans la raquette (drive + paint triggers)
+};
+const labOff_helpKickout: AttackerPositions = {
+  ...labOff_helpStart,
+  O1: { x: 200, y: 380 }, // recule sur l'extension du 3pt côté gauche
+};
+const labOff_helpReset: AttackerPositions = {
+  ...labOff_helpStart,
+  O1: { x: 300, y: 400 }, // revient au top, drive depuis longtemps OFF
+};
+
+const SCREEN_LAB_HELP_RECOVER: Template = {
+  id: 'screen-lab-help-recover',
+  name: '🧪 Lab Help-recover (dev)',
+  description:
+    "Banc de test C.2 help-and-recover timing : O1 drive raquette → kick out → reset. Activer `helpStickiness` (Couvertures avancées → durée d'aide) pour voir D3 glisser progressivement au lieu de snap-back instantanément. 4 steps = 6s.",
+  defenseInitial: defaultDef(labOff_helpStart),
+  steps: [
+    { label: '01 — Setup (porteur au top)', off: labOff_helpStart, ballCarrier: 'O1', annotations: [] },
+    { label: '02 — O1 drive raquette (aide active)', off: labOff_helpDrive, ballCarrier: 'O1', annotations: [] },
+    { label: '03 — Kick out (drive OFF)', off: labOff_helpKickout, ballCarrier: 'O1', annotations: [] },
+    { label: '04 — Reset top', off: labOff_helpReset, ballCarrier: 'O1', annotations: [] },
+  ],
+};
+
 // ============================================================
 // EXPORT
 // ============================================================
@@ -748,6 +783,7 @@ export const TEMPLATES: Template[] = [
   SCREEN_LAB_REJECT,
   SCREEN_LAB_PINDOWN,
   SCREEN_LAB_OFFBALL,
+  SCREEN_LAB_HELP_RECOVER,
   SCREEN_LAB_STRESS,
 ];
 

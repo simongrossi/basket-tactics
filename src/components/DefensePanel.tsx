@@ -528,6 +528,29 @@ export function DefensePanel(props: DefensePanelProps) {
               onChange={(v) => props.onPatch({ tagThenSwitchEnabled: v })}
               title="Quand le low man fait un tag sur un roller PnR ET que le roller arrive très près du panier (≤ 150 px), bascule en switch implicite : le low man PREND le roller (matchups swappés), le défenseur du screener part sur l'orphelin du low man. Évite le scénario classique du low man qui recover trop tard."
             />
+
+            {/* C.2 — Help-and-recover timing */}
+            <div
+              style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}
+              title="Nombre de steps consécutifs où un défenseur MAINTIENT sa position d'aide après que le trigger (drive/post/raquette) ait disparu — au lieu de revenir instantanément sur son homme. La position glisse progressivement (decay) vers le matchup. 'auto' = legacy (recover instantané). 1 = recover rapide. 2 = standard NBA. 3 = sticky help."
+            >
+              <span style={{ fontSize: 11, color: '#475569', minWidth: 80, cursor: 'help' }}>
+                durée d'aide
+              </span>
+              <select
+                value={state.helpStickiness ?? 'auto'}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  props.onPatch({ helpStickiness: v === 'auto' ? undefined : parseInt(v) });
+                }}
+                style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
+              >
+                <option value="auto">auto (legacy, instantané)</option>
+                <option value={1}>1 step (recover rapide)</option>
+                <option value={2}>2 steps (standard)</option>
+                <option value={3}>3 steps (sticky help)</option>
+              </select>
+            </div>
           </Section>
 
           <Section theme="defense" label="Écran porteur" open>

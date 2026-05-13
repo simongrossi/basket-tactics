@@ -16,6 +16,7 @@ import type { DefenderTarget } from './defense/types';
 import { buildDefenseFrameContext } from './defense/context';
 import { applyBaseTargetsLayer } from './defense/baseTargets';
 import { applyRimProtectionLayer } from './defense/rimProtectionLayer';
+import { applyHelpStickyLayer } from './defense/helpStickyLayer';
 import { applyPnRRotationsLayer } from './defense/pnrLayer';
 import { applyOffBallScreenLayer } from './defense/offBallScreenLayer';
 import { applyTrapLayer } from './defense/trapLayer';
@@ -84,6 +85,11 @@ export function computeDefenseTargets(
   // libres vers le panier et désigne un défenseur (autre que carrierDef) pour
   // les fermer, peu importe le matchup.
   applyRimProtectionLayer(positions, matchups, ctx);
+  // Couche 1.6 — C.2 Help-and-recover timing : maintient (avec decay) la
+  // position d'aide précédente quand `state.helpStickiness` est activé.
+  // Évite le snap-back instantané sur le matchup quand le trigger d'aide
+  // disparaît. Opt-in via `state.helpStickiness` (1..3 steps).
+  applyHelpStickyLayer(positions, matchups, ctx);
   // Couche 2 — Rotations PnR (low-man tag + X-out + nail stunt).
   applyPnRRotationsLayer(positions, matchups, ctx);
   // Couche 3 — Écrans hors-ballon (mute matchups en cas de switch off-ball).

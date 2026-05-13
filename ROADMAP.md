@@ -616,7 +616,7 @@ juste plus de fidélité tactique.
 | # | Chantier | Effort | Risque | Valeur | Statut |
 |---|---|---|---|---|---|
 | ~~C.1~~ | ~~**Closeout footwork** : sprint+freinage via `closeoutEasing`~~ | — | — | — | 🟢 livré 2026-05-12 (7 tests, 721 verts) |
-| C.2 | **Help-and-recover timing** : aide N steps configurables puis recover. Aujourd'hui retour instantané au step suivant. Lié à B.1 (durée step). | 3-4h V1 / 3j V2 | 🟡 | Haut | ⚪ détaillé ci-dessous |
+| ~~C.2~~ | ~~**Help-and-recover timing** : `helpStickiness` (1..3 steps) avec decay~~ | — | — | — | 🟢 livré 2026-05-13 (10 tests, 857 verts) |
 | ~~C.3~~ | ~~**Hedge length** : `hedgeRecoveryDelay` (1..3 steps)~~ | — | — | — | 🟢 livré 2026-05-12 (8 tests, 732 verts) |
 | ~~C.4~~ | ~~**Pre-rotation shift** : anticipation pré-écran (~10 px)~~ | — | — | — | 🟢 livré 2026-05-12 (10 tests, 746 verts) |
 | ~~C.5~~ | ~~**Tag-then-switch dynamic** : `tagThenSwitchEnabled`~~ | — | — | — | 🟢 livré 2026-05-12 (4 tests, 736 verts) |
@@ -906,7 +906,7 @@ V1, refonte `getDefenseHoop`).
 | Item | Statut | Tests | Commit |
 |------|--------|-------|--------|
 | C.1 Closeout footwork | 🟢 livré | 7 | `8b65aa6` |
-| C.2 Help-and-recover | ⚪ détaillé (V1 sans dép, V2 dép B.1) | — | — |
+| C.2 Help-and-recover | 🟢 livré (V1 step-based) | 10 | (commit C.2) |
 | C.3 Hedge length | 🟢 livré | 8 | `5758086` |
 | C.4 Pre-rotation | 🟢 livré | 10 | `9f2e21a` |
 | C.5 Tag-then-switch | 🟢 livré | 4 | `18bf440` |

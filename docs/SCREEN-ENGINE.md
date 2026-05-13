@@ -38,6 +38,8 @@ pas se superposer au poseur (même quand "stuck on screener"), etc.
 | `src/lib/logic/screens/helpers.ts` | `pushOutOfScreener` / `pushOutOfCarrier` — push-out de clearance |
 | `src/lib/logic/screens/detectImminentScreen.ts` | C.4 pre-rotation — détecte un poseur en approche |
 | `src/lib/logic/screens/hedgeStepCounter.ts` | C.3 hedge length — compteur consecutive hedge |
+| `src/lib/logic/defense/helpStepCounter.ts` | C.2 help-and-recover — compteur consecutive help |
+| `src/lib/logic/defense/helpStickyLayer.ts` | C.2 help-and-recover — couche 1.6 (blend decay) |
 | `src/lib/logic/screens/detectRejectedScreen.ts` | B2 reject — détecte le porteur qui vire opposé |
 | `src/lib/logic/screens/detectSnakeDribble.ts` | B4 snake — détecte V sur 3 steps |
 | `src/lib/logic/screenPhysics.ts` | `screenContactT/Phase/Adhesion/TangentRelease` — easing sigmoïdal qui FIGE D1 sur le poseur |
@@ -53,6 +55,8 @@ state.steps[N].off + matchups
 [applyBaseTargetsLayer]      — cible homme-à-homme + applyScreenAdjustment
     ↓
 [applyRimProtectionLayer]    — pas d'easy basket
+    ↓
+[applyHelpStickyLayer]       — C.2 sticky help avec decay
     ↓
 [applyPnRRotationsLayer]     — low-man tag + X-out + nail stunt
     ↓
@@ -275,6 +279,7 @@ du cercle du poseur, côté oppose au panier.
 | `dropDepth` | global | medium | Profondeur du drop (shallow/medium/deep) |
 | `offBallScreenRule` | global | over | Réponse défensive par défaut sur écran hors-ballon |
 | `hedgeRecoveryDelay` | global | undefined | C.3 — nb steps consécutifs avant recover forcé en hedge (1..3) |
+| `helpStickiness` | global | undefined | C.2 — nb steps de sticky help avec decay après disparition du trigger (1..3) |
 | `tagThenSwitchEnabled` | global | false | C.5 — bascule switch implicite si roller proche panier |
 | `preRotationEnabled` | global | false | C.4 — shift carrierDef 10 px vers un poseur imminent |
 | `unwindRejectedScreens` | global | false | B2 V2 — annule la couverture si reject SHARP détecté |
@@ -385,6 +390,34 @@ sans action). Démarrer directement à la position d'action.
 - **`systeme_basket-8` scenario extrême** : 13 px de secousse
   côté D1 quand le poseur se déplace de 138 px entre 2 steps.
   Trade-off documenté inline (seuil test 18 px vs 5 px).
+
+### C.2 — Help-and-recover timing (couche 1.6, livré 2026-05-13)
+
+**Concept basket** : un défenseur en aide ne revient pas instantanément
+sur son homme quand le trigger disparaît — il glisse progressivement
+(1-3 steps = 2-6s à 2s/step).
+
+**Implémentation** :
+- Setting `state.helpStickiness?: number` (1..3, opt-in)
+- Helper pur `helpStepCounter::consecutiveHelpSteps()` qui compte les
+  steps précédents avec trigger d'aide actif (sans récursion via
+  `computeDefenseTargets`)
+- Couche `helpStickyLayer` (couche **1.6** du pipeline, entre
+  rimProtection et pnrRotations) qui blend `prevHelpAim` avec la cible
+  homme-à-homme courante via `blendFactor = 1 - consec/stickiness`
+- Skip : défenseur déjà en aide courante / onScreen / pnrRole /
+  switchedThisStep / scrammedThisStep (priorités respectées)
+
+**Garanties anti-régression** :
+- ✅ Anti-superposition : la position blendée passe par `resolvePlayerCollisions`
+  en aval (règle absolue maintenue). Test invariant dédié.
+- ✅ Anti-téléportation : decay LINÉAIRE (`1 - consec/stickiness`) → pas de
+  saut brutal au passage `consec === stickiness`. Test dédié : max jump
+  D3 frame-à-frame < 50 px.
+- ✅ Anti-récursion : `consecutiveHelpSteps` n'appelle PAS
+  `computeDefenseTargets` (utilise une approximation basée sur `detectTriggers`
+  qui est pure). La couche elle-même appelle `computeDefenseTargets(N-1)`
+  mais sur index décroissant → terminaison garantie.
 
 ### Bugs résolus mai 2026 (NE JAMAIS REGRESSER)
 

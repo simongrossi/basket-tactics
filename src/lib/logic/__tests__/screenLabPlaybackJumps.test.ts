@@ -27,6 +27,7 @@ const LAB_IDS = [
   'screen-lab-reject',
   'screen-lab-pindown',
   'screen-lab-offball',
+  'screen-lab-help-recover',
   'screen-lab-stress',
 ] as const;
 

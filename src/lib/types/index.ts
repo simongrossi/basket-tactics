@@ -705,6 +705,14 @@ export interface AppState {
    *  route over/under. Défaut false (opt-in). Effet ≈ 8-12 px de shift,
    *  insuffisant pour modifier le marquage mais visible sur le terrain. */
   preRotationEnabled?: boolean;
+  /** C.2 — Help-and-recover timing : nombre de steps consécutifs où un
+   *  défenseur MAINTIENT sa position d'aide après que le trigger ait
+   *  disparu (au lieu de revenir instantanément sur son homme).
+   *  Range 1..3. `undefined` → comportement legacy (recover instantané).
+   *  Effet : blend décroissant (decay) entre la position d'aide précédente
+   *  et la cible homme-à-homme courante, pour un retour progressif et
+   *  visuellement réaliste. */
+  helpStickiness?: number;
   /** Seuil de severity à partir duquel un switch est considéré comme un
    *  mismatch tactique (déclenche scram + diagnostic coach + badge visuel).
    *  Range 1..4. Default 2 (= D5 sur O3 minimum). */
