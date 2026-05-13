@@ -4,7 +4,8 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useAppState } from '@/hooks/useAppState';
 import { useLibrary } from '@/hooks/useLibrary';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { OffensePanel } from '@/components/OffensePanel';
+import { OffenseToolsPanel } from '@/components/OffenseToolsPanel';
+import { StepsPanel } from '@/components/StepsPanel';
 import { ScenarioPanel } from '@/components/ScenarioPanel';
 import { ScenarioReader } from '@/components/ScenarioReader';
 import { DefensePanel } from '@/components/DefensePanel';
@@ -164,55 +165,38 @@ export default function Page() {
       <div className={presentMode ? 'layout-grid presenting' : 'layout-grid'}>
         {!presentMode && (
           <div className="side-col">
-            <OffensePanel
-              state={app.state}
-              onSetActiveStep={app.setActiveStep}
-              onAddStep={app.addStep}
-              onDuplicateStep={app.duplicateStep}
-              onDeleteStep={app.deleteStep}
-              onSetStepLabel={app.setStepLabel}
-              onSetBallCarrier={app.setBallCarrier}
-              onDeleteAnnotation={app.deleteAnnotation}
-              onConvertToFreeThrow={app.convertStepToFreeThrow}
+            {/* LIVRAISON 1 — colonne gauche tactique : Attaque (outils) + Défense.
+                La liste des étapes + scénario + bibliothèque + paramètres sont
+                maintenant à droite. */}
+            <OffenseToolsPanel
               tool={app.state.tool}
               onSetTool={app.setTool}
             />
-            <ScenarioPanel
-              scriptedActions={app.state.scriptedActions ?? []}
-              scenarioBranches={app.state.scenarioBranches ?? []}
-              activeBranchId={app.state.activeBranchId ?? null}
-              playerCount={app.state.playerCount}
-              onAddAction={app.addScriptedAction}
-              onUpdateAction={app.updateScriptedAction}
-              onDeleteAction={app.deleteScriptedAction}
-              onMoveAction={app.moveScriptedAction}
-              onClearAll={app.clearScriptedActions}
-              onAddDefensiveAction={app.addDefensiveAction}
-              onUpdateDefensiveAction={app.updateDefensiveAction}
-              onDeleteDefensiveAction={app.deleteDefensiveAction}
-              onAddBranch={app.addScenarioBranch}
-              onUpdateBranch={app.updateScenarioBranch}
-              onDeleteBranch={app.deleteScenarioBranch}
-              onSetActiveBranch={app.setActiveBranch}
-            />
-            <LibraryPanel
+            <DefensePanel
               state={app.state}
-              library={lib.library}
-              onLoadTemplate={app.loadTemplate}
-              onLoadSavedSystem={(sys) => app.importState(lib.loadSystem(app.state, sys))}
-              onSaveSystem={(folderId, name, description) =>
-                lib.saveSystem(app.state, folderId, name, description)
-              }
-              onRenameSystem={lib.renameSystem}
-              onDeleteSystem={lib.deleteSystem}
-              onMoveSystem={lib.moveSystem}
-              onCreateFolder={lib.createFolder}
-              onRenameFolder={lib.renameFolder}
-              onDeleteFolder={lib.deleteFolder}
-              onExportFolder={lib.exportFolder}
-              onImportFolder={lib.importFolder}
+              onSetScreenRule={app.setScreenRule}
+              onResetSwitches={app.resetSwitches}
+              onPatch={app.patch}
+              onUpdateRule={app.updateRule}
+              onUpdateAllRules={app.updateAllRules}
+              onResetIndividualOverrides={app.resetIndividualOverrides}
+              onSetDefenseSystem={app.setDefenseSystem}
+              onUpdateZoneConfig={app.updateZoneConfig}
+              onApplyDefensePreset={app.applyDefensePreset}
+              onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
+              scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
+              onToggleScriptedDefense={app.toggleScriptedDefense}
+              userDefensePresets={lib.library.defensePresets}
+              onSaveDefensePreset={(name) => lib.saveDefensePreset(app.state, name)}
+              onApplyUserDefensePreset={(preset) => {
+                const {
+                  id: _id, name: _name, description: _desc, createdAt: _t,
+                  ...defensePatch
+                } = preset;
+                app.patch(defensePatch);
+              }}
+              onDeleteDefensePreset={lib.deleteDefensePreset}
             />
-            <ParametresLauncher state={app.state} onPatch={app.patch} onSetPlayerCount={app.setPlayerCount} />
           </div>
         )}
 
@@ -343,33 +327,55 @@ export default function Page() {
 
         {!presentMode && (
           <div className="side-col">
-            <DefensePanel
+            {/* LIVRAISON 1 — colonne droite workspace : étapes + scénario +
+                bibliothèque + paramètres. Manipulation du matériau de jeu. */}
+            <StepsPanel
               state={app.state}
-              onSetScreenRule={app.setScreenRule}
-              onResetSwitches={app.resetSwitches}
-              onPatch={app.patch}
-              onUpdateRule={app.updateRule}
-              onUpdateAllRules={app.updateAllRules}
-              onResetIndividualOverrides={app.resetIndividualOverrides}
-              onSetDefenseSystem={app.setDefenseSystem}
-              onUpdateZoneConfig={app.updateZoneConfig}
-              onApplyDefensePreset={app.applyDefensePreset}
-              onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
-              scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
-              onToggleScriptedDefense={app.toggleScriptedDefense}
-              userDefensePresets={lib.library.defensePresets}
-              onSaveDefensePreset={(name) => lib.saveDefensePreset(app.state, name)}
-              onApplyUserDefensePreset={(preset) => {
-                // Extrait les champs défensifs du preset (le reste = metadata
-                // ignorée). Applique via `patch` pour préserver steps + UI.
-                const {
-                  id: _id, name: _name, description: _desc, createdAt: _t,
-                  ...defensePatch
-                } = preset;
-                app.patch(defensePatch);
-              }}
-              onDeleteDefensePreset={lib.deleteDefensePreset}
+              onSetActiveStep={app.setActiveStep}
+              onAddStep={app.addStep}
+              onDuplicateStep={app.duplicateStep}
+              onDeleteStep={app.deleteStep}
+              onSetStepLabel={app.setStepLabel}
+              onSetBallCarrier={app.setBallCarrier}
+              onDeleteAnnotation={app.deleteAnnotation}
+              onConvertToFreeThrow={app.convertStepToFreeThrow}
             />
+            <ScenarioPanel
+              scriptedActions={app.state.scriptedActions ?? []}
+              scenarioBranches={app.state.scenarioBranches ?? []}
+              activeBranchId={app.state.activeBranchId ?? null}
+              playerCount={app.state.playerCount}
+              onAddAction={app.addScriptedAction}
+              onUpdateAction={app.updateScriptedAction}
+              onDeleteAction={app.deleteScriptedAction}
+              onMoveAction={app.moveScriptedAction}
+              onClearAll={app.clearScriptedActions}
+              onAddDefensiveAction={app.addDefensiveAction}
+              onUpdateDefensiveAction={app.updateDefensiveAction}
+              onDeleteDefensiveAction={app.deleteDefensiveAction}
+              onAddBranch={app.addScenarioBranch}
+              onUpdateBranch={app.updateScenarioBranch}
+              onDeleteBranch={app.deleteScenarioBranch}
+              onSetActiveBranch={app.setActiveBranch}
+            />
+            <LibraryPanel
+              state={app.state}
+              library={lib.library}
+              onLoadTemplate={app.loadTemplate}
+              onLoadSavedSystem={(sys) => app.importState(lib.loadSystem(app.state, sys))}
+              onSaveSystem={(folderId, name, description) =>
+                lib.saveSystem(app.state, folderId, name, description)
+              }
+              onRenameSystem={lib.renameSystem}
+              onDeleteSystem={lib.deleteSystem}
+              onMoveSystem={lib.moveSystem}
+              onCreateFolder={lib.createFolder}
+              onRenameFolder={lib.renameFolder}
+              onDeleteFolder={lib.deleteFolder}
+              onExportFolder={lib.exportFolder}
+              onImportFolder={lib.importFolder}
+            />
+            <ParametresLauncher state={app.state} onPatch={app.patch} onSetPlayerCount={app.setPlayerCount} />
           </div>
         )}
       </div>
