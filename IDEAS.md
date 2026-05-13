@@ -66,6 +66,18 @@ Notes de développement au fil de l'eau. Les items en haut sont les plus récent
 
 ## Backlog actuel (à attaquer)
 
+### Métriques tactiques EJE / EJO / EJP (FAIT — fondation, 949 verts)
+Module pur sous `src/lib/logic/tactical/` (commit `389aad5`). Inspiré de Mérand / Vandevelde : Espace de Jeu Effectif (convex hull + surface), Offensif (couloir ballon→cible 1.5 m / 2.5 m), Proche (8 secteurs égocentrés autour du porteur), graphe complet d'équipe (total spacing, centralité, pivot, diamètre), heuristique de niveau `grappe | comete | etalement | expert`. 23 tests dédiés ([tacticalMetrics.test.ts](src/lib/logic/__tests__/tacticalMetrics.test.ts)). **Aucun consommateur** pour l'instant — module inerte tant qu'on ne le branche pas. Doc complète : [docs/TACTICAL-METRICS.md](docs/TACTICAL-METRICS.md).
+
+### Enrichir l'évaluation offensive avec EJO + EJP (TODO — branche A)
+Brancher la fondation tactique dans `evaluateOffensiveOptions` de [offense.ts](src/lib/logic/offense.ts). Pour les **drives** : appliquer un facteur `1 − k · nbBloqueurs` (k ≈ 0.25 à calibrer) sur `driveShotQ`, avec `nbBloqueurs = corridorBlockers(buildEJO(carrierPos, hoop, EJO_CORRIDOR_WIDE_PX), defPos).length`. Un défenseur déjà dans le couloir large doit couper la qualité du drive. Pour les **passes** : si `readEJP(receiver, receiverBody, nearestDef).sector === 'front'`, malus sur `receivability` (passe interceptable) ; si `'back'`, bonus léger (défenseur trailing). L'orientation du receveur est déjà calculée par `computeAttackerOrientation`. Tests à ajouter : qualité de drive saturée vs couloir vide, receivability avec défenseur en front/back/right. Plan dédié à écrire avant implémentation.
+
+### Auto-positionnement des attaquants hors-ballon (TODO — branche B)
+Nouveau module `src/lib/logic/autoOffense/`. Pour chaque hors-ballon, échantillonner ≈ 12 positions candidates dans un anneau autour du panier compatible avec le profil (`shooter` au-delà de la 3pts, `rim-roller` proche du cercle, `creator` mid-range…). Pour chaque candidate, calculer `totalSpacing(buildSpacingGraph(off'))` où `off'` intègre la candidate, soustraire une pénalité si la candidate tombe dans l'EJO du porteur (sauf rôle "couper"), prendre l'argmax. **Obligatoire** : appliquer via `moveAttackerInState` pour déclencher le push-out anti-overlap de la [Règle 1](docs/PLAYER-CLEARANCE.md). UX : bouton "auto-position" dans le panneau offense, et option "appliquer à chaque step" pour recalculer après chaque déplacement du porteur. Plan dédié.
+
+### Overlay debug EJE / EJO (TODO — branche C, optionnel mais utile pour A et B)
+Nouveau composant `EJEOverlay.tsx` rendu sur le SVG du terrain. Toggle dans le panneau Visualisation. Dessine : (a) hull EJE offensif en pointillé, (b) rectangle EJO ballon→panier, (c) badge texte coloré avec `evaluateSpacing(off).level`. Pas de modification du moteur — pur overlay UI. Utile pour valider visuellement la branche A avant de la brancher dans l'EV.
+
 ### Numérotation des étapes sur le terrain (vignettes playbook)
 Petits ronds 1, 2, 3 sur les positions des joueurs dans chaque vignette PDF, pour voir l'ordre des actions sans avoir à comparer mentalement étape N et N+1. À implémenter dans `StepThumbnail.tsx` : tracer un petit cercle blanc avec un numéro à côté du joueur qui bouge entre cette étape et la précédente.
 

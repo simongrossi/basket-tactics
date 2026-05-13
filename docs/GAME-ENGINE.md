@@ -1,6 +1,6 @@
 # Moteur de jeu
 
-Cartographie de toute la logique basket en place, organisée en **trois couches** : individuel, collectif, physique. Cette séparation est implicite dans le code (les modules existent déjà) ; ce document la rend explicite et donne un point d'entrée unique.
+Cartographie de toute la logique basket en place, organisée en **trois couches d'exécution** (individuel, collectif, physique) plus une **couche d'analyse** read-only (métriques tactiques). Cette séparation est implicite dans le code (les modules existent déjà) ; ce document la rend explicite et donne un point d'entrée unique.
 
 > Pour le **pipeline d'orchestration** module-par-module (qui appelle qui), voir [logique-defensive.md § Pipeline de calcul](logique-defensive.md#pipeline-de-calcul).
 >
@@ -271,6 +271,77 @@ L'ordre interne (cf. [logique-defensive.md § Pipeline de calcul](logique-defens
 8. **`effectiveDefensePositions`** applique le **moteur physique** (path arc, friction, maxSpeed, collisions).
 
 Pour la zone, étape 1 est remplacée par `computeZoneDefenseTargets` (ownership continu).
+
+---
+
+## Métriques tactiques (read-only)
+
+Couche d'**analyse** parallèle aux trois couches d'exécution. Calcule
+des indicateurs collectifs (forme, dispersion, couloirs) sans muter
+aucune position. **Aucun module du moteur ne l'importe** au
+2026-05-13 — la couche est livrée comme fondation, en attente de
+branchements (voir plus bas).
+
+Localisation : [`src/lib/logic/tactical/`](../src/lib/logic/tactical/).
+Doc complète des concepts, conventions de signe et seuils :
+[TACTICAL-METRICS.md](TACTICAL-METRICS.md).
+
+### Modules
+
+- **[`spacingGraph.ts`](../src/lib/logic/tactical/spacingGraph.ts)** —
+  graphe complet d'une équipe (matrice de distances), métriques
+  dérivées (`totalSpacing`, `avgPairwiseDistance`,
+  `maxPairwiseDistance`, `centralityScores`, `pivotPlayer`). Convex
+  hull par Andrew monotone chain en `O(n log n)`, surface (formule du
+  lacet), test point-dans-polygone (ray-casting).
+- **[`ejo.ts`](../src/lib/logic/tactical/ejo.ts)** — Espace de Jeu
+  Offensif (Vandevelde). Couloir rectangulaire ballon→cible, demi-largeur
+  configurable (1.5 m = `EJO_CORRIDOR_NARROW_PX = 55.5`, 2.5 m =
+  `EJO_CORRIDOR_WIDE_PX = 92.5`). Distance signée à l'axe avec
+  convention `+` = côté droit du déplacement. `corridorBlockers`
+  retourne les défenseurs dans le couloir, triés par distance au
+  ballon.
+- **[`ejp.ts`](../src/lib/logic/tactical/ejp.ts)** — Espace de Jeu
+  Proche, repère égocentré du porteur. 8 secteurs métier (front,
+  frontRight, right, backRight, back, backLeft, left, frontLeft) de
+  45° chacun. `readEJP(carrier, bodyDeg, defender)` retourne
+  `{ distance, sector, bearingDeg }`.
+- **[`levelHeuristic.ts`](../src/lib/logic/tactical/levelHeuristic.ts)** —
+  bucket qualitatif `grappe | comete | etalement | expert` dérivé du
+  diamètre, de l'aire EJE et de la distance moyenne. Seuils exportés
+  pour calibration future.
+
+### Garanties
+
+- **Pures, sans effet de bord** : aucune lecture `AppState`, aucune
+  mutation, aucun side-effect.
+- **Aucune dépendance sortante** vers le moteur — seulement
+  [`geometry.ts`](../src/lib/logic/geometry.ts) (pour `distance`) et
+  [`angles.ts`](../src/lib/logic/angles.ts) (pour `normalizeAngle`).
+- **Trivialement compatible avec la
+  [Règle 1 anti-superposition](PLAYER-CLEARANCE.md)** puisqu'aucune
+  fonction ne mute de position.
+
+### Tests
+
+[`tacticalMetrics.test.ts`](../src/lib/logic/__tests__/tacticalMetrics.test.ts)
+— 23 cas couvrant les 4 modules. Cas dégénérés explicites : 3 points
+colinéaires → hull de 2 sommets ; ballon == cible → `inCorridor`
+retourne `false` ; rotation du porteur reclasse les défenseurs sans
+changer leur position absolue.
+
+### Branchements prévus (plans séparés)
+
+1. **Enrichir [`offense.ts`](../src/lib/logic/offense.ts)** : pénalité
+   `corridorBlockers` sur `driveShotQ` ; bonus/malus de `receivability`
+   selon `readEJP(receiver, …).sector` sur les passes.
+2. **Auto-positionnement attaquants hors-ballon** : nouveau module
+   `autoOffense/` optimisant `totalSpacing` sur un anneau autour du
+   panier compatible avec le profil de chaque joueur. Application
+   obligatoire via `moveAttackerInState` pour le push-out anti-overlap.
+3. **Overlay debug** (optionnel) : composant `EJEOverlay.tsx`
+   dessinant hull + couloir + badge niveau, toggle dans le panneau
+   Visualisation.
 
 ---
 
