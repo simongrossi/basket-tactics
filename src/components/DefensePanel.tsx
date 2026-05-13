@@ -10,11 +10,25 @@ import type {
   DropDepth,
   OffBallScreenRule,
 } from '@/lib/types';
-import { Panel, Section, Slider, CheckboxLine, Button, COLORS } from './ui';
+import { Panel, Section, Slider, CheckboxLine, Button, COLORS, InfoTooltip } from './ui';
 import { DEFENSE_PRESETS, type DefensePreset } from '@/lib/data/defensePresets';
 import type { UserDefensePreset } from '@/lib/data/library';
 import { SimulationSection } from './SimulationSection';
 import { getActiveDefenderIds } from '@/lib/logic/players';
+
+const HELP_TRIGGERS_TOOLTIP =
+  "Les triggers d'aide sont les conditions qui autorisent l'aide automatique. Quand l'un d'eux est actif, les défenseurs avec aide % > 0 peuvent quitter leur homme selon leur priorité : protéger la raquette, rester proche de leur homme ou couper une ligne de passe.";
+
+const HELP_TRIGGER_TOOLTIPS = {
+  drive:
+    "Déclenche l'aide quand le porteur attaque le panier : il avance nettement vers le cercle ou démarre déjà proche de la zone dangereuse.",
+  post:
+    "Déclenche l'aide quand le porteur joue dos au panier en poste bas. Les aides peuvent venir digger ou doubler selon les réglages avancés.",
+  paint:
+    "Déclenche l'aide quand le porteur entre dans la raquette ou arrive très près du panier. Sert à fermer layups, runners et floaters.",
+  trap:
+    "Déclenche une prise à deux automatique en zone de trappe, surtout coin ou sideline. Un deuxième défenseur vient verrouiller l'espace du porteur.",
+} as const;
 
 interface DefensePanelProps {
   state: AppState;
@@ -399,35 +413,43 @@ export function DefensePanel(props: DefensePanelProps) {
               title="Force globale du marquage en avant côté ballon (strong-side denial automatique). 0 = ignore, 0.45 = par défaut, 1 = full denial assumé partout. Override-able par défenseur."
             />
             <div
-              style={{ fontSize: 11, fontWeight: 500, color: c.accentText, marginTop: 4 }}
-              title="Conditions qui déclenchent l'aide automatique de la défense. Quand un trigger est actif, les défenseurs avec aide% > 0 quittent leur homme pour combler le danger. Sans trigger, ils restent en marquage classique (un peu de sag baseline weak-side)."
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 11,
+                fontWeight: 500,
+                color: c.accentText,
+                marginTop: 4,
+              }}
             >
-              Triggers d'aide
+              <span>Triggers d'aide</span>
+              <InfoTooltip title={HELP_TRIGGERS_TOOLTIP} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 6px' }}>
-              <CheckboxLine
+              <HelpTriggerCheckbox
                 checked={state.triggers.drive}
                 label="drive"
                 onChange={(v) => props.onPatch({ triggers: { ...state.triggers, drive: v } })}
-                title="Déclenche l'aide quand le porteur attaque le panier (s'en rapproche de >25px entre 2 étapes, ou se trouve à <250px sur l'étape 0)."
+                title={HELP_TRIGGER_TOOLTIPS.drive}
               />
-              <CheckboxLine
+              <HelpTriggerCheckbox
                 checked={state.triggers.post}
                 label="post-up"
                 onChange={(v) => props.onPatch({ triggers: { ...state.triggers, post: v } })}
-                title="Déclenche l'aide quand le porteur joue en poste bas (lateral 80-160px du panier, profondeur 45-145px, à l'arrêt)."
+                title={HELP_TRIGGER_TOOLTIPS.post}
               />
-              <CheckboxLine
+              <HelpTriggerCheckbox
                 checked={state.triggers.paint}
                 label="raquette"
                 onChange={(v) => props.onPatch({ triggers: { ...state.triggers, paint: v } })}
-                title="Déclenche l'aide quand le porteur entre dans la raquette ou est à <80px du panier (couvre les drives, runners, floaters près du panier)."
+                title={HELP_TRIGGER_TOOLTIPS.paint}
               />
-              <CheckboxLine
+              <HelpTriggerCheckbox
                 checked={!!state.triggers.trap}
                 label="trap coin/sideline"
                 onChange={(v) => props.onPatch({ triggers: { ...state.triggers, trap: v } })}
-                title="Active la prise à deux automatique quand le porteur entre dans une zone de trappe : coin fond gauche/droit ou sideline mi-terrain. Le défenseur le plus proche vient verrouiller le côté opposé."
+                title={HELP_TRIGGER_TOOLTIPS.trap}
               />
             </div>
           </Section>
@@ -870,6 +892,39 @@ function MassRow({ label, children }: { label: string; children: React.ReactNode
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
       <span style={{ fontSize: 10, color: '#64748b', flex: '0 0 80px' }}>{label}</span>
       <div style={{ flex: '1 1 0%', minWidth: 0 }}>{children}</div>
+    </div>
+  );
+}
+
+function HelpTriggerCheckbox({
+  checked,
+  label,
+  onChange,
+  title,
+}: {
+  checked: boolean;
+  label: string;
+  onChange: (v: boolean) => void;
+  title: string;
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+      <label
+        style={{
+          display: 'flex',
+          gap: 6,
+          alignItems: 'center',
+          minWidth: 0,
+          flex: '1 1 auto',
+          fontSize: 12,
+          color: '#1f2937',
+          cursor: 'pointer',
+        }}
+      >
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+        <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{label}</span>
+      </label>
+      <InfoTooltip title={title} />
     </div>
   );
 }

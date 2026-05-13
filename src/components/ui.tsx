@@ -258,6 +258,34 @@ export function CheckboxLine({ checked, label, onChange, title }: CheckboxLinePr
   );
 }
 
+export function InfoTooltip({ title }: { title: string }) {
+  return (
+    <span
+      tabIndex={0}
+      aria-label={title}
+      title={title}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 16,
+        height: 16,
+        borderRadius: '50%',
+        border: '1px solid #bfdbfe',
+        background: '#eff6ff',
+        color: '#1e40af',
+        fontSize: 10,
+        fontWeight: 700,
+        lineHeight: 1,
+        cursor: 'help',
+        flex: '0 0 auto',
+      }}
+    >
+      ?
+    </span>
+  );
+}
+
 interface ButtonProps {
   onClick: () => void;
   theme?: Theme;
