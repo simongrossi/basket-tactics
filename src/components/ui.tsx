@@ -181,8 +181,10 @@ export function AccordionSection({
         border: `1px solid ${borderColor}`,
         borderRadius: 6,
         background: bg,
-        overflow: 'hidden',
         marginBottom: 2,
+        // Pas d'`overflow: hidden` ici : le contenu repliable est géré par
+        // le `display: none` ci-dessous quand fermé, et quand ouvert il
+        // doit pouvoir contribuer à la hauteur du Panel parent (qui scroll).
       }}
     >
       <button

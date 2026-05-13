@@ -148,7 +148,10 @@ export function SystemSelector({ defenseSystem, zoneType, onChange }: SystemSele
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: family.systems.length === 1 ? '1fr' : '1fr 1fr',
+              gridTemplateColumns:
+                family.systems.length === 1
+                  ? 'minmax(0, 1fr)'
+                  : 'minmax(0, 1fr) minmax(0, 1fr)',
               gap: 4,
             }}
           >
@@ -189,6 +192,8 @@ export function SystemSelector({ defenseSystem, zoneType, onChange }: SystemSele
                     fontSize: 11,
                     fontWeight: isActive ? 700 : 500,
                     minHeight: 44,
+                    width: '100%',
+                    minWidth: 0,
                     boxSizing: 'border-box',
                   }}
                 >
