@@ -36,14 +36,12 @@ const LAB_IDS = [
 // Seuil de téléport. Au-delà de cette valeur (px par frame), le coach
 // perçoit un saut net.
 //
-// Une vraie téléportation visuelle = saut > 100 px en 1 frame. Les jumps
-// résiduels 30-70 px viennent de la détection d'écran qui s'active/se
-// désactive mi-transition (D1 et D5 se réorganisent rapidement quand
-// l'écran "fire") — visible mais pas dramatique.
-//
-// Seuil 70 px = compromis. Idéalement 0 mais nécessiterait de smoother
-// les transitions d'état d'écran (chantier engine plus profond).
-const MAX_JUMP_PX = 70;
+// 2026-05-13 — rate limiter dans `resolveFrameAt` (options.prevFrame)
+// borne les sauts des défenseurs à MAX_DEFENDER_JUMP_PX = 18 px/frame.
+// Test serré à 20 px (= 18 + tolérance 2 px d'erreur d'arrondi/résolveur).
+// Avant rate limiter : jumps jusqu'à 68 px sur Lab Snake / 55 sur
+// Pindown / 54 sur Stagger.
+const MAX_JUMP_PX = 20;
 
 function buildState(tplId: string): AppState {
   const tpl = TEMPLATES.find((t) => t.id === tplId)!;
@@ -70,7 +68,8 @@ LAB_IDS.forEach((tplId) => {
 
       for (let f = 0; f <= totalFrames; f++) {
         const t = (f / totalFrames) * transitions;
-        const frame = resolveFrameAt(state, t);
+        // Active le rate limiter (= simule l'usage réel via useCourtFrame).
+        const frame = resolveFrameAt(state, t, { prevFrame: prevFrame ?? undefined });
         if (!frame) continue;
         if (prevFrame) {
           for (const id of ATT_IDS) {

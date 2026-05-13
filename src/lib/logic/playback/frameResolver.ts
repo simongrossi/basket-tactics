@@ -84,7 +84,26 @@ export interface ResolveFrameOptions {
    *  (utilisé par le playback continu). Le scrub passe `Math.round(t)`
    *  pour afficher le step le plus proche du curseur. */
   stepIdx?: number;
+  /** Frame précédente du playback (frame N-1). Utilisée pour limiter
+   *  les sauts de défenseurs > MAX_DEFENDER_JUMP_PX/frame (anti-snap
+   *  visuel). Non passé en scrub → rate limiter désactivé.
+   *  Cf. docs/SCREEN-ENGINE.md "Bug résiduel" + commit dédié. */
+  prevFrame?: PlaybackFrame;
 }
+
+/** Saut maximum autorisé par frame sur la position d'un défenseur.
+ *  À 60 fps : 18 px/frame = 1080 px/s ≈ 29 m/s. Au-delà = snap visuel
+ *  (cause typique : screen detection qui change entre frames adjacentes,
+ *  Bezier qui flip de côté, adhesion qui change brutalement de blend).
+ *  En clamp à cette valeur, le défenseur rattrape son retard en ~5 frames
+ *  (= 80ms) sur un saut de 90 px. Imperceptible visuellement. */
+const MAX_DEFENDER_JUMP_PX = 18;
+
+/** Saut maximum autorisé par frame sur la position d'un attaquant.
+ *  Identique aux défenseurs : 18 px/frame = 1080 px/s ≈ 29 m/s. Un cut basket
+ *  réel à 7 m/s ≈ 4.4 px/frame, largement sous le seuil. Borne les pics
+ *  de `curveAroundObstacle` quand le cluster bouge (cause du jump O2 mi-Pindown). */
+const MAX_ATTACKER_JUMP_PX = 18;
 
 /**
  * Résout la frame complète à l'instant `t` (en unités de step fractionnaires).
@@ -187,6 +206,28 @@ export function resolveFrameAt(
       }
     }
     if (!moved) break;
+  }
+
+  // 1.c — Rate limiter sur attaquants : clamp les sauts > MAX_ATTACKER_JUMP_PX
+  // par frame. Évite que `curveAroundObstacle` produise des pics quand le
+  // cluster d'obstacles bouge (cause d'un saut > 20 px sur O2 mi-Pindown).
+  // Appliqué APRÈS le solveur anti-superposition (qui peut avoir lui-même
+  // injecté un déplacement) et AVANT le calcul défenseur (qui dépend des
+  // positions attaquantes finales).
+  if (options.prevFrame) {
+    const prevOff = options.prevFrame.off;
+    attackerIds.forEach((id) => {
+      const p0 = prevOff[id];
+      const p1 = off[id];
+      if (!p0 || !p1) return;
+      const dx = p1.x - p0.x;
+      const dy = p1.y - p0.y;
+      const d = Math.hypot(dx, dy);
+      if (d > MAX_ATTACKER_JUMP_PX) {
+        const k = MAX_ATTACKER_JUMP_PX / d;
+        off[id] = { x: p0.x + dx * k, y: p0.y + dy * k };
+      }
+    });
   }
 
   // ---------------------------------------------------------------------
@@ -504,6 +545,29 @@ export function resolveFrameAt(
     screenLockedDefenders
   );
   recomputeDefenseFrameOrientations(state, off, carrier, defPos);
+
+  // 5.b — Rate limiter sur défenseurs : si `options.prevFrame` est fourni
+  // (= playback en cours), on clamp le saut max par défenseur à
+  // MAX_DEFENDER_JUMP_PX. Évite les snaps visuels mid-segment causés par
+  // changements brutaux d'état d'écran / Bezier flips / adhesion blend
+  // discontinue. La position rattrape progressivement sur les frames
+  // suivantes (~5 frames = 80ms pour 90 px → imperceptible).
+  if (options.prevFrame) {
+    const prev = options.prevFrame.defPos;
+    defenderIds.forEach((id) => {
+      const p = prev[id];
+      const c = defPos[id];
+      if (!p || !c) return;
+      const dx = c.x - p.x;
+      const dy = c.y - p.y;
+      const d = Math.hypot(dx, dy);
+      if (d > MAX_DEFENDER_JUMP_PX) {
+        const k = MAX_DEFENDER_JUMP_PX / d;
+        defPos[id].x = p.x + dx * k;
+        defPos[id].y = p.y + dy * k;
+      }
+    });
+  }
 
   // ---------------------------------------------------------------------
   // 6. Ballon — suit la position INTERPOLÉE du porteur (et non les positions

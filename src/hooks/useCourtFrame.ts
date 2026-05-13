@@ -60,6 +60,11 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
   const [playFrame, setPlayFrame] = useState<PlaybackFrame | null>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
+  // Référence vers la frame PRÉCÉDENTE pour le rate limiter défenseurs
+  // (cf. resolveFrameAt options.prevFrame). Permet de clamper les sauts
+  // mid-segment causés par changements d'état d'écran. Réinitialisée
+  // quand le playback redémarre.
+  const prevFrameRef = useRef<PlaybackFrame | null>(null);
 
   const handleTick = useCallback((t: number) => {
     const cur = stateRef.current;
@@ -67,12 +72,16 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     if (totalSteps <= 0) return;
     if (t >= totalSteps) {
       setPlayFrame(null);
+      prevFrameRef.current = null;
       onPlaybackTick?.(totalSteps);
       return;
     }
     onPlaybackTick?.(t);
-    const frame = resolveFrameAt(cur, t);
-    if (frame) setPlayFrame(frame);
+    const frame = resolveFrameAt(cur, t, { prevFrame: prevFrameRef.current ?? undefined });
+    if (frame) {
+      setPlayFrame(frame);
+      prevFrameRef.current = frame;
+    }
     // onPlaybackTick volontairement hors deps : on lit stateRef, et changer
     // d'identité de callback ne doit pas re-créer la boucle d'animation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -89,7 +98,10 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
 
   // Reset du playFrame quand la lecture s'arrête (pause / fin externe).
   useEffect(() => {
-    if (!isPlaying) setPlayFrame(null);
+    if (!isPlaying) {
+      setPlayFrame(null);
+      prevFrameRef.current = null;
+    }
   }, [isPlaying]);
 
   // Frame statique (étape active, sans interpolation).

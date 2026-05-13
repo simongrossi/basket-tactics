@@ -64,6 +64,8 @@ state.steps[N].off + matchups
 [applyPnRRotationsLayer]     — low-man tag + X-out + nail stunt
     ↓
 [applyChainResponseLayer]    — C.7 V2 réaction aux chaînes d'écrans
+[rate limiter playback]      — couches 1.c (attaquants) + 5.b (défenseurs)
+                               quand `options.prevFrame` est fourni
     ↓
 [applyOffBallScreenLayer]    — écrans hors-ballon
     ↓
@@ -388,14 +390,9 @@ sans action). Démarrer directement à la position d'action.
 
 ### Limites acceptées
 
-- **Jumps résiduels 30-70 px côté défense** quand la détection
-  d'écran s'active/se désactive mi-transition. Visible mais pas
-  dramatique. Chantier : smoother les transitions d'état d'écran
-  via interpolation de `screenLockedDefenders` plutôt que skip
-  binaire.
-- **`systeme_basket-8` scenario extrême** : 13 px de secousse
+- **`systeme_basket-8` scenario extrême** : ~13 px de secousse
   côté D1 quand le poseur se déplace de 138 px entre 2 steps.
-  Trade-off documenté inline (seuil test 18 px vs 5 px).
+  Bornée par le rate limiter (cf. ci-dessous).
 
 ### C.7 — Action chains V1 (diagnostic + badge, livré 2026-05-13)
 
@@ -477,6 +474,46 @@ sur son homme quand le trigger disparaît — il glisse progressivement
   `computeDefenseTargets` (utilise une approximation basée sur `detectTriggers`
   qui est pure). La couche elle-même appelle `computeDefenseTargets(N-1)`
   mais sur index décroissant → terminaison garantie.
+
+### Rate limiter playback (couche 5.b, livré 2026-05-13)
+
+**Problème** : malgré les fixes successifs (idle lerp + anti-superposition
++ adhesion smooth), des sauts résiduels 30-70 px subsistaient sur des
+défenseurs mi-segment quand l'état d'écran changeait brutalement (détection
+qui s'allume/s'éteint, Bezier qui flip de côté, adhesion qui change de
+blend, curveAroundObstacle dont le cluster bouge).
+
+**Fix** : `resolveFrameAt` accepte un `options.prevFrame` ; quand fourni
+(= playback en cours, passé via `useCourtFrame::prevFrameRef`), un
+**rate limiter** clamp le delta inter-frame à :
+- `MAX_DEFENDER_JUMP_PX = 18` (couche 5.b)
+- `MAX_ATTACKER_JUMP_PX = 18` (couche 1.c, après le solveur anti-superposition)
+
+À 60 fps, 18 px/frame = 1080 px/s ≈ 29 m/s. Au-delà = snap visuel.
+Un cut basket réel à 7 m/s ≈ 4.4 px/frame, largement sous le seuil.
+
+**Effet mesuré** :
+| Lab | Avant | Après |
+|-----|-------|-------|
+| Lab Snake (D5) | 68 px | 18 px |
+| Lab Pindown (D3) | 55 px | 18 px |
+| Lab Chain stagger (D4) | 54 px | 18 px |
+| Tous Labs | jusqu'à 68 px | ≤ 18 px |
+
+**À RESPECTER** :
+- ✅ Le rate limiter ne s'active QUE quand `options.prevFrame` est passé.
+  Le scrub (sans prevFrame) et l'engine pur (`computeDefenseTargets`)
+  restent inchangés. Garantit que les invariants step-by-step ne sont
+  pas affectés.
+- ✅ Le reset de `prevFrameRef` quand `isPlaying` redémarre — sinon
+  un saut résiduel de la précédente lecture serait propagé.
+
+**À INTERDIRE** :
+- ❌ Ne pas augmenter le seuil au-dessus de ~20 sans mesurer l'impact
+  visuel. Les utilisateurs perçoivent les sauts > 20 px.
+- ❌ Ne pas appliquer en mode édition libre (1 step) — le delta n'a pas
+  de sens, pas de prev. `useCourtFrame::handleTick` gère déjà ça
+  implicitement (prev=null à isPlaying=false).
 
 ### Bugs résolus mai 2026 (NE JAMAIS REGRESSER)
 

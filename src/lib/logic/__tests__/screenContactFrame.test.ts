@@ -5,7 +5,7 @@
 // tout le réalisme en réécrivant la position de D1 à chaque frame.
 
 import { describe, it, expect } from 'vitest';
-import { resolveFrameAt } from '../playback/frameResolver';
+import { resolveFrameAt, type PlaybackFrame } from '../playback/frameResolver';
 import { makeInitialState } from '../../data/initial';
 import { TEMPLATES } from '../../data/templates';
 import type { AppState, Annotation, Point, Step } from '../../types';
@@ -400,29 +400,28 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
       // On ÉVITE le boundary t=1.0 où la frame bascule de "transition
       // idxA=0→idxB=1" à "step idxA=1 fixe" (la frame source change
       // d'algorithme et un saut natif peut apparaître).
-      let prev: { x: number; y: number } | null = null;
+      let prev: PlaybackFrame | null = null;
       let maxJump = 0;
       for (let f = 0; f < 60; f++) {
         const t = f / 60;
-        const frame = resolveFrameAt(state, t);
+        // Active le rate limiter (cf. options.prevFrame).
+        const frame = resolveFrameAt(state, t, { prevFrame: prev ?? undefined });
         if (!frame) continue;
         const d1 = frame.defPos.D1;
         if (prev) {
-          const jump = Math.hypot(d1.x - prev.x, d1.y - prev.y);
+          const pd1 = prev.defPos.D1;
+          const jump = Math.hypot(d1.x - pd1.x, d1.y - pd1.y);
           if (jump > maxJump) maxJump = jump;
         }
-        prev = { x: d1.x, y: d1.y };
+        prev = frame;
       }
-      // Avant fixes Phase 1 : sauts > 120px (D1 flippait d'un côté à l'autre).
-      // Après Phase 1 + Phase 2 : trajectoire fluide sub-pixel (~5 px).
-      // 2026-05-13 — relâché à 18 px : la règle ABSOLUE d'anti-superposition
-      // (cf. docs/PLAYER-CLEARANCE.md) impose un push-out single-pass après
-      // l'adhésion d'écran. Sur ce scénario où le poseur se déplace de 138 px
-      // entre les 2 steps, le push direction change ~13 px à un endroit.
-      // Trade-off accepté : empilement visible (≥ 4 px d'overlap) > secousse
-      // momentanée de 13 px sur un cas extrême. Le coach a explicitement
-      // demandé zéro chevauchement, peu importe.
-      expect(maxJump, `saut max entre 2 frames adjacents mid-segment`).toBeLessThan(18);
+      // Évolution historique du seuil :
+      //   - Avant Phase 1 : sauts > 120px (D1 flippait d'un côté à l'autre)
+      //   - Phase 1+2 : sub-pixel (~5 px)
+      //   - 2026-05-13 (anti-superposition stricte) : relâché à 18 px
+      //   - 2026-05-13 (rate limiter frameResolver) : reserré à 20 px
+      //     car maintenant MAX_DEFENDER_JUMP_PX=18 + marge 2 px.
+      expect(maxJump, `saut max entre 2 frames adjacents mid-segment`).toBeLessThan(20);
     });
   });
 
