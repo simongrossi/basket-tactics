@@ -621,7 +621,7 @@ juste plus de fidélité tactique.
 | ~~C.4~~ | ~~**Pre-rotation shift** : anticipation pré-écran (~10 px)~~ | — | — | — | 🟢 livré 2026-05-12 (10 tests, 746 verts) |
 | ~~C.5~~ | ~~**Tag-then-switch dynamic** : `tagThenSwitchEnabled`~~ | — | — | — | 🟢 livré 2026-05-12 (4 tests, 736 verts) |
 | ~~C.6~~ | ~~**Help angle** : mode `open-weighted` (distances)~~ | — | — | — | 🟢 livré 2026-05-12 (3 tests, 724 verts) |
-| C.7 | **Read offensive action chains** : flare → curl → fade. Le moteur détecte chaque écran isolément, pas de continuité de pattern. | 6-8h V1+V2 | 🟡 | Moyen-haut | ⚪ détaillé ci-dessous |
+| ~~C.7~~ | ~~**Read offensive action chains** : V1 helper + diag + badge sur 3 patterns (re-screen, stagger, flare-fade)~~ | — | — | — | 🟢 V1 livré 2026-05-13 (15 tests, 882 verts) — V2 réaction défensive en suspens |
 
 #### ⚪ C.2 — Help-and-recover timing — détail du plan
 
@@ -911,7 +911,7 @@ V1, refonte `getDefenseHoop`).
 | C.4 Pre-rotation | 🟢 livré | 10 | `9f2e21a` |
 | C.5 Tag-then-switch | 🟢 livré | 4 | `18bf440` |
 | C.6 Help angle continu | 🟢 livré | 3 | `0c3d9ae` |
-| C.7 Action chains | ⚪ détaillé (V1 chain detection, V2 réaction) | — | — |
+| C.7 Action chains | 🟢 V1 livré (re-screen + stagger + flare-fade, diag+badge) | 15 | (commit C.7 V1) |
 | F.1 Junk defenses | ⚪ détaillé (V1 box-and-1) | — | — |
 | F.2 Press | ⚪ détaillé (V1 half-court) | — | — |
 | F.3 FT rebound | ⚪ détaillé (V1 positions statiques) | — | — |

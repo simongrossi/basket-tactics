@@ -753,6 +753,60 @@ const labOff_helpReset: AttackerPositions = {
   O1: { x: 300, y: 400 }, // revient au top, drive depuis longtemps OFF
 };
 
+// ----------------- Template C.7 Re-screen (3 steps = 4s) -----------------
+// Reproduit le pattern : écran à N-2, relâché à N-1, ré-utilisé à N.
+const labOff_rescreenWith: AttackerPositions = {
+  O1: { x: 300, y: 480 }, O2: { x: 100, y: 380 }, O3: { x: 500, y: 380 },
+  O4: { x: 180, y: 200 }, O5: { x: 310, y: 460 }, // PnR top
+};
+const labOff_rescreenGap: AttackerPositions = {
+  ...labOff_rescreenWith, O5: { x: 400, y: 200 }, // O5 s'éloigne
+};
+
+const SCREEN_LAB_CHAIN_RESCREEN: Template = {
+  id: 'screen-lab-chain-rescreen',
+  name: '🧪 Lab Chain re-screen (dev)',
+  description:
+    "Banc de test C.7 — re-screen : O5 pose écran sur O1 → s'écarte → revient poser le MÊME écran. Le coach diag doit afficher 'Re-screen' au step 3 et le badge 🔗 RE-SCREEN sur O1. 3 steps = 4s.",
+  defenseInitial: defaultDef(labOff_rescreenWith),
+  steps: [
+    { label: '01 — Écran posé', off: labOff_rescreenWith, ballCarrier: 'O1', annotations: [], forcedScreener: 'O5' },
+    { label: '02 — Relâchement (O5 s\'éloigne)', off: labOff_rescreenGap, ballCarrier: 'O1', annotations: [] },
+    { label: '03 — Re-screen (O5 revient)', off: labOff_rescreenWith, ballCarrier: 'O1', annotations: [], forcedScreener: 'O5' },
+  ],
+};
+
+// ----------------- Template C.7 Stagger (3 steps = 4s) -----------------
+// Reproduit : 2 poseurs DIFFÉRENTS successivement sur le même cutter O2.
+// O2 traverse : pose O3 d'abord, puis pose O4 plus haut.
+// Distance entre les 2 positions de pose volontairement modeste pour éviter
+// que D2 saute trop loin pendant le passage du 1er au 2ᵉ écran.
+const labOff_staggerC7Setup: AttackerPositions = {
+  O1: { x: 460, y: 380 }, O2: { x: 200, y: 310 }, O3: { x: 220, y: 310 },
+  O4: { x: 260, y: 260 }, O5: { x: 400, y: 380 },
+};
+// step 2 : O2 se déplace contre D2 où arrive O3 (écran 1er poseur)
+const labOff_staggerC7Pose1: AttackerPositions = {
+  ...labOff_staggerC7Setup, O2: { x: 220, y: 320 }, O3: { x: 200, y: 320 },
+};
+// step 3 : O2 traverse vers le 2e poseur O4 (proche, faible delta)
+const labOff_staggerC7Pose2: AttackerPositions = {
+  ...labOff_staggerC7Setup, O2: { x: 260, y: 270 }, O3: { x: 200, y: 320 }, O4: { x: 240, y: 270 },
+};
+
+const SCREEN_LAB_CHAIN_STAGGER: Template = {
+  id: 'screen-lab-chain-stagger',
+  name: '🧪 Lab Chain stagger (dev)',
+  description:
+    "Banc de test C.7 — stagger : O3 puis O4 posent successivement sur D2 pour libérer O2. Le coach diag doit afficher 'Stagger' au step 3 et le badge 🔗 STAGGER sur O2. 3 steps = 4s.",
+  defenseInitial: defaultDef(labOff_staggerC7Setup),
+  steps: [
+    { label: '01 — Setup stagger', off: labOff_staggerC7Setup, ballCarrier: 'O1', annotations: [] },
+    { label: '02 — O3 pose 1er écran', off: labOff_staggerC7Pose1, ballCarrier: 'O1', annotations: [] },
+    { label: '03 — O4 pose 2e écran', off: labOff_staggerC7Pose2, ballCarrier: 'O1', annotations: [] },
+  ],
+};
+
 const SCREEN_LAB_HELP_RECOVER: Template = {
   id: 'screen-lab-help-recover',
   name: '🧪 Lab Help-recover (dev)',
@@ -784,6 +838,8 @@ export const TEMPLATES: Template[] = [
   SCREEN_LAB_PINDOWN,
   SCREEN_LAB_OFFBALL,
   SCREEN_LAB_HELP_RECOVER,
+  SCREEN_LAB_CHAIN_RESCREEN,
+  SCREEN_LAB_CHAIN_STAGGER,
   SCREEN_LAB_STRESS,
 ];
 

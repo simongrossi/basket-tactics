@@ -25,6 +25,8 @@ const LAB_IDS = [
   'screen-lab-pindown',
   'screen-lab-offball',
   'screen-lab-help-recover',
+  'screen-lab-chain-rescreen',
+  'screen-lab-chain-stagger',
   'screen-lab-stress',
 ] as const;
 
@@ -84,7 +86,7 @@ LAB_IDS.forEach((tplId) => {
 });
 
 describe('🧪 Screen Lab — meta', () => {
-  it('les 7 templates dev sont inscrits dans TEMPLATES', () => {
+  it('les 9 templates dev sont inscrits dans TEMPLATES', () => {
     LAB_IDS.forEach((id) => {
       const tpl = TEMPLATES.find((t) => t.id === id);
       expect(tpl, `template ${id} inscrit`).toBeDefined();

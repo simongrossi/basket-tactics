@@ -30,3 +30,4 @@ export { isEmptySidePnR } from './emptySidePnR';
 export { countCutterScreenChain, cuttersInScreenChain } from './cutterScreenChain';
 export { consecutiveHedgeSteps } from './hedgeStepCounter';
 export { detectImminentScreen, type ImminentScreen } from './detectImminentScreen';
+export { detectScreenChain, type ScreenChain, type ScreenChainType } from './detectScreenChain';

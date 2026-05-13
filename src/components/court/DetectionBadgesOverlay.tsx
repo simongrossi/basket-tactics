@@ -9,6 +9,9 @@
 //  - snake-dribble (B4)    → badge orange "SNAKE" sur le porteur
 //  - empty-side-pnr (B5)   → badge jaune "EMPTY" entre le couple PnR
 //  - defensive-3sec (B7)   → anneau rouge pulsant autour du défenseur en violation
+//  - chain-re-screen (C.7) → badge violet "🔗 RE-SCREEN" sur le cutter
+//  - chain-stagger   (C.7) → badge violet "🔗 STAGGER" sur le cutter
+//  - chain-flare-fade (C.7)→ badge bleu "🔗 FLARE→FADE" sur le cutter
 //
 // Le composant consomme directement les `CoachDiagnostic[]` déjà calculés
 // par `computeCoachDiagnostics` en amont (memoized dans page.tsx) — pas
@@ -99,6 +102,21 @@ export function DetectionBadgesOverlay({
         return <EmptySideBadge pos={mid} />;
       })()}
 
+      {/* C.7 — Action chains (re-screen / stagger / flare-fade) */}
+      {(['chain-re-screen', 'chain-stagger', 'chain-flare-fade'] as const).map((tag) => {
+        const diag = byTag.get(tag);
+        if (!diag) return null;
+        const cutter = diag.attackers[0];
+        if (!cutter || !off[cutter]) return null;
+        const cp = off[cutter];
+        const label =
+          tag === 'chain-re-screen' ? '🔗 RE-SCREEN' :
+          tag === 'chain-stagger' ? '🔗 STAGGER' :
+          '🔗 FLARE→FADE';
+        const color = tag === 'chain-flare-fade' ? '#3b82f6' : '#8b5cf6';
+        return <ChainBadge key={tag} pos={cp} label={label} color={color} title={diag.message} />;
+      })}
+
       {/* B7 — Defensive 3-second violation */}
       {diagnostics
         .filter((d) => d.tag === 'defensive-3sec')
@@ -154,6 +172,36 @@ function SnakeBadge({ pos }: { pos: Point }) {
         textAnchor="middle"
       >
         ↩ SNAKE
+      </text>
+    </g>
+  );
+}
+
+/** Badge violet "🔗 ..." — chaîne d'action détectée (C.7). */
+function ChainBadge({
+  pos, label, color, title,
+}: {
+  pos: Point;
+  label: string;
+  color: string;
+  title: string;
+}) {
+  const width = label.length * 6 + 10;
+  const dx = -width / 2;
+  const dy = -PLAYER_RADIUS - 30;
+  return (
+    <g transform={`translate(${pos.x + dx}, ${pos.y + dy})`}>
+      <title>{title}</title>
+      <rect x={0} y={-7} width={width} height={14} rx={3} fill={color} opacity={0.95} />
+      <text
+        x={width / 2}
+        y={3}
+        fontSize={9}
+        fontWeight={700}
+        fill="#fff"
+        textAnchor="middle"
+      >
+        {label}
       </text>
     </g>
   );

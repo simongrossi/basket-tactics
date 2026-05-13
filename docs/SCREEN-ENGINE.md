@@ -40,6 +40,8 @@ pas se superposer au poseur (même quand "stuck on screener"), etc.
 | `src/lib/logic/screens/hedgeStepCounter.ts` | C.3 hedge length — compteur consecutive hedge |
 | `src/lib/logic/defense/helpStepCounter.ts` | C.2 help-and-recover — compteur consecutive help |
 | `src/lib/logic/defense/helpStickyLayer.ts` | C.2 help-and-recover — couche 1.6 (blend decay) |
+| `src/lib/logic/screens/detectScreenChain.ts` | C.7 action chains — 3 patterns (re-screen, stagger, flare-fade) |
+| `src/lib/logic/coachDiagnostics/rules/screenChain.ts` | C.7 — règle coach (warning/info selon pattern) |
 | `src/lib/logic/screens/detectRejectedScreen.ts` | B2 reject — détecte le porteur qui vire opposé |
 | `src/lib/logic/screens/detectSnakeDribble.ts` | B4 snake — détecte V sur 3 steps |
 | `src/lib/logic/screenPhysics.ts` | `screenContactT/Phase/Adhesion/TangentRelease` — easing sigmoïdal qui FIGE D1 sur le poseur |
@@ -280,6 +282,7 @@ du cercle du poseur, côté oppose au panier.
 | `offBallScreenRule` | global | over | Réponse défensive par défaut sur écran hors-ballon |
 | `hedgeRecoveryDelay` | global | undefined | C.3 — nb steps consécutifs avant recover forcé en hedge (1..3) |
 | `helpStickiness` | global | undefined | C.2 — nb steps de sticky help avec decay après disparition du trigger (1..3) |
+| `readScreenChainsEnabled` | global | undefined | C.7 V2 — défense réagit aux chaînes (re-screen, stagger, flare-fade). V1 actuel : diag-only sans ce setting. |
 | `tagThenSwitchEnabled` | global | false | C.5 — bascule switch implicite si roller proche panier |
 | `preRotationEnabled` | global | false | C.4 — shift carrierDef 10 px vers un poseur imminent |
 | `unwindRejectedScreens` | global | false | B2 V2 — annule la couverture si reject SHARP détecté |
@@ -390,6 +393,47 @@ sans action). Démarrer directement à la position d'action.
 - **`systeme_basket-8` scenario extrême** : 13 px de secousse
   côté D1 quand le poseur se déplace de 138 px entre 2 steps.
   Trade-off documenté inline (seuil test 18 px vs 5 px).
+
+### C.7 — Action chains V1 (diagnostic + badge, livré 2026-05-13)
+
+**Concept basket** : la défense doit LIRE la séquence (chaîne d'écrans),
+pas juste chaque écran isolément. Sans cette lecture, elle se fait avoir
+au 2ᵉ acte comme si c'était une surprise.
+
+**Patterns V1 détectés** :
+- `re-screen` : même paire (poseur, cutter) à N-2 et N, ABSENT à N-1
+  (relâchement entre les 2 utilisations). Carrier OU off-ball.
+- `stagger-sequential` : 2 poseurs DIFFÉRENTS successifs sur le même
+  cutter en ≤ 2 steps (Floppy, flex stagger).
+- `flare-then-fade` : écran flare à N-1 puis cutter fade vers un coin
+  à N (∆dist au panier ≥ 20 px, |x - hoopX| > 200 ET y > 350).
+
+**Implémentation** :
+- Helper pur `screens/detectScreenChain.ts` : lookback 3 steps, retourne
+  `ScreenChain | null` (cutter + screeners + steps clés). Aucun appel à
+  `computeDefenseTargets` (utilise `approxDefenderPositions` pattern).
+- Règle coach `coachDiagnostics/rules/screenChain.ts` : inscrite dans le
+  registry. 3 sous-types de diag : `chain-re-screen` (warning),
+  `chain-stagger` (warning), `chain-flare-fade` (info).
+- Badges SVG dans `DetectionBadgesOverlay.tsx` : pastille violet
+  (re-screen/stagger) ou bleu (flare-fade) avec icône 🔗 au-dessus du
+  cutter, info-bulle hover.
+- 2 labs dev focalisés : `🧪 Lab Chain re-screen` (3 steps = 4s) et
+  `🧪 Lab Chain stagger` (3 steps = 4s).
+
+**V2 à venir (réaction défensive)** :
+- Setting `readScreenChainsEnabled?: boolean` (opt-in)
+- Couche `chainResponseLayer` (2.5) :
+  - re-screen → boost quality +20 sur 2ᵉ acte
+  - stagger → délégué à B9 cutterScreenChain (top-lock auto, déjà câblé)
+  - flare-then-fade → gazeLock cutter + helpMode passive
+- Estimation : ~3h supplémentaires.
+
+**Garanties anti-régression V1** :
+- ✅ Pas de modification de positions ni matchups (diag-only)
+- ✅ Helper pur — tests `pure : 2 appels successifs == même résultat`
+- ✅ Anti-récursion — test 10 calls successifs sans crash
+- ✅ Anti-faux-positif — test sur 6 playbooks classiques
 
 ### C.2 — Help-and-recover timing (couche 1.6, livré 2026-05-13)
 
