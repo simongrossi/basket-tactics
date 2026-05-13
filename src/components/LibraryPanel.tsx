@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { AppState } from '@/lib/types';
-import { TEMPLATES, type Template } from '@/lib/data/templates';
+import { CLASSIC_TEMPLATES, LAB_TEMPLATES, type Template } from '@/lib/data/templates';
 import type { UserLibrary, SavedSystem } from '@/lib/data/library';
 import { Panel, COLORS } from './ui';
 import { LibraryModal } from './LibraryModal';
@@ -34,7 +34,9 @@ export function LibraryPanel(props: LibraryPanelProps) {
   const { state, library } = props;
   const hasWork = state.steps.length > 1 || state.steps[0].annotations.length > 0;
   const userSystemCount = library.folders.reduce((sum, f) => sum + f.systems.length, 0);
-  const totalCount = TEMPLATES.length + userSystemCount;
+  const classicCount = CLASSIC_TEMPLATES.length;
+  const labCount = LAB_TEMPLATES.length;
+  const totalCount = classicCount + labCount + userSystemCount;
 
   return (
     <Panel theme="offense" title="📚 Bibliothèque">
@@ -58,9 +60,9 @@ export function LibraryPanel(props: LibraryPanelProps) {
         }}
         onMouseEnter={(e) => { e.currentTarget.style.background = c.bgSubtle; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = c.bg; }}
-        title={`${TEMPLATES.length} systèmes classiques + ${userSystemCount} sauvegardés`}
+        title={`${classicCount} systèmes classiques + ${labCount} lab dev + ${userSystemCount} sauvegardés`}
       >
-        <span>📚 {totalCount} systèmes ({TEMPLATES.length} classiques + {userSystemCount} mes systèmes)</span>
+        <span>📚 {totalCount} systèmes ({classicCount} classiques + {labCount} 🧪 lab dev + {userSystemCount} mes systèmes)</span>
         <span style={{ fontSize: 10, color: c.accent, opacity: 0.7 }}>ouvrir →</span>
       </button>
       {open && (

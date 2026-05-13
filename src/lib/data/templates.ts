@@ -824,7 +824,15 @@ const SCREEN_LAB_HELP_RECOVER: Template = {
 // ============================================================
 // EXPORT
 // ============================================================
-export const TEMPLATES: Template[] = [
+//
+// Deux groupes pour la bibliothèque UI :
+//   - CLASSIC_TEMPLATES : playbooks tactiques de référence (présentables au coach)
+//   - LAB_TEMPLATES     : bancs de test exhaustifs des écrans (dev tools)
+//
+// `TEMPLATES` agrégé reste exporté pour backward compat (tests d'invariants,
+// playbookJumps, etc.).
+
+export const CLASSIC_TEMPLATES: Template[] = [
   PNR_CENTRAL,
   HORNS_FLARE,
   PINDOWN_CORNER,
@@ -832,6 +840,9 @@ export const TEMPLATES: Template[] = [
   UCLA_CUT,
   FLOPPY,
   HAMMER,
+];
+
+export const LAB_TEMPLATES: Template[] = [
   SCREEN_LAB_PNR,
   SCREEN_LAB_SNAKE,
   SCREEN_LAB_REJECT,
@@ -842,6 +853,8 @@ export const TEMPLATES: Template[] = [
   SCREEN_LAB_CHAIN_STAGGER,
   SCREEN_LAB_STRESS,
 ];
+
+export const TEMPLATES: Template[] = [...CLASSIC_TEMPLATES, ...LAB_TEMPLATES];
 
 export function findTemplate(id: string): Template | undefined {
   return TEMPLATES.find((t) => t.id === id);

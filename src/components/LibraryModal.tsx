@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { TEMPLATES, type Template } from '@/lib/data/templates';
+import { CLASSIC_TEMPLATES, LAB_TEMPLATES, type Template } from '@/lib/data/templates';
 import type { UserLibrary, SavedSystem, SavedFolder } from '@/lib/data/library';
 import { COLORS } from './ui';
 
 /** Identifiant abstrait pour le dossier "Systèmes classiques" (read-only). */
 const CLASSIC_FOLDER_ID = '__classic__';
+/** Identifiant abstrait pour le dossier "🧪 Lab dev" (read-only). */
+const LAB_FOLDER_ID = '__lab__';
 
 interface LibraryModalProps {
   hasWorkInProgress: boolean;
@@ -60,6 +62,9 @@ export function LibraryModal(props: LibraryModalProps) {
 
   // Données du dossier sélectionné.
   const isClassic = selectedFolderId === CLASSIC_FOLDER_ID;
+  const isLab = selectedFolderId === LAB_FOLDER_ID;
+  const isReadOnlyFolder = isClassic || isLab;
+  const templatesForFolder = isClassic ? CLASSIC_TEMPLATES : isLab ? LAB_TEMPLATES : [];
   const userFolder = library.folders.find((f) => f.id === selectedFolderId) ?? null;
 
   const handleLoadSaved = (sys: SavedSystem) => {
@@ -78,7 +83,7 @@ export function LibraryModal(props: LibraryModalProps) {
   };
 
   const handleExportFolder = () => {
-    if (isClassic || !userFolder) return;
+    if (isReadOnlyFolder || !userFolder) return;
     const json = onExportFolder(userFolder.id);
     if (!json) return;
     const blob = new Blob([json], { type: 'application/json' });
@@ -159,9 +164,15 @@ export function LibraryModal(props: LibraryModalProps) {
           >
             <FolderRow
               label={`📦 Systèmes classiques`}
-              count={TEMPLATES.length}
+              count={CLASSIC_TEMPLATES.length}
               active={selectedFolderId === CLASSIC_FOLDER_ID}
               onClick={() => setSelectedFolderId(CLASSIC_FOLDER_ID)}
+            />
+            <FolderRow
+              label={`🧪 Lab dev`}
+              count={LAB_TEMPLATES.length}
+              active={selectedFolderId === LAB_FOLDER_ID}
+              onClick={() => setSelectedFolderId(LAB_FOLDER_ID)}
             />
             <div style={{ fontSize: 9, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 8, marginBottom: 2, paddingLeft: 4 }}>
               Mes dossiers
@@ -207,10 +218,12 @@ export function LibraryModal(props: LibraryModalProps) {
 
           {/* Pane systèmes */}
           <div style={{ flex: 1, padding: 16, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {isClassic ? (
+            {isReadOnlyFolder ? (
               <>
                 <div style={{ fontSize: 11, color: '#78716c' }}>
-                  Systèmes prêts à l'emploi (lecture seule). Clic pour charger.
+                  {isClassic
+                    ? "Systèmes prêts à l'emploi (lecture seule). Clic pour charger."
+                    : "Bancs de test exhaustifs des écrans — outils dev. Chaque template = un scénario continu (≤ 18 s) pour valider visuellement les comportements engine."}
                 </div>
                 <div
                   style={{
@@ -219,7 +232,7 @@ export function LibraryModal(props: LibraryModalProps) {
                     gap: 10,
                   }}
                 >
-                  {TEMPLATES.map((t) => (
+                  {templatesForFolder.map((t) => (
                     <button
                       key={t.id}
                       onClick={() => handleLoadTemplate(t)}
