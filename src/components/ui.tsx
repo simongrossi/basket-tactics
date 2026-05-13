@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import type { ReactNode } from 'react';
+import { useAccordionState } from '@/hooks/useAccordionState';
 
 export const COLORS = {
   offense: {
@@ -114,6 +115,150 @@ export function Section({ theme, label, open, children }: SectionProps) {
       </summary>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>{children}</div>
     </details>
+  );
+}
+
+/**
+ * Livraison 2 — section accordion avec persistence localStorage + variants
+ * visuels pour hiérarchie de fréquence.
+ *
+ * Variants :
+ *  - 'pinned'    : section toujours dépliée, jamais collapsible. Fond
+ *                  bleu pâle. Pour les contrôles hot path (consignes
+ *                  équipe, appliquer à tous).
+ *  - 'neutral'   : section repliable standard. Fond blanc. Default.
+ *  - 'secondary' : section repliable + en bas du panneau. Fond gris pâle.
+ *                  Pour les contrôles rares (simu MC, mes presets).
+ */
+interface AccordionSectionProps {
+  /** Identifiant stable pour localStorage (mémorisation déplié/replié). */
+  id: string;
+  theme: Theme;
+  label: string;
+  /** Icône/emoji à gauche du label. */
+  icon?: string;
+  /** Badge à droite du label (ex compteur "3 modifs"). */
+  badge?: string | number;
+  /** Variant visuel — détermine couleurs et behavior. */
+  variant?: 'pinned' | 'neutral' | 'secondary';
+  /** État initial si rien en localStorage. Ignoré pour 'pinned' (toujours true). */
+  defaultOpen?: boolean;
+  children: ReactNode;
+}
+
+export function AccordionSection({
+  id,
+  theme,
+  label,
+  icon,
+  badge,
+  variant = 'neutral',
+  defaultOpen,
+  children,
+}: AccordionSectionProps) {
+  const c = COLORS[theme];
+  const isPinned = variant === 'pinned';
+  const [open, setOpen] = useAccordionState(
+    id,
+    isPinned ? true : (defaultOpen ?? false)
+  );
+  const effectiveOpen = isPinned || open;
+
+  // Couleurs par variant
+  const bg =
+    variant === 'pinned'
+      ? '#eff6ff' // bleu pâle (top-of-mind)
+      : variant === 'secondary'
+        ? '#fafaf9' // gris très pâle
+        : '#fff';
+  const borderColor =
+    variant === 'pinned' ? '#bfdbfe' : c.border;
+  const accentText = 'accentText' in c ? c.accentText : c.text;
+
+  return (
+    <div
+      style={{
+        border: `1px solid ${borderColor}`,
+        borderRadius: 6,
+        background: bg,
+        overflow: 'hidden',
+        marginBottom: 2,
+      }}
+    >
+      <button
+        type="button"
+        onClick={isPinned ? undefined : () => setOpen(!open)}
+        disabled={isPinned}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '6px 8px',
+          fontSize: 11,
+          fontWeight: 700,
+          color: accentText,
+          background: 'transparent',
+          border: 'none',
+          cursor: isPinned ? 'default' : 'pointer',
+          textAlign: 'left',
+          letterSpacing: '0.02em',
+        }}
+      >
+        {!isPinned && (
+          <span
+            style={{
+              display: 'inline-block',
+              fontSize: 9,
+              transform: effectiveOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+              transition: 'transform 180ms ease',
+              color: accentText,
+              opacity: 0.6,
+            }}
+            aria-hidden
+          >
+            ▶
+          </span>
+        )}
+        {icon && <span aria-hidden>{icon}</span>}
+        <span style={{ flex: 1 }}>{label}</span>
+        {badge !== undefined && badge !== '' && (
+          <span
+            style={{
+              fontSize: 9,
+              fontWeight: 600,
+              background: '#fff',
+              color: accentText,
+              border: `1px solid ${borderColor}`,
+              padding: '1px 5px',
+              borderRadius: 8,
+            }}
+          >
+            {badge}
+          </span>
+        )}
+      </button>
+      <div
+        style={{
+          maxHeight: effectiveOpen ? 4000 : 0,
+          opacity: effectiveOpen ? 1 : 0,
+          overflow: 'hidden',
+          transition: 'max-height 240ms ease, opacity 180ms ease',
+        }}
+        aria-hidden={!effectiveOpen}
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6,
+            padding: effectiveOpen ? '0 8px 8px' : '0 8px',
+          }}
+        >
+          {children}
+        </div>
+      </div>
+    </div>
   );
 }
 
