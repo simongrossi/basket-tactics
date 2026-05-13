@@ -3,9 +3,10 @@
 // corps + regard).
 
 import { useEffect, useRef } from 'react';
-import type { AttackerId, DominantHand, OffensiveProfile, Tool } from '@/lib/types';
+import type { Annotation, AppState, AttackerId, DominantHand, OffensiveProfile, Tool } from '@/lib/types';
 import { useClampedPosition } from './popupHooks';
 import { ToolBar } from './ToolBar';
+import { AutoActionSubmenu } from './AutoActionSubmenu';
 
 const PROFILE_LABELS: Record<OffensiveProfile, string> = {
   creator:      'créateur (meneur)',
@@ -29,6 +30,9 @@ export interface AttackerMenuProps {
   tool: Tool;
   bodyOrientation?: number;
   gazeOrientation?: number;
+  /** State complet (lecture seule) — nécessaire pour calculer les positions et
+   *  l'orientation au moment de générer une action auto. */
+  state: AppState;
   onSetTool: (t: Tool) => void;
   onMakeCarrier: () => void;
   onForceScreener: () => void;
@@ -38,12 +42,15 @@ export interface AttackerMenuProps {
   onSetOffensiveProfile: (p: OffensiveProfile) => void;
   onSetBodyOrientation: (v: number | undefined) => void;
   onSetGazeOrientation: (v: number | undefined) => void;
+  /** Création d'une annotation auto (passe / écran) depuis le sous-menu. */
+  onCreateAutoAnnotation: (annotation: Annotation) => void;
   onClose: () => void;
 }
 
 export function AttackerMenu({
   oId, x, y, isCarrier, isForcedScreener, hasAnnotations, dominantHand, offensiveProfile,
   tool, onSetTool, bodyOrientation, gazeOrientation,
+  state, onCreateAutoAnnotation,
   onMakeCarrier, onForceScreener, onClearForcedScreener, onClearAnnotations,
   onSetDominantHand, onSetOffensiveProfile, onSetBodyOrientation, onSetGazeOrientation, onClose,
 }: AttackerMenuProps) {
@@ -126,6 +133,15 @@ export function AttackerMenu({
           disabled={!hasAnnotations}
         />
       </div>
+
+      <AutoActionSubmenu
+        state={state}
+        fromId={oId}
+        onCreate={(ann) => {
+          if (ann) onCreateAutoAnnotation(ann);
+        }}
+        onClose={onClose}
+      />
 
       <div
         style={{

@@ -9,6 +9,7 @@
 // elle aussi déléguée pour pouvoir remettre `null` dans le state du parent.
 
 import type {
+  Annotation,
   AppState,
   AttackerId,
   DefenderId,
@@ -51,6 +52,7 @@ interface CourtMenusProps {
     oId: AttackerId,
     patch: { body?: number | undefined; gaze?: number | undefined }
   ) => void;
+  onAddAnnotation: (annotation: Annotation) => void;
   // Zone menu
   onSetZoneOverride: (regionId: string, override: Partial<ZoneRegionOverride>) => void;
   onClearZoneOverride: (regionId: string) => void;
@@ -74,6 +76,7 @@ export function CourtMenus(props: CourtMenusProps) {
     onSetAttackerHand,
     onSetAttackerProfile,
     onSetAttackerOrientation,
+    onAddAnnotation,
     onSetZoneOverride,
     onClearZoneOverride,
   } = props;
@@ -123,6 +126,8 @@ export function CourtMenus(props: CourtMenusProps) {
             gazeOrientation={state.attackerOrientations?.[oId]?.gaze}
             onSetBodyOrientation={(v) => onSetAttackerOrientation(oId, { body: v })}
             onSetGazeOrientation={(v) => onSetAttackerOrientation(oId, { gaze: v })}
+            state={state}
+            onCreateAutoAnnotation={onAddAnnotation}
             onClose={onCloseCtxMenu}
           />
         );

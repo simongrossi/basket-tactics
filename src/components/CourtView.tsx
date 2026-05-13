@@ -145,7 +145,7 @@ export function CourtView(props: CourtViewProps) {
   const closeZoneRegionMenu = useCallback(() => setZoneRegionMenu(null), []);
 
   // Pointer/drag + tracé d'annotation + marquee.
-  const { pending, snapTarget, marquee, svgPoint, onPointerDown, onPointerMove, onPointerUp } =
+  const { pending, snapTarget, marquee, pendingAutoSourceId, svgPoint, onPointerDown, onPointerMove, onPointerUp } =
     useCourtPointerHandlers({
       state,
       svgRef,
@@ -459,7 +459,45 @@ export function CourtView(props: CourtViewProps) {
             pointerEvents="none"
           />
         )}
+
+        {/* Halo "passe auto en attente cible" — affiché autour du joueur source
+            tant que le user n'a pas cliqué sur la cible (Escape pour annuler). */}
+        {pendingAutoSourceId && frame.off[pendingAutoSourceId] && (
+          <circle
+            cx={frame.off[pendingAutoSourceId].x}
+            cy={frame.off[pendingAutoSourceId].y}
+            r={PLAYER_RADIUS + 8}
+            fill="none"
+            stroke="#D85A30"
+            strokeWidth={2}
+            strokeDasharray="4 3"
+            pointerEvents="none"
+          >
+            <animate attributeName="r" values={`${PLAYER_RADIUS + 6};${PLAYER_RADIUS + 10};${PLAYER_RADIUS + 6}`} dur="1.2s" repeatCount="indefinite" />
+          </circle>
+        )}
       </svg>
+
+      {pendingAutoSourceId && !props.isPlaying && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 14,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(216, 90, 48, 0.92)',
+            color: '#fff',
+            padding: '4px 10px',
+            borderRadius: 6,
+            fontSize: 11,
+            fontWeight: 500,
+            pointerEvents: 'none',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+          }}
+        >
+          passe auto depuis <b>{pendingAutoSourceId}</b> — clique le receveur (Esc pour annuler)
+        </div>
+      )}
 
       {/* #4 — Mini panneau d'info quand la sélection multiple est active. */}
       {selectedDefenders.size > 0 && !props.isPlaying && (
@@ -544,6 +582,7 @@ export function CourtView(props: CourtViewProps) {
         onSetAttackerHand={props.onSetAttackerHand}
         onSetAttackerProfile={props.onSetAttackerProfile}
         onSetAttackerOrientation={props.onSetAttackerOrientation}
+        onAddAnnotation={props.onAddAnnotation}
         onSetZoneOverride={props.onSetZoneOverride}
         onClearZoneOverride={props.onClearZoneOverride}
       />

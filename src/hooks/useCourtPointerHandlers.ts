@@ -23,6 +23,7 @@ import { activeOffense, getActiveDefenderIds } from '@/lib/logic/players';
 import { simplifyPolyline } from '@/lib/logic/polyline';
 import { snapToGrid, type SnapTarget } from '@/lib/logic/snapToGrid';
 import { HOOP, HOOP_OPPOSITE } from '@/lib/data/court';
+import { generateAutoAnnotation } from '@/lib/logic/autoActions/generateAutoAnnotation';
 
 export interface PendingAnnotation {
   type: Tool;
@@ -79,6 +80,11 @@ export interface UseCourtPointerHandlersResult {
   /** Rectangle du marquee en cours (Shift+drag dans le vide). Null si pas
    *  de marquee actif. CourtView l'affiche en SVG semi-transparent. */
   marquee: MarqueeRect | null;
+  /** ID de la source d'une action auto en attente (clic simple sur un attaquant
+   *  en mode `tool === 'pass'`). Le clic suivant sur un attaquant déclenchera
+   *  la création auto. CourtView l'utilise pour afficher un halo sur le joueur
+   *  source. Null si pas en attente. */
+  pendingAutoSourceId: AttackerId | null;
   /** Helper pour convertir un événement clavier/souris en point SVG.
    *  Exposé pour permettre au caller de l'utiliser dans d'autres handlers
    *  (ex. context menu). */
@@ -115,6 +121,27 @@ export function useCourtPointerHandlers(
   const lastDragPointRef = useRef<{ x: number; y: number } | null>(null);
   const [pending, setPending] = useState<PendingAnnotation | null>(null);
   const [snapTarget, setSnapTarget] = useState<SnapTarget | null>(null);
+  /** Source d'une passe auto (clic-simple en mode `tool === 'pass'`). On garde
+   *  le fromId, et au pointer down suivant sur un attaquant on génère
+   *  l'annotation via generateAutoAnnotation. */
+  const [pendingAutoSourceId, setPendingAutoSourceId] = useState<AttackerId | null>(null);
+
+  // Escape annule le mode auto en attente (pas de side-effect dans le DOM).
+  useEffect(() => {
+    if (!pendingAutoSourceId) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPendingAutoSourceId(null);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [pendingAutoSourceId]);
+
+  // Si le tool change, on sort du mode auto-pending (cohérence UX).
+  useEffect(() => {
+    if (state.tool !== 'pass' && pendingAutoSourceId) {
+      setPendingAutoSourceId(null);
+    }
+  }, [state.tool, pendingAutoSourceId]);
 
   // #4 — Marquee + drag groupé.
   const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
@@ -292,6 +319,28 @@ export function useCourtPointerHandlers(
 
       const fromId = (target?.getAttribute('data-id') as PlayerId | null) ?? findPlayerAt(pt);
       if (!fromId || !fromId.startsWith('O')) return;
+
+      // Mode "auto-passe" 2 clics : si on a déjà une source en attente et que
+      // tool === 'pass', le clic courant complète l'action — on génère
+      // l'annotation auto et on sort, sans démarrer de drag. Si l'utilisateur
+      // re-clique sur la source elle-même, on annule.
+      if (state.tool === 'pass' && pendingAutoSourceId) {
+        if (fromId === pendingAutoSourceId) {
+          setPendingAutoSourceId(null);
+          return;
+        }
+        const auto = generateAutoAnnotation(
+          'pass',
+          pendingAutoSourceId,
+          fromId as AttackerId,
+          undefined,
+          state,
+        );
+        if (auto) onAddAnnotation(auto);
+        setPendingAutoSourceId(null);
+        return;
+      }
+
       const from = { ...state.steps[state.activeStep].off[fromId as AttackerId] };
       // Shift+drag = tracé freehand : on enregistre la trajectoire de la souris
       // pour produire une annotation avec waypoints (V-cut, L-cut, courbe libre).
@@ -306,7 +355,7 @@ export function useCourtPointerHandlers(
       });
       svgRef.current?.setPointerCapture(e.pointerId);
     },
-    [findPlayerAt, isPlaying, onBeginPlayerDrag, onClearContextMenu, state, svgPoint, svgRef]
+    [findPlayerAt, isPlaying, onAddAnnotation, onBeginPlayerDrag, onClearContextMenu, onClearDefenderSelection, onToggleDefenderSelection, pendingAutoSourceId, selectedDefenders, state, svgPoint, svgRef]
   );
 
   const onPointerMove = useCallback(
@@ -454,6 +503,11 @@ export function useCourtPointerHandlers(
       if (pending) {
         const d = distance(pending.from, pending.to);
         if (d < 15) {
+          // Clic simple sans drag : en mode pass → bascule en attente cible
+          // pour une création auto au prochain clic sur un attaquant.
+          if (state.tool === 'pass') {
+            setPendingAutoSourceId(pending.fromId);
+          }
           setPending(null);
           return;
         }
@@ -481,11 +535,21 @@ export function useCourtPointerHandlers(
     [
       dragging,
       flushDragMove,
+      marquee,
       onAddAnnotation,
       onCommitPlayerDrag,
+      onMoveDefender,
+      onMoveDefenderDuringDrag,
+      onSetDefenderSelection,
       pending,
       queueDragMove,
+      state.activeStep,
+      state.attackingDirection,
+      state.defenseInitial,
       state.fullCourt,
+      state.playerCount,
+      state.steps,
+      state.tool,
       svgPoint,
     ]
   );
@@ -495,6 +559,7 @@ export function useCourtPointerHandlers(
     dragging,
     snapTarget,
     marquee,
+    pendingAutoSourceId,
     svgPoint,
     onPointerDown,
     onPointerMove,
