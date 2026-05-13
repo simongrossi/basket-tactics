@@ -529,6 +529,14 @@ export function DefensePanel(props: DefensePanelProps) {
               title="Quand le low man fait un tag sur un roller PnR ET que le roller arrive très près du panier (≤ 150 px), bascule en switch implicite : le low man PREND le roller (matchups swappés), le défenseur du screener part sur l'orphelin du low man. Évite le scénario classique du low man qui recover trop tard."
             />
 
+            {/* C.7 V2 — Read offensive action chains */}
+            <CheckboxLine
+              checked={!!state.readScreenChainsEnabled}
+              label="lire les chaînes d'écrans"
+              onChange={(v) => props.onPatch({ readScreenChainsEnabled: v })}
+              title="Active la RÉACTION défensive aux chaînes d'écrans détectées (re-screen, stagger, flare-then-fade). Sans ce flag : les badges 🔗 sont affichés mais la défense ne change pas. Avec : carrierDef plaqué plus fort sur re-screen + cutterDef en gazeLock no-help sur flare-fade. Le stagger reste géré par B9."
+            />
+
             {/* C.2 — Help-and-recover timing */}
             <div
               style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}

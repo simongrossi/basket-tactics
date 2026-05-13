@@ -18,6 +18,7 @@ import { applyBaseTargetsLayer } from './defense/baseTargets';
 import { applyRimProtectionLayer } from './defense/rimProtectionLayer';
 import { applyHelpStickyLayer } from './defense/helpStickyLayer';
 import { applyPnRRotationsLayer } from './defense/pnrLayer';
+import { applyChainResponseLayer } from './defense/chainResponseLayer';
 import { applyOffBallScreenLayer } from './defense/offBallScreenLayer';
 import { applyTrapLayer } from './defense/trapLayer';
 import { applyDirectiveLayer } from './defense/directiveLayer';
@@ -92,6 +93,11 @@ export function computeDefenseTargets(
   applyHelpStickyLayer(positions, matchups, ctx);
   // Couche 2 — Rotations PnR (low-man tag + X-out + nail stunt).
   applyPnRRotationsLayer(positions, matchups, ctx);
+  // Couche 2.5 — C.7 V2 réaction défensive aux chaînes d'écrans (re-screen
+  // / stagger / flare-fade). Opt-in via `state.readScreenChainsEnabled`.
+  // Modulations modestes (≤ 6 px / flags d'orientation) qui passent ensuite
+  // par resolvePlayerCollisions en aval (anti-superposition garantie).
+  applyChainResponseLayer(positions, matchups, ctx);
   // Couche 3 — Écrans hors-ballon (mute matchups en cas de switch off-ball).
   applyOffBallScreenLayer(positions, matchups, ctx);
   // Couche 4 — Trap auto (porteur en zone de trappe).

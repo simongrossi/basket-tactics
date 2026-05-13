@@ -713,6 +713,18 @@ export interface AppState {
    *  et la cible homme-à-homme courante, pour un retour progressif et
    *  visuellement réaliste. */
   helpStickiness?: number;
+  /** C.7 V2 — Read offensive action chains : si activé, la défense RÉAGIT
+   *  aux chaînes détectées par `detectScreenChain` (re-screen, stagger,
+   *  flare-then-fade) au lieu de juste les diagnoster.
+   *  Effet par pattern :
+   *    - re-screen : carrierDef shifté de 6 px vers le poseur (commitment
+   *      renforcé pour le 2ᵉ acte de l'écran)
+   *    - stagger-sequential : no-op (déjà géré par B9 cutterScreenChain)
+   *    - flare-then-fade : cutterDef force gazeLock sur le shooter +
+   *      helpTriggered=false (no-help pour suivre le fade)
+   *  Default false (opt-in). V1 (diag-only) reste actif via les badges
+   *  même sans ce flag. */
+  readScreenChainsEnabled?: boolean;
   /** Seuil de severity à partir duquel un switch est considéré comme un
    *  mismatch tactique (déclenche scram + diagnostic coach + badge visuel).
    *  Range 1..4. Default 2 (= D5 sur O3 minimum). */

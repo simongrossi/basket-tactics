@@ -42,6 +42,7 @@ pas se superposer au poseur (même quand "stuck on screener"), etc.
 | `src/lib/logic/defense/helpStickyLayer.ts` | C.2 help-and-recover — couche 1.6 (blend decay) |
 | `src/lib/logic/screens/detectScreenChain.ts` | C.7 action chains — 3 patterns (re-screen, stagger, flare-fade) |
 | `src/lib/logic/coachDiagnostics/rules/screenChain.ts` | C.7 — règle coach (warning/info selon pattern) |
+| `src/lib/logic/defense/chainResponseLayer.ts` | C.7 V2 — couche 2.5 réaction défensive aux chaînes |
 | `src/lib/logic/screens/detectRejectedScreen.ts` | B2 reject — détecte le porteur qui vire opposé |
 | `src/lib/logic/screens/detectSnakeDribble.ts` | B4 snake — détecte V sur 3 steps |
 | `src/lib/logic/screenPhysics.ts` | `screenContactT/Phase/Adhesion/TangentRelease` — easing sigmoïdal qui FIGE D1 sur le poseur |
@@ -61,6 +62,8 @@ state.steps[N].off + matchups
 [applyHelpStickyLayer]       — C.2 sticky help avec decay
     ↓
 [applyPnRRotationsLayer]     — low-man tag + X-out + nail stunt
+    ↓
+[applyChainResponseLayer]    — C.7 V2 réaction aux chaînes d'écrans
     ↓
 [applyOffBallScreenLayer]    — écrans hors-ballon
     ↓
@@ -282,7 +285,7 @@ du cercle du poseur, côté oppose au panier.
 | `offBallScreenRule` | global | over | Réponse défensive par défaut sur écran hors-ballon |
 | `hedgeRecoveryDelay` | global | undefined | C.3 — nb steps consécutifs avant recover forcé en hedge (1..3) |
 | `helpStickiness` | global | undefined | C.2 — nb steps de sticky help avec decay après disparition du trigger (1..3) |
-| `readScreenChainsEnabled` | global | undefined | C.7 V2 — défense réagit aux chaînes (re-screen, stagger, flare-fade). V1 actuel : diag-only sans ce setting. |
+| `readScreenChainsEnabled` | global | undefined | C.7 V2 — défense réagit aux chaînes (re-screen shift tangentiel, flare-fade gazeLock no-help). Diag V1 actif indépendamment via badges. |
 | `tagThenSwitchEnabled` | global | false | C.5 — bascule switch implicite si roller proche panier |
 | `preRotationEnabled` | global | false | C.4 — shift carrierDef 10 px vers un poseur imminent |
 | `unwindRejectedScreens` | global | false | B2 V2 — annule la couverture si reject SHARP détecté |
@@ -421,13 +424,25 @@ au 2ᵉ acte comme si c'était une surprise.
 - 2 labs dev focalisés : `🧪 Lab Chain re-screen` (3 steps = 4s) et
   `🧪 Lab Chain stagger` (3 steps = 4s).
 
-**V2 à venir (réaction défensive)** :
-- Setting `readScreenChainsEnabled?: boolean` (opt-in)
-- Couche `chainResponseLayer` (2.5) :
-  - re-screen → boost quality +20 sur 2ᵉ acte
-  - stagger → délégué à B9 cutterScreenChain (top-lock auto, déjà câblé)
-  - flare-then-fade → gazeLock cutter + helpMode passive
-- Estimation : ~3h supplémentaires.
+**V2 livré 2026-05-13 (réaction défensive opt-in)** :
+- Setting `state.readScreenChainsEnabled?: boolean` (opt-in, default false)
+- Couche `chainResponseLayer.ts` (couche **2.5**, entre PnR et offBallScreens).
+- Effet par pattern :
+  - **re-screen** : carrierDef shifté TANGENTIELLEMENT 6 px côté hoop
+    (perpendiculaire à `target → screener`, sens panier). Le shift survit
+    au push-out de clearance car perpendiculaire. + `helpFactor` boosté
+    à 0.5 minimum + `helpKind='active-help'` (rendu visuel renforcé).
+  - **stagger-sequential** : NO-OP. La logique B9 `cutterScreenChain`
+    bascule déjà automatiquement `top-lock → chase`. Préserve pour éviter
+    le double-décalage.
+  - **flare-then-fade** : cutterDef force `gazeLock: 'opponent'` (regard
+    forcé sur le shooter qui fade vers le coin) + `helpTriggered=false`
+    + `helpFactor=0` (no-help, suit le shooter).
+- Garanties anti-régression :
+  - ✅ Skip si `switchedThisStep` / `scrammedThisStep` / `onScreen` (flare)
+  - ✅ Shift perpendiculaire = pas de violation de clearance
+  - ✅ `resolvePlayerCollisions` en aval garantit la règle absolue
+  - ✅ Tests invariants : 0 overlap + jump < 70 px frame-à-frame
 
 **Garanties anti-régression V1** :
 - ✅ Pas de modification de positions ni matchups (diag-only)
