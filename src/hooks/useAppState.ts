@@ -274,6 +274,33 @@ export function useAppState() {
     [setStateWithHistory]
   );
 
+  const setAnnotationFrom = useCallback(
+    (stepIdx: number, annoIdx: number, point: { x: number; y: number }) => {
+      setStateWithHistory((s) =>
+        annotationTx.setAnnotationFrom(s, stepIdx, annoIdx, point)
+      );
+    },
+    [setStateWithHistory]
+  );
+
+  const setAnnotationTo = useCallback(
+    (stepIdx: number, annoIdx: number, point: { x: number; y: number }) => {
+      setStateWithHistory((s) =>
+        annotationTx.setAnnotationTo(s, stepIdx, annoIdx, point)
+      );
+    },
+    [setStateWithHistory]
+  );
+
+  const setAnnotationWaypoint = useCallback(
+    (stepIdx: number, annoIdx: number, wpIdx: number, point: { x: number; y: number }) => {
+      setStateWithHistory((s) =>
+        annotationTx.setAnnotationWaypoint(s, stepIdx, annoIdx, wpIdx, point)
+      );
+    },
+    [setStateWithHistory]
+  );
+
   // -- Tool --
   const setTool = useCallback((tool: Tool) => {
     setStateWithHistory((s) => coreTx.setTool(s, tool));
@@ -470,6 +497,9 @@ export function useAppState() {
     setAnnotationPhase,
     setAnnotationTiming,
     setAnnotationQuality,
+    setAnnotationFrom,
+    setAnnotationTo,
+    setAnnotationWaypoint,
     setForcedScreener,
     clearAnnotationsFor,
     setTool,

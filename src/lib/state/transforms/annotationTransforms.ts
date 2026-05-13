@@ -1,5 +1,15 @@
 // Transformations sur les annotations : CRUD + timing/quality/phase +
 // forcedScreener. Toutes pures.
+//
+// Édition des endpoints (drag du from/to/waypoint d'une annotation existante)
+// vit dans `annotationEndpointTransforms.ts` — re-exportés ci-dessous pour
+// rester accessibles via `annotationTx.*`.
+
+export {
+  setAnnotationFrom,
+  setAnnotationTo,
+  setAnnotationWaypoint,
+} from './annotationEndpointTransforms';
 
 import type { AppState, Annotation, AnnotationType, AttackerId, Step } from '@/lib/types';
 import {

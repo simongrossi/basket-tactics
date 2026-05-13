@@ -227,6 +227,9 @@ export default function Page() {
               onSetZoneOverride={app.setZoneOverride}
               onClearZoneOverride={app.clearZoneOverride}
               onDeleteAnnotation={app.deleteAnnotation}
+              onSetAnnotationFrom={app.setAnnotationFrom}
+              onSetAnnotationTo={app.setAnnotationTo}
+              onSetAnnotationWaypoint={app.setAnnotationWaypoint}
               onSetTool={app.setTool}
               isPlaying={isPlaying}
               playbackSpeed={playbackSpeed}

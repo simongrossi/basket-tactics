@@ -28,6 +28,7 @@ import type {
 import { CourtBackground, ArrowMarkers } from './Court';
 import { Ball } from './Player';
 import { AnnotationView } from './Annotations';
+import { AnnotationHandles } from './court/AnnotationHandles';
 import {
   Matchups,
   HelpLines,
@@ -87,6 +88,9 @@ interface CourtViewProps {
   onSetZoneOverride: (regionId: string, override: Partial<import('@/lib/types').ZoneRegionOverride>) => void;
   onClearZoneOverride: (regionId: string) => void;
   onDeleteAnnotation: (idx: number) => void;
+  onSetAnnotationFrom: (stepIdx: number, annoIdx: number, point: { x: number; y: number }) => void;
+  onSetAnnotationTo: (stepIdx: number, annoIdx: number, point: { x: number; y: number }) => void;
+  onSetAnnotationWaypoint: (stepIdx: number, annoIdx: number, wpIdx: number, point: { x: number; y: number }) => void;
   onSetTool: (t: Tool) => void;
   isPlaying: boolean;
   playbackSpeed: number;
@@ -402,6 +406,21 @@ export function CourtView(props: CourtViewProps) {
             ))}
           {pending && pending.from && <AnnotationView annotation={pending as Annotation} preview />}
         </g>
+
+        {/* Poignées d'édition des annotations de mouvement — pause uniquement
+            pour ne pas polluer la lecture. L'overlay vit après les annotations
+            pour rester au-dessus visuellement (z-order SVG = ordre du DOM). */}
+        {!props.isPlaying && state.steps[frame.stepIdx] && (
+          <AnnotationHandles
+            annotations={state.steps[frame.stepIdx].annotations}
+            svgPoint={svgPoint}
+            onCommitFrom={(annoIdx, p) => props.onSetAnnotationFrom(frame.stepIdx, annoIdx, p)}
+            onCommitTo={(annoIdx, p) => props.onSetAnnotationTo(frame.stepIdx, annoIdx, p)}
+            onCommitWaypoint={(annoIdx, wpIdx, p) =>
+              props.onSetAnnotationWaypoint(frame.stepIdx, annoIdx, wpIdx, p)
+            }
+          />
+        )}
 
         <PassLanesOverlay
           off={frame.off}
