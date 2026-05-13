@@ -433,6 +433,7 @@ export function resolveFrameAt(
     // retard à l'opposé du cercle puis revient".
     const allowCurve = screenMode !== 'leaving';
     const pair = allowCurve ? pickStaggeredPair(defA[id], defB[id], candidates) : null;
+    let singleClusterForSideConstraint: ScreenObstacle | null = null;
     if (pair) {
       p = curveAroundStaggeredPair(defA[id], defB[id], pair[0], pair[1], effT);
     } else if (allowCurve) {
@@ -447,6 +448,11 @@ export function resolveFrameAt(
           apexSlowness,
           forcedPushSign
         );
+        // Mémorise le cluster pour la stabilisation de côté plus bas. Uniquement
+        // si pair est null (= un seul cluster). En stagger, la trajectoire passe
+        // entre les 2 poseurs et la contrainte de demi-plan ferait sortir D du
+        // contact souhaité.
+        singleClusterForSideConstraint = blocking;
       }
     }
     const adhesion = screenContactAdhesion(localT, modeQuality, screenMode);
@@ -503,7 +509,32 @@ export function resolveFrameAt(
     if (screenLockedDefenders.has(id) || (screenMode && contact.carrierContact) || contact.offBallContact) {
       const obs: Point[] = [];
       for (const aId of attackerIds) obs.push(off[aId]);
-      p = pushOutOfMany(p, obs, PLAYER_MIN_CLEARANCE_PX);
+      // STABILISATION CÔTÉ ÉCRAN — pushOutOfMany "naïf" peut converger sur 2
+      // fixed points opposés autour du cluster du poseur quand D est coincé
+      // entre 2 attaquants (poseur + son homme) dont l'écart est < 2 ×
+      // MIN_CLEARANCE. Cas reproduit sur UCLA cut entre f113 et f114 :
+      // O5 poseur (309,240) et O1 cutter (298,201) à ~62 px → pas de point
+      // valide à 34 px des deux. Le choix du fixed point dépend de l'ordre
+      // d'itération et flippe au moindre changement de position inter-frame
+      // → saut visuel ~50 px (D traverse le poseur).
+      //
+      // Fix : quand on a UN SEUL cluster d'écran ayant déclenché la Bezier
+      // de contournement, on contraint chaque push à ne pas franchir le
+      // segment defA→defB vers le côté du cluster. Sur stagger (2 poseurs,
+      // pair non-null), on utilise pushOutOfMany classique car la trajectoire
+      // peut légitimement passer entre les 2 poseurs.
+      if (singleClusterForSideConstraint) {
+        p = pushOutOfManyConstrained(
+          p,
+          obs,
+          PLAYER_MIN_CLEARANCE_PX,
+          defA[id],
+          defB[id],
+          singleClusterForSideConstraint.center
+        );
+      } else {
+        p = pushOutOfMany(p, obs, PLAYER_MIN_CLEARANCE_PX);
+      }
     }
     defPos[id] = {
       x: p.x,
@@ -601,6 +632,82 @@ export function resolveFrameAt(
 
 function midpoint(a: Point, b: Point): Point {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
+/**
+ * Variante de `pushOutOfMany` qui contraint chaque push à rester du côté
+ * STABLE du segment defA→defB (côté opposé au cluster d'écran). Si un push
+ * radial classique ferait franchir le segment vers le côté du cluster, on
+ * mirror le résultat à travers le segment.
+ *
+ * Pourquoi : quand D1 est coincé entre 2 attaquants (poseur + son homme) dont
+ * l'écart est < 2 × MIN_CLEARANCE, il existe 2 fixed points opposés autour
+ * du cluster. La version naïve oscille entre les 2 selon l'ordre/itération
+ * → flip visuel de D1 entre frames consécutifs (bug UCLA cut f113→f114).
+ *
+ * Avec la contrainte de demi-plan, D1 reste TOUJOURS du côté défini par le
+ * moteur aux endpoints, transition smooth garantie.
+ */
+function pushOutOfManyConstrained(
+  p: Point,
+  obstacles: Point[],
+  minDist: number,
+  segStart: Point,
+  segEnd: Point,
+  clusterCenter: Point
+): Point {
+  const segDx = segEnd.x - segStart.x;
+  const segDy = segEnd.y - segStart.y;
+  const segLen = Math.hypot(segDx, segDy);
+  if (segLen < 0.01) return pushOutOfMany(p, obstacles, minDist);
+  const perpX = -segDy / segLen;
+  const perpY = segDx / segLen;
+  const clusterSide = (clusterCenter.x - segStart.x) * perpX + (clusterCenter.y - segStart.y) * perpY;
+  // Cluster trop proche du segment : pas de côté défini fiable.
+  if (Math.abs(clusterSide) < 12) return pushOutOfMany(p, obstacles, minDist);
+  // On infère le côté cible depuis la position INITIALE de D (post-lerp/curve/
+  // adhesion, avant push) : si D était déjà du côté opposé au cluster, on
+  // force ce côté ; si D était du côté du cluster (cas stagger où D doit
+  // finir près d'un poseur), on laisse pushOutOfMany naïf converger.
+  const pSideInit = (p.x - segStart.x) * perpX + (p.y - segStart.y) * perpY;
+  if (Math.sign(pSideInit) === Math.sign(clusterSide) && Math.abs(pSideInit) > 1) {
+    return pushOutOfMany(p, obstacles, minDist);
+  }
+  const targetSign = clusterSide >= 0 ? -1 : 1;
+  let result = p;
+  for (let iter = 0; iter < 5; iter++) {
+    let moved = false;
+    for (const o of obstacles) {
+      const dx = result.x - o.x;
+      const dy = result.y - o.y;
+      const d = Math.hypot(dx, dy);
+      if (d >= minDist) continue;
+      let nx: number;
+      let ny: number;
+      if (d < 0.01) {
+        // Position confondue : pousse perpendiculairement vers le côté cible.
+        nx = o.x + perpX * targetSign * minDist;
+        ny = o.y + perpY * targetSign * minDist;
+      } else {
+        const k = minDist / d;
+        nx = o.x + dx * k;
+        ny = o.y + dy * k;
+        // Si ce push franchit vers le côté du cluster, mirror.
+        const candSide = (nx - segStart.x) * perpX + (ny - segStart.y) * perpY;
+        if (Math.sign(candSide) !== 0 && Math.sign(candSide) !== targetSign) {
+          const correction = 2 * candSide;
+          nx -= correction * perpX;
+          ny -= correction * perpY;
+        }
+      }
+      if (Math.abs(nx - result.x) > 0.001 || Math.abs(ny - result.y) > 0.001) {
+        result = { x: nx, y: ny };
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  return result;
 }
 
 function lerpPoint(a: Point, b: Point, t: number): Point {
