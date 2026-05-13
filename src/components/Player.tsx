@@ -388,25 +388,24 @@ export function Player({
           )}
         </g>
       )}
-      {isOverridden && !isAttacker && showLockBadges && (
+      {!isOverridden && !isAttacker && showLockBadges && (
         <g pointerEvents="none">
           <circle
             cx={pos.x + r * 0.85}
             cy={pos.y - r * 0.85}
             r={5}
-            fill="#fbbf24"
-            stroke="#92400e"
+            fill="#e0e7ff"
+            stroke="#4338ca"
             strokeWidth={1.2}
           />
           <text
             x={pos.x + r * 0.85}
             y={pos.y - r * 0.85 + 2.5}
             textAnchor="middle"
-            fill="#92400e"
             fontSize={7}
             fontWeight={700}
           >
-            ✋
+            🧠
           </text>
         </g>
       )}

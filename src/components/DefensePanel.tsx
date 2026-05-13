@@ -104,6 +104,37 @@ export function DefensePanel(props: DefensePanelProps) {
         icon="🎯"
         variant="pinned"
       >
+        {/* Bouton "Tout en auto" — accès rapide pour libérer les placements manuels */}
+        {(() => {
+          const cur = state.steps[state.activeStep];
+          const activeDefenders = new Set(defenderIds);
+          const overrideCount = cur?.defenseOverrides
+            ? Object.keys(cur.defenseOverrides).filter((id) => activeDefenders.has(id as DefenderId)).length
+            : 0;
+          return (
+            <button
+              type="button"
+              onClick={props.onClearAllDefenseOverrides}
+              disabled={overrideCount === 0}
+              title="Libère tous les défenseurs en placement manuel sur cette étape — repassent en auto."
+              style={{
+                fontSize: 11,
+                padding: '6px 10px',
+                borderRadius: 6,
+                border: '1px solid',
+                borderColor: overrideCount === 0 ? '#cbd5e1' : '#4338ca',
+                background: overrideCount === 0 ? '#f8fafc' : '#eef2ff',
+                color: overrideCount === 0 ? '#94a3b8' : '#3730a3',
+                cursor: overrideCount === 0 ? 'default' : 'pointer',
+                width: '100%',
+                fontWeight: 600,
+                marginBottom: 8,
+              }}
+            >
+              🧠 Tout en auto {overrideCount > 0 ? `(${overrideCount} manuel${overrideCount > 1 ? 's' : ''})` : ''}
+            </button>
+          );
+        })()}
         <SystemSelector
           defenseSystem={state.defenseSystem}
           zoneType={state.zoneConfig.type}
@@ -871,34 +902,6 @@ export function DefensePanel(props: DefensePanelProps) {
               ↻ Réinitialiser overrides individuels
             </button>
           )}
-          {/* Effacer tous les overrides défense — Q4 décision : ici */}
-          {(() => {
-            const cur = state.steps[state.activeStep];
-            const activeDefenders = new Set(defenderIds);
-            const overrideCount = cur?.defenseOverrides
-              ? Object.keys(cur.defenseOverrides).filter((id) => activeDefenders.has(id as DefenderId)).length
-              : 0;
-            return (
-              <button
-                type="button"
-                onClick={props.onClearAllDefenseOverrides}
-                disabled={overrideCount === 0}
-                title="Libère tous les défenseurs en placement manuel sur cette étape — repassent en auto."
-                style={{
-                  fontSize: 10,
-                  padding: '4px 8px',
-                  borderRadius: 4,
-                  border: '1px solid #cbd5e1',
-                  background: overrideCount === 0 ? '#f8fafc' : '#fff',
-                  color: overrideCount === 0 ? '#94a3b8' : '#1e3a8a',
-                  cursor: overrideCount === 0 ? 'default' : 'pointer',
-                  width: '100%',
-                }}
-              >
-                ↻ Tout en auto {overrideCount > 0 ? `(${overrideCount} manuel${overrideCount > 1 ? 's' : ''})` : ''}
-              </button>
-            );
-          })()}
         </div>
       </AccordionSection>
 

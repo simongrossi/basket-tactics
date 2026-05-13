@@ -244,8 +244,8 @@ export function ParametresPanel({ state, onPatch, onSetPlayerCount, onAutoPositi
           />
           <LegendCheckboxLine
             checked={state.showLockBadges !== false}
-            label="cadenas"
-            sample="dot" color="#fbbf24"
+            label="auto IA"
+            sample="dot" color="#e0e7ff"
             onChange={(v) => onPatch({ showLockBadges: v })}
           />
         </div>
