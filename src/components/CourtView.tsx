@@ -38,6 +38,7 @@ import {
 } from './overlays/MatchupAndScreenOverlays';
 import { ZoneCoverage } from './overlays/ZoneCoverage';
 import { PassLanesOverlay } from './overlays/PassLanesOverlay';
+import { TacticalMetricsOverlay } from './overlays/TacticalMetricsOverlay';
 import { HelpDebugOverlay } from './overlays/HelpDebugOverlay';
 import { FieldOfViewOverlay } from './overlays/FieldOfViewOverlay';
 import { getZoneLayout, mirrorZoneLayout, applyZoneOverrides } from '@/lib/data/zones';
@@ -45,6 +46,8 @@ import { ZoneEditOverlay } from './overlays/ZoneEditOverlay';
 import {
   COURT,
   FULL_COURT_HEIGHT,
+  HOOP,
+  HOOP_OPPOSITE,
   PLAYER_RADIUS,
 } from '@/lib/data/court';
 import { distance } from '@/lib/logic/geometry';
@@ -429,6 +432,12 @@ export function CourtView(props: CourtViewProps) {
           show={state.showPassLanes}
           showContested={state.showContestedPass !== false}
           showBlocked={state.showBlockedPass !== false}
+        />
+        <TacticalMetricsOverlay
+          off={frame.off}
+          carrier={frame.carrier}
+          hoop={state.attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP}
+          show={!!state.showTacticalMetrics}
         />
         {state.showHelpDebug && <HelpDebugOverlay defPos={frame.defPos} />}
         {state.showScreenIndicators !== false && (

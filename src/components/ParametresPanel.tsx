@@ -8,6 +8,7 @@ interface ParametresPanelProps {
   state: AppState;
   onPatch: (p: Partial<AppState>) => void;
   onSetPlayerCount: (count: PlayerCount) => void;
+  onAutoPositionOffBall?: () => void;
 }
 
 /**
@@ -16,7 +17,7 @@ interface ParametresPanelProps {
  * regrouper TOUTES les options visuelles au même endroit, et alléger
  * la hauteur du panneau Défense (qui se concentre sur la simulation).
  */
-export function ParametresPanel({ state, onPatch, onSetPlayerCount }: ParametresPanelProps) {
+export function ParametresPanel({ state, onPatch, onSetPlayerCount, onAutoPositionOffBall }: ParametresPanelProps) {
   const c = COLORS.defense;
   return (
     <Panel theme="defense" title="⚙ Paramètres">
@@ -142,6 +143,12 @@ export function ParametresPanel({ state, onPatch, onSetPlayerCount }: Parametres
           sample="ring-solid" color="#fbbf24"
           onChange={(v) => onPatch({ showBestAction: v })}
         />
+        <LegendCheckboxLine
+          checked={!!state.showTacticalMetrics}
+          label="EJE / EJO (spacing)"
+          sample="dashed" color="#10b981"
+          onChange={(v) => onPatch({ showTacticalMetrics: v })}
+        />
         <CheckboxLine
           checked={state.fullCourt}
           label="terrain complet"
@@ -191,6 +198,26 @@ export function ParametresPanel({ state, onPatch, onSetPlayerCount }: Parametres
       >
         ↻ sens d'attaque : {state.attackingDirection === 'down' ? 'vers le bas' : 'vers le haut'}
       </button>
+
+      {onAutoPositionOffBall && (
+        <button
+          onClick={onAutoPositionOffBall}
+          title="Repositionne les 4 attaquants hors-porteur en maximisant le spacing (graphe complet) avec pénalité de couloir EJO ballon→panier. Respecte les profils offensifs et la Règle 1 anti-superposition."
+          style={{
+            fontSize: 11,
+            padding: '4px 8px',
+            borderRadius: 4,
+            border: '1px solid #cbd5e1',
+            background: '#fff',
+            color: '#334155',
+            cursor: 'pointer',
+            textAlign: 'left',
+            marginTop: 4,
+          }}
+        >
+          ✦ auto-positionner hors-porteur (EJE + spacing)
+        </button>
+      )}
 
       <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px dashed ${c.border}` }}>
         <div style={{ fontSize: 10, fontWeight: 600, color: c.accentText, marginBottom: 4, opacity: 0.8, letterSpacing: '0.02em' }}>

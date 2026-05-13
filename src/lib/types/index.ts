@@ -776,6 +776,12 @@ export interface AppState {
   /** Affiche la meilleure action offensive (tir / drive / passe) calculée
    *  par évaluation des EV. Phase B. Indépendant de showThreats. */
   showBestAction?: boolean;
+  /** Calque tactique read-only : trace l'enveloppe convexe des attaquants
+   *  (EJE — Espace de Jeu Effectif) et le couloir ballon→panier (EJO,
+   *  largeur 1.5 m). Affiche un badge "EJE · Grappe/Comète/Étalement/Expert"
+   *  pour qualifier la forme collective (heuristique Mérand/Vandevelde).
+   *  Aucune influence sur le moteur, purement diagnostique pour le coach. */
+  showTacticalMetrics?: boolean;
   /** Toggles globaux du champ de vision (cônes heatmap). Tous combinés en
    *  OR logique avec les toggles individuels `rule.showFieldOfView` :
    *  - `showFieldOfViewAll` : active TOUS les joueurs (défenseurs + attaquants)
