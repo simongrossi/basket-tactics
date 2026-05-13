@@ -66,13 +66,13 @@ const FAMILIES: { title: string; systems: SystemDef[] }[] = [
       {
         id: 'zone-2-1-2',
         label: 'Zone 2-1-2',
-        description: 'Hybride entre 2-3 et 1-3-1.',
+        description: 'Hybride 2-3 / 1-3-1.',
         choice: { kind: 'zone', zoneType: 'zone-2-1-2' },
       },
       {
         id: 'zone-matchup',
-        label: 'Match-up zone',
-        description: 'Zone qui suit les attaquants dans leur région.',
+        label: 'Match-up',
+        description: 'Zone qui suit l\'homme.',
         choice: { kind: 'zone', zoneType: 'zone-matchup' },
       },
     ],
@@ -83,19 +83,19 @@ const FAMILIES: { title: string; systems: SystemDef[] }[] = [
       {
         id: 'box-and-1',
         label: 'Box-and-1',
-        description: '4 en box autour de la raquette + 1 chasseur sur shooter.',
+        description: 'Box + 1 chasseur.',
         pending: 'F.1',
       },
       {
         id: 'triangle-and-2',
-        label: 'Triangle-and-2',
-        description: '3 en triangle + 2 chasseurs.',
+        label: 'Triangle-2',
+        description: 'Triangle + 2 chasseurs.',
         pending: 'F.1',
       },
       {
         id: 'diamond-and-1',
-        label: 'Diamond-and-1',
-        description: '4 en diamant + 1 chasseur.',
+        label: 'Diamond-1',
+        description: 'Diamant + 1 chasseur.',
         pending: 'F.1',
       },
     ],
@@ -105,14 +105,14 @@ const FAMILIES: { title: string; systems: SystemDef[] }[] = [
     systems: [
       {
         id: 'half-court-press',
-        label: 'Half-court press',
-        description: 'Pression au franchissement central.',
+        label: 'Half-court',
+        description: 'Pression mi-terrain.',
         pending: 'F.2',
       },
       {
         id: 'full-court-press',
-        label: 'Full-court press',
-        description: 'Pression tout terrain dès la remise en jeu.',
+        label: 'Full-court',
+        description: 'Pression tout terrain.',
         pending: 'F.2',
       },
     ],
@@ -170,7 +170,7 @@ export function SystemSelector({ defenseSystem, zoneType, onChange }: SystemSele
                   }
                   style={{
                     textAlign: 'left',
-                    padding: '6px 8px',
+                    padding: '5px 7px',
                     borderRadius: 5,
                     border: `1.5px solid ${
                       isActive ? c.accent : isPending ? '#e5e5e5' : c.border
@@ -185,12 +185,14 @@ export function SystemSelector({ defenseSystem, zoneType, onChange }: SystemSele
                     opacity: isPending ? 0.7 : 1,
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 2,
+                    gap: 1,
                     fontSize: 11,
                     fontWeight: isActive ? 700 : 500,
+                    minHeight: 44,
+                    boxSizing: 'border-box',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
                     {/* indicateur radio */}
                     <span
                       style={{
@@ -205,7 +207,18 @@ export function SystemSelector({ defenseSystem, zoneType, onChange }: SystemSele
                       }}
                       aria-hidden
                     />
-                    <span style={{ flex: 1, lineHeight: 1.2 }}>{s.label}</span>
+                    <span
+                      style={{
+                        flex: 1,
+                        lineHeight: 1.2,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                      title={s.label}
+                    >
+                      {s.label}
+                    </span>
                     {isPending && (
                       <span
                         style={{
@@ -215,9 +228,10 @@ export function SystemSelector({ defenseSystem, zoneType, onChange }: SystemSele
                           color: '#92400e',
                           padding: '1px 4px',
                           borderRadius: 6,
+                          flex: '0 0 auto',
                         }}
                       >
-                        🚧 {s.pending}
+                        🚧
                       </span>
                     )}
                   </div>
@@ -227,7 +241,11 @@ export function SystemSelector({ defenseSystem, zoneType, onChange }: SystemSele
                       color: isPending ? '#a8a29e' : '#78716c',
                       lineHeight: 1.3,
                       paddingLeft: 16,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
                     }}
+                    title={s.description}
                   >
                     {s.description}
                   </div>

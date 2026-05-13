@@ -238,26 +238,22 @@ export function AccordionSection({
           </span>
         )}
       </button>
-      <div
-        style={{
-          maxHeight: effectiveOpen ? 4000 : 0,
-          opacity: effectiveOpen ? 1 : 0,
-          overflow: 'hidden',
-          transition: 'max-height 240ms ease, opacity 180ms ease',
-        }}
-        aria-hidden={!effectiveOpen}
-      >
+      {/* On `display: none` complètement le contenu quand fermé pour
+       *  éviter les résidus visuels (bordures internes, padding fantôme).
+       *  Trade-off : pas d'animation slide-down. Acceptable pour la
+       *  lisibilité, plus important que l'esthétique du toggle. */}
+      {effectiveOpen && (
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             gap: 6,
-            padding: effectiveOpen ? '0 8px 8px' : '0 8px',
+            padding: '0 8px 8px',
           }}
         >
           {children}
         </div>
-      </div>
+      )}
     </div>
   );
 }

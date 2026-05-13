@@ -207,8 +207,8 @@ export function DefensePanel(props: DefensePanelProps) {
       >
         {/* Preset officiel (uniquement en mode individuelle — choix Q4) */}
         {isMan && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }}>preset</span>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <span style={{ fontSize: 10, color: '#475569', flex: '0 0 48px' }}>preset</span>
             <select
               value=""
               onChange={(e) => {
@@ -220,7 +220,7 @@ export function DefensePanel(props: DefensePanelProps) {
                 }
                 (e.target as HTMLSelectElement).value = '';
               }}
-              style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
+              style={{ flex: '1 1 0%', minWidth: 0, fontSize: 11, padding: '3px 4px' }}
               title="Applique un preset officiel : pousse rules + screen + triggers + B/C settings"
             >
               <option value="">— choisir un preset —</option>
@@ -234,12 +234,12 @@ export function DefensePanel(props: DefensePanelProps) {
         )}
 
         {/* Consigne écran porteur (toujours visible, central pour démos) */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }}>écran</span>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <span style={{ fontSize: 10, color: '#475569', flex: '0 0 48px' }}>écran</span>
           <select
             value={state.screenRule}
             onChange={(e) => props.onSetScreenRule(e.target.value as ScreenRule)}
-            style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
+            style={{ flex: '1 1 0%', minWidth: 0, fontSize: 11, padding: '3px 4px' }}
             title="Comment la défense gère un écran porteur (over, under, switch, hedge, drop, blitz, ice, weak, peel-switch)"
           >
             <option value="over">over (par-dessus)</option>
