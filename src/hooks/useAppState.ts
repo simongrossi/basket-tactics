@@ -48,6 +48,8 @@ import {
   reconcileMovementAnnotations,
 } from '@/lib/logic/migrateAnnotations';
 import { moveAttackerInState, moveDefenderInState } from '@/lib/logic/playerMove';
+import { computeOffBallPositions } from '@/lib/logic/autoOffense';
+import { HOOP, HOOP_OPPOSITE } from '@/lib/data/court';
 import {
   stepTx,
   annotationTx,
@@ -224,6 +226,28 @@ export function useAppState() {
 
   const clearDefenseOverride = useCallback((id: DefenderId) => {
     setStateWithHistory((s) => defenseTx.clearDefenseOverride(s, id));
+  }, [setStateWithHistory]);
+
+  /** Repositionne les 4 attaquants hors-porteur en maximisant le total
+   *  spacing (graphe complet) avec pénalité de couloir EJO. Passe obligée
+   *  par `moveAttackerInState` pour le push-out anti-overlap (Règle 1). */
+  const autoPositionOffBall = useCallback(() => {
+    setStateWithHistory((s) => {
+      const step = s.steps[s.activeStep];
+      if (!step) return s;
+      const hoop = s.attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP;
+      const targets = computeOffBallPositions(
+        step.off,
+        step.ballCarrier,
+        hoop,
+        s.attackerProfiles,
+      );
+      let next = s;
+      for (const t of targets) {
+        next = moveAttackerInState(next, t.id, t.pos);
+      }
+      return next;
+    });
   }, [setStateWithHistory]);
 
   // -- Annotations --
@@ -527,6 +551,7 @@ export function useAppState() {
     convertStepToFreeThrow,
     loadTemplate,
     clearDefenseOverride,
+    autoPositionOffBall,
     applyDefensePreset,
     addScriptedAction,
     updateScriptedAction,

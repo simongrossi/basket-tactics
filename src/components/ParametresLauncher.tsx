@@ -9,6 +9,7 @@ interface ParametresLauncherProps {
   state: AppState;
   onPatch: (p: Partial<AppState>) => void;
   onSetPlayerCount: (count: PlayerCount) => void;
+  onAutoPositionOffBall?: () => void;
 }
 
 /**
@@ -16,7 +17,7 @@ interface ParametresLauncherProps {
  * Ouvre une modal pop-up centrée contenant tout le contenu de ParametresPanel
  * (VISU & LÉGENDE + INDICATEURS AUTO). Style cohérent avec LibraryPanel.
  */
-export function ParametresLauncher({ state, onPatch, onSetPlayerCount }: ParametresLauncherProps) {
+export function ParametresLauncher({ state, onPatch, onSetPlayerCount, onAutoPositionOffBall }: ParametresLauncherProps) {
   const c = COLORS.defense;
   const [open, setOpen] = useState(false);
 
@@ -111,7 +112,7 @@ export function ParametresLauncher({ state, onPatch, onSetPlayerCount }: Paramet
             >
               ×
             </button>
-            <ParametresPanel state={state} onPatch={onPatch} onSetPlayerCount={onSetPlayerCount} />
+            <ParametresPanel state={state} onPatch={onPatch} onSetPlayerCount={onSetPlayerCount} onAutoPositionOffBall={onAutoPositionOffBall} />
           </div>
         </div>
       )}

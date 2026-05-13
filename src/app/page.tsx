@@ -378,7 +378,7 @@ export default function Page() {
               onExportFolder={lib.exportFolder}
               onImportFolder={lib.importFolder}
             />
-            <ParametresLauncher state={app.state} onPatch={app.patch} onSetPlayerCount={app.setPlayerCount} />
+            <ParametresLauncher state={app.state} onPatch={app.patch} onSetPlayerCount={app.setPlayerCount} onAutoPositionOffBall={app.autoPositionOffBall} />
           </div>
         )}
       </div>
