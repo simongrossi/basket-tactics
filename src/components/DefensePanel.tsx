@@ -10,14 +10,15 @@ import type {
   DropDepth,
   OffBallScreenRule,
 } from '@/lib/types';
-import { Panel, Section, Slider, CheckboxLine, Button, COLORS, InfoTooltip } from './ui';
+import { Panel, AccordionSection, Slider, CheckboxLine, Button, COLORS, InfoTooltip } from './ui';
 import { DEFENSE_PRESETS, type DefensePreset } from '@/lib/data/defensePresets';
 import type { UserDefensePreset } from '@/lib/data/library';
 import { SimulationSection } from './SimulationSection';
+import { SystemSelector, type SystemChoice } from './defense/SystemSelector';
 import { getActiveDefenderIds } from '@/lib/logic/players';
 
 const HELP_TRIGGERS_TOOLTIP =
-  "Les triggers d'aide sont les conditions qui autorisent l'aide automatique. Quand l'un d'eux est actif, les défenseurs avec aide % > 0 peuvent quitter leur homme selon leur priorité : protéger la raquette, rester proche de leur homme ou couper une ligne de passe.";
+  "Les triggers d'aide sont les conditions qui autorisent l'aide automatique. Quand l'un d'eux est actif, les défenseurs avec aide % > 0 peuvent quitter leur homme selon leur priorité.";
 
 const HELP_TRIGGER_TOOLTIPS = {
   drive:
@@ -44,7 +45,6 @@ interface DefensePanelProps {
   onClearAllDefenseOverrides: () => void;
   scriptedDefenseEnabled?: boolean;
   onToggleScriptedDefense: () => void;
-  // ----- Presets perso (B5 — templates utilisateurs côté défense) -----
   userDefensePresets?: UserDefensePreset[];
   onSaveDefensePreset?: (name: string) => void;
   onApplyUserDefensePreset?: (preset: UserDefensePreset) => void;
@@ -56,656 +56,498 @@ export function DefensePanel(props: DefensePanelProps) {
   const c = COLORS.defense;
   const isMan = state.defenseSystem === 'man';
   const defenderIds = getActiveDefenderIds(state.playerCount);
+  const scriptedOn = props.scriptedDefenseEnabled !== false;
+
+  const handleSystemChange = (choice: SystemChoice) => {
+    if (choice.kind === 'man') {
+      props.onSetDefenseSystem('man');
+    } else {
+      props.onSetDefenseSystem('zone');
+      props.onUpdateZoneConfig({ type: choice.zoneType });
+    }
+  };
 
   return (
     <Panel theme="defense" title="🛡 Défense" fill>
-      <div style={{
-        marginTop: 8, padding: 8,
-        border: '1px solid #dbeafe', borderRadius: 6, background: '#eff6ff',
-        display: 'flex', alignItems: 'center', gap: 8,
-      }}>
-        <input
-          type="checkbox"
-          id="scripted-defense-toggle"
-          checked={props.scriptedDefenseEnabled !== false}
-          onChange={props.onToggleScriptedDefense}
+      {/* Bannière "Mode manuel actif" — affichée quand scriptedDirectives est désactivé.
+          Le coach voit immédiatement que le moteur ne recalcule plus. */}
+      {!scriptedOn && (
+        <div
+          style={{
+            padding: '6px 10px',
+            background: '#fef3c7',
+            border: '1px solid #fcd34d',
+            borderRadius: 6,
+            fontSize: 11,
+            color: '#92400e',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            marginBottom: 8,
+          }}
+        >
+          <span aria-hidden>⚠</span>
+          <span>
+            <strong>Mode manuel actif</strong> — le moteur ne recalcule plus
+            automatiquement. Réactiver l'auto via la consigne ci-dessous.
+          </span>
+        </div>
+      )}
+
+      {/* ========================================================================
+          PINNED 1 — Système de défense (la décision pivot)
+          ====================================================================== */}
+      <AccordionSection
+        id="defense-system"
+        theme="defense"
+        label="Système de défense"
+        icon="🎯"
+        variant="pinned"
+      >
+        <SystemSelector
+          defenseSystem={state.defenseSystem}
+          zoneType={state.zoneConfig.type}
+          onChange={handleSystemChange}
         />
-        <label htmlFor="scripted-defense-toggle" style={{ fontSize: 11, color: '#1e3a8a' }}>
-          Appliquer les directives défensives scriptées
-        </label>
-      </div>
-      <Section theme="defense" label="Presets">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {DEFENSE_PRESETS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => {
-                if (confirm(`Appliquer "${p.name}" ?\n\n${p.description}`)) {
-                  props.onApplyDefensePreset(p);
-                }
-              }}
-              title={p.description}
-              style={{
-                textAlign: 'left',
-                padding: '6px 8px',
-                fontSize: 11,
-                borderRadius: 6,
-                border: `1px solid ${c.border}`,
-                background: '#fff',
-                cursor: 'pointer',
-                transition: 'border-color 120ms, background 120ms',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = c.accent;
-                e.currentTarget.style.background = c.bg;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = c.border;
-                e.currentTarget.style.background = '#fff';
-              }}
-            >
-              <div style={{ fontWeight: 600, color: c.accentText, fontSize: 12 }}>{p.name}</div>
-              <div style={{ fontSize: 10, color: '#475569', marginTop: 2, lineHeight: 1.35 }}>
-                {p.description}
-              </div>
-            </button>
-          ))}
-        </div>
 
-        {/* ----- Presets perso (B5) — snapshot des réglages défensifs courants ----- */}
-        {props.onSaveDefensePreset && (
-          <div style={{ marginTop: 10, borderTop: `1px dashed ${c.border}`, paddingTop: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: '#15803d', textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                ✚ Mes presets
-              </span>
-              <button
-                onClick={() => {
-                  const name = prompt('Nom du preset défensif :', '');
-                  if (name && name.trim()) {
-                    props.onSaveDefensePreset!(name.trim());
-                  }
-                }}
-                style={{
-                  fontSize: 10,
-                  padding: '3px 8px',
-                  borderRadius: 4,
-                  border: '1px solid #16a34a',
-                  background: '#16a34a',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                }}
-                title="Sauvegarder l'état défensif actuel (rules + screen + offBall + triggers + B1-B10) comme preset perso"
-              >
-                💾 sauvegarder
-              </button>
+        {/* Sub-config visible uniquement en zone (Q6 fusion) */}
+        {!isMan && (
+          <div
+            style={{
+              marginTop: 10,
+              padding: 8,
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: 6,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+            }}
+          >
+            <div style={{ fontSize: 10, fontWeight: 600, color: '#166534', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              ⚙ Réglages zone
             </div>
-            {(props.userDefensePresets ?? []).length === 0 ? (
-              <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', padding: '4px 0' }}>
-                Aucun preset perso. Clique 💾 pour capturer l'état actuel.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {(props.userDefensePresets ?? []).map((preset) => (
-                  <div
-                    key={preset.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      padding: '4px 6px',
-                      borderRadius: 5,
-                      border: '1px solid #bbf7d0',
-                      background: '#f0fdf4',
-                    }}
-                  >
-                    <button
-                      onClick={() => {
-                        if (confirm(`Appliquer le preset perso "${preset.name}" ?`)) {
-                          props.onApplyUserDefensePreset!(preset);
-                        }
-                      }}
-                      title={`Créé le ${new Date(preset.createdAt).toLocaleDateString('fr-FR')}`}
-                      style={{
-                        flex: 1,
-                        textAlign: 'left',
-                        fontSize: 11,
-                        padding: 0,
-                        border: 'none',
-                        background: 'transparent',
-                        color: '#14532d',
-                        cursor: 'pointer',
-                        fontWeight: 500,
-                      }}
-                    >
-                      👤 {preset.name}
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(`Supprimer "${preset.name}" ?`)) {
-                          props.onDeleteDefensePreset!(preset.id);
-                        }
-                      }}
-                      title="Supprimer ce preset"
-                      style={{
-                        fontSize: 10,
-                        padding: '0 4px',
-                        border: 'none',
-                        background: 'transparent',
-                        color: '#94a3b8',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      🗑
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </Section>
-
-      <Section theme="defense" label="Type de défense" open>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <label
-            style={{
-              flex: 1,
-              padding: '6px 8px',
-              borderRadius: 6,
-              border: `1px solid ${isMan ? c.accent : c.border}`,
-              background: isMan ? c.bgSubtle : '#fff',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              fontSize: 12,
-              color: isMan ? c.accentText : '#475569',
-              fontWeight: isMan ? 600 : 400,
-            }}
-          >
-            <input
-              type="radio"
-              name="defSystem"
-              checked={isMan}
-              onChange={() => props.onSetDefenseSystem('man')}
+            <Slider
+              label="pression bal."
+              min={0}
+              max={100}
+              step={5}
+              value={state.zoneConfig.ballPressure}
+              onChange={(v) => props.onUpdateZoneConfig({ ballPressure: v })}
             />
-            individuelle
-          </label>
-          <label
-            style={{
-              flex: 1,
-              padding: '6px 8px',
-              borderRadius: 6,
-              border: `1px solid ${!isMan ? c.accent : c.border}`,
-              background: !isMan ? c.bgSubtle : '#fff',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              fontSize: 12,
-              color: !isMan ? c.accentText : '#475569',
-              fontWeight: !isMan ? 600 : 400,
-            }}
-          >
-            <input
-              type="radio"
-              name="defSystem"
-              checked={!isMan}
-              onChange={() => props.onSetDefenseSystem('zone')}
+            <Slider
+              label="vit. rotation"
+              min={40}
+              max={200}
+              step={5}
+              value={state.zoneConfig.rotationSpeed}
+              onChange={(v) => props.onUpdateZoneConfig({ rotationSpeed: v })}
             />
-            zone
-          </label>
-        </div>
-      </Section>
-
-      {!isMan && (
-        <Section theme="defense" label="Configuration zone" open>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: '#475569', minWidth: 40 }}>type</span>
-            <select
-              value={state.zoneConfig.type}
-              onChange={(e) => props.onUpdateZoneConfig({ type: e.target.value as ZoneConfig['type'] })}
-              style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
-            >
-              <option value="zone-2-3">2-3</option>
-              <option value="zone-1-3-1">1-3-1</option>
-              <option value="zone-3-2">3-2</option>
-              <option value="zone-2-1-2">2-1-2</option>
-              <option value="zone-matchup">match-up</option>
-            </select>
-          </div>
-          <Slider
-            label="pression bal."
-            min={0}
-            max={100}
-            step={5}
-            value={state.zoneConfig.ballPressure}
-            onChange={(v) => props.onUpdateZoneConfig({ ballPressure: v })}
-          />
-          <Slider
-            label="vit. rotation"
-            min={40}
-            max={200}
-            step={5}
-            value={state.zoneConfig.rotationSpeed}
-            onChange={(v) => props.onUpdateZoneConfig({ rotationSpeed: v })}
-          />
-          <Slider
-            label="position vert."
-            min={-100}
-            max={150}
-            step={5}
-            value={state.zoneConfig.verticalOffset ?? 0}
-            onChange={(v) => props.onUpdateZoneConfig({ verticalOffset: v })}
-          />
-          <Slider
-            label="aide raquette"
-            min={0}
-            max={100}
-            step={5}
-            value={state.zoneConfig.paintCoverage ?? 50}
-            onChange={(v) => props.onUpdateZoneConfig({ paintCoverage: v })}
-          />
-          <Slider
-            label="protect. panier"
-            min={0}
-            max={100}
-            step={5}
-            value={state.zoneConfig.rimProtection ?? 50}
-            onChange={(v) => props.onUpdateZoneConfig({ rimProtection: v })}
-          />
-          <Slider
-            label="deny passes"
-            min={0}
-            max={100}
-            step={5}
-            value={state.zoneConfig.passDenial ?? 50}
-            onChange={(v) => props.onUpdateZoneConfig({ passDenial: v })}
-          />
-          <CheckboxLine
-            checked={state.zoneConfig.trapCorners}
-            label="trap en coin"
-            onChange={(v) => props.onUpdateZoneConfig({ trapCorners: v })}
-          />
-          <CheckboxLine
-            checked={state.zoneConfig.extendTo3pt}
-            label="extension 3pts"
-            onChange={(v) => props.onUpdateZoneConfig({ extendTo3pt: v })}
-          />
-          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #cbd5e1' }}>
+            <Slider
+              label="position vert."
+              min={-100}
+              max={150}
+              step={5}
+              value={state.zoneConfig.verticalOffset ?? 0}
+              onChange={(v) => props.onUpdateZoneConfig({ verticalOffset: v })}
+            />
+            <Slider
+              label="aide raquette"
+              min={0}
+              max={100}
+              step={5}
+              value={state.zoneConfig.paintCoverage ?? 50}
+              onChange={(v) => props.onUpdateZoneConfig({ paintCoverage: v })}
+            />
+            <Slider
+              label="protect. panier"
+              min={0}
+              max={100}
+              step={5}
+              value={state.zoneConfig.rimProtection ?? 50}
+              onChange={(v) => props.onUpdateZoneConfig({ rimProtection: v })}
+            />
+            <Slider
+              label="deny passes"
+              min={0}
+              max={100}
+              step={5}
+              value={state.zoneConfig.passDenial ?? 50}
+              onChange={(v) => props.onUpdateZoneConfig({ passDenial: v })}
+            />
+            <CheckboxLine
+              checked={state.zoneConfig.trapCorners}
+              label="trap en coin"
+              onChange={(v) => props.onUpdateZoneConfig({ trapCorners: v })}
+            />
+            <CheckboxLine
+              checked={state.zoneConfig.extendTo3pt}
+              label="étend à 3 pts"
+              onChange={(v) => props.onUpdateZoneConfig({ extendTo3pt: v })}
+            />
             <CheckboxLine
               checked={!!state.zoneEditMode}
               label="✎ mode édition zones"
               onChange={(v) => props.onPatch({ zoneEditMode: v })}
-              title="Active l'overlay interactif : régions colorées, drag des homePos (rond coloré) pour repositionner les ancrages. Drag des sommets blancs pour reshaper le polygone librement. Clic sur une arête pour ajouter un sommet. Shift+clic sur un sommet pour le supprimer. Clic sur le label pour ouvrir le menu (mode + rayon)."
+              title="Active l'overlay interactif : drag des homePos (rond coloré) pour repositionner. Drag des sommets blancs pour reshaper le polygone. Clic sur une arête pour ajouter un sommet. Shift+clic pour supprimer."
             />
-            {(() => {
-              const cur = state.steps[state.activeStep];
-              const activeDefenders = new Set(defenderIds);
-              const overrideCount = cur?.defenseOverrides
-                ? Object.keys(cur.defenseOverrides).filter((id) => activeDefenders.has(id as DefenderId)).length
-                : 0;
-              return (
-                <button
-                  onClick={props.onClearAllDefenseOverrides}
-                  disabled={overrideCount === 0}
-                  title="Libère tous les défenseurs en placement manuel (✋) sur cette étape — repassent en auto/zone. Le drag d'un défenseur en mode édition ne crée plus de manuel, mais ce bouton sert à nettoyer un état hérité."
-                  style={{
-                    marginTop: 6,
-                    width: '100%',
-                    fontSize: 11,
-                    padding: '5px 8px',
-                    borderRadius: 4,
-                    border: '1px solid #cbd5e1',
-                    background: overrideCount === 0 ? '#f8fafc' : '#fff',
-                    color: overrideCount === 0 ? '#94a3b8' : '#1e3a8a',
-                    cursor: overrideCount === 0 ? 'default' : 'pointer',
-                    fontWeight: 500,
-                  }}
-                >
-                  ↻ tout en auto {overrideCount > 0 ? `(${overrideCount})` : ''}
-                </button>
-              );
-            })()}
           </div>
-        </Section>
-      )}
+        )}
+      </AccordionSection>
 
+      {/* ========================================================================
+          PINNED 2 — Consignes équipe
+          ====================================================================== */}
+      <AccordionSection
+        id="defense-team-instructions"
+        theme="defense"
+        label="Consignes équipe"
+        icon="⚡"
+        variant="pinned"
+      >
+        {/* Preset officiel (uniquement en mode individuelle — choix Q4) */}
+        {isMan && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }}>preset</span>
+            <select
+              value=""
+              onChange={(e) => {
+                const id = e.target.value;
+                if (!id) return;
+                const preset = DEFENSE_PRESETS.find((p) => p.id === id);
+                if (preset && confirm(`Appliquer "${preset.name}" ?\n\n${preset.description}`)) {
+                  props.onApplyDefensePreset(preset);
+                }
+                (e.target as HTMLSelectElement).value = '';
+              }}
+              style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
+              title="Applique un preset officiel : pousse rules + screen + triggers + B/C settings"
+            >
+              <option value="">— choisir un preset —</option>
+              {DEFENSE_PRESETS.map((p) => (
+                <option key={p.id} value={p.id} title={p.description}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Consigne écran porteur (toujours visible, central pour démos) */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }}>écran</span>
+          <select
+            value={state.screenRule}
+            onChange={(e) => props.onSetScreenRule(e.target.value as ScreenRule)}
+            style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
+            title="Comment la défense gère un écran porteur (over, under, switch, hedge, drop, blitz, ice, weak, peel-switch)"
+          >
+            <option value="over">over (par-dessus)</option>
+            <option value="under">under (en dessous)</option>
+            <option value="switch">switch (échange)</option>
+            <option value="hedge">hedge (show & recover)</option>
+            <option value="drop">drop (recul)</option>
+            <option value="blitz">blitz (piège)</option>
+            <option value="ice">ice / no-middle (force baseline)</option>
+            <option value="weak">weak (under léger, recover shooter)</option>
+            <option value="peel-switch">peel switch (drop puis switch)</option>
+          </select>
+        </div>
+
+        {/* Triggers d'aide (4 checkboxes inline + tooltip global) */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 11,
+            fontWeight: 500,
+            color: c.accentText,
+          }}
+        >
+          <span>Triggers d'aide</span>
+          <InfoTooltip title={HELP_TRIGGERS_TOOLTIP} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 6px' }}>
+          <HelpTriggerCheckbox
+            checked={state.triggers.drive}
+            label="drive"
+            onChange={(v) => props.onPatch({ triggers: { ...state.triggers, drive: v } })}
+            title={HELP_TRIGGER_TOOLTIPS.drive}
+          />
+          <HelpTriggerCheckbox
+            checked={state.triggers.post}
+            label="post-up"
+            onChange={(v) => props.onPatch({ triggers: { ...state.triggers, post: v } })}
+            title={HELP_TRIGGER_TOOLTIPS.post}
+          />
+          <HelpTriggerCheckbox
+            checked={state.triggers.paint}
+            label="raquette"
+            onChange={(v) => props.onPatch({ triggers: { ...state.triggers, paint: v } })}
+            title={HELP_TRIGGER_TOOLTIPS.paint}
+          />
+          <HelpTriggerCheckbox
+            checked={!!state.triggers.trap}
+            label="trap coin/sideline"
+            onChange={(v) => props.onPatch({ triggers: { ...state.triggers, trap: v } })}
+            title={HELP_TRIGGER_TOOLTIPS.trap}
+          />
+        </div>
+
+        {/* Mode Auto / Manuel — remplace l'ancienne checkbox header */}
+        <div
+          style={{
+            marginTop: 4,
+            padding: '4px 8px',
+            background: scriptedOn ? '#dbeafe' : '#fef3c7',
+            border: `1px solid ${scriptedOn ? '#93c5fd' : '#fcd34d'}`,
+            borderRadius: 6,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+          }}
+          title="Auto = le moteur recalcule à chaque step. Manuel = les positions actuelles sont figées (utile pour figer une configuration avant démonstration)."
+        >
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#1e3a8a' }}>Mode :</span>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 11,
+              cursor: 'pointer',
+              fontWeight: scriptedOn ? 700 : 400,
+              color: scriptedOn ? '#1e3a8a' : '#475569',
+            }}
+          >
+            <input
+              type="radio"
+              name="defenseMode"
+              checked={scriptedOn}
+              onChange={() => {
+                if (!scriptedOn) props.onToggleScriptedDefense();
+              }}
+            />
+            🤖 auto
+          </label>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 11,
+              cursor: 'pointer',
+              fontWeight: !scriptedOn ? 700 : 400,
+              color: !scriptedOn ? '#92400e' : '#475569',
+            }}
+          >
+            <input
+              type="radio"
+              name="defenseMode"
+              checked={!scriptedOn}
+              onChange={() => {
+                if (scriptedOn) props.onToggleScriptedDefense();
+              }}
+            />
+            ✋ manuel
+          </label>
+        </div>
+      </AccordionSection>
+
+      {/* ========================================================================
+          NEUTRAL — Réglages globaux (sliders + écrans fins + couvertures avancées)
+          ====================================================================== */}
       {isMan && (
-        <>
-          <Section theme="defense" label="Paramètres globaux" open>
-            <Slider
-              label="distance"
-              min={20}
-              max={80}
-              step={2}
-              value={state.defenseDistance}
-              onChange={(v) => props.onPatch({ defenseDistance: v })}
-              title="Distance par défaut entre chaque défenseur et son attaquant marqué (en pixels). Petite distance = défense collante, grande distance = laisse de l'espace pour aider. Override-able par défenseur via le clic-droit."
-            />
-            <Slider
-              label="vit. max"
-              min={40}
-              max={200}
-              step={5}
-              value={state.defenseMaxSpeed}
-              onChange={(v) => props.onPatch({ defenseMaxSpeed: v })}
-              title="Distance maximale qu'un défenseur peut parcourir entre deux étapes (en pixels). Au-delà, le défenseur est marqué 'en retard' (contour rouge). Modélise la réalité physique : un défenseur ne peut pas se téléporter."
-            />
-            <Slider
-              label="closeout ×"
-              min={1}
-              max={2}
-              step={0.1}
-              value={state.closeoutBoost ?? 1.4}
-              onChange={(v) => props.onPatch({ closeoutBoost: v })}
-              title="Multiplicateur global de vitesse pour le défenseur du nouveau porteur quand le ballon arrive sur lui (passe entrante). 1 = pas de boost, 2 = très agressif. Modélise l'urgence du closeout."
-            />
-            <Slider
-              label="denial agr."
-              min={0}
-              max={1}
-              step={0.05}
-              value={state.denyAggressiveness ?? 0.45}
-              onChange={(v) => props.onPatch({ denyAggressiveness: v })}
-              title="Force globale du marquage en avant côté ballon (strong-side denial automatique). 0 = ignore, 0.45 = par défaut, 1 = full denial assumé partout. Override-able par défenseur."
-            />
-            <div
+        <AccordionSection
+          id="defense-global-settings"
+          theme="defense"
+          label="Réglages globaux"
+          icon="🎚"
+          variant="neutral"
+          defaultOpen={false}
+        >
+          <div style={{ fontSize: 10, color: '#64748b', marginBottom: 4 }}>
+            Paramètres de marquage qui s'appliquent à toute l'équipe par défaut.
+          </div>
+          <Slider
+            label="distance"
+            min={20}
+            max={80}
+            step={2}
+            value={state.defenseDistance}
+            onChange={(v) => props.onPatch({ defenseDistance: v })}
+            title="Distance par défaut entre chaque défenseur et son attaquant marqué (px). Override-able par défenseur via clic-droit."
+          />
+          <Slider
+            label="vit. max"
+            min={40}
+            max={200}
+            step={5}
+            value={state.defenseMaxSpeed}
+            onChange={(v) => props.onPatch({ defenseMaxSpeed: v })}
+            title="Distance maximale parcourue entre deux étapes (px). Modélise la réalité physique."
+          />
+          <Slider
+            label="closeout ×"
+            min={1}
+            max={2}
+            step={0.1}
+            value={state.closeoutBoost ?? 1.4}
+            onChange={(v) => props.onPatch({ closeoutBoost: v })}
+            title="Multiplicateur global de vitesse pour le défenseur du nouveau porteur quand le ballon arrive sur lui."
+          />
+          <Slider
+            label="denial agr."
+            min={0}
+            max={1}
+            step={0.05}
+            value={state.denyAggressiveness ?? 0.45}
+            onChange={(v) => props.onPatch({ denyAggressiveness: v })}
+            title="Force globale du marquage en avant côté ballon."
+          />
+
+          {/* Écran porteur — réglages fins */}
+          <details
+            style={{
+              marginTop: 6,
+              borderTop: `1px dashed ${c.border}`,
+              paddingTop: 6,
+            }}
+          >
+            <summary
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
                 fontSize: 11,
-                fontWeight: 500,
+                fontWeight: 600,
                 color: c.accentText,
-                marginTop: 4,
+                cursor: 'pointer',
+                listStyle: 'none',
               }}
             >
-              <span>Triggers d'aide</span>
-              <InfoTooltip title={HELP_TRIGGERS_TOOLTIP} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 6px' }}>
-              <HelpTriggerCheckbox
-                checked={state.triggers.drive}
-                label="drive"
-                onChange={(v) => props.onPatch({ triggers: { ...state.triggers, drive: v } })}
-                title={HELP_TRIGGER_TOOLTIPS.drive}
+              ▸ Écran porteur — réglages fins
+            </summary>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+              <Slider
+                label="détection"
+                min={20}
+                max={60}
+                step={2}
+                value={state.screenRadius}
+                onChange={(v) => props.onPatch({ screenRadius: v })}
+                title="Distance max (px) entre poseur et défenseur du porteur pour qu'un écran soit détecté"
               />
-              <HelpTriggerCheckbox
-                checked={state.triggers.post}
-                label="post-up"
-                onChange={(v) => props.onPatch({ triggers: { ...state.triggers, post: v } })}
-                title={HELP_TRIGGER_TOOLTIPS.post}
-              />
-              <HelpTriggerCheckbox
-                checked={state.triggers.paint}
-                label="raquette"
-                onChange={(v) => props.onPatch({ triggers: { ...state.triggers, paint: v } })}
-                title={HELP_TRIGGER_TOOLTIPS.paint}
-              />
-              <HelpTriggerCheckbox
-                checked={!!state.triggers.trap}
-                label="trap coin/sideline"
-                onChange={(v) => props.onPatch({ triggers: { ...state.triggers, trap: v } })}
-                title={HELP_TRIGGER_TOOLTIPS.trap}
-              />
-            </div>
-          </Section>
-
-          {/* ====================================================================
-              Couvertures avancées (audit B-series, mai 2026)
-              Réactions défensives auto sur patterns détectés. Toutes opt-in.
-              ==================================================================== */}
-          <Section theme="defense" label="Couvertures avancées">
-            <div
-              style={{ fontSize: 10, color: '#64748b', marginBottom: 6, fontStyle: 'italic' }}
-              title="Réactions défensives auto à des patterns détectés (post-up, cuts, reject screen, snake dribble). Toutes désactivées par défaut pour préserver le comportement standard."
-            >
-              Réactions auto sur patterns détectés
-            </div>
-
-            {/* B6 — Couverture post-up */}
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-              <span
-                style={{ fontSize: 11, color: '#475569', minWidth: 70, cursor: 'help' }}
-                title="Couverture défensive auto quand le trigger post-up est actif. 'none' = laisser le 1c1. 'dig' = un défenseur low man fait 30% du chemin vers le pivot puis recover (faux help). 'double' = il reste à 50% (double team réel)."
-              >
-                post-up
-              </span>
-              <select
-                value={state.postCoverage ?? 'none'}
-                onChange={(e) =>
-                  props.onPatch({
-                    postCoverage: e.target.value as 'none' | 'dig' | 'double',
-                  })
-                }
-                style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
-              >
-                <option value="none">none (1c1 strict)</option>
-                <option value="dig">dig (30 % chemin + recover)</option>
-                <option value="double">double (50 % chemin, team actif)</option>
-              </select>
-            </div>
-
-            {/* B10 — Bump cutters auto */}
-            <CheckboxLine
-              checked={!!state.autoBumpCutters}
-              label="bump auto sur cutters"
-              onChange={(v) => props.onPatch({ autoBumpCutters: v })}
-              title="Quand un cut hors-ballon est détecté (attaquant qui coupe vers le panier), un défenseur sur la trajectoire reçoit un offset de 12px vers le cutter (effet 'léger contact'). Filet de sécurité pour les cuts non marqués. Critères : défenseur ≠ cutterDef, ≤ 40px de la ligne, pas en aide active, pas en rotation PnR."
-            />
-
-            {/* B2 V2 — Unwind reject */}
-            <CheckboxLine
-              checked={!!state.unwindRejectedScreens}
-              label="unwind sur reject screen"
-              onChange={(v) => props.onPatch({ unwindRejectedScreens: v })}
-              title="Quand le porteur refuse l'écran (vire opposé, awayness ≤ -0.7), la défense relâche la couverture sur-anticipée. L'écran est traité comme inexistant pour ce step : D5 retombe sur O5 (natural) au lieu de rester en hedge."
-            />
-
-            {/* B4 V2 — Snake keep coverage */}
-            <CheckboxLine
-              checked={!!state.snakeKeepCoverage}
-              label="maintenir couv. sur snake"
-              onChange={(v) => props.onPatch({ snakeKeepCoverage: v })}
-              title="Quand un snake dribble est détecté (porteur engagé → retraite → ré-engagé sur le même poseur, V sur 3 steps), la quality effective de l'écran est forcée à 90 minimum. La 2ᵉ utilisation est traitée comme un lockdown au lieu d'un re-arm."
-            />
-
-            {/* C.4 — Pre-rotation */}
-            <CheckboxLine
-              checked={!!state.preRotationEnabled}
-              label="pré-rotation sur écran imminent"
-              onChange={(v) => props.onPatch({ preRotationEnabled: v })}
-              title="Le défenseur du porteur anticipe un écran QUI ARRIVE (attaquant en mouvement, encore hors du rayon de détection mais proche) en shiftant légèrement (~10 px) son épaule vers le poseur attendu. Effet visuel : pied préparé, route over/under pré-fermée. Pas de modification du marquage."
-            />
-
-            {/* C.5 — Tag-then-switch */}
-            <CheckboxLine
-              checked={!!state.tagThenSwitchEnabled}
-              label="tag-then-switch sur roller"
-              onChange={(v) => props.onPatch({ tagThenSwitchEnabled: v })}
-              title="Quand le low man fait un tag sur un roller PnR ET que le roller arrive très près du panier (≤ 150 px), bascule en switch implicite : le low man PREND le roller (matchups swappés), le défenseur du screener part sur l'orphelin du low man. Évite le scénario classique du low man qui recover trop tard."
-            />
-
-            {/* C.7 V2 — Read offensive action chains */}
-            <CheckboxLine
-              checked={!!state.readScreenChainsEnabled}
-              label="lire les chaînes d'écrans"
-              onChange={(v) => props.onPatch({ readScreenChainsEnabled: v })}
-              title="Active la RÉACTION défensive aux chaînes d'écrans détectées (re-screen, stagger, flare-then-fade). Sans ce flag : les badges 🔗 sont affichés mais la défense ne change pas. Avec : carrierDef plaqué plus fort sur re-screen + cutterDef en gazeLock no-help sur flare-fade. Le stagger reste géré par B9."
-            />
-
-            {/* C.2 — Help-and-recover timing */}
-            <div
-              style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}
-              title="Nombre de steps consécutifs où un défenseur MAINTIENT sa position d'aide après que le trigger (drive/post/raquette) ait disparu — au lieu de revenir instantanément sur son homme. La position glisse progressivement (decay) vers le matchup. 'auto' = legacy (recover instantané). 1 = recover rapide. 2 = standard NBA. 3 = sticky help."
-            >
-              <span style={{ fontSize: 11, color: '#475569', minWidth: 80, cursor: 'help' }}>
-                durée d'aide
-              </span>
-              <select
-                value={state.helpStickiness ?? 'auto'}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  props.onPatch({ helpStickiness: v === 'auto' ? undefined : parseInt(v) });
-                }}
-                style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
-              >
-                <option value="auto">auto (legacy, instantané)</option>
-                <option value={1}>1 step (recover rapide)</option>
-                <option value={2}>2 steps (standard)</option>
-                <option value={3}>3 steps (sticky help)</option>
-              </select>
-            </div>
-          </Section>
-
-          <Section theme="defense" label="Écran porteur" open>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }}>consigne</span>
-              <select
-                value={state.screenRule}
-                onChange={(e) => props.onSetScreenRule(e.target.value as ScreenRule)}
-                style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
-              >
-                <option value="over">over (par-dessus)</option>
-                <option value="under">under (en dessous)</option>
-                <option value="switch">switch (échange)</option>
-                <option value="hedge">hedge (show & recover)</option>
-                <option value="drop">drop (recul)</option>
-                <option value="blitz">blitz (piège)</option>
-                <option value="ice">ice / no-middle (force baseline)</option>
-                <option value="weak">weak (under léger, recover shooter)</option>
-                <option value="peel-switch">peel switch (drop puis switch)</option>
-              </select>
-            </div>
-            <Slider
-              label="détection"
-              min={20}
-              max={60}
-              step={2}
-              value={state.screenRadius}
-              onChange={(v) => props.onPatch({ screenRadius: v })}
-            />
-            {(state.screenRule === 'drop' || state.screenRule === 'peel-switch') && (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }}>profondeur</span>
-                <select
-                  value={state.dropDepth}
-                  onChange={(e) => props.onPatch({ dropDepth: e.target.value as DropDepth })}
-                  style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
-                >
-                  <option value="shallow">shallow (ice)</option>
-                  <option value="medium">medium</option>
-                  <option value="deep">deep</option>
-                </select>
-              </div>
-            )}
-            {/* B3 — Agressivité du hedge. Visible seulement quand rule = hedge.
-             *  0 = soft show, 100 = hard hedge (barricade devant O1). */}
-            {state.screenRule === 'hedge' && (
-              <div title="Distance à laquelle D5 sort sur le porteur dans le hedge. 0 = soft show (recover rapide), 100 = hard hedge (barricade à 60px devant O1). Indépendant de la qualité de l'écran.">
+              {(state.screenRule === 'drop' || state.screenRule === 'peel-switch') && (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }}>profondeur</span>
+                  <select
+                    value={state.dropDepth}
+                    onChange={(e) => props.onPatch({ dropDepth: e.target.value as DropDepth })}
+                    style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
+                  >
+                    <option value="shallow">shallow (ice)</option>
+                    <option value="medium">medium</option>
+                    <option value="deep">deep</option>
+                  </select>
+                </div>
+              )}
+              {state.screenRule === 'hedge' && (
                 <Slider
-                  label="agressivité"
+                  label="agressivité hedge"
                   min={0}
                   max={100}
                   step={5}
                   value={state.hedgeAggression ?? 50}
                   onChange={(v) => props.onPatch({ hedgeAggression: v })}
+                  title="Distance à laquelle D5 sort sur le porteur dans le hedge (0 = soft show, 100 = hard hedge)"
                 />
-              </div>
-            )}
-            {/* C.3 — Hedge length : nombre de steps consécutifs avant
-             *  recovery forcé. 1 = soft show, 3 = hard hedge prolongé. */}
-            {state.screenRule === 'hedge' && (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
-                <span
-                  style={{ fontSize: 11, color: '#475569', minWidth: 60, cursor: 'help' }}
-                  title="Nombre de steps consécutifs où D5 maintient le hedge avant de FORCER recovery (D5 retombe sur son homme). 'auto' = D5 reste sorti tant que l'écran est détecté (comportement legacy). 1 = soft show timed (D5 ne sort qu'un step). 2 = standard. 3 = hard hedge prolongé."
-                >
-                  durée
-                </span>
-                <select
-                  value={state.hedgeRecoveryDelay ?? 'auto'}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    props.onPatch({
-                      hedgeRecoveryDelay: v === 'auto' ? undefined : parseInt(v),
-                    });
-                  }}
-                  style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
-                >
-                  <option value="auto">auto (legacy, illimité)</option>
-                  <option value={1}>1 step (soft show timed)</option>
-                  <option value={2}>2 steps (standard)</option>
-                  <option value={3}>3 steps (hard prolongé)</option>
-                </select>
-              </div>
-            )}
-            {/* B8 — Switch policy team-level. Visible quand la consigne est
-             *  'switch' ou 'peel-switch'. Filtre additionnel : refuse les
-             *  switchs entre certains couples même si la rule globale dit oui. */}
-            {(state.screenRule === 'switch' || state.screenRule === 'peel-switch') && (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
-                <span
-                  style={{ fontSize: 11, color: '#475569', minWidth: 60, cursor: 'help' }}
-                  title="Filtre les switchs autorisés au niveau team. 'all' = comportement standard. '1-3' = guards+wings entre eux (pas avec les bigs). '1-4' = pas le pivot. 'none' = annule tout switch."
-                >
-                  policy
-                </span>
-                <select
-                  value={state.switchPolicy ?? 'all'}
-                  onChange={(e) => props.onPatch({ switchPolicy: e.target.value as 'all' | '1-3' | '1-4' | 'none' })}
-                  style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
-                >
-                  <option value="all">all (switch partout)</option>
-                  <option value="1-3">1-3 (guards/wings only)</option>
-                  <option value="1-4">1-4 (sauf pivot)</option>
-                  <option value="none">none (annule)</option>
-                </select>
-              </div>
-            )}
-            {/* Scram switch (B1) — correction automatique de mismatch après switch.
-             *  Visible quand la consigne est 'switch' ou 'peel-switch' (les deux
-             *  rules qui produisent un échange de matchups). */}
-            {(state.screenRule === 'switch' || state.screenRule === 'peel-switch') && (
-              <div style={{ marginTop: 6, padding: 6, background: '#fef3c7', borderRadius: 4, border: '1px solid #fcd34d' }}>
-                <CheckboxLine
-                  checked={!!state.scramSwitchEnabled}
-                  label="scram switch auto"
-                  onChange={(v) => props.onPatch({ scramSwitchEnabled: v })}
-                  title="Après un switch qui crée un mismatch (D5 sur meneur ou D1 sur pivot), un 3ᵉ défenseur proche prend l'attaquant exposé. Restore au moins partiellement les matchups."
-                />
-                {state.scramSwitchEnabled && (
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
-                    <span
-                      style={{ fontSize: 11, color: '#475569', minWidth: 60, cursor: 'help' }}
-                      title="Severity minimale pour déclencher le scram. 1 = tout switch corrigé. 2 = mismatch standard (D5↔O3). 3 = gros mismatch (D5↔O2). 4 = mismatch extrême (D5↔O1)."
-                    >
-                      seuil
-                    </span>
-                    <select
-                      value={state.mismatchThreshold ?? 2}
-                      onChange={(e) => props.onPatch({ mismatchThreshold: parseInt(e.target.value) })}
-                      style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
-                    >
-                      <option value={1}>1 — tout switch</option>
-                      <option value={2}>2 — mismatch standard</option>
-                      <option value={3}>3 — gros mismatch</option>
-                      <option value={4}>4 — extrême</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-            )}
-            <Button theme="defense" fullWidth onClick={props.onResetSwitches}>
-              annuler les switches actifs
-            </Button>
-          </Section>
+              )}
+              {state.screenRule === 'hedge' && (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: '#475569', minWidth: 70 }} title="C.3 — Nombre de steps consécutifs avant recovery forcé">
+                    durée hedge
+                  </span>
+                  <select
+                    value={state.hedgeRecoveryDelay ?? 'auto'}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      props.onPatch({ hedgeRecoveryDelay: v === 'auto' ? undefined : parseInt(v) });
+                    }}
+                    style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
+                  >
+                    <option value="auto">auto (illimité)</option>
+                    <option value={1}>1 step (soft show)</option>
+                    <option value={2}>2 steps (standard)</option>
+                    <option value={3}>3 steps (hard)</option>
+                  </select>
+                </div>
+              )}
+              {(state.screenRule === 'switch' || state.screenRule === 'peel-switch') && (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }} title="B8 — Filtre les switchs autorisés au niveau team">
+                    policy
+                  </span>
+                  <select
+                    value={state.switchPolicy ?? 'all'}
+                    onChange={(e) => props.onPatch({ switchPolicy: e.target.value as 'all' | '1-3' | '1-4' | 'none' })}
+                    style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
+                  >
+                    <option value="all">all (partout)</option>
+                    <option value="1-3">1-3 (guards/wings)</option>
+                    <option value="1-4">1-4 (sauf pivot)</option>
+                    <option value="none">none (annule)</option>
+                  </select>
+                </div>
+              )}
+              {(state.screenRule === 'switch' || state.screenRule === 'peel-switch') && (
+                <div style={{ padding: 6, background: '#fef3c7', borderRadius: 4, border: '1px solid #fcd34d' }}>
+                  <CheckboxLine
+                    checked={!!state.scramSwitchEnabled}
+                    label="scram switch auto"
+                    onChange={(v) => props.onPatch({ scramSwitchEnabled: v })}
+                    title="B1 — Après un switch qui crée un mismatch, un 3ᵉ défenseur prend l'attaquant exposé"
+                  />
+                  {state.scramSwitchEnabled && (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+                      <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }}>seuil</span>
+                      <select
+                        value={state.mismatchThreshold ?? 2}
+                        onChange={(e) => props.onPatch({ mismatchThreshold: parseInt(e.target.value) })}
+                        style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
+                      >
+                        <option value={1}>1 — tout switch</option>
+                        <option value={2}>2 — mismatch standard</option>
+                        <option value={3}>3 — gros mismatch</option>
+                        <option value={4}>4 — extrême</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
+              <Button theme="defense" fullWidth onClick={props.onResetSwitches}>
+                annuler les switches actifs
+              </Button>
+            </div>
+          </details>
 
-          <Section theme="defense" label="Écran non-porteur" open>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Écran non-porteur */}
+          <details
+            style={{
+              borderTop: `1px dashed ${c.border}`,
+              paddingTop: 6,
+            }}
+          >
+            <summary
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: c.accentText,
+                cursor: 'pointer',
+                listStyle: 'none',
+              }}
+            >
+              ▸ Écran non-porteur
+            </summary>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
               <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }}>consigne</span>
               <select
                 value={state.offBallScreenRule}
@@ -720,200 +562,579 @@ export function DefensePanel(props: DefensePanelProps) {
                 <option value="chase">chase / trail (suit le shooter)</option>
               </select>
             </div>
-          </Section>
+          </details>
 
-          <Section theme="defense" label={`Appliquer à tous (${defenderIds.length})`}>
-            <div style={{ fontSize: 10, color: '#64748b', marginBottom: 6 }}>
-              Pousse la même consigne sur les {defenderIds.length} défenseurs en un clic.
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <MassRow label="aide %">
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={5}
-                  placeholder="—"
-                  onBlur={(e) => {
-                    const v = parseInt(e.target.value);
-                    if (!Number.isNaN(v)) props.onUpdateAllRules({ helpPct: Math.max(0, Math.min(100, v)) });
-                    e.target.value = '';
+          {/* Couvertures avancées (12 toggles opt-in) */}
+          <details
+            style={{
+              borderTop: `1px dashed ${c.border}`,
+              paddingTop: 6,
+            }}
+          >
+            <summary
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: c.accentText,
+                cursor: 'pointer',
+                listStyle: 'none',
+              }}
+            >
+              ▸ Couvertures avancées (auto sur patterns détectés)
+            </summary>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+              {/* B6 — Couverture post-up */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: '#475569', minWidth: 70 }} title="B6 — couverture défensive auto au post-up">
+                  post-up
+                </span>
+                <select
+                  value={state.postCoverage ?? 'none'}
+                  onChange={(e) => props.onPatch({ postCoverage: e.target.value as 'none' | 'dig' | 'double' })}
+                  style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
+                >
+                  <option value="none">none (1c1 strict)</option>
+                  <option value="dig">dig (30 % + recover)</option>
+                  <option value="double">double (50 %)</option>
+                </select>
+              </div>
+              <CheckboxLine
+                checked={!!state.autoBumpCutters}
+                label="bump auto sur cutters (B10)"
+                onChange={(v) => props.onPatch({ autoBumpCutters: v })}
+                title="Quand un cut hors-ballon est détecté, un défenseur sur la trajectoire reçoit un offset de 12px vers le cutter"
+              />
+              <CheckboxLine
+                checked={!!state.unwindRejectedScreens}
+                label="unwind sur reject screen (B2)"
+                onChange={(v) => props.onPatch({ unwindRejectedScreens: v })}
+                title="Quand le porteur refuse l'écran, la défense relâche la couverture sur-anticipée"
+              />
+              <CheckboxLine
+                checked={!!state.snakeKeepCoverage}
+                label="maintenir couv. sur snake (B4)"
+                onChange={(v) => props.onPatch({ snakeKeepCoverage: v })}
+                title="Quand un snake dribble est détecté, la quality effective de l'écran est forcée à 90 minimum"
+              />
+              <CheckboxLine
+                checked={!!state.preRotationEnabled}
+                label="pré-rotation sur écran imminent (C.4)"
+                onChange={(v) => props.onPatch({ preRotationEnabled: v })}
+                title="Le défenseur du porteur anticipe un écran imminent en shiftant son épaule"
+              />
+              <CheckboxLine
+                checked={!!state.tagThenSwitchEnabled}
+                label="tag-then-switch sur roller (C.5)"
+                onChange={(v) => props.onPatch({ tagThenSwitchEnabled: v })}
+                title="Quand le low man tag un roller proche du panier, bascule en switch implicite"
+              />
+              <CheckboxLine
+                checked={!!state.readScreenChainsEnabled}
+                label="lire les chaînes d'écrans (C.7)"
+                onChange={(v) => props.onPatch({ readScreenChainsEnabled: v })}
+                title="Active la réaction défensive aux re-screens / staggers / flares"
+              />
+              {/* C.2 — Help-and-recover timing */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: '#475569', minWidth: 80 }} title="C.2 — durée de l'aide après disparition du trigger">
+                  durée d'aide
+                </span>
+                <select
+                  value={state.helpStickiness ?? 'auto'}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    props.onPatch({ helpStickiness: v === 'auto' ? undefined : parseInt(v) });
                   }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                  style={{ fontSize: 11, height: 22, padding: '0 3px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                  title="Saisir 0–100 puis Enter pour appliquer"
-                />
-              </MassRow>
-              <MassRow label="priorité">
-                <MassSelect
-                  onPick={(v) => props.onUpdateAllRules({ priority: v as any })}
-                  options={[['paint','raquette'],['man','homme'],['passlane','passe']]}
-                />
-              </MassRow>
-              <MassRow label="vs porteur">
-                <MassSelect
-                  onPick={(v) => props.onUpdateAllRules({ vsCarrier: v as any })}
-                  options={[
-                    ['coller','coller'],['bumper','bumper'],['contester','contester'],
-                    ['reculer','reculer'],['topside','topside'],['baseline','baseline'],
-                  ]}
-                />
-              </MassRow>
-              <MassRow label="hors-ballon">
-                <MassSelect
-                  onPick={(v) => props.onUpdateAllRules({ offBallStance: v as any })}
-                  options={[
-                    ['sag','sag'],['behind','derrière'],['stunt','stunt'],
-                    ['deny-3q','3/4 deny'],['fronting','devant'],
-                  ]}
-                />
-              </MassRow>
-              <MassRow label="écran">
-                <MassSelect
-                  onPick={(v) => props.onUpdateAllRules({ screenNav: v === 'auto' ? undefined : v as any })}
-                  options={[
-                    ['auto','auto (global)'],['over','over'],['under','under'],['switch','switch'],
-                    ['hedge','hedge'],['drop','drop'],['blitz','blitz'],
-                  ]}
-                />
-              </MassRow>
-              <MassRow label="aide mode">
-                <MassSelect
-                  onPick={(v) => props.onUpdateAllRules({ helpMode: v as any })}
-                  options={[
-                    ['auto','auto'],['aggressive','agressif'],['passive','passif'],['disabled','désactivé'],
-                  ]}
-                />
-              </MassRow>
-              <MassRow label="regard">
-                <MassSelect
-                  onPick={(v) => props.onUpdateAllRules({ gazeLock: v === 'auto' ? undefined : v as any })}
-                  options={[
-                    ['auto','auto'],['opponent','🔒 mon homme'],
-                    ['ball-carrier','🔒 le porteur'],['both','🔒 les deux'],
-                  ]}
-                />
-              </MassRow>
-              <MassRow label="corps">
-                <MassSelect
-                  onPick={(v) => props.onUpdateAllRules({ bodyOrientationMode: v === 'auto' ? undefined : v as any })}
-                  options={[
-                    ['auto','auto'],['open','ouvert'],['face-man','face homme'],
-                    ['face-ball','face porteur'],['pass-lane-flat','passe à plat'],
-                    ['pass-lane-perp','passe perpend.'],
-                  ]}
-                />
-              </MassRow>
+                  style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
+                >
+                  <option value="auto">auto (instantané)</option>
+                  <option value={1}>1 step</option>
+                  <option value={2}>2 steps (standard)</option>
+                  <option value={3}>3 steps (sticky)</option>
+                </select>
+              </div>
+              <div style={{ fontSize: 9, color: '#94a3b8', fontStyle: 'italic', padding: '4px 0' }}>
+                C.1 closeout sprint+freinage et C.6 help angle continu sont
+                actifs en permanence (sans toggle).
+              </div>
             </div>
-            <div style={{ marginTop: 8 }}>
+          </details>
+        </AccordionSection>
+      )}
+
+      {/* En mode zone, réglages globaux marquage uniquement (sans écrans/couvertures détaillées) */}
+      {!isMan && (
+        <AccordionSection
+          id="defense-global-settings-zone"
+          theme="defense"
+          label="Réglages globaux"
+          icon="🎚"
+          variant="neutral"
+          defaultOpen={false}
+        >
+          <Slider
+            label="vit. max"
+            min={40}
+            max={200}
+            step={5}
+            value={state.defenseMaxSpeed}
+            onChange={(v) => props.onPatch({ defenseMaxSpeed: v })}
+          />
+          <Slider
+            label="closeout ×"
+            min={1}
+            max={2}
+            step={0.1}
+            value={state.closeoutBoost ?? 1.4}
+            onChange={(v) => props.onPatch({ closeoutBoost: v })}
+          />
+          <Slider
+            label="denial agr."
+            min={0}
+            max={1}
+            step={0.05}
+            value={state.denyAggressiveness ?? 0.45}
+            onChange={(v) => props.onPatch({ denyAggressiveness: v })}
+          />
+        </AccordionSection>
+      )}
+
+      {/* ========================================================================
+          PINNED 3 — Appliquer à tous (adaptatif individuelle / zone)
+          ====================================================================== */}
+      <AccordionSection
+        id="defense-apply-all"
+        theme="defense"
+        label={`Appliquer à tous (${defenderIds.length})`}
+        icon="🎯"
+        variant="pinned"
+      >
+        <div style={{ fontSize: 10, color: '#64748b', marginBottom: 6 }}>
+          Pousse la même consigne sur les {defenderIds.length} défenseurs en un clic.
+        </div>
+
+        {isMan ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <MassRow label="aide %">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step={5}
+                placeholder="—"
+                onBlur={(e) => {
+                  const v = parseInt(e.target.value);
+                  if (!Number.isNaN(v)) props.onUpdateAllRules({ helpPct: Math.max(0, Math.min(100, v)) });
+                  e.target.value = '';
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                style={{ fontSize: 11, height: 22, padding: '0 3px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
+                title="Saisir 0–100 puis Enter pour appliquer"
+              />
+            </MassRow>
+            <MassRow label="priorité">
+              <MassSelect
+                onPick={(v) => props.onUpdateAllRules({ priority: v as any })}
+                options={[['paint', 'raquette'], ['man', 'homme'], ['passlane', 'passe']]}
+              />
+            </MassRow>
+            <MassRow label="vs porteur">
+              <MassSelect
+                onPick={(v) => props.onUpdateAllRules({ vsCarrier: v as any })}
+                options={[
+                  ['coller', 'coller'], ['bumper', 'bumper'], ['contester', 'contester'],
+                  ['reculer', 'reculer'], ['topside', 'topside'], ['baseline', 'baseline'],
+                ]}
+              />
+            </MassRow>
+            <MassRow label="hors-ballon">
+              <MassSelect
+                onPick={(v) => props.onUpdateAllRules({ offBallStance: v as any })}
+                options={[
+                  ['sag', 'sag'], ['behind', 'derrière'], ['stunt', 'stunt'],
+                  ['deny-3q', '3/4 deny'], ['fronting', 'devant'],
+                ]}
+              />
+            </MassRow>
+            <MassRow label="écran">
+              <MassSelect
+                onPick={(v) => props.onUpdateAllRules({ screenNav: v === 'auto' ? undefined : v as any })}
+                options={[
+                  ['auto', 'auto (global)'], ['over', 'over'], ['under', 'under'], ['switch', 'switch'],
+                  ['hedge', 'hedge'], ['drop', 'drop'], ['blitz', 'blitz'],
+                ]}
+              />
+            </MassRow>
+            <MassRow label="aide mode">
+              <MassSelect
+                onPick={(v) => props.onUpdateAllRules({ helpMode: v as any })}
+                options={[
+                  ['auto', 'auto'], ['aggressive', 'agressif'], ['passive', 'passif'], ['disabled', 'désactivé'],
+                ]}
+              />
+            </MassRow>
+            <MassRow label="regard">
+              <MassSelect
+                onPick={(v) => props.onUpdateAllRules({ gazeLock: v === 'auto' ? undefined : v as any })}
+                options={[
+                  ['auto', 'auto'], ['opponent', '🔒 mon homme'],
+                  ['ball-carrier', '🔒 le porteur'], ['both', '🔒 les deux'],
+                ]}
+              />
+            </MassRow>
+            <MassRow label="corps">
+              <MassSelect
+                onPick={(v) => props.onUpdateAllRules({ bodyOrientationMode: v === 'auto' ? undefined : v as any })}
+                options={[
+                  ['auto', 'auto'], ['open', 'ouvert'], ['open-weighted', 'ouvert pondéré'],
+                  ['face-man', 'face homme'], ['face-ball', 'face porteur'],
+                  ['pass-lane-flat', 'passe à plat'], ['pass-lane-perp', 'passe perpend.'],
+                ]}
+              />
+            </MassRow>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ fontSize: 10, color: '#78716c', fontStyle: 'italic', marginBottom: 4 }}>
+              En zone : les sliders agissent sur la zone globale. Les rotations s'appliquent à tous.
+            </div>
+            <MassRow label="pression bal.">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step={5}
+                placeholder={`actuel ${state.zoneConfig.ballPressure}`}
+                onBlur={(e) => {
+                  const v = parseInt(e.target.value);
+                  if (!Number.isNaN(v)) props.onUpdateZoneConfig({ ballPressure: Math.max(0, Math.min(100, v)) });
+                  e.target.value = '';
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                style={{ fontSize: 11, height: 22, padding: '0 3px', width: '100%', boxSizing: 'border-box' }}
+                title="Saisir 0–100 puis Enter pour appliquer"
+              />
+            </MassRow>
+            <MassRow label="rotation">
+              <input
+                type="number"
+                min={40}
+                max={200}
+                step={5}
+                placeholder={`actuel ${state.zoneConfig.rotationSpeed}`}
+                onBlur={(e) => {
+                  const v = parseInt(e.target.value);
+                  if (!Number.isNaN(v)) props.onUpdateZoneConfig({ rotationSpeed: Math.max(40, Math.min(200, v)) });
+                  e.target.value = '';
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                style={{ fontSize: 11, height: 22, padding: '0 3px', width: '100%', boxSizing: 'border-box' }}
+              />
+            </MassRow>
+            <MassRow label="aide raq.">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step={5}
+                placeholder={`actuel ${state.zoneConfig.paintCoverage ?? 50}`}
+                onBlur={(e) => {
+                  const v = parseInt(e.target.value);
+                  if (!Number.isNaN(v)) props.onUpdateZoneConfig({ paintCoverage: Math.max(0, Math.min(100, v)) });
+                  e.target.value = '';
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                style={{ fontSize: 11, height: 22, padding: '0 3px', width: '100%', boxSizing: 'border-box' }}
+              />
+            </MassRow>
+          </div>
+        )}
+
+        {/* Boutons reset adaptatifs (toujours visibles, regroupés en bas) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
+          {isMan && (
+            <button
+              type="button"
+              onClick={props.onResetIndividualOverrides}
+              style={{
+                fontSize: 10,
+                padding: '4px 8px',
+                borderRadius: 4,
+                border: '1px solid #cbd5e1',
+                background: '#fff',
+                color: '#475569',
+                cursor: 'pointer',
+                width: '100%',
+              }}
+              title="Efface les overrides individuels (distance, vit. max, closeout, denial, screenNav). Tous retombent sur les sliders globaux."
+            >
+              ↻ Réinitialiser overrides individuels
+            </button>
+          )}
+          {/* Effacer tous les overrides défense — Q4 décision : ici */}
+          {(() => {
+            const cur = state.steps[state.activeStep];
+            const activeDefenders = new Set(defenderIds);
+            const overrideCount = cur?.defenseOverrides
+              ? Object.keys(cur.defenseOverrides).filter((id) => activeDefenders.has(id as DefenderId)).length
+              : 0;
+            return (
               <button
                 type="button"
-                onClick={props.onResetIndividualOverrides}
+                onClick={props.onClearAllDefenseOverrides}
+                disabled={overrideCount === 0}
+                title="Libère tous les défenseurs en placement manuel sur cette étape — repassent en auto."
                 style={{
                   fontSize: 10,
                   padding: '4px 8px',
                   borderRadius: 4,
                   border: '1px solid #cbd5e1',
-                  background: '#fff',
-                  color: '#475569',
-                  cursor: 'pointer',
+                  background: overrideCount === 0 ? '#f8fafc' : '#fff',
+                  color: overrideCount === 0 ? '#94a3b8' : '#1e3a8a',
+                  cursor: overrideCount === 0 ? 'default' : 'pointer',
                   width: '100%',
                 }}
-                title="Efface les overrides individuels (distance, vit. max, closeout, denial, screenNav). Tous retombent sur les sliders globaux ci-dessus."
               >
-                Réinitialiser les overrides individuels
+                ↻ Tout en auto {overrideCount > 0 ? `(${overrideCount} manuel${overrideCount > 1 ? 's' : ''})` : ''}
               </button>
-            </div>
-          </Section>
+            );
+          })()}
+        </div>
+      </AccordionSection>
 
-          <Section theme="defense" label="Règles individuelles">
-            <div style={{ fontSize: 10, color: '#64748b', marginBottom: 2 }}>
-              Astuce : clic-droit sur un défenseur pour ouvrir un menu rapide.
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '24px 36px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: 3, fontSize: 10, color: '#64748b' }}>
-              <span></span>
-              <span>aide</span>
-              <span>prio.</span>
-              <span>vs porteur</span>
-              <span>hors-bal.</span>
-              <span>écran</span>
-            </div>
-            {defenderIds.map((dId) => {
-              const r = state.rules[dId];
-              return (
-                <div
-                  key={dId}
-                  style={{ display: 'grid', gridTemplateColumns: '24px 36px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: 3, alignItems: 'center', fontSize: 11 }}
+      {/* ========================================================================
+          NEUTRAL — Règles individuelles (visible si individuelle)
+          ====================================================================== */}
+      {isMan && (
+        <AccordionSection
+          id="defense-individual-rules"
+          theme="defense"
+          label="Règles individuelles"
+          icon="👤"
+          variant="neutral"
+          defaultOpen={false}
+        >
+          <div style={{ fontSize: 10, color: '#64748b', marginBottom: 2 }}>
+            Astuce : clic-droit sur un défenseur pour ouvrir un menu rapide.
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '24px 36px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: 3, fontSize: 10, color: '#64748b' }}>
+            <span></span>
+            <span>aide</span>
+            <span>prio.</span>
+            <span>vs porteur</span>
+            <span>hors-bal.</span>
+            <span>écran</span>
+          </div>
+          {defenderIds.map((dId) => {
+            const r = state.rules[dId];
+            return (
+              <div
+                key={dId}
+                style={{ display: 'grid', gridTemplateColumns: '24px 36px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: 3, alignItems: 'center', fontSize: 11 }}
+              >
+                <span style={{ fontWeight: 500, color: c.accentText }}>{dId}</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={r.helpPct}
+                  onChange={(e) =>
+                    props.onUpdateRule(dId, { helpPct: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) })
+                  }
+                  style={{ fontSize: 11, height: 22, padding: '0 3px' }}
+                />
+                <select
+                  value={r.priority}
+                  onChange={(e) => props.onUpdateRule(dId, { priority: e.target.value as any })}
+                  style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                 >
-                  <span style={{ fontWeight: 500, color: c.accentText }}>{dId}</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={5}
-                    value={r.helpPct}
-                    onChange={(e) =>
-                      props.onUpdateRule(dId, { helpPct: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) })
-                    }
-                    style={{ fontSize: 11, height: 22, padding: '0 3px' }}
-                  />
-                  <select
-                    value={r.priority}
-                    onChange={(e) => props.onUpdateRule(dId, { priority: e.target.value as any })}
-                    style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                  >
-                    <option value="paint">raquette</option>
-                    <option value="man">homme</option>
-                    <option value="passlane">passe</option>
-                  </select>
-                  <select
-                    value={r.vsCarrier}
-                    onChange={(e) => props.onUpdateRule(dId, { vsCarrier: e.target.value as any })}
-                    style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                  >
-                    <option value="coller">coller</option>
-                    <option value="bumper">bumper</option>
-                    <option value="contester">contester</option>
-                    <option value="reculer">reculer</option>
-                    <option value="topside">topside</option>
-                    <option value="baseline">baseline</option>
-                  </select>
-                  <select
-                    value={r.offBallStance ?? 'sag'}
-                    onChange={(e) => props.onUpdateRule(dId, { offBallStance: e.target.value as any })}
-                    style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                  >
-                    <option value="sag">sag</option>
-                    <option value="behind">derrière</option>
-                    <option value="stunt">stunt</option>
-                    <option value="deny-3q">3/4 deny</option>
-                    <option value="fronting">devant</option>
-                  </select>
-                  <select
-                    value={r.screenNav ?? 'auto'}
-                    onChange={(e) => props.onUpdateRule(dId, { screenNav: e.target.value as any })}
-                    style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                  >
-                    <option value="auto">auto</option>
-                    <option value="over">over</option>
-                    <option value="under">under</option>
-                    <option value="switch">switch</option>
-                    <option value="hedge">hedge</option>
-                    <option value="drop">drop</option>
-                    <option value="blitz">blitz</option>
-                  </select>
-                </div>
-              );
-            })}
-          </Section>
-        </>
+                  <option value="paint">raquette</option>
+                  <option value="man">homme</option>
+                  <option value="passlane">passe</option>
+                </select>
+                <select
+                  value={r.vsCarrier}
+                  onChange={(e) => props.onUpdateRule(dId, { vsCarrier: e.target.value as any })}
+                  style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
+                >
+                  <option value="coller">coller</option>
+                  <option value="bumper">bumper</option>
+                  <option value="contester">contester</option>
+                  <option value="reculer">reculer</option>
+                  <option value="topside">topside</option>
+                  <option value="baseline">baseline</option>
+                </select>
+                <select
+                  value={r.offBallStance ?? 'sag'}
+                  onChange={(e) => props.onUpdateRule(dId, { offBallStance: e.target.value as any })}
+                  style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
+                >
+                  <option value="sag">sag</option>
+                  <option value="behind">derrière</option>
+                  <option value="stunt">stunt</option>
+                  <option value="deny-3q">3/4 deny</option>
+                  <option value="fronting">devant</option>
+                </select>
+                <select
+                  value={r.screenNav ?? 'auto'}
+                  onChange={(e) => props.onUpdateRule(dId, { screenNav: e.target.value as any })}
+                  style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
+                >
+                  <option value="auto">auto</option>
+                  <option value="over">over</option>
+                  <option value="under">under</option>
+                  <option value="switch">switch</option>
+                  <option value="hedge">hedge</option>
+                  <option value="drop">drop</option>
+                  <option value="blitz">blitz</option>
+                </select>
+              </div>
+            );
+          })}
+        </AccordionSection>
       )}
 
-      <SimulationSection state={state} />
+      {!isMan && (
+        <AccordionSection
+          id="defense-zone-info"
+          theme="defense"
+          label="Règles individuelles"
+          icon="👤"
+          variant="neutral"
+          defaultOpen={false}
+        >
+          <div style={{ fontSize: 11, color: '#64748b', padding: 4, fontStyle: 'italic' }}>
+            En zone, les défenseurs n'ont pas de matchup individuel.
+            Activer <strong>✎ mode édition zones</strong> dans le Système pour
+            ajuster les homePos / régions.
+          </div>
+        </AccordionSection>
+      )}
 
+      {/* ========================================================================
+          SECONDARY — Mes presets (sauvegardes utilisateur, B5)
+          ====================================================================== */}
+      {props.onSaveDefensePreset && (
+        <AccordionSection
+          id="defense-user-presets"
+          theme="defense"
+          label="Mes presets"
+          icon="💾"
+          variant="secondary"
+          defaultOpen={false}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <span style={{ fontSize: 10, color: '#475569' }}>
+              Sauvegardes utilisateur (rules + screens + B/C settings)
+            </span>
+            <button
+              onClick={() => {
+                const name = prompt('Nom du preset défensif :', '');
+                if (name && name.trim()) {
+                  props.onSaveDefensePreset!(name.trim());
+                }
+              }}
+              style={{
+                fontSize: 10,
+                padding: '3px 8px',
+                borderRadius: 4,
+                border: '1px solid #16a34a',
+                background: '#16a34a',
+                color: '#fff',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+              title="Sauvegarder l'état défensif actuel comme preset perso"
+            >
+              💾 sauvegarder
+            </button>
+          </div>
+          {(props.userDefensePresets ?? []).length === 0 ? (
+            <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', padding: '4px 0' }}>
+              Aucun preset perso. Clique 💾 pour capturer l'état actuel.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {(props.userDefensePresets ?? []).map((preset) => (
+                <div
+                  key={preset.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '4px 6px',
+                    borderRadius: 5,
+                    border: '1px solid #bbf7d0',
+                    background: '#f0fdf4',
+                  }}
+                >
+                  <button
+                    onClick={() => {
+                      if (confirm(`Appliquer le preset perso "${preset.name}" ?`)) {
+                        props.onApplyUserDefensePreset!(preset);
+                      }
+                    }}
+                    title={`Créé le ${new Date(preset.createdAt).toLocaleDateString('fr-FR')}`}
+                    style={{
+                      flex: 1,
+                      textAlign: 'left',
+                      fontSize: 11,
+                      padding: 0,
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#14532d',
+                      cursor: 'pointer',
+                      fontWeight: 500,
+                    }}
+                  >
+                    👤 {preset.name}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm(`Supprimer "${preset.name}" ?`)) {
+                        props.onDeleteDefensePreset!(preset.id);
+                      }
+                    }}
+                    title="Supprimer ce preset"
+                    style={{
+                      fontSize: 10,
+                      padding: '0 4px',
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🗑
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </AccordionSection>
+      )}
+
+      {/* ========================================================================
+          SECONDARY — Simulation Monte Carlo (action différée, tout en bas)
+          ====================================================================== */}
+      <AccordionSection
+        id="defense-simulation"
+        theme="defense"
+        label="Simulation Monte Carlo"
+        icon="🎬"
+        variant="secondary"
+        defaultOpen={false}
+      >
+        <SimulationSection state={state} />
+      </AccordionSection>
     </Panel>
   );
 }
+
+// =============================================================================
+// Sous-composants internes
+// =============================================================================
 
 /** Une rangée de la section "Appliquer à tous" : label gauche fixe + control
  *  qui s'étire sur le reste. Layout flex pour rester compact même en colonne
@@ -984,8 +1205,6 @@ function MassSelect({
           return;
         }
         onPick(v);
-        // Reset après le dispatch pour que la prochaine sélection (même
-        // valeur ou autre) déclenche bien un onChange.
         setValue('');
       }}
       style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
