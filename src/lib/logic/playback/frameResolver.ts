@@ -99,6 +99,10 @@ export interface FrameDecision {
   pushMode: 'naive' | 'constrained' | 'skipped';
   /** forcedPushSign passé à curveAroundObstacle, si défini. */
   forcedPushSign: number | undefined;
+  /** Le contact a réutilisé une mémoire de la frame précédente. */
+  memoryUsed: boolean;
+  /** Point d'ancrage retenu pour le contact écran. */
+  contactPoint: Point | undefined;
   /** Défenseur protégé du réalignement instantané par followDefendersAtFrame. */
   locked: boolean;
   /** Engine flags propagés depuis defB. */
@@ -113,6 +117,19 @@ export interface FrameDebug {
   defenders: Partial<Record<DefenderId, FrameDecision>>;
 }
 
+export interface ScreenContactMemoryEntry {
+  contactKey: string;
+  contactKind: 'carrier' | 'off-ball' | undefined;
+  contactScreener: AttackerId | undefined;
+  contactScreenerDef: DefenderId | undefined;
+  contactPoint: Point | undefined;
+  forcedPushSign: number | undefined;
+  quality: number;
+  mode: 'arriving' | 'stuck' | 'leaving';
+}
+
+export type ScreenContactMemory = Partial<Record<DefenderId, ScreenContactMemoryEntry>>;
+
 export interface PlaybackFrame {
   off: AttackerPositions;
   defPos: ComputedDefense;
@@ -125,6 +142,9 @@ export interface PlaybackFrame {
   attVisuals: ComputedAttackerVisuals;
   attackerIsScreening: Partial<Record<AttackerId, boolean>>;
   attackerMovementType: Partial<Record<AttackerId, MovementType>>;
+  /** Mémoire courte de contact écran, propagée uniquement par le playback
+   *  via `options.prevFrame`. Le scrub pur n'en dépend pas. */
+  screenMemory?: ScreenContactMemory;
   /** Décisions internes par défenseur, populées uniquement si
    *  `options.collectDecisions` est true. Sinon undefined. */
   debug?: FrameDebug;
@@ -398,6 +418,8 @@ export function resolveFrameAt(
   const decisions: Partial<Record<DefenderId, FrameDecision>> | null = options.collectDecisions
     ? {}
     : null;
+  const prevScreenMemory = options.prevFrame?.screenMemory;
+  const nextScreenMemory: ScreenContactMemory = {};
   defenderIds.forEach((id) => {
     const candidates = screenerObstacles.filter((o) => id !== o.defenderToSkip);
 
@@ -426,6 +448,12 @@ export function resolveFrameAt(
     });
     const screenMode = contact.mode;
     const modeQuality = contact.quality;
+    const prevMemory = contact.contactKey
+      ? prevScreenMemory?.[id]
+      : undefined;
+    const sameContactMemory = !!prevMemory && prevMemory.contactKey === contact.contactKey;
+    let memoryUsed = false;
+    let contactPointForMemory: Point | undefined;
     // Time-remap sigmoïdal qui FIGE D1 sur le poseur (smooth, sans
     // discontinuité de vélocité). Pour les autres défenseurs ou hors
     // écran, identité = localT.
@@ -506,6 +534,10 @@ export function resolveFrameAt(
         forcedPushSign = aSide >= 0 ? -1 : 1;
       }
     }
+    if (sameContactMemory && prevMemory.forcedPushSign !== undefined && screenMode !== 'leaving') {
+      forcedPushSign = prevMemory.forcedPushSign;
+      memoryUsed = true;
+    }
     // Pendant la phase 'leaving' (recover), D1 ne doit PAS être routé autour
     // du poseur via Bezier — il sort du contact en ligne droite vers sa nouvelle
     // cible. La Bezier en recovery faisait orbiter D1 vers le côté OPPOSÉ
@@ -581,13 +613,30 @@ export function resolveFrameAt(
         anchor,
       });
       if (contactScreener) {
-        const contactPoint = radialContactPoint(anchor, contactScreener);
+        const rawContactPoint = radialContactPoint(anchor, contactScreener);
+        const contactPoint = sameContactMemory && prevMemory.contactPoint
+          ? stabilizeContactPointFromMemory(rawContactPoint, prevMemory.contactPoint, contactScreener)
+          : rawContactPoint;
+        if (contactPoint !== rawContactPoint) memoryUsed = true;
+        contactPointForMemory = contactPoint;
         const release = screenContactTangentRelease(localT, modeQuality, screenMode);
         const releasePoint = release > 0
           ? tangentReleasePoint(contactPoint, contactScreener, defB[id], release, modeQuality)
           : contactPoint;
         p = lerpPoint(p, releasePoint, adhesion);
       }
+    }
+    if (screenMode && contact.contactKey && meaningfulQuality) {
+      nextScreenMemory[id] = {
+        contactKey: contact.contactKey,
+        contactKind: contact.contactKind,
+        contactScreener: contact.contactScreener,
+        contactScreenerDef: contact.contactScreenerDef,
+        contactPoint: contactPointForMemory,
+        forcedPushSign,
+        quality: modeQuality,
+        mode: screenMode,
+      };
     }
     // Anti-superposition pour défenseurs en screen lock : single-pass
     // pushOutOfMany contre TOUS les attaquants (matched compris, règle
@@ -643,6 +692,8 @@ export function resolveFrameAt(
         clusterId,
         pushMode,
         forcedPushSign,
+        memoryUsed,
+        contactPoint: contactPointForMemory,
         locked: screenLockedDefenders.has(id),
         matchedTo: defB[id].matchedTo,
         late: defB[id].late,
@@ -739,6 +790,7 @@ export function resolveFrameAt(
     attVisuals: computeAttackerVisuals(state, idxB),
     attackerIsScreening,
     attackerMovementType,
+    screenMemory: Object.keys(nextScreenMemory).length > 0 ? nextScreenMemory : undefined,
     debug: decisions ? { idxA, idxB, localT, defenders: decisions } : undefined,
   };
 }
@@ -862,6 +914,22 @@ function radialContactPoint(point: Point, screener: Point): Point {
   return {
     x: screener.x + (away.x / len) * clearance,
     y: screener.y + (away.y / len) * clearance,
+  };
+}
+
+function stabilizeContactPointFromMemory(current: Point, previous: Point, screener: Point): Point {
+  const cx = current.x - screener.x;
+  const cy = current.y - screener.y;
+  const px = previous.x - screener.x;
+  const py = previous.y - screener.y;
+  const currentLen = Math.hypot(cx, cy);
+  const previousLen = Math.hypot(px, py);
+  if (currentLen < 0.01 || previousLen < 0.01) return current;
+  const dot = (cx / currentLen) * (px / previousLen) + (cy / currentLen) * (py / previousLen);
+  if (dot >= 0.2) return current;
+  return {
+    x: screener.x + (px / previousLen) * currentLen,
+    y: screener.y + (py / previousLen) * currentLen,
   };
 }
 

@@ -241,6 +241,16 @@ Ce rayon élargi n'autorise pas de nouveau contact. Il sert uniquement
 à maintenir un contact déjà identifié à l'endpoint opposé, pour éviter
 qu'un défenseur décroche/recolle quand il flotte à la limite du poseur.
 
+✅ **Mémoire courte playback** : `PlaybackFrame.screenMemory` propage
+par défenseur le `contactKey`, le poseur d'ancrage, le point de contact
+et le `forcedPushSign` de la frame précédente. Cette mémoire n'est lue
+que si `options.prevFrame` est fourni, donc uniquement pendant la
+lecture continue. Le scrub pur reste sans mémoire et déterministe.
+
+La mémoire ne peut stabiliser qu'un contact identique (`contactKey`
+égale). Elle ne peut pas transformer un nouveau contact en ancien
+contact.
+
 ✅ **Overlay debug écran** : `state.showScreenDebug` active un calque SVG
 qui affiche mode, qualité, `contactKey`, poseur d'ancrage, cluster,
 push mode et lock. Cet overlay est strictement diagnostique : il ne

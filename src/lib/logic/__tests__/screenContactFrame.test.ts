@@ -454,6 +454,21 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
         }
       }
     });
+
+    it('propage une mémoire courte de contact pendant le playback', () => {
+      const state = buildScreenScenario(100);
+      const first = resolveFrameAt(state, 0.45, { collectDecisions: true });
+      expect(first?.screenMemory?.D1?.contactKey).toBeTruthy();
+
+      const second = resolveFrameAt(state, 0.46, {
+        prevFrame: first ?? undefined,
+        collectDecisions: true,
+      });
+
+      expect(second?.screenMemory?.D1?.contactKey).toBe(first?.screenMemory?.D1?.contactKey);
+      expect(second?.debug?.defenders.D1?.memoryUsed).toBe(true);
+      expect(second?.screenMemory?.D1?.contactPoint).toBeTruthy();
+    });
   });
 
   describe("Recovery — pas d'orbite autour du poseur (bug 'rattrape à l'opposé')", () => {
