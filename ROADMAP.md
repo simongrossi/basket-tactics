@@ -870,6 +870,177 @@ original). **1-2 semaines** d'effort. Repoussé par décision projet.
 
 ---
 
+### Phase J — Moteur d'écran / playback : qualité & outillage (mai 2026)
+
+Suite de la session debug UCLA cut (saut D1 de 52 px entre f113-f114).
+Le fix anti-flip + le garde-fou diagnostic central ont été livrés ; les
+items J.1-J.7 prolongent l'effort pour consolider le moteur d'écran et
+son outillage **sans changer le scope basket**.
+
+| # | Chantier | Effort | Risque | Valeur | Statut |
+|---|---|---|---|---|---|
+| ~~J.0a~~ | ~~**pushOutOfManyConstrained** — fix anti-flip D1 (UCLA cut)~~ | — | — | — | 🟢 livré 2026-05-14 (3 tests, commit `303fb25`) |
+| ~~J.0b~~ | ~~**Garde-fou diagnostic anti-téléport central** — `collectDecisions` + 16 templates instrumentés~~ | — | — | — | 🟢 livré 2026-05-14 (commit `1c3feab`) |
+| J.1 | **Parité scrub ↔ playback** — mémoire scrub déterministe recalculée depuis le début du segment | 1-2j | 🟡 | Haut |
+| J.2 | **Cache segmentaire du resolver** — memoize par segment `idxA→idxB` | 1j | 🟢 | Haut |
+| J.3 | **Solver de contraintes unifié** — un seul résolveur att/déf/poseurs/clusters/screen lock | 3-5j | 🔴 | **Très haut** |
+| J.4 | **Off-ball avancé** — stagger séquentiel, elevator 2 points, flare/backscreen, mémoire sortie tangentielle | 1-2 sem | 🟡 | Très haut |
+| J.5 | **Profiling + budget frame** — mesurer `resolveFrameAt`, `effectiveDefensePositions`, détections, collisions ; fixer un budget | 2-3j | 🟢 | Moyen |
+| J.6 | **Visual regression légère — golden scenarios** — exports métriques par scénario | 1j | 🟢 | Haut |
+| J.7 | **Panneau debug joueur** — lecture instantanée par défenseur (contactKey, mode, route, qualité, memory, jump last frame) | 4-6h | 🟢 | Haut |
+
+#### ⚪ J.1 — Parité scrub ↔ playback — détail du plan
+
+**Problème actuel.** Le playback a une mémoire courte (`prevFrame` →
+rate limiter 18 px/frame). Le scrub est **volontairement sans mémoire**
+(chaque position de timeline recompute from scratch), donc un saut
+masqué en lecture peut redevenir visible en glissant la souris.
+
+**Plan.** Ajouter au scrub une mémoire **déterministe** : à chaque appel
+de `resolveFrameAt` en mode scrub, recompute les N frames du début du
+segment courant (`floor(t)` → `t`) en chaînant `prevFrame`, puis retourne
+la frame finale. Pas d'historique caché (chaque appel reproductible),
+juste un préfixe synthétique.
+
+**Impact.** Les tests à la souris sur la timeline deviennent aussi
+fiables que la lecture normale ; plus de différence visuelle scrub vs
+play.
+
+**Risque 🟡.** Coût CPU au scrub (60 frames par déplacement de
+quelques px). Mitigation : memoize le préfixe (cf. J.2).
+
+#### ⚪ J.2 — Cache segmentaire du resolver — détail du plan
+
+**Problème actuel.** `resolveFrameAt` recalcule à chaque appel :
+`matchupsA/B`, `ctxA/B/exit`, `screenerObstacles`, qualités, routes.
+Pour un segment `idxA → idxB` donné, ces valeurs sont **stables** sur
+toute la transition — seul `localT` varie.
+
+**Plan.** Cache LRU clé `(idxA, idxB, statePatchHash)` valeur :
+- `ctxA`, `ctxB`, `screenerObstacles`, par-défenseur `contact`,
+  `routePreference`, `screenLockedDefenders`, `singleClusterForSideConstraint`.
+- Invalidé sur changement de `state.steps[idxA|idxB]`, `matchups`,
+  `screenRule`, `offBallScreenRule`.
+
+**Impact.** Fluidité playback (~50-70 % du calcul est segment-invariant
+selon profiling brouillon), particulièrement perceptible quand
+`collectDecisions: true` ou overlays debug actifs.
+
+**Risque 🟢.** Cache pur sur valeurs stables, aucune sémantique
+changée. Tests : ajouter assertion "résultat == résultat sans cache"
+sur les 16 templates instrumentés.
+
+#### ⚪ J.3 — Solver de contraintes unifié — détail du plan
+
+**Problème actuel.** On a empilé : `pushOutOfMany` (attaquants),
+`pushOutOfMany` (défenseurs screen-locked), `pushOutOfManyConstrained`
+(UCLA fix), `resolvePlayerCollisions` (final pass). Chaque solveur a
+ses cas spéciaux, son ordre d'itération, sa convergence à 2 fixed
+points (bug UCLA). Surface d'attaque large pour les régressions
+latérales.
+
+**Plan.** Un **solveur unique** qui prend toutes les contraintes :
+- Obstacles (joueurs autres)
+- Half-plane (côté navigué imposé par screen lock)
+- Distance min par couple (MIN_CLEARANCE) avec exceptions paramétrables
+- Targets (positions cibles à approcher si compatible)
+
+Algorithme candidat : projection itérative type SoR (Successive
+Over-Relaxation) ou QP léger (quadratic programming) sur sous-ensemble
+actif.
+
+**Impact.** Suppression de toutes les heuristiques "push à 2 fixed
+points" → plus de surprises latérales. Code défensif réduit de ~30 %.
+
+**Risque 🔴.** Refactor profond du pipeline final. À ne tenter qu'avec
+J.6 (golden scenarios) en place comme garde-fou.
+
+#### ⚪ J.4 — Off-ball avancé — détail du plan
+
+**Problème actuel.** Le PnR (carrier screen) a 9 rules (over/under/
+hedge/drop/blitz/ice/weak/switch/peel-switch), des transitions soignées
+(C.1-C.7), un mémoire de sortie tangentielle. L'off-ball reste basique :
+2 rules brutes (`chase` / `top-lock`), pas de mémoire spécifique de
+contact, et le stagger est traité comme deux écrans indépendants.
+
+**Plan.**
+- **Stagger séquentiel** : modéliser la chaîne O4 puis O5 avec phase
+  `transition` entre les deux (D2 sort du contact 1 vers contact 2 sans
+  retour à l'homme).
+- **Elevator** : deux poseurs côte à côte, le défenseur DOIT passer par
+  l'unique gap entre eux. Route forcée + qualité haute.
+- **Flare / backscreen** : route propre (ne PAS poursuivre sur le côté
+  du poseur opposé au panier).
+- **Mémoire sortie tangentielle off-ball** : équivalent du
+  `tangentReleasePoint` carrier pour les off-ball screens (actuellement
+  D2 sort radialement de O5, peut traverser O2).
+
+**Impact.** Gros gain sur UCLA, floppy, pindown, hammer — les 4
+templates où l'off-ball domine la séquence.
+
+**Risque 🟡.** Touche `offBallScreenAdjust.ts` et le pipeline screen
+de `frameResolver`. J.6 obligatoire avant pour sécuriser.
+
+#### ⚪ J.5 — Profiling + budget frame — détail du plan
+
+**Plan.**
+- Wraper `performance.now()` autour de chaque phase clé de
+  `resolveFrameAt` (lerp attaquants, détection écran, calcul cluster,
+  loop défenseurs, pushOut, collisions, rate limiter).
+- Test dédié `playbackPerf.test.ts` qui mesure le temps moyen sur
+  les 16 templates × N=600 frames et vérifie un budget.
+- Cible initiale : `resolveFrameAt < 2 ms en 5v5` (laisse 14 ms pour
+  rendu R3F + overlays = 60 fps stable).
+- Output dans CI (warning si > 80 % du budget, fail si > 100 %).
+
+**Impact.** Optimisation ciblée plutôt qu'à l'aveugle. Repère pour
+juger les J.2 (cache) et J.3 (solveur unifié).
+
+#### ⚪ J.6 — Visual regression légère — détail du plan
+
+**Plan.** Un test par template `goldenScenarios.test.ts` qui produit
+un snapshot JSON de métriques sur tout le playback :
+- `maxJumpPxPerDefender`
+- `meanDistToMatchedAtt`
+- `meanDistToScreenerWhenStuck`
+- `routeSideHistogram` (côté de route choisi par chaque défenseur)
+- `minClearanceObservedPerStep`
+- `screenLockDurationMs`
+
+Snapshots versionnés. Toute évolution → diff lisible : "D2 reste 1.4 s
+sur le poseur au lieu de 1.1 s, side route flippe 3× vs 1× avant fix".
+
+**Impact.** Tout futur fix moteur sera **automatiquement comparé** à
+l'état de référence — plus de "ça marche encore comme avant ?" à l'œil.
+
+**Risque 🟢.** Snapshots peuvent générer du bruit ; commencer par
+3-4 templates clés (UCLA cut, PnR central, pindown, floppy) avant
+généralisation.
+
+#### ⚪ J.7 — Panneau debug joueur — détail du plan
+
+**Problème actuel.** `collectDecisions` (livré J.0b) expose les
+décisions par défenseur dans `frame.debug.defenders[id]`, mais
+**uniquement en tests**. En dev mode UI, le coach n'a pas de fenêtre
+sur ce qui se passe.
+
+**Plan.** Overlay `<PlayerDebugPanel>` activable via
+`state.showPlayerDebug` (toggle Paramètres) : pour chaque défenseur
+sélectionné, affiche `screenMode`, `quality`, `clusterId`, `pushMode`,
+`forcedPushSign`, `matchedTo`, `late`, + `jumpLastFrame` (delta px par
+rapport à la frame précédente).
+
+Layout : petit pavé flottant à droite du défenseur sélectionné, dépliable.
+
+**Impact.** Quand un déplacement semble bizarre en dev, **un clic
+suffit** pour voir la décision. Plus de retour aux tests pour
+comprendre.
+
+**Risque 🟢.** Pur ajout opt-in côté UI. Réutilise l'option
+`collectDecisions` déjà branchée.
+
+---
+
 ### Synthèse — ordre conseillé
 
 **Phase C — état au 2026-05-12** : 5/7 livrés (C.1, C.3, C.4, C.5, C.6).
@@ -892,6 +1063,13 @@ clock natif).
 **Trimestre suivant** : E.1 (box-out/rebond, demi-jeu) — le changement
 de scope qui ouvre le jeu complet. Suivi de F.1 (junk) + F.3 (FT
 rebound) selon les besoins.
+
+**Phase J (qualité moteur écran) — ordre conseillé** : J.6 (golden
+scenarios, 1j) avant tout — c'est le filet pour tester les suivants.
+Puis J.7 (panneau debug, 4-6h) et J.2 (cache segmentaire, 1j) en
+quick wins. Ensuite J.1 (parité scrub) et J.5 (profiling). Garder
+J.3 (solveur unifié) et J.4 (off-ball avancé) pour la fin — ce sont
+les gros refactos qui bénéficieront du filet J.6 + des mesures J.5.
 
 **À traiter en parallèle dès que possible** : G.1 (doc calibration) qui
 clarifie le scope du moteur (tactique vs sprint réel).
