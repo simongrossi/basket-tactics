@@ -15,7 +15,9 @@ import type {
   DefenderId,
   DetectedOffBallScreen,
   DetectedScreen,
+  Matchups,
   Point,
+  Step,
 } from '@/lib/types';
 import {
   computeAttackerVisuals,
@@ -175,6 +177,9 @@ export interface ResolveFrameOptions {
    *  cluster, pushMode). Inflige un petit coût mémoire/CPU ; à n'activer
    *  qu'en tests diagnostic ou en debug dev. */
   collectDecisions?: boolean;
+  /** Tests/perf : force le chemin sans cache segmentaire pour comparer
+   *  bit-à-bit les sorties du resolver. */
+  disableSegmentCache?: boolean;
 }
 
 /** Saut maximum autorisé par frame sur la position d'un défenseur.
@@ -190,6 +195,23 @@ const MAX_DEFENDER_JUMP_PX = 18;
  *  réel à 7 m/s ≈ 4.4 px/frame, largement sous le seuil. Borne les pics
  *  de `curveAroundObstacle` quand le cluster bouge (cause du jump O2 mi-Pindown). */
 const MAX_ATTACKER_JUMP_PX = 18;
+
+interface SegmentScreenStatic {
+  matchupsA: Matchups;
+  matchupsB: Matchups;
+  ctxA: ScreenContext;
+  ctxB: ScreenContext;
+  ctxAExit: ScreenContext;
+  ctxBExit: ScreenContext;
+  screenerObstacles: ScreenObstacle[];
+}
+
+interface SegmentScreenCacheEntry {
+  deps: string;
+  value: SegmentScreenStatic;
+}
+
+const segmentScreenCache = new WeakMap<AppState, Map<string, SegmentScreenCacheEntry>>();
 
 /**
  * Résout la frame complète à l'instant `t` (en unités de step fractionnaires).
@@ -328,6 +350,7 @@ export function resolveFrameAt(
   let ctxAExit: ScreenContext = emptyScreenContext();
   let ctxBExit: ScreenContext = emptyScreenContext();
   let currentCtx: ScreenContext = emptyScreenContext();
+  let segmentStatic: SegmentScreenStatic | null = null;
   // STABILISATION DU CARRIER : on n'utilise PLUS le switch à t=0.5
   // (`carrier = localT < 0.5 ? carrierA : carrierB`) qui créait un saut de
   // contexte à mi-segment lors d'une passe. On prend systématiquement le
@@ -339,45 +362,26 @@ export function resolveFrameAt(
   let screen: DetectedScreen | null = null;
   let offBallScreens: DetectedOffBallScreen[] = [];
   if (state.defenseSystem === 'man') {
-    const matchupsA = getMatchupsAt(state.steps, Math.max(0, idxA - 1), state.playerCount);
-    const matchupsB = getMatchupsAt(state.steps, Math.max(0, idxB - 1), state.playerCount);
-    const defPlainA = plainDefPositions(defA);
-    const defPlainB = plainDefPositions(defB);
-    ctxA = detectScreenContext({
-      off: offA,
-      carrier: carrierA,
-      matchups: matchupsA,
-      defenderPositions: defPlainA,
-      screenRadius: state.screenRadius,
-      forcedScreener: a.forcedScreener,
+    segmentStatic = getSegmentScreenStatic({
+      state,
+      idxA,
+      idxB,
+      offA,
+      offB,
+      defA,
+      defB,
+      carrierA,
+      carrierB,
+      stepA: a,
+      stepB: b,
+      disableCache: !!options.disableSegmentCache,
     });
-    ctxB = detectScreenContext({
-      off: offB,
-      carrier: carrierB,
-      matchups: matchupsB,
-      defenderPositions: defPlainB,
-      screenRadius: state.screenRadius,
-      forcedScreener: b.forcedScreener,
-    });
-    const exitRadius = screenContactExitRadius(state.screenRadius);
-    ctxAExit = detectScreenContext({
-      off: offA,
-      carrier: carrierA,
-      matchups: matchupsA,
-      defenderPositions: defPlainA,
-      screenRadius: exitRadius,
-      forcedScreener: a.forcedScreener,
-    });
-    ctxBExit = detectScreenContext({
-      off: offB,
-      carrier: carrierB,
-      matchups: matchupsB,
-      defenderPositions: defPlainB,
-      screenRadius: exitRadius,
-      forcedScreener: b.forcedScreener,
-    });
+    ctxA = segmentStatic.ctxA;
+    ctxB = segmentStatic.ctxB;
+    ctxAExit = segmentStatic.ctxAExit;
+    ctxBExit = segmentStatic.ctxBExit;
 
-    const matchups = getMatchupsAt(state.steps, Math.max(0, idxB - 1), state.playerCount);
+    const matchups = segmentStatic.matchupsB;
     const defPosLinear = {} as Record<DefenderId, Point>;
     defenderIds.forEach((id) => {
       defPosLinear[id] = lerpPoint(defA[id], defB[id], localT);
@@ -403,7 +407,9 @@ export function resolveFrameAt(
   // 3. Obstacles "cluster" (poseur + son défenseur) pour contourner les
   //    écrans pendant le segment. Position MOYENNE A↔B → obstacle stable.
   // ---------------------------------------------------------------------
-  const screenerObstacles: ScreenObstacle[] = [];
+  const screenerObstacles: ScreenObstacle[] = segmentStatic
+    ? [...segmentStatic.screenerObstacles]
+    : [];
   // Clusters d'écran (porteur + off-ball) construits UNIQUEMENT depuis les
   // détections STABLES aux endpoints (screenA, screenB), pas depuis la
   // détection courante interpolée `screen`. Pourquoi :
@@ -416,7 +422,6 @@ export function resolveFrameAt(
   // En n'utilisant que les endpoints, le cluster est soit présent toute la
   // transition (screen détecté à un endpoint), soit absent toute la
   // transition. Pas de flicker.
-  screenerObstacles.push(...buildSegmentScreenObstacles(ctxA, ctxB, offA, offB, defA, defB));
 
   // ---------------------------------------------------------------------
   // 4. Positions défenseurs — interpolation linéaire + courbe d'évitement.
@@ -857,6 +862,185 @@ function plainDefPositions(def: ComputedDefense): Record<DefenderId, Point> {
     out[id] = { x: p.x, y: p.y };
   });
   return out;
+}
+
+function getSegmentScreenStatic(params: {
+  state: AppState;
+  idxA: number;
+  idxB: number;
+  offA: AttackerPositions;
+  offB: AttackerPositions;
+  defA: ComputedDefense;
+  defB: ComputedDefense;
+  carrierA: AttackerId;
+  carrierB: AttackerId;
+  stepA: Step;
+  stepB: Step;
+  disableCache: boolean;
+}): SegmentScreenStatic {
+  if (params.disableCache) return computeSegmentScreenStatic(params);
+
+  const key = `${params.idxA}->${params.idxB}`;
+  const deps = segmentScreenDepsKey(params);
+  let stateCache = segmentScreenCache.get(params.state);
+  if (!stateCache) {
+    stateCache = new Map();
+    segmentScreenCache.set(params.state, stateCache);
+  }
+  const cached = stateCache.get(key);
+  if (cached?.deps === deps) return cached.value;
+
+  const value = computeSegmentScreenStatic(params);
+  stateCache.set(key, { deps, value });
+  return value;
+}
+
+function computeSegmentScreenStatic(params: {
+  state: AppState;
+  idxA: number;
+  idxB: number;
+  offA: AttackerPositions;
+  offB: AttackerPositions;
+  defA: ComputedDefense;
+  defB: ComputedDefense;
+  carrierA: AttackerId;
+  carrierB: AttackerId;
+  stepA: Step;
+  stepB: Step;
+}): SegmentScreenStatic {
+  const matchupsA = getMatchupsAt(
+    params.state.steps,
+    Math.max(0, params.idxA - 1),
+    params.state.playerCount
+  );
+  const matchupsB = getMatchupsAt(
+    params.state.steps,
+    Math.max(0, params.idxB - 1),
+    params.state.playerCount
+  );
+  const defPlainA = plainDefPositions(params.defA);
+  const defPlainB = plainDefPositions(params.defB);
+  const ctxA = detectScreenContext({
+    off: params.offA,
+    carrier: params.carrierA,
+    matchups: matchupsA,
+    defenderPositions: defPlainA,
+    screenRadius: params.state.screenRadius,
+    forcedScreener: params.stepA.forcedScreener,
+  });
+  const ctxB = detectScreenContext({
+    off: params.offB,
+    carrier: params.carrierB,
+    matchups: matchupsB,
+    defenderPositions: defPlainB,
+    screenRadius: params.state.screenRadius,
+    forcedScreener: params.stepB.forcedScreener,
+  });
+  const exitRadius = screenContactExitRadius(params.state.screenRadius);
+  const ctxAExit = detectScreenContext({
+    off: params.offA,
+    carrier: params.carrierA,
+    matchups: matchupsA,
+    defenderPositions: defPlainA,
+    screenRadius: exitRadius,
+    forcedScreener: params.stepA.forcedScreener,
+  });
+  const ctxBExit = detectScreenContext({
+    off: params.offB,
+    carrier: params.carrierB,
+    matchups: matchupsB,
+    defenderPositions: defPlainB,
+    screenRadius: exitRadius,
+    forcedScreener: params.stepB.forcedScreener,
+  });
+
+  return {
+    matchupsA,
+    matchupsB,
+    ctxA,
+    ctxB,
+    ctxAExit,
+    ctxBExit,
+    screenerObstacles: buildSegmentScreenObstacles(
+      ctxA,
+      ctxB,
+      params.offA,
+      params.offB,
+      params.defA,
+      params.defB
+    ),
+  };
+}
+
+function segmentScreenDepsKey(params: {
+  state: AppState;
+  idxA: number;
+  idxB: number;
+  offA: AttackerPositions;
+  offB: AttackerPositions;
+  defA: ComputedDefense;
+  defB: ComputedDefense;
+  stepA: Step;
+  stepB: Step;
+}): string {
+  return [
+    `players=${params.state.playerCount}`,
+    `system=${params.state.defenseSystem}`,
+    `radius=${params.state.screenRadius}`,
+    `screenRule=${params.state.screenRule}`,
+    `offBallRule=${params.state.offBallScreenRule}`,
+    `matchups=${matchupsDepsKey(params.state.steps, Math.max(params.idxA, params.idxB) - 1)}`,
+    `stepA=${stepScreenDepsKey(params.stepA)}`,
+    `stepB=${stepScreenDepsKey(params.stepB)}`,
+    `offA=${pointRecordKey(params.offA)}`,
+    `offB=${pointRecordKey(params.offB)}`,
+    `defA=${pointRecordKey(params.defA)}`,
+    `defB=${pointRecordKey(params.defB)}`,
+  ].join('|');
+}
+
+function matchupsDepsKey(steps: Step[], throughIdx: number): string {
+  if (throughIdx < 0) return '';
+  const parts: string[] = [];
+  for (let i = 0; i <= throughIdx && i < steps.length; i++) {
+    const step = steps[i];
+    parts.push(`${i}:${stableJson(step.switches ?? [])}:${stableJson(step.assignmentOverrides ?? {})}`);
+  }
+  return parts.join(';');
+}
+
+function stepScreenDepsKey(step: Step): string {
+  return stableJson({
+    ballCarrier: step.ballCarrier,
+    forcedScreener: step.forcedScreener,
+    annotations: step.annotations,
+  });
+}
+
+function pointRecordKey(record: Record<string, Point>): string {
+  return Object.keys(record)
+    .sort()
+    .map((id) => {
+      const p = record[id];
+      return `${id}:${roundCoord(p.x)},${roundCoord(p.y)}`;
+    })
+    .join(';');
+}
+
+function stableJson(value: unknown): string {
+  return JSON.stringify(value, (_key, val) => {
+    if (!val || typeof val !== 'object' || Array.isArray(val)) return val;
+    return Object.keys(val)
+      .sort()
+      .reduce((out, key) => {
+        (out as Record<string, unknown>)[key] = (val as Record<string, unknown>)[key];
+        return out;
+      }, {} as Record<string, unknown>);
+  });
+}
+
+function roundCoord(value: number): string {
+  return (Math.round(value * 1000) / 1000).toString();
 }
 
 function radialContactPoint(point: Point, screener: Point): Point {

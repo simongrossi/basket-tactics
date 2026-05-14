@@ -207,6 +207,13 @@ au point `ann.to`; les autres joueurs doivent contourner ce point.
 Sinon `screenerObstacles` apparaît/disparaît mid-segment et fait
 flicker `curveAroundObstacle` (bug `systeme_basket-8`).
 
+✅ **Cache segmentaire du resolver** : les données stables sur un segment
+`idxA → idxB` sont calculées une seule fois par état : matchups A/B,
+contextes écran A/B, contextes de sortie, et obstacles de poseurs. La
+détection courante interpolée reste recalculée par frame car elle dépend
+de `localT`. Le test `frameResolverSegmentCache.test.ts` compare le
+résultat avec et sans cache sur les scénarios écran clés.
+
 ✅ **`screenLockedDefenders` skip `followDefendersAtFrame`** : un
 défenseur en contact d'écran ne doit pas suivre son homme normalement
 pendant le freeze. La lerp avec le time-remap sigmoïdal (`screenContactT`)
