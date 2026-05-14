@@ -224,6 +224,12 @@ le cluster, le résultat est mirrorré du côté stable. En cas de stagger
 ou de côté non fiable, le solver retombe volontairement sur
 `pushOutOfMany`.
 
+Important : dans un cluster géométriquement impossible (pas de point
+qui satisfasse toutes les clearances sans changer brutalement de côté),
+ce solver privilégie la continuité du côté stable plutôt qu'une
+correction pleine distance en une frame. Le rate limiter playback et
+les endpoints moteur prennent le relais pour éviter les snaps.
+
 ✅ **Identité stable du contact** : `defenderScreenContact()` attribue
 une `contactKey` logique (`carrier:D1:O1:O5` ou `off:D2:O2:O4+O5`).
 Deux endpoints A/B ne sont considérés `stuck` que s'ils parlent du

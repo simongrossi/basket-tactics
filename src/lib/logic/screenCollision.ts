@@ -36,16 +36,6 @@ export function pushOutOfScreenContact(params: {
     };
   }
 
-  const pSideInit =
-    (params.point.x - params.segmentStart.x) * perpX +
-    (params.point.y - params.segmentStart.y) * perpY;
-  if (Math.sign(pSideInit) === Math.sign(clusterSide) && Math.abs(pSideInit) > 1) {
-    return {
-      point: pushOutOfMany(params.point, params.obstacles, params.minDist),
-      mode: 'radial',
-    };
-  }
-
   const targetSign = clusterSide >= 0 ? -1 : 1;
   let result = params.point;
   for (let iter = 0; iter < 5; iter++) {
@@ -71,11 +61,6 @@ export function pushOutOfScreenContact(params: {
           const correction = 2 * candSide;
           nx -= correction * perpX;
           ny -= correction * perpY;
-          const mirroredDist = Math.hypot(nx - o.x, ny - o.y);
-          if (mirroredDist < params.minDist) {
-            nx = o.x + perpX * targetSign * params.minDist;
-            ny = o.y + perpY * targetSign * params.minDist;
-          }
         }
       }
       if (Math.abs(nx - result.x) > 0.001 || Math.abs(ny - result.y) > 0.001) {
