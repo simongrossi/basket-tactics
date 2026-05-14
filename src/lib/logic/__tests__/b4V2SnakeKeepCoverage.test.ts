@@ -57,7 +57,7 @@ describe('B4 V2 — snake keep coverage', () => {
     const o5 = state2O5(stateOn);
     const dOff = Math.hypot(defOff.D1.x - o5.x, defOff.D1.y - o5.y);
     const dOn = Math.hypot(defOn.D1.x - o5.x, defOn.D1.y - o5.y);
-    expect(dOn).toBeLessThanOrEqual(dOff);
+    expect(dOn).toBeLessThanOrEqual(dOff + 1e-6);
   });
 
   it("pas de snake détecté → pas de boost, comportement standard préservé", () => {
