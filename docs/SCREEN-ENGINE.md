@@ -264,6 +264,11 @@ La mémoire ne peut stabiliser qu'un contact identique (`contactKey`
 égale). Elle ne peut pas transformer un nouveau contact en ancien
 contact.
 
+✅ **Route explicite** : chaque `FrameDecision` expose `routeKind`
+(`over`, `under`, `hedge`, `chase`, `top-lock`, etc.). Le debug écran
+doit toujours pouvoir montrer quelle route a produit le vecteur de
+contournement et le `forcedPushSign`.
+
 ✅ **Overlay debug écran** : `state.showScreenDebug` active un calque SVG
 qui affiche mode, qualité, `contactKey`, poseur d'ancrage, cluster,
 push mode et lock. Cet overlay est strictement diagnostique : il ne

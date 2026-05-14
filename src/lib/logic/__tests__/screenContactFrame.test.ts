@@ -467,6 +467,7 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
 
       expect(second?.screenMemory?.D1?.contactKey).toBe(first?.screenMemory?.D1?.contactKey);
       expect(second?.debug?.defenders.D1?.memoryUsed).toBe(true);
+      expect(second?.debug?.defenders.D1?.routeKind).toBe('hedge');
       expect(second?.screenMemory?.D1?.contactPoint).toBeTruthy();
     });
 

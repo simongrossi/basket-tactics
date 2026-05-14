@@ -63,7 +63,7 @@ export function ScreenDebugOverlay({
         const badge = badgePosition(d, id);
         const color = colorForDecision(decision);
         const mode = decision.screenMode ? decision.screenMode.toUpperCase() : 'ROUTE';
-        const detail = `${decision.contactScreener ?? decision.clusterId ?? '-'} ${shortPush(decision)}`;
+        const detail = `${decision.contactScreener ?? decision.clusterId ?? '-'} ${decision.routeKind ?? '-'} ${shortPush(decision)}`;
 
         return (
           <g key={id}>

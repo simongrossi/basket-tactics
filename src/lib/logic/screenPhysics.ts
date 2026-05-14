@@ -14,6 +14,7 @@ import type {
 } from '../types';
 
 export type ScreenContactMode = 'arriving' | 'leaving' | 'stuck';
+export type ScreenRouteKind = ScreenRule | OffBallScreenRule;
 
 export const SCREEN_CONTACT_ENTER_QUALITY = 12;
 export const SCREEN_CONTACT_EXIT_QUALITY = 7;
@@ -248,6 +249,14 @@ export function offBallScreenRoutePreference(
     default:
       return null;
   }
+}
+
+export function carrierScreenRouteKind(rule: ScreenRule): ScreenRouteKind {
+  return rule;
+}
+
+export function offBallScreenRouteKind(rule: OffBallScreenRule): ScreenRouteKind {
+  return rule;
 }
 
 export function forcedPushSignForRoute(start: Point, end: Point, route: Point): number | undefined {

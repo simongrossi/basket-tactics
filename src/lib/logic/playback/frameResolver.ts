@@ -46,9 +46,11 @@ import {
 } from '@/lib/data/court';
 import {
   carrierApexSlownessFromQuality,
+  carrierScreenRouteKind,
   carrierScreenRoutePreference,
   effectiveScreenRuleForDef,
   forcedPushSignForRoute,
+  offBallScreenRouteKind,
   offBallScreenRoutePreference,
   screenContactAdhesion,
   screenContactExitRadius,
@@ -56,6 +58,7 @@ import {
   screenContactQualityPassesHysteresis,
   screenContactT,
   screenContactTangentRelease,
+  type ScreenRouteKind,
 } from '../screenPhysics';
 import {
   buildSegmentScreenObstacles,
@@ -100,6 +103,8 @@ export interface FrameDecision {
   pushMode: 'naive' | 'constrained' | 'skipped';
   /** forcedPushSign passé à curveAroundObstacle, si défini. */
   forcedPushSign: number | undefined;
+  /** Route tactique explicite utilisée pour le contournement. */
+  routeKind: ScreenRouteKind | undefined;
   /** Le contact a réutilisé une mémoire de la frame précédente. */
   memoryUsed: boolean;
   /** Point d'ancrage retenu pour le contact écran. */
@@ -125,6 +130,7 @@ export interface ScreenContactMemoryEntry {
   contactScreenerDef: DefenderId | undefined;
   contactPoint: Point | undefined;
   forcedPushSign: number | undefined;
+  routeKind: ScreenRouteKind | undefined;
   quality: number;
   mode: 'arriving' | 'stuck' | 'leaving';
 }
@@ -500,9 +506,17 @@ export function resolveFrameAt(
     const apexSlowness = screenMode
       ? carrierApexSlownessFromQuality(modeQuality)
       : 0.3;
-    const routePreference = contact.carrierContact && contact.carrierScreen
+    const carrierRouteRule = contact.carrierContact && contact.carrierScreen
+      ? effectiveScreenRuleForDef(state, contact.carrierScreen.carrierDef)
+      : undefined;
+    const routeKind: ScreenRouteKind | undefined = carrierRouteRule
+      ? carrierScreenRouteKind(carrierRouteRule)
+      : contact.offBallContact
+        ? offBallScreenRouteKind(state.offBallScreenRule)
+        : undefined;
+    const routePreference = contact.carrierContact && contact.carrierScreen && carrierRouteRule
       ? carrierScreenRoutePreference(
-          effectiveScreenRuleForDef(state, contact.carrierScreen.carrierDef),
+          carrierRouteRule,
           contact.carrierScreen,
           off,
           defenseHoop
@@ -637,6 +651,7 @@ export function resolveFrameAt(
         contactScreenerDef: contact.contactScreenerDef,
         contactPoint: contactPointForMemory,
         forcedPushSign,
+        routeKind,
         quality: modeQuality,
         mode: screenMode,
       };
@@ -696,6 +711,7 @@ export function resolveFrameAt(
         clusterId,
         pushMode,
         forcedPushSign,
+        routeKind,
         memoryUsed,
         contactPoint: contactPointForMemory,
         locked: screenLockedDefenders.has(id),
