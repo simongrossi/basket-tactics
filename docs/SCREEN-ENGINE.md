@@ -244,6 +244,11 @@ socle unique à étendre avant de migrer les autres push-out locaux :
 obstacles, distance minimale par obstacle, demi-plan optionnel, et
 direction de fallback en cas de point confondu.
 
+Depuis J.3b, `pushOutOfMany()` délègue aussi à ce même socle. Les
+solveurs historiques gardent leur API, mais le push radial simple,
+les collisions finales et les ajustements qui appellent `pushOutOfMany`
+partagent désormais le même moteur de projection.
+
 ✅ **Identité stable du contact** : `defenderScreenContact()` attribue
 une `contactKey` logique (`carrier:D1:O1:O5` ou `off:D2:O2:O4+O5`).
 Deux endpoints A/B ne sont considérés `stuck` que s'ils parlent du

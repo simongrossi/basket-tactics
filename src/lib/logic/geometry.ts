@@ -1,5 +1,6 @@
 import type { Point } from '../types';
 import { CARRIER_SIDE_TOLERANCE_PX, HOOP, PAINT } from '../data/court';
+import { solvePointConstraints } from './constraintSolver';
 
 export function distance(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -79,19 +80,11 @@ export function pushOutOf(pos: Point, obstacle: Point, minDist: number): Point {
  * cas en chaîne.
  */
 export function pushOutOfMany(pos: Point, obstacles: Point[], minDist: number): Point {
-  let result = pos;
-  for (let iter = 0; iter < 5; iter++) {
-    let moved = false;
-    for (const obs of obstacles) {
-      const next = pushOutOf(result, obs, minDist);
-      if (next.x !== result.x || next.y !== result.y) {
-        result = next;
-        moved = true;
-      }
-    }
-    if (!moved) break;
-  }
-  return result;
+  return solvePointConstraints({
+    point: pos,
+    obstacles: obstacles.map((center) => ({ center })),
+    defaultMinDist: minDist,
+  }).point;
 }
 
 /**
