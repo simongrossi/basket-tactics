@@ -65,6 +65,43 @@ import {
   type ScreenObstacle,
 } from '../screenContext';
 
+/** Trace des décisions prises pour un défenseur au sein de `resolveFrameAt`.
+ *  Capturée UNIQUEMENT quand `options.collectDecisions` est true (= tests
+ *  diagnostic). Permet, quand un saut anormal est détecté inter-frame, de
+ *  voir DIRECTEMENT ce qui a changé : screenMode passé de `arriving` à
+ *  `stuck`, cluster qui flippe entre `staggered-pair` et `single`, etc.
+ *  Cf. `playbookJumpsWithDiagnostic.test.ts`. */
+export interface FrameDecision {
+  /** Mode de contact d'écran calculé par `defenderScreenContact`. */
+  screenMode: 'arriving' | 'stuck' | 'leaving' | null;
+  /** Qualité (0..100+) du contact, intègre rule + type. */
+  quality: number;
+  /** Le défenseur a un contact porteur (carrierContact). */
+  carrierContact: boolean;
+  /** Le défenseur a un contact off-ball (type d'écran ou undefined). */
+  offBallContactType: string | undefined;
+  /** Choix de la branche de courbe : staggered-pair, single-blocking, none. */
+  curveBranch: 'staggered-pair' | 'single-blocking' | 'none';
+  /** ID du cluster utilisé pour la Bezier : defenderToSkip du screen obstacle
+   *  matché, ou fallback "(x,y)" arrondi si le matching échoue. */
+  clusterId: string | undefined;
+  /** Mode de pushOut appliqué : naive (pushOutOfMany) ou constrained
+   *  (pushOutOfManyConstrained) ou skipped. */
+  pushMode: 'naive' | 'constrained' | 'skipped';
+  /** forcedPushSign passé à curveAroundObstacle, si défini. */
+  forcedPushSign: number | undefined;
+  /** Engine flags propagés depuis defB. */
+  matchedTo: AttackerId;
+  late: boolean;
+}
+
+export interface FrameDebug {
+  idxA: number;
+  idxB: number;
+  localT: number;
+  defenders: Partial<Record<DefenderId, FrameDecision>>;
+}
+
 export interface PlaybackFrame {
   off: AttackerPositions;
   defPos: ComputedDefense;
@@ -77,6 +114,9 @@ export interface PlaybackFrame {
   attVisuals: ComputedAttackerVisuals;
   attackerIsScreening: Partial<Record<AttackerId, boolean>>;
   attackerMovementType: Partial<Record<AttackerId, MovementType>>;
+  /** Décisions internes par défenseur, populées uniquement si
+   *  `options.collectDecisions` est true. Sinon undefined. */
+  debug?: FrameDebug;
 }
 
 export interface ResolveFrameOptions {
@@ -89,6 +129,10 @@ export interface ResolveFrameOptions {
    *  visuel). Non passé en scrub → rate limiter désactivé.
    *  Cf. docs/SCREEN-ENGINE.md "Bug résiduel" + commit dédié. */
   prevFrame?: PlaybackFrame;
+  /** Active la collecte de décisions internes par défenseur (screenMode,
+   *  cluster, pushMode). Inflige un petit coût mémoire/CPU ; à n'activer
+   *  qu'en tests diagnostic ou en debug dev. */
+  collectDecisions?: boolean;
 }
 
 /** Saut maximum autorisé par frame sur la position d'un défenseur.
@@ -321,6 +365,9 @@ export function resolveFrameAt(
   // SAUTER, sinon il réécrit la position en suivant l'homme et annule tout
   // le réalisme du contact.
   const screenLockedDefenders = new Set<DefenderId>();
+  const decisions: Partial<Record<DefenderId, FrameDecision>> | null = options.collectDecisions
+    ? {}
+    : null;
   defenderIds.forEach((id) => {
     const candidates = screenerObstacles.filter((o) => id !== o.defenderToSkip);
 
@@ -434,8 +481,12 @@ export function resolveFrameAt(
     const allowCurve = screenMode !== 'leaving';
     const pair = allowCurve ? pickStaggeredPair(defA[id], defB[id], candidates) : null;
     let singleClusterForSideConstraint: ScreenObstacle | null = null;
+    let curveBranch: FrameDecision['curveBranch'] = 'none';
+    let clusterId: string | undefined;
     if (pair) {
       p = curveAroundStaggeredPair(defA[id], defB[id], pair[0], pair[1], effT);
+      curveBranch = 'staggered-pair';
+      clusterId = matchClusterToScreenObstacle(pair[0], candidates) ?? clusterPositionLabel(pair[0]);
     } else if (allowCurve) {
       const blocking = pickBlockingCluster(defA[id], defB[id], candidates);
       if (blocking) {
@@ -452,7 +503,13 @@ export function resolveFrameAt(
         // si pair est null (= un seul cluster). En stagger, la trajectoire passe
         // entre les 2 poseurs et la contrainte de demi-plan ferait sortir D du
         // contact souhaité.
-        singleClusterForSideConstraint = blocking;
+        const matched = candidates.find((c) =>
+          Math.abs(c.center.x - blocking.center.x) < 0.01 &&
+          Math.abs(c.center.y - blocking.center.y) < 0.01
+        );
+        if (matched) singleClusterForSideConstraint = matched;
+        curveBranch = 'single-blocking';
+        clusterId = matched?.defenderToSkip ?? clusterPositionLabel(blocking);
       }
     }
     const adhesion = screenContactAdhesion(localT, modeQuality, screenMode);
@@ -506,6 +563,7 @@ export function resolveFrameAt(
     // l'adhesion peut produire une position à < 34 px d'un attaquant
     // non-matched (typiquement le poseur), il faut compenser ici.
     // Single pass = pas d'oscillation = pas de flicker.
+    let pushMode: FrameDecision['pushMode'] = 'skipped';
     if (screenLockedDefenders.has(id) || (screenMode && contact.carrierContact) || contact.offBallContact) {
       const obs: Point[] = [];
       for (const aId of attackerIds) obs.push(off[aId]);
@@ -532,9 +590,25 @@ export function resolveFrameAt(
           defB[id],
           singleClusterForSideConstraint.center
         );
+        pushMode = 'constrained';
       } else {
         p = pushOutOfMany(p, obs, PLAYER_MIN_CLEARANCE_PX);
+        pushMode = 'naive';
       }
+    }
+    if (decisions) {
+      decisions[id] = {
+        screenMode,
+        quality: modeQuality,
+        carrierContact: contact.carrierContact,
+        offBallContactType: contact.offBallContact?.type,
+        curveBranch,
+        clusterId,
+        pushMode,
+        forcedPushSign,
+        matchedTo: defB[id].matchedTo,
+        late: defB[id].late,
+      };
     }
     defPos[id] = {
       x: p.x,
@@ -627,11 +701,27 @@ export function resolveFrameAt(
     attVisuals: computeAttackerVisuals(state, idxB),
     attackerIsScreening,
     attackerMovementType,
+    debug: decisions ? { idxA, idxB, localT, defenders: decisions } : undefined,
   };
 }
 
 function midpoint(a: Point, b: Point): Point {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
+function clusterPositionLabel(cluster: { center: Point }): string {
+  return `(${Math.round(cluster.center.x)},${Math.round(cluster.center.y)})`;
+}
+
+function matchClusterToScreenObstacle(
+  cluster: { center: Point },
+  candidates: readonly ScreenObstacle[]
+): DefenderId | undefined {
+  const m = candidates.find((c) =>
+    Math.abs(c.center.x - cluster.center.x) < 0.01 &&
+    Math.abs(c.center.y - cluster.center.y) < 0.01
+  );
+  return m?.defenderToSkip;
 }
 
 /**
