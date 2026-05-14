@@ -211,6 +211,14 @@ gère la trajectoire.
 screen lock (cf. PLAYER-CLEARANCE.md niveau 3b). Compense la lerp qui
 peut dipper sous clearance même quand les endpoints sont propres.
 
+✅ **Solver collision dédié aux contacts écran** :
+`pushOutOfScreenContact()` vit dans `screenCollision.ts`. Il remplace
+le push radial local quand un seul cluster d'écran a déclenché la
+Bezier. Si le push radial ferait traverser le segment defA→defB vers
+le cluster, le résultat est mirrorré du côté stable. En cas de stagger
+ou de côté non fiable, le solver retombe volontairement sur
+`pushOutOfMany`.
+
 ✅ **Identité stable du contact** : `defenderScreenContact()` attribue
 une `contactKey` logique (`carrier:D1:O1:O5` ou `off:D2:O2:O4+O5`).
 Deux endpoints A/B ne sont considérés `stuck` que s'ils parlent du
