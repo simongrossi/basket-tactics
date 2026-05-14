@@ -197,6 +197,11 @@ au boundary final (bug f435/436 = jusqu'à 141 px).
 pas pour `screen` (le poseur DOIT atteindre sa position de pose, pas
 l'éviter).
 
+✅ **Poseur set = obstacle solide** : dès que `attackerIsScreening[id]`
+est true, le poseur ne passe plus dans le solveur attaquant↔attaquant
+et n'est plus clampé par le rate limiter attaquant. Il reste exactement
+au point `ann.to`; les autres joueurs doivent contourner ce point.
+
 ✅ **Obstacles construits depuis les ENDPOINTS UNIQUEMENT** (offA/defA
 + offB/defB), pas depuis les positions interpolées intermédiaires.
 Sinon `screenerObstacles` apparaît/disparaît mid-segment et fait

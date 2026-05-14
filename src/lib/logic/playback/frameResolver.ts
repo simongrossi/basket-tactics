@@ -270,6 +270,7 @@ export function resolveFrameAt(
   for (let iter = 0; iter < 5; iter++) {
     let moved = false;
     for (const id of attackerIds) {
+      if (attackerIsScreening[id]) continue;
       const p = off[id];
       const obstacles: Point[] = [];
       for (const other of attackerIds) {
@@ -293,6 +294,7 @@ export function resolveFrameAt(
   if (options.prevFrame) {
     const prevOff = options.prevFrame.off;
     attackerIds.forEach((id) => {
+      if (attackerIsScreening[id]) return;
       const p0 = prevOff[id];
       const p1 = off[id];
       if (!p0 || !p1) return;

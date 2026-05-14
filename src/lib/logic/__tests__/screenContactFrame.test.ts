@@ -469,6 +469,15 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
       expect(second?.debug?.defenders.D1?.memoryUsed).toBe(true);
       expect(second?.screenMemory?.D1?.contactPoint).toBeTruthy();
     });
+
+    it('un poseur set reste figé même si la frame précédente est loin', () => {
+      const state = buildScreenScenario(100);
+      const prev = resolveFrameAt(state, 0.1);
+      const frame = resolveFrameAt(state, 0.5, { prevFrame: prev ?? undefined });
+
+      expect(frame?.attackerIsScreening.O3).toBe(true);
+      expect(frame?.off.O3).toEqual(state.steps[0].annotations[0].to);
+    });
   });
 
   describe("Recovery — pas d'orbite autour du poseur (bug 'rattrape à l'opposé')", () => {
