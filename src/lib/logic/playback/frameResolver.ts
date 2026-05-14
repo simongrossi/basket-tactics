@@ -52,12 +52,13 @@ import {
   forcedPushSignForRoute,
   offBallScreenRouteKind,
   offBallScreenRoutePreference,
+  resolveScreenContactState,
   screenContactAdhesion,
   screenContactExitRadius,
-  screenContactPhase,
   screenContactQualityPassesHysteresis,
   screenContactT,
   screenContactTangentRelease,
+  type ScreenContactState,
   type ScreenRouteKind,
 } from '../screenPhysics';
 import {
@@ -80,6 +81,8 @@ import {
 export interface FrameDecision {
   /** Mode de contact d'écran calculé par `defenderScreenContact`. */
   screenMode: 'arriving' | 'stuck' | 'leaving' | null;
+  /** État complet de la machine d'écran. */
+  screenState: ScreenContactState | undefined;
   /** Qualité (0..100+) du contact, intègre rule + type. */
   quality: number;
   /** Identité logique du contact, stable entre endpoints quand possible. */
@@ -133,6 +136,7 @@ export interface ScreenContactMemoryEntry {
   routeKind: ScreenRouteKind | undefined;
   quality: number;
   mode: 'arriving' | 'stuck' | 'leaving';
+  state: ScreenContactState | undefined;
 }
 
 export type ScreenContactMemory = Partial<Record<DefenderId, ScreenContactMemoryEntry>>;
@@ -457,9 +461,8 @@ export function resolveFrameAt(
     });
     const screenMode = contact.mode;
     const modeQuality = contact.quality;
-    const prevMemory = contact.contactKey
-      ? prevScreenMemory?.[id]
-      : undefined;
+    const prevAnyMemory = prevScreenMemory?.[id];
+    const prevMemory = contact.contactKey ? prevAnyMemory : undefined;
     const sameContactMemory = !!prevMemory && prevMemory.contactKey === contact.contactKey;
     let memoryUsed = false;
     let contactPointForMemory: Point | undefined;
@@ -475,13 +478,21 @@ export function resolveFrameAt(
     if (!screenMode && defB[id].closingOut) {
       effT = closeoutEasing(effT);
     }
-    const phase = screenContactPhase(screenMode, localT, modeQuality);
     // Décision de verrouillage contre followDefendersAtFrame. Plusieurs
     // conditions cumulatives pour assurer la continuité visuelle :
     const isInRecoveryA = defA[id].screenPhase === 'recover' && defA[id].late;
     const isInRecoveryB = defB[id].screenPhase === 'recover' && defB[id].late;
     const isImpactA = defA[id].screenPhase === 'impact';
     const isImpactB = defB[id].screenPhase === 'impact';
+    const screenState = resolveScreenContactState({
+      mode: screenMode,
+      localT,
+      quality: modeQuality,
+      hadRecentContact: !!prevAnyMemory,
+      engineRecover: isInRecoveryA || isInRecoveryB,
+      engineImpact: isImpactA || isImpactB,
+    });
+    const phase = screenState.visualPhase;
     // Annotation utilisateur dans step A ou B (poseur slip non détecté
     // par la géométrie). Ne lock que pour le défenseur du porteur.
     const hasUserScreen = isCarrierDef &&
@@ -654,6 +665,7 @@ export function resolveFrameAt(
         routeKind,
         quality: modeQuality,
         mode: screenMode,
+        state: screenState.state,
       };
     }
     // Anti-superposition pour défenseurs en screen lock : single-pass
@@ -700,6 +712,7 @@ export function resolveFrameAt(
     if (decisions) {
       decisions[id] = {
         screenMode,
+        screenState: screenState.state,
         quality: modeQuality,
         contactKey: contact.contactKey,
         contactKind: contact.contactKind,

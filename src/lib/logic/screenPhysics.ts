@@ -15,6 +15,29 @@ import type {
 
 export type ScreenContactMode = 'arriving' | 'leaving' | 'stuck';
 export type ScreenRouteKind = ScreenRule | OffBallScreenRule;
+export type ScreenContactState =
+  | 'approach'
+  | 'impact'
+  | 'stuck'
+  | 'navigate'
+  | 'recover'
+  | 'released';
+
+export interface ScreenStateMachineInput {
+  mode: ScreenContactMode | null;
+  localT: number;
+  quality: number;
+  hadRecentContact?: boolean;
+  engineRecover?: boolean;
+  engineImpact?: boolean;
+}
+
+export interface ScreenStateMachineResult {
+  state: ScreenContactState | undefined;
+  visualPhase: ScreenContactPhase | undefined;
+  contactActive: boolean;
+  released: boolean;
+}
 
 export const SCREEN_CONTACT_ENTER_QUALITY = 12;
 export const SCREEN_CONTACT_EXIT_QUALITY = 7;
@@ -68,9 +91,38 @@ export function screenContactPhase(
   localT: number,
   quality: number
 ): ScreenContactPhase | undefined {
-  if (!mode) return undefined;
-  const q = clampQuality(quality) / 100;
+  return resolveScreenContactState({ mode, localT, quality }).visualPhase;
+}
+
+export function resolveScreenContactState(
+  input: ScreenStateMachineInput
+): ScreenStateMachineResult {
+  const mode = input.mode;
+  if (!mode) {
+    if (input.engineRecover) {
+      return { state: 'recover', visualPhase: 'recover', contactActive: false, released: false };
+    }
+    if (input.engineImpact) {
+      return { state: 'impact', visualPhase: 'impact', contactActive: true, released: false };
+    }
+    if (input.hadRecentContact) {
+      return { state: 'released', visualPhase: 'released', contactActive: false, released: true };
+    }
+    return { state: undefined, visualPhase: undefined, contactActive: false, released: false };
+  }
+
+  const q = clampQuality(input.quality) / 100;
+  const state = screenContactStateFromMode(mode, input.localT, q);
+  return { state, visualPhase: state, contactActive: true, released: false };
+}
+
+function screenContactStateFromMode(
+  mode: ScreenContactMode,
+  localT: number,
+  q: number
+): ScreenContactState {
   if (mode === 'arriving') {
+    if (localT < 0.10) return 'approach';
     if (localT < 0.18 + q * 0.08) return 'impact';
     if (localT < 0.82 + q * 0.10) return 'stuck';
     return 'navigate';

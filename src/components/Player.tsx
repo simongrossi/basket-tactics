@@ -442,6 +442,7 @@ function screenPhaseColor(phase: ScreenContactPhase): string {
     case 'stuck': return '#BE123C';
     case 'navigate': return '#D97706';
     case 'recover': return '#059669';
+    case 'released': return '#64748B';
   }
 }
 
@@ -452,6 +453,7 @@ function screenPhaseLabel(phase: ScreenContactPhase): string {
     case 'stuck': return 'STOP';
     case 'navigate': return 'NAV';
     case 'recover': return 'REC';
+    case 'released': return 'REL';
   }
 }
 

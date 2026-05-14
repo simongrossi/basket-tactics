@@ -113,7 +113,7 @@ export function formatPlaybackJumpDiagnostics(
       lines.push(`    Δ décision: ${decisionDiff(j.prevDebug, j.curDebug)}`);
       if (j.curDebug) {
         lines.push(
-          `    contexte cur: mode=${j.curDebug.screenMode} q=${j.curDebug.quality} ` +
+          `    contexte cur: mode=${j.curDebug.screenMode} state=${j.curDebug.screenState} q=${j.curDebug.quality} ` +
             `route=${j.curDebug.routeKind} memory=${j.curDebug.memoryUsed} ` +
             `curve=${j.curDebug.curveBranch} cluster=${j.curDebug.clusterId} ` +
             `push=${j.curDebug.pushMode} sign=${j.curDebug.forcedPushSign} ` +

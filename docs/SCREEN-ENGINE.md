@@ -275,6 +275,19 @@ contact.
 doit toujours pouvoir montrer quelle route a produit le vecteur de
 contournement et le `forcedPushSign`.
 
+✅ **Machine d'état écran centralisée** :
+`resolveScreenContactState()` vit dans `screenPhysics.ts` et formalise
+le cycle complet par défenseur :
+
+```
+approach → impact → stuck → navigate → recover → released
+```
+
+Le resolver n'invente plus une phase locale : il consomme le résultat
+de la machine (`state`, `visualPhase`, `contactActive`, `released`).
+`released` n'est émis qu'après un contact récent sans mode actif ; les
+défenseurs neutres gardent `screenPhase = undefined`.
+
 ✅ **Diagnostic anti-jump réutilisable** :
 `collectPlaybackJumpDiagnostics()` vit dans `playbackDiagnostics.ts`.
 Il échantillonne le playback avec `prevFrame`, collecte les sauts

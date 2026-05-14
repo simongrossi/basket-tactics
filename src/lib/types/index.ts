@@ -543,7 +543,7 @@ export interface DetectedScreen {
   screenerPos: Point;
 }
 
-export type ScreenContactPhase = 'approach' | 'impact' | 'stuck' | 'navigate' | 'recover';
+export type ScreenContactPhase = 'approach' | 'impact' | 'stuck' | 'navigate' | 'recover' | 'released';
 
 export type Matchups = Record<DefenderId, AttackerId>;
 

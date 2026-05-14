@@ -62,7 +62,11 @@ export function ScreenDebugOverlay({
         const contact = screener ? contactPoint(d, screener) : undefined;
         const badge = badgePosition(d, id);
         const color = colorForDecision(decision);
-        const mode = decision.screenMode ? decision.screenMode.toUpperCase() : 'ROUTE';
+        const mode = decision.screenState
+          ? decision.screenState.toUpperCase()
+          : decision.screenMode
+            ? decision.screenMode.toUpperCase()
+            : 'ROUTE';
         const detail = `${decision.contactScreener ?? decision.clusterId ?? '-'} ${decision.routeKind ?? '-'} ${shortPush(decision)}`;
 
         return (
@@ -184,6 +188,7 @@ function ScreenDebugRing({
 
 function isVisibleDecision(decision: FrameDecision): boolean {
   return !!decision.screenMode ||
+    !!decision.screenState ||
     decision.curveBranch !== 'none' ||
     decision.pushMode !== 'skipped' ||
     decision.locked;
@@ -191,6 +196,7 @@ function isVisibleDecision(decision: FrameDecision): boolean {
 
 function colorForDecision(decision: FrameDecision): string {
   if (decision.pushMode === 'constrained') return '#ef4444';
+  if (decision.screenState === 'released') return '#64748b';
   if (decision.screenMode === 'stuck') return '#dc2626';
   if (decision.screenMode === 'arriving') return '#f97316';
   if (decision.screenMode === 'leaving') return '#2563eb';
