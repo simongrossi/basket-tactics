@@ -622,6 +622,20 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
       expect(distToCutter).toBeLessThan(distToScreener);
     });
 
+    it('propage aussi la mémoire de contact sur un écran off-ball', () => {
+      const state = buildOffBallScreenScenario(100);
+      const first = resolveFrameAt(state, 0.45, { collectDecisions: true });
+      const second = resolveFrameAt(state, 0.46, {
+        prevFrame: first ?? undefined,
+        collectDecisions: true,
+      });
+
+      expect(second?.screenMemory?.D2?.contactKind).toBe('off-ball');
+      expect(second?.screenMemory?.D2?.contactKey).toBe(first?.screenMemory?.D2?.contactKey);
+      expect(second?.debug?.defenders.D2?.memoryUsed).toBe(true);
+      expect(second?.debug?.defenders.D2?.routeKind).toBe('chase');
+    });
+
     it("contactQualityForOffBallRule applique bonus stagger × under", () => {
       // Vérifie que la modulation par rule + type est bien appliquée
       // dans le pipeline complet : un under (×1.22) sur un stagger (×1.12)

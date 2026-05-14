@@ -22,11 +22,11 @@
 import { describe, it, expect } from 'vitest';
 import { TEMPLATES } from '@/lib/data/templates';
 import { makeInitialState } from '@/lib/data/initial';
-import type { AppState, DefenderId } from '@/lib/types';
-import type { FrameDebug } from '@/lib/logic/playback/frameResolver';
-
-const ATT_IDS = ['O1', 'O2', 'O3', 'O4', 'O5'] as const;
-const DEF_IDS = ['D1', 'D2', 'D3', 'D4', 'D5'] as const;
+import type { AppState } from '@/lib/types';
+import {
+  collectPlaybackJumpDiagnostics,
+  formatPlaybackJumpDiagnostics,
+} from '@/lib/logic/playbackDiagnostics';
 
 /** Labs dev — galeries de scénarios pour stress tester l'engine d'écran. */
 const LAB_IDS = [
@@ -78,107 +78,23 @@ function buildState(tplId: string): AppState {
   };
 }
 
-interface JumpRecord {
-  player: string;
-  frame: number;
-  jump: number;
-  tStep: string;
-  prevDebug: FrameDebug['defenders'][DefenderId] | undefined;
-  curDebug: FrameDebug['defenders'][DefenderId] | undefined;
-}
-
-function decisionDiff(
-  a: FrameDebug['defenders'][DefenderId] | undefined,
-  b: FrameDebug['defenders'][DefenderId] | undefined
-): string {
-  if (!a && !b) return '<no debug>';
-  if (!a) return `appeared: ${JSON.stringify(b)}`;
-  if (!b) return `disappeared from: ${JSON.stringify(a)}`;
-  const diffs: string[] = [];
-  (Object.keys(b) as Array<keyof typeof b>).forEach((k) => {
-    if (a[k] !== b[k]) diffs.push(`${k}: ${JSON.stringify(a[k])} → ${JSON.stringify(b[k])}`);
-  });
-  return diffs.length ? diffs.join(', ') : '<unchanged>';
-}
-
 ALL_IDS.forEach((tplId) => {
   const tpl = TEMPLATES.find((t) => t.id === tplId)!;
   describe(`${tpl.name} (${tplId}) — anti-téléport`, () => {
     it(`tous les joueurs bougent en douceur (< ${MAX_JUMP_PX} px/frame) sur tout le playback`, async () => {
-      const { resolveFrameAt } = await import('@/lib/logic/playback/frameResolver');
       const state = buildState(tplId);
-      const transitions = tpl.steps.length - 1;
-      if (transitions === 0) return;
-      const totalFrames = transitions * 60;
-      const jumps: JumpRecord[] = [];
-      let prevFrame: ReturnType<typeof resolveFrameAt> | null = null;
-
-      for (let f = 0; f <= totalFrames; f++) {
-        const t = (f / totalFrames) * transitions;
-        const frame = resolveFrameAt(state, t, {
-          prevFrame: prevFrame ?? undefined,
-          collectDecisions: true,
-        });
-        if (!frame) continue;
-        if (prevFrame) {
-          const stepNum = Math.floor(t);
-          const tStep = `${stepNum}→${stepNum + 1}`;
-          for (const id of ATT_IDS) {
-            const a = prevFrame.off[id];
-            const b = frame.off[id];
-            const dist = Math.hypot(b.x - a.x, b.y - a.y);
-            if (dist > MAX_JUMP_PX) {
-              jumps.push({ player: id, frame: f, jump: dist, tStep, prevDebug: undefined, curDebug: undefined });
-            }
-          }
-          for (const id of DEF_IDS) {
-            const a = prevFrame.defPos[id];
-            const b = frame.defPos[id];
-            const dist = Math.hypot(b.x - a.x, b.y - a.y);
-            if (dist > MAX_JUMP_PX) {
-              jumps.push({
-                player: id,
-                frame: f,
-                jump: dist,
-                tStep,
-                prevDebug: prevFrame.debug?.defenders[id],
-                curDebug: frame.debug?.defenders[id],
-              });
-            }
-          }
-        }
-        prevFrame = frame;
-      }
+      const jumps = collectPlaybackJumpDiagnostics(state, {
+        fps: 60,
+        maxJumpPx: MAX_JUMP_PX,
+        collectDecisions: true,
+      });
 
       // Filtrage des transitions inter-scène documentées (Labs galerie).
       const exemptions = ALLOWED_INTER_SCENE_JUMPS[tplId] ?? [];
       const flagged = jumps.filter((j) => !exemptions.includes(j.tStep));
 
       if (flagged.length > 0) {
-        const top = flagged.sort((a, b) => b.jump - a.jump).slice(0, 5);
-        const lines = [
-          ``,
-          `${tpl.name} — ${flagged.length} saut(s) > ${MAX_JUMP_PX} px détecté(s).`,
-          `Top ${Math.min(5, top.length)} :`,
-        ];
-        top.forEach((j) => {
-          lines.push(
-            `  f${j.frame} (${j.tStep}) ${j.player}: ${j.jump.toFixed(1)}px`
-          );
-          if (j.prevDebug || j.curDebug) {
-            lines.push(`    Δ décision: ${decisionDiff(j.prevDebug, j.curDebug)}`);
-            if (j.curDebug) {
-              lines.push(
-                `    contexte cur: mode=${j.curDebug.screenMode} q=${j.curDebug.quality} ` +
-                  `curve=${j.curDebug.curveBranch} cluster=${j.curDebug.clusterId} ` +
-                  `push=${j.curDebug.pushMode} sign=${j.curDebug.forcedPushSign} ` +
-                  `matched=${j.curDebug.matchedTo} late=${j.curDebug.late} ` +
-                  `offBall=${j.curDebug.offBallContactType}`
-              );
-            }
-          }
-        });
-        console.error(lines.join('\n'));
+        console.error(formatPlaybackJumpDiagnostics(tpl.name, flagged, MAX_JUMP_PX));
       }
       expect(flagged).toEqual([]);
     });

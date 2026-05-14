@@ -269,6 +269,14 @@ contact.
 doit toujours pouvoir montrer quelle route a produit le vecteur de
 contournement et le `forcedPushSign`.
 
+✅ **Diagnostic anti-jump réutilisable** :
+`collectPlaybackJumpDiagnostics()` vit dans `playbackDiagnostics.ts`.
+Il échantillonne le playback avec `prevFrame`, collecte les sauts
+attaquants/défenseurs au-dessus d'un seuil et garde le diff de décision
+écran (`screenMode`, `contactKey`, `routeKind`, `memoryUsed`,
+`clusterId`, `pushMode`, etc.). Le test Screen Lab utilise ce helper au
+lieu de dupliquer sa logique.
+
 ✅ **Overlay debug écran** : `state.showScreenDebug` active un calque SVG
 qui affiche mode, qualité, `contactKey`, poseur d'ancrage, cluster,
 push mode et lock. Cet overlay est strictement diagnostique : il ne
