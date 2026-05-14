@@ -128,6 +128,20 @@ export interface FrameDebug {
   defenders: Partial<Record<DefenderId, FrameDecision>>;
 }
 
+export type FrameProfilePhase =
+  | 'attackers'
+  | 'screens'
+  | 'obstacles'
+  | 'defenders'
+  | 'collisions'
+  | 'rateLimiter'
+  | 'ball';
+
+export interface FrameProfile {
+  totalMs: number;
+  phases: Record<FrameProfilePhase, number>;
+}
+
 export interface ScreenContactMemoryEntry {
   contactKey: string;
   contactKind: 'carrier' | 'off-ball' | undefined;
@@ -161,6 +175,8 @@ export interface PlaybackFrame {
   /** Décisions internes par défenseur, populées uniquement si
    *  `options.collectDecisions` est true. Sinon undefined. */
   debug?: FrameDebug;
+  /** Profiling opt-in de `resolveFrameAt`, utile aux tests perf/debug. */
+  profile?: FrameProfile;
 }
 
 export interface ResolveFrameOptions {
@@ -180,6 +196,8 @@ export interface ResolveFrameOptions {
   /** Tests/perf : force le chemin sans cache segmentaire pour comparer
    *  bit-à-bit les sorties du resolver. */
   disableSegmentCache?: boolean;
+  /** Active la mesure par phase de `resolveFrameAt`. */
+  profile?: boolean;
 }
 
 export interface ResolveDeterministicScrubOptions extends ResolveFrameOptions {
@@ -301,6 +319,7 @@ export function resolveFrameAt(
   t: number,
   options: ResolveFrameOptions = {}
 ): PlaybackFrame | null {
+  const profiler = options.profile ? createFrameProfiler() : null;
   const totalSteps = state.steps.length - 1;
   if (totalSteps <= 0) return null;
 
@@ -417,6 +436,7 @@ export function resolveFrameAt(
       }
     });
   }
+  profiler?.lap('attackers');
 
   // ---------------------------------------------------------------------
   // 2. Porteur courant + détection d'écrans (uniquement en man-to-man).
@@ -480,6 +500,7 @@ export function resolveFrameAt(
     screen = currentCtx.screen;
     offBallScreens = currentCtx.offBallScreens;
   }
+  profiler?.lap('screens');
 
   // ---------------------------------------------------------------------
   // 3. Obstacles "cluster" (poseur + son défenseur) pour contourner les
@@ -500,6 +521,7 @@ export function resolveFrameAt(
   // En n'utilisant que les endpoints, le cluster est soit présent toute la
   // transition (screen détecté à un endpoint), soit absent toute la
   // transition. Pas de flicker.
+  profiler?.lap('obstacles');
 
   // ---------------------------------------------------------------------
   // 4. Positions défenseurs — interpolation linéaire + courbe d'évitement.
@@ -847,6 +869,7 @@ export function resolveFrameAt(
       armManSide: lerpPoint(defA[id].armManSide, defB[id].armManSide, localT),
     };
   });
+  profiler?.lap('defenders');
 
   // ---------------------------------------------------------------------
   // 5. Suivi en temps réel des défenseurs sur leur homme + résolution de
@@ -866,6 +889,7 @@ export function resolveFrameAt(
     screenLockedDefenders
   );
   recomputeDefenseFrameOrientations(state, off, carrier, defPos);
+  profiler?.lap('collisions');
 
   // 5.b — Rate limiter sur défenseurs : si `options.prevFrame` est fourni
   // (= playback en cours), on clamp le saut max par défenseur à
@@ -889,6 +913,7 @@ export function resolveFrameAt(
       }
     });
   }
+  profiler?.lap('rateLimiter');
 
   // ---------------------------------------------------------------------
   // 6. Ballon — suit la position INTERPOLÉE du porteur (et non les positions
@@ -904,6 +929,8 @@ export function resolveFrameAt(
     carrierA !== carrierB,
     localT
   );
+  profiler?.lap('ball');
+  const profile = profiler?.finish();
 
   return {
     off,
@@ -919,11 +946,43 @@ export function resolveFrameAt(
     attackerMovementType,
     screenMemory: Object.keys(nextScreenMemory).length > 0 ? nextScreenMemory : undefined,
     debug: decisions ? { idxA, idxB, localT, defenders: decisions } : undefined,
+    profile,
   };
 }
 
 function midpoint(a: Point, b: Point): Point {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
+function createFrameProfiler() {
+  const phases: Record<FrameProfilePhase, number> = {
+    attackers: 0,
+    screens: 0,
+    obstacles: 0,
+    defenders: 0,
+    collisions: 0,
+    rateLimiter: 0,
+    ball: 0,
+  };
+  const start = nowMs();
+  let last = start;
+  return {
+    lap(phase: FrameProfilePhase) {
+      const now = nowMs();
+      phases[phase] += now - last;
+      last = now;
+    },
+    finish(): FrameProfile {
+      return {
+        totalMs: nowMs() - start,
+        phases,
+      };
+    },
+  };
+}
+
+function nowMs(): number {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
 }
 
 function clusterPositionLabel(cluster: { center: Point }): string {

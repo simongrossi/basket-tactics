@@ -335,6 +335,12 @@ attaquants/défenseurs au-dessus d'un seuil et garde le diff de décision
 `clusterId`, `pushMode`, etc.). Le test Screen Lab utilise ce helper au
 lieu de dupliquer sa logique.
 
+✅ **Profiling opt-in** : `resolveFrameAt(..., { profile: true })`
+ajoute `frame.profile` avec `totalMs` et les phases `attackers`,
+`screens`, `obstacles`, `defenders`, `collisions`, `rateLimiter`,
+`ball`. Le profiling ne doit jamais être activé par défaut dans l'UI ;
+il sert aux tests perf et aux outils debug.
+
 ✅ **Overlay debug écran** : `state.showScreenDebug` active un calque SVG
 qui affiche mode, qualité, `contactKey`, poseur d'ancrage, cluster,
 push mode et lock. Cet overlay est strictement diagnostique : il ne
