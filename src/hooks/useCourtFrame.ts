@@ -19,6 +19,7 @@ import type {
   DetectedOffBallScreen,
   Point,
 } from '@/lib/types';
+import type { DefenseReleaseTransition } from '@/hooks/useAppState';
 import {
   computeAttackerVisuals,
   effectiveDefensePositions,
@@ -39,6 +40,10 @@ interface UseCourtFrameOptions {
   scrubT: number | null | undefined;
   onPlaybackTick?: (t: number) => void;
   onPlaybackEnd?: () => void;
+  /** Animation transitoire "Tout en auto réel". Hors playback/scrub, les
+   *  positions défenseurs sont lerp depuis `fromPositions` vers les positions
+   *  auto recomputées par l'engine, sur `durationMs`. */
+  defenseReleaseTransition?: DefenseReleaseTransition | null;
 }
 
 export interface UseCourtFrameResult {
@@ -55,7 +60,7 @@ function extractDefPositions(defPos: ComputedDefense): Record<DefenderId, Point>
 }
 
 export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
-  const { state, isPlaying, playbackSpeed, playbackStartT, scrubT, onPlaybackTick, onPlaybackEnd } = opts;
+  const { state, isPlaying, playbackSpeed, playbackStartT, scrubT, onPlaybackTick, onPlaybackEnd, defenseReleaseTransition } = opts;
 
   const [playFrame, setPlayFrame] = useState<PlaybackFrame | null>(null);
   const stateRef = useRef(state);
@@ -155,7 +160,55 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     return resolveFrameAt(state, t, { stepIdx: Math.round(t) });
   }, [scrubT, state]);
 
-  const frame = playFrame ?? scrubFrame ?? staticFrame;
+  // Tick d'animation pour le release "Tout en auto réel". Force un re-render
+  // à 60 fps pendant la durée de la transition pour fluidifier le blend.
+  // Hors transition active, aucun effet.
+  const [releaseTick, setReleaseTick] = useState(0);
+  useEffect(() => {
+    if (!defenseReleaseTransition) return;
+    let raf = 0;
+    const tick = () => {
+      const elapsed = performance.now() - defenseReleaseTransition.startedAtMs;
+      if (elapsed >= defenseReleaseTransition.durationMs) return;
+      setReleaseTick((t) => t + 1);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [defenseReleaseTransition]);
+
+  // Frame "release animée" : si une transition est active ET qu'on n'est ni
+  // en playback ni en scrub, on blend les positions défenseurs depuis les
+  // positions capturées (avant clear des overrides) vers la cible auto (post
+  // clear, recomputée par staticFrame). Easing cubique pour démarrer vite et
+  // ralentir à l'arrivée — visuellement "le défenseur revient se mettre en
+  // place" plutôt qu'un téléport.
+  const releaseFrame = useMemo<PlaybackFrame | null>(() => {
+    if (!defenseReleaseTransition) return null;
+    const elapsed = performance.now() - defenseReleaseTransition.startedAtMs;
+    if (elapsed >= defenseReleaseTransition.durationMs) return null;
+    const raw = elapsed / defenseReleaseTransition.durationMs;
+    // ease-out cubique : f(t) = 1 - (1-t)³
+    const eased = 1 - Math.pow(1 - raw, 3);
+    const blended: ComputedDefense = { ...staticFrame.defPos };
+    (Object.keys(blended) as DefenderId[]).forEach((id) => {
+      const target = staticFrame.defPos[id];
+      const from = defenseReleaseTransition.fromPositions[id];
+      if (!from || !target) return;
+      blended[id] = {
+        ...target,
+        x: from.x + (target.x - from.x) * eased,
+        y: from.y + (target.y - from.y) * eased,
+      };
+    });
+    return { ...staticFrame, defPos: blended };
+    // releaseTick force l'invalidation à chaque rAF tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defenseReleaseTransition, staticFrame, releaseTick]);
+
+  // Priorité : playback > scrub > release animation > static. Playback et
+  // scrub ont leur propre flux d'interpolation et n'ont pas besoin de l'anim.
+  const frame = playFrame ?? scrubFrame ?? releaseFrame ?? staticFrame;
   const threatData = state.showThreats
     ? computeAttackerThreats(
         frame.off,

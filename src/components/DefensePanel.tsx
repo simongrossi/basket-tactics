@@ -43,6 +43,10 @@ interface DefensePanelProps {
   onUpdateZoneConfig: (p: Partial<ZoneConfig>) => void;
   onApplyDefensePreset: (preset: DefensePreset) => void;
   onClearAllDefenseOverrides: () => void;
+  /** Variante animée du "Tout en auto" : capture les positions manuelles et
+   *  les fait glisser vers les positions auto sur ~700 ms (pédagogique pour
+   *  montrer aux joueurs). Cf. useAppState.clearAllDefenseOverridesActiveStepAnimated. */
+  onClearAllDefenseOverridesAnimated: () => void;
   scriptedDefenseEnabled?: boolean;
   onToggleScriptedDefense: () => void;
   userDefensePresets?: UserDefensePreset[];
@@ -104,35 +108,62 @@ export function DefensePanel(props: DefensePanelProps) {
         icon="🎯"
         variant="pinned"
       >
-        {/* Bouton "Tout en auto" — accès rapide pour libérer les placements manuels */}
+        {/* Boutons "Tout en auto" — 2 variantes :
+            - rapide : instantané, pour le coach qui bosse vite
+            - réel : anime le retour des défenseurs à leur position auto sur
+              ~700 ms (pédagogique, pour montrer aux joueurs ce que devrait
+              être la réaction défensive correcte) */}
         {(() => {
           const cur = state.steps[state.activeStep];
           const activeDefenders = new Set(defenderIds);
           const overrideCount = cur?.defenseOverrides
             ? Object.keys(cur.defenseOverrides).filter((id) => activeDefenders.has(id as DefenderId)).length
             : 0;
+          const disabled = overrideCount === 0;
+          const countLabel = overrideCount > 0
+            ? `(${overrideCount} manuel${overrideCount > 1 ? 's' : ''})`
+            : '';
+          const baseStyle = {
+            fontSize: 11,
+            padding: '6px 8px',
+            borderRadius: 6,
+            border: '1px solid',
+            borderColor: disabled ? '#cbd5e1' : '#4338ca',
+            background: disabled ? '#f8fafc' : '#eef2ff',
+            color: disabled ? '#94a3b8' : '#3730a3',
+            cursor: disabled ? 'default' : 'pointer',
+            fontWeight: 600,
+            flex: 1,
+            minWidth: 0,
+          } as const;
           return (
-            <button
-              type="button"
-              onClick={props.onClearAllDefenseOverrides}
-              disabled={overrideCount === 0}
-              title="Libère tous les défenseurs en placement manuel sur cette étape — repassent en auto."
-              style={{
-                fontSize: 11,
-                padding: '6px 10px',
-                borderRadius: 6,
-                border: '1px solid',
-                borderColor: overrideCount === 0 ? '#cbd5e1' : '#4338ca',
-                background: overrideCount === 0 ? '#f8fafc' : '#eef2ff',
-                color: overrideCount === 0 ? '#94a3b8' : '#3730a3',
-                cursor: overrideCount === 0 ? 'default' : 'pointer',
-                width: '100%',
-                fontWeight: 600,
-                marginBottom: 8,
-              }}
-            >
-              🧠 Tout en auto {overrideCount > 0 ? `(${overrideCount} manuel${overrideCount > 1 ? 's' : ''})` : ''}
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button
+                  type="button"
+                  onClick={props.onClearAllDefenseOverrides}
+                  disabled={disabled}
+                  title="Libère tous les défenseurs en placement manuel sur cette étape — instantané."
+                  style={baseStyle}
+                >
+                  🧠 ⚡ rapide
+                </button>
+                <button
+                  type="button"
+                  onClick={props.onClearAllDefenseOverridesAnimated}
+                  disabled={disabled}
+                  title="Libère tous les défenseurs en placement manuel — anime le retour à leur position auto (pour montrer aux joueurs)."
+                  style={baseStyle}
+                >
+                  🧠 ▶ réel
+                </button>
+              </div>
+              {overrideCount > 0 && (
+                <div style={{ fontSize: 10, color: '#64748b', textAlign: 'center' }}>
+                  {countLabel}
+                </div>
+              )}
+            </div>
           );
         })()}
         <SystemSelector

@@ -184,6 +184,7 @@ export default function Page() {
               onUpdateZoneConfig={app.updateZoneConfig}
               onApplyDefensePreset={app.applyDefensePreset}
               onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
+              onClearAllDefenseOverridesAnimated={app.clearAllDefenseOverridesActiveStepAnimated}
               scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
               onToggleScriptedDefense={app.toggleScriptedDefense}
               userDefensePresets={lib.library.defensePresets}
@@ -242,6 +243,7 @@ export default function Page() {
                 setPlaybackStartT(0);
                 app.setActiveStep(app.state.steps.length - 1);
               }}
+              defenseReleaseTransition={app.defenseReleaseTransition}
             />
             <FloatingActionsMenu
               presentMode={presentMode}

@@ -104,6 +104,10 @@ interface CourtViewProps {
    *  la lecture quand `isPlaying` passe de false à true. 0 = du début. Lu
    *  au démarrage de la lecture pour décaler `playStart` ; ignoré ensuite. */
   playbackStartT?: number;
+  /** Animation transitoire "Tout en auto réel" : positions de départ + start
+   *  time. Quand non-null et hors playback/scrub, useCourtFrame lerp les
+   *  positions défenseurs depuis `fromPositions` vers la cible auto. */
+  defenseReleaseTransition?: import('@/hooks/useAppState').DefenseReleaseTransition | null;
 }
 
 export function CourtView(props: CourtViewProps) {
@@ -146,6 +150,7 @@ export function CourtView(props: CourtViewProps) {
     scrubT: props.scrubT,
     onPlaybackTick: props.onPlaybackTick,
     onPlaybackEnd: props.onPlaybackEnd,
+    defenseReleaseTransition: props.defenseReleaseTransition,
   });
 
   const closeCtxMenu = useCallback(() => setCtxMenu(null), []);

@@ -22,6 +22,7 @@ import type {
   DefensiveScriptedAction,
   OffensiveProfile,
   PlayerCount,
+  Point,
   ScenarioBranch,
   ScreenRule,
   ScriptedAction,
@@ -29,6 +30,7 @@ import type {
   ZoneConfig,
   ZoneRegionOverride,
 } from '@/lib/types';
+import { effectiveDefensePositions } from '@/lib/logic/engine';
 import { makeInitialState } from '@/lib/data/initial';
 import type { Template } from '@/lib/data/templates';
 import type { DefensePreset } from '@/lib/data/defensePresets';
@@ -62,6 +64,23 @@ import {
 } from '@/lib/state/transforms';
 
 const STORAGE_KEY = 'basket-tactics-state-v1';
+
+/** État transitoire (= NON persisté, hors AppState) qui pilote l'animation
+ *  "Tout en auto réel" : on capture les positions manuelles courantes au
+ *  moment du clic puis on lerp depuis ces positions vers les positions auto
+ *  recomputées par l'engine pendant `durationMs`. Pendant la transition, le
+ *  rendu (useCourtFrame) blend les positions au lieu de téléporter.
+ *
+ *  Le champ vit dans useAppState (transient state) plutôt que dans AppState
+ *  pour ne PAS être persisté/undoable : c'est une animation UI éphémère, pas
+ *  un fait métier du scénario. */
+export interface DefenseReleaseTransition {
+  fromPositions: Partial<Record<DefenderId, Point>>;
+  startedAtMs: number;
+  durationMs: number;
+}
+
+const DEFENSE_RELEASE_DURATION_MS = 700;
 
 function loadFromStorage(): AppState | null {
   if (typeof window === 'undefined') return null;
@@ -105,6 +124,21 @@ export function useAppState() {
   // undo/redo utilisent setState brut pour ne pas se ré-historiser.
   const historyRef = useRef<AppStateHistory>({ past: [], future: [] });
   const dragHistoryAnchorRef = useRef<AppState | null>(null);
+
+  // Animation transitoire "Tout en auto réel" : positions de départ capturées
+  // au clic + timestamp. Non persistée. Cf. clearAllDefenseOverridesActiveStepAnimated.
+  const [defenseReleaseTransition, setDefenseReleaseTransition] =
+    useState<DefenseReleaseTransition | null>(null);
+  // Auto-cleanup : on nullifie le transition quand sa durée est écoulée.
+  useEffect(() => {
+    if (!defenseReleaseTransition) return;
+    const elapsed = performance.now() - defenseReleaseTransition.startedAtMs;
+    const remaining = Math.max(0, defenseReleaseTransition.durationMs - elapsed);
+    const timer = setTimeout(() => {
+      setDefenseReleaseTransition((cur) => (cur === defenseReleaseTransition ? null : cur));
+    }, remaining + 50);
+    return () => clearTimeout(timer);
+  }, [defenseReleaseTransition]);
 
   const setStateWithHistory: typeof setState = useCallback((updater) => {
     setState((prev) => {
@@ -370,6 +404,30 @@ export function useAppState() {
     setStateWithHistory(defenseTx.clearAllDefenseOverridesActiveStep);
   }, [setStateWithHistory]);
 
+  /** Variante animée : capture les positions courantes (manuelles) AVANT le
+   *  clear, puis enclenche `defenseReleaseTransition` pour que useCourtFrame
+   *  blend pendant `DEFENSE_RELEASE_DURATION_MS`. Utilisée par le bouton
+   *  "Tout en auto réel" — pédagogique pour montrer aux joueurs le retour à
+   *  la position attendue. */
+  const clearAllDefenseOverridesActiveStepAnimated = useCallback(() => {
+    const cur = stateRef.current;
+    const step = cur.steps[cur.activeStep];
+    if (!step?.defenseOverrides || Object.keys(step.defenseOverrides).length === 0) return;
+    // Snapshot des positions actuelles (avec overrides appliqués). On lit via
+    // l'engine pour avoir EXACTEMENT ce qui est rendu actuellement.
+    const defPos = effectiveDefensePositions(cur, cur.activeStep);
+    const from: Partial<Record<DefenderId, Point>> = {};
+    (Object.keys(defPos) as DefenderId[]).forEach((id) => {
+      from[id] = { x: defPos[id].x, y: defPos[id].y };
+    });
+    setDefenseReleaseTransition({
+      fromPositions: from,
+      startedAtMs: performance.now(),
+      durationMs: DEFENSE_RELEASE_DURATION_MS,
+    });
+    setStateWithHistory(defenseTx.clearAllDefenseOverridesActiveStep);
+  }, [setStateWithHistory]);
+
   // -- Attackers --
   const setAttackerHand = useCallback((oId: AttackerId, hand: 'right' | 'left') => {
     setStateWithHistory((s) => attackerTx.setAttackerHand(s, oId, hand));
@@ -546,6 +604,8 @@ export function useAppState() {
     clearZoneOverride,
     setZoneEditMode,
     clearAllDefenseOverridesActiveStep,
+    clearAllDefenseOverridesActiveStepAnimated,
+    defenseReleaseTransition,
     setStepLabel,
     setBallCarrier,
     convertStepToFreeThrow,
