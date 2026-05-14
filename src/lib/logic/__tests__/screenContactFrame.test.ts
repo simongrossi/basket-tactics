@@ -634,6 +634,7 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
       expect(second?.screenMemory?.D2?.contactKey).toBe(first?.screenMemory?.D2?.contactKey);
       expect(second?.debug?.defenders.D2?.memoryUsed).toBe(true);
       expect(second?.debug?.defenders.D2?.routeKind).toBe('chase');
+      expect(second?.debug?.defenders.D2?.lastJumpPx).toBeGreaterThanOrEqual(0);
     });
 
     it("contactQualityForOffBallRule applique bonus stagger × under", () => {

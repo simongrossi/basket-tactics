@@ -119,6 +119,8 @@ export interface FrameDecision {
   /** Engine flags propagés depuis defB. */
   matchedTo: AttackerId;
   late: boolean;
+  /** Distance finale parcourue depuis la frame précédente, si disponible. */
+  lastJumpPx: number | undefined;
 }
 
 export interface FrameDebug {
@@ -846,6 +848,7 @@ export function resolveFrameAt(
         locked: screenLockedDefenders.has(id),
         matchedTo: defB[id].matchedTo,
         late: defB[id].late,
+        lastJumpPx: undefined,
       };
     }
     defPos[id] = {
@@ -910,6 +913,9 @@ export function resolveFrameAt(
         const k = MAX_DEFENDER_JUMP_PX / d;
         defPos[id].x = p.x + dx * k;
         defPos[id].y = p.y + dy * k;
+      }
+      if (decisions?.[id]) {
+        decisions[id]!.lastJumpPx = Math.hypot(defPos[id].x - p.x, defPos[id].y - p.y);
       }
     });
   }

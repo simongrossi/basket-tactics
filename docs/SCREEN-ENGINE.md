@@ -353,6 +353,12 @@ qui affiche mode, qualité, `contactKey`, poseur d'ancrage, cluster,
 push mode et lock. Cet overlay est strictement diagnostique : il ne
 doit jamais influencer la physique.
 
+✅ **Panneau debug joueur** : quand `showScreenDebug` est actif et qu'un
+ou plusieurs défenseurs sont sélectionnés, `ScreenPlayerDebugPanel`
+affiche par défenseur `contactKey`, état/mode, route, qualité, mémoire,
+push, cluster et `lastJumpPx`. `lastJumpPx` est alimenté par
+`FrameDecision` quand `prevFrame` existe.
+
 ✅ **Anti-superposition attaquant↔attaquant pendant l'interpolation**
 (frameResolver étape 1.b). Itère `pushOutOfMany` sur les attaquants
 interpolés. Sinon deux attaquants dont les trajectoires se croisent
