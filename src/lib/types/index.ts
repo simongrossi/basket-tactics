@@ -804,6 +804,10 @@ export interface AppState {
    *  PnR (tag/x-out/stunt) avec couleur dédiée. Outil pour comprendre/debug
    *  la logique défensive — pas un visuel coach. */
   showHelpDebug?: boolean;
+  /** Vue debug d'écran : affiche l'identité du contact, la qualité, le mode
+   *  arriving/stuck/leaving, le cluster choisi et le push appliqué. Outil
+   *  dev pour diagnostiquer les téléports autour des écrans. */
+  showScreenDebug?: boolean;
   /** Toggles fine-grained sur les indicateurs auto. Default true partout —
    *  ces visuels sont normalement utiles. Le coach peut désactiver pour
    *  alléger la vue (ex : présentation, capture playbook). */

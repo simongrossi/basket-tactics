@@ -40,6 +40,7 @@ import { ZoneCoverage } from './overlays/ZoneCoverage';
 import { PassLanesOverlay } from './overlays/PassLanesOverlay';
 import { TacticalMetricsOverlay } from './overlays/TacticalMetricsOverlay';
 import { HelpDebugOverlay } from './overlays/HelpDebugOverlay';
+import { ScreenDebugOverlay } from './overlays/ScreenDebugOverlay';
 import { FieldOfViewOverlay } from './overlays/FieldOfViewOverlay';
 import { getZoneLayout, mirrorZoneLayout, applyZoneOverrides } from '@/lib/data/zones';
 import { ZoneEditOverlay } from './overlays/ZoneEditOverlay';
@@ -445,6 +446,15 @@ export function CourtView(props: CourtViewProps) {
           show={!!state.showTacticalMetrics}
         />
         {state.showHelpDebug && <HelpDebugOverlay defPos={frame.defPos} />}
+        {state.showScreenDebug && (
+          <ScreenDebugOverlay
+            off={frame.off}
+            defPos={frame.defPos}
+            screen={frame.screen}
+            offBallScreens={frame.offBallScreens}
+            debug={frame.debug}
+          />
+        )}
         {state.showScreenIndicators !== false && (
           <ScreenIndicator
             screen={frame.screen}

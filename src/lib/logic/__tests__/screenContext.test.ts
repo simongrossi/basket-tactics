@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { Annotation, AppState, DefenderPositions, Step } from '@/lib/types';
+import type {
+  Annotation,
+  AppState,
+  DefenderPositions,
+  DetectedOffBallScreen,
+  Step,
+} from '@/lib/types';
 import { baseMatchups, makeInitialState } from '@/lib/data/initial';
 import {
   buildSegmentScreenObstacles,
@@ -197,6 +203,117 @@ describe('screenContext', () => {
     expect(contact.mode).toBe('arriving');
     expect(contact.offBallContact?.secondScreener).toBe('O5');
     expect(contact.quality).toBe(100);
+  });
+
+  it('ne fusionne pas deux contacts off-ball avec des poseurs différents', () => {
+    const base = screenStep(80);
+    const screenA: DetectedOffBallScreen = {
+      type: 'pindown',
+      screener: 'O4',
+      screenerDef: 'D4',
+      cutter: 'O2',
+      cutterDef: 'D2',
+      screenerPos: { x: 170, y: 405 },
+      cutterPos: { x: 220, y: 380 },
+    };
+    const screenB: DetectedOffBallScreen = {
+      ...screenA,
+      screener: 'O5',
+      screenerDef: 'D5',
+      screenerPos: { x: 230, y: 405 },
+    };
+    const state = {
+      ...makeInitialState(),
+      steps: [
+        {
+          ...base,
+          annotations: [{
+            type: 'screen',
+            fromId: 'O4',
+            toId: 'O2',
+            from: screenA.screenerPos,
+            to: screenA.screenerPos,
+            quality: 80,
+          } as Annotation],
+        },
+        {
+          ...base,
+          annotations: [{
+            type: 'screen',
+            fromId: 'O5',
+            toId: 'O2',
+            from: screenB.screenerPos,
+            to: screenB.screenerPos,
+            quality: 80,
+          } as Annotation],
+        },
+      ],
+      offBallScreenRule: 'over',
+    } as AppState;
+
+    const contact = defenderScreenContact({
+      state,
+      defenderId: 'D2',
+      isCarrierDef: false,
+      ctxA: { screen: null, offBallScreens: [screenA] },
+      ctxB: { screen: null, offBallScreens: [screenB] },
+      idxA: 0,
+      idxB: 1,
+    });
+
+    expect(contact.mode).toBe('arriving');
+    expect(contact.offBallContactA).toBeUndefined();
+    expect(contact.offBallContactB?.screener).toBe('O5');
+    expect(contact.contactKey).toBe('off:D2:O2:O5');
+  });
+
+  it('applique une hystérésis entre entrée et sortie de contact', () => {
+    const arrivingState = {
+      ...makeInitialState(),
+      steps: [screenStep(10), screenStep(10)],
+    } as AppState;
+    const arrivingCtx = detectScreenContext({
+      off: arrivingState.steps[1].off,
+      carrier: 'O1',
+      matchups: baseMatchups,
+      defenderPositions: DEF,
+      screenRadius: 120,
+    });
+    const arriving = defenderScreenContact({
+      state: arrivingState,
+      defenderId: 'D1',
+      isCarrierDef: true,
+      ctxA: emptyScreenContext(),
+      ctxB: arrivingCtx,
+      idxA: 0,
+      idxB: 1,
+    });
+
+    const leavingState = {
+      ...makeInitialState(),
+      steps: [screenStep(8), screenStep(8)],
+    } as AppState;
+    const leavingCtx = detectScreenContext({
+      off: leavingState.steps[0].off,
+      carrier: 'O1',
+      matchups: baseMatchups,
+      defenderPositions: DEF,
+      screenRadius: 120,
+    });
+    const leaving = defenderScreenContact({
+      state: leavingState,
+      defenderId: 'D1',
+      isCarrierDef: true,
+      ctxA: leavingCtx,
+      ctxB: emptyScreenContext(),
+      idxA: 0,
+      idxB: 1,
+    });
+
+    expect(arriving.quality).toBeLessThan(12);
+    expect(arriving.mode).toBeNull();
+    expect(leaving.quality).toBeGreaterThanOrEqual(7);
+    expect(leaving.mode).toBe('leaving');
   });
 
   it('ignore les annotations screen ghost pour le lock utilisateur', () => {

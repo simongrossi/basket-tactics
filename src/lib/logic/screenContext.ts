@@ -19,6 +19,7 @@ import {
   contactQualityForOffBallRule,
   effectiveScreenRuleForDef,
   findScreenQuality,
+  screenContactQualityPassesHysteresis,
   type ScreenContactMode,
 } from './screenPhysics';
 
@@ -37,9 +38,16 @@ export interface DefenderScreenContact {
   defenderId: DefenderId;
   mode: ScreenContactMode | null;
   quality: number;
+  contactKind?: 'carrier' | 'off-ball';
+  contactKey?: string;
+  contactScreener?: AttackerId;
+  contactScreenerDef?: DefenderId;
   carrierContact: boolean;
   carrierContactA: boolean;
   carrierContactB: boolean;
+  carrierScreen?: DetectedScreen;
+  carrierScreenA?: DetectedScreen;
+  carrierScreenB?: DetectedScreen;
   offBallContact?: DetectedOffBallScreen;
   offBallContactA?: DetectedOffBallScreen;
   offBallContactB?: DetectedOffBallScreen;
@@ -160,20 +168,54 @@ export function defenderScreenContact(params: {
   idxA: number;
   idxB: number;
 }): DefenderScreenContact {
-  const carrierContactA = params.ctxA.screen?.carrierDef === params.defenderId;
-  const carrierContactB = params.ctxB.screen?.carrierDef === params.defenderId;
-  const offBallContactA = bestOffBallContactForDef(
-    params.ctxA.offBallScreens,
-    params.defenderId,
-    [params.state.steps[params.idxA], params.state.steps[params.idxA - 1]]
-  );
-  const offBallContactB = bestOffBallContactForDef(
+  const carrierScreenAAny = params.ctxA.screen?.carrierDef === params.defenderId
+    ? params.ctxA.screen
+    : undefined;
+  const carrierScreenBAny = params.ctxB.screen?.carrierDef === params.defenderId
+    ? params.ctxB.screen
+    : undefined;
+  const selectedCarrierScreen = params.isCarrierDef
+    ? (carrierScreenBAny ?? carrierScreenAAny)
+    : undefined;
+  const carrierKey = selectedCarrierScreen
+    ? carrierScreenContactKey(selectedCarrierScreen)
+    : undefined;
+  const carrierScreenA = carrierKey && carrierScreenAAny &&
+    carrierScreenContactKey(carrierScreenAAny) === carrierKey
+    ? carrierScreenAAny
+    : undefined;
+  const carrierScreenB = carrierKey && carrierScreenBAny &&
+    carrierScreenContactKey(carrierScreenBAny) === carrierKey
+    ? carrierScreenBAny
+    : undefined;
+  const carrierContactA = !!carrierScreenA;
+  const carrierContactB = !!carrierScreenB;
+  const carrierContact = params.isCarrierDef && (carrierContactA || carrierContactB);
+
+  const offBallStepsA = [params.state.steps[params.idxA], params.state.steps[params.idxA - 1]];
+  const offBallStepsB = [params.state.steps[params.idxB], params.state.steps[params.idxA]];
+  const selectedOffBallB = bestOffBallContactForDef(
     params.ctxB.offBallScreens,
     params.defenderId,
-    [params.state.steps[params.idxB], params.state.steps[params.idxA]]
+    offBallStepsB
   );
+  const selectedOffBallA = bestOffBallContactForDef(
+    params.ctxA.offBallScreens,
+    params.defenderId,
+    offBallStepsA,
+    selectedOffBallB ? offBallScreenContactKey(selectedOffBallB) : undefined
+  ) ?? (!selectedOffBallB
+    ? bestOffBallContactForDef(params.ctxA.offBallScreens, params.defenderId, offBallStepsA)
+    : undefined);
+  const selectedOffBall = selectedOffBallB ?? selectedOffBallA;
+  const offBallKey = selectedOffBall ? offBallScreenContactKey(selectedOffBall) : undefined;
+  const offBallContactA = offBallKey
+    ? bestOffBallContactForDef(params.ctxA.offBallScreens, params.defenderId, offBallStepsA, offBallKey)
+    : undefined;
+  const offBallContactB = offBallKey
+    ? bestOffBallContactForDef(params.ctxB.offBallScreens, params.defenderId, offBallStepsB, offBallKey)
+    : undefined;
   const offBallContact = offBallContactB ?? offBallContactA;
-  const carrierContact = params.isCarrierDef && (carrierContactA || carrierContactB);
   const aOn = carrierContactA || !!offBallContactA;
   const bOn = carrierContactB || !!offBallContactB;
 
@@ -191,8 +233,8 @@ export function defenderScreenContact(params: {
       : [params.state.steps[params.idxB], params.state.steps[params.idxA]];
     if (carrierContact) {
       const contactScreen = mode === 'leaving'
-        ? params.ctxA.screen
-        : params.ctxB.screen ?? params.currentCtx?.screen ?? params.ctxA.screen;
+        ? carrierScreenA
+        : carrierScreenB ?? carrierScreenA ?? selectedCarrierScreen ?? params.currentCtx?.screen;
       const screenerId = contactScreen?.carrierDef === params.defenderId
         ? contactScreen.screener
         : undefined;
@@ -213,13 +255,40 @@ export function defenderScreenContact(params: {
     }
   }
 
+  const wasActive = carrierContactA || !!offBallContactA;
+  if (mode && !screenContactQualityPassesHysteresis(quality, wasActive)) {
+    mode = null;
+  }
+
+  const carrierScreen = mode === 'leaving'
+    ? carrierScreenA
+    : carrierScreenB ?? carrierScreenA ?? selectedCarrierScreen;
+  const offBallContactForIdentity = mode === 'leaving'
+    ? offBallContactA
+    : offBallContactB ?? offBallContactA;
+  const contactKind = carrierContact
+    ? 'carrier'
+    : offBallContactForIdentity
+      ? 'off-ball'
+      : undefined;
+  const offBallScreener = offBallContactForIdentity
+    ? preferredOffBallScreener(offBallContactForIdentity, mode === 'leaving' ? offBallStepsA : offBallStepsB)
+    : undefined;
+
   return {
     defenderId: params.defenderId,
     mode,
     quality,
+    contactKind,
+    contactKey: carrierContact ? carrierKey : offBallKey,
+    contactScreener: carrierContact ? carrierScreen?.screener : offBallScreener?.screener,
+    contactScreenerDef: carrierContact ? carrierScreen?.screenerDef : offBallScreener?.screenerDef,
     carrierContact,
     carrierContactA,
     carrierContactB,
+    carrierScreen,
+    carrierScreenA,
+    carrierScreenB,
     offBallContact,
     offBallContactA,
     offBallContactB,
@@ -278,6 +347,18 @@ export function offBallScreenQuality(
   const primary = findScreenQuality(steps, screen.screener);
   if (!screen.secondScreener) return primary;
   return Math.max(primary, findScreenQuality(steps, screen.secondScreener));
+}
+
+export function carrierScreenContactKey(screen: DetectedScreen): string {
+  return `carrier:${screen.carrierDef}:${screen.carrier}:${screen.screener}`;
+}
+
+export function offBallScreenContactKey(screen: DetectedOffBallScreen): string {
+  const screeners = offBallScreeners(screen)
+    .map((s) => s.screener)
+    .sort()
+    .join('+');
+  return `off:${screen.cutterDef}:${screen.cutter}:${screeners}`;
 }
 
 export function offBallScreeners(screen: DetectedOffBallScreen): Array<{
@@ -342,15 +423,33 @@ function offBallScreenContactPoint(
 function bestOffBallContactForDef(
   screens: DetectedOffBallScreen[],
   defenderId: DefenderId,
-  steps: Array<AppState['steps'][number] | undefined>
+  steps: Array<AppState['steps'][number] | undefined>,
+  preferredKey?: string
 ): DetectedOffBallScreen | undefined {
   const contacts = screens.filter((s) => s.cutterDef === defenderId);
+  if (preferredKey) {
+    return contacts.find((s) => offBallScreenContactKey(s) === preferredKey);
+  }
   if (contacts.length <= 1) return contacts[0];
   return contacts.reduce((best, screen) => {
     const bestScore = offBallScreenQuality(steps, best) + doubleScreenScore(best);
     const score = offBallScreenQuality(steps, screen) + doubleScreenScore(screen);
     return score > bestScore ? screen : best;
   });
+}
+
+function preferredOffBallScreener(
+  screen: DetectedOffBallScreen,
+  steps: Array<AppState['steps'][number] | undefined>
+): { screener: AttackerId; screenerDef: DefenderId } {
+  if (!screen.secondScreener || !screen.secondScreenerDef) {
+    return { screener: screen.screener, screenerDef: screen.screenerDef };
+  }
+  const primaryQuality = findScreenQuality(steps, screen.screener);
+  const secondaryQuality = findScreenQuality(steps, screen.secondScreener);
+  return secondaryQuality >= primaryQuality
+    ? { screener: screen.secondScreener, screenerDef: screen.secondScreenerDef }
+    : { screener: screen.screener, screenerDef: screen.screenerDef };
 }
 
 function doubleScreenScore(screen: DetectedOffBallScreen): number {

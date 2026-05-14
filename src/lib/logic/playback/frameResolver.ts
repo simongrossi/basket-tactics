@@ -51,6 +51,7 @@ import {
   offBallScreenRoutePreference,
   screenContactAdhesion,
   screenContactPhase,
+  screenContactQualityPassesHysteresis,
   screenContactT,
   screenContactTangentRelease,
 } from '../screenPhysics';
@@ -76,6 +77,13 @@ export interface FrameDecision {
   screenMode: 'arriving' | 'stuck' | 'leaving' | null;
   /** Qualité (0..100+) du contact, intègre rule + type. */
   quality: number;
+  /** Identité logique du contact, stable entre endpoints quand possible. */
+  contactKey: string | undefined;
+  /** Type de contact utilisé par le resolver. */
+  contactKind: 'carrier' | 'off-ball' | undefined;
+  /** Poseur choisi comme point d'ancrage du contact. */
+  contactScreener: AttackerId | undefined;
+  contactScreenerDef: DefenderId | undefined;
   /** Le défenseur a un contact porteur (carrierContact). */
   carrierContact: boolean;
   /** Le défenseur a un contact off-ball (type d'écran ou undefined). */
@@ -90,6 +98,8 @@ export interface FrameDecision {
   pushMode: 'naive' | 'constrained' | 'skipped';
   /** forcedPushSign passé à curveAroundObstacle, si défini. */
   forcedPushSign: number | undefined;
+  /** Défenseur protégé du réalignement instantané par followDefendersAtFrame. */
+  locked: boolean;
   /** Engine flags propagés depuis defB. */
   matchedTo: AttackerId;
   late: boolean;
@@ -417,11 +427,12 @@ export function resolveFrameAt(
     // par la géométrie). Ne lock que pour le défenseur du porteur.
     const hasUserScreen = isCarrierDef &&
       (hasCarrierScreenAnnotation(a, carrierA) || hasCarrierScreenAnnotation(b, carrierB));
-    // Pour la stabilisation, on lock SEULEMENT si l'écran a une qualité
-    // non-triviale. À quality < 10 (ghost = faux écran), l'utilisateur
-    // indique explicitement qu'il n'y a pas de vrai contact ; D1 doit
-    // suivre O1 normalement. Sinon, on bloque pour préserver le réalisme.
-    const meaningfulQuality = modeQuality >= 10;
+    // Hystérésis qualité : entrer en contact demande un peu plus de signal
+    // que rester en contact. Ça évite le flicker lock/unlock quand le poseur
+    // flirte avec le rayon de détection ou qu'un double écran change de score
+    // d'une frame à l'autre.
+    const wasScreenActive = contact.carrierContactA || !!contact.offBallContactA || isInRecoveryA || isImpactA;
+    const meaningfulQuality = screenContactQualityPassesHysteresis(modeQuality, wasScreenActive);
     if ((screenMode && meaningfulQuality) || hasUserScreen ||
         ((isInRecoveryA || isInRecoveryB || isImpactA || isImpactB) && meaningfulQuality)) {
       screenLockedDefenders.add(id);
@@ -436,10 +447,10 @@ export function resolveFrameAt(
     const apexSlowness = screenMode
       ? carrierApexSlownessFromQuality(modeQuality)
       : 0.3;
-    const routePreference = screen?.carrierDef === id
+    const routePreference = contact.carrierContact && contact.carrierScreen
       ? carrierScreenRoutePreference(
-          effectiveScreenRuleForDef(state, screen.carrierDef),
-          screen,
+          effectiveScreenRuleForDef(state, contact.carrierScreen.carrierDef),
+          contact.carrierScreen,
           off,
           defenseHoop
         )
@@ -600,12 +611,17 @@ export function resolveFrameAt(
       decisions[id] = {
         screenMode,
         quality: modeQuality,
+        contactKey: contact.contactKey,
+        contactKind: contact.contactKind,
+        contactScreener: contact.contactScreener,
+        contactScreenerDef: contact.contactScreenerDef,
         carrierContact: contact.carrierContact,
         offBallContactType: contact.offBallContact?.type,
         curveBranch,
         clusterId,
         pushMode,
         forcedPushSign,
+        locked: screenLockedDefenders.has(id),
         matchedTo: defB[id].matchedTo,
         late: defB[id].late,
       };

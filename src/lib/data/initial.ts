@@ -98,6 +98,7 @@ export function makeInitialState(): AppState {
     showHeatmap: false,
     showSwitchMatchups: true,
     showScreenIndicators: true,
+    showScreenDebug: false,
     showStateRings: true,
     showLockBadges: true,
     closeoutBoost: DEFAULT_CLOSEOUT_BOOST,

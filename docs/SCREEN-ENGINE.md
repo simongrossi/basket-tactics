@@ -211,6 +211,29 @@ gère la trajectoire.
 screen lock (cf. PLAYER-CLEARANCE.md niveau 3b). Compense la lerp qui
 peut dipper sous clearance même quand les endpoints sont propres.
 
+✅ **Identité stable du contact** : `defenderScreenContact()` attribue
+une `contactKey` logique (`carrier:D1:O1:O5` ou `off:D2:O2:O4+O5`).
+Deux endpoints A/B ne sont considérés `stuck` que s'ils parlent du
+même contact. Un écran O4 à A et un écran O5 à B deviennent une
+transition `leaving`/`arriving`, jamais un faux stuck.
+
+✅ **Hystérésis qualité** : entrer dans un contact demande un signal
+plus fort que rester en contact. Les constantes vivent dans
+`screenPhysics.ts` :
+
+```typescript
+SCREEN_CONTACT_ENTER_QUALITY = 12;
+SCREEN_CONTACT_EXIT_QUALITY = 7;
+```
+
+Cela évite les oscillations lock/unlock sur les écrans faibles ou à la
+limite de détection.
+
+✅ **Overlay debug écran** : `state.showScreenDebug` active un calque SVG
+qui affiche mode, qualité, `contactKey`, poseur d'ancrage, cluster,
+push mode et lock. Cet overlay est strictement diagnostique : il ne
+doit jamais influencer la physique.
+
 ✅ **Anti-superposition attaquant↔attaquant pendant l'interpolation**
 (frameResolver étape 1.b). Itère `pushOutOfMany` sur les attaquants
 interpolés. Sinon deux attaquants dont les trajectoires se croisent

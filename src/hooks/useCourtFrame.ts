@@ -82,7 +82,10 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
       return;
     }
     onPlaybackTick?.(t);
-    const frame = resolveFrameAt(cur, t, { prevFrame: prevFrameRef.current ?? undefined });
+    const frame = resolveFrameAt(cur, t, {
+      prevFrame: prevFrameRef.current ?? undefined,
+      collectDecisions: !!cur.showScreenDebug,
+    });
     if (frame) {
       setPlayFrame(frame);
       prevFrameRef.current = frame;
@@ -157,7 +160,10 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     const totalSteps = state.steps.length - 1;
     if (totalSteps <= 0) return null;
     const t = Math.max(0, Math.min(totalSteps, scrubT));
-    return resolveFrameAt(state, t, { stepIdx: Math.round(t) });
+    return resolveFrameAt(state, t, {
+      stepIdx: Math.round(t),
+      collectDecisions: !!state.showScreenDebug,
+    });
   }, [scrubT, state]);
 
   // Tick d'animation pour le release "Tout en auto réel". Force un re-render

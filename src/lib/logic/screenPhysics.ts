@@ -15,6 +15,16 @@ import type {
 
 export type ScreenContactMode = 'arriving' | 'leaving' | 'stuck';
 
+export const SCREEN_CONTACT_ENTER_QUALITY = 12;
+export const SCREEN_CONTACT_EXIT_QUALITY = 7;
+
+export function screenContactQualityPassesHysteresis(
+  quality: number,
+  wasActive: boolean
+): boolean {
+  return quality >= (wasActive ? SCREEN_CONTACT_EXIT_QUALITY : SCREEN_CONTACT_ENTER_QUALITY);
+}
+
 export function carrierApexSlownessFromQuality(quality: number): number {
   const q = clampQuality(quality) / 100;
   return 0.30 + q * 0.69;

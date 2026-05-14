@@ -237,6 +237,12 @@ export function ParametresPanel({ state, onPatch, onSetPlayerCount, onAutoPositi
             onChange={(v) => onPatch({ showScreenIndicators: v })}
           />
           <LegendCheckboxLine
+            checked={!!state.showScreenDebug}
+            label="debug écran"
+            sample="circle-dashed" color="#ef4444"
+            onChange={(v) => onPatch({ showScreenDebug: v })}
+          />
+          <LegendCheckboxLine
             checked={state.showStateRings !== false}
             label="anneaux déf."
             sample="ring" color="#FAC775"
