@@ -280,8 +280,32 @@ export function carrierScreenRoutePreference(
 export function offBallScreenRoutePreference(
   screen: DetectedOffBallScreen,
   rule: OffBallScreenRule,
-  ballPos: Point | undefined
+  ballPos: Point | undefined,
+  hoop?: Point
 ): Point | null {
+  if (rule === 'switch' || rule === 'bump') return null;
+
+  if (screen.type === 'elevator' && screen.secondScreenerPos) {
+    return unit({
+      x: screen.secondScreenerPos.x - screen.screenerPos.x,
+      y: screen.secondScreenerPos.y - screen.screenerPos.y,
+    });
+  }
+
+  if (
+    hoop &&
+    (screen.type === 'backscreen' || screen.type === 'flex' || screen.type === 'hammer')
+  ) {
+    return unit({ x: hoop.x - screen.screenerPos.x, y: hoop.y - screen.screenerPos.y });
+  }
+
+  if (screen.type === 'flare' && ballPos) {
+    const toBall = unit({ x: ballPos.x - screen.cutterPos.x, y: ballPos.y - screen.cutterPos.y });
+    return rule === 'under'
+      ? { x: -toBall.x, y: -toBall.y }
+      : toBall;
+  }
+
   const cutDir = unit({
     x: screen.cutterPos.x - screen.screenerPos.x,
     y: screen.cutterPos.y - screen.screenerPos.y,
@@ -296,10 +320,8 @@ export function offBallScreenRoutePreference(
       return ballPos
         ? unit({ x: ballPos.x - screen.cutterPos.x, y: ballPos.y - screen.cutterPos.y })
         : cutDir;
-    case 'switch':
-    case 'bump':
     default:
-      return null;
+      return cutDir;
   }
 }
 

@@ -538,7 +538,12 @@ export function resolveFrameAt(
           defenseHoop
         )
       : contact.offBallContact
-        ? offBallScreenRoutePreference(contact.offBallContact, state.offBallScreenRule, off[carrier])
+        ? offBallScreenRoutePreference(
+            contact.offBallContact,
+            state.offBallScreenRule,
+            off[carrier],
+            defenseHoop
+          )
         : null;
     let forcedPushSign = routePreference
       ? forcedPushSignForRoute(defA[id], defB[id], routePreference)

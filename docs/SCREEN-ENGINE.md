@@ -289,6 +289,12 @@ contact.
 doit toujours pouvoir montrer quelle route a produit le vecteur de
 contournement et le `forcedPushSign`.
 
+Les routes off-ball tiennent compte du type d'écran : un backscreen,
+flex ou hammer force une préférence côté panier ; un flare distingue
+chase côté ballon et under côté opposé ; un elevator force le passage
+par le gap entre les deux poseurs. Les pindowns/staggers simples
+gardent la route screener→cutter historique.
+
 ✅ **Machine d'état écran centralisée** :
 `resolveScreenContactState()` vit dans `screenPhysics.ts` et formalise
 le cycle complet par défenseur :
