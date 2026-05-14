@@ -308,6 +308,12 @@ chase côté ballon et under côté opposé ; un elevator force le passage
 par le gap entre les deux poseurs. Les pindowns/staggers simples
 gardent la route screener→cutter historique.
 
+Sur un `stagger` hors-ballon, le point d'ancrage du contact glisse
+progressivement du premier poseur vers le second (`localT` 0.34→0.72).
+Le défenseur du cutter ne revient donc pas sur son homme entre les deux
+écrans : il reste en retard et traverse la chaîne comme un vrai chase
+sur double écran.
+
 ✅ **Machine d'état écran centralisée** :
 `resolveScreenContactState()` vit dans `screenPhysics.ts` et formalise
 le cycle complet par défenseur :

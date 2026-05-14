@@ -736,6 +736,22 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
       expect(lateProj).toBeGreaterThan(earlyProj + 5);
     });
 
+    it('D2 progresse du premier au second poseur sur un stagger off-ball', () => {
+      const state = buildOffBallDoubleScreenScenario(100, 100, 'under');
+      const early = resolveFrameAt(state, 0.4, { collectDecisions: true });
+      const late = resolveFrameAt(state, 0.8, { collectDecisions: true });
+      expect(early).not.toBeNull();
+      expect(late).not.toBeNull();
+
+      const earlyPoint = early!.debug?.defenders.D2?.contactPoint;
+      const latePoint = late!.debug?.defenders.D2?.contactPoint;
+      expect(earlyPoint).toBeTruthy();
+      expect(latePoint).toBeTruthy();
+      expect(latePoint!.x).toBeGreaterThan(earlyPoint!.x + 25);
+      expect(early!.defPos.D2.screenPhase).toBe('stuck');
+      expect(late!.defPos.D2.screenPhase).toBe('stuck');
+    });
+
     it("trajectoire D2 fluide pendant un pindown solide (pas de saut > 15px)", () => {
       const state = buildOffBallScreenScenario(100);
       let prev: { x: number; y: number } | null = null;

@@ -720,6 +720,7 @@ export function resolveFrameAt(
       const contactScreener = screenContactScreenerPoint({
         contact,
         mode: screenMode,
+        localT,
         offA,
         offB,
         stepA: state.steps[idxA],
@@ -729,7 +730,12 @@ export function resolveFrameAt(
         anchor,
       });
       if (contactScreener) {
-        const rawContactPoint = radialContactPoint(anchor, contactScreener);
+        const rawContactPoint = staggerOffBallContactPoint(
+          contact.offBallContact,
+          screenMode === 'leaving' ? offA : offB,
+          anchor,
+          localT
+        ) ?? radialContactPoint(anchor, contactScreener);
         const contactPoint = sameContactMemory && prevMemory.contactPoint
           ? stabilizeContactPointFromMemory(rawContactPoint, prevMemory.contactPoint, contactScreener)
           : rawContactPoint;
@@ -1126,6 +1132,12 @@ function roundCoord(value: number): string {
   return (Math.round(value * 1000) / 1000).toString();
 }
 
+function smoothstep(edge0: number, edge1: number, t: number): number {
+  if (edge1 <= edge0) return t >= edge1 ? 1 : 0;
+  const x = Math.max(0, Math.min(1, (t - edge0) / (edge1 - edge0)));
+  return x * x * (3 - 2 * x);
+}
+
 function radialContactPoint(point: Point, screener: Point): Point {
   const away = { x: point.x - screener.x, y: point.y - screener.y };
   let len = Math.hypot(away.x, away.y);
@@ -1138,6 +1150,42 @@ function radialContactPoint(point: Point, screener: Point): Point {
   return {
     x: screener.x + (away.x / len) * clearance,
     y: screener.y + (away.y / len) * clearance,
+  };
+}
+
+function staggerOffBallContactPoint(
+  screen: DetectedOffBallScreen | undefined,
+  off: AttackerPositions,
+  anchor: Point,
+  localT: number
+): Point | null {
+  if (
+    !screen ||
+    screen.type !== 'stagger' ||
+    !screen.secondScreener ||
+    !screen.secondScreenerPos
+  ) {
+    return null;
+  }
+  const first = off[screen.screener] ?? screen.screenerPos;
+  const second = off[screen.secondScreener] ?? screen.secondScreenerPos;
+  const dx = second.x - first.x;
+  const dy = second.y - first.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.01) return null;
+
+  const progress = smoothstep(0.34, 0.72, localT);
+  const center = {
+    x: first.x + dx * progress,
+    y: first.y + dy * progress,
+  };
+  const perp = { x: -dy / len, y: dx / len };
+  const anchorSide = (anchor.x - center.x) * perp.x + (anchor.y - center.y) * perp.y;
+  const sign = anchorSide >= 0 ? 1 : -1;
+  const clearance = PLAYER_MIN_CLEARANCE_PX + 1;
+  return {
+    x: center.x + perp.x * sign * clearance,
+    y: center.y + perp.y * sign * clearance,
   };
 }
 

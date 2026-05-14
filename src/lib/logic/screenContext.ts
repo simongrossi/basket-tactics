@@ -327,6 +327,7 @@ export function hasCarrierScreenAnnotation(
 export function screenContactScreenerPoint(params: {
   contact: DefenderScreenContact;
   mode: ScreenContactMode;
+  localT?: number;
   offA: AttackerPositions;
   offB: AttackerPositions;
   stepA: AppState['steps'][number];
@@ -348,7 +349,7 @@ export function screenContactScreenerPoint(params: {
     : null;
   if (fromCarrier) return fromCarrier;
   if (offBallContact) {
-    return offBallScreenContactPoint(offBallContact, contactOff, params.anchor);
+    return offBallScreenContactPoint(offBallContact, contactOff, params.anchor, params.localT);
   }
   return annotationScreenerPoint(
     params.mode === 'leaving' ? [params.stepA] : [params.stepB, params.stepA],
@@ -413,7 +414,8 @@ function annotationScreenerPoint(
 function offBallScreenContactPoint(
   screen: DetectedOffBallScreen,
   off: AttackerPositions,
-  anchor?: Point
+  anchor?: Point,
+  localT?: number
 ): Point {
   const screeners = offBallScreeners(screen).map((s) => ({
     ...s,
@@ -425,6 +427,14 @@ function offBallScreenContactPoint(
     return {
       x: screeners.reduce((sum, s) => sum + s.pos.x, 0) / screeners.length,
       y: screeners.reduce((sum, s) => sum + s.pos.y, 0) / screeners.length,
+    };
+  }
+
+  if (screen.type === 'stagger' && localT !== undefined) {
+    const progress = smoothstep(0.34, 0.72, localT);
+    return {
+      x: screeners[0].pos.x + (screeners[1].pos.x - screeners[0].pos.x) * progress,
+      y: screeners[0].pos.y + (screeners[1].pos.y - screeners[0].pos.y) * progress,
     };
   }
 
@@ -482,4 +492,10 @@ function distanceSquared(a: Point, b: Point): number {
 
 function midpoint(a: Point, b: Point): Point {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
+function smoothstep(edge0: number, edge1: number, t: number): number {
+  if (edge1 <= edge0) return t >= edge1 ? 1 : 0;
+  const x = Math.max(0, Math.min(1, (t - edge0) / (edge1 - edge0)));
+  return x * x * (3 - 2 * x);
 }
