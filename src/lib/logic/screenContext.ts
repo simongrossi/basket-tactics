@@ -164,6 +164,8 @@ export function defenderScreenContact(params: {
   isCarrierDef: boolean;
   ctxA: ScreenContext;
   ctxB: ScreenContext;
+  ctxAExit?: ScreenContext;
+  ctxBExit?: ScreenContext;
   currentCtx?: ScreenContext;
   idxA: number;
   idxB: number;
@@ -174,6 +176,12 @@ export function defenderScreenContact(params: {
   const carrierScreenBAny = params.ctxB.screen?.carrierDef === params.defenderId
     ? params.ctxB.screen
     : undefined;
+  const carrierScreenAExitAny = params.ctxAExit?.screen?.carrierDef === params.defenderId
+    ? params.ctxAExit.screen
+    : undefined;
+  const carrierScreenBExitAny = params.ctxBExit?.screen?.carrierDef === params.defenderId
+    ? params.ctxBExit.screen
+    : undefined;
   const selectedCarrierScreen = params.isCarrierDef
     ? (carrierScreenBAny ?? carrierScreenAAny)
     : undefined;
@@ -183,11 +191,17 @@ export function defenderScreenContact(params: {
   const carrierScreenA = carrierKey && carrierScreenAAny &&
     carrierScreenContactKey(carrierScreenAAny) === carrierKey
     ? carrierScreenAAny
-    : undefined;
+    : carrierKey && carrierScreenAExitAny &&
+      carrierScreenContactKey(carrierScreenAExitAny) === carrierKey
+      ? carrierScreenAExitAny
+      : undefined;
   const carrierScreenB = carrierKey && carrierScreenBAny &&
     carrierScreenContactKey(carrierScreenBAny) === carrierKey
     ? carrierScreenBAny
-    : undefined;
+    : carrierKey && carrierScreenBExitAny &&
+      carrierScreenContactKey(carrierScreenBExitAny) === carrierKey
+      ? carrierScreenBExitAny
+      : undefined;
   const carrierContactA = !!carrierScreenA;
   const carrierContactB = !!carrierScreenB;
   const carrierContact = params.isCarrierDef && (carrierContactA || carrierContactB);
@@ -210,10 +224,12 @@ export function defenderScreenContact(params: {
   const selectedOffBall = selectedOffBallB ?? selectedOffBallA;
   const offBallKey = selectedOffBall ? offBallScreenContactKey(selectedOffBall) : undefined;
   const offBallContactA = offBallKey
-    ? bestOffBallContactForDef(params.ctxA.offBallScreens, params.defenderId, offBallStepsA, offBallKey)
+    ? bestOffBallContactForDef(params.ctxA.offBallScreens, params.defenderId, offBallStepsA, offBallKey) ??
+      bestOffBallContactForDef(params.ctxAExit?.offBallScreens ?? [], params.defenderId, offBallStepsA, offBallKey)
     : undefined;
   const offBallContactB = offBallKey
-    ? bestOffBallContactForDef(params.ctxB.offBallScreens, params.defenderId, offBallStepsB, offBallKey)
+    ? bestOffBallContactForDef(params.ctxB.offBallScreens, params.defenderId, offBallStepsB, offBallKey) ??
+      bestOffBallContactForDef(params.ctxBExit?.offBallScreens ?? [], params.defenderId, offBallStepsB, offBallKey)
     : undefined;
   const offBallContact = offBallContactB ?? offBallContactA;
   const aOn = carrierContactA || !!offBallContactA;

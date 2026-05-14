@@ -229,6 +229,18 @@ SCREEN_CONTACT_EXIT_QUALITY = 7;
 Cela évite les oscillations lock/unlock sur les écrans faibles ou à la
 limite de détection.
 
+✅ **Hystérésis spatiale** : l'entrée d'un contact utilise le rayon
+normal `state.screenRadius`, mais la sortie peut conserver le même
+`contactKey` dans un rayon interne plus large :
+
+```typescript
+SCREEN_CONTACT_EXIT_RADIUS_MULTIPLIER = 1.28;
+```
+
+Ce rayon élargi n'autorise pas de nouveau contact. Il sert uniquement
+à maintenir un contact déjà identifié à l'endpoint opposé, pour éviter
+qu'un défenseur décroche/recolle quand il flotte à la limite du poseur.
+
 ✅ **Overlay debug écran** : `state.showScreenDebug` active un calque SVG
 qui affiche mode, qualité, `contactKey`, poseur d'ancrage, cluster,
 push mode et lock. Cet overlay est strictement diagnostique : il ne

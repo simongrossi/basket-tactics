@@ -316,6 +316,46 @@ describe('screenContext', () => {
     expect(leaving.mode).toBe('leaving');
   });
 
+  it('conserve un même contact via le contexte de sortie spatial', () => {
+    const state = {
+      ...makeInitialState(),
+      steps: [screenStep(80), screenStep(80)],
+      screenRule: 'hedge',
+    } as AppState;
+    const ctxA = detectScreenContext({
+      off: state.steps[0].off,
+      carrier: 'O1',
+      matchups: baseMatchups,
+      defenderPositions: DEF,
+      screenRadius: 120,
+    });
+
+    const withoutExit = defenderScreenContact({
+      state,
+      defenderId: 'D1',
+      isCarrierDef: true,
+      ctxA,
+      ctxB: emptyScreenContext(),
+      idxA: 0,
+      idxB: 1,
+    });
+    const withExit = defenderScreenContact({
+      state,
+      defenderId: 'D1',
+      isCarrierDef: true,
+      ctxA,
+      ctxB: emptyScreenContext(),
+      ctxBExit: ctxA,
+      idxA: 0,
+      idxB: 1,
+    });
+
+    expect(withoutExit.mode).toBe('leaving');
+    expect(withExit.mode).toBe('stuck');
+    expect(withExit.carrierContactB).toBe(true);
+    expect(withExit.contactKey).toBe(withoutExit.contactKey);
+  });
+
   it('ignore les annotations screen ghost pour le lock utilisateur', () => {
     expect(hasCarrierScreenAnnotation(screenStep(0), 'O1')).toBe(false);
     expect(hasCarrierScreenAnnotation(screenStep(10), 'O1')).toBe(true);

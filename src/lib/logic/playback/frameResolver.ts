@@ -50,6 +50,7 @@ import {
   forcedPushSignForRoute,
   offBallScreenRoutePreference,
   screenContactAdhesion,
+  screenContactExitRadius,
   screenContactPhase,
   screenContactQualityPassesHysteresis,
   screenContactT,
@@ -291,6 +292,8 @@ export function resolveFrameAt(
   const carrierB = activeBallCarrier(b, state.playerCount);
   let ctxA: ScreenContext = emptyScreenContext();
   let ctxB: ScreenContext = emptyScreenContext();
+  let ctxAExit: ScreenContext = emptyScreenContext();
+  let ctxBExit: ScreenContext = emptyScreenContext();
   let currentCtx: ScreenContext = emptyScreenContext();
   // STABILISATION DU CARRIER : on n'utilise PLUS le switch à t=0.5
   // (`carrier = localT < 0.5 ? carrierA : carrierB`) qui créait un saut de
@@ -321,6 +324,23 @@ export function resolveFrameAt(
       matchups: matchupsB,
       defenderPositions: defPlainB,
       screenRadius: state.screenRadius,
+      forcedScreener: b.forcedScreener,
+    });
+    const exitRadius = screenContactExitRadius(state.screenRadius);
+    ctxAExit = detectScreenContext({
+      off: offA,
+      carrier: carrierA,
+      matchups: matchupsA,
+      defenderPositions: defPlainA,
+      screenRadius: exitRadius,
+      forcedScreener: a.forcedScreener,
+    });
+    ctxBExit = detectScreenContext({
+      off: offB,
+      carrier: carrierB,
+      matchups: matchupsB,
+      defenderPositions: defPlainB,
+      screenRadius: exitRadius,
       forcedScreener: b.forcedScreener,
     });
 
@@ -398,6 +418,8 @@ export function resolveFrameAt(
       isCarrierDef,
       ctxA,
       ctxB,
+      ctxAExit,
+      ctxBExit,
       currentCtx,
       idxA,
       idxB,

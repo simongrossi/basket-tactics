@@ -17,12 +17,17 @@ export type ScreenContactMode = 'arriving' | 'leaving' | 'stuck';
 
 export const SCREEN_CONTACT_ENTER_QUALITY = 12;
 export const SCREEN_CONTACT_EXIT_QUALITY = 7;
+export const SCREEN_CONTACT_EXIT_RADIUS_MULTIPLIER = 1.28;
 
 export function screenContactQualityPassesHysteresis(
   quality: number,
   wasActive: boolean
 ): boolean {
   return quality >= (wasActive ? SCREEN_CONTACT_EXIT_QUALITY : SCREEN_CONTACT_ENTER_QUALITY);
+}
+
+export function screenContactExitRadius(screenRadius: number): number {
+  return screenRadius * SCREEN_CONTACT_EXIT_RADIUS_MULTIPLIER;
 }
 
 export function carrierApexSlownessFromQuality(quality: number): number {
