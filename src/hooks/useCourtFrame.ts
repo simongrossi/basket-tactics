@@ -28,7 +28,11 @@ import {
 import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
 import { activeBallCarrier, activeOffense } from '@/lib/logic/players';
 import { buildStep0DetectionPositions } from '@/lib/logic/step0Detection';
-import { resolveFrameAt, type PlaybackFrame } from '@/lib/logic/playback/frameResolver';
+import {
+  resolveFrameAt,
+  resolveFrameAtDeterministicScrub,
+  type PlaybackFrame,
+} from '@/lib/logic/playback/frameResolver';
 import { computeAttackerThreats } from '@/lib/logic/threats';
 import { usePlaybackAnimation } from '@/hooks/usePlaybackAnimation';
 
@@ -160,7 +164,7 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     const totalSteps = state.steps.length - 1;
     if (totalSteps <= 0) return null;
     const t = Math.max(0, Math.min(totalSteps, scrubT));
-    return resolveFrameAt(state, t, {
+    return resolveFrameAtDeterministicScrub(state, t, {
       stepIdx: Math.round(t),
       collectDecisions: !!state.showScreenDebug,
     });

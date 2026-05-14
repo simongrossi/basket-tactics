@@ -182,6 +182,12 @@ export interface ResolveFrameOptions {
   disableSegmentCache?: boolean;
 }
 
+export interface ResolveDeterministicScrubOptions extends ResolveFrameOptions {
+  /** Résolution synthétique utilisée pour reconstruire la mémoire de lecture
+   *  depuis le début du segment courant. 60 = équivalent playback 60 fps. */
+  fps?: number;
+}
+
 /** Saut maximum autorisé par frame sur la position d'un défenseur.
  *  À 60 fps : 18 px/frame = 1080 px/s ≈ 29 m/s. Au-delà = snap visuel
  *  (cause typique : screen detection qui change entre frames adjacentes,
@@ -212,6 +218,78 @@ interface SegmentScreenCacheEntry {
 }
 
 const segmentScreenCache = new WeakMap<AppState, Map<string, SegmentScreenCacheEntry>>();
+
+/**
+ * Version scrub déterministe : au lieu de résoudre `t` isolément, reconstruit
+ * les frames du début du segment courant (`floor(t)`) jusqu'à `t` en chaînant
+ * `prevFrame`. Le résultat est reproductible à chaque appel, mais bénéficie
+ * des mêmes stabilisateurs que le playback continu.
+ */
+export function resolveFrameAtDeterministicScrub(
+  state: AppState,
+  t: number,
+  options: ResolveDeterministicScrubOptions = {}
+): PlaybackFrame | null {
+  const totalSteps = state.steps.length - 1;
+  if (totalSteps <= 0) return null;
+
+  const clamped = Math.max(0, Math.min(totalSteps, t));
+  const idxA = Math.floor(clamped);
+  const localT = clamped - idxA;
+  const fps = Math.max(1, Math.round(options.fps ?? 60));
+  const { fps: _fps, ...baseOptions } = options;
+
+  if (localT <= 0.000001) {
+    if (idxA <= 0) return resolveFrameAt(state, clamped, baseOptions);
+    return resolveDeterministicSegment(state, idxA - 1, 1, fps, baseOptions);
+  }
+
+  return resolveDeterministicSegment(state, idxA, localT, fps, baseOptions);
+}
+
+function resolveDeterministicSegment(
+  state: AppState,
+  idxA: number,
+  localT: number,
+  fps: number,
+  baseOptions: ResolveFrameOptions
+): PlaybackFrame | null {
+  const stepIdx = baseOptions.stepIdx;
+  const startT = idxA;
+  let prevFrame = idxA > 0
+    ? resolveDeterministicSegment(state, idxA - 1, 1, fps, baseOptions)
+    : resolveFrameAt(state, startT, {
+        ...baseOptions,
+        stepIdx,
+      });
+  if (!prevFrame) return null;
+  if (localT <= 0.000001) return prevFrame;
+
+  const wholeFrames = Math.floor(localT * fps + 1e-9);
+  for (let i = 1; i <= wholeFrames; i++) {
+    const sampleLocalT = i / fps;
+    const sampleT = idxA + sampleLocalT;
+    const frame = resolveFrameAt(state, sampleT, {
+      ...baseOptions,
+      stepIdx,
+      prevFrame,
+    });
+    if (!frame) return prevFrame;
+    prevFrame = frame;
+  }
+
+  if (Math.abs(wholeFrames / fps - localT) > 0.000001) {
+    const frame = resolveFrameAt(state, idxA + localT, {
+      ...baseOptions,
+      stepIdx,
+      prevFrame,
+    });
+    if (!frame) return prevFrame;
+    prevFrame = frame;
+  }
+
+  return prevFrame;
+}
 
 /**
  * Résout la frame complète à l'instant `t` (en unités de step fractionnaires).

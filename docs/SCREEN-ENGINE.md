@@ -284,6 +284,14 @@ La mémoire ne peut stabiliser qu'un contact identique (`contactKey`
 égale). Elle ne peut pas transformer un nouveau contact en ancien
 contact.
 
+✅ **Scrub déterministe avec mémoire synthétique** :
+`resolveFrameAtDeterministicScrub()` reconstruit une mini-lecture depuis
+le début de la timeline jusqu'au `t` demandé, en chaînant `prevFrame`.
+Chaque appel reste reproductible, y compris aux frontières de segment,
+mais le scrub bénéficie des mêmes stabilisateurs anti-saut que le
+playback continu. Le hook `useCourtFrame` doit utiliser ce resolver pour
+la timeline.
+
 ✅ **Route explicite** : chaque `FrameDecision` expose `routeKind`
 (`over`, `under`, `hedge`, `chase`, `top-lock`, etc.). Le debug écran
 doit toujours pouvoir montrer quelle route a produit le vecteur de
