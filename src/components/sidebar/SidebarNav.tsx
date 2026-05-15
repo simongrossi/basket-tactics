@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpen, FlaskConical, Library, Settings, Target } from 'lucide-react';
+import { BookOpen, Library, Settings, Target } from 'lucide-react';
 import type { SidebarView } from '@/hooks/useSidebarState';
 import { SIDEBAR } from './tokens';
 import { SidebarNavItem } from './SidebarNavItem';
@@ -15,7 +15,6 @@ const ITEMS: { view: SidebarView; icon: typeof Target; label: string }[] = [
   { view: 'court', icon: Target, label: 'Terrain' },
   { view: 'playbook', icon: BookOpen, label: 'Playbook' },
   { view: 'library', icon: Library, label: 'Bibliothèque' },
-  { view: 'screenLab', icon: FlaskConical, label: 'ScreenLab' },
   { view: 'settings', icon: Settings, label: 'Paramètres' },
 ];
 

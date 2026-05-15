@@ -28,6 +28,12 @@ interface LibraryModalProps {
   onExportFolder: (folderId: string) => string | null;
   onImportFolder: (json: string) => void;
   onClose: () => void;
+  /**
+   * Mode d'affichage. 'modal' (défaut) = overlay centré + backdrop ;
+   * 'inline' = card rendue dans le flux (refonte UI : vue routée depuis
+   * la sidebar gauche).
+   */
+  mode?: 'modal' | 'inline';
 }
 
 export function LibraryModal(props: LibraryModalProps) {
@@ -36,7 +42,9 @@ export function LibraryModal(props: LibraryModalProps) {
     library, hasWorkInProgress, onLoadSavedSystem, onLoadTemplate, onSaveCurrent,
     onRenameSystem, onDeleteSystem, onMoveSystem, onCreateFolder, onRenameFolder,
     onDeleteFolder, onExportFolder, onImportFolder, onClose,
+    mode = 'modal',
   } = props;
+  const inline = mode === 'inline';
 
   const [selectedFolderId, setSelectedFolderId] = useState<string>(
     library.folders[0]?.id ?? CLASSIC_FOLDER_ID
@@ -110,21 +118,45 @@ export function LibraryModal(props: LibraryModalProps) {
 
   return (
     <div
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)',
-        zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 24,
-      }}
+      onClick={inline ? undefined : onClose}
+      style={
+        inline
+          ? {
+              // Refonte UI — rendu inline dans le grid principal.
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'stretch',
+              justifyContent: 'center',
+              padding: 12,
+              boxSizing: 'border-box',
+              background: '#f1f5f9',
+              borderRadius: 8,
+            }
+          : {
+              position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)',
+              zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 24,
+            }
+      }
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '100%', maxWidth: 920, maxHeight: '85vh',
-          background: '#fff', borderRadius: 12,
-          boxShadow: '0 20px 60px rgba(15, 23, 42, 0.25)',
-          display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        }}
+        style={
+          inline
+            ? {
+                width: '100%', maxWidth: 1100,
+                background: '#fff', borderRadius: 10,
+                boxShadow: '0 1px 3px rgba(15,23,42,0.08)',
+                display: 'flex', flexDirection: 'column', overflow: 'hidden',
+              }
+            : {
+                width: '100%', maxWidth: 920, maxHeight: '85vh',
+                background: '#fff', borderRadius: 12,
+                boxShadow: '0 20px 60px rgba(15, 23, 42, 0.25)',
+                display: 'flex', flexDirection: 'column', overflow: 'hidden',
+              }
+        }
       >
         <header
           style={{

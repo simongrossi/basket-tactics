@@ -15,7 +15,9 @@ import { ScenarioReader } from '@/components/ScenarioReader';
 import { DefensePanel } from '@/components/DefensePanel';
 import { FloatingActionsMenu } from '@/components/FloatingActionsMenu';
 import { ParametresLauncher } from '@/components/ParametresLauncher';
+import { ParametresPanel } from '@/components/ParametresPanel';
 import { LibraryPanel } from '@/components/LibraryPanel';
+import { LibraryModal } from '@/components/LibraryModal';
 import { Timeline } from '@/components/Timeline';
 import { CourtView } from '@/components/CourtView';
 import { LiveMatchOverlay } from '@/components/LiveMatchOverlay';
@@ -207,7 +209,9 @@ export default function Page() {
       }}
     >
       <div
-        className={presentMode ? 'layout-grid presenting' : 'layout-grid'}
+        className={`layout-grid${presentMode ? ' presenting' : ''}${
+          sidebar.activeView !== 'court' && !presentMode ? ' no-right-col' : ''
+        }`}
         style={{
           // Refonte UI Phase 1 — la largeur de la sidebar est pilotée par
           // useSidebarState. Le mode présentation conserve une seule colonne
@@ -266,7 +270,63 @@ export default function Page() {
           />
         )}
 
-        <div className="center-col">
+        <div className={`center-col${sidebar.activeView !== 'court' ? ' center-col-view' : ''}`}>
+          {sidebar.activeView === 'playbook' && (
+            <PlaybookView
+              state={app.state}
+              mode="inline"
+              onClose={() => sidebar.setActiveView('court')}
+            />
+          )}
+          {sidebar.activeView === 'library' && (
+            <LibraryModal
+              mode="inline"
+              hasWorkInProgress={
+                app.state.steps.length > 1 || app.state.steps[0].annotations.length > 0
+              }
+              library={lib.library}
+              onLoadSavedSystem={(sys) => app.importState(lib.loadSystem(app.state, sys))}
+              onLoadTemplate={app.loadTemplate}
+              onSaveCurrent={(folderId, name, description) =>
+                lib.saveSystem(app.state, folderId, name, description)
+              }
+              onRenameSystem={lib.renameSystem}
+              onDeleteSystem={lib.deleteSystem}
+              onMoveSystem={lib.moveSystem}
+              onCreateFolder={lib.createFolder}
+              onRenameFolder={lib.renameFolder}
+              onDeleteFolder={lib.deleteFolder}
+              onExportFolder={lib.exportFolder}
+              onImportFolder={lib.importFolder}
+              onClose={() => sidebar.setActiveView('court')}
+            />
+          )}
+          {sidebar.activeView === 'settings' && (
+            <div
+              style={{
+                width: '100%',
+                height: '100%',
+                overflow: 'auto',
+                padding: 16,
+                background: '#f1f5f9',
+                borderRadius: 8,
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ maxWidth: 720, margin: '0 auto' }}>
+                <ParametresPanel
+                  state={app.state}
+                  onPatch={app.patch}
+                  onSetPlayerCount={app.setPlayerCount}
+                  onAutoPositionOffBall={app.autoPositionOffBall}
+                  onTogglePlayerDisqualified={app.togglePlayerDisqualified}
+                  onClearDisqualified={app.clearDisqualified}
+                />
+              </div>
+            </div>
+          )}
+          {sidebar.activeView === 'court' && (
+          <>
           <div style={{ position: 'relative', minHeight: 0, overflow: 'hidden', display: 'grid' }}>
             {app.state.showCoachDiagnostics !== false && (
               <CoachDiagnosticsOverlay diagnostics={coachDiagnostics} />
@@ -404,9 +464,11 @@ export default function Page() {
             activeStep={app.state.activeStep}
             onSetActiveStep={app.setActiveStep}
           />
+          </>
+          )}
         </div>
 
-        {!presentMode && (
+        {!presentMode && sidebar.activeView === 'court' && (
           <div className="side-col">
             {/* LIVRAISON 1 — colonne droite workspace : étapes + scénario +
                 bibliothèque + paramètres. Manipulation du matériau de jeu. */}
@@ -518,6 +580,9 @@ export default function Page() {
         .layout-grid.presenting {
           grid-template-columns: 1fr;
         }
+        .layout-grid.no-right-col {
+          grid-template-columns: var(--sidebar-w, 240px) 1fr;
+        }
         .center-col {
           display: grid;
           grid-template-rows: minmax(0, 1fr) auto auto;
@@ -525,6 +590,12 @@ export default function Page() {
           min-width: 0;
           min-height: 0;
           overflow: hidden;
+        }
+        .center-col.center-col-view {
+          /* Pour les vues routées (Playbook, Bibliothèque, Paramètres) :
+             une seule rangée qui occupe toute la hauteur, pas de timeline ni
+             metrics. */
+          grid-template-rows: 1fr;
         }
         .side-col {
           display: flex;
@@ -536,8 +607,11 @@ export default function Page() {
           overflow-x: hidden;
         }
         @media (max-width: 1100px) {
-          .layout-grid:not(.presenting) {
+          .layout-grid:not(.presenting):not(.no-right-col) {
             grid-template-columns: var(--sidebar-w, 220px) 1fr 260px;
+          }
+          .layout-grid.no-right-col:not(.presenting) {
+            grid-template-columns: var(--sidebar-w, 220px) 1fr;
           }
         }
         @media (max-width: 900px) {

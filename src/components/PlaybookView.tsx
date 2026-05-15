@@ -12,9 +12,15 @@ interface PlaybookViewProps {
   state: AppState;
   title?: string;
   onClose: () => void;
+  /**
+   * Mode d'affichage. 'modal' (défaut, rétrocompatible) = overlay fixed
+   * plein écran ; 'inline' = rendu dans le flux du parent (refonte UI :
+   * vue routée depuis la sidebar gauche).
+   */
+  mode?: 'modal' | 'inline';
 }
 
-export function PlaybookView({ state, title, onClose }: PlaybookViewProps) {
+export function PlaybookView({ state, title, onClose, mode = 'modal' }: PlaybookViewProps) {
   const [columns, setColumns] = useState(2);
   const [showDefense, setShowDefense] = useState(true);
   const [showLegend, setShowLegend] = useState(true);
@@ -58,17 +64,35 @@ export function PlaybookView({ state, title, onClose }: PlaybookViewProps) {
         }
       `}</style>
       <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.6)',
-          zIndex: 1000,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          padding: 24,
-          overflow: 'auto',
-        }}
+        style={
+          mode === 'inline'
+            ? {
+                // Refonte UI — rendu inline dans le grid principal (vue routée
+                // par sidebar). Pas de position:fixed → reste dans le flux.
+                position: 'relative',
+                inset: 'auto',
+                width: '100%',
+                height: '100%',
+                background: '#f1f5f9',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                padding: 16,
+                overflow: 'auto',
+                borderRadius: 8,
+              }
+            : {
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(15, 23, 42, 0.6)',
+                zIndex: 1000,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                padding: 24,
+                overflow: 'auto',
+              }
+        }
       >
         <div
           className="playbook-no-print"

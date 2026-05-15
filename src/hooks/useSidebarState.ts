@@ -10,7 +10,6 @@ export type SidebarView =
   | 'court'
   | 'playbook'
   | 'library'
-  | 'screenLab'
   | 'settings';
 
 const STORAGE_KEY = 'bt:sidebar:v1';
@@ -41,7 +40,7 @@ function load(): Persisted {
 }
 
 function isView(v: unknown): v is SidebarView {
-  return v === 'court' || v === 'playbook' || v === 'library' || v === 'screenLab' || v === 'settings';
+  return v === 'court' || v === 'playbook' || v === 'library' || v === 'settings';
 }
 
 export function useSidebarState() {
