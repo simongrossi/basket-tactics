@@ -56,6 +56,7 @@ import { cornerAbandonedRule } from './rules/cornerAbandoned';
 import { passOpenRule } from './rules/passOpen';
 import { paintNoHelpRule } from './rules/paintNoHelp';
 import { tacticalReadsRule } from './rules/tacticalReads';
+import { inboundFiveSecRule } from './rules/inboundFiveSec';
 
 const REGISTRY: Rule[] = [
   closeoutLongRule,
@@ -75,6 +76,7 @@ const REGISTRY: Rule[] = [
   cornerAbandonedRule,
   passOpenRule, // dédupé contre corner-* dans dedupePassOpenVsCorner
   paintNoHelpRule,
+  inboundFiveSecRule,
   tacticalReadsRule,
 ];
 

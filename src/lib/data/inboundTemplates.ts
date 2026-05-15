@@ -509,6 +509,180 @@ const SLOB_HIGH_OUTLET: Template = {
 };
 
 // ============================================================
+// BLOB ELEVATOR — cut entre 2 portes qui se ferment
+// ============================================================
+//
+// Action classique San Antonio Spurs. 2 bigs forment une "porte
+// d'ascenseur" au coude. Le shooter cut entre eux et se positionne
+// derrière. Les portes se ferment pour bloquer le défenseur poursuivant.
+// ------------------------------------------------------------
+
+const blobElevatorSetup: AttackerPositions = {
+  O1: { x: 300, y: 8 },    // passeur hors-ligne
+  O4: { x: 275, y: 180 },  // porte gauche (gate)
+  O5: { x: 325, y: 180 },  // porte droite (gate)
+  O3: { x: 300, y: 270 },  // shooter, derrière l'ascenseur
+  O2: { x: 130, y: 250 },  // weak side spacing
+};
+const blobElevatorClose: AttackerPositions = {
+  ...blobElevatorSetup,
+  O3: { x: 300, y: 105 },  // shooter cut entre les portes vers le top
+  O4: { x: 282, y: 180 },  // ferme la porte (rapprochement, on reste ≥ 34)
+  O5: { x: 318, y: 180 },  // ferme la porte
+};
+
+const BLOB_ELEVATOR: Template = {
+  id: 'blob-elevator',
+  name: 'BLOB · Elevator',
+  description: 'Remise ligne de fond. Action Spurs : 2 portes (O4, O5) au coude, O3 cut entre, les portes se ferment. Réception top du cercle.',
+  defenseInitial: defaultDef(blobElevatorSetup),
+  steps: [
+    {
+      label: 'Setup Elevator',
+      off: blobElevatorSetup,
+      ballCarrier: 'O1',
+      annotations: [],
+      context: 'inbound-baseline',
+      manualOverride: true,
+    },
+    {
+      label: 'O3 cut + portes ferment + passe',
+      off: blobElevatorClose,
+      ballCarrier: 'O3',
+      annotations: [
+        { type: 'screen', fromId: 'O4', toId: 'O3', from: blobElevatorSetup.O4, to: blobElevatorClose.O4 } as Annotation,
+        { type: 'screen', fromId: 'O5', toId: 'O3', from: blobElevatorSetup.O5, to: blobElevatorClose.O5 } as Annotation,
+        { type: 'cut', fromId: 'O3', toId: null, from: blobElevatorSetup.O3, to: blobElevatorClose.O3 } as Annotation,
+        { type: 'pass', fromId: 'O1', toId: 'O3', from: blobElevatorSetup.O1, to: blobElevatorClose.O3 } as Annotation,
+      ],
+    },
+  ],
+};
+
+// ============================================================
+// SLOB FLOPPY — shooter choisit son côté de curl
+// ============================================================
+//
+// Floppy classique adapté en SLOB. 2 bigs en low post (gauche +
+// droite), shooter sous le panier choisit quel côté curler. V1 : choix
+// gauche (cut autour de O4).
+// ------------------------------------------------------------
+
+const slobFloppySetup: AttackerPositions = {
+  O1: { x: 592, y: 180 },  // passeur hors-touche droite
+  O3: { x: 380, y: 90 },   // wing court
+  O2: { x: 300, y: 90 },   // shooter, sous le panier (= cutter)
+  O4: { x: 220, y: 200 },  // low post gauche (poseur)
+  O5: { x: 380, y: 200 },  // low post droite (poseur alternatif)
+};
+const slobFloppyCurl: AttackerPositions = {
+  ...slobFloppySetup,
+  O2: { x: 175, y: 240 },  // curl gauche autour de O4
+};
+const slobFloppyEmerge: AttackerPositions = {
+  ...slobFloppyCurl,
+  O2: { x: 200, y: 280 },  // wing gauche derrière 3pt
+};
+
+const SLOB_FLOPPY: Template = {
+  id: 'slob-floppy',
+  name: 'SLOB · Floppy gauche',
+  description: 'Remise touche. Floppy classique. O2 sous le panier choisit le côté gauche (curl autour de O4) pour 3-pt wing gauche.',
+  defenseInitial: defaultDef(slobFloppySetup),
+  steps: [
+    {
+      label: 'Setup Floppy',
+      off: slobFloppySetup,
+      ballCarrier: 'O1',
+      annotations: [],
+      context: 'inbound-sideline-low',
+      manualOverride: true,
+    },
+    {
+      label: 'O2 curl gauche',
+      off: slobFloppyCurl,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'screen', fromId: 'O4', toId: 'O2', from: slobFloppySetup.O4, to: slobFloppySetup.O4 } as Annotation,
+        { type: 'cut', fromId: 'O2', toId: null, from: slobFloppySetup.O2, to: slobFloppyCurl.O2 } as Annotation,
+      ],
+    },
+    {
+      label: 'O2 émerge wing + skip pass',
+      off: slobFloppyEmerge,
+      ballCarrier: 'O2',
+      annotations: [
+        { type: 'cut', fromId: 'O2', toId: null, from: slobFloppyCurl.O2, to: slobFloppyEmerge.O2 } as Annotation,
+        { type: 'pass', fromId: 'O1', toId: 'O2', from: slobFloppySetup.O1, to: slobFloppyEmerge.O2 } as Annotation,
+      ],
+    },
+  ],
+};
+
+// ============================================================
+// BLOB HAWK — down screen + slip vers panier
+// ============================================================
+//
+// Action Atlanta Hawks classique. O5 (big) descend poser un down
+// screen pour O2 (cutter ball-side). Puis O5 slip vers le panier
+// pour layup sur passe arrière de O2.
+// ------------------------------------------------------------
+
+const blobHawkSetup: AttackerPositions = {
+  O1: { x: 300, y: 8 },    // passeur hors-ligne
+  O2: { x: 140, y: 95 },   // low corner gauche (= cutter)
+  O3: { x: 460, y: 95 },   // low corner droite (spacing)
+  O4: { x: 170, y: 250 },  // weak side wing
+  O5: { x: 300, y: 180 },  // high post (= screener Hawk)
+};
+const blobHawkScreen: AttackerPositions = {
+  ...blobHawkSetup,
+  O5: { x: 180, y: 130 },  // descend en down screen ball-side
+};
+const blobHawkSlip: AttackerPositions = {
+  ...blobHawkScreen,
+  O2: { x: 160, y: 235 },  // curl ball-side wing après down screen
+  O5: { x: 270, y: 100 },  // slip vers panier après screen
+  O4: { x: 270, y: 380 },  // drift safety
+};
+
+const BLOB_HAWK: Template = {
+  id: 'blob-hawk',
+  name: 'BLOB · Hawk',
+  description: 'Remise ligne de fond. Action Atlanta : O5 down-screen pour O2 wing gauche, puis slip vers panier pour passe arrière.',
+  defenseInitial: defaultDef(blobHawkSetup),
+  steps: [
+    {
+      label: 'Setup Hawk',
+      off: blobHawkSetup,
+      ballCarrier: 'O1',
+      annotations: [],
+      context: 'inbound-baseline',
+      manualOverride: true,
+    },
+    {
+      label: 'O5 down-screen',
+      off: blobHawkScreen,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'cut', fromId: 'O5', toId: null, from: blobHawkSetup.O5, to: blobHawkScreen.O5 } as Annotation,
+        { type: 'screen', fromId: 'O5', toId: 'O2', from: blobHawkScreen.O5, to: blobHawkScreen.O5 } as Annotation,
+      ],
+    },
+    {
+      label: 'O2 curl + O5 slip + passe',
+      off: blobHawkSlip,
+      ballCarrier: 'O2',
+      annotations: [
+        { type: 'cut', fromId: 'O2', toId: null, from: blobHawkSetup.O2, to: blobHawkSlip.O2 } as Annotation,
+        { type: 'cut', fromId: 'O5', toId: null, from: blobHawkScreen.O5, to: blobHawkSlip.O5 } as Annotation,
+        { type: 'pass', fromId: 'O1', toId: 'O2', from: blobHawkSetup.O1, to: blobHawkSlip.O2 } as Annotation,
+      ],
+    },
+  ],
+};
+
+// ============================================================
 // Liste exportée — agrégée dans CLASSIC_TEMPLATES de templates.ts
 // ============================================================
 
@@ -517,8 +691,11 @@ export const INBOUND_TEMPLATES: Template[] = [
   BLOB_STACK_CROSS,
   BLOB_TRIANGLE,
   BLOB_ZIPPER,
+  BLOB_ELEVATOR,
+  BLOB_HAWK,
   SLOB_STAGGER,
   SLOB_HAMMER,
   SLOB_IVERSON,
+  SLOB_FLOPPY,
   SLOB_HIGH_OUTLET,
 ];
