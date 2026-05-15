@@ -10,7 +10,10 @@ import type {
   Step,
 } from '@/lib/types';
 import { makeStep } from '@/lib/data/initial';
-import { buildFreeThrowSetup } from '@/lib/logic/freeThrowSetup';
+import {
+  buildFreeThrowSetup,
+  buildFreeThrowReboundSetup,
+} from '@/lib/logic/freeThrowSetup';
 import { buildInboundSetup } from '@/lib/logic/inboundSetup';
 import { buildInboundDefenseSetup } from '@/lib/logic/inboundDefenseSetup';
 import { activeOffense } from '@/lib/logic/players';
@@ -148,6 +151,58 @@ export function convertStepToInbound(s: AppState, side: InboundSide): AppState {
  * de mémoire transitoire ; on n'ajoute PAS de champ dédié pour
  * préserver la rétrocompat du modèle Step.)
  */
+/**
+ * F.2 — Ajoute une étape "course-rebond" après le step LF actif.
+ *
+ * Quand `made = true` : recul vers la transition adverse.
+ * Quand `made = false` : convergence vers la zone du cercle pour le
+ * rebond (les blocks défensifs gardent leur priorité, les slots
+ * offensifs montent en over-the-top).
+ *
+ * No-op si le step actif n'est PAS un free-throw (`context !== 'free-throw'`).
+ * L'étape ajoutée a `context: 'live-play'` (la phase reprend).
+ */
+export function addFreeThrowReboundStep(
+  s: AppState,
+  made: boolean
+): AppState {
+  const cur = s.steps[s.activeStep];
+  if (!cur) return s;
+  if (cur.context !== 'free-throw') return s;
+  const reboundSetup = buildFreeThrowReboundSetup(made);
+  const baseLabel = made ? 'LF réussi · transition' : 'LF manqué · course rebond';
+  const newStep: Step = {
+    label: baseLabel,
+    off: reboundSetup.off,
+    ballCarrier: made ? reboundSetup.shooter : (Object.keys(reboundSetup.off)[0] as AttackerId),
+    annotations: [
+      // Annotations cut pour animer les joueurs LF vers la zone du rebond.
+      // Source : positions du step LF (cur.off). Cible : reboundSetup.off.
+      ...(['O4', 'O5'] as AttackerId[])
+        .filter((id) => {
+          const from = cur.off[id];
+          const to = reboundSetup.off[id];
+          if (!from || !to) return false;
+          const d = Math.hypot(to.x - from.x, to.y - from.y);
+          return d > 10; // skip si pas de mouvement significatif
+        })
+        .map((id) => ({
+          type: 'cut' as const,
+          fromId: id,
+          toId: null,
+          from: { ...cur.off[id] },
+          to: { ...reboundSetup.off[id] },
+        })),
+    ],
+    context: 'live-play' as const,
+    manualOverride: true,
+    defenseOverrides: reboundSetup.def,
+  };
+  const steps = [...s.steps];
+  steps.splice(s.activeStep + 1, 0, newStep);
+  return { ...s, steps, activeStep: s.activeStep + 1 };
+}
+
 export function setInboundDefenseMode(
   s: AppState,
   mode: InboundDefenseMode

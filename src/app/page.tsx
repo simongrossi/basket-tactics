@@ -398,6 +398,7 @@ export default function Page() {
               onConvertToFreeThrow={app.convertStepToFreeThrow}
               onConvertToInbound={app.convertStepToInbound}
               onSetInboundDefenseMode={app.setInboundDefenseMode}
+              onAddFreeThrowReboundStep={app.addFreeThrowReboundStep}
             />
             <ScenarioPanel
               scriptedActions={app.state.scriptedActions ?? []}

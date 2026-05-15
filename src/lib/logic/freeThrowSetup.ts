@@ -84,3 +84,70 @@ export function buildFreeThrowSetup(): FreeThrowPositions {
     },
   };
 }
+
+/**
+ * F.2 — Setup post-lancer franc.
+ *
+ * Quand le lancer est manqué (`made = false`), les joueurs en couloir
+ * LF (O4, O5 offensifs + D4, D5 défensifs) convergent vers la zone de
+ * rebond. Les défenseurs (blocks) ont l'avantage de boxer dehors les
+ * attaquants ; les attaquants tentent de passer over-the-top.
+ *
+ * Quand le lancer est réussi (`made = true`), tout le monde recule
+ * pour la transition adverse : les défenseurs prennent leur back court,
+ * les attaquants retournent en défense.
+ */
+export function buildFreeThrowReboundSetup(made: boolean): FreeThrowPositions {
+  // Position du rebond : juste sous le cercle (offense côté offensif
+  // du cercle pour tip-in, défense côté baseline pour secure).
+  const reboundX = HOOP.x;
+  const reboundYDef = HOOP.y - 5;  // côté baseline
+  const reboundYOff = HOOP.y + 30; // côté FT line
+
+  if (made) {
+    // Made : recul de tout le monde pour transition adverse.
+    // Convention V1 : les joueurs partent vers leur back court.
+    // Comme le moteur est one-sided, on retourne juste au setup LF
+    // avec le shooter qui amorce une transition arrière.
+    return {
+      shooter: 'O1',
+      off: {
+        O1: { x: HOOP.x, y: 400 },               // recul vers défense
+        O2: { x: 110, y: 380 },
+        O3: { x: 490, y: 380 },
+        O4: { x: 250, y: 350 },
+        O5: { x: 350, y: 350 },
+      },
+      def: {
+        D1: { x: HOOP.x, y: 480 },              // transition complète
+        D2: { x: 130, y: 480 },
+        D3: { x: 470, y: 480 },
+        D4: { x: 240, y: 460 },
+        D5: { x: 360, y: 460 },
+      },
+    };
+  }
+
+  // Missed : course-rebond. Convergence vers la zone du cercle.
+  // Les blocks défensifs gardent leur position (priorité rebond).
+  // Les slots offensifs montent vers le cercle (over-the-top).
+  // Le shooter recule légèrement (LF line, pas dans la raquette).
+  // Les outlets restent prêts pour la transition rapide.
+  return {
+    shooter: 'O1',
+    off: {
+      O1: { x: HOOP.x, y: 280 },                  // shooter recule de la LF
+      O2: { x: 110, y: 240 },                     // outlet stays
+      O3: { x: 490, y: 240 },                     // outlet stays
+      O4: { x: reboundX + 25, y: reboundYOff },   // monte au cercle droit
+      O5: { x: reboundX - 25, y: reboundYOff },   // monte au cercle gauche
+    },
+    def: {
+      D1: { x: HOOP.x, y: 350 },                  // trail recule légèrement
+      D2: { x: 130, y: 270 },                     // outlet def stays
+      D3: { x: 470, y: 270 },                     // outlet def stays
+      D4: { x: reboundX + 20, y: reboundYDef },   // block défense gagne le rebond (côté droit)
+      D5: { x: reboundX - 20, y: reboundYDef },   // block défense gagne le rebond (côté gauche)
+    },
+  };
+}

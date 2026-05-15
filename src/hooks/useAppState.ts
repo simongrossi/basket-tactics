@@ -253,6 +253,13 @@ export function useAppState() {
     [setStateWithHistory]
   );
 
+  const addFreeThrowReboundStep = useCallback(
+    (made: boolean) => {
+      setStateWithHistory((s) => stepTx.addFreeThrowReboundStep(s, made));
+    },
+    [setStateWithHistory]
+  );
+
   // -- Joueurs (positions) --
   // Note : moves utilisent `playerMove` directement (déjà extrait), pas un
   // transform dédié, pour éviter une double indirection sur le chemin chaud.
@@ -625,6 +632,7 @@ export function useAppState() {
     convertStepToFreeThrow,
     convertStepToInbound,
     setInboundDefenseMode,
+    addFreeThrowReboundStep,
     loadTemplate,
     clearDefenseOverride,
     autoPositionOffBall,

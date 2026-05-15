@@ -19,6 +19,8 @@ interface StepsPanelProps {
   onConvertToInbound?: (side: InboundSide) => void;
   /** Applique un mode défensif spécifique sur le step inbound actif. */
   onSetInboundDefenseMode?: (mode: InboundDefenseMode) => void;
+  /** F.2 — Ajoute une étape course-rebond après un step LF (made/missed). */
+  onAddFreeThrowReboundStep?: (made: boolean) => void;
 }
 
 const inboundButtonStyle = {
@@ -236,6 +238,50 @@ export function StepsPanel(props: StepsPanelProps) {
             </button>
           </div>
         )}
+        {/* F.2 — boutons post-lancer : visibles uniquement si step actif est LF */}
+        {props.onAddFreeThrowReboundStep &&
+          props.state.steps[props.state.activeStep]?.context === 'free-throw' && (
+            <div style={{ marginTop: 4, display: 'flex', gap: 3 }}>
+              <button
+                type="button"
+                onClick={() => props.onAddFreeThrowReboundStep!(true)}
+                title="Ajoute un step post-lancer : LF réussi, transition adverse."
+                style={{
+                  flex: 1,
+                  fontSize: 10,
+                  padding: '4px 4px',
+                  borderRadius: 4,
+                  border: '1px solid #10b981',
+                  background: '#fff',
+                  color: '#065f46',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  minWidth: 0,
+                }}
+              >
+                🏀 +1 LF réussi
+              </button>
+              <button
+                type="button"
+                onClick={() => props.onAddFreeThrowReboundStep!(false)}
+                title="Ajoute un step post-lancer : LF manqué, course-rebond."
+                style={{
+                  flex: 1,
+                  fontSize: 10,
+                  padding: '4px 4px',
+                  borderRadius: 4,
+                  border: '1px solid #f59e0b',
+                  background: '#fff',
+                  color: '#92400e',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  minWidth: 0,
+                }}
+              >
+                ⚠ LF manqué + rebond
+              </button>
+            </div>
+          )}
         {props.onConvertToInbound && (
           <div style={{ marginTop: 4, display: 'flex', gap: 3 }}>
             <button
