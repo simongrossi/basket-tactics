@@ -21,7 +21,8 @@
 | ~~**E.3** — Rebond animé~~ | 🟢 livré 2026-05-16 (commit `874d96c`) | Trajectoire ballon shooter → cercle → rebondeur, parabole 2 phases. Rebond pré-calculé pour cohérence animation/outcome. | — | — |
 | ~~**E.2** — Jump ball initial~~ | 🟢 livré 2026-05-16 (commit `a61323c`) | Setup canonique entre-deux : 2 sauteurs au cercle central + 4+4 en arc, Règle 1 validée sur 45 paires. | — | — |
 | **E.1 V2 stage 1** | 🟢 livré 2026-05-16 (commit `6d99024`) | Ballon adverse animé entre 4 waypoints pendant `away-possession`. Banner "🔄 POSSESSION ADVERSE". Donne le visuel "il se passe qqch côté adverse". | — | — |
-| **E.1 V2 stage 2** — 2-way complet | ⚪ | 5 adversaires miroir rendus visuellement, matchups inversés, refacto AppState 2-way, diagnostic coach sur possessions adverses. Le reste du GROS morceau. | 3-5 j | 🏀 **P2** |
+| **E.1 V2 stage 2a** | 🟢 livré 2026-05-16 (commit `1cefa67`) | 5 adversaires miroir vertical autour de y=540, animés vers panier home, rendus en sprites rouges distinctifs. | — | — |
+| **E.1 V2 stage 2b** — refacto 2-way | ⚪ | Refacto AppState avec `currentlyAttackingTeam` natif, matchups inversés en mémoire, engine défensif côté home pendant phase away, diagnostic coach spécifique. | 2-4 j | 🏀 **P3** (futur) |
 
 ### Phase F — Situations FIBA basket
 
