@@ -25,7 +25,7 @@ import { computeMetrics } from '@/lib/logic/metrics';
 import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offense';
 import { computeCoachDiagnostics } from '@/lib/logic/coachDiagnostics';
 import { activeBallCarrier, activeOffense } from '@/lib/logic/players';
-import type { AppState } from '@/lib/types';
+import type { AppState, Step } from '@/lib/types';
 
 export default function Page() {
   const app = useAppState();
@@ -149,6 +149,17 @@ export default function Page() {
     [app]
   );
 
+  const handleLoadAiSteps = useCallback((steps: Step[], startStepIndex: number) => {
+    setIsPlaying(false);
+    setPlaybackT(null);
+    setPlaybackStartT(startStepIndex);
+    setScrubT(startStepIndex);
+    app.patch({
+      steps: structuredClone(steps),
+      activeStep: startStepIndex,
+    });
+  }, [app]);
+
   return (
     <main
       style={{
@@ -185,6 +196,7 @@ export default function Page() {
               onApplyDefensePreset={app.applyDefensePreset}
               onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
               onClearAllDefenseOverridesAnimated={app.clearAllDefenseOverridesActiveStepAnimated}
+              onLoadAiSteps={handleLoadAiSteps}
               scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
               onToggleScriptedDefense={app.toggleScriptedDefense}
               userDefensePresets={lib.library.defensePresets}

@@ -559,7 +559,17 @@ Ce qu'il faut pour que ça marche :
 - **B4 — UI** : bouton "▶ Play IA (live)" dans `SimulationSection`, HUD léger (possession, shot clock, score, dernière action), pause + vitesse.
 - **B5 — Tuning** via Monte-Carlo en parallèle (PPP du mode live vs simulator → ±0.15 attendu).
 
-**Statut** : repoussé tout en bas de la pile par décision projet (cf. `feedback project_priorities_2026_05`). Les refactos A* débloquent tout le reste, "Play IA" est une feature isolée qui peut attendre.
+**Statut 2026-05-15** : socle initial livré. Le panneau `Simulation & IA`
+peut générer 3 possessions autonomes depuis l'état courant, afficher le
+résumé PPP/outcomes, puis charger une possession en `Step[]` dans la
+timeline pour observer attaque + défense avec le moteur existant.
+
+Ce qui reste pour le vrai "match live" :
+- B1 loop temps réel `tick(matchState, dt)` avec continuité 24s.
+- B2 intentions persistantes par joueur (handler + off-ball movers).
+- B3 tir/rebond/transition de possession.
+- B4 HUD live complet (pause, vitesse, score, shot clock).
+- B5 calibration PPP live vs Monte-Carlo.
 
 ---
 

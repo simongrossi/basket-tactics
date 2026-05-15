@@ -1,14 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import type { AppState } from '@/lib/types';
+import type { AppState, Step } from '@/lib/types';
 import { Section, COLORS } from './ui';
 import { effectiveDefensePositions, getDefenseHoop } from '@/lib/logic/engine';
 import { simulatePossessions, type SimulationResult } from '@/lib/logic/simulator';
 import { activeBallCarrier, activeOffense } from '@/lib/logic/players';
+import {
+  generateAiMatchSeries,
+  type AiMatchSeries,
+  type AiPossessionOutcome,
+} from '@/lib/logic/match/aiPossession';
 
 interface SimulationSectionProps {
   state: AppState;
+  onLoadAiSteps?: (steps: Step[], startStepIndex: number) => void;
 }
 
 const PRESET_RUNS = [50, 200, 1000];
@@ -22,6 +28,16 @@ const OUTCOME_LABELS: Record<keyof SimulationResult['outcomes'], string> = {
   'forced-shot-missed': 'tirs forcés manqués',
 };
 
+const AI_OUTCOME_LABELS: Record<AiPossessionOutcome, string> = {
+  'shot-made': 'tir marqué',
+  'shot-missed': 'tir raté',
+  'turnover-pass': 'perte passe',
+  'turnover-drive': 'perte drive',
+  'forced-shot-made': 'tir forcé marqué',
+  'forced-shot-missed': 'tir forcé raté',
+  empty: 'sans action',
+};
+
 /**
  * Phase C : panneau Simulation Monte Carlo. Lance N possessions
  * stochastiques depuis l'état courant et affiche les stats agrégées
@@ -30,10 +46,12 @@ const OUTCOME_LABELS: Record<keyof SimulationResult['outcomes'], string> = {
  * La défense est figée pendant la simulation — limite assumée du MVP.
  * Les softmax(EV/τ=0.3) gouvernent les décisions offensives.
  */
-export function SimulationSection({ state }: SimulationSectionProps) {
+export function SimulationSection({ state, onLoadAiSteps }: SimulationSectionProps) {
   const c = COLORS.defense;
   const [result, setResult] = useState<SimulationResult | null>(null);
+  const [aiSeries, setAiSeries] = useState<AiMatchSeries | null>(null);
   const [running, setRunning] = useState(false);
+  const [runningAi, setRunningAi] = useState(false);
 
   const runSimulation = (runs: number) => {
     setRunning(true);
@@ -58,8 +76,62 @@ export function SimulationSection({ state }: SimulationSectionProps) {
     }, 0);
   };
 
+  const runAiMode = () => {
+    setRunningAi(true);
+    setTimeout(() => {
+      const series = generateAiMatchSeries(state, {
+        possessions: 3,
+        seed: Date.now(),
+        creativity: 0.42,
+      });
+      setAiSeries(series);
+      setRunningAi(false);
+    }, 0);
+  };
+
   return (
-    <Section theme="defense" label="Simulation (Monte Carlo)">
+    <Section theme="defense" label="Simulation & IA">
+      <div style={{ fontSize: 11, fontWeight: 700, color: c.accentText, marginBottom: 4 }}>
+        Mode IA possession
+      </div>
+      <div style={{ fontSize: 10, color: '#475569', marginBottom: 6, lineHeight: 1.4 }}>
+        Génère plusieurs possessions depuis l'état courant, puis charge une possession dans la timeline.
+      </div>
+      <button
+        type="button"
+        onClick={runAiMode}
+        disabled={runningAi}
+        style={{
+          width: '100%',
+          fontSize: 11,
+          padding: '6px 0',
+          borderRadius: 4,
+          border: `1px solid ${c.border}`,
+          background: runningAi ? '#f1f5f9' : '#eef2ff',
+          color: runningAi ? '#94a3b8' : '#3730a3',
+          cursor: runningAi ? 'wait' : 'pointer',
+          fontWeight: 700,
+          marginBottom: 8,
+        }}
+      >
+        ▶ générer 3 possessions IA
+      </button>
+      {runningAi && (
+        <div style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center', padding: '8px 0' }}>
+          IA en lecture…
+        </div>
+      )}
+      {aiSeries && !runningAi && (
+        <AiSeriesStats
+          series={aiSeries}
+          onLoadAiSteps={onLoadAiSteps}
+        />
+      )}
+
+      <div style={{ height: 1, background: '#e2e8f0', margin: '10px 0 8px' }} />
+      <div style={{ fontSize: 11, fontWeight: 700, color: c.accentText, marginBottom: 4 }}>
+        Monte Carlo
+      </div>
       <div style={{ fontSize: 10, color: '#475569', marginBottom: 6, lineHeight: 1.4 }}>
         Lance N possessions stochastiques sur l'état courant. La défense est figée pendant la sim.
       </div>
@@ -92,6 +164,69 @@ export function SimulationSection({ state }: SimulationSectionProps) {
         </div>
       )}
     </Section>
+  );
+}
+
+function AiSeriesStats({
+  series,
+  onLoadAiSteps,
+}: {
+  series: AiMatchSeries;
+  onLoadAiSteps?: (steps: Step[], startStepIndex: number) => void;
+}) {
+  const pppColor = series.summary.ppp >= 1.1 ? '#dc2626' : series.summary.ppp >= 0.85 ? '#d97706' : '#16a34a';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Stat label="PPP IA" value={series.summary.ppp.toFixed(2)} color={pppColor} />
+        <Stat label="pts" value={String(series.summary.totalPoints)} color="#475569" />
+        <Stat label="pertes" value={String(series.summary.turnovers)} color="#dc2626" />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {series.plans.map((plan) => (
+          <div
+            key={`${plan.possession}-${plan.seed}`}
+            style={{
+              padding: '6px',
+              border: '1px solid #e2e8f0',
+              borderRadius: 5,
+              background: '#f8fafc',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#334155' }}>
+                  P{plan.possession} · {AI_OUTCOME_LABELS[plan.outcome]} · {plan.points} pt
+                </div>
+                <div style={{ fontSize: 10, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {plan.events.map((e) => e.label).join(' · ') || 'Aucune décision'}
+                </div>
+              </div>
+              {onLoadAiSteps && (
+                <button
+                  type="button"
+                  onClick={() => onLoadAiSteps(plan.steps, plan.generatedStartIndex)}
+                  title="Charge cette possession dans la timeline pour la lire sur le terrain."
+                  style={{
+                    fontSize: 10,
+                    padding: '4px 6px',
+                    borderRadius: 4,
+                    border: '1px solid #c7d2fe',
+                    background: '#fff',
+                    color: '#3730a3',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  charger
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

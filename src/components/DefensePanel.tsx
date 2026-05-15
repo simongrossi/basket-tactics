@@ -9,6 +9,7 @@ import type {
   ZoneConfig,
   DropDepth,
   OffBallScreenRule,
+  Step,
 } from '@/lib/types';
 import { Panel, AccordionSection, Slider, CheckboxLine, Button, COLORS, InfoTooltip } from './ui';
 import { DEFENSE_PRESETS, type DefensePreset } from '@/lib/data/defensePresets';
@@ -47,6 +48,7 @@ interface DefensePanelProps {
    *  les fait glisser vers les positions auto sur ~700 ms (pédagogique pour
    *  montrer aux joueurs). Cf. useAppState.clearAllDefenseOverridesActiveStepAnimated. */
   onClearAllDefenseOverridesAnimated: () => void;
+  onLoadAiSteps?: (steps: Step[], startStepIndex: number) => void;
   scriptedDefenseEnabled?: boolean;
   onToggleScriptedDefense: () => void;
   userDefensePresets?: UserDefensePreset[];
@@ -1150,17 +1152,17 @@ export function DefensePanel(props: DefensePanelProps) {
       )}
 
       {/* ========================================================================
-          SECONDARY — Simulation Monte Carlo (action différée, tout en bas)
+          SECONDARY — Simulation / IA (action différée, tout en bas)
           ====================================================================== */}
       <AccordionSection
         id="defense-simulation"
         theme="defense"
-        label="Simulation Monte Carlo"
+        label="Simulation & IA"
         icon="🎬"
         variant="secondary"
         defaultOpen={false}
       >
-        <SimulationSection state={state} />
+        <SimulationSection state={state} onLoadAiSteps={props.onLoadAiSteps} />
       </AccordionSection>
     </Panel>
   );
