@@ -201,6 +201,15 @@ export interface MatchState {
   /** Box-Out V2 — instant (en ms `possessionTimeMs`) où le box-out a
    *  débuté. Utilisé pour calculer la progression d'animation. */
   boxOutStartedAtMs: number | null;
+  /** E.3 — résultat de rebond pré-calculé au moment du tir.
+   *  Permet d'animer le ballon vers la position du rebondeur PENDANT
+   *  la pause de transition (au lieu de calculer à la fin et téléporter
+   *  la balle). `null` hors phase rebond. */
+  pendingRebound: ReboundResult | null;
+  /** E.3 — position du ballon au moment du tir (= position du shooter).
+   *  Point de départ de l'animation de trajectoire (shooter → cercle
+   *  → rebondeur). */
+  shotBallStartPos: Point | null;
   /** B3b — nombre de possessions terminées (= 0 si encore dans la 1ère). */
   possessionsPlayed: number;
   /** B3b — limite de possessions pour cette session. `null` = endless,
@@ -289,6 +298,8 @@ export function createInitialMatchState(
     inboundTimerMs: isInbound ? INBOUND_TIMER_MS : null,
     boxOutTargets: null,
     boxOutStartedAtMs: null,
+    pendingRebound: null,
+    shotBallStartPos: null,
   };
 }
 
@@ -471,6 +482,48 @@ function handleTransitionPause(
     next.transitionStartedAtMs = next.possessionTimeMs;
   }
 
+  // E.3 — animer le ballon : tireur → cercle → rebondeur (parabole).
+  // Sur tir réussi (pas de pendingRebound), le ballon descend au cercle
+  // puis reste. Sur tir manqué, il rebondit vers la position du rebondeur.
+  if (next.shotBallStartPos && next.transitionStartedAtMs !== null) {
+    const hoop = getDefenseHoop(baseAppState);
+    const elapsed = next.possessionTimeMs - next.transitionStartedAtMs;
+    const totalDuration = TRANSITION_PAUSE_MS;
+    const progress = Math.min(1, elapsed / totalDuration);
+    if (next.pendingRebound && next.pendingRebound.rebounder) {
+      // Tir manqué : trajectoire shooter → cercle → rebondeur (2 phases).
+      // Phase 1 (0-50%) : ballon va au cercle avec arc haut.
+      // Phase 2 (50-100%) : ballon descend vers le rebondeur.
+      const reboundPos = next.pendingRebound.position;
+      if (progress < 0.5) {
+        const t = progress / 0.5;
+        const baseY =
+          next.shotBallStartPos.y + (hoop.y - next.shotBallStartPos.y) * t;
+        const baseX =
+          next.shotBallStartPos.x + (hoop.x - next.shotBallStartPos.x) * t;
+        // Arc parabolique : peak à t=0.5, hauteur 50 px au-dessus de la droite.
+        const arc = 50 * 4 * t * (1 - t);
+        next.ballPos = { x: baseX, y: baseY - arc };
+      } else {
+        const t = (progress - 0.5) / 0.5;
+        const baseX = hoop.x + (reboundPos.x - hoop.x) * t;
+        const baseY = hoop.y + (reboundPos.y - hoop.y) * t;
+        // Petit ricoche bas (arc 25 px).
+        const arc = 25 * 4 * t * (1 - t);
+        next.ballPos = { x: baseX, y: baseY - arc };
+      }
+    } else {
+      // Tir réussi : ballon va au cercle puis reste, avec arc complet.
+      const t = progress;
+      const baseX =
+        next.shotBallStartPos.x + (hoop.x - next.shotBallStartPos.x) * t;
+      const baseY =
+        next.shotBallStartPos.y + (hoop.y - next.shotBallStartPos.y) * t;
+      const arc = 60 * 4 * t * (1 - t);
+      next.ballPos = { x: baseX, y: baseY - arc };
+    }
+  }
+
   // Box-Out V2 — animer les défenseurs vers leurs cibles sur les
   // premières BOXOUT_ANIMATION_MS de la pause, puis figer.
   if (next.boxOutTargets && next.boxOutStartedAtMs !== null) {
@@ -507,6 +560,9 @@ function handleTransitionPause(
   // reset les positions ou démarrer une nouvelle possession).
   next.boxOutTargets = null;
   next.boxOutStartedAtMs = null;
+  // E.3 — désarme l'animation ballon (la transition gère la suite).
+  next.pendingRebound = null;
+  next.shotBallStartPos = null;
 
   // Pause terminée → résoudre la transition.
   return executeTransition(next, baseAppState, options);
@@ -528,12 +584,18 @@ function executeTransition(
 
   // On évalue le rebond ICI (mode E.1 V1) pour savoir si la possession
   // se termine ou continue (rebond offensif = même possession).
+  // E.3 — Si `pendingRebound` a déjà été calculé au moment du tir, on
+  // le réutilise (pour assurer la cohérence avec l'animation du ballon).
   const reboundRateOverride = options.offensiveReboundRate;
   let rebound: ReboundResult | null = null;
   let offensiveReboundDecided = false;
   if (isMissedShot) {
     if (reboundRateOverride !== undefined) {
       offensiveReboundDecided = rng() < reboundRateOverride;
+    } else if (state.pendingRebound) {
+      // E.3 — réutiliser le pré-calcul, pas de re-roll.
+      rebound = state.pendingRebound;
+      offensiveReboundDecided = rebound.type === 'offensive';
     } else {
       const hoop = getDefenseHoop(baseAppState);
       const shotEvent = [...state.eventLog].reverse().find(
@@ -1090,6 +1152,26 @@ function resolveShot(
   // handleTransitionPause animer le déplacement sur BOXOUT_ANIMATION_MS.
   state.boxOutTargets = computeBoxOutTargets(state, hoop);
   state.boxOutStartedAtMs = state.possessionTimeMs;
+  // E.3 — pré-calcul du rebond pour animer le ballon pendant la pause.
+  // Sur tir manqué uniquement : on appelle computeRebound MAINTENANT
+  // pour connaître la position d'arrivée du ballon. Sur tir réussi, le
+  // ballon reste au cercle (pas de rebond).
+  const carrierPos = state.off[state.carrier];
+  state.shotBallStartPos = carrierPos ? { ...carrierPos } : { ...action.shotPos };
+  if (!made) {
+    const reboundRng = seededAiRng(state.seed + state.tickCount * 17 + 3);
+    state.pendingRebound = computeRebound({
+      off: state.off,
+      defPos: state.defPos,
+      hoop,
+      shotPos: action.shotPos,
+      attackerProfiles: baseAppState.attackerProfiles,
+      shooter: state.carrier,
+      rng: reboundRng,
+    });
+  } else {
+    state.pendingRebound = null;
+  }
   return state;
 }
 

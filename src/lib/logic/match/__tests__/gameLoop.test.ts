@@ -424,6 +424,120 @@ describe('gameLoop — timer 5s violation remise en jeu', () => {
   });
 });
 
+describe('gameLoop — E.3 Rebond animé', () => {
+  function buildShootingState(): AppState {
+    return buildState('pnr-central');
+  }
+
+  it("pendingRebound et shotBallStartPos init null", () => {
+    const state = createInitialMatchState(buildShootingState(), { seed: 1 });
+    expect(state.pendingRebound).toBeNull();
+    expect(state.shotBallStartPos).toBeNull();
+  });
+
+  it("shotBallStartPos posé au moment de la résolution du tir", () => {
+    const baseState = buildShootingState();
+    let state = createInitialMatchState(baseState, {
+      seed: 13,
+      shotClockMs: MATCH_TICK_MS,
+    });
+    state = tickMatch(state, MATCH_TICK_MS, baseState);
+    if (
+      state.outcome === 'shot-made' ||
+      state.outcome === 'shot-missed' ||
+      state.outcome === 'forced-shot-made' ||
+      state.outcome === 'forced-shot-missed'
+    ) {
+      expect(state.shotBallStartPos).not.toBeNull();
+      expect(typeof state.shotBallStartPos!.x).toBe('number');
+    }
+  });
+
+  it("pendingRebound posé uniquement sur tir manqué (pas sur made)", () => {
+    const baseState = buildShootingState();
+    let state = createInitialMatchState(baseState, {
+      seed: 13,
+      shotClockMs: MATCH_TICK_MS,
+    });
+    state = tickMatch(state, MATCH_TICK_MS, baseState);
+    const missed =
+      state.outcome === 'shot-missed' || state.outcome === 'forced-shot-missed';
+    const made =
+      state.outcome === 'shot-made' || state.outcome === 'forced-shot-made';
+    if (missed) {
+      expect(state.pendingRebound).not.toBeNull();
+      expect(state.pendingRebound!.rebounder).toBeDefined();
+    }
+    if (made) {
+      expect(state.pendingRebound).toBeNull();
+    }
+  });
+
+  it("ballPos est animé pendant la pause (déplacement progressif)", () => {
+    const baseState = buildShootingState();
+    let state = createInitialMatchState(baseState, {
+      seed: 13,
+      shotClockMs: MATCH_TICK_MS,
+    });
+    state = tickMatch(state, MATCH_TICK_MS, baseState);
+    if (state.shotBallStartPos === null) return; // skip si pas un tir
+    const ballAfterShot = { ...state.ballPos };
+    // Tick quelques fois pour voir l'animation.
+    state = tickMatch(state, MATCH_TICK_MS, baseState);
+    state = tickMatch(state, MATCH_TICK_MS, baseState);
+    state = tickMatch(state, MATCH_TICK_MS, baseState);
+    // Le ballon doit avoir bougé (parabole vers cercle).
+    const moved =
+      Math.abs(state.ballPos.x - ballAfterShot.x) > 0.5 ||
+      Math.abs(state.ballPos.y - ballAfterShot.y) > 0.5;
+    expect(moved).toBe(true);
+  });
+
+  it("pendingRebound désarmé après transition complète", () => {
+    const baseState = buildShootingState();
+    let state = createInitialMatchState(baseState, {
+      seed: 13,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 3,
+    });
+    // Tick jusqu'à fin de pause + transition.
+    for (let i = 0; i < 80; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState, { offensiveReboundRate: 0 });
+      if (state.pendingRebound === null && state.shotBallStartPos === null && state.possession >= 2) break;
+    }
+    expect(state.pendingRebound).toBeNull();
+    expect(state.shotBallStartPos).toBeNull();
+  });
+
+  it("le rebond utilisé par executeTransition est cohérent avec pendingRebound", () => {
+    // Sur tir manqué + RNG défavorable au rebond off, l'attackingTeam
+    // bascule en away SI pendingRebound.type === 'defensive'.
+    // On vérifie au moins que le rebond pré-calculé n'est pas re-roll.
+    const baseState = buildShootingState();
+    let state = createInitialMatchState(baseState, {
+      seed: 17,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 3,
+    });
+    state = tickMatch(state, MATCH_TICK_MS, baseState);
+    if (state.pendingRebound === null) return; // skip si tir réussi
+    const preComputedType = state.pendingRebound.type;
+    const preComputedRebounder = state.pendingRebound.rebounder;
+    // Joue la pause + transition complète.
+    for (let i = 0; i < 60; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+      if (state.pendingRebound === null) break;
+    }
+    // Vérifie cohérence : si rebond offensif, le carrier doit être le
+    // rebondeur ; si défensif, on est en attackingTeam='away'.
+    if (preComputedType === 'offensive' && preComputedRebounder?.startsWith('O')) {
+      expect(state.carrier).toBe(preComputedRebounder);
+    } else if (preComputedType === 'defensive') {
+      expect(state.attackingTeam).toBe('away');
+    }
+  });
+});
+
 describe('gameLoop — Box-Out V2 animation', () => {
   function buildShootingState(): AppState {
     return buildState('pnr-central');
