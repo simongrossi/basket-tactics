@@ -339,38 +339,76 @@ function LiveMatchPanel({ state }: { state: AppState }) {
       </div>
 
       {matchState && (
-        <div
-          style={{
-            display: 'flex',
-            gap: 4,
-            padding: '6px 8px',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: 5,
-            fontSize: 11,
-            color: '#1e293b',
-          }}
-        >
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>shot clock</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: shotClockColor, lineHeight: 1.1 }}>
-              {shotClockSec.toFixed(1)}
-              <span style={{ fontSize: 10, color: '#94a3b8' }}> s</span>
+        <>
+          <div
+            style={{
+              display: 'flex',
+              gap: 4,
+              padding: '6px 8px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: 5,
+              fontSize: 11,
+              color: '#1e293b',
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>shot clock</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: shotClockColor, lineHeight: 1.1 }}>
+                {shotClockSec.toFixed(1)}
+                <span style={{ fontSize: 10, color: '#94a3b8' }}> s</span>
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>score</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#1e3a8a', lineHeight: 1.1 }}>
+                +{matchState.score}
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>porteur</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#7c2d12', lineHeight: 1.1 }}>
+                {matchState.carrier}
+              </div>
             </div>
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>score</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#1e3a8a', lineHeight: 1.1 }}>
-              +{matchState.score}
-            </div>
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>porteur</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#7c2d12', lineHeight: 1.1 }}>
-              {matchState.carrier}
-            </div>
-          </div>
-        </div>
+          {/* B2 — indicateur d'activité off-ball */}
+          {(() => {
+            const active = Object.entries(matchState.offBallIntents).filter(
+              ([, intent]) => intent && intent.kind !== 'idle'
+            );
+            if (active.length === 0) return null;
+            return (
+              <div style={{ marginTop: 4, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {active.map(([id, intent]) => (
+                  <span
+                    key={id}
+                    style={{
+                      fontSize: 9,
+                      padding: '2px 5px',
+                      borderRadius: 3,
+                      background:
+                        intent!.kind === 'cut'
+                          ? '#fee2e2'
+                          : intent!.kind === 'relocate'
+                            ? '#fef3c7'
+                            : '#e0f2fe',
+                      color:
+                        intent!.kind === 'cut'
+                          ? '#991b1b'
+                          : intent!.kind === 'relocate'
+                            ? '#92400e'
+                            : '#075985',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {id} {intent!.kind}
+                  </span>
+                ))}
+              </div>
+            );
+          })()}
+        </>
       )}
 
       {isFinished && outcomeLabel && (

@@ -43,6 +43,13 @@ import type {
   AiPossessionEvent,
   AiPossessionOutcome,
 } from './aiPossession';
+import {
+  DECISION_INTERVAL_TICKS,
+  advanceOffBallIntents,
+  decideOffBallIntents,
+  triggerRelocateAfterPass,
+  type OffBallIntents,
+} from './decisions/offBallMover';
 
 // ============================================================
 // Constantes
@@ -112,6 +119,9 @@ export interface MatchState {
   tickCount: number;
   /** Intent courant du porteur. */
   intent: CarrierIntent;
+  /** Intents par off-ball (= non-carriers). Décidés tous les
+   *  `DECISION_INTERVAL_TICKS` ticks, avancés à chaque tick. */
+  offBallIntents: OffBallIntents;
   /** Score final (0/2/3) si la possession est terminée, sinon 0. */
   score: number;
   /** Outcome final si terminé, sinon `null` (= en cours). */
@@ -167,6 +177,7 @@ export function createInitialMatchState(
     possessionTimeMs: 0,
     tickCount: 0,
     intent: { kind: 'idle' },
+    offBallIntents: {},
     score: 0,
     outcome: null,
     eventLog: [],
@@ -208,10 +219,35 @@ export function tickMatch(
     defPos: cloneDef(matchState.defPos),
     ballPos: { ...matchState.ballPos },
     eventLog: [...matchState.eventLog],
+    offBallIntents: { ...matchState.offBallIntents },
     tickCount: matchState.tickCount + 1,
     possessionTimeMs: matchState.possessionTimeMs + dtMs,
     shotClockMs: Math.max(0, matchState.shotClockMs - dtMs),
   };
+
+  // B2 — décideur off-ball : (re)évalué tous les DECISION_INTERVAL_TICKS
+  // ticks. Cuts en cours conservés (jamais annulés à mi-chemin). Drift
+  // décidé en fonction de la distance au slot idéal.
+  if (next.tickCount % DECISION_INTERVAL_TICKS === 0) {
+    next.offBallIntents = decideOffBallIntents({
+      off: next.off,
+      defPos: next.defPos,
+      carrier: next.carrier,
+      hoop: getDefenseHoop(baseAppState),
+      rng,
+      currentIntents: next.offBallIntents,
+      attackerProfiles: baseAppState.attackerProfiles,
+    });
+  }
+  // B2 — chaque tick, on avance les positions off-ball selon leur intent.
+  // Mute `next.off` en place (avec push-out anti-overlap entre coéquipiers).
+  const advanced = advanceOffBallIntents({
+    off: next.off,
+    intents: next.offBallIntents,
+    hoop: getDefenseHoop(baseAppState),
+  });
+  next.off = advanced.off;
+  next.offBallIntents = advanced.intents;
 
   // Shot clock expiré : forced shot sur l'action shoot disponible (ou tir
   // forcé à 0 % si rien d'utile).
@@ -390,18 +426,36 @@ function advancePass(
       state.intent = { kind: 'idle' };
       return state;
     }
+    const previousCarrier = state.carrier;
     const newCarrier = state.intent.receiver;
     state.carrier = newCarrier;
     state.ballPos = ballAt(to);
     state.eventLog.push({
       possession: state.possession,
       clock: state.shotClockMs / 1000,
-      actor: state.carrier,
+      actor: previousCarrier,
       targetId: newCarrier,
       type: 'pass',
-      label: `Passe ${state.carrier}→${newCarrier}`,
+      label: `Passe ${previousCarrier}→${newCarrier}`,
     });
     state.intent = { kind: 'idle' };
+    // B2 — l'ancien porteur relocate vers son slot vacant.
+    const relocate = triggerRelocateAfterPass({
+      previousCarrier,
+      newCarrier,
+      off: state.off,
+      hoop: getDefenseHoop(baseAppState),
+      attackerProfiles: baseAppState.attackerProfiles,
+    });
+    if (relocate) {
+      state.offBallIntents = { ...state.offBallIntents, [previousCarrier]: relocate };
+    }
+    // Le nouveau porteur ne doit plus avoir d'intent off-ball.
+    if (state.offBallIntents[newCarrier]) {
+      const cleaned = { ...state.offBallIntents };
+      delete cleaned[newCarrier];
+      state.offBallIntents = cleaned;
+    }
     refreshDefense(state, baseAppState);
     return state;
   }
