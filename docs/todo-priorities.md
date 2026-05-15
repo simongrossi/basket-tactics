@@ -20,7 +20,8 @@
 |---|---|---|---|---|
 | ~~**E.3** — Rebond animé~~ | 🟢 livré 2026-05-16 (commit `874d96c`) | Trajectoire ballon shooter → cercle → rebondeur, parabole 2 phases. Rebond pré-calculé pour cohérence animation/outcome. | — | — |
 | ~~**E.2** — Jump ball initial~~ | 🟢 livré 2026-05-16 (commit `a61323c`) | Setup canonique entre-deux : 2 sauteurs au cercle central + 4+4 en arc, Règle 1 validée sur 45 paires. | — | — |
-| **E.1 V2** — 2-way complet | ⚪ | Pendant la phase adverse stub, rendre les positions adverses visuellement (mirroring + matchups inversés), AppState étendu avec côté attaquant. Le **GROS morceau** : débloque les vrais matchs full court. | 5-8 j | 🏀 **P2** |
+| **E.1 V2 stage 1** | 🟢 livré 2026-05-16 (commit `6d99024`) | Ballon adverse animé entre 4 waypoints pendant `away-possession`. Banner "🔄 POSSESSION ADVERSE". Donne le visuel "il se passe qqch côté adverse". | — | — |
+| **E.1 V2 stage 2** — 2-way complet | ⚪ | 5 adversaires miroir rendus visuellement, matchups inversés, refacto AppState 2-way, diagnostic coach sur possessions adverses. Le reste du GROS morceau. | 3-5 j | 🏀 **P2** |
 
 ### Phase F — Situations FIBA basket
 
@@ -34,15 +35,15 @@
 | Item | Statut | Description | Effort | Priorité |
 |---|---|---|---|---|
 | ~~**Box-out auto post-shot**~~ | 🟢 livré 2026-05-16 (commit `e79453c`) | Coach diagnostic `boxOutCheckRule` qui détecte phase de rebond et flag défenseurs mal positionnés. Le box-out animé live existait déjà (E.1 V2). | — | — |
-| **Diagnostic défensif sur remise** | ⚪ | Coach diag spécifique : "ton mode deny-deny laisse O3 libre coin", "zone-press = D5 sweeper hors-zone", "stagger casse face-guard à 50%", etc. | ~1-2 j | 🏀 **P2** |
-| **Templates défense d'attaque** | ⚪ | Templates qui montrent une zone 1-3-1 ou 2-3 face à un BLOB Box (pédagogie défensive sur remise). 4-6 templates. | ~30 min × N | 🏀 **P2** |
+| ~~**Diagnostic défensif sur remise**~~ | 🟢 livré 2026-05-16 (commit `dcfe8c3`) | Règle coach `inboundDefenseRule` : 3 checks (pression passeur, deny receveur principal, attaquants ouverts). Verdict ok-vs-warning-vs-critical. | — | — |
+| ~~**Templates défense d'attaque**~~ | 🟢 livré 2026-05-16 (commit `e73aad2`) | 3 templates pédagogiques : Box vs face-guard, Stack vs zone 2-3, Hammer vs zone-press. Défense figée par defenseOverrides. | — | — |
 | **Compteur 5s diagnostic statique** | 🟡 | Le timer live est livré. Ajouter un diagnostic statique qui calcule la durée estimée des étapes inbound (basé sur `secondsPerStep`) et flag warning si > 5s. | ~1h | 🏀 **P3** |
 
 ### Phase I — Polish Play IA (basket dans le tuning)
 
 | Item | Statut | Description | Effort | Priorité |
 |---|---|---|---|---|
-| **B5+ — Auto-tuning calibration** | ⚪ | Boucle auto qui ajuste `creativity` jusqu'à `\|Δ PPP\| ≤ 0.15` (au lieu de suggestions textuelles manuelles). Permet de calibrer l'IA sur des scénarios donnés. | ~1-2 j | 🏀 **P2** |
+| ~~**B5+ — Auto-tuning calibration**~~ | 🟢 livré 2026-05-16 (commit `0192916`) | Dichotomie sur creativity, max 8 itérations. Bouton "🎯 auto-tune" dans CalibrationPanel. Verdict converged/non + historique. | — | — |
 | **B6 — Vitesse accélérée live** | ⚪ | Multiplicateurs ×2 / ×4 / ×8 sur la game loop pour tests rapides (déjà partiellement câblé via `useMatchLoop.speed`). Utile pour valider des séries de possessions. | ~30 min | 🏀 **P3** |
 | **B7 — Replay détaillé post-match** | ⚪ | Vue "post-mortem" qui affiche la séquence d'événements + permet le scrub sur le matchState complet (au-delà du current step-by-step). | ~1 j | 🏀 **P3** |
 
@@ -96,11 +97,12 @@ Total basket P1 + P2 : **~10-15 jours** ouvrés.
 3. ~~**Box-out auto post-shot**~~ ✅ commit `e79453c`
 4. ~~**E.2 — Jump ball initial**~~ ✅ commit `a61323c`
 
-### Salve P2 (extensions tactiques) — ~7-12 jours
-5. **E.1 V2 — 2-way complet** (5-8j) — LE gros morceau, débloque vraie alternance visuelle
-6. **Diagnostic défensif sur remise** (~1-2j) — coach diag avancé
-7. **Templates défense d'attaque** (~30min × 4 = ~2h) — pédagogie complète
-8. **B5+ — Auto-tuning** (~1-2j) — calibration auto
+### ~~Salve P2 (extensions tactiques)~~ — 🟡 partiellement livrée 2026-05-16
+5. **E.1 V2 stage 1** ✅ commit `6d99024` — ballon adverse animé
+5b. **E.1 V2 stage 2** ⚪ reste (3-5j) — 5 adversaires complets + matchups + refacto
+6. ~~**Diagnostic défensif sur remise**~~ ✅ commit `dcfe8c3`
+7. ~~**Templates défense d'attaque**~~ ✅ commit `e73aad2`
+8. ~~**B5+ — Auto-tuning**~~ ✅ commit `0192916`
 
 ### Salve P3 (polish basket) — ~3-5 jours
 9. **F.4 — Pénalité technique** (~0.5j)
