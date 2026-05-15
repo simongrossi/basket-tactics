@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useAppState } from '@/hooks/useAppState';
 import { useLibrary } from '@/hooks/useLibrary';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useMatchLoop } from '@/hooks/useMatchLoop';
 import { OffenseToolsPanel } from '@/components/OffenseToolsPanel';
 import { StepsPanel } from '@/components/StepsPanel';
 import { ScenarioPanel } from '@/components/ScenarioPanel';
@@ -40,6 +41,11 @@ export default function Page() {
   const [playbackStartT, setPlaybackStartT] = useState(0);
   const [presentMode, setPresentMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // B4 — Game loop "▶ Play IA (live)" : hook unique remonté au niveau page
+  // pour partager le matchState live entre CourtView (rendu terrain) et
+  // SimulationSection (HUD événements + contrôles).
+  const matchLoop = useMatchLoop({ baseState: app.state });
 
   const metrics = useMemo(() => {
     const step = app.state.steps[app.state.activeStep];
@@ -196,6 +202,7 @@ export default function Page() {
               onApplyDefensePreset={app.applyDefensePreset}
               onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
               onClearAllDefenseOverridesAnimated={app.clearAllDefenseOverridesActiveStepAnimated}
+              matchLoop={matchLoop}
               onLoadAiSteps={handleLoadAiSteps}
               scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
               onToggleScriptedDefense={app.toggleScriptedDefense}
@@ -256,6 +263,7 @@ export default function Page() {
                 app.setActiveStep(app.state.steps.length - 1);
               }}
               defenseReleaseTransition={app.defenseReleaseTransition}
+              liveMatchState={matchLoop.matchState}
             />
             <FloatingActionsMenu
               presentMode={presentMode}

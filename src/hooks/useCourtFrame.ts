@@ -20,6 +20,7 @@ import type {
   Point,
 } from '@/lib/types';
 import type { DefenseReleaseTransition } from '@/hooks/useAppState';
+import type { MatchState } from '@/lib/logic/match/gameLoop';
 import {
   computeAttackerVisuals,
   effectiveDefensePositions,
@@ -48,6 +49,10 @@ interface UseCourtFrameOptions {
    *  positions défenseurs sont lerp depuis `fromPositions` vers les positions
    *  auto recomputées par l'engine, sur `durationMs`. */
   defenseReleaseTransition?: DefenseReleaseTransition | null;
+  /** B4 — état de la game loop "▶ Play IA (live)". Quand non-null, le
+   *  rendu utilise les positions live au lieu du staticFrame. Priorité
+   *  maximale dans la frame chain. */
+  liveMatchState?: MatchState | null;
 }
 
 export interface UseCourtFrameResult {
@@ -64,7 +69,7 @@ function extractDefPositions(defPos: ComputedDefense): Record<DefenderId, Point>
 }
 
 export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
-  const { state, isPlaying, playbackSpeed, playbackStartT, scrubT, onPlaybackTick, onPlaybackEnd, defenseReleaseTransition } = opts;
+  const { state, isPlaying, playbackSpeed, playbackStartT, scrubT, onPlaybackTick, onPlaybackEnd, defenseReleaseTransition, liveMatchState } = opts;
 
   const [playFrame, setPlayFrame] = useState<PlaybackFrame | null>(null);
   const stateRef = useRef(state);
@@ -216,9 +221,30 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defenseReleaseTransition, staticFrame, releaseTick]);
 
-  // Priorité : playback > scrub > release animation > static. Playback et
-  // scrub ont leur propre flux d'interpolation et n'ont pas besoin de l'anim.
-  const frame = playFrame ?? scrubFrame ?? releaseFrame ?? staticFrame;
+  // B4 — Frame "match live" construite depuis `MatchState`. Priorité
+  // maximale : quand un match IA tourne (ou est en pause à mi-possession),
+  // l'utilisateur veut voir cet état, pas le scénario édité.
+  const liveMatchFrame = useMemo<PlaybackFrame | null>(() => {
+    if (!liveMatchState) return null;
+    return {
+      off: liveMatchState.off,
+      defPos: liveMatchState.defPos,
+      carrier: liveMatchState.carrier,
+      screen: null,
+      offBallScreens: [],
+      stepIdx: state.activeStep,
+      ballPos: liveMatchState.ballPos,
+      ballInFlight: liveMatchState.intent.kind === 'pass',
+      attVisuals: computeAttackerVisuals(state, state.activeStep),
+      attackerIsScreening: {},
+      attackerMovementType: {},
+    };
+  }, [liveMatchState, state]);
+
+  // Priorité : matchLive > playback > scrub > release animation > static.
+  // Le matchLive prime sur tout : c'est ce que l'utilisateur regarde quand
+  // un match IA tourne. Playback/scrub n'ont pas de sens pendant un live.
+  const frame = liveMatchFrame ?? playFrame ?? scrubFrame ?? releaseFrame ?? staticFrame;
   const threatData = state.showThreats
     ? computeAttackerThreats(
         frame.off,

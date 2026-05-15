@@ -11,11 +11,14 @@ import {
   type AiMatchSeries,
   type AiPossessionOutcome,
 } from '@/lib/logic/match/aiPossession';
-import { useMatchLoop } from '@/hooks/useMatchLoop';
+import { useMatchLoop, type UseMatchLoopResult } from '@/hooks/useMatchLoop';
 
 interface SimulationSectionProps {
   state: AppState;
   onLoadAiSteps?: (steps: Step[], startStepIndex: number) => void;
+  /** B4 — partagé via page.tsx pour synchroniser CourtView et HUD live.
+   *  Si absent, le composant instancie son propre hook (rétrocompat tests). */
+  matchLoop?: UseMatchLoopResult;
 }
 
 const PRESET_RUNS = [50, 200, 1000];
@@ -47,7 +50,7 @@ const AI_OUTCOME_LABELS: Record<AiPossessionOutcome, string> = {
  * La défense est figée pendant la simulation — limite assumée du MVP.
  * Les softmax(EV/τ=0.3) gouvernent les décisions offensives.
  */
-export function SimulationSection({ state, onLoadAiSteps }: SimulationSectionProps) {
+export function SimulationSection({ state, onLoadAiSteps, matchLoop }: SimulationSectionProps) {
   const c = COLORS.defense;
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [aiSeries, setAiSeries] = useState<AiMatchSeries | null>(null);
@@ -130,7 +133,7 @@ export function SimulationSection({ state, onLoadAiSteps }: SimulationSectionPro
       )}
 
       <div style={{ height: 1, background: '#e2e8f0', margin: '10px 0 8px' }} />
-      <LiveMatchPanel state={state} />
+      <LiveMatchPanel state={state} matchLoop={matchLoop} />
 
       <div style={{ height: 1, background: '#e2e8f0', margin: '10px 0 8px' }} />
       <div style={{ fontSize: 11, fontWeight: 700, color: c.accentText, marginBottom: 4 }}>
@@ -289,10 +292,18 @@ function SimulationStats({ result }: { result: SimulationResult }) {
  *  Le terrain affiché côté CourtView N'EST PAS encore synchronisé avec le
  *  matchState live (livré en B4 = UI complète). En attendant, ce panneau
  *  permet déjà de valider que le tick produit des outcomes cohérents. */
-function LiveMatchPanel({ state }: { state: AppState }) {
-  const { matchState, isRunning, start, pause, resume, stop } = useMatchLoop({
-    baseState: state,
-  });
+function LiveMatchPanel({
+  state,
+  matchLoop,
+}: {
+  state: AppState;
+  matchLoop?: UseMatchLoopResult;
+}) {
+  // Fallback : si pas de matchLoop fourni en prop (cas tests / usage local),
+  // on instancie un hook local. Le code de page.tsx fournit toujours le prop
+  // pour partager l'état avec CourtView.
+  const fallbackLoop = useMatchLoop({ baseState: state });
+  const { matchState, isRunning, start, pause, resume, stop } = matchLoop ?? fallbackLoop;
 
   const shotClockSec = matchState ? Math.max(0, matchState.shotClockMs / 1000) : 24;
   const shotClockColor =
@@ -409,6 +420,46 @@ function LiveMatchPanel({ state }: { state: AppState }) {
             );
           })()}
         </>
+      )}
+
+      {/* B4 — live event feed : 5 derniers événements de la possession en cours */}
+      {matchState && matchState.eventLog.length > 0 && (
+        <div
+          style={{
+            marginTop: 6,
+            padding: '5px 8px',
+            background: '#fafafa',
+            border: '1px solid #e2e8f0',
+            borderRadius: 5,
+            fontSize: 10,
+            color: '#475569',
+            maxHeight: 100,
+            overflowY: 'auto',
+          }}
+        >
+          <div style={{ fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>
+            événements ({matchState.eventLog.length})
+          </div>
+          {[...matchState.eventLog]
+            .slice(-5)
+            .reverse()
+            .map((event, i) => (
+              <div
+                key={`${event.clock}-${i}`}
+                style={{
+                  display: 'flex',
+                  gap: 6,
+                  padding: '2px 0',
+                  borderBottom: i < 4 ? '1px solid #f1f5f9' : 'none',
+                }}
+              >
+                <span style={{ flex: '0 0 32px', color: '#94a3b8', fontFamily: 'monospace' }}>
+                  {event.clock.toFixed(1)}s
+                </span>
+                <span style={{ flex: 1 }}>{event.label}</span>
+              </div>
+            ))}
+        </div>
       )}
 
       {isFinished && outcomeLabel && (

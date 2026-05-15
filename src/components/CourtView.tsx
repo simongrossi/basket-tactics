@@ -110,6 +110,10 @@ interface CourtViewProps {
    *  time. Quand non-null et hors playback/scrub, useCourtFrame lerp les
    *  positions défenseurs depuis `fromPositions` vers la cible auto. */
   defenseReleaseTransition?: import('@/hooks/useAppState').DefenseReleaseTransition | null;
+  /** B4 — état de la game loop "▶ Play IA (live)". Quand non-null, le
+   *  rendu du terrain utilise ces positions au lieu du staticFrame.
+   *  Priorité maximale dans la frame chain (au-dessus de playback et scrub). */
+  liveMatchState?: import('@/lib/logic/match/gameLoop').MatchState | null;
 }
 
 export function CourtView(props: CourtViewProps) {
@@ -153,6 +157,7 @@ export function CourtView(props: CourtViewProps) {
     onPlaybackTick: props.onPlaybackTick,
     onPlaybackEnd: props.onPlaybackEnd,
     defenseReleaseTransition: props.defenseReleaseTransition,
+    liveMatchState: props.liveMatchState,
   });
 
   const closeCtxMenu = useCallback(() => setCtxMenu(null), []);

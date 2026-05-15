@@ -49,6 +49,10 @@ interface DefensePanelProps {
    *  montrer aux joueurs). Cf. useAppState.clearAllDefenseOverridesActiveStepAnimated. */
   onClearAllDefenseOverridesAnimated: () => void;
   onLoadAiSteps?: (steps: Step[], startStepIndex: number) => void;
+  /** B4 — résultat de `useMatchLoop` remonté au niveau page pour que
+   *  SimulationSection (HUD) et CourtView (rendu terrain) partagent la
+   *  même source. Optionnel pour rétrocompat. */
+  matchLoop?: import('@/hooks/useMatchLoop').UseMatchLoopResult;
   scriptedDefenseEnabled?: boolean;
   onToggleScriptedDefense: () => void;
   userDefensePresets?: UserDefensePreset[];
@@ -1162,7 +1166,7 @@ export function DefensePanel(props: DefensePanelProps) {
         variant="secondary"
         defaultOpen={false}
       >
-        <SimulationSection state={state} onLoadAiSteps={props.onLoadAiSteps} />
+        <SimulationSection state={state} onLoadAiSteps={props.onLoadAiSteps} matchLoop={props.matchLoop} />
       </AccordionSection>
     </Panel>
   );
