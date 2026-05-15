@@ -55,10 +55,17 @@ import {
 // Constantes
 // ============================================================
 
-/** Cadence décisionnelle nominale. 5 Hz = 200 ms par tick.
- *  Standard NBA pour modéliser une décision humaine "consciente"
- *  (ms reaction time ~ 250 ms). */
-export const MATCH_TICK_MS = 200;
+/** Cadence du tick — 30 Hz / 33 ms, alignée sur `usePlaybackAnimation`.
+ *  Donne une animation fluide (60 fps via setInterval est dur sans rAF).
+ *  La cadence DÉCISIONNELLE (= quand l'IA choisit une nouvelle action)
+ *  est plus basse : carrier en idle décide à chaque tick (≈ instantané
+ *  dès qu'il termine l'action courante), off-ball décide tous les
+ *  `DECISION_INTERVAL_TICKS` ticks (~1 s).
+ *
+ *  Note historique : 200 ms (5 Hz) à l'origine — trop lent visuellement,
+ *  l'utilisateur voyait 5 images/s, saccadé. Bump à 30 Hz avec scaling
+ *  proportionnel des constantes de vitesse / intervalle. */
+export const MATCH_TICK_MS = 33;
 
 /** Shot clock initial en millisecondes. Surchargeable via options. */
 const DEFAULT_SHOT_CLOCK_MS = 24_000;
@@ -78,10 +85,10 @@ const TRANSITION_PAUSE_MS = 1_500;
  *  basé sur stats moyennes NBA (~25-28 %). Surchargeable via options. */
 const DEFAULT_OFFENSIVE_REBOUND_RATE = 0.28;
 
-/** Si une action de drive dépasse cette distance px en un tick,
- *  on la lisse sur N sous-pas pour éviter les téléports. V1 simple :
- *  on cap à 50 px/tick (= ~250 px/s ≈ 6,75 m/s, sprint réaliste). */
-const MAX_CARRIER_STEP_PX = 50;
+/** Vitesse max du porteur en px/tick. À 30 Hz et 8 px/tick = 240 px/s
+ *  ≈ 6.5 m/s, sprint réaliste basket. Avant : 50 px à 5 Hz (même vitesse,
+ *  mais saut visible par image). */
+const MAX_CARRIER_STEP_PX = 8;
 
 const DEFAULT_CREATIVITY = 0.35;
 
@@ -616,8 +623,9 @@ function advancePass(
   const from = state.off[state.carrier];
   const to = state.off[state.intent.receiver];
   if (!from || !to) return state;
-  // Vitesse de passe : on simule en 3 ticks (~600 ms).
-  const PASS_DURATION_TICKS = 3;
+  // Vitesse de passe : on simule en 18 ticks (~600 ms à 30 Hz, comme avant
+  // à 5 Hz × 3 ticks).
+  const PASS_DURATION_TICKS = 18;
   const newProgress = state.intent.progress + 1 / PASS_DURATION_TICKS;
   if (newProgress >= 1) {
     // Passe arrivée : nouveau porteur.

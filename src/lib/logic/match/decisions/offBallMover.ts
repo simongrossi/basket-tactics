@@ -30,9 +30,9 @@ import { computeOffBallPositions } from '@/lib/logic/autoOffense';
 // ============================================================
 
 /** Tous les `DECISION_INTERVAL_TICKS` ticks, on (re)décide l'intent
- *  de chaque off-ball. À 5 Hz et 5 ticks, c'est 1 décision / seconde
+ *  de chaque off-ball. À 30 Hz et 30 ticks, c'est 1 décision / seconde
  *  par joueur. Plus humain que "décision chaque tick". */
-export const DECISION_INTERVAL_TICKS = 5;
+export const DECISION_INTERVAL_TICKS = 30;
 
 /** Probabilité par décision qu'un off-ball "éligible" se lance dans
  *  un cut. Éligible = défenseur regard détourné ET sag suffisant.
@@ -54,21 +54,21 @@ const SAG_MIN_PX_FOR_CUT = 80;
  *  drift PAS. Respecte le placement coach (option C choisi par défaut). */
 const DRIFT_SKIP_PX = 50;
 
-/** Vitesse de drift en spacing (px / tick). Lent et fluide. */
-const DRIFT_SPEED_PX = 3;
+/** Vitesse de drift en spacing (px / tick) à 30 Hz. 0.5 px/tick =
+ *  15 px/s ≈ 0.4 m/s, vitesse de "drift" tactique lent. */
+const DRIFT_SPEED_PX = 0.5;
 
-/** Vitesse de cut (px / tick). 25 px à 5 Hz = 125 px/s ≈ 3.4 m/s.
- *  Plus lent qu'un sprint réel, calibré sur la vitesse défensive max
- *  pour rester cohérent avec le moteur. */
-const CUT_SPEED_PX = 25;
+/** Vitesse de cut (px / tick) à 30 Hz. 4 px/tick = 120 px/s ≈ 3.2 m/s,
+ *  sprint réaliste pour un cut basket. */
+const CUT_SPEED_PX = 4;
 
 /** Distance (px) en-dessous de laquelle on considère un cutter "arrivé"
  *  à son target courant et on passe à la phase suivante du cut. */
 const PHASE_THRESHOLD_PX = 30;
 
-/** Vitesse de relocate après passe (px / tick). Plus rapide que drift
- *  car le coéquipier doit "vraiment" se déplacer. */
-const RELOCATE_SPEED_PX = 8;
+/** Vitesse de relocate après passe (px / tick) à 30 Hz. 1.3 px/tick
+ *  ≈ 39 px/s, ~1 m/s — plus rapide que drift mais pas un sprint. */
+const RELOCATE_SPEED_PX = 1.3;
 
 /** Distance min entre 2 attaquants pendant les phases offBall.
  *  Aligné avec `MIN_PLAYER_CLEARANCE_PX`. */

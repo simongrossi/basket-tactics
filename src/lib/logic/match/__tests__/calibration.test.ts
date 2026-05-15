@@ -51,10 +51,11 @@ describe('calibration — runHeadlessGameLoop', () => {
   it("produit des stats live spécifiques (cuts, passes, possession duration)", () => {
     const baseState = buildState('pnr-central');
     const stats = runHeadlessGameLoop(baseState, 30, { seed: 7 });
-    // Une possession dure entre quelques secondes et 24 s + 1.5 s pause.
-    expect(stats.liveOnlyStats.avgPossessionDurationS).toBeGreaterThan(0.5);
+    // Une possession dure entre quelques 100aines de ms (turnover rapide)
+    // et 24 s + 1.5 s pause (forced shot après shot clock). À 30 Hz,
+    // plage normale 0.2-15 s, moyenne 1-5 s.
+    expect(stats.liveOnlyStats.avgPossessionDurationS).toBeGreaterThan(0.2);
     expect(stats.liveOnlyStats.avgPossessionDurationS).toBeLessThan(30);
-    // Au moins 1 event par possession (le tir/turnover terminal).
     expect(stats.liveOnlyStats.avgEventsPerPossession).toBeGreaterThanOrEqual(0.5);
   });
 });

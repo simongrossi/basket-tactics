@@ -26,7 +26,7 @@ function buildState(tplId: string): AppState {
 function runUntilEnd(
   baseState: AppState,
   seed: number,
-  maxTicks = 200
+  maxTicks = 2000
 ): ReturnType<typeof createInitialMatchState> {
   let state = createInitialMatchState(baseState, { seed });
   for (let i = 0; i < maxTicks; i += 1) {
@@ -249,26 +249,22 @@ describe('gameLoop — B3b transition multi-possessions', () => {
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 3,
     });
-    // Force "pas de rebond offensif" pour garantir une nouvelle possession
-    // (sinon la transition pourrait retomber sur off rebound = même possession).
+    // Force "pas de rebond offensif" pour garantir une nouvelle possession.
     const opts = { offensiveReboundRate: 0 };
-    // Tick 1 : possession terminée.
     state = tickMatch(state, MATCH_TICK_MS, baseState, opts);
     expect(state.outcome).not.toBeNull();
     const initialOutcome = state.outcome;
-    // Ticks suivants : pause transition (~1.5s = ~8 ticks à 200ms).
-    for (let i = 0; i < 12; i += 1) {
+    // Pause transition = 1500ms = ~46 ticks à 30Hz. On boucle large.
+    for (let i = 0; i < 60; i += 1) {
       state = tickMatch(state, MATCH_TICK_MS, baseState, opts);
     }
     expect(state.outcome).toBeNull();
     expect(state.possession).toBeGreaterThanOrEqual(2);
-    // Le score initial a été cumulé.
     expect(state.cumulativeScore).toBeGreaterThanOrEqual(initialOutcome?.includes('made') ? 2 : 0);
   });
 
   it('rebond offensif sur missed shot quand reboundRate=1 conserve la possession', () => {
     const baseState = buildState('pnr-central');
-    // Force missed shot via shotClock court ET force rebound à 100 %.
     let state = createInitialMatchState(baseState, {
       seed: 17,
       shotClockMs: MATCH_TICK_MS,
@@ -276,10 +272,10 @@ describe('gameLoop — B3b transition multi-possessions', () => {
     });
     const initialPossession = state.possession;
     state = tickMatch(state, MATCH_TICK_MS, baseState, { offensiveReboundRate: 1 });
-    // Continue ticker jusqu'à fin de pause + transition.
-    for (let i = 0; i < 15; i += 1) {
+    // Continue ticker jusqu'à fin de pause + transition (1500ms = ~46 ticks).
+    for (let i = 0; i < 60; i += 1) {
       state = tickMatch(state, MATCH_TICK_MS, baseState, { offensiveReboundRate: 1 });
-      if (state.outcome === null && state.shotClockMs > MATCH_TICK_MS) break;
+      if (state.outcome === null && state.shotClockMs > 1000) break;
     }
     // Si missed shot ET rebound à 100 %, possession ID inchangé.
     if (state.eventLog.some((e) => e.label.includes('Rebond offensif'))) {
@@ -299,7 +295,7 @@ describe('gameLoop — B3b transition multi-possessions', () => {
       maxPossessions: 3,
     });
     state = tickMatch(state, MATCH_TICK_MS, baseState, { offensiveReboundRate: 0 });
-    for (let i = 0; i < 15; i += 1) {
+    for (let i = 0; i < 60; i += 1) {
       state = tickMatch(state, MATCH_TICK_MS, baseState, { offensiveReboundRate: 0 });
       if (state.outcome === null && state.possession > 1) break;
     }
@@ -318,8 +314,9 @@ describe('gameLoop — B3b transition multi-possessions', () => {
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 1,
     });
-    // Joue jusqu'à session done.
-    for (let i = 0; i < 30; i += 1) {
+    // Joue jusqu'à session done. Cap large pour absorber pause de
+    // transition (~46 ticks à 30 Hz).
+    for (let i = 0; i < 100; i += 1) {
       state = tickMatch(state, MATCH_TICK_MS, baseState, { offensiveReboundRate: 0 });
       if (
         state.outcome !== null &&

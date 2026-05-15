@@ -35,9 +35,9 @@ import type { AiPossessionOutcome } from './aiPossession';
 // ============================================================
 
 /** Borne de sécurité pour ne pas boucler indéfiniment si une possession
- *  ne se termine jamais (bug moteur). À 300 ticks × 200 ms = 60 s,
+ *  ne se termine jamais (bug moteur). À 2000 ticks × 33 ms = 66 s,
  *  largement plus que 24 s shot clock + 1.5 s pause transition. */
-const MAX_TICKS_PER_POSSESSION = 300;
+const MAX_TICKS_PER_POSSESSION = 2000;
 
 /** Tolérance d'écart de PPP acceptée. Au-delà → calibration jugée
  *  incorrecte. 0.15 est la cible mentionnée dans la roadmap (§ B5). */
