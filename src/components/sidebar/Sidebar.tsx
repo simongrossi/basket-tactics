@@ -20,6 +20,8 @@ type Props = {
    * des accordions sans toucher au chrome.
    */
   toolsContent?: ReactNode;
+  /** Slot pour le menu ⋯ d'actions globales (cf. SidebarOverflowMenu). */
+  overflowMenu?: ReactNode;
 };
 
 export function Sidebar({
@@ -29,6 +31,7 @@ export function Sidebar({
   onToggleCollapse,
   version,
   toolsContent,
+  overflowMenu,
 }: Props) {
   const showTools = activeView === 'court' && !collapsed && toolsContent != null;
 
@@ -112,6 +115,7 @@ export function Sidebar({
         collapsed={collapsed}
         onToggleCollapse={onToggleCollapse}
         version={version}
+        overflowMenu={overflowMenu}
       />
     </aside>
   );

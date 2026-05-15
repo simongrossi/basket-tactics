@@ -13,7 +13,7 @@ import { StepsPanel } from '@/components/StepsPanel';
 import { ScenarioPanel } from '@/components/ScenarioPanel';
 import { ScenarioReader } from '@/components/ScenarioReader';
 import { DefensePanel } from '@/components/DefensePanel';
-import { FloatingActionsMenu } from '@/components/FloatingActionsMenu';
+import { SidebarOverflowMenu } from '@/components/sidebar/SidebarOverflowMenu';
 import { ParametresPanel } from '@/components/ParametresPanel';
 import { LibraryModal } from '@/components/LibraryModal';
 import { Timeline } from '@/components/Timeline';
@@ -39,7 +39,6 @@ export default function Page() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [playbackT, setPlaybackT] = useState<number | null>(null);
-  const [showPlaybook, setShowPlaybook] = useState(false);
   const [showPlayerTimeline, setShowPlayerTimeline] = useState(false);
   const [showMultiTrack, setShowMultiTrack] = useState(false);
   const [scrubT, setScrubT] = useState<number | null>(null);
@@ -223,6 +222,17 @@ export default function Page() {
             onSelectView={sidebar.setActiveView}
             onToggleCollapse={sidebar.toggleCollapse}
             version="0.10.0"
+            overflowMenu={
+              <SidebarOverflowMenu
+                presentMode={presentMode}
+                onTogglePresentMode={() => setPresentMode((p) => !p)}
+                onOpenPlayerTimeline={() => setShowPlayerTimeline(true)}
+                onExport={handleExport}
+                onImport={handleImport}
+                onReset={app.resetAll}
+                collapsed={sidebar.collapsed}
+              />
+            }
             toolsContent={
               <>
                 <OffenseToolsPanel
@@ -409,15 +419,6 @@ export default function Page() {
               defenseReleaseTransition={app.defenseReleaseTransition}
               liveMatchState={matchLoop.matchState}
             />
-            <FloatingActionsMenu
-              presentMode={presentMode}
-              onTogglePresentMode={() => setPresentMode((p) => !p)}
-              onOpenPlaybook={() => setShowPlaybook(true)}
-              onOpenPlayerTimeline={() => setShowPlayerTimeline(true)}
-              onExport={handleExport}
-              onImport={handleImport}
-              onReset={app.resetAll}
-            />
           </div>
           {(app.state.scriptedActions?.length ?? 0) > 0 && (
             <ScenarioReader
@@ -505,9 +506,6 @@ export default function Page() {
         style={{ display: 'none' }}
         onChange={handleFile}
       />
-      {showPlaybook && (
-        <PlaybookView state={app.state} onClose={() => setShowPlaybook(false)} />
-      )}
       {showPlayerTimeline && (
         <PlayerTimelineModal
           state={app.state}

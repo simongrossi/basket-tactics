@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { SIDEBAR } from './tokens';
 
@@ -7,9 +8,11 @@ type Props = {
   collapsed: boolean;
   onToggleCollapse: () => void;
   version?: string;
+  /** Slot pour le menu ⋯ d'actions globales (cf. SidebarOverflowMenu). */
+  overflowMenu?: ReactNode;
 };
 
-export function SidebarFooter({ collapsed, onToggleCollapse, version }: Props) {
+export function SidebarFooter({ collapsed, onToggleCollapse, version, overflowMenu }: Props) {
   return (
     <div
       style={{
@@ -18,12 +21,16 @@ export function SidebarFooter({ collapsed, onToggleCollapse, version }: Props) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: collapsed ? 'center' : 'space-between',
-        gap: 8,
+        gap: 6,
+        flexWrap: collapsed ? 'wrap' : 'nowrap',
       }}
     >
       {!collapsed && version && (
-        <span style={{ fontSize: 11, color: SIDEBAR.textDim, fontWeight: 500 }}>v{version}</span>
+        <span style={{ fontSize: 11, color: SIDEBAR.textDim, fontWeight: 500, marginRight: 'auto' }}>
+          v{version}
+        </span>
       )}
+      {overflowMenu}
       <button
         type="button"
         onClick={onToggleCollapse}
