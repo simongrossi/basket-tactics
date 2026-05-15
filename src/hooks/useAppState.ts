@@ -246,6 +246,13 @@ export function useAppState() {
     [setStateWithHistory]
   );
 
+  const setInboundDefenseMode = useCallback(
+    (mode: import('@/lib/types').InboundDefenseMode) => {
+      setStateWithHistory((s) => stepTx.setInboundDefenseMode(s, mode));
+    },
+    [setStateWithHistory]
+  );
+
   // -- Joueurs (positions) --
   // Note : moves utilisent `playerMove` directement (déjà extrait), pas un
   // transform dédié, pour éviter une double indirection sur le chemin chaud.
@@ -617,6 +624,7 @@ export function useAppState() {
     setBallCarrier,
     convertStepToFreeThrow,
     convertStepToInbound,
+    setInboundDefenseMode,
     loadTemplate,
     clearDefenseOverride,
     autoPositionOffBall,

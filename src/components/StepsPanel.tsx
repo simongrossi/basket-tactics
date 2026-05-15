@@ -1,6 +1,6 @@
 'use client';
 
-import type { AppState, AttackerId, InboundSide } from '@/lib/types';
+import type { AppState, AttackerId, InboundDefenseMode, InboundSide } from '@/lib/types';
 import { activeBallCarrier, getActiveAttackerIds, isActiveAttacker } from '@/lib/logic/players';
 import { Panel, Section, Button, COLORS } from './ui';
 
@@ -17,6 +17,8 @@ interface StepsPanelProps {
   onConvertToFreeThrow?: () => void;
   /** Convertit le step actif en setup de remise en jeu (BLOB ou SLOB). */
   onConvertToInbound?: (side: InboundSide) => void;
+  /** Applique un mode défensif spécifique sur le step inbound actif. */
+  onSetInboundDefenseMode?: (mode: InboundDefenseMode) => void;
 }
 
 const inboundButtonStyle = {
@@ -274,6 +276,47 @@ export function StepsPanel(props: StepsPanelProps) {
             </button>
           </div>
         )}
+        {/* Defensive inbound mode : visible uniquement si step actif est inbound */}
+        {props.onSetInboundDefenseMode &&
+          props.state.steps[props.state.activeStep] &&
+          (props.state.steps[props.state.activeStep].context === 'inbound-baseline' ||
+            props.state.steps[props.state.activeStep].context === 'inbound-sideline-low' ||
+            props.state.steps[props.state.activeStep].context === 'inbound-sideline-high') && (
+            <div style={{ marginTop: 6, padding: '4px 6px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 4 }}>
+              <div style={{ fontSize: 9, fontWeight: 600, color: '#991b1b', marginBottom: 3, letterSpacing: 0.3 }}>
+                🛡 DÉFENSE SUR REMISE
+              </div>
+              <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                {([
+                  { mode: 'man' as const, label: 'man', title: 'Man-to-man face à face standard.' },
+                  { mode: 'face-guard' as const, label: 'face-guard', title: 'Refus de passe sur le receveur principal (shooter le plus proche du passeur).' },
+                  { mode: 'deny-deny' as const, label: 'deny tout', title: 'Tous les défenseurs sur les lignes de passe (refus systématique).' },
+                  { mode: 'zone-press' as const, label: 'zone press', title: 'Trap sur le passeur + denials + 1 sweeper arrière.' },
+                ]).map(({ mode, label, title }) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => props.onSetInboundDefenseMode!(mode)}
+                    title={title}
+                    style={{
+                      flex: '1 1 auto',
+                      fontSize: 9,
+                      padding: '3px 6px',
+                      borderRadius: 3,
+                      border: '1px solid #fca5a5',
+                      background: '#fff',
+                      color: '#991b1b',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      minWidth: 0,
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
       </Section>
     </Panel>
   );

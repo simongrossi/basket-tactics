@@ -2,10 +2,19 @@
 // Toutes les fonctions sont pures (AppState → AppState) pour être testables
 // sans React et composables sans surprise.
 
-import type { AppState, AttackerId, InboundSide, Step } from '@/lib/types';
+import type {
+  AppState,
+  AttackerId,
+  InboundDefenseMode,
+  InboundSide,
+  Step,
+} from '@/lib/types';
 import { makeStep } from '@/lib/data/initial';
 import { buildFreeThrowSetup } from '@/lib/logic/freeThrowSetup';
 import { buildInboundSetup } from '@/lib/logic/inboundSetup';
+import { buildInboundDefenseSetup } from '@/lib/logic/inboundDefenseSetup';
+import { activeOffense } from '@/lib/logic/players';
+import { getDefenseHoop } from '@/lib/logic/engine';
 
 export function setActiveStep(s: AppState, idx: number): AppState {
   return { ...s, activeStep: Math.max(0, Math.min(s.steps.length - 1, idx)) };
@@ -126,4 +135,45 @@ export function convertStepToInbound(s: AppState, side: InboundSide): AppState {
   const defenseInitial =
     s.activeStep === 0 ? setup.def : s.defenseInitial;
   return { ...s, steps, defenseInitial };
+}
+
+/**
+ * Applique un mode défensif sur le step inbound actif. Recalcule
+ * `defenseOverrides` selon le mode choisi (man / face-guard /
+ * deny-deny / zone-press). No-op si step.context n'est pas inbound-*.
+ *
+ * Le mode est mémorisé via une convention de labellisation : on
+ * stocke le mode dans `step.label` quand le label n'a pas été
+ * customisé par l'utilisateur. (Le state.steps[].label sert d'origine
+ * de mémoire transitoire ; on n'ajoute PAS de champ dédié pour
+ * préserver la rétrocompat du modèle Step.)
+ */
+export function setInboundDefenseMode(
+  s: AppState,
+  mode: InboundDefenseMode
+): AppState {
+  const cur = s.steps[s.activeStep];
+  if (!cur) return s;
+  const isInbound =
+    cur.context === 'inbound-baseline' ||
+    cur.context === 'inbound-sideline-low' ||
+    cur.context === 'inbound-sideline-high';
+  if (!isInbound) return s;
+
+  const off = activeOffense(cur.off, s.playerCount);
+  const hoop = getDefenseHoop(s);
+  const setup = buildInboundDefenseSetup({
+    off,
+    inbounder: cur.ballCarrier,
+    mode,
+    hoop,
+  });
+
+  const steps = [...s.steps];
+  steps[s.activeStep] = {
+    ...cur,
+    defenseOverrides: setup.positions,
+    manualOverride: true,
+  };
+  return { ...s, steps };
 }

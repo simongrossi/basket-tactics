@@ -131,6 +131,22 @@ export interface Step {
 /** Types d'aide pour les remises en jeu — utilisé par les setters et l'UI. */
 export type InboundSide = 'inbound-baseline' | 'inbound-sideline-low' | 'inbound-sideline-high';
 
+/** Mode défensif spécifique aux remises en jeu. Sur un step inbound-*,
+ *  la défense peut adopter une stratégie particulière au-delà du man-to-man
+ *  standard. Voir `inboundDefenseSetup.ts`.
+ *
+ *  - `'man'` (default) : marquage face-à-face standard, position entre
+ *    son homme et le panier.
+ *  - `'face-guard'` : le défenseur du shooter principal se tourne FACE
+ *    à son homme (= regard tourné vers attaquant), refuse la passe.
+ *    Autres défenseurs en man normal.
+ *  - `'deny-deny'` : tous les défenseurs sur la ligne de passe directe
+ *    entre leur homme et le passeur (refus systématique).
+ *  - `'zone-press'` : 2 défenseurs sur le passeur (trap), 2 sur la
+ *    ligne de passe, 1 protecteur arrière (sweeper).
+ */
+export type InboundDefenseMode = 'man' | 'face-guard' | 'deny-deny' | 'zone-press';
+
 // =============================================================
 // Scénario scripté (couche au-dessus de Step[])
 // =============================================================

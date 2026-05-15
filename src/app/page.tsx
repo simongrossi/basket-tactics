@@ -397,6 +397,7 @@ export default function Page() {
               onDeleteAnnotation={app.deleteAnnotation}
               onConvertToFreeThrow={app.convertStepToFreeThrow}
               onConvertToInbound={app.convertStepToInbound}
+              onSetInboundDefenseMode={app.setInboundDefenseMode}
             />
             <ScenarioPanel
               scriptedActions={app.state.scriptedActions ?? []}
