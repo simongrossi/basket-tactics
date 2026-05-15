@@ -304,13 +304,25 @@ function LiveMatchPanel({
   // pour partager l'état avec CourtView.
   const fallbackLoop = useMatchLoop({ baseState: state });
   const { matchState, isRunning, start, pause, resume, stop } = matchLoop ?? fallbackLoop;
+  // B3b — sélecteur du nombre de possessions (1, 3, 5, ∞). Lu seulement
+  // au start (modifier la valeur en cours de jeu n'affecte pas la session
+  // courante — il faut stop + start).
+  const [maxPossessions, setMaxPossessions] = useState<number | null>(1);
 
   const shotClockSec = matchState ? Math.max(0, matchState.shotClockMs / 1000) : 24;
   const shotClockColor =
     shotClockSec <= 4 ? '#dc2626' : shotClockSec <= 8 ? '#d97706' : '#16a34a';
 
   const outcomeLabel = matchState?.outcome ? AI_OUTCOME_LABELS[matchState.outcome] : null;
-  const isFinished = matchState?.outcome != null;
+  // B3b — distinguer "possession terminée" et "session terminée".
+  // En multi-possessions, on continue automatiquement après chaque possession.
+  // isFinished = session entière terminée (maxPossessions atteint).
+  const isSessionDone =
+    matchState != null &&
+    matchState.outcome != null &&
+    matchState.maxPossessions != null &&
+    matchState.possessionsPlayed >= matchState.maxPossessions;
+  const isFinished = isSessionDone;
 
   return (
     <div>
@@ -322,11 +334,39 @@ function LiveMatchPanel({
         synchronisé (B4) ; on observe le shot clock + outcome.
       </div>
 
+      {/* B3b — sélecteur de longueur de session, visible quand pas en cours */}
+      {!matchState && (
+        <div style={{ display: 'flex', gap: 4, marginBottom: 6, alignItems: 'center' }}>
+          <span style={{ fontSize: 9, color: '#64748b', flex: '0 0 60px' }}>POSSESSIONS</span>
+          {[1, 3, 5, null].map((n) => (
+            <button
+              key={n ?? 'inf'}
+              type="button"
+              onClick={() => setMaxPossessions(n)}
+              style={{
+                flex: 1,
+                fontSize: 10,
+                padding: '3px 4px',
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: maxPossessions === n ? '#4338ca' : '#cbd5e1',
+                background: maxPossessions === n ? '#eef2ff' : '#fff',
+                color: maxPossessions === n ? '#3730a3' : '#64748b',
+                cursor: 'pointer',
+                fontWeight: maxPossessions === n ? 700 : 500,
+              }}
+            >
+              {n ?? '∞'}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
         {!matchState && (
           <button
             type="button"
-            onClick={() => start()}
+            onClick={() => start({ maxPossessions })}
             style={liveButtonStyle('start')}
           >
             ▶ démarrer
@@ -373,13 +413,19 @@ function LiveMatchPanel({
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>score</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: '#1e3a8a', lineHeight: 1.1 }}>
-                +{matchState.score}
+                {matchState.cumulativeScore}
+                {matchState.score > 0 && !isFinished && (
+                  <span style={{ fontSize: 10, color: '#16a34a', marginLeft: 3 }}>+{matchState.score}</span>
+                )}
               </div>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>porteur</div>
+              <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>possession</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: '#7c2d12', lineHeight: 1.1 }}>
-                {matchState.carrier}
+                {matchState.possession}
+                {matchState.maxPossessions !== null && (
+                  <span style={{ fontSize: 10, color: '#94a3b8' }}>/{matchState.maxPossessions}</span>
+                )}
               </div>
             </div>
           </div>

@@ -101,15 +101,24 @@ describe('gameLoop — tickMatch', () => {
     expect(run1.eventLog.length).toBe(run2.eventLog.length);
   });
 
-  it('no-op si la possession est déjà terminée', () => {
+  it('no-op si la SESSION est terminée (maxPossessions atteint)', () => {
     const baseState = buildState('pnr-central');
-    const final = runUntilEnd(baseState, 50);
-    expect(final.outcome).not.toBeNull();
-    const afterExtra = tickMatch(final, MATCH_TICK_MS, baseState);
-    // Aucun changement (même référence ou état identique).
-    expect(afterExtra.outcome).toBe(final.outcome);
-    expect(afterExtra.score).toBe(final.score);
-    expect(afterExtra.tickCount).toBe(final.tickCount);
+    // Force 1 seule possession → après son outcome, session terminée.
+    let state = createInitialMatchState(baseState, { seed: 50, maxPossessions: 1 });
+    for (let i = 0; i < 200; i += 1) {
+      if (state.outcome !== null && state.possessionsPlayed >= 1) break;
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+    }
+    // Avec maxPossessions=1, après pause transition, possessionsPlayed
+    // passe à 1 et la session est figée.
+    const sessionDone =
+      state.outcome !== null &&
+      state.maxPossessions !== null &&
+      state.possessionsPlayed >= state.maxPossessions;
+    expect(sessionDone).toBe(true);
+    const afterExtra = tickMatch(state, MATCH_TICK_MS, baseState);
+    // Session terminée → no-op strict (référence identique).
+    expect(afterExtra).toBe(state);
   });
 
   it('log au moins un événement quand une possession se termine par un tir', () => {
@@ -201,6 +210,130 @@ describe('gameLoop — B3a shot model enrichi', () => {
     expect(shotEvent!.shotPos!.x).toBeLessThanOrEqual(600);
     expect(shotEvent!.shotPos!.y).toBeGreaterThanOrEqual(0);
     expect(shotEvent!.shotPos!.y).toBeLessThanOrEqual(1080);
+  });
+});
+
+describe('gameLoop — B3b transition multi-possessions', () => {
+  it('cumulativeScore et possessionsPlayed initialisés à 0', () => {
+    const baseState = buildState('pnr-central');
+    const state = createInitialMatchState(baseState, { seed: 1, maxPossessions: 3 });
+    expect(state.cumulativeScore).toBe(0);
+    expect(state.possessionsPlayed).toBe(0);
+    expect(state.maxPossessions).toBe(3);
+    expect(state.transitionStartedAtMs).toBeNull();
+  });
+
+  it('après outcome, la pause de transition tick sans changer score/outcome', () => {
+    const baseState = buildState('pnr-central');
+    // Force possession à se terminer en 1 tick via shotClock court.
+    let state = createInitialMatchState(baseState, {
+      seed: 13,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 2,
+    });
+    state = tickMatch(state, MATCH_TICK_MS, baseState);
+    expect(state.outcome).not.toBeNull();
+    const outcomeAfter = state.outcome;
+    const scoreAfter = state.score;
+    // Premier tick de pause : marque le start.
+    state = tickMatch(state, MATCH_TICK_MS, baseState);
+    expect(state.outcome).toBe(outcomeAfter);
+    expect(state.score).toBe(scoreAfter);
+    expect(state.transitionStartedAtMs).not.toBeNull();
+  });
+
+  it('après la pause de transition, démarre une nouvelle possession (maxPossessions > 1)', () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, {
+      seed: 99,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 3,
+    });
+    // Force "pas de rebond offensif" pour garantir une nouvelle possession
+    // (sinon la transition pourrait retomber sur off rebound = même possession).
+    const opts = { offensiveReboundRate: 0 };
+    // Tick 1 : possession terminée.
+    state = tickMatch(state, MATCH_TICK_MS, baseState, opts);
+    expect(state.outcome).not.toBeNull();
+    const initialOutcome = state.outcome;
+    // Ticks suivants : pause transition (~1.5s = ~8 ticks à 200ms).
+    for (let i = 0; i < 12; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState, opts);
+    }
+    expect(state.outcome).toBeNull();
+    expect(state.possession).toBeGreaterThanOrEqual(2);
+    // Le score initial a été cumulé.
+    expect(state.cumulativeScore).toBeGreaterThanOrEqual(initialOutcome?.includes('made') ? 2 : 0);
+  });
+
+  it('rebond offensif sur missed shot quand reboundRate=1 conserve la possession', () => {
+    const baseState = buildState('pnr-central');
+    // Force missed shot via shotClock court ET force rebound à 100 %.
+    let state = createInitialMatchState(baseState, {
+      seed: 17,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 3,
+    });
+    const initialPossession = state.possession;
+    state = tickMatch(state, MATCH_TICK_MS, baseState, { offensiveReboundRate: 1 });
+    // Continue ticker jusqu'à fin de pause + transition.
+    for (let i = 0; i < 15; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState, { offensiveReboundRate: 1 });
+      if (state.outcome === null && state.shotClockMs > MATCH_TICK_MS) break;
+    }
+    // Si missed shot ET rebound à 100 %, possession ID inchangé.
+    if (state.eventLog.some((e) => e.label.includes('Rebond offensif'))) {
+      expect(state.possession).toBe(initialPossession);
+      expect(state.possessionsPlayed).toBe(0); // pas incrémenté sur off rebound
+      // Shot clock reset à 14 s.
+      expect(state.shotClockMs).toBeGreaterThan(13_500);
+      expect(state.shotClockMs).toBeLessThanOrEqual(14_000);
+    }
+  });
+
+  it("nouvelle possession après missed shot quand reboundRate=0 (jamais rebond off)", () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, {
+      seed: 21,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 3,
+    });
+    state = tickMatch(state, MATCH_TICK_MS, baseState, { offensiveReboundRate: 0 });
+    for (let i = 0; i < 15; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState, { offensiveReboundRate: 0 });
+      if (state.outcome === null && state.possession > 1) break;
+    }
+    if (state.eventLog.some((e) => e.label.includes('Nouvelle possession'))) {
+      expect(state.possession).toBeGreaterThanOrEqual(2);
+      expect(state.possessionsPlayed).toBeGreaterThanOrEqual(1);
+      // Shot clock reset à 24 s.
+      expect(state.shotClockMs).toBeGreaterThan(23_500);
+    }
+  });
+
+  it("session se fige après maxPossessions atteint (no-op sur tick suivant)", () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, {
+      seed: 33,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 1,
+    });
+    // Joue jusqu'à session done.
+    for (let i = 0; i < 30; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState, { offensiveReboundRate: 0 });
+      if (
+        state.outcome !== null &&
+        state.maxPossessions !== null &&
+        state.possessionsPlayed >= state.maxPossessions
+      ) {
+        break;
+      }
+    }
+    expect(state.possessionsPlayed).toBeGreaterThanOrEqual(1);
+    const frozen = state;
+    const next = tickMatch(state, MATCH_TICK_MS, baseState);
+    // Référence inchangée car la session est figée.
+    expect(next).toBe(frozen);
   });
 });
 

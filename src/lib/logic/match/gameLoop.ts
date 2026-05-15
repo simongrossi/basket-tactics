@@ -63,8 +63,20 @@ export const MATCH_TICK_MS = 200;
 /** Shot clock initial en millisecondes. Surchargeable via options. */
 const DEFAULT_SHOT_CLOCK_MS = 24_000;
 
+/** Reset shot clock après rebond offensif. NBA FIBA = 14 s. */
+const OFFENSIVE_REBOUND_SHOT_CLOCK_MS = 14_000;
+
 /** Seuil "low clock" où on force le tir si on a une option. */
 const LOW_CLOCK_MS = 4_500;
+
+/** B3b — pause après fin de possession avant transition. Permet au HUD
+ *  d'afficher l'outcome ("tir réussi", "perte", etc.) avant de relancer
+ *  la possession suivante. 1.5 s = lisible sans casser le rythme. */
+const TRANSITION_PAUSE_MS = 1_500;
+
+/** B3b — probabilité de rebond offensif sur tir manqué. Stub très simple
+ *  basé sur stats moyennes NBA (~25-28 %). Surchargeable via options. */
+const DEFAULT_OFFENSIVE_REBOUND_RATE = 0.28;
 
 /** Si une action de drive dépasse cette distance px en un tick,
  *  on la lisse sur N sous-pas pour éviter les téléports. V1 simple :
@@ -122,10 +134,23 @@ export interface MatchState {
   /** Intents par off-ball (= non-carriers). Décidés tous les
    *  `DECISION_INTERVAL_TICKS` ticks, avancés à chaque tick. */
   offBallIntents: OffBallIntents;
-  /** Score final (0/2/3) si la possession est terminée, sinon 0. */
+  /** Score de la possession COURANTE (0/2/3) si terminée, sinon 0.
+   *  Pour le score cumulé sur la session multi-possessions, voir
+   *  `cumulativeScore`. */
   score: number;
-  /** Outcome final si terminé, sinon `null` (= en cours). */
+  /** Outcome final si la possession est terminée, sinon `null` (= en cours). */
   outcome: AiPossessionOutcome | null;
+  /** B3b — score cumulé sur toute la session (toutes possessions confondues). */
+  cumulativeScore: number;
+  /** B3b — nombre de possessions terminées (= 0 si encore dans la 1ère). */
+  possessionsPlayed: number;
+  /** B3b — limite de possessions pour cette session. `null` = endless,
+   *  l'utilisateur stoppe manuellement. */
+  maxPossessions: number | null;
+  /** B3b — timestamp ms du début de la pause de transition. Null si
+   *  on est en possession active. Quand non-null et que `TRANSITION_PAUSE_MS`
+   *  s'est écoulé, on déclenche la transition (rebond off ou new possession). */
+  transitionStartedAtMs: number | null;
   /** Journal des événements typés pour debug + UI (HUD live). */
   eventLog: AiPossessionEvent[];
   /** Seed RNG utilisée (pour replay). */
@@ -141,12 +166,18 @@ export interface CreateMatchStateOptions {
   shotClockMs?: number;
   /** Numéro de possession. Default : 1. */
   possession?: number;
+  /** B3b — limite de possessions pour cette session. `null` ou
+   *  undefined = endless (l'utilisateur stoppe manuellement). */
+  maxPossessions?: number | null;
 }
 
 export interface TickMatchOptions {
   /** Créativité (0..1) qui module la "température" softmax de la
    *  sélection d'action. Default : 0.35 (légère variance vs meilleure EV). */
   creativity?: number;
+  /** B3b — probabilité de rebond offensif sur tir manqué. Default 28 %.
+   *  Surchargeable pour tests / scénarios où on veut forcer l'un ou l'autre. */
+  offensiveReboundRate?: number;
 }
 
 // ============================================================
@@ -183,6 +214,10 @@ export function createInitialMatchState(
     eventLog: [],
     seed,
     possession,
+    cumulativeScore: 0,
+    possessionsPlayed: 0,
+    maxPossessions: options.maxPossessions ?? null,
+    transitionStartedAtMs: null,
   };
 }
 
@@ -210,7 +245,13 @@ export function tickMatch(
   baseAppState: AppState,
   options: TickMatchOptions = {}
 ): MatchState {
-  if (matchState.outcome !== null) return matchState;
+  // B3b — session terminée (maxPossessions atteint) : no-op.
+  if (isSessionDone(matchState)) return matchState;
+  // B3b — possession terminée mais session non finie : pause de transition
+  // puis off-rebound ou nouvelle possession.
+  if (matchState.outcome !== null) {
+    return handleTransitionPause(matchState, dtMs, baseAppState, options);
+  }
   const creativity = options.creativity ?? DEFAULT_CREATIVITY;
   const rng = seededAiRng(matchState.seed + matchState.tickCount);
   const next: MatchState = {
@@ -295,6 +336,175 @@ export function tickMatch(
     return advancePass(next, dtMs, baseAppState);
   }
   return next;
+}
+
+// ============================================================
+// B3b — transition entre possessions (rebond off ou new possession)
+// ============================================================
+
+function isSessionDone(state: MatchState): boolean {
+  // Session terminée = possession finie ET on a atteint maxPossessions.
+  // (Si maxPossessions === null = endless, jamais "done" sans stop manuel.)
+  if (state.outcome === null) return false;
+  if (state.maxPossessions === null) return false;
+  return state.possessionsPlayed >= state.maxPossessions;
+}
+
+function handleTransitionPause(
+  state: MatchState,
+  dtMs: number,
+  baseAppState: AppState,
+  options: TickMatchOptions
+): MatchState {
+  // On laisse le temps avancer pendant la pause (pour que l'utilisateur
+  // voie l'outcome avant de redémarrer). Compte aussi le tick.
+  const next: MatchState = {
+    ...state,
+    off: cloneOff(state.off),
+    defPos: cloneDef(state.defPos),
+    ballPos: { ...state.ballPos },
+    eventLog: [...state.eventLog],
+    offBallIntents: { ...state.offBallIntents },
+    tickCount: state.tickCount + 1,
+    possessionTimeMs: state.possessionTimeMs + dtMs,
+  };
+
+  // Démarrage de la pause : mémoriser le start time côté possession.
+  if (next.transitionStartedAtMs === null) {
+    next.transitionStartedAtMs = next.possessionTimeMs;
+    return next;
+  }
+
+  const elapsed = next.possessionTimeMs - next.transitionStartedAtMs;
+  if (elapsed < TRANSITION_PAUSE_MS) {
+    return next; // toujours en pause
+  }
+
+  // Pause terminée → résoudre la transition.
+  return executeTransition(next, baseAppState, options);
+}
+
+function executeTransition(
+  state: MatchState,
+  baseAppState: AppState,
+  options: TickMatchOptions
+): MatchState {
+  const isMissedShot =
+    state.outcome === 'shot-missed' || state.outcome === 'forced-shot-missed';
+  const reboundRate = options.offensiveReboundRate ?? DEFAULT_OFFENSIVE_REBOUND_RATE;
+  const rng = seededAiRng(state.seed + state.tickCount + state.possession * 1000);
+
+  // Cumule le score de cette possession.
+  const cumulativeScore = state.cumulativeScore + state.score;
+
+  // Rebond offensif ? Même possession continue, juste reset clock + carrier.
+  if (isMissedShot && rng() < reboundRate) {
+    return continueWithOffensiveRebound(state, cumulativeScore, baseAppState);
+  }
+
+  // Sinon : nouvelle possession (reset positions, increment compteur).
+  return startFreshPossession(state, baseAppState, cumulativeScore);
+}
+
+function continueWithOffensiveRebound(
+  state: MatchState,
+  cumulativeScore: number,
+  baseAppState: AppState
+): MatchState {
+  const hoop = getDefenseHoop(baseAppState);
+  // Le rebondeur = off-ball le plus proche du panier (exclut le shooter).
+  const shooter = state.carrier;
+  let best: AttackerId | null = null;
+  let bestDist = Infinity;
+  (Object.keys(state.off) as AttackerId[]).forEach((id) => {
+    if (id === shooter) return;
+    const p = state.off[id];
+    if (!p) return;
+    const d = Math.hypot(p.x - hoop.x, p.y - hoop.y);
+    if (d < bestDist) {
+      bestDist = d;
+      best = id;
+    }
+  });
+  const newCarrier = best ?? shooter;
+  const carrierPos = state.off[newCarrier];
+
+  // Event log : marque le rebond pour le HUD.
+  const eventLog = [
+    ...state.eventLog,
+    {
+      possession: state.possession,
+      clock: OFFENSIVE_REBOUND_SHOT_CLOCK_MS / 1000,
+      actor: newCarrier,
+      type: 'pass' as const, // type le plus proche sémantiquement (pas de 'rebound' enum)
+      label: `Rebond offensif ${newCarrier} (continue)`,
+    },
+  ];
+
+  return {
+    ...state,
+    carrier: newCarrier,
+    ballPos: carrierPos ? { x: carrierPos.x + 16, y: carrierPos.y - 16 } : state.ballPos,
+    shotClockMs: OFFENSIVE_REBOUND_SHOT_CLOCK_MS,
+    score: 0,
+    outcome: null,
+    intent: { kind: 'idle' },
+    offBallIntents: {},
+    eventLog,
+    cumulativeScore,
+    // possessionsPlayed inchangé (= même possession qui continue)
+    // possession ID inchangé
+    transitionStartedAtMs: null,
+  };
+}
+
+function startFreshPossession(
+  state: MatchState,
+  baseAppState: AppState,
+  cumulativeScore: number
+): MatchState {
+  // Repart de l'étape de base (positions "home"). Incrémente compteur.
+  const step = baseAppState.steps[baseAppState.activeStep];
+  if (!step) {
+    // Cas dégénéré : on stoppe.
+    return { ...state, cumulativeScore, possessionsPlayed: state.possessionsPlayed + 1 };
+  }
+  const off = activeOffense(step.off, baseAppState.playerCount);
+  const carrier = activeBallCarrier(step, baseAppState.playerCount);
+  const defPos = effectiveDefensePositions(baseAppState, baseAppState.activeStep);
+  const carrierPos = off[carrier] ?? { x: 0, y: 0 };
+  const newPossession = state.possession + 1;
+  const possessionsPlayed = state.possessionsPlayed + 1;
+
+  const eventLog = [
+    ...state.eventLog,
+    {
+      possession: newPossession,
+      clock: DEFAULT_SHOT_CLOCK_MS / 1000,
+      actor: carrier,
+      type: 'pass' as const,
+      label: `— Nouvelle possession #${newPossession} —`,
+    },
+  ];
+
+  return {
+    ...state,
+    off: cloneOff(off),
+    defPos: cloneDef(defPos),
+    carrier,
+    ballPos: { x: carrierPos.x + 16, y: carrierPos.y - 16 },
+    shotClockMs: DEFAULT_SHOT_CLOCK_MS,
+    possessionTimeMs: 0,
+    intent: { kind: 'idle' },
+    offBallIntents: {},
+    score: 0,
+    outcome: null,
+    eventLog,
+    cumulativeScore,
+    possessionsPlayed,
+    possession: newPossession,
+    transitionStartedAtMs: null,
+  };
 }
 
 // ============================================================

@@ -71,9 +71,15 @@ export function useMatchLoop(opts: UseMatchLoopOptions): UseMatchLoopResult {
   const tick = useCallback(() => {
     const cur = matchStateRef.current;
     if (!cur) return;
-    if (cur.outcome !== null) {
-      // Possession terminée : on stoppe le timer mais on garde l'état
-      // affiché pour que l'UI montre l'outcome final.
+    // B3b — session terminée (maxPossessions atteint OU mode 1-possession
+    // avec outcome) : on stoppe le timer mais on garde l'état affiché.
+    // En multi-possessions, l'outcome devient null après la transition,
+    // donc on continue de ticker.
+    const sessionDone =
+      cur.outcome !== null &&
+      cur.maxPossessions !== null &&
+      cur.possessionsPlayed >= cur.maxPossessions;
+    if (sessionDone) {
       clearTimer();
       setIsRunning(false);
       return;
@@ -96,6 +102,10 @@ export function useMatchLoop(opts: UseMatchLoopOptions): UseMatchLoopResult {
     setMatchState(fresh);
     startTimer();
   }, [startTimer]);
+
+  // B3b — re-export du type pour les consommateurs UI qui veulent typer
+  // les options de start (ex : sélecteur maxPossessions).
+  // (pas de logique ici, juste un re-export TypeScript via le return).
 
   const pause = useCallback(() => {
     clearTimer();
