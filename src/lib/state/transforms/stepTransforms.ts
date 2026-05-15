@@ -16,6 +16,7 @@ import {
 } from '@/lib/logic/freeThrowSetup';
 import { buildInboundSetup } from '@/lib/logic/inboundSetup';
 import { buildInboundDefenseSetup } from '@/lib/logic/inboundDefenseSetup';
+import { buildJumpBallSetup } from '@/lib/logic/jumpBallSetup';
 import { activeOffense } from '@/lib/logic/players';
 import { getDefenseHoop } from '@/lib/logic/engine';
 
@@ -151,6 +152,38 @@ export function convertStepToInbound(s: AppState, side: InboundSide): AppState {
  * de mémoire transitoire ; on n'ajoute PAS de champ dédié pour
  * préserver la rétrocompat du modèle Step.)
  */
+/**
+ * E.2 — Convertit le step actif en entre-deux (jump ball).
+ *
+ * Pose les 10 joueurs autour du cercle central : 2 jumpers au centre
+ * (O1 et son matched D1), 4 + 4 répartis en arc autour. Tous à
+ * MIN_CLEARANCE_PX ≥ 34. Le ballon n'est physiquement pas porté
+ * pendant le jump ball réel ; pour la cohérence interne, on garde
+ * `ballCarrier: O1` (= notre jumper).
+ *
+ * Annotations vidées. Marque `manualOverride: true` pour préserver
+ * en cas de recompilation de scénario.
+ */
+export function convertStepToJumpBall(s: AppState): AppState {
+  const setup = buildJumpBallSetup();
+  const cur = s.steps[s.activeStep];
+  if (!cur) return s;
+  const steps = [...s.steps];
+  steps[s.activeStep] = {
+    ...cur,
+    off: setup.off,
+    ballCarrier: setup.jumper,
+    annotations: [],
+    context: 'jump-ball',
+    defenseOverrides: setup.def,
+    forcedScreener: undefined,
+    manualOverride: true,
+  };
+  const defenseInitial =
+    s.activeStep === 0 ? setup.def : s.defenseInitial;
+  return { ...s, steps, defenseInitial };
+}
+
 /**
  * F.2 — Ajoute une étape "course-rebond" après le step LF actif.
  *

@@ -21,6 +21,8 @@ interface StepsPanelProps {
   onSetInboundDefenseMode?: (mode: InboundDefenseMode) => void;
   /** F.2 — Ajoute une étape course-rebond après un step LF (made/missed). */
   onAddFreeThrowReboundStep?: (made: boolean) => void;
+  /** E.2 — Convertit le step actif en entre-deux (jump ball). */
+  onConvertToJumpBall?: () => void;
 }
 
 const inboundButtonStyle = {
@@ -123,6 +125,14 @@ export function StepsPanel(props: StepsPanelProps) {
                       }`}
                     >
                       ⏱ {s.context === 'inbound-baseline' ? 'BLOB' : 'SLOB'}
+                    </span>
+                  )}
+                  {s.context === 'jump-ball' && (
+                    <span
+                      style={{ fontSize: 10, color: '#5b21b6', background: '#ede9fe', padding: '1px 4px', borderRadius: 3, fontWeight: 600 }}
+                      title="Entre-deux (jump ball) — setup canonique cercle central"
+                    >
+                      🆙 JUMP
                     </span>
                   )}
                 </div>
@@ -319,6 +329,33 @@ export function StepsPanel(props: StepsPanelProps) {
               title="Remise touche côté défensif (transition, advance the ball)."
             >
               ⏱ SLOB haut
+            </button>
+          </div>
+        )}
+        {/* E.2 — bouton entre-deux (jump ball) */}
+        {props.onConvertToJumpBall && (
+          <div style={{ marginTop: 4 }}>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('Convertir cette étape en entre-deux (jump ball) ? Pose 10 joueurs autour du cercle central, 2 sauteurs au centre.')) {
+                  props.onConvertToJumpBall!();
+                }
+              }}
+              style={{
+                width: '100%',
+                fontSize: 10,
+                padding: '4px 6px',
+                borderRadius: 4,
+                border: '1px solid #7c3aed',
+                background: '#fff',
+                color: '#5b21b6',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+              title="Pose le setup canonique d'entre-deux : O1 + D1 sauteurs au cercle central, 4+4 joueurs autour en arc."
+            >
+              🆙 entre-deux (jump ball)
             </button>
           </div>
         )}

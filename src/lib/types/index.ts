@@ -125,7 +125,7 @@ export interface Step {
    *  - `'inbound-sideline-high'` : remise sur la touche, côté haut du
    *    terrain (côté demi-cour défensif, transition).
    *  Default implicite : `'live-play'`. */
-  context?: 'live-play' | 'free-throw' | 'inbound-baseline' | 'inbound-sideline-low' | 'inbound-sideline-high';
+  context?: 'live-play' | 'free-throw' | 'inbound-baseline' | 'inbound-sideline-low' | 'inbound-sideline-high' | 'jump-ball';
 }
 
 /** Types d'aide pour les remises en jeu — utilisé par les setters et l'UI. */
