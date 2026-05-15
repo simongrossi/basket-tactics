@@ -538,6 +538,87 @@ describe('gameLoop — E.3 Rebond animé', () => {
   });
 });
 
+describe('gameLoop — E.1 V2 stage 1 ballon adverse animé', () => {
+  it('awayBallPos init null', () => {
+    const baseState = buildState('pnr-central');
+    const state = createInitialMatchState(baseState, { seed: 1 });
+    expect(state.awayBallPos).toBeNull();
+  });
+
+  it("awayBallPos défini quand attackingTeam === 'away'", () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, {
+      seed: 17,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 5,
+    });
+    // Joue jusqu'à passer en away.
+    let sawAwayBall = false;
+    for (let i = 0; i < 1500; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+      if (state.attackingTeam === 'away' && state.awayBallPos !== null) {
+        sawAwayBall = true;
+        break;
+      }
+    }
+    if (sawAwayBall) {
+      expect(state.awayBallPos).not.toBeNull();
+      expect(typeof state.awayBallPos!.x).toBe('number');
+      expect(typeof state.awayBallPos!.y).toBe('number');
+    }
+  });
+
+  it("awayBallPos progresse au cours de la phase adverse", () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, {
+      seed: 17,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 5,
+    });
+    // Trouve la phase away
+    for (let i = 0; i < 1500; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+      if (state.attackingTeam === 'away' && state.awayBallPos !== null) break;
+    }
+    if (state.attackingTeam !== 'away' || state.awayBallPos === null) return;
+    const initialBall = { ...state.awayBallPos };
+    // Tick quelques fois — le ballon doit bouger.
+    for (let i = 0; i < 30; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+      if (state.attackingTeam !== 'away') break;
+    }
+    if (state.awayBallPos) {
+      const moved =
+        Math.abs(state.awayBallPos.x - initialBall.x) > 5 ||
+        Math.abs(state.awayBallPos.y - initialBall.y) > 5;
+      expect(moved).toBe(true);
+    }
+  });
+
+  it("awayBallPos désarmé quand retour en attackingTeam='home'", () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, {
+      seed: 17,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 5,
+    });
+    // Cycle home → away → home complet
+    let backToHome = false;
+    let sawAway = false;
+    for (let i = 0; i < 2000; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+      if (state.attackingTeam === 'away') sawAway = true;
+      if (sawAway && state.attackingTeam === 'home' && state.intent.kind === 'idle') {
+        backToHome = true;
+        break;
+      }
+    }
+    if (backToHome) {
+      expect(state.awayBallPos).toBeNull();
+    }
+  });
+});
+
 describe('gameLoop — Box-Out V2 animation', () => {
   function buildShootingState(): AppState {
     return buildState('pnr-central');

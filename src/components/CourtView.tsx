@@ -374,6 +374,60 @@ export function CourtView(props: CourtViewProps) {
         <CourtPlayersLayer state={state} frame={frame} selectedDefenders={selectedDefenders} />
 
         {/* ---- Overlays avant (au-dessus des sprites) ---- */}
+        {/* E.1 V2 stage 1 — possession adverse stub : affiche le ballon
+            adverse animé + banner "POSSESSION ADVERSE" pendant la phase
+            away. Donne du mouvement visible (au lieu de positions figées). */}
+        {props.liveMatchState?.awayBallPos &&
+          props.liveMatchState.attackingTeam === 'away' && (
+            <g pointerEvents="none">
+              {/* Banner haut du terrain */}
+              <rect
+                x={state.fullCourt ? 180 : 180}
+                y={40}
+                width={240}
+                height={22}
+                rx={4}
+                fill="#991b1b"
+                opacity={0.92}
+              />
+              <text
+                x={300}
+                y={55}
+                textAnchor="middle"
+                fontSize={12}
+                fontWeight={700}
+                fill="#fee2e2"
+              >
+                🔄 POSSESSION ADVERSE
+              </text>
+              {/* Ballon adverse animé */}
+              <circle
+                cx={props.liveMatchState.awayBallPos.x}
+                cy={props.liveMatchState.awayBallPos.y}
+                r={8}
+                fill="#dc2626"
+                stroke="#7f1d1d"
+                strokeWidth={1.5}
+              >
+                <animate
+                  attributeName="r"
+                  values="8;10;8"
+                  dur="0.8s"
+                  repeatCount="indefinite"
+                />
+              </circle>
+              <text
+                x={props.liveMatchState.awayBallPos.x}
+                y={props.liveMatchState.awayBallPos.y - 14}
+                textAnchor="middle"
+                fontSize={9}
+                fontWeight={700}
+                fill="#7f1d1d"
+              >
+                away
+              </text>
+            </g>
+          )}
         {/* Inbound — badge "⏱ REMISE 5s" près du passeur si le step est
             en context inbound-*. Aide à comprendre que le passeur est
             hors-ligne et qu'on étudie une remise spécifique. */}

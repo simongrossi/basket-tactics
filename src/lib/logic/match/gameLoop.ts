@@ -210,6 +210,10 @@ export interface MatchState {
    *  Point de départ de l'animation de trajectoire (shooter → cercle
    *  → rebondeur). */
   shotBallStartPos: Point | null;
+  /** E.1 V2 stage 1 — position du ballon adverse pendant la phase
+   *  `away-possession`. Animé entre 3-4 points imaginaires dans le
+   *  back-court pour donner du mouvement visible. `null` hors away. */
+  awayBallPos: Point | null;
   /** B3b — nombre de possessions terminées (= 0 si encore dans la 1ère). */
   possessionsPlayed: number;
   /** B3b — limite de possessions pour cette session. `null` = endless,
@@ -300,6 +304,7 @@ export function createInitialMatchState(
     boxOutStartedAtMs: null,
     pendingRebound: null,
     shotBallStartPos: null,
+    awayBallPos: null,
   };
 }
 
@@ -865,10 +870,18 @@ function advanceAwayPossession(
   if (state.intent.kind !== 'away-possession') return state;
   const remaining = state.intent.remainingMs - dtMs;
   if (remaining > 0) {
+    // E.1 V2 stage 1 — anime le ballon adverse entre 4 waypoints
+    // imaginaires dans le back-court (visualise leur possession).
+    // Progresse de waypoint en waypoint sur la durée totale.
+    const totalDuration = AWAY_POSSESSION_DURATION_MS;
+    const elapsed = totalDuration - remaining;
+    const progress = Math.max(0, Math.min(1, elapsed / totalDuration));
+    const awayBallPos = computeAwayBallPosition(progress, baseAppState);
     return {
       ...state,
       intent: { kind: 'away-possession', remainingMs: remaining },
       shotClockMs: Math.max(0, remaining),
+      awayBallPos,
     };
   }
   // Possession adverse terminée : outcome.
@@ -921,6 +934,58 @@ function advanceAwayPossession(
     // possessionsPlayed déjà incrémenté au startAwayPossession (fin de
     // la possession maison précédente). Ici on démarre juste la suivante.
     transitionStartedAtMs: null,
+    awayBallPos: null, // désarme l'animation
+  };
+}
+
+/**
+ * E.1 V2 stage 1 — Calcule la position du ballon adverse pendant sa
+ * possession stubbée. Anime entre 4 waypoints dans le back-court
+ * (full court : moitié haute; half court : on simule un déplacement
+ * latéral). 4 phases = passe-passe-drive-tir.
+ */
+function computeAwayBallPosition(progress: number, baseAppState: AppState): Point {
+  // 4 waypoints qui simulent une possession adverse :
+  // - W0 : outlet ball-side (= setup)
+  // - W1 : relai milieu de terrain
+  // - W2 : drive ball-side
+  // - W3 : tir sous-cercle adverse (= bord opposé du terrain)
+  //
+  // Half-court (innerMaxY = 540) : on anime dans la zone 350-540
+  // pour donner l'illusion d'un back-court.
+  // Full-court : on anime dans la moitié haute (y > 600 si HOOP en
+  // bas, mais par défaut on inverse symétriquement).
+  const isFullCourt = baseAppState.fullCourt === true;
+  const isAttackingUp = baseAppState.attackingDirection !== 'down';
+  // Pour simplifier : on suppose hoop home en haut (y=75). L'adverse
+  // attaque vers le bas (y vers 1005 si full court, sinon on simule
+  // dans le bas du half court y=450-540).
+  const baseY = isFullCourt ? 800 : 480; // zone de jeu adverse simulée
+  const yRange = isFullCourt ? 180 : 60;
+
+  // Waypoints :
+  const waypoints: Point[] = [
+    { x: 480, y: baseY + yRange }, // W0 outlet droite
+    { x: 360, y: baseY + yRange * 0.5 }, // W1 relai milieu
+    { x: 240, y: baseY }, // W2 drive
+    { x: 300, y: isFullCourt ? 1005 : baseY - yRange * 0.6 }, // W3 tir
+  ];
+
+  // Segment courant : progress [0,1] divisé en 3 segments
+  // (W0→W1, W1→W2, W2→W3).
+  const numSegments = waypoints.length - 1;
+  const segIdx = Math.min(numSegments - 1, Math.floor(progress * numSegments));
+  const segT = progress * numSegments - segIdx;
+  const from = waypoints[segIdx];
+  const to = waypoints[segIdx + 1];
+  // Arc parabolique léger sur le segment de tir (segIdx === 2)
+  let arc = 0;
+  if (segIdx === 2) {
+    arc = 30 * 4 * segT * (1 - segT);
+  }
+  return {
+    x: from.x + (to.x - from.x) * segT,
+    y: from.y + (to.y - from.y) * segT - arc,
   };
 }
 
