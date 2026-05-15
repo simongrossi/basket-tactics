@@ -46,7 +46,7 @@ pas se superposer au poseur (même quand "stuck on screener"), etc.
 | `src/lib/logic/screens/detectRejectedScreen.ts` | B2 reject — détecte le porteur qui vire opposé |
 | `src/lib/logic/screens/detectSnakeDribble.ts` | B4 snake — détecte V sur 3 steps |
 | `src/lib/logic/screenPhysics.ts` | `screenContactT/Phase/Adhesion/TangentRelease` — easing sigmoïdal qui FIGE D1 sur le poseur |
-| `src/lib/logic/constraintSolver.ts` | socle de projection contraintes point/obstacles/demi-plan |
+| `src/lib/logic/constraintSolver.ts` | solveur unifié point/obstacles/demi-plan + collisions multi-entités |
 | `src/lib/logic/screens.ts` | barrel (ré-export) |
 
 ### Pipeline d'application
@@ -248,6 +248,13 @@ Depuis J.3b, `pushOutOfMany()` délègue aussi à ce même socle. Les
 solveurs historiques gardent leur API, mais le push radial simple,
 les collisions finales et les ajustements qui appellent `pushOutOfMany`
 partagent désormais le même moteur de projection.
+
+Depuis J.3c, `resolvePlayerCollisions()` délègue à
+`solveEntityCollisions()` : les défenseurs mobiles, les défenseurs
+`screenLocked` fixes, et les attaquants obstacles sont résolus par le
+même moteur de contraintes. Les wrappers historiques restent en place
+pour préserver les appels existants, mais la logique itérative ne vit
+plus dans `geometry.ts`.
 
 ✅ **Identité stable du contact** : `defenderScreenContact()` attribue
 une `contactKey` logique (`carrier:D1:O1:O5` ou `off:D2:O2:O4+O5`).

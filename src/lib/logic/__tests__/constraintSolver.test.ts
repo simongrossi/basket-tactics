@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { solvePointConstraints } from '../constraintSolver';
+import { solveEntityCollisions, solvePointConstraints } from '../constraintSolver';
 import { pushOutOfScreenContact } from '../screenCollision';
 
 describe('constraintSolver', () => {
@@ -32,6 +32,41 @@ describe('constraintSolver', () => {
 
     expect(solved.y).toBeLessThanOrEqual(0);
     expect(Math.hypot(solved.x, solved.y)).toBeGreaterThanOrEqual(20);
+  });
+
+  it('résout les collisions multi-entités sans déplacer les entités fixes', () => {
+    const solved = solveEntityCollisions({
+      entities: [
+        { id: 'D1', point: { x: 0, y: 0 }, fixed: true },
+        { id: 'D2', point: { x: 4, y: 0 } },
+      ],
+      staticObstacles: [{ center: { x: 40, y: 0 } }],
+      defaultMinDist: 20,
+    });
+
+    expect(solved.positions.D1).toEqual({ x: 0, y: 0 });
+    expect(Math.hypot(
+      solved.positions.D2!.x - solved.positions.D1!.x,
+      solved.positions.D2!.y - solved.positions.D1!.y
+    )).toBeGreaterThanOrEqual(20);
+  });
+
+  it('traite les obstacles fixes et les entités mobiles dans le même solveur', () => {
+    const solved = solveEntityCollisions({
+      entities: [
+        { id: 'D1', point: { x: 3, y: 0 } },
+        { id: 'D2', point: { x: 48, y: 0 } },
+      ],
+      staticObstacles: [{ center: { x: 0, y: 0 } }],
+      defaultMinDist: 20,
+    });
+
+    expect(Math.hypot(solved.positions.D1!.x, solved.positions.D1!.y))
+      .toBeGreaterThanOrEqual(20);
+    expect(Math.hypot(
+      solved.positions.D2!.x - solved.positions.D1!.x,
+      solved.positions.D2!.y - solved.positions.D1!.y
+    )).toBeGreaterThanOrEqual(20);
   });
 });
 

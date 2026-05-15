@@ -29,6 +29,27 @@ export interface SolvePointConstraintsResult {
   iterations: number;
 }
 
+export interface CollisionEntity<Id extends string = string> {
+  id: Id;
+  point: Point;
+  fixed?: boolean;
+  fallbackDirection?: Point;
+}
+
+export interface SolveEntityCollisionsParams<Id extends string = string> {
+  entities: Array<CollisionEntity<Id>>;
+  staticObstacles?: PointObstacleConstraint[];
+  defaultMinDist: number;
+  iterations?: number;
+  epsilon?: number;
+}
+
+export interface SolveEntityCollisionsResult<Id extends string = string> {
+  positions: Partial<Record<Id, Point>>;
+  movedIds: Set<Id>;
+  iterations: number;
+}
+
 /**
  * Projection itérative d'un point hors d'une liste d'obstacles, avec
  * contrainte optionnelle de demi-plan. C'est le socle commun avant de
@@ -65,6 +86,58 @@ export function solvePointConstraints(
   }
 
   return { point: result, moved, iterations: usedIterations };
+}
+
+/**
+ * Résout un ensemble d'entités mobiles contre des obstacles fixes et les
+ * autres entités. Les entités `fixed` restent des obstacles solides mais ne
+ * sont pas déplacées. C'est le solveur commun pour les collisions finales
+ * du playback et les futures contraintes screen-lock.
+ */
+export function solveEntityCollisions<Id extends string = string>(
+  params: SolveEntityCollisionsParams<Id>
+): SolveEntityCollisionsResult<Id> {
+  const maxIter = params.iterations ?? 8;
+  const epsilon = params.epsilon ?? 0.5;
+  const positions: Partial<Record<Id, Point>> = {};
+  params.entities.forEach((entity) => {
+    positions[entity.id] = { x: entity.point.x, y: entity.point.y };
+  });
+
+  const movedIds = new Set<Id>();
+  let usedIterations = 0;
+  for (let iter = 0; iter < maxIter; iter++) {
+    let anyMoved = false;
+    usedIterations = iter + 1;
+    for (const entity of params.entities) {
+      if (entity.fixed) continue;
+      const current = positions[entity.id];
+      if (!current) continue;
+      const obstacles: PointObstacleConstraint[] = [
+        ...(params.staticObstacles ?? []),
+      ];
+      for (const other of params.entities) {
+        if (other.id === entity.id) continue;
+        const otherPoint = positions[other.id];
+        if (otherPoint) obstacles.push({ center: otherPoint });
+      }
+
+      const solved = solvePointConstraints({
+        point: current,
+        obstacles,
+        defaultMinDist: params.defaultMinDist,
+        fallbackDirection: entity.fallbackDirection,
+      }).point;
+      if (distanceSquared(solved, current) > epsilon * epsilon) {
+        positions[entity.id] = solved;
+        movedIds.add(entity.id);
+        anyMoved = true;
+      }
+    }
+    if (!anyMoved) break;
+  }
+
+  return { positions, movedIds, iterations: usedIterations };
 }
 
 function projectObstacle(

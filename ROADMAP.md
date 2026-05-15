@@ -883,7 +883,7 @@ son outillage **sans changer le scope basket**.
 | ~~J.0b~~ | ~~**Garde-fou diagnostic anti-téléport central** — `collectDecisions` + 16 templates instrumentés~~ | — | — | — | 🟢 livré 2026-05-14 (commit `1c3feab`) |
 | ~~J.1~~ | ~~**Parité scrub ↔ playback** — mémoire scrub déterministe recalculée depuis le début du segment~~ | — | — | — | 🟢 livré 2026-05-15 (commit `38209d6`) |
 | ~~J.2~~ | ~~**Cache segmentaire du resolver** — memoize par segment `idxA→idxB`~~ | — | — | — | 🟢 livré 2026-05-15 (commit `87b212c`) |
-| J.3 | **Solver de contraintes unifié** — un seul résolveur att/déf/poseurs/clusters/screen lock | 3-5j | 🔴 | **Très haut** | 🟡 socle livré (`f7fcb8a`, `6ba3927`) ; refactor complet restant |
+| ~~J.3~~ | ~~**Solver de contraintes unifié** — un seul résolveur att/déf/poseurs/clusters/screen lock~~ | — | — | — | 🟢 livré 2026-05-15 (`f7fcb8a`, `6ba3927` + finalisation multi-entités) |
 | J.4 | **Off-ball avancé** — stagger séquentiel, elevator 2 points, flare/backscreen, mémoire sortie tangentielle | 1-2 sem | 🟡 | Très haut | 🟡 routes + stagger séquentiel livrés (`c50615d`, `285b9ff`) ; off-ball complet restant |
 | ~~J.5~~ | ~~**Profiling + budget frame** — mesurer `resolveFrameAt`, `effectiveDefensePositions`, détections, collisions ; fixer un budget~~ | — | — | — | 🟢 livré 2026-05-15 (commit `a40a8bc`) |
 | ~~J.6~~ | ~~**Visual regression légère — golden scenarios** — exports métriques par scénario~~ | — | — | — | 🟢 livré 2026-05-15 (commit `e8ad45b`) |
@@ -891,9 +891,10 @@ son outillage **sans changer le scope basket**.
 
 **État réel au 2026-05-15.**
 - J.1, J.2, J.5, J.6, J.7 sont livrés et testés.
-- J.3 est commencé proprement : `constraintSolver.ts`, `pushOutOfScreenContact`
-  et `pushOutOfMany` passent par le socle commun. Reste la migration complète
-  de `resolvePlayerCollisions` et des exceptions fines vers un seul solveur.
+- J.3 est livré : `constraintSolver.ts`, `pushOutOfScreenContact`,
+  `pushOutOfMany` et `resolvePlayerCollisions` passent par le socle commun
+  (`solvePointConstraints` / `solveEntityCollisions`). Les wrappers historiques
+  restent pour compatibilité, mais la logique itérative est centralisée.
 - J.4 est renforcé : routes off-ball par type (`flare`, `backscreen`, `hammer`,
   `elevator`) et contact stagger séquentiel. Reste la version complète :
   elevator avec corridor/gap physique, sortie tangentielle par poseur, et
@@ -1074,12 +1075,10 @@ clock natif).
 de scope qui ouvre le jeu complet. Suivi de F.1 (junk) + F.3 (FT
 rebound) selon les besoins.
 
-**Phase J (qualité moteur écran) — ordre conseillé** : J.6 (golden
-scenarios, 1j) avant tout — c'est le filet pour tester les suivants.
-Puis J.7 (panneau debug, 4-6h) et J.2 (cache segmentaire, 1j) en
-quick wins. Ensuite J.1 (parité scrub) et J.5 (profiling). Garder
-J.3 (solveur unifié) et J.4 (off-ball avancé) pour la fin — ce sont
-les gros refactos qui bénéficieront du filet J.6 + des mesures J.5.
+**Phase J (qualité moteur écran)** : J.1/J.2/J.3/J.5/J.6/J.7 sont
+livrés. Le seul chantier Phase J encore ouvert est J.4 avancé
+hors-ballon : elevator/gap physique complet, sortie tangentielle par
+poseur et mémoire multi-contact plus détaillée.
 
 **À traiter en parallèle dès que possible** : G.1 (doc calibration) qui
 clarifie le scope du moteur (tactique vs sprint réel).

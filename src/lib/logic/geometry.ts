@@ -1,6 +1,6 @@
 import type { Point } from '../types';
 import { CARRIER_SIDE_TOLERANCE_PX, HOOP, PAINT } from '../data/court';
-import { solvePointConstraints } from './constraintSolver';
+import { solveEntityCollisions, solvePointConstraints } from './constraintSolver';
 
 export function distance(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -110,39 +110,29 @@ export function resolvePlayerCollisions<
   maxIter: number = 8,
   skipIds?: ReadonlySet<string>
 ): void {
-  const epsilon = 0.5;
-  for (let iter = 0; iter < maxIter; iter++) {
-    let anyMoved = false;
-    for (const dId in defPos) {
+  const solved = solveEntityCollisions({
+    entities: Object.entries(defPos).map(([id, p]) => ({
+      id,
+      point: { x: p.x, y: p.y },
       // Skip défenseurs verrouillés (cf. screenLockedDefenders dans
       // frameResolver) : leur position vient de la lerp engine et NE DOIT
       // PAS être perturbée par le résolveur, qui peut flipper d'un côté
-      // à l'autre quand les obstacles interpolés se déplacent — créant
-      // un saut visuel entre deux frames consécutifs.
-      if (skipIds && skipIds.has(dId)) continue;
-      const p = defPos[dId];
-      const obstacles: Point[] = [];
-      // INVARIANT GLOBAL ANTI-SUPERPOSITION : aucun joueur ne peut chevaucher
-      // un autre, qu'il soit son homme matché ou non. Cf. docs/PLAYER-CLEARANCE.md.
-      // L'ancienne exception "matched coller" autorisait D à se poser sur
-      // son O ; visuellement = sprites empilés. Le coach demande zéro
-      // superposition, point. Le manTarget/screenAdjust placent déjà D à
-      // ≥ MIN_PLAYER_CLEARANCE_PX dans tous les cas standards ; la suppression
-      // de l'exception ne fait que clamper les overrides manuels et bords.
-      for (const aId in off) {
-        obstacles.push(off[aId]);
-      }
-      for (const otherId in defPos) {
-        if (otherId !== dId) obstacles.push({ x: defPos[otherId].x, y: defPos[otherId].y });
-      }
-      const pushed = pushOutOfMany({ x: p.x, y: p.y }, obstacles, minDist);
-      if (Math.abs(pushed.x - p.x) > epsilon || Math.abs(pushed.y - p.y) > epsilon) {
-        p.x = pushed.x;
-        p.y = pushed.y;
-        anyMoved = true;
-      }
-    }
-    if (!anyMoved) break;
+      // à l'autre quand les obstacles interpolés se déplacent.
+      fixed: skipIds?.has(id) ?? false,
+    })),
+    // INVARIANT GLOBAL ANTI-SUPERPOSITION : aucun joueur ne peut chevaucher
+    // un autre, qu'il soit son homme matché ou non. Cf. PLAYER-CLEARANCE.md.
+    staticObstacles: Object.values(off).map((center) => ({ center })),
+    defaultMinDist: minDist,
+    iterations: maxIter,
+    epsilon: 0.5,
+  });
+
+  for (const dId in defPos) {
+    const solvedPoint = solved.positions[dId];
+    if (!solvedPoint) continue;
+    defPos[dId].x = solvedPoint.x;
+    defPos[dId].y = solvedPoint.y;
   }
 }
 
