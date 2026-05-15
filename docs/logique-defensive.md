@@ -357,6 +357,22 @@ Le debug écran expose `motionTurnDeg` et `motionInertia` pour vérifier
 qu'un amortissement vient bien d'un virage réel, pas d'un flip de
 détection.
 
+### Anti-collision finale pendant l'interpolation
+
+Après le suivi temps-réel, les collisions défenseurs, l'inertie et les
+rate limiters, `resolveFrameAt` applique une passe finale de collision
+sur tous les joueurs affichés. Cette passe vise la lisibilité frame par
+frame, pas la position tactique de step :
+- les poseurs d'écran et les défenseurs verrouillés sur écran restent
+  fixes ;
+- les autres attaquants/défenseurs sont légèrement séparés avec une
+  clearance visuelle bornée ;
+- un dernier clamp de saut conserve le garde-fou anti-téléport.
+
+Le but est de supprimer les overlaps transitoires qui peuvent revenir
+après un rate limiter ou une correction d'inertie, notamment sur les
+cuts croisés hors-ballon.
+
 ### Solveur de collisions strict
 
 Toujours appliqué après le contournement Bezier : voir section suivante.

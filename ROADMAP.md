@@ -697,6 +697,12 @@ collisions + rate limiter. Reste une V2 plus profonde si besoin :
 accélération/top speed par profil joueur et pathfinding défensif
 pré-collision.
 
+**D.5 V1 livré 2026-05-15.** Passe finale de collision sur la frame
+interpolée après inertie/rate limiter : poseurs et défenseurs lockés
+restent fixes, les autres joueurs sont séparés par une clearance
+visuelle bornée, puis reclamp anti-saut. Les golden metrics montent le
+seuil minimal de clearance playback de 10 px à 20 px.
+
 ---
 
 ### Phase E — Changement de scope (le gros)

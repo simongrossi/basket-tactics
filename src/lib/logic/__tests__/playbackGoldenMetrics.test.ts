@@ -31,7 +31,7 @@ describe('playback golden metrics', () => {
       expect(metrics.frames).toBeGreaterThan(0);
       expect(metrics.maxAttackerJumpPx).toBeLessThanOrEqual(20);
       expect(metrics.maxDefenderJumpPx).toBeLessThanOrEqual(20);
-      expect(metrics.minPlayerClearancePx).toBeGreaterThanOrEqual(10);
+      expect(metrics.minPlayerClearancePx).toBeGreaterThanOrEqual(20);
       expect(metrics.screenContactFrames).toBeGreaterThan(0);
       expect(metrics.averageResolveMs).toBeLessThan(8);
     });

@@ -37,6 +37,7 @@ import {
   resolvePlayerCollisions,
 } from '../geometry';
 import { pushOutOfScreenContact } from '../screenCollision';
+import { solveEntityCollisions } from '../constraintSolver';
 import { activeBallCarrier, activeOffense } from '../players';
 import { attackerTrajectoryAt, type MovementType } from '../playbackTrajectory';
 import { lerpAngleDeg } from '../angles';
@@ -250,6 +251,7 @@ const DEFENDER_INERTIA_TURN_START_COS = 0.35;
 const DEFENDER_INERTIA_MAX_BLEND = 0.28;
 const DEFENDER_INERTIA_SPEED_LOSS = 0.45;
 const DEFENDER_INERTIA_MIN_SPEED_PX = 0.6;
+const INTERPOLATED_FRAME_CLEARANCE_PX = PLAYER_MIN_CLEARANCE_PX * 0.72;
 
 interface SegmentScreenStatic {
   matchupsA: Matchups;
@@ -987,9 +989,35 @@ export function resolveFrameAt(
         defPos[id].x = p.x + dx * k;
         defPos[id].y = p.y + dy * k;
       }
-      if (decisions?.[id]) {
-        decisions[id]!.lastJumpPx = Math.hypot(defPos[id].x - p.x, defPos[id].y - p.y);
-      }
+    });
+  }
+  resolveInterpolatedFrameCollisions({
+    off,
+    defPos,
+    attackerIds,
+    defenderIds,
+    attackerIsScreening,
+    forcedScreeners: new Set([a.forcedScreener, b.forcedScreener].filter(Boolean) as AttackerId[]),
+    lockedDefenders: screenLockedDefenders,
+    prevFrame: options.prevFrame,
+  });
+  if (options.prevFrame) {
+    clampPostCollisionFrameJumps({
+      off,
+      defPos,
+      attackerIds,
+      defenderIds,
+      attackerIsScreening,
+      prevFrame: options.prevFrame,
+    });
+  }
+  if (options.prevFrame && decisions) {
+    const prev = options.prevFrame.defPos;
+    defenderIds.forEach((id) => {
+      const p = prev[id];
+      const c = defPos[id];
+      if (!p || !c || !decisions[id]) return;
+      decisions[id]!.lastJumpPx = Math.hypot(c.x - p.x, c.y - p.y);
     });
   }
   const nextMotionMemory = options.prevFrame
@@ -1086,6 +1114,105 @@ function matchClusterToScreenObstacle(
 
 function lerpPoint(a: Point, b: Point, t: number): Point {
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+}
+
+function resolveInterpolatedFrameCollisions(params: {
+  off: AttackerPositions;
+  defPos: ComputedDefense;
+  attackerIds: AttackerId[];
+  defenderIds: DefenderId[];
+  attackerIsScreening: Partial<Record<AttackerId, boolean>>;
+  forcedScreeners: ReadonlySet<AttackerId>;
+  lockedDefenders: ReadonlySet<DefenderId>;
+  prevFrame?: PlaybackFrame;
+}): void {
+  const entities = [
+    ...params.attackerIds.map((id) => ({
+      id: `O:${id}` as const,
+      point: params.off[id],
+      fixed: !!params.attackerIsScreening[id] || params.forcedScreeners.has(id),
+      fallbackDirection: frameCollisionFallback(
+        params.prevFrame?.off[id],
+        params.off[id],
+        id.charCodeAt(1)
+      ),
+    })),
+    ...params.defenderIds.map((id) => ({
+      id: `D:${id}` as const,
+      point: params.defPos[id],
+      fixed: params.lockedDefenders.has(id),
+      fallbackDirection: frameCollisionFallback(
+        params.prevFrame?.defPos[id],
+        params.defPos[id],
+        id.charCodeAt(1) + 5
+      ),
+    })),
+  ];
+
+  const solved = solveEntityCollisions({
+    entities,
+    defaultMinDist: INTERPOLATED_FRAME_CLEARANCE_PX,
+    iterations: 4,
+    epsilon: 0.25,
+  });
+
+  params.attackerIds.forEach((id) => {
+    const p = solved.positions[`O:${id}`];
+    if (!p) return;
+    params.off[id] = p;
+  });
+  params.defenderIds.forEach((id) => {
+    const p = solved.positions[`D:${id}`];
+    if (!p) return;
+    params.defPos[id].x = p.x;
+    params.defPos[id].y = p.y;
+  });
+}
+
+function clampPostCollisionFrameJumps(params: {
+  off: AttackerPositions;
+  defPos: ComputedDefense;
+  attackerIds: AttackerId[];
+  defenderIds: DefenderId[];
+  attackerIsScreening: Partial<Record<AttackerId, boolean>>;
+  prevFrame: PlaybackFrame;
+}): void {
+  params.attackerIds.forEach((id) => {
+    if (params.attackerIsScreening[id]) return;
+    const prev = params.prevFrame.off[id];
+    const current = params.off[id];
+    if (!prev || !current) return;
+    const clamped = clampStepDelta(prev, current, MAX_ATTACKER_JUMP_PX);
+    params.off[id] = clamped;
+  });
+  params.defenderIds.forEach((id) => {
+    const prev = params.prevFrame.defPos[id];
+    const current = params.defPos[id];
+    if (!prev || !current) return;
+    const clamped = clampStepDelta(prev, current, MAX_DEFENDER_JUMP_PX);
+    params.defPos[id].x = clamped.x;
+    params.defPos[id].y = clamped.y;
+  });
+}
+
+function clampStepDelta(prev: Point, current: Point, maxDelta: number): Point {
+  const dx = current.x - prev.x;
+  const dy = current.y - prev.y;
+  const d = Math.hypot(dx, dy);
+  if (d <= maxDelta) return current;
+  const k = maxDelta / d;
+  return { x: prev.x + dx * k, y: prev.y + dy * k };
+}
+
+function frameCollisionFallback(prev: Point | undefined, current: Point, seed: number): Point {
+  if (prev) {
+    const dx = current.x - prev.x;
+    const dy = current.y - prev.y;
+    const len = Math.hypot(dx, dy);
+    if (len > 0.01) return { x: dx / len, y: dy / len };
+  }
+  const angle = seed * 2.399963229728653;
+  return { x: Math.cos(angle), y: Math.sin(angle) };
 }
 
 interface DefenderMotionStat {
