@@ -18,22 +18,22 @@
 
 | Item | Statut | Description | Effort | Priorité |
 |---|---|---|---|---|
-| **E.3** — Rebond animé sur tir manqué | ⚪ | Animation du rebond (trajectoire balle, contact main, tip-in possible) au lieu d'un simple attributeur de balle. Complète le cycle E.1 V1. | ~1 j | 🏀 **P1** |
-| **E.2 / F.1** — Jump ball initial | ⚪ | Setup début de match : entre-deux au cercle central, 8 joueurs en cercle, lancer + tap. Doublonné dans roadmap → fusionner sous E.2. | ~1 j | 🏀 **P1** |
+| ~~**E.3** — Rebond animé~~ | 🟢 livré 2026-05-16 (commit `874d96c`) | Trajectoire ballon shooter → cercle → rebondeur, parabole 2 phases. Rebond pré-calculé pour cohérence animation/outcome. | — | — |
+| ~~**E.2** — Jump ball initial~~ | 🟢 livré 2026-05-16 (commit `a61323c`) | Setup canonique entre-deux : 2 sauteurs au cercle central + 4+4 en arc, Règle 1 validée sur 45 paires. | — | — |
 | **E.1 V2** — 2-way complet | ⚪ | Pendant la phase adverse stub, rendre les positions adverses visuellement (mirroring + matchups inversés), AppState étendu avec côté attaquant. Le **GROS morceau** : débloque les vrais matchs full court. | 5-8 j | 🏀 **P2** |
 
 ### Phase F — Situations FIBA basket
 
 | Item | Statut | Description | Effort | Priorité |
 |---|---|---|---|---|
-| **F.2** — Free throw avec course-rebond | ⚪ | Animation post-lancer : si missed, les joueurs en couloir LF rebondissent vers la balle (vs setup figé actuel F.3). | ~1-2 j | 🏀 **P1** |
+| ~~**F.2** — Free throw avec course-rebond~~ | 🟢 livré 2026-05-16 (commit `6bb780a`) | Setter `addFreeThrowReboundStep(made)` qui ajoute une étape post-lancer animée. Blocks défensifs gagnent rebond, slots offensifs over-the-top. Made = transition adverse. | — | — |
 | **F.4** — Pénalité technique / DQ | ⚪ | Marquer un joueur disqualifié (grisé/absent) + recompose matchups à 4v5 temporaire. Situation rare mais cas réel à modéliser. | ~0.5 j | 🏀 **P3** |
 
 ### Extensions remises en jeu V2 (basket pur)
 
 | Item | Statut | Description | Effort | Priorité |
 |---|---|---|---|---|
-| **Box-out auto post-shot** | ⚪ | Étendre le box-out V2 à TOUS les rebonds (pas seulement inbound), avec couche défensive `boxOutLayer` dans le pipeline engine. Fait apparaître le box-out partout en mode live. | ~1 j | 🏀 **P1** |
+| ~~**Box-out auto post-shot**~~ | 🟢 livré 2026-05-16 (commit `e79453c`) | Coach diagnostic `boxOutCheckRule` qui détecte phase de rebond et flag défenseurs mal positionnés. Le box-out animé live existait déjà (E.1 V2). | — | — |
 | **Diagnostic défensif sur remise** | ⚪ | Coach diag spécifique : "ton mode deny-deny laisse O3 libre coin", "zone-press = D5 sweeper hors-zone", "stagger casse face-guard à 50%", etc. | ~1-2 j | 🏀 **P2** |
 | **Templates défense d'attaque** | ⚪ | Templates qui montrent une zone 1-3-1 ou 2-3 face à un BLOB Box (pédagogie défensive sur remise). 4-6 templates. | ~30 min × N | 🏀 **P2** |
 | **Compteur 5s diagnostic statique** | 🟡 | Le timer live est livré. Ajouter un diagnostic statique qui calcule la durée estimée des étapes inbound (basé sur `secondsPerStep`) et flag warning si > 5s. | ~1h | 🏀 **P3** |
@@ -90,11 +90,11 @@
 
 Total basket P1 + P2 : **~10-15 jours** ouvrés.
 
-### Salve P1 (essentiels) — ~3-5 jours
-1. **E.3 — Rebond animé** (~1j) — complète E.1 V1 visuellement
-2. **F.2 — Free throw post-lancer** (~1-2j) — complète F.3 déjà livré
-3. **Box-out auto post-shot** (~1j) — étend box-out V2 à tous rebonds
-4. **E.2 — Jump ball initial** (~1j) — début de match
+### ~~Salve P1 (essentiels)~~ — 🟢 livrée 2026-05-16 (4 commits)
+1. ~~**E.3 — Rebond animé**~~ ✅ commit `874d96c`
+2. ~~**F.2 — Free throw post-lancer**~~ ✅ commit `6bb780a`
+3. ~~**Box-out auto post-shot**~~ ✅ commit `e79453c`
+4. ~~**E.2 — Jump ball initial**~~ ✅ commit `a61323c`
 
 ### Salve P2 (extensions tactiques) — ~7-12 jours
 5. **E.1 V2 — 2-way complet** (5-8j) — LE gros morceau, débloque vraie alternance visuelle
