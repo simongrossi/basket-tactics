@@ -548,44 +548,42 @@ comme moment qui termine la séquence), une nouvelle phase de simulation
 soient instruits. Le moteur actuel sert très bien à enseigner la défense
 de placement ; le rebond est une couche au-dessus.
 
-### 🟡 Mode "Play IA — voir un match jouer tout seul" (B1-B5) — chantier actif
+### 🟢 Mode "Play IA — voir un match jouer tout seul" (B1-B5) — LIVRÉ 2026-05-15
 
-L'infrastructure existe (géométrie, threats, offense EV, défense
-réactive, simulator Monte-Carlo) **et** un socle de génération de
-possession discrète vient d'être livré (`aiPossession.ts`, 2026-05-15).
-Le chantier complet pour atteindre le mode "match live" est désormais
-**actif** (décision projet 2026-05-15) — fini le "repoussé bas de pile".
+L'infrastructure complète existe : game loop autonome 5 Hz, intent
+persistant par joueur (porteur + 4 off-ball), transition multi-possessions
+(rebond offensif 28 %), UI live synchronisée, calibration Monte-Carlo.
 
-**Statut V1 livrée** : `generateAiPossessionPlan` + `generateAiMatchSeries`
-dans `src/lib/logic/match/aiPossession.ts`. Panneau `Simulation & IA`
-peut générer 3 possessions autonomes depuis l'état courant, afficher le
-résumé PPP/outcomes, charger une possession en `Step[]` dans la timeline.
-Doc : [docs/ai-possession.md](docs/ai-possession.md).
+**Effort réel** : ~3j (vs 10-15j estimé init, sous-estimation initiale
+des synergies avec le moteur existant).
 
-**Ce qui reste — plan d'exécution adopté** :
+**Récap des chantiers livrés** :
 
-| # | Chantier | Effort | Dépendances |
+| # | Status | Commit | Description |
 |---|---|---|---|
-| **B1** | **Game loop continu** — `match/gameLoop.ts` avec `tick(matchState, dt)`, cadence 5 Hz, interpolation entre ticks, continuité 24 s shot clock | 3-4j | aucune (= bloque B2-B5) |
-| **B3a** | **Modèle de tir minimal** — réutilise `evaluateOffensiveOptions` + `scoreOutcome` déjà dans `aiPossession.ts` ; mute `matchState` (score, shot clock reset) | 1j | B1 |
-| **B2** | **Décideur off-ball** — `match/decisions/ballHandler.ts` (dribble continu / passer / tirer / reset) + `match/decisions/offBallMover.ts` (spacing / cuts permanents / pose d'écran). Mémoire d'intent par joueur. | 3-4j | B1 |
-| **B4** | **UI "▶ Play IA (live)"** — bouton dans `SimulationSection`, HUD léger (possession, shot clock, score, dernière action), pause + vitesse | 1-2j | B1, B2, B3a |
-| **B3b** | **Rebond + transition possession** — si Phase E.1 (box-out) livrée, brancher dessus ; sinon stub "fin de possession, score noté" | 1-2j | B1, B3a, idéal E.1 |
-| **B5** | **Tuning Monte-Carlo comparé** — PPP du mode live vs simulator → cible ±0.15. Boucle de calibration des paramètres `creativity`, `actionTemperature`, seuils décisionnels | 2-3j | B1-B4 |
+| ~~B1~~ | 🟢 | `edb43e6` | Game loop continu 5 Hz, intent porteur (drive/pass/shoot) |
+| ~~B3a~~ | 🟢 | `bd2dccf` | Shot model enrichi (zone, contestation, position) |
+| ~~B2~~ | 🟢 | `0da33a4` | Décideur off-ball (cut, drift, relocate) avec budget cuts |
+| ~~B4~~ | 🟢 | `ac1bece` | UI live complète (CourtView + HUD synchronisés) |
+| ~~B3b~~ | 🟢 | `40e5f0f` | Transition multi-possessions stub (off reb / new poss) |
+| ~~B5~~ | 🟢 | `2e9ffee` | Calibration live vs Monte-Carlo (±0.15 PPP cible) |
 
-**Total estimé** : ~10-15j ouvrés. Découpé pour pouvoir s'arrêter
-proprement après chaque sous-chantier (chacun apporte une valeur
-indépendante) :
+**Stack du moteur de match autonome** :
+- `src/lib/logic/match/gameLoop.ts` — tick pipeline + transitions
+- `src/lib/logic/match/decisions/offBallMover.ts` — movers off-ball
+- `src/lib/logic/match/calibration.ts` — headless runner + comparison
+- `src/hooks/useMatchLoop.ts` — hook React 5 Hz avec start/pause/resume/stop
+- `LiveMatchPanel` + `CalibrationPanel` dans `SimulationSection`
 
-- Après B1 + B3a : on peut JOUER une possession en continu mais sans
-  off-ball intelligent (les coéquipiers restent statiques).
-- Après B2 : la possession ressemble enfin à une vraie séquence basket.
-- Après B4 : c'est utilisable côté coach (mode "▶ Play IA (live)").
-- Après B5 : c'est calibré et trustable comme tool d'analyse.
+**Limites V1 conservées** :
+- Pas d'écrans off-ball auto (V2 si besoin — design dans `offBallMover.ts`)
+- Modélisation possession adverse absente (chaque nouvelle possession
+  reste offensive pour notre équipe — stub assumé)
+- Calibration manuelle pour l'instant (boucle de tuning auto = V2)
 
-**Ordre d'attaque** : B1 → B3a → B2 → B4 → B3b → B5. B1 est le bloqueur
-critique. B3a avant B2 pour avoir un cycle complet (possession qui se
-TERMINE) avant d'enrichir la qualité du jeu off-ball.
+**Suite naturelle (hors Phase I)** : si Phase E.1 (box-out / rebond)
+est un jour livrée, brancher B3b dessus pour avoir un vrai cycle de
+possession adverse complet. Sinon V1 stub reste fonctionnel.
 
 ---
 
@@ -921,15 +919,33 @@ historique mais limite à terme. Si on veut renforcer :
 
 ---
 
-### Phase I — Mode Play IA (🟡 chantier actif, décision 2026-05-15)
+### Phase I — Mode Play IA (🟢 livrée 2026-05-15, 6/6 chantiers)
 
-**Status changé** : précédemment "repoussé bas de pile", désormais
-chantier actif. V1 socle livrée (`aiPossession.ts`). Plan d'exécution
-B1 → B3a → B2 → B4 → B3b → B5 détaillé dans la section 4 plus haut
-(§ Mode "Play IA"). **10-15j ouvrés** estimés au total, découpés en
-livrables indépendants.
+**Status final** : précédemment "repoussé bas de pile" puis "🟡 chantier
+actif", désormais **100 % livrée** en une session unique. Le moteur de
+match autonome 5v5 est fonctionnel, multi-possessions, et calibrable
+via comparaison Monte-Carlo.
 
-Doc : [docs/ai-possession.md](docs/ai-possession.md).
+Récap des chantiers (effort réel total ~3j, vs 10-15j estimé init) :
+
+| # | Status | Commit | Description |
+|---|---|---|---|
+| B1 | 🟢 | `edb43e6` | Game loop continu 5 Hz, intent persistant porteur (drive/pass/shoot) |
+| B3a | 🟢 | `bd2dccf` | Shot model enrichi (zone, contestation, position) + fix intent 'shoot' |
+| B2 | 🟢 | `0da33a4` | Décideur off-ball (cut, space-drift, relocate) avec budget cuts |
+| B4 | 🟢 | `ac1bece` | UI live complète : CourtView lit `matchState`, HUD événements |
+| B3b | 🟢 | `40e5f0f` | Transition multi-possessions (rebond off 28 %, new poss reset) |
+| B5 | 🟢 | `2e9ffee` | Calibration live vs Monte-Carlo (tolérance ±0.15 PPP) |
+
+**Modules livrés** :
+- `src/lib/logic/match/gameLoop.ts` — pipeline tick + intents + transitions
+- `src/lib/logic/match/decisions/offBallMover.ts` — movers off-ball
+- `src/lib/logic/match/calibration.ts` — headless runner + comparison
+- `src/hooks/useMatchLoop.ts` — hook React 5 Hz
+- `LiveMatchPanel` + `CalibrationPanel` dans `SimulationSection`
+
+Doc : [docs/ai-possession.md](docs/ai-possession.md) (à mettre à jour
+pour refléter le scope final livré).
 
 ---
 
