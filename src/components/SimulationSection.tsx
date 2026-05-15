@@ -12,6 +12,10 @@ import {
   type AiPossessionOutcome,
 } from '@/lib/logic/match/aiPossession';
 import { useMatchLoop, type UseMatchLoopResult } from '@/hooks/useMatchLoop';
+import {
+  compareCalibration,
+  type CalibrationReport,
+} from '@/lib/logic/match/calibration';
 
 interface SimulationSectionProps {
   state: AppState;
@@ -134,6 +138,9 @@ export function SimulationSection({ state, onLoadAiSteps, matchLoop }: Simulatio
 
       <div style={{ height: 1, background: '#e2e8f0', margin: '10px 0 8px' }} />
       <LiveMatchPanel state={state} matchLoop={matchLoop} />
+
+      <div style={{ height: 1, background: '#e2e8f0', margin: '10px 0 8px' }} />
+      <CalibrationPanel state={state} />
 
       <div style={{ height: 1, background: '#e2e8f0', margin: '10px 0 8px' }} />
       <div style={{ fontSize: 11, fontWeight: 700, color: c.accentText, marginBottom: 4 }}>
@@ -547,6 +554,162 @@ function LiveMatchPanel({
           </div>
         );
       })()}
+    </div>
+  );
+}
+
+/** Phase I B5 — panneau de calibration live vs Monte-Carlo. Bouton qui
+ *  lance N possessions headless via la game loop + N runs Monte-Carlo
+ *  et compare les PPP. Affiche un verdict + suggestions. */
+function CalibrationPanel({ state }: { state: AppState }) {
+  const [report, setReport] = useState<CalibrationReport | null>(null);
+  const [running, setRunning] = useState(false);
+  const [runCount, setRunCount] = useState(50);
+
+  const onCalibrate = () => {
+    setRunning(true);
+    setReport(null);
+    // Wrapper async pour laisser l'UI re-render sur "running".
+    // setTimeout 0 = next macrotask.
+    setTimeout(() => {
+      try {
+        const r = compareCalibration(state, runCount, { seed: Date.now() });
+        setReport(r);
+      } finally {
+        setRunning(false);
+      }
+    }, 0);
+  };
+
+  return (
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#1e3a8a', marginBottom: 4 }}>
+        Calibration live vs Monte-Carlo
+      </div>
+      <div style={{ fontSize: 10, color: '#475569', marginBottom: 6, lineHeight: 1.4 }}>
+        Compare la PPP de la game loop live à celle du simulator Monte-Carlo sur le
+        même état. Cible : Δ ≤ 0.15.
+      </div>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 6, alignItems: 'center' }}>
+        <span style={{ fontSize: 9, color: '#64748b', flex: '0 0 50px' }}>RUNS</span>
+        {[20, 50, 100].map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => setRunCount(n)}
+            disabled={running}
+            style={{
+              flex: 1,
+              fontSize: 10,
+              padding: '3px 4px',
+              borderRadius: 3,
+              border: '1px solid',
+              borderColor: runCount === n ? '#4338ca' : '#cbd5e1',
+              background: runCount === n ? '#eef2ff' : '#fff',
+              color: runCount === n ? '#3730a3' : '#64748b',
+              cursor: running ? 'wait' : 'pointer',
+              fontWeight: runCount === n ? 700 : 500,
+            }}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={onCalibrate}
+        disabled={running}
+        style={{
+          width: '100%',
+          fontSize: 11,
+          padding: '5px 8px',
+          borderRadius: 4,
+          border: '1px solid #4338ca',
+          background: running ? '#f1f5f9' : '#eef2ff',
+          color: running ? '#94a3b8' : '#3730a3',
+          cursor: running ? 'wait' : 'pointer',
+          fontWeight: 600,
+        }}
+      >
+        🔍 {running ? 'calibration en cours…' : `lancer (${runCount} possessions ×2)`}
+      </button>
+
+      {report && (
+        <div style={{ marginTop: 8 }}>
+          <div
+            style={{
+              padding: '6px 8px',
+              borderRadius: 5,
+              background: report.withinTolerance ? '#dcfce7' : '#fee2e2',
+              border: `1px solid ${report.withinTolerance ? '#86efac' : '#fca5a5'}`,
+              fontSize: 11,
+              color: report.withinTolerance ? '#166534' : '#991b1b',
+              fontWeight: 600,
+            }}
+          >
+            {report.withinTolerance ? '✓ calibration OK' : '⚠ calibration hors tolérance'}
+            <span style={{ fontWeight: 400, marginLeft: 4 }}>
+              (Δ PPP = {report.delta.ppp >= 0 ? '+' : ''}
+              {report.delta.ppp.toFixed(2)})
+            </span>
+          </div>
+
+          <div
+            style={{
+              marginTop: 6,
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: 4,
+              fontSize: 10,
+            }}
+          >
+            <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: 9, color: '#64748b' }}>LIVE PPP</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#1e3a8a' }}>
+                {report.liveStats.ppp.toFixed(2)}
+              </div>
+            </div>
+            <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: 9, color: '#64748b' }}>SIM PPP</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#1e3a8a' }}>
+                {report.simulatorStats.ppp.toFixed(2)}
+              </div>
+            </div>
+            <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: 9, color: '#64748b' }}>Δ eFG%</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#1e3a8a' }}>
+                {(report.delta.efgPct * 100).toFixed(1)}
+              </div>
+            </div>
+          </div>
+
+          {report.suggestions.length > 0 && (
+            <div style={{ marginTop: 6, fontSize: 10, color: '#475569' }}>
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>Suggestions :</div>
+              <ul style={{ margin: 0, paddingLeft: 16 }}>
+                {report.suggestions.map((s, i) => (
+                  <li key={i} style={{ lineHeight: 1.3, marginBottom: 2 }}>
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div
+            style={{
+              marginTop: 6,
+              fontSize: 9,
+              color: '#94a3b8',
+              fontStyle: 'italic',
+            }}
+          >
+            Stats live : {report.liveStats.liveOnlyStats.avgPossessionDurationS.toFixed(1)}s /poss,{' '}
+            {report.liveStats.liveOnlyStats.cutsTriggeredPerPossession.toFixed(2)} cuts /poss,{' '}
+            {report.liveStats.liveOnlyStats.offensiveReboundsObserved} reb. off observés
+          </div>
+        </div>
+      )}
     </div>
   );
 }

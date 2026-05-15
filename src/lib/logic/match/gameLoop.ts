@@ -622,7 +622,9 @@ function advancePass(
   if (newProgress >= 1) {
     // Passe arrivée : nouveau porteur.
     const action = state.intent.expectedAction;
-    const passLost = newProgress > 1.5 ? false : Math.random() > action.successRate;
+    // RNG seedée pour déterminisme (avant : Math.random() = non-reproductible).
+    const passRng = seededAiRng(state.seed + state.tickCount * 31 + 1);
+    const passLost = newProgress > 1.5 ? false : passRng() > action.successRate;
     if (passLost) {
       state.outcome = 'turnover-pass';
       state.eventLog.push({
