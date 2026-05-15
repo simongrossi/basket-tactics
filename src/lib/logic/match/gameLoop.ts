@@ -87,6 +87,11 @@ const TRANSITION_PAUSE_MS = 1_500;
  *  des tests, mais E.1 V1 remplace par un modèle géométrique. */
 const DEFAULT_OFFENSIVE_REBOUND_RATE = 0.28;
 
+/** Durée maximale de remise en jeu (FIBA / NBA : 5 secondes pour
+ *  faire la passe rentrante). Au-delà = violation, possession perdue.
+ *  Décompté côté live quand `step.context` débute par 'inbound-'. */
+const INBOUND_TIMER_MS = 5_000;
+
 /** Phase E.1 V1 — paramètres de la possession adverse stubbée.
  *  Sur rebond défensif, on simule l'équipe adverse qui attaque sans
  *  rendu visuel : le shot clock tourne, puis on tire au sort un outcome. */
@@ -177,6 +182,11 @@ export interface MatchState {
   /** Phase E.1 V1 — équipe qui attaque actuellement. Bascule sur rebond
    *  défensif, revient sur fin de possession adverse. */
   attackingTeam: 'home' | 'away';
+  /** Timer de violation 5s de remise en jeu. `null` quand on n'est PAS
+   *  en remise active (= passe déjà effectuée, ou step non inbound).
+   *  Quand non-null, décompté à chaque tick et déclenche `turnover-pass`
+   *  si la balle n'est pas passée à temps. */
+  inboundTimerMs: number | null;
   /** B3b — nombre de possessions terminées (= 0 si encore dans la 1ère). */
   possessionsPlayed: number;
   /** B3b — limite de possessions pour cette session. `null` = endless,
@@ -234,6 +244,12 @@ export function createInitialMatchState(
   const carrier = activeBallCarrier(step, state.playerCount);
   const defPos = effectiveDefensePositions(state, state.activeStep);
   const carrierPos = off[carrier] ?? { x: 0, y: 0 };
+  // Si le step actif est une remise en jeu, on initialise le timer 5s.
+  const ctx = step.context;
+  const isInbound =
+    ctx === 'inbound-baseline' ||
+    ctx === 'inbound-sideline-low' ||
+    ctx === 'inbound-sideline-high';
   return {
     off: cloneOff(off),
     defPos: cloneDef(defPos),
@@ -256,6 +272,7 @@ export function createInitialMatchState(
     possessionsPlayed: 0,
     maxPossessions: options.maxPossessions ?? null,
     transitionStartedAtMs: null,
+    inboundTimerMs: isInbound ? INBOUND_TIMER_MS : null,
   };
 }
 
@@ -302,7 +319,25 @@ export function tickMatch(
     tickCount: matchState.tickCount + 1,
     possessionTimeMs: matchState.possessionTimeMs + dtMs,
     shotClockMs: Math.max(0, matchState.shotClockMs - dtMs),
+    inboundTimerMs:
+      matchState.inboundTimerMs !== null
+        ? Math.max(0, matchState.inboundTimerMs - dtMs)
+        : null,
   };
+
+  // Timer 5s de remise expiré → violation, turnover.
+  if (matchState.inboundTimerMs !== null && next.inboundTimerMs === 0) {
+    next.outcome = 'turnover-pass';
+    next.eventLog.push({
+      possession: next.possession,
+      clock: next.shotClockMs / 1000,
+      actor: next.carrier,
+      type: 'turnover',
+      label: `⚠ Violation 5s remise — ${next.carrier} perd la balle`,
+    });
+    next.intent = { kind: 'idle' };
+    return next;
+  }
 
   // B2 — décideur off-ball : (re)évalué tous les DECISION_INTERVAL_TICKS
   // ticks. Cuts en cours conservés (jamais annulés à mi-chemin). Drift
@@ -376,6 +411,9 @@ export function tickMatch(
       progress: 0,
       expectedAction: action,
     };
+    // Remise en jeu : la passe rentrante a démarré, on désarme le
+    // timer 5s (plus de violation possible).
+    next.inboundTimerMs = null;
     return advancePass(next, dtMs, baseAppState);
   }
   return next;

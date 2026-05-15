@@ -486,11 +486,27 @@ function LiveMatchPanel({
             }}
           >
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>shot clock</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: shotClockColor, lineHeight: 1.1 }}>
-                {shotClockSec.toFixed(1)}
-                <span style={{ fontSize: 10, color: '#94a3b8' }}> s</span>
+              <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+                {matchState.inboundTimerMs !== null ? '⏱ remise 5s' : 'shot clock'}
               </div>
+              {matchState.inboundTimerMs !== null ? (
+                <div
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: matchState.inboundTimerMs <= 2000 ? '#dc2626' : '#d97706',
+                    lineHeight: 1.1,
+                  }}
+                >
+                  {(matchState.inboundTimerMs / 1000).toFixed(1)}
+                  <span style={{ fontSize: 10, color: '#94a3b8' }}> s</span>
+                </div>
+              ) : (
+                <div style={{ fontSize: 18, fontWeight: 700, color: shotClockColor, lineHeight: 1.1 }}>
+                  {shotClockSec.toFixed(1)}
+                  <span style={{ fontSize: 10, color: '#94a3b8' }}> s</span>
+                </div>
+              )}
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>possession</div>

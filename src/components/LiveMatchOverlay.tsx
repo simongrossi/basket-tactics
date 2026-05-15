@@ -77,6 +77,27 @@ export function LiveMatchOverlay({ matchState, onStop, onExitPresent }: LiveMatc
         </div>
       </div>
 
+      {/* Timer 5s remise — affiché uniquement quand actif */}
+      {matchState.inboundTimerMs !== null && (
+        <div style={{ textAlign: 'center', padding: '0 6px' }}>
+          <div style={{ fontSize: 9, letterSpacing: 1, color: '#fca5a5', textTransform: 'uppercase' }}>
+            ⏱ remise 5s
+          </div>
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 700,
+              lineHeight: 1,
+              color: matchState.inboundTimerMs <= 2000 ? '#fee2e2' : '#fca5a5',
+              fontFamily: 'monospace',
+              animation: matchState.inboundTimerMs <= 2000 ? 'pulse 0.5s ease-in-out infinite alternate' : undefined,
+            }}
+          >
+            {(matchState.inboundTimerMs / 1000).toFixed(1)}
+          </div>
+        </div>
+      )}
+
       {/* Score AWAY */}
       <div
         style={{
