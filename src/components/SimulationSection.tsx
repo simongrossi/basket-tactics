@@ -27,6 +27,9 @@ interface SimulationSectionProps {
   /** B4 — partagé via page.tsx pour synchroniser CourtView et HUD live.
    *  Si absent, le composant instancie son propre hook (rétrocompat tests). */
   matchLoop?: UseMatchLoopResult;
+  /** P3 B6 — vitesse de la game loop, modifiable en cours. */
+  matchSpeed?: number;
+  onSetMatchSpeed?: (speed: number) => void;
   /** Match plein écran : déclenche fullCourt + presentMode + browser
    *  fullscreen sur le terrain. Optionnel. */
   onEnterFullscreenMatch?: () => void;
@@ -61,7 +64,7 @@ const AI_OUTCOME_LABELS: Record<AiPossessionOutcome, string> = {
  * La défense est figée pendant la simulation — limite assumée du MVP.
  * Les softmax(EV/τ=0.3) gouvernent les décisions offensives.
  */
-export function SimulationSection({ state, onLoadAiSteps, matchLoop, onEnterFullscreenMatch }: SimulationSectionProps) {
+export function SimulationSection({ state, onLoadAiSteps, matchLoop, matchSpeed, onSetMatchSpeed, onEnterFullscreenMatch }: SimulationSectionProps) {
   const c = COLORS.defense;
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [aiSeries, setAiSeries] = useState<AiMatchSeries | null>(null);
@@ -144,7 +147,13 @@ export function SimulationSection({ state, onLoadAiSteps, matchLoop, onEnterFull
       )}
 
       <div style={{ height: 1, background: '#e2e8f0', margin: '10px 0 8px' }} />
-      <LiveMatchPanel state={state} matchLoop={matchLoop} onEnterFullscreenMatch={onEnterFullscreenMatch} />
+      <LiveMatchPanel
+        state={state}
+        matchLoop={matchLoop}
+        matchSpeed={matchSpeed}
+        onSetMatchSpeed={onSetMatchSpeed}
+        onEnterFullscreenMatch={onEnterFullscreenMatch}
+      />
 
       <div style={{ height: 1, background: '#e2e8f0', margin: '10px 0 8px' }} />
       <CalibrationPanel state={state} />
@@ -309,10 +318,14 @@ function SimulationStats({ result }: { result: SimulationResult }) {
 function LiveMatchPanel({
   state,
   matchLoop,
+  matchSpeed,
+  onSetMatchSpeed,
   onEnterFullscreenMatch,
 }: {
   state: AppState;
   matchLoop?: UseMatchLoopResult;
+  matchSpeed?: number;
+  onSetMatchSpeed?: (speed: number) => void;
   onEnterFullscreenMatch?: () => void;
 }) {
   // Fallback : si pas de matchLoop fourni en prop (cas tests / usage local),
@@ -373,6 +386,34 @@ function LiveMatchPanel({
               }}
             >
               {n ?? '∞'}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* P3 B6 — sélecteur de vitesse, modifiable même en cours */}
+      {onSetMatchSpeed && (
+        <div style={{ display: 'flex', gap: 4, marginBottom: 6, alignItems: 'center' }}>
+          <span style={{ fontSize: 9, color: '#64748b', flex: '0 0 60px' }}>VITESSE</span>
+          {[1, 2, 4, 8].map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onSetMatchSpeed(s)}
+              style={{
+                flex: 1,
+                fontSize: 10,
+                padding: '3px 4px',
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: (matchSpeed ?? 1) === s ? '#16a34a' : '#cbd5e1',
+                background: (matchSpeed ?? 1) === s ? '#dcfce7' : '#fff',
+                color: (matchSpeed ?? 1) === s ? '#166534' : '#64748b',
+                cursor: 'pointer',
+                fontWeight: (matchSpeed ?? 1) === s ? 700 : 500,
+              }}
+            >
+              ×{s}
             </button>
           ))}
         </div>

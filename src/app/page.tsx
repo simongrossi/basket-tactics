@@ -46,7 +46,9 @@ export default function Page() {
   // B4 — Game loop "▶ Play IA (live)" : hook unique remonté au niveau page
   // pour partager le matchState live entre CourtView (rendu terrain) et
   // SimulationSection (HUD événements + contrôles).
-  const matchLoop = useMatchLoop({ baseState: app.state });
+  // P3 B6 — vitesse modifiable en cours pour accélérer les tests.
+  const [matchSpeed, setMatchSpeed] = useState(1);
+  const matchLoop = useMatchLoop({ baseState: app.state, speed: matchSpeed });
 
   // E.1 V1 + A.2 — mode "match plein écran" : active fullCourt +
   // presentMode + browser fullscreen en une seule action.
@@ -224,6 +226,8 @@ export default function Page() {
               onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
               onClearAllDefenseOverridesAnimated={app.clearAllDefenseOverridesActiveStepAnimated}
               matchLoop={matchLoop}
+              matchSpeed={matchSpeed}
+              onSetMatchSpeed={setMatchSpeed}
               onLoadAiSteps={handleLoadAiSteps}
               onEnterFullscreenMatch={handleEnterFullscreenMatch}
               scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}

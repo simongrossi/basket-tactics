@@ -68,4 +68,55 @@ describe('inboundFiveSec rule', () => {
     const inboundDiag = diags.find((d) => d.tag.startsWith('inbound-'));
     expect(inboundDiag?.attackers).toContain(inbounder);
   });
+
+  it("émet 'inbound-5s-overflow' critical si durée estimée > 5s avant passe", () => {
+    // Setup : remise + 2 steps de mouvement avant la passe = 2 × 4s = 8s.
+    const state = withInbound(makeInitialState());
+    const inbounder = state.steps[0].ballCarrier;
+    // Insérer 2 steps "vides" (sans passe) avant le step de passe.
+    const emptyStep = {
+      ...state.steps[0],
+      annotations: [
+        { type: 'cut' as const, fromId: 'O2' as const, toId: null, from: { x: 0, y: 0 }, to: { x: 0, y: 0 } },
+      ] as Annotation[],
+      context: 'live-play' as const,
+    };
+    const passStep = {
+      ...state.steps[0],
+      annotations: [
+        { type: 'pass' as const, fromId: inbounder, toId: 'O2' as const, from: { x: 0, y: 0 }, to: { x: 0, y: 0 } },
+      ] as Annotation[],
+      context: 'live-play' as const,
+    };
+    const extended = {
+      ...state,
+      secondsPerStep: 4,
+      steps: [...state.steps, emptyStep, emptyStep, passStep],
+    };
+    const diags = computeCoachDiagnostics(extended, 0);
+    const overflow = diags.find((d) => d.tag === 'inbound-5s-overflow');
+    expect(overflow).toBeDefined();
+    expect(overflow?.severity).toBe('critical');
+  });
+
+  it("durée OK (≤ 5s) → verdict 'inbound-5s-info' avec durée estimée", () => {
+    const state = withInbound(makeInitialState());
+    const inbounder = state.steps[0].ballCarrier;
+    const passStep = {
+      ...state.steps[0],
+      annotations: [
+        { type: 'pass' as const, fromId: inbounder, toId: 'O2' as const, from: { x: 0, y: 0 }, to: { x: 0, y: 0 } },
+      ] as Annotation[],
+      context: 'live-play' as const,
+    };
+    const extended = {
+      ...state,
+      secondsPerStep: 4,
+      steps: [...state.steps, passStep],
+    };
+    const diags = computeCoachDiagnostics(extended, 0);
+    const ok = diags.find((d) => d.tag === 'inbound-5s-info');
+    expect(ok).toBeDefined();
+    expect(ok?.message).toContain('4.0s'); // 1 × 4s
+  });
 });

@@ -43,16 +43,27 @@ export const inboundFiveSecRule: Rule = (ctx) => {
     ];
   }
 
-  // Cas 2 : étape suivante existe mais pas de passe partant de l'inbounder
-  const hasPassFromInbounder = nextStep.annotations.some(
-    (a) => a.type === 'pass' && a.fromId === inbounder
-  );
-  if (!hasPassFromInbounder) {
+  // P3.2 — scan toutes les étapes suivantes pour trouver la passe de
+  // l'inbounder. Calcule passStepOffset pour le compteur 5s statique.
+  let passStepOffset = 0;
+  for (let i = stepIdx + 1; i < state.steps.length; i += 1) {
+    const s = state.steps[i];
+    const hasPass = s.annotations.some(
+      (a) => a.type === 'pass' && a.fromId === inbounder
+    );
+    if (hasPass) {
+      passStepOffset = i - stepIdx;
+      break;
+    }
+  }
+
+  // Cas 2 : aucune passe de l'inbounder dans toute la timeline ultérieure
+  if (passStepOffset === 0) {
     return [
       {
         id: `inbound-no-pass-${stepIdx}`,
         severity: 'warning',
-        message: `${ctxLabel} : pas de passe rentrante détectée. ${inbounder} doit donner la balle dans la prochaine étape (violation 5s sinon).`,
+        message: `${ctxLabel} : pas de passe rentrante détectée. ${inbounder} doit donner la balle dans une étape suivante (violation 5s sinon).`,
         tag: 'inbound-no-pass',
         defenders: [],
         attackers: [inbounder],
@@ -60,12 +71,30 @@ export const inboundFiveSecRule: Rule = (ctx) => {
     ];
   }
 
-  // Cas 3 : tout va bien, info pédagogique
+  // P3.2 — compteur 5s statique : durée estimée basée sur secondsPerStep.
+  const secondsPerStep = state.secondsPerStep ?? 4;
+  // Note : passStepOffset = 1 = passe au step suivant (cas standard).
+  // passStepOffset >= 2 = pré-screen / mouvement avant la passe.
+  const estimatedDuration = passStepOffset * secondsPerStep;
+  if (estimatedDuration > 5) {
+    return [
+      {
+        id: `inbound-5s-overflow-${stepIdx}`,
+        severity: 'critical',
+        message: `${ctxLabel} : durée estimée ${estimatedDuration.toFixed(1)}s avant la passe rentrante (${passStepOffset} steps × ${secondsPerStep}s/step). VIOLATION 5s en live.`,
+        tag: 'inbound-5s-overflow',
+        defenders: [],
+        attackers: [inbounder],
+      },
+    ];
+  }
+
+  // Cas 3 : tout va bien, info pédagogique avec durée estimée
   return [
     {
       id: `inbound-ok-${stepIdx}`,
       severity: 'info',
-      message: `${ctxLabel} · passeur ${inbounder} · 5s pour la rentrée de balle.`,
+      message: `${ctxLabel} · passeur ${inbounder} · durée estimée ${estimatedDuration.toFixed(1)}s / 5s max.`,
       tag: 'inbound-5s-info',
       defenders: [],
       attackers: [inbounder],

@@ -53,6 +53,11 @@ interface DefensePanelProps {
    *  SimulationSection (HUD) et CourtView (rendu terrain) partagent la
    *  même source. Optionnel pour rétrocompat. */
   matchLoop?: import('@/hooks/useMatchLoop').UseMatchLoopResult;
+  /** Vitesse de la game loop (1, 2, 4, 8). Modifiable en cours via
+   *  le sélecteur dans LiveMatchPanel. */
+  matchSpeed?: number;
+  /** Setter de la vitesse. */
+  onSetMatchSpeed?: (speed: number) => void;
   /** Active le mode "match plein écran" (fullCourt + presentMode +
    *  browser fullscreen). Propagé à SimulationSection qui rend le bouton. */
   onEnterFullscreenMatch?: () => void;
@@ -1173,6 +1178,8 @@ export function DefensePanel(props: DefensePanelProps) {
           state={state}
           onLoadAiSteps={props.onLoadAiSteps}
           matchLoop={props.matchLoop}
+          matchSpeed={props.matchSpeed}
+          onSetMatchSpeed={props.onSetMatchSpeed}
           onEnterFullscreenMatch={props.onEnterFullscreenMatch}
         />
       </AccordionSection>
