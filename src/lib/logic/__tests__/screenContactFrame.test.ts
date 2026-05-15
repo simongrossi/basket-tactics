@@ -265,6 +265,74 @@ function buildOffBallDoubleScreenScenario(
   } as AppState;
 }
 
+function buildOffBallElevatorScreenScenario(
+  quality: number = 100,
+  rule: AppState['offBallScreenRule'] = 'chase'
+): AppState {
+  const base = makeInitialState();
+  return {
+    ...base,
+    steps: [
+      {
+        off: {
+          O1: { x: 300, y: 470 },
+          O2: { x: 120, y: 380 },
+          O3: { x: 470, y: 380 },
+          O4: { x: 180, y: 405 },
+          O5: { x: 220, y: 405 },
+        },
+        ballCarrier: 'O1',
+        annotations: [
+          {
+            type: 'cut',
+            fromId: 'O2',
+            toId: null,
+            from: { x: 120, y: 380 },
+            to: { x: 240, y: 380 },
+          } as Annotation,
+          {
+            type: 'screen',
+            fromId: 'O4',
+            toId: 'O2',
+            from: { x: 180, y: 405 },
+            to: { x: 180, y: 405 },
+            quality,
+          } as Annotation,
+          {
+            type: 'screen',
+            fromId: 'O5',
+            toId: 'O2',
+            from: { x: 220, y: 405 },
+            to: { x: 220, y: 405 },
+            quality,
+          } as Annotation,
+        ],
+      },
+      {
+        off: {
+          O1: { x: 300, y: 470 },
+          O2: { x: 240, y: 380 },
+          O3: { x: 470, y: 380 },
+          O4: { x: 180, y: 405 },
+          O5: { x: 220, y: 405 },
+        },
+        ballCarrier: 'O1',
+        annotations: [],
+      },
+    ],
+    defenseInitial: {
+      D1: { x: 300, y: 460 },
+      D2: { x: 200, y: 430 },
+      D3: { x: 460, y: 370 },
+      D4: { x: 180, y: 430 },
+      D5: { x: 220, y: 430 },
+    },
+    offBallScreenRule: rule,
+    screenRadius: 90,
+    activeStep: 0,
+  } as AppState;
+}
+
 function tangentProjection(point: Point, origin: Point, screener: Point, target: Point): number {
   const radial = { x: origin.x - screener.x, y: origin.y - screener.y };
   const len = Math.hypot(radial.x, radial.y) || 1;
@@ -749,8 +817,52 @@ describe('resolveFrameAt — contact écran de bout en bout (Étape diagnostic)'
       expect(earlyPoint).toBeTruthy();
       expect(latePoint).toBeTruthy();
       expect(latePoint!.x).toBeGreaterThan(earlyPoint!.x + 25);
+      expect(early!.screenMemory?.D2?.contactScreeners).toEqual(['O4', 'O5']);
+      expect(late!.screenMemory?.D2?.contactScreeners).toEqual(['O4', 'O5']);
+      expect(early!.screenMemory?.D2?.activeScreener).toBe('O4');
+      expect(late!.screenMemory?.D2?.activeScreener).toBe('O5');
+      expect(late!.screenMemory?.D2?.contactProgress ?? 0)
+        .toBeGreaterThan(early!.screenMemory?.D2?.contactProgress ?? 0);
       expect(early!.defPos.D2.screenPhase).toBe('stuck');
       expect(late!.defPos.D2.screenPhase).toBe('stuck');
+    });
+
+    it('D2 traverse un elevator par le gap entre les deux poseurs', () => {
+      const state = buildOffBallElevatorScreenScenario(100, 'chase');
+      const frame = resolveFrameAt(state, 0.55, { collectDecisions: true });
+      expect(frame).not.toBeNull();
+      const elevator = frame!.offBallScreens.find((s) => s.cutterDef === 'D2' && s.cutter === 'O2');
+      expect(elevator?.type).toBe('elevator');
+      expect(elevator?.secondScreener).toBe('O5');
+
+      const contactPoint = frame!.debug?.defenders.D2?.contactPoint;
+      expect(contactPoint).toBeTruthy();
+      expect(contactPoint!.x).toBeGreaterThanOrEqual(frame!.off.O4.x - 1);
+      expect(contactPoint!.x).toBeLessThanOrEqual(frame!.off.O5.x + 1);
+      expect(Math.abs(contactPoint!.x - 200)).toBeLessThan(5);
+      expect(frame!.screenMemory?.D2?.contactScreeners).toEqual(['O4', 'O5']);
+      expect(frame!.debug?.defenders.D2?.contactScreeners).toEqual(['O4', 'O5']);
+      expect(frame!.defPos.D2.screenPhase).toBe('stuck');
+    });
+
+    it("la mémoire ne bloque pas la sortie de l'elevator de l'autre côté du gap", () => {
+      const state = buildOffBallElevatorScreenScenario(100, 'chase');
+      const early = resolveFrameAt(state, 0.45, { collectDecisions: true });
+      const late = resolveFrameAt(state, 0.82, {
+        prevFrame: early ?? undefined,
+        collectDecisions: true,
+      });
+      expect(early).not.toBeNull();
+      expect(late).not.toBeNull();
+      const earlyPoint = early!.debug?.defenders.D2?.contactPoint;
+      const latePoint = late!.debug?.defenders.D2?.contactPoint;
+      expect(earlyPoint).toBeTruthy();
+      expect(latePoint).toBeTruthy();
+      const gapY = 405;
+      expect((earlyPoint!.y - gapY) * (latePoint!.y - gapY))
+        .toBeLessThan(0);
+      expect(late!.screenMemory?.D2?.contactProgress ?? 0)
+        .toBeGreaterThan(early!.screenMemory?.D2?.contactProgress ?? 0);
     });
 
     it("trajectoire D2 fluide pendant un pindown solide (pas de saut > 15px)", () => {

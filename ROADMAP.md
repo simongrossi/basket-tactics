@@ -884,7 +884,7 @@ son outillage **sans changer le scope basket**.
 | ~~J.1~~ | ~~**Parité scrub ↔ playback** — mémoire scrub déterministe recalculée depuis le début du segment~~ | — | — | — | 🟢 livré 2026-05-15 (commit `38209d6`) |
 | ~~J.2~~ | ~~**Cache segmentaire du resolver** — memoize par segment `idxA→idxB`~~ | — | — | — | 🟢 livré 2026-05-15 (commit `87b212c`) |
 | ~~J.3~~ | ~~**Solver de contraintes unifié** — un seul résolveur att/déf/poseurs/clusters/screen lock~~ | — | — | — | 🟢 livré 2026-05-15 (`f7fcb8a`, `6ba3927` + finalisation multi-entités) |
-| J.4 | **Off-ball avancé** — stagger séquentiel, elevator 2 points, flare/backscreen, mémoire sortie tangentielle | 1-2 sem | 🟡 | Très haut | 🟡 routes + stagger séquentiel livrés (`c50615d`, `285b9ff`) ; off-ball complet restant |
+| ~~J.4~~ | ~~**Off-ball avancé** — stagger séquentiel, elevator 2 points, flare/backscreen, mémoire sortie tangentielle~~ | — | — | — | 🟢 livré 2026-05-15 (routes par type, gap elevator, sortie tangentielle active, mémoire multi-contact) |
 | ~~J.5~~ | ~~**Profiling + budget frame** — mesurer `resolveFrameAt`, `effectiveDefensePositions`, détections, collisions ; fixer un budget~~ | — | — | — | 🟢 livré 2026-05-15 (commit `a40a8bc`) |
 | ~~J.6~~ | ~~**Visual regression légère — golden scenarios** — exports métriques par scénario~~ | — | — | — | 🟢 livré 2026-05-15 (commit `e8ad45b`) |
 | ~~J.7~~ | ~~**Panneau debug joueur** — lecture instantanée par défenseur (contactKey, mode, route, qualité, memory, jump last frame)~~ | — | — | — | 🟢 livré 2026-05-15 (commit `37a370f`) |
@@ -895,10 +895,10 @@ son outillage **sans changer le scope basket**.
   `pushOutOfMany` et `resolvePlayerCollisions` passent par le socle commun
   (`solvePointConstraints` / `solveEntityCollisions`). Les wrappers historiques
   restent pour compatibilité, mais la logique itérative est centralisée.
-- J.4 est renforcé : routes off-ball par type (`flare`, `backscreen`, `hammer`,
-  `elevator`) et contact stagger séquentiel. Reste la version complète :
-  elevator avec corridor/gap physique, sortie tangentielle par poseur, et
-  mémoire multi-contact encore plus détaillée.
+- J.4 est livré : routes off-ball par type (`flare`, `backscreen`, `hammer`,
+  `elevator`), contact stagger séquentiel, corridor physique elevator,
+  sortie tangentielle par poseur actif et mémoire multi-contact
+  (`contactScreeners`, `activeScreener`, `contactProgress`).
 
 #### ⚪ J.1 — Parité scrub ↔ playback — détail du plan
 
@@ -966,31 +966,35 @@ points" → plus de surprises latérales. Code défensif réduit de ~30 %.
 **Risque 🔴.** Refactor profond du pipeline final. À ne tenter qu'avec
 J.6 (golden scenarios) en place comme garde-fou.
 
-#### ⚪ J.4 — Off-ball avancé — détail du plan
+#### 🟢 J.4 — Off-ball avancé — livré
 
-**Problème actuel.** Le PnR (carrier screen) a 9 rules (over/under/
+**Problème traité.** Le PnR (carrier screen) a 9 rules (over/under/
 hedge/drop/blitz/ice/weak/switch/peel-switch), des transitions soignées
-(C.1-C.7), un mémoire de sortie tangentielle. L'off-ball reste basique :
-2 rules brutes (`chase` / `top-lock`), pas de mémoire spécifique de
-contact, et le stagger est traité comme deux écrans indépendants.
+(C.1-C.7), un mémoire de sortie tangentielle. L'off-ball était plus
+basique : routes moins différenciées, peu de mémoire spécifique de
+contact, et les doubles écrans pouvaient retomber sur un simple contact.
 
-**Plan.**
-- **Stagger séquentiel** : modéliser la chaîne O4 puis O5 avec phase
+**Livré.**
+- **Stagger séquentiel** : modélise la chaîne O4 puis O5 avec phase
   `transition` entre les deux (D2 sort du contact 1 vers contact 2 sans
   retour à l'homme).
-- **Elevator** : deux poseurs côte à côte, le défenseur DOIT passer par
-  l'unique gap entre eux. Route forcée + qualité haute.
+- **Elevator** : deux poseurs côte à côte, le défenseur passe par
+  l'unique gap entre eux via un corridor physique centré sur le gap.
 - **Flare / backscreen** : route propre (ne PAS poursuivre sur le côté
   du poseur opposé au panier).
 - **Mémoire sortie tangentielle off-ball** : équivalent du
-  `tangentReleasePoint` carrier pour les off-ball screens (actuellement
-  D2 sort radialement de O5, peut traverser O2).
+  `tangentReleasePoint` carrier pour les off-ball screens. Stagger sort
+  tangentiellement autour du poseur actif ; elevator sort à travers le
+  gap au lieu de tourner autour d'un centroïde.
+- **Mémoire multi-contact** : `screenMemory` et `FrameDecision` exposent
+  les poseurs impliqués, le poseur actif et la progression du contact.
 
 **Impact.** Gros gain sur UCLA, floppy, pindown, hammer — les 4
 templates où l'off-ball domine la séquence.
 
-**Risque 🟡.** Touche `offBallScreenAdjust.ts` et le pipeline screen
-de `frameResolver`. J.6 obligatoire avant pour sécuriser.
+**Garde-fous.** Tests frame de bout en bout : progression O4→O5 sur
+stagger, passage elevator dans le gap, mémoire qui n'empêche pas la
+sortie de l'autre côté, fluidité pindown.
 
 #### ⚪ J.5 — Profiling + budget frame — détail du plan
 
@@ -1075,10 +1079,10 @@ clock natif).
 de scope qui ouvre le jeu complet. Suivi de F.1 (junk) + F.3 (FT
 rebound) selon les besoins.
 
-**Phase J (qualité moteur écran)** : J.1/J.2/J.3/J.5/J.6/J.7 sont
-livrés. Le seul chantier Phase J encore ouvert est J.4 avancé
-hors-ballon : elevator/gap physique complet, sortie tangentielle par
-poseur et mémoire multi-contact plus détaillée.
+**Phase J (qualité moteur écran)** : J.1 à J.7 sont livrés. Le moteur
+écran/playback a maintenant la parité scrub/playback, le cache
+segmentaire, le solver unifié, les diagnostics anti-saut, les golden
+metrics et les écrans off-ball avancés.
 
 **À traiter en parallèle dès que possible** : G.1 (doc calibration) qui
 clarifie le scope du moteur (tactique vs sprint réel).

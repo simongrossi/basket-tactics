@@ -315,8 +315,20 @@ chase côté ballon et under côté opposé ; un elevator force le passage
 par le gap entre les deux poseurs. Les pindowns/staggers simples
 gardent la route screener→cutter historique.
 
-Sur un `stagger` hors-ballon, le point d'ancrage du contact glisse
-progressivement du premier poseur vers le second (`localT` 0.34→0.72).
+✅ **Contact off-ball avancé** :
+- Sur un `stagger`, le point d'ancrage du contact glisse progressivement
+  du premier poseur vers le second (`localT` 0.34→0.72). La sortie
+  tangentielle se fait autour du poseur actif, pas autour d'un centroïde
+  virtuel.
+- Sur un `elevator`, le point de contact traverse le couloir physique
+  entre les deux poseurs : centre du gap + normale de passage. La mémoire
+  anti-flip ne verrouille pas ce passage, sinon elle empêcherait D2 de
+  sortir de l'autre côté du gap.
+- La mémoire de frame stocke maintenant `contactScreeners`,
+  `activeScreener` et `contactProgress`. Le panneau debug joueur et les
+  diagnostics anti-jump affichent ces informations pour vérifier qu'un
+  double écran reste bien traité comme une seule séquence multi-contact.
+
 Le défenseur du cutter ne revient donc pas sur son homme entre les deux
 écrans : il reste en retard et traverse la chaîne comme un vrai chase
 sur double écran.

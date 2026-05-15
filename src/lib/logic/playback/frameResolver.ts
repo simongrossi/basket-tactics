@@ -69,6 +69,7 @@ import {
   detectScreenContext,
   emptyScreenContext,
   hasCarrierScreenAnnotation,
+  offBallScreeners,
   screenContactScreenerPoint,
   type ScreenContext,
   type ScreenObstacle,
@@ -94,6 +95,10 @@ export interface FrameDecision {
   /** Poseur choisi comme point d'ancrage du contact. */
   contactScreener: AttackerId | undefined;
   contactScreenerDef: DefenderId | undefined;
+  /** Poseurs impliqués dans le contact, notamment sur double écran off-ball. */
+  contactScreeners: AttackerId[] | undefined;
+  /** Poseur physique actif dans une séquence multi-contact. */
+  activeScreener: AttackerId | undefined;
   /** Le défenseur a un contact porteur (carrierContact). */
   carrierContact: boolean;
   /** Le défenseur a un contact off-ball (type d'écran ou undefined). */
@@ -149,6 +154,9 @@ export interface ScreenContactMemoryEntry {
   contactKind: 'carrier' | 'off-ball' | undefined;
   contactScreener: AttackerId | undefined;
   contactScreenerDef: DefenderId | undefined;
+  contactScreeners: AttackerId[] | undefined;
+  activeScreener: AttackerId | undefined;
+  contactProgress: number | undefined;
   contactPoint: Point | undefined;
   forcedPushSign: number | undefined;
   routeKind: ScreenRouteKind | undefined;
@@ -573,6 +581,11 @@ export function resolveFrameAt(
     const sameContactMemory = !!prevMemory && prevMemory.contactKey === contact.contactKey;
     let memoryUsed = false;
     let contactPointForMemory: Point | undefined;
+    let contactScreenersForMemory: AttackerId[] | undefined = contact.offBallContact
+      ? offBallScreeners(contact.offBallContact).map((s) => s.screener)
+      : contact.contactScreener ? [contact.contactScreener] : undefined;
+    let activeScreenerForMemory: AttackerId | undefined = contact.contactScreener;
+    let contactProgressForMemory: number | undefined;
     // Time-remap sigmoïdal qui FIGE D1 sur le poseur (smooth, sans
     // discontinuité de vélocité). Pour les autres défenseurs ou hors
     // écran, identité = localT.
@@ -754,20 +767,32 @@ export function resolveFrameAt(
         anchor,
       });
       if (contactScreener) {
-        const rawContactPoint = staggerOffBallContactPoint(
+        const contactOff = screenMode === 'leaving' ? offA : offB;
+        const advancedContact = offBallAdvancedContactGeometry(
           contact.offBallContact,
-          screenMode === 'leaving' ? offA : offB,
+          contactOff,
           anchor,
           localT
-        ) ?? radialContactPoint(anchor, contactScreener);
-        const contactPoint = sameContactMemory && prevMemory.contactPoint
-          ? stabilizeContactPointFromMemory(rawContactPoint, prevMemory.contactPoint, contactScreener)
+        );
+        if (advancedContact) {
+          contactScreenersForMemory = advancedContact.screeners;
+          activeScreenerForMemory = advancedContact.activeScreener;
+          contactProgressForMemory = advancedContact.progress;
+        }
+        const rawContactPoint = advancedContact?.contactPoint ?? radialContactPoint(anchor, contactScreener);
+        const canStabilizeFromMemory = sameContactMemory &&
+          !!prevMemory.contactPoint &&
+          advancedContact?.kind !== 'elevator';
+        const contactPoint = canStabilizeFromMemory
+          ? stabilizeContactPointFromMemory(rawContactPoint, prevMemory.contactPoint!, contactScreener)
           : rawContactPoint;
         if (contactPoint !== rawContactPoint) memoryUsed = true;
         contactPointForMemory = contactPoint;
         const release = screenContactTangentRelease(localT, modeQuality, screenMode);
         const releasePoint = release > 0
-          ? tangentReleasePoint(contactPoint, contactScreener, defB[id], release, modeQuality)
+          ? advancedContact
+            ? offBallAdvancedReleasePoint(advancedContact, contactPoint, defB[id], release, modeQuality)
+            : tangentReleasePoint(contactPoint, contactScreener, defB[id], release, modeQuality)
           : contactPoint;
         p = lerpPoint(p, releasePoint, adhesion);
       }
@@ -778,6 +803,9 @@ export function resolveFrameAt(
         contactKind: contact.contactKind,
         contactScreener: contact.contactScreener,
         contactScreenerDef: contact.contactScreenerDef,
+        contactScreeners: contactScreenersForMemory,
+        activeScreener: activeScreenerForMemory,
+        contactProgress: contactProgressForMemory,
         contactPoint: contactPointForMemory,
         forcedPushSign,
         routeKind,
@@ -836,6 +864,8 @@ export function resolveFrameAt(
         contactKind: contact.contactKind,
         contactScreener: contact.contactScreener,
         contactScreenerDef: contact.contactScreenerDef,
+        contactScreeners: contactScreenersForMemory,
+        activeScreener: activeScreenerForMemory,
         carrierContact: contact.carrierContact,
         offBallContactType: contact.offBallContact?.type,
         curveBranch,
@@ -1218,39 +1248,91 @@ function radialContactPoint(point: Point, screener: Point): Point {
   };
 }
 
-function staggerOffBallContactPoint(
+interface OffBallAdvancedContactGeometry {
+  kind: 'stagger' | 'elevator';
+  contactPoint: Point;
+  releaseAnchor: Point;
+  axis: Point;
+  normal: Point;
+  sideSign: number;
+  progress: number;
+  screeners: AttackerId[];
+  activeScreener: AttackerId | undefined;
+}
+
+function offBallAdvancedContactGeometry(
   screen: DetectedOffBallScreen | undefined,
   off: AttackerPositions,
   anchor: Point,
   localT: number
-): Point | null {
-  if (
-    !screen ||
-    screen.type !== 'stagger' ||
-    !screen.secondScreener ||
-    !screen.secondScreenerPos
-  ) {
+): OffBallAdvancedContactGeometry | null {
+  if (!screen || (screen.type !== 'stagger' && screen.type !== 'elevator')) {
     return null;
   }
-  const first = off[screen.screener] ?? screen.screenerPos;
-  const second = off[screen.secondScreener] ?? screen.secondScreenerPos;
+  const contacts = offBallScreeners(screen);
+  const firstContact = contacts[0];
+  const secondContact = contacts[1];
+  if (!firstContact || !secondContact) return null;
+
+  const first = off[firstContact.screener] ?? firstContact.screenerPos;
+  const second = off[secondContact.screener] ?? secondContact.screenerPos;
   const dx = second.x - first.x;
   const dy = second.y - first.y;
   const len = Math.hypot(dx, dy);
   if (len < 0.01) return null;
+
+  const axis = { x: dx / len, y: dy / len };
+  const normal = { x: -axis.y, y: axis.x };
+  const screeners = contacts.map((c) => c.screener);
+
+  if (screen.type === 'elevator') {
+    const gapCenter = midpoint(first, second);
+    const progress = smoothstep(0.18, 0.86, localT);
+    const anchorSide = (anchor.x - gapCenter.x) * normal.x + (anchor.y - gapCenter.y) * normal.y;
+    const sideSign = anchorSide >= 0 ? 1 : -1;
+    const corridorDepth = Math.max(
+      PLAYER_MIN_CLEARANCE_PX * 0.35,
+      Math.min(PLAYER_MIN_CLEARANCE_PX * 0.75, len * 0.45)
+    );
+    return {
+      kind: 'elevator',
+      contactPoint: {
+        x: gapCenter.x + normal.x * sideSign * corridorDepth * (1 - progress * 2),
+        y: gapCenter.y + normal.y * sideSign * corridorDepth * (1 - progress * 2),
+      },
+      releaseAnchor: gapCenter,
+      axis,
+      normal,
+      sideSign,
+      progress,
+      screeners,
+      activeScreener: progress < 0.5 ? firstContact.screener : secondContact.screener,
+    };
+  }
 
   const progress = smoothstep(0.34, 0.72, localT);
   const center = {
     x: first.x + dx * progress,
     y: first.y + dy * progress,
   };
-  const perp = { x: -dy / len, y: dx / len };
-  const anchorSide = (anchor.x - center.x) * perp.x + (anchor.y - center.y) * perp.y;
+  const anchorSide = (anchor.x - center.x) * normal.x + (anchor.y - center.y) * normal.y;
   const sign = anchorSide >= 0 ? 1 : -1;
   const clearance = PLAYER_MIN_CLEARANCE_PX + 1;
+  const activeIndex = progress < 0.5 ? 0 : 1;
+  const releaseAnchor = activeIndex === 0 ? first : second;
   return {
-    x: center.x + perp.x * sign * clearance,
-    y: center.y + perp.y * sign * clearance,
+    kind: 'stagger',
+    contactPoint: {
+      x: center.x + normal.x * sign * clearance,
+      y: center.y + normal.y * sign * clearance,
+    },
+    releaseAnchor,
+    axis,
+    normal,
+    sideSign: sign,
+    progress,
+    screeners,
+    activeScreener: activeIndex === 0 ? firstContact.screener : secondContact.screener,
   };
 }
 
@@ -1298,5 +1380,34 @@ function tangentReleasePoint(
   return {
     x: contactPoint.x + tangent.x * sign * tangentDist * t + ux * outwardDist * t,
     y: contactPoint.y + tangent.y * sign * tangentDist * t + uy * outwardDist * t,
+  };
+}
+
+function offBallAdvancedReleasePoint(
+  contact: OffBallAdvancedContactGeometry,
+  contactPoint: Point,
+  target: Point,
+  progress: number,
+  quality: number
+): Point {
+  if (contact.kind !== 'elevator') {
+    return tangentReleasePoint(contactPoint, contact.releaseAnchor, target, progress, quality);
+  }
+
+  const toTarget = { x: target.x - contactPoint.x, y: target.y - contactPoint.y };
+  const normalSign = contact.normal.x * toTarget.x + contact.normal.y * toTarget.y >= 0 ? 1 : -1;
+  const axisSign = contact.axis.x * toTarget.x + contact.axis.y * toTarget.y >= 0 ? 1 : -1;
+  const q = Math.max(0, Math.min(100, quality)) / 100;
+  const t = Math.max(0, Math.min(1, progress));
+  const throughGateDist = PLAYER_MIN_CLEARANCE_PX * (0.45 + q * 0.45);
+  const laneDist = PLAYER_MIN_CLEARANCE_PX * (0.08 + q * 0.12);
+
+  return {
+    x: contactPoint.x +
+      contact.normal.x * normalSign * throughGateDist * t +
+      contact.axis.x * axisSign * laneDist * t,
+    y: contactPoint.y +
+      contact.normal.y * normalSign * throughGateDist * t +
+      contact.axis.y * axisSign * laneDist * t,
   };
 }

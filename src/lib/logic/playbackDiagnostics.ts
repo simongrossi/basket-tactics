@@ -117,6 +117,8 @@ export function formatPlaybackJumpDiagnostics(
             `route=${j.curDebug.routeKind} memory=${j.curDebug.memoryUsed} ` +
             `curve=${j.curDebug.curveBranch} cluster=${j.curDebug.clusterId} ` +
             `push=${j.curDebug.pushMode} sign=${j.curDebug.forcedPushSign} ` +
+            `screeners=${j.curDebug.contactScreeners?.join('+') ?? '-'} ` +
+            `active=${j.curDebug.activeScreener ?? '-'} ` +
             `matched=${j.curDebug.matchedTo} late=${j.curDebug.late} ` +
             `jump=${j.curDebug.lastJumpPx?.toFixed(1) ?? '-'} ` +
             `offBall=${j.curDebug.offBallContactType}`

@@ -40,6 +40,9 @@ export function ScreenPlayerDebugPanel({
       {defenders.map((id) => {
         const decision = frame.debug?.defenders[id];
         const def = frame.defPos[id];
+        const screeners = decision?.contactScreeners?.length
+          ? decision.contactScreeners.join('+')
+          : decision?.contactScreener ?? '-';
         return (
           <div
             key={id}
@@ -58,6 +61,8 @@ export function ScreenPlayerDebugPanel({
                 ['contact', decision?.contactKey ?? '-'],
                 ['mode', decision?.screenMode ?? '-'],
                 ['route', decision?.routeKind ?? '-'],
+                ['poseurs', screeners],
+                ['actif', decision?.activeScreener ?? decision?.contactScreener ?? '-'],
                 ['qualité', decision ? String(Math.round(decision.quality)) : '-'],
                 ['mémoire', decision?.memoryUsed ? 'oui' : 'non'],
                 ['push', decision?.pushMode ?? '-'],

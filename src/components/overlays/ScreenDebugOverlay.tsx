@@ -58,7 +58,8 @@ export function ScreenDebugOverlay({
       {activeDecisions.map(([id, decision]) => {
         const d = defPos[id];
         if (!d) return null;
-        const screener = decision.contactScreener ? off[decision.contactScreener] : undefined;
+        const activeScreener = decision.activeScreener ?? decision.contactScreener;
+        const screener = activeScreener ? off[activeScreener] : undefined;
         const contact = screener ? contactPoint(d, screener) : undefined;
         const badge = badgePosition(d, id);
         const color = colorForDecision(decision);
@@ -67,7 +68,10 @@ export function ScreenDebugOverlay({
           : decision.screenMode
             ? decision.screenMode.toUpperCase()
             : 'ROUTE';
-        const detail = `${decision.contactScreener ?? decision.clusterId ?? '-'} ${decision.routeKind ?? '-'} ${shortPush(decision)}`;
+        const screenerLabel = decision.contactScreeners?.length
+          ? `${decision.contactScreeners.join('+')}${decision.activeScreener ? `/${decision.activeScreener}` : ''}`
+          : decision.contactScreener ?? decision.clusterId ?? '-';
+        const detail = `${screenerLabel} ${decision.routeKind ?? '-'} ${shortPush(decision)}`;
 
         return (
           <g key={id}>
