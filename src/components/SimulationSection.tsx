@@ -11,6 +11,7 @@ import {
   type AiMatchSeries,
   type AiPossessionOutcome,
 } from '@/lib/logic/match/aiPossession';
+import { useMatchLoop } from '@/hooks/useMatchLoop';
 
 interface SimulationSectionProps {
   state: AppState;
@@ -127,6 +128,9 @@ export function SimulationSection({ state, onLoadAiSteps }: SimulationSectionPro
           onLoadAiSteps={onLoadAiSteps}
         />
       )}
+
+      <div style={{ height: 1, background: '#e2e8f0', margin: '10px 0 8px' }} />
+      <LiveMatchPanel state={state} />
 
       <div style={{ height: 1, background: '#e2e8f0', margin: '10px 0 8px' }} />
       <div style={{ fontSize: 11, fontWeight: 700, color: c.accentText, marginBottom: 4 }}>
@@ -274,6 +278,139 @@ function SimulationStats({ result }: { result: SimulationResult }) {
       </div>
     </div>
   );
+}
+
+/** Phase I B1 — Panneau "▶ Play IA (live)". MVP minimal :
+ *  - bouton démarrage
+ *  - countdown shot clock
+ *  - score live + outcome final quand la possession se termine
+ *  - pause / reprise / stop
+ *
+ *  Le terrain affiché côté CourtView N'EST PAS encore synchronisé avec le
+ *  matchState live (livré en B4 = UI complète). En attendant, ce panneau
+ *  permet déjà de valider que le tick produit des outcomes cohérents. */
+function LiveMatchPanel({ state }: { state: AppState }) {
+  const { matchState, isRunning, start, pause, resume, stop } = useMatchLoop({
+    baseState: state,
+  });
+
+  const shotClockSec = matchState ? Math.max(0, matchState.shotClockMs / 1000) : 24;
+  const shotClockColor =
+    shotClockSec <= 4 ? '#dc2626' : shotClockSec <= 8 ? '#d97706' : '#16a34a';
+
+  const outcomeLabel = matchState?.outcome ? AI_OUTCOME_LABELS[matchState.outcome] : null;
+  const isFinished = matchState?.outcome != null;
+
+  return (
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#1e3a8a', marginBottom: 4 }}>
+        Play IA (live)
+      </div>
+      <div style={{ fontSize: 10, color: '#475569', marginBottom: 6, lineHeight: 1.4 }}>
+        Lance une possession simulée tick par tick (5 Hz). MVP B1 — le terrain n'est pas encore
+        synchronisé (B4) ; on observe le shot clock + outcome.
+      </div>
+
+      <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+        {!matchState && (
+          <button
+            type="button"
+            onClick={() => start()}
+            style={liveButtonStyle('start')}
+          >
+            ▶ démarrer
+          </button>
+        )}
+        {matchState && isRunning && !isFinished && (
+          <button type="button" onClick={pause} style={liveButtonStyle('pause')}>
+            ⏸ pause
+          </button>
+        )}
+        {matchState && !isRunning && !isFinished && (
+          <button type="button" onClick={resume} style={liveButtonStyle('start')}>
+            ▶ reprendre
+          </button>
+        )}
+        {matchState && (
+          <button type="button" onClick={stop} style={liveButtonStyle('stop')}>
+            ⏹ stop
+          </button>
+        )}
+      </div>
+
+      {matchState && (
+        <div
+          style={{
+            display: 'flex',
+            gap: 4,
+            padding: '6px 8px',
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: 5,
+            fontSize: 11,
+            color: '#1e293b',
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>shot clock</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: shotClockColor, lineHeight: 1.1 }}>
+              {shotClockSec.toFixed(1)}
+              <span style={{ fontSize: 10, color: '#94a3b8' }}> s</span>
+            </div>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>score</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#1e3a8a', lineHeight: 1.1 }}>
+              +{matchState.score}
+            </div>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>porteur</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#7c2d12', lineHeight: 1.1 }}>
+              {matchState.carrier}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isFinished && outcomeLabel && (
+        <div
+          style={{
+            marginTop: 6,
+            padding: '5px 8px',
+            background: '#eef2ff',
+            border: '1px solid #c7d2fe',
+            borderRadius: 5,
+            fontSize: 11,
+            color: '#3730a3',
+            textAlign: 'center',
+            fontWeight: 600,
+          }}
+        >
+          {outcomeLabel} · {matchState!.tickCount} ticks · {(matchState!.possessionTimeMs / 1000).toFixed(1)}s
+        </div>
+      )}
+    </div>
+  );
+}
+
+function liveButtonStyle(kind: 'start' | 'pause' | 'stop') {
+  const palette = {
+    start: { bg: '#eef2ff', border: '#4338ca', color: '#3730a3' },
+    pause: { bg: '#fef3c7', border: '#d97706', color: '#92400e' },
+    stop: { bg: '#fee2e2', border: '#dc2626', color: '#991b1b' },
+  }[kind];
+  return {
+    flex: 1,
+    fontSize: 11,
+    padding: '5px 8px',
+    borderRadius: 4,
+    border: `1px solid ${palette.border}`,
+    background: palette.bg,
+    color: palette.color,
+    cursor: 'pointer' as const,
+    fontWeight: 600,
+  };
 }
 
 function Stat({ label, value, color }: { label: string; value: string; color: string }) {
