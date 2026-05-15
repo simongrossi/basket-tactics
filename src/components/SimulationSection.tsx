@@ -16,6 +16,10 @@ import {
   compareCalibration,
   type CalibrationReport,
 } from '@/lib/logic/match/calibration';
+import {
+  autoTuneCreativity,
+  type AutoTuningResult,
+} from '@/lib/logic/match/autoTuning';
 
 interface SimulationSectionProps {
   state: AppState;
@@ -655,6 +659,8 @@ function CalibrationPanel({ state }: { state: AppState }) {
   const [report, setReport] = useState<CalibrationReport | null>(null);
   const [running, setRunning] = useState(false);
   const [runCount, setRunCount] = useState(50);
+  const [tuning, setTuning] = useState<AutoTuningResult | null>(null);
+  const [autoTuning, setAutoTuning] = useState(false);
 
   const onCalibrate = () => {
     setRunning(true);
@@ -705,24 +711,107 @@ function CalibrationPanel({ state }: { state: AppState }) {
           </button>
         ))}
       </div>
-      <button
-        type="button"
-        onClick={onCalibrate}
-        disabled={running}
-        style={{
-          width: '100%',
-          fontSize: 11,
-          padding: '5px 8px',
-          borderRadius: 4,
-          border: '1px solid #4338ca',
-          background: running ? '#f1f5f9' : '#eef2ff',
-          color: running ? '#94a3b8' : '#3730a3',
-          cursor: running ? 'wait' : 'pointer',
-          fontWeight: 600,
-        }}
-      >
-        🔍 {running ? 'calibration en cours…' : `lancer (${runCount} possessions ×2)`}
-      </button>
+      <div style={{ display: 'flex', gap: 4 }}>
+        <button
+          type="button"
+          onClick={onCalibrate}
+          disabled={running || autoTuning}
+          style={{
+            flex: 2,
+            fontSize: 11,
+            padding: '5px 8px',
+            borderRadius: 4,
+            border: '1px solid #4338ca',
+            background: running ? '#f1f5f9' : '#eef2ff',
+            color: running ? '#94a3b8' : '#3730a3',
+            cursor: running ? 'wait' : 'pointer',
+            fontWeight: 600,
+          }}
+        >
+          🔍 {running ? '…' : `mesurer (${runCount} ×2)`}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setAutoTuning(true);
+            setTuning(null);
+            setReport(null);
+            setTimeout(() => {
+              try {
+                const result = autoTuneCreativity(state, {
+                  runsPerStep: Math.min(50, runCount),
+                  seed: Date.now(),
+                });
+                setTuning(result);
+              } finally {
+                setAutoTuning(false);
+              }
+            }, 0);
+          }}
+          disabled={running || autoTuning}
+          title="Lance une dichotomie sur creativity (8 itérations max) jusqu'à |Δ PPP| ≤ 0.15"
+          style={{
+            flex: 1,
+            fontSize: 11,
+            padding: '5px 8px',
+            borderRadius: 4,
+            border: '1px solid #16a34a',
+            background: autoTuning ? '#f1f5f9' : '#dcfce7',
+            color: autoTuning ? '#94a3b8' : '#166534',
+            cursor: autoTuning ? 'wait' : 'pointer',
+            fontWeight: 600,
+          }}
+        >
+          🎯 {autoTuning ? 'tuning…' : 'auto-tune'}
+        </button>
+      </div>
+
+      {tuning && (
+        <div style={{ marginTop: 8 }}>
+          <div
+            style={{
+              padding: '6px 8px',
+              borderRadius: 5,
+              background: tuning.converged ? '#dcfce7' : '#fef3c7',
+              border: `1px solid ${tuning.converged ? '#86efac' : '#fcd34d'}`,
+              fontSize: 11,
+              color: tuning.converged ? '#166534' : '#92400e',
+              fontWeight: 600,
+            }}
+          >
+            {tuning.converged ? '🎯 Auto-tune converge' : '⚠ Auto-tune ne converge pas'}
+            <span style={{ fontWeight: 400, marginLeft: 4 }}>
+              ({tuning.iterations} itérations)
+            </span>
+          </div>
+          <div
+            style={{
+              marginTop: 6,
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 4,
+              fontSize: 10,
+            }}
+          >
+            <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: 9, color: '#64748b' }}>BEST CREATIVITY</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#1e3a8a' }}>
+                {tuning.bestCreativity.toFixed(2)}
+              </div>
+            </div>
+            <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: 9, color: '#64748b' }}>Δ PPP RESTANT</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: Math.abs(tuning.bestDelta) <= 0.15 ? '#16a34a' : '#dc2626' }}>
+                {tuning.bestDelta >= 0 ? '+' : ''}
+                {tuning.bestDelta.toFixed(2)}
+              </div>
+            </div>
+          </div>
+          <div style={{ marginTop: 4, fontSize: 9, color: '#94a3b8', fontStyle: 'italic' }}>
+            Historique : {tuning.history.map((h) => `${h.creativity.toFixed(2)}→Δ${h.deltaPpp >= 0 ? '+' : ''}${h.deltaPpp.toFixed(2)}`).join(' · ')}
+          </div>
+        </div>
+      )}
 
       {report && (
         <div style={{ marginTop: 8 }}>
