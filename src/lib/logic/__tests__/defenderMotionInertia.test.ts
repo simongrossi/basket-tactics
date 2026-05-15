@@ -103,4 +103,28 @@ describe('defender playback motion inertia', () => {
     expect(frame!.debug?.defenders.D2?.motionInertia).toBeUndefined();
     expect(frame!.motionMemory).toBeUndefined();
   });
+
+  it('module l inertie selon la vitesse max du defenseur', () => {
+    const fast = buildSharpTurnScenario();
+    fast.rules.D2 = { ...fast.rules.D2, maxSpeed: 145 };
+    const slow = buildSharpTurnScenario();
+    slow.rules.D2 = { ...slow.rules.D2, maxSpeed: 75 };
+
+    const fastBeforeTurn = playbackTo(fast, 1);
+    const slowBeforeTurn = playbackTo(slow, 1);
+    const fastFrame = resolveFrameAt(fast, 1 + 2 / 60, {
+      prevFrame: fastBeforeTurn,
+      collectDecisions: true,
+    });
+    const slowFrame = resolveFrameAt(slow, 1 + 2 / 60, {
+      prevFrame: slowBeforeTurn,
+      collectDecisions: true,
+    });
+    expect(fastFrame).not.toBeNull();
+    expect(slowFrame).not.toBeNull();
+
+    const fastInertia = fastFrame!.debug?.defenders.D2?.motionInertia ?? 0;
+    const slowInertia = slowFrame!.debug?.defenders.D2?.motionInertia ?? 0;
+    expect(slowInertia).toBeGreaterThan(fastInertia + 0.02);
+  });
 });

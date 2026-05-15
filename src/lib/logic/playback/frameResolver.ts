@@ -247,10 +247,13 @@ const MAX_ATTACKER_JUMP_PX = 18;
 
 /** Démarre l'inertie quand le défenseur change fortement de direction.
  *  cos(70°) ≈ 0.34 : sous ce seuil, le virage devient visible à l'oeil. */
-const DEFENDER_INERTIA_TURN_START_COS = 0.35;
-const DEFENDER_INERTIA_MAX_BLEND = 0.28;
-const DEFENDER_INERTIA_SPEED_LOSS = 0.45;
 const DEFENDER_INERTIA_MIN_SPEED_PX = 0.6;
+const DEFENDER_INERTIA_FAST_TURN_START_COS = 0.20;
+const DEFENDER_INERTIA_SLOW_TURN_START_COS = 0.50;
+const DEFENDER_INERTIA_FAST_MAX_BLEND = 0.18;
+const DEFENDER_INERTIA_SLOW_MAX_BLEND = 0.36;
+const DEFENDER_INERTIA_FAST_SPEED_LOSS = 0.32;
+const DEFENDER_INERTIA_SLOW_SPEED_LOSS = 0.55;
 const INTERPOLATED_FRAME_CLEARANCE_PX = PLAYER_MIN_CLEARANCE_PX * 0.72;
 
 interface SegmentScreenStatic {
@@ -1262,11 +1265,12 @@ function applyDefenderMotionInertia(params: {
     let inertia = 0;
 
     if (!shouldSkipDefenderMotionInertia(params.state, params.idxA, params.idxB, id, current, params.lockedDefenders)) {
+      const mobility = defenderPlaybackMobility(params.state, id);
       inertia = clampScalar(
-        (DEFENDER_INERTIA_TURN_START_COS - cos) / (DEFENDER_INERTIA_TURN_START_COS + 1),
+        (mobility.turnStartCos - cos) / (mobility.turnStartCos + 1),
         0,
         1
-      ) * DEFENDER_INERTIA_MAX_BLEND;
+      ) * mobility.maxBlend;
 
       if (inertia > 0.001) {
         const desiredUnit = { x: desired.x / desiredDist, y: desired.y / desiredDist };
@@ -1278,7 +1282,7 @@ function applyDefenderMotionInertia(params: {
           x: desiredUnit.x * (1 - inertia) + previousUnit.x * inertia,
           y: desiredUnit.y * (1 - inertia) + previousUnit.y * inertia,
         });
-        const adjustedDist = desiredDist * (1 - inertia * DEFENDER_INERTIA_SPEED_LOSS);
+        const adjustedDist = desiredDist * (1 - inertia * mobility.speedLoss);
         current.x = prev.x + mixed.x * adjustedDist;
         current.y = prev.y + mixed.y * adjustedDist;
         applied = true;
@@ -1293,6 +1297,20 @@ function applyDefenderMotionInertia(params: {
     }
   });
   return { stats, applied };
+}
+
+function defenderPlaybackMobility(state: AppState, id: DefenderId): {
+  turnStartCos: number;
+  maxBlend: number;
+  speedLoss: number;
+} {
+  const speed = state.rules[id]?.maxSpeed ?? state.defenseMaxSpeed;
+  const speed01 = clampScalar((speed - 75) / (145 - 75), 0, 1);
+  return {
+    turnStartCos: lerpScalar(DEFENDER_INERTIA_SLOW_TURN_START_COS, DEFENDER_INERTIA_FAST_TURN_START_COS, speed01),
+    maxBlend: lerpScalar(DEFENDER_INERTIA_SLOW_MAX_BLEND, DEFENDER_INERTIA_FAST_MAX_BLEND, speed01),
+    speedLoss: lerpScalar(DEFENDER_INERTIA_SLOW_SPEED_LOSS, DEFENDER_INERTIA_FAST_SPEED_LOSS, speed01),
+  };
 }
 
 function buildDefenderMotionMemory(
@@ -1339,6 +1357,10 @@ function normalizeVector(p: Point): Point {
 
 function clampScalar(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
+}
+
+function lerpScalar(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
 }
 
 function plainDefPositions(def: ComputedDefense): Record<DefenderId, Point> {

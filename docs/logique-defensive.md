@@ -345,6 +345,12 @@ déplacement demandé sur la frame courante change brutalement de direction
 par rapport à la frame précédente, le défenseur garde une petite partie
 de son élan et perd un peu de distance sur cette frame.
 
+L'effet dépend de `rule.maxSpeed` : un défenseur rapide déclenche
+l'inertie plus tard, conserve moins d'élan parasite et perd moins de
+distance ; un intérieur lent déclenche plus tôt et amortit davantage le
+virage. Cela donne une première séparation accélération/top speed sans
+ajouter de nouveau champ de profil.
+
 Cette inertie est volontairement bornée :
 - elle ne s'applique pas sans `prevFrame` : les positions de step restent
   déterministes et inchangées en calcul isolé ;

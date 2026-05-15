@@ -697,6 +697,11 @@ collisions + rate limiter. Reste une V2 plus profonde si besoin :
 accélération/top speed par profil joueur et pathfinding défensif
 pré-collision.
 
+**D.2 V2 livré 2026-05-15.** L'inertie playback est maintenant modulée
+par `rule.maxSpeed` : guards plus réactifs, intérieurs plus lourds sur
+les changements de direction. Pas de nouveau champ utilisateur ; on
+réutilise le profil vitesse existant.
+
 **D.5 V1 livré 2026-05-15.** Passe finale de collision sur la frame
 interpolée après inertie/rate limiter : poseurs et défenseurs lockés
 restent fixes, les autres joueurs sont séparés par une clearance
