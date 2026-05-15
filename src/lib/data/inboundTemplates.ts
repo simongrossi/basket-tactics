@@ -856,6 +856,187 @@ const SLOB_HIGH_TRAP_BREAK: Template = {
 };
 
 // ============================================================
+// DÉFENSE D'ATTAQUE — templates combinant offense + défense spécifique
+// ============================================================
+//
+// Ces templates pédagogiques montrent une action offensive face à une
+// défense ciblée. Le coach étudie : "comment ma BLOB Box se comporte
+// face à un face-guard ?", "comment cassser une zone 2-3 sur SLOB ?".
+//
+// L'offense est identique aux templates existants. La défense pose
+// `defenseOverrides` sur CHAQUE step pour figer le pattern défensif
+// (= la défense ne réagit pas, elle joue son rôle assigné).
+
+// --- BLOB Box vs Face-guard ---
+//
+// La défense met un face-guard sur le receveur principal (O3, short
+// corner droite, plus proche du passeur). Les autres défenseurs en
+// man-to-man classique. Le coach observe comment le curl de O3 essaie
+// de battre le face-guard.
+
+const blobBoxFaceGuardDef = {
+  D1: { x: 300, y: 35 },   // sur le passeur, baseline
+  D2: { x: 250, y: 75 },   // man sur O2
+  D3: { x: 320, y: 80 },   // face-guard sur O3 (entre O3 et passeur)
+  D4: { x: 240, y: 130 },  // man sur O4
+  D5: { x: 360, y: 130 },  // man sur O5
+};
+const BLOB_BOX_VS_FACE_GUARD: Template = {
+  id: 'blob-box-vs-face-guard',
+  name: 'BLOB Box vs Face-guard',
+  description: 'Étude défensive. Box offense + face-guard sur O3 (receveur principal). Comment le curl essaie de battre le deny ?',
+  defenseInitial: blobBoxFaceGuardDef,
+  steps: [
+    {
+      label: 'Setup Box vs Face-guard',
+      off: blobBoxSetup,
+      ballCarrier: 'O1',
+      annotations: [],
+      context: 'inbound-baseline',
+      manualOverride: true,
+      defenseOverrides: blobBoxFaceGuardDef,
+    },
+    {
+      label: 'Double pin-down face deny',
+      off: blobBoxScreen,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'screen', fromId: 'O4', toId: 'O3', from: blobBoxSetup.O4, to: blobBoxScreen.O4 } as Annotation,
+        { type: 'screen', fromId: 'O5', toId: 'O3', from: blobBoxSetup.O5, to: blobBoxScreen.O5 } as Annotation,
+      ],
+      defenseOverrides: blobBoxFaceGuardDef,
+    },
+    {
+      label: 'O3 curl + tentative passe deny',
+      off: blobBoxCurl,
+      ballCarrier: 'O3',
+      annotations: [
+        { type: 'cut', fromId: 'O3', toId: null, from: blobBoxSetup.O3, to: blobBoxCurl.O3 } as Annotation,
+        { type: 'pass', fromId: 'O1', toId: 'O3', from: blobBoxSetup.O1, to: blobBoxCurl.O3 } as Annotation,
+      ],
+      // D3 suit le curl, reste face-guard
+      defenseOverrides: {
+        ...blobBoxFaceGuardDef,
+        D3: { x: 380, y: 200 }, // suit O3 ball-side
+      },
+    },
+  ],
+};
+
+// --- BLOB Stack vs Zone 2-3 ---
+//
+// 2 défenseurs top (FT line étendue), 3 back row paint. La défense
+// ne réagit pas aux cuts, reste en zone. Le coach observe comment
+// le split + back-cut casse la zone.
+
+const blobStackZone23Def = {
+  D1: { x: 250, y: 200 },  // top gauche (FT line étendue)
+  D2: { x: 350, y: 200 },  // top droite
+  D3: { x: 180, y: 90 },   // back gauche
+  D4: { x: 300, y: 70 },   // back centre (rim protector)
+  D5: { x: 420, y: 90 },   // back droite
+};
+const BLOB_STACK_VS_ZONE_23: Template = {
+  id: 'blob-stack-vs-zone-23',
+  name: 'BLOB Stack vs Zone 2-3',
+  description: 'Étude défensive. Stack offense + zone 2-3 (2 top, 3 back). Comment le split + back-cut O2 casse la zone ?',
+  defenseInitial: blobStackZone23Def,
+  steps: [
+    {
+      label: 'Setup Stack vs Zone 2-3',
+      off: blobStackSetup,
+      ballCarrier: 'O1',
+      annotations: [],
+      context: 'inbound-baseline',
+      manualOverride: true,
+      defenseOverrides: blobStackZone23Def,
+    },
+    {
+      label: 'Split + back-cut O2 → kick',
+      off: blobStackSplit,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'cut', fromId: 'O5', toId: null, from: blobStackSetup.O5, to: blobStackSplit.O5 } as Annotation,
+        { type: 'cut', fromId: 'O4', toId: null, from: blobStackSetup.O4, to: blobStackSplit.O4 } as Annotation,
+        { type: 'cut', fromId: 'O3', toId: null, from: blobStackSetup.O3, to: blobStackSplit.O3 } as Annotation,
+        { type: 'cut', fromId: 'O2', toId: null, from: blobStackSetup.O2, to: blobStackSplit.O2 } as Annotation,
+        { type: 'pass', fromId: 'O1', toId: 'O2', from: blobStackSetup.O1, to: blobStackSplit.O2 } as Annotation,
+      ],
+      // La zone ne suit pas, elle ajuste légèrement sur la passe
+      defenseOverrides: {
+        ...blobStackZone23Def,
+        D4: { x: 300, y: 60 }, // anticipe O2 cut au panier
+      },
+    },
+  ],
+};
+
+// --- SLOB Hammer vs Zone-press ---
+//
+// Sur la remise touche, la défense met une zone-press : 2 sur le
+// passeur, 2 denials, 1 sweeper. Le Hammer doit casser la presse
+// via le back screen + skip pass.
+
+const slobHammerPressDef = {
+  D1: { x: 555, y: 175 },  // presseur 1 sur passeur O1
+  D2: { x: 540, y: 200 },  // presseur 2 (trap)
+  D3: { x: 250, y: 230 },  // deny sur ligne passe O2-O1
+  D4: { x: 200, y: 360 },  // deny sur O4 (poseur back screen)
+  D5: { x: 300, y: 380 },  // sweeper arrière (centre)
+};
+const SLOB_HAMMER_VS_PRESS: Template = {
+  id: 'slob-hammer-vs-press',
+  name: 'SLOB Hammer vs Zone-press',
+  description: 'Étude défensive. Hammer offense + zone-press (trap passeur + denials + sweeper). Comment le back screen + skip pass casse la presse ?',
+  defenseInitial: slobHammerPressDef,
+  steps: [
+    {
+      label: 'Setup Hammer vs Press',
+      off: slobHammerSetup,
+      ballCarrier: 'O1',
+      annotations: [],
+      context: 'inbound-sideline-low',
+      manualOverride: true,
+      defenseOverrides: slobHammerPressDef,
+    },
+    {
+      label: 'Passe relai + back screen',
+      off: slobHammerRelay,
+      ballCarrier: 'O2',
+      annotations: [
+        { type: 'pass', fromId: 'O1', toId: 'O2', from: slobHammerSetup.O1, to: slobHammerSetup.O2 } as Annotation,
+        { type: 'cut', fromId: 'O4', toId: null, from: slobHammerSetup.O4, to: slobHammerRelay.O4 } as Annotation,
+        { type: 'screen', fromId: 'O4', toId: 'O3', from: slobHammerRelay.O4, to: slobHammerRelay.O4 } as Annotation,
+      ],
+      // La press relâche après que la balle est rentrée
+      defenseOverrides: {
+        D1: { x: 480, y: 220 }, // trap se desserre
+        D2: { x: 350, y: 270 }, // recule en aide
+        D3: { x: 240, y: 200 }, // doit suivre O3 mais bloqué par O4 screen
+        D4: { x: 180, y: 250 }, // sweeper monte
+        D5: { x: 300, y: 380 }, // safety
+      },
+    },
+    {
+      label: 'O3 cut + skip pass corner faible',
+      off: slobHammerCorner,
+      ballCarrier: 'O3',
+      annotations: [
+        { type: 'cut', fromId: 'O3', toId: null, from: slobHammerRelay.O3, to: slobHammerCorner.O3 } as Annotation,
+        { type: 'pass', fromId: 'O2', toId: 'O3', from: slobHammerRelay.O2, to: slobHammerCorner.O3 } as Annotation,
+      ],
+      defenseOverrides: {
+        D1: { x: 480, y: 220 },
+        D2: { x: 300, y: 200 },
+        D3: { x: 200, y: 200 }, // ne peut pas suivre, le skip pass est libre
+        D4: { x: 180, y: 250 },
+        D5: { x: 280, y: 320 },
+      },
+    },
+  ],
+};
+
+// ============================================================
 // Liste exportée — agrégée dans CLASSIC_TEMPLATES de templates.ts
 // ============================================================
 
@@ -874,4 +1055,8 @@ export const INBOUND_TEMPLATES: Template[] = [
   SLOB_HIGH_DRAG,
   SLOB_HIGH_QUICK,
   SLOB_HIGH_TRAP_BREAK,
+  // Templates "défense d'attaque" : combinent offense + défense ciblée
+  BLOB_BOX_VS_FACE_GUARD,
+  BLOB_STACK_VS_ZONE_23,
+  SLOB_HAMMER_VS_PRESS,
 ];
