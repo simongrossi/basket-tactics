@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { AppState, PlayerCount } from '@/lib/types';
+import type { AppState, PlayerCount, PlayerId } from '@/lib/types';
 import { Panel, COLORS } from './ui';
 import { ParametresPanel } from './ParametresPanel';
 
@@ -10,6 +10,9 @@ interface ParametresLauncherProps {
   onPatch: (p: Partial<AppState>) => void;
   onSetPlayerCount: (count: PlayerCount) => void;
   onAutoPositionOffBall?: () => void;
+  /** F.4 — Toggle DQ d'un joueur (faute technique). */
+  onTogglePlayerDisqualified?: (playerId: PlayerId) => void;
+  onClearDisqualified?: () => void;
 }
 
 /**
@@ -17,7 +20,14 @@ interface ParametresLauncherProps {
  * Ouvre une modal pop-up centrée contenant tout le contenu de ParametresPanel
  * (VISU & LÉGENDE + INDICATEURS AUTO). Style cohérent avec LibraryPanel.
  */
-export function ParametresLauncher({ state, onPatch, onSetPlayerCount, onAutoPositionOffBall }: ParametresLauncherProps) {
+export function ParametresLauncher({
+  state,
+  onPatch,
+  onSetPlayerCount,
+  onAutoPositionOffBall,
+  onTogglePlayerDisqualified,
+  onClearDisqualified,
+}: ParametresLauncherProps) {
   const c = COLORS.defense;
   const [open, setOpen] = useState(false);
 
@@ -112,7 +122,14 @@ export function ParametresLauncher({ state, onPatch, onSetPlayerCount, onAutoPos
             >
               ×
             </button>
-            <ParametresPanel state={state} onPatch={onPatch} onSetPlayerCount={onSetPlayerCount} onAutoPositionOffBall={onAutoPositionOffBall} />
+            <ParametresPanel
+              state={state}
+              onPatch={onPatch}
+              onSetPlayerCount={onSetPlayerCount}
+              onAutoPositionOffBall={onAutoPositionOffBall}
+              onTogglePlayerDisqualified={onTogglePlayerDisqualified}
+              onClearDisqualified={onClearDisqualified}
+            />
           </div>
         </div>
       )}

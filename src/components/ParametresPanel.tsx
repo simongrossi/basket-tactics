@@ -1,6 +1,6 @@
 'use client';
 
-import type { AppState, PlayerCount } from '@/lib/types';
+import type { AppState, PlayerCount, PlayerId } from '@/lib/types';
 import { PLAYER_COUNT_OPTIONS } from '@/lib/logic/players';
 import { Panel, CheckboxLine, COLORS } from './ui';
 
@@ -9,6 +9,10 @@ interface ParametresPanelProps {
   onPatch: (p: Partial<AppState>) => void;
   onSetPlayerCount: (count: PlayerCount) => void;
   onAutoPositionOffBall?: () => void;
+  /** F.4 — Toggle DQ d'un joueur (faute technique / 5e perso). */
+  onTogglePlayerDisqualified?: (playerId: PlayerId) => void;
+  /** F.4 — Réinitialise les disqualifications (= début de partie). */
+  onClearDisqualified?: () => void;
 }
 
 /**
@@ -17,7 +21,14 @@ interface ParametresPanelProps {
  * regrouper TOUTES les options visuelles au même endroit, et alléger
  * la hauteur du panneau Défense (qui se concentre sur la simulation).
  */
-export function ParametresPanel({ state, onPatch, onSetPlayerCount, onAutoPositionOffBall }: ParametresPanelProps) {
+export function ParametresPanel({
+  state,
+  onPatch,
+  onSetPlayerCount,
+  onAutoPositionOffBall,
+  onTogglePlayerDisqualified,
+  onClearDisqualified,
+}: ParametresPanelProps) {
   const c = COLORS.defense;
   return (
     <Panel theme="defense" title="⚙ Paramètres">
@@ -48,6 +59,84 @@ export function ParametresPanel({ state, onPatch, onSetPlayerCount, onAutoPositi
           );
         })}
       </div>
+
+      {/* F.4 — Disqualifications */}
+      {onTogglePlayerDisqualified && (
+        <>
+          <div style={{ fontSize: 10, fontWeight: 600, color: c.accentText, opacity: 0.8, letterSpacing: '0.02em', marginTop: 8 }}>
+            🚫 DISQUALIFICATIONS
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 3, marginBottom: 4 }}>
+            {(['O1', 'O2', 'O3', 'O4', 'O5'] as PlayerId[]).map((id) => {
+              const isDq = state.disqualifiedPlayers?.includes(id) ?? false;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => onTogglePlayerDisqualified(id)}
+                  title={isDq ? `${id} disqualifié — clic pour réintégrer` : `Disqualifier ${id}`}
+                  style={{
+                    fontSize: 9,
+                    padding: '2px 0',
+                    borderRadius: 3,
+                    border: isDq ? '1px solid #dc2626' : '1px solid #cbd5e1',
+                    background: isDq ? '#fee2e2' : '#fff',
+                    color: isDq ? '#991b1b' : '#94a3b8',
+                    cursor: 'pointer',
+                    fontWeight: isDq ? 700 : 500,
+                  }}
+                >
+                  {isDq ? `🚫 ${id}` : id}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 3, marginBottom: 4 }}>
+            {(['D1', 'D2', 'D3', 'D4', 'D5'] as PlayerId[]).map((id) => {
+              const isDq = state.disqualifiedPlayers?.includes(id) ?? false;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => onTogglePlayerDisqualified(id)}
+                  title={isDq ? `${id} disqualifié — clic pour réintégrer` : `Disqualifier ${id}`}
+                  style={{
+                    fontSize: 9,
+                    padding: '2px 0',
+                    borderRadius: 3,
+                    border: isDq ? '1px solid #dc2626' : '1px solid #cbd5e1',
+                    background: isDq ? '#fee2e2' : '#fff',
+                    color: isDq ? '#991b1b' : '#94a3b8',
+                    cursor: 'pointer',
+                    fontWeight: isDq ? 700 : 500,
+                  }}
+                >
+                  {isDq ? `🚫 ${id}` : id}
+                </button>
+              );
+            })}
+          </div>
+          {state.disqualifiedPlayers && state.disqualifiedPlayers.length > 0 && onClearDisqualified && (
+            <button
+              type="button"
+              onClick={onClearDisqualified}
+              style={{
+                width: '100%',
+                fontSize: 10,
+                padding: '3px 6px',
+                borderRadius: 3,
+                border: '1px solid #cbd5e1',
+                background: '#fff',
+                color: '#475569',
+                cursor: 'pointer',
+                marginBottom: 4,
+              }}
+            >
+              ↻ réintégrer tous
+            </button>
+          )}
+        </>
+      )}
 
       <div style={{ fontSize: 10, fontWeight: 600, color: c.accentText, opacity: 0.8, letterSpacing: '0.02em', marginTop: 8 }}>
         TIMECODE

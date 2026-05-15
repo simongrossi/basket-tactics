@@ -2,7 +2,7 @@
 // Toutes pures (la persistance localStorage est gérée par le hook qui appelle
 // ces transforms).
 
-import type { AppState, PlayerCount, Tool } from '@/lib/types';
+import type { AppState, PlayerCount, PlayerId, Tool } from '@/lib/types';
 import { makeInitialState } from '@/lib/data/initial';
 import type { Template } from '@/lib/data/templates';
 import {
@@ -65,4 +65,19 @@ export function importState(next: AppState): AppState {
  *  localStorage avant. */
 export function resetAll(): AppState {
   return makeInitialState();
+}
+
+/** F.4 — Toggle l'état "disqualifié" d'un joueur. Si déjà DQ, le
+ *  libère. Si pas DQ, l'ajoute. */
+export function togglePlayerDisqualified(s: AppState, playerId: PlayerId): AppState {
+  const dq = s.disqualifiedPlayers ?? [];
+  const idx = dq.indexOf(playerId);
+  const nextDq =
+    idx === -1 ? [...dq, playerId] : dq.filter((id) => id !== playerId);
+  return { ...s, disqualifiedPlayers: nextDq.length > 0 ? nextDq : undefined };
+}
+
+/** F.4 — Réinitialise la liste des disqualifiés (= début de partie). */
+export function clearDisqualified(s: AppState): AppState {
+  return { ...s, disqualifiedPlayers: undefined };
 }

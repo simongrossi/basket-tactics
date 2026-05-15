@@ -1,4 +1,9 @@
 export type PlayerId = 'O1' | 'O2' | 'O3' | 'O4' | 'O5' | 'D1' | 'D2' | 'D3' | 'D4' | 'D5';
+
+/** F.4 — Joueurs disqualifiés (faute technique, 5e faute personnelle,
+ *  expulsion). Stockés au niveau AppState (global session) pour
+ *  simplicité V1. */
+export type DisqualifiedPlayers = PlayerId[];
 export type AttackerId = 'O1' | 'O2' | 'O3' | 'O4' | 'O5';
 export type DefenderId = 'D1' | 'D2' | 'D3' | 'D4' | 'D5';
 export type PlayerCount = 2 | 3 | 4 | 5;
@@ -662,6 +667,12 @@ export interface AppState {
    *  Les joueurs hors format restent en mémoire, mais le moteur, les rendus
    *  et les contrôles les ignorent pour éviter tout comportement fantôme. */
   playerCount: PlayerCount;
+  /** F.4 — Joueurs disqualifiés (technique / 5e faute / expulsion).
+   *  Rendus grisés sur le terrain avec badge "DQ". V1 : pas d'impact
+   *  engine (= visuel uniquement, le joueur reste comptabilisé dans
+   *  les matchups). V2 envisageable : exclure des activeOffense /
+   *  activeDefenders. */
+  disqualifiedPlayers?: DisqualifiedPlayers;
   defenseInitial: DefenderPositions;
   /** Phase 3 — active l'application des directives défensives scriptées
    *  (step.defensiveDirectives) par l'engine. Default true. */

@@ -264,6 +264,17 @@ export function useAppState() {
     setStateWithHistory(stepTx.convertStepToJumpBall);
   }, [setStateWithHistory]);
 
+  const togglePlayerDisqualified = useCallback(
+    (playerId: import('@/lib/types').PlayerId) => {
+      setStateWithHistory((s) => coreTx.togglePlayerDisqualified(s, playerId));
+    },
+    [setStateWithHistory]
+  );
+
+  const clearDisqualified = useCallback(() => {
+    setStateWithHistory(coreTx.clearDisqualified);
+  }, [setStateWithHistory]);
+
   // -- Joueurs (positions) --
   // Note : moves utilisent `playerMove` directement (déjà extrait), pas un
   // transform dédié, pour éviter une double indirection sur le chemin chaud.
@@ -638,6 +649,8 @@ export function useAppState() {
     setInboundDefenseMode,
     addFreeThrowReboundStep,
     convertStepToJumpBall,
+    togglePlayerDisqualified,
+    clearDisqualified,
     loadTemplate,
     clearDefenseOverride,
     autoPositionOffBall,

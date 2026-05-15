@@ -374,6 +374,52 @@ export function CourtView(props: CourtViewProps) {
         <CourtPlayersLayer state={state} frame={frame} selectedDefenders={selectedDefenders} />
 
         {/* ---- Overlays avant (au-dessus des sprites) ---- */}
+        {/* F.4 — Disqualifications : croix rouge sur les sprites des
+            joueurs DQ. Visible quelle que soit la frame (statique,
+            scrub, play, live). */}
+        {state.disqualifiedPlayers && state.disqualifiedPlayers.length > 0 && (
+          <g pointerEvents="none">
+            {state.disqualifiedPlayers.map((id) => {
+              const pos =
+                id.startsWith('O')
+                  ? frame.off[id as AttackerId]
+                  : frame.defPos[id as DefenderId];
+              if (!pos) return null;
+              return (
+                <g key={`dq-${id}`}>
+                  <circle
+                    cx={pos.x}
+                    cy={pos.y}
+                    r={20}
+                    fill="rgba(127, 29, 29, 0.4)"
+                    stroke="#7f1d1d"
+                    strokeWidth={2}
+                  />
+                  <text
+                    x={pos.x}
+                    y={pos.y + 4}
+                    textAnchor="middle"
+                    fontSize={11}
+                    fontWeight={700}
+                    fill="#fee2e2"
+                  >
+                    DQ
+                  </text>
+                  <text
+                    x={pos.x}
+                    y={pos.y - 22}
+                    textAnchor="middle"
+                    fontSize={9}
+                    fontWeight={700}
+                    fill="#7f1d1d"
+                  >
+                    {id}
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+        )}
         {/* E.1 V2 stage 1 — possession adverse stub : affiche le ballon
             adverse animé + banner "POSSESSION ADVERSE" pendant la phase
             away. Donne du mouvement visible (au lieu de positions figées). */}

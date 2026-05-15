@@ -440,7 +440,14 @@ export default function Page() {
               onExportFolder={lib.exportFolder}
               onImportFolder={lib.importFolder}
             />
-            <ParametresLauncher state={app.state} onPatch={app.patch} onSetPlayerCount={app.setPlayerCount} onAutoPositionOffBall={app.autoPositionOffBall} />
+            <ParametresLauncher
+              state={app.state}
+              onPatch={app.patch}
+              onSetPlayerCount={app.setPlayerCount}
+              onAutoPositionOffBall={app.autoPositionOffBall}
+              onTogglePlayerDisqualified={app.togglePlayerDisqualified}
+              onClearDisqualified={app.clearDisqualified}
+            />
           </div>
         )}
       </div>
