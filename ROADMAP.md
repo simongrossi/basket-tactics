@@ -881,13 +881,23 @@ son outillage **sans changer le scope basket**.
 |---|---|---|---|---|---|
 | ~~J.0a~~ | ~~**pushOutOfManyConstrained** — fix anti-flip D1 (UCLA cut)~~ | — | — | — | 🟢 livré 2026-05-14 (3 tests, commit `303fb25`) |
 | ~~J.0b~~ | ~~**Garde-fou diagnostic anti-téléport central** — `collectDecisions` + 16 templates instrumentés~~ | — | — | — | 🟢 livré 2026-05-14 (commit `1c3feab`) |
-| J.1 | **Parité scrub ↔ playback** — mémoire scrub déterministe recalculée depuis le début du segment | 1-2j | 🟡 | Haut |
-| J.2 | **Cache segmentaire du resolver** — memoize par segment `idxA→idxB` | 1j | 🟢 | Haut |
-| J.3 | **Solver de contraintes unifié** — un seul résolveur att/déf/poseurs/clusters/screen lock | 3-5j | 🔴 | **Très haut** |
-| J.4 | **Off-ball avancé** — stagger séquentiel, elevator 2 points, flare/backscreen, mémoire sortie tangentielle | 1-2 sem | 🟡 | Très haut |
-| J.5 | **Profiling + budget frame** — mesurer `resolveFrameAt`, `effectiveDefensePositions`, détections, collisions ; fixer un budget | 2-3j | 🟢 | Moyen |
-| J.6 | **Visual regression légère — golden scenarios** — exports métriques par scénario | 1j | 🟢 | Haut |
-| J.7 | **Panneau debug joueur** — lecture instantanée par défenseur (contactKey, mode, route, qualité, memory, jump last frame) | 4-6h | 🟢 | Haut |
+| ~~J.1~~ | ~~**Parité scrub ↔ playback** — mémoire scrub déterministe recalculée depuis le début du segment~~ | — | — | — | 🟢 livré 2026-05-15 (commit `38209d6`) |
+| ~~J.2~~ | ~~**Cache segmentaire du resolver** — memoize par segment `idxA→idxB`~~ | — | — | — | 🟢 livré 2026-05-15 (commit `87b212c`) |
+| J.3 | **Solver de contraintes unifié** — un seul résolveur att/déf/poseurs/clusters/screen lock | 3-5j | 🔴 | **Très haut** | 🟡 socle livré (`f7fcb8a`, `6ba3927`) ; refactor complet restant |
+| J.4 | **Off-ball avancé** — stagger séquentiel, elevator 2 points, flare/backscreen, mémoire sortie tangentielle | 1-2 sem | 🟡 | Très haut | 🟡 routes + stagger séquentiel livrés (`c50615d`, `285b9ff`) ; off-ball complet restant |
+| ~~J.5~~ | ~~**Profiling + budget frame** — mesurer `resolveFrameAt`, `effectiveDefensePositions`, détections, collisions ; fixer un budget~~ | — | — | — | 🟢 livré 2026-05-15 (commit `a40a8bc`) |
+| ~~J.6~~ | ~~**Visual regression légère — golden scenarios** — exports métriques par scénario~~ | — | — | — | 🟢 livré 2026-05-15 (commit `e8ad45b`) |
+| ~~J.7~~ | ~~**Panneau debug joueur** — lecture instantanée par défenseur (contactKey, mode, route, qualité, memory, jump last frame)~~ | — | — | — | 🟢 livré 2026-05-15 (commit `37a370f`) |
+
+**État réel au 2026-05-15.**
+- J.1, J.2, J.5, J.6, J.7 sont livrés et testés.
+- J.3 est commencé proprement : `constraintSolver.ts`, `pushOutOfScreenContact`
+  et `pushOutOfMany` passent par le socle commun. Reste la migration complète
+  de `resolvePlayerCollisions` et des exceptions fines vers un seul solveur.
+- J.4 est renforcé : routes off-ball par type (`flare`, `backscreen`, `hammer`,
+  `elevator`) et contact stagger séquentiel. Reste la version complète :
+  elevator avec corridor/gap physique, sortie tangentielle par poseur, et
+  mémoire multi-contact encore plus détaillée.
 
 #### ⚪ J.1 — Parité scrub ↔ playback — détail du plan
 
