@@ -5,6 +5,9 @@ import { useAppState } from '@/hooks/useAppState';
 import { useLibrary } from '@/hooks/useLibrary';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useMatchLoop } from '@/hooks/useMatchLoop';
+import { useSidebarState } from '@/hooks/useSidebarState';
+import { Sidebar } from '@/components/sidebar/Sidebar';
+import { SIDEBAR } from '@/components/sidebar/tokens';
 import { OffenseToolsPanel } from '@/components/OffenseToolsPanel';
 import { StepsPanel } from '@/components/StepsPanel';
 import { ScenarioPanel } from '@/components/ScenarioPanel';
@@ -32,6 +35,7 @@ import type { AppState, Step } from '@/lib/types';
 export default function Page() {
   const app = useAppState();
   const lib = useLibrary();
+  const sidebar = useSidebarState();
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [playbackT, setPlaybackT] = useState<number | null>(null);
@@ -202,48 +206,64 @@ export default function Page() {
         gap: 8,
       }}
     >
-      <div className={presentMode ? 'layout-grid presenting' : 'layout-grid'}>
+      <div
+        className={presentMode ? 'layout-grid presenting' : 'layout-grid'}
+        style={{
+          // Refonte UI Phase 1 — la largeur de la sidebar est pilotée par
+          // useSidebarState. Le mode présentation conserve une seule colonne
+          // (le CSS .layout-grid.presenting prend le dessus).
+          ['--sidebar-w' as string]: `${
+            sidebar.collapsed ? SIDEBAR.widthCollapsed : SIDEBAR.widthExpanded
+          }px`,
+        }}
+      >
         {!presentMode && (
-          <div className="side-col">
-            {/* LIVRAISON 1 — colonne gauche tactique : Attaque (outils) + Défense.
-                La liste des étapes + scénario + bibliothèque + paramètres sont
-                maintenant à droite. */}
-            <OffenseToolsPanel
-              tool={app.state.tool}
-              onSetTool={app.setTool}
-            />
-            <DefensePanel
-              state={app.state}
-              onSetScreenRule={app.setScreenRule}
-              onResetSwitches={app.resetSwitches}
-              onPatch={app.patch}
-              onUpdateRule={app.updateRule}
-              onUpdateAllRules={app.updateAllRules}
-              onResetIndividualOverrides={app.resetIndividualOverrides}
-              onSetDefenseSystem={app.setDefenseSystem}
-              onUpdateZoneConfig={app.updateZoneConfig}
-              onApplyDefensePreset={app.applyDefensePreset}
-              onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
-              onClearAllDefenseOverridesAnimated={app.clearAllDefenseOverridesActiveStepAnimated}
-              matchLoop={matchLoop}
-              matchSpeed={matchSpeed}
-              onSetMatchSpeed={setMatchSpeed}
-              onLoadAiSteps={handleLoadAiSteps}
-              onEnterFullscreenMatch={handleEnterFullscreenMatch}
-              scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
-              onToggleScriptedDefense={app.toggleScriptedDefense}
-              userDefensePresets={lib.library.defensePresets}
-              onSaveDefensePreset={(name) => lib.saveDefensePreset(app.state, name)}
-              onApplyUserDefensePreset={(preset) => {
-                const {
-                  id: _id, name: _name, description: _desc, createdAt: _t,
-                  ...defensePatch
-                } = preset;
-                app.patch(defensePatch);
-              }}
-              onDeleteDefensePreset={lib.deleteDefensePreset}
-            />
-          </div>
+          <Sidebar
+            activeView={sidebar.activeView}
+            collapsed={sidebar.collapsed}
+            onSelectView={sidebar.setActiveView}
+            onToggleCollapse={sidebar.toggleCollapse}
+            version="0.10.0"
+            toolsContent={
+              <>
+                <OffenseToolsPanel
+                  tool={app.state.tool}
+                  onSetTool={app.setTool}
+                />
+                <DefensePanel
+                  state={app.state}
+                  onSetScreenRule={app.setScreenRule}
+                  onResetSwitches={app.resetSwitches}
+                  onPatch={app.patch}
+                  onUpdateRule={app.updateRule}
+                  onUpdateAllRules={app.updateAllRules}
+                  onResetIndividualOverrides={app.resetIndividualOverrides}
+                  onSetDefenseSystem={app.setDefenseSystem}
+                  onUpdateZoneConfig={app.updateZoneConfig}
+                  onApplyDefensePreset={app.applyDefensePreset}
+                  onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
+                  onClearAllDefenseOverridesAnimated={app.clearAllDefenseOverridesActiveStepAnimated}
+                  matchLoop={matchLoop}
+                  matchSpeed={matchSpeed}
+                  onSetMatchSpeed={setMatchSpeed}
+                  onLoadAiSteps={handleLoadAiSteps}
+                  onEnterFullscreenMatch={handleEnterFullscreenMatch}
+                  scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
+                  onToggleScriptedDefense={app.toggleScriptedDefense}
+                  userDefensePresets={lib.library.defensePresets}
+                  onSaveDefensePreset={(name) => lib.saveDefensePreset(app.state, name)}
+                  onApplyUserDefensePreset={(preset) => {
+                    const {
+                      id: _id, name: _name, description: _desc, createdAt: _t,
+                      ...defensePatch
+                    } = preset;
+                    app.patch(defensePatch);
+                  }}
+                  onDeleteDefensePreset={lib.deleteDefensePreset}
+                />
+              </>
+            }
+          />
         )}
 
         <div className="center-col">
@@ -488,11 +508,12 @@ export default function Page() {
           __html: `
         .layout-grid {
           display: grid;
-          grid-template-columns: 260px 1fr 300px;
+          grid-template-columns: var(--sidebar-w, 240px) 1fr 300px;
           grid-template-rows: minmax(0, 1fr);
           gap: 10px;
           flex: 1;
           min-height: 0;
+          transition: grid-template-columns 160ms ease;
         }
         .layout-grid.presenting {
           grid-template-columns: 1fr;
@@ -515,7 +536,9 @@ export default function Page() {
           overflow-x: hidden;
         }
         @media (max-width: 1100px) {
-          .layout-grid:not(.presenting) { grid-template-columns: 220px 1fr 260px; }
+          .layout-grid:not(.presenting) {
+            grid-template-columns: var(--sidebar-w, 220px) 1fr 260px;
+          }
         }
         @media (max-width: 900px) {
           main { height: auto !important; max-height: none !important; overflow: auto !important; }
