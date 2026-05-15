@@ -20,6 +20,7 @@ import {
   autoTuneCreativity,
   type AutoTuningResult,
 } from '@/lib/logic/match/autoTuning';
+import { MatchReplay } from './MatchReplay';
 
 interface SimulationSectionProps {
   state: AppState;
@@ -337,6 +338,8 @@ function LiveMatchPanel({
   // au start (modifier la valeur en cours de jeu n'affecte pas la session
   // courante — il faut stop + start).
   const [maxPossessions, setMaxPossessions] = useState<number | null>(1);
+  // P3.4 B7 — toggle de l'overlay replay post-match.
+  const [showReplay, setShowReplay] = useState(false);
 
   const shotClockSec = matchState ? Math.max(0, matchState.shotClockMs / 1000) : 24;
   const shotClockColor =
@@ -666,6 +669,31 @@ function LiveMatchPanel({
         >
           {outcomeLabel} · {matchState!.tickCount} ticks · {(matchState!.possessionTimeMs / 1000).toFixed(1)}s
         </div>
+      )}
+
+      {/* P3.4 B7 — bouton replay quand session terminée + eventLog non vide */}
+      {isFinished && matchState && matchState.eventLog.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowReplay(true)}
+          style={{
+            width: '100%',
+            marginTop: 4,
+            fontSize: 11,
+            padding: '5px 8px',
+            borderRadius: 4,
+            border: '1px solid #4338ca',
+            background: '#eef2ff',
+            color: '#3730a3',
+            cursor: 'pointer',
+            fontWeight: 600,
+          }}
+        >
+          📼 voir replay détaillé ({matchState.eventLog.length} events)
+        </button>
+      )}
+      {showReplay && (
+        <MatchReplay matchState={matchState} onClose={() => setShowReplay(false)} />
       )}
 
       {/* B3a — affiche le label enrichi du tir final (zone + contestation) */}
