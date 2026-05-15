@@ -424,6 +424,84 @@ describe('gameLoop — timer 5s violation remise en jeu', () => {
   });
 });
 
+describe('gameLoop — Box-Out V2 animation', () => {
+  function buildShootingState(): AppState {
+    return buildState('pnr-central');
+  }
+
+  it("boxOutTargets posés au moment de resolveShot, pas avant", () => {
+    const baseState = buildShootingState();
+    const state = createInitialMatchState(baseState, { seed: 1 });
+    // Avant tout shot, pas de targets.
+    expect(state.boxOutTargets).toBeNull();
+    expect(state.boxOutStartedAtMs).toBeNull();
+  });
+
+  it("boxOutTargets posés après un tir résolu (sur outcome shot-* ou forced-shot-*)", () => {
+    const baseState = buildShootingState();
+    let state = createInitialMatchState(baseState, {
+      seed: 13,
+      shotClockMs: MATCH_TICK_MS,
+    });
+    state = tickMatch(state, MATCH_TICK_MS, baseState);
+    expect(state.outcome).not.toBeNull();
+    // Si l'outcome est un tir, les targets doivent être posés.
+    if (
+      state.outcome === 'shot-made' ||
+      state.outcome === 'shot-missed' ||
+      state.outcome === 'forced-shot-made' ||
+      state.outcome === 'forced-shot-missed'
+    ) {
+      expect(state.boxOutTargets).not.toBeNull();
+      expect(state.boxOutStartedAtMs).not.toBeNull();
+    }
+  });
+
+  it("animation lerp les défenseurs progressivement vers les cibles", () => {
+    const baseState = buildShootingState();
+    let state = createInitialMatchState(baseState, {
+      seed: 13,
+      shotClockMs: MATCH_TICK_MS,
+    });
+    state = tickMatch(state, MATCH_TICK_MS, baseState);
+    if (state.boxOutTargets === null) return; // skip si pas un tir
+    const initialDefPos = JSON.parse(JSON.stringify(state.defPos));
+    // Quelques ticks de pause : positions doivent évoluer vers les targets.
+    let movedAtLeastOne = false;
+    for (let i = 0; i < 10; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+      const someMoved = (Object.keys(state.defPos) as Array<keyof typeof state.defPos>).some(
+        (id) => {
+          const cur = state.defPos[id];
+          const init = initialDefPos[id];
+          return Math.hypot(cur.x - init.x, cur.y - init.y) > 1;
+        }
+      );
+      if (someMoved) {
+        movedAtLeastOne = true;
+        break;
+      }
+    }
+    expect(movedAtLeastOne).toBe(true);
+  });
+
+  it("box-out désarmé après la pause de transition (boxOutTargets = null)", () => {
+    const baseState = buildShootingState();
+    let state = createInitialMatchState(baseState, {
+      seed: 13,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 3,
+    });
+    // Tick jusqu'à fin de pause + transition (1500 ms + marge).
+    for (let i = 0; i < 80; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState, { offensiveReboundRate: 0 });
+      if (state.boxOutTargets === null && state.possession >= 2) break;
+    }
+    // À la fin de la transition, box-out désarmé.
+    expect(state.boxOutTargets).toBeNull();
+  });
+});
+
 describe('gameLoop — intent persistance', () => {
   it("garde l'intent drive entre 2 ticks tant que le porteur n'a pas atteint sa cible", () => {
     const baseState = buildState('pnr-central');

@@ -104,6 +104,12 @@ const AWAY_SCORE_PROBABILITY = 0.5;
  *  attaquant + offset panier. Visuel pendant la résolution du tir. */
 const BOXOUT_OFFSET_PX = 18;
 
+/** Box-Out V2 — durée d'animation. Sur 500 ms (~15 ticks à 30 Hz),
+ *  les défenseurs lerp depuis leur position pré-tir vers leur position
+ *  de box-out. Après, ils restent figés sur la cible jusqu'à la fin
+ *  de la pause de transition (≈ 1500 - 500 = 1000 ms supplémentaires). */
+const BOXOUT_ANIMATION_MS = 500;
+
 /** Vitesse max du porteur en px/tick. À 30 Hz et 8 px/tick = 240 px/s
  *  ≈ 6.5 m/s, sprint réaliste basket. Avant : 50 px à 5 Hz (même vitesse,
  *  mais saut visible par image). */
@@ -187,6 +193,14 @@ export interface MatchState {
    *  Quand non-null, décompté à chaque tick et déclenche `turnover-pass`
    *  si la balle n'est pas passée à temps. */
   inboundTimerMs: number | null;
+  /** Box-Out V2 — animation : cibles de box-out posées au moment de
+   *  `resolveShot`. Pendant la pause de transition, chaque défenseur
+   *  lerp depuis sa position pré-tir vers `boxOutTargets[id]` sur les
+   *  premiers `BOXOUT_ANIMATION_MS` du timer. `null` hors phase rebond. */
+  boxOutTargets: Partial<Record<DefenderId, Point>> | null;
+  /** Box-Out V2 — instant (en ms `possessionTimeMs`) où le box-out a
+   *  débuté. Utilisé pour calculer la progression d'animation. */
+  boxOutStartedAtMs: number | null;
   /** B3b — nombre de possessions terminées (= 0 si encore dans la 1ère). */
   possessionsPlayed: number;
   /** B3b — limite de possessions pour cette session. `null` = endless,
@@ -273,6 +287,8 @@ export function createInitialMatchState(
     maxPossessions: options.maxPossessions ?? null,
     transitionStartedAtMs: null,
     inboundTimerMs: isInbound ? INBOUND_TIMER_MS : null,
+    boxOutTargets: null,
+    boxOutStartedAtMs: null,
   };
 }
 
@@ -453,13 +469,44 @@ function handleTransitionPause(
   // Démarrage de la pause : mémoriser le start time côté possession.
   if (next.transitionStartedAtMs === null) {
     next.transitionStartedAtMs = next.possessionTimeMs;
-    return next;
+  }
+
+  // Box-Out V2 — animer les défenseurs vers leurs cibles sur les
+  // premières BOXOUT_ANIMATION_MS de la pause, puis figer.
+  if (next.boxOutTargets && next.boxOutStartedAtMs !== null) {
+    const boxOutElapsed = next.possessionTimeMs - next.boxOutStartedAtMs;
+    const progress = Math.min(1, boxOutElapsed / BOXOUT_ANIMATION_MS);
+    const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    (Object.keys(next.boxOutTargets) as DefenderId[]).forEach((id) => {
+      const target = next.boxOutTargets?.[id];
+      const cur = next.defPos[id];
+      if (!target || !cur) return;
+      next.defPos[id] = {
+        ...cur,
+        x: cur.x + (target.x - cur.x) * eased * 0.3,
+        y: cur.y + (target.y - cur.y) * eased * 0.3,
+      };
+    });
+    // Quand animation finie, on bloque les cibles à leur valeur finale.
+    if (progress >= 1) {
+      (Object.keys(next.boxOutTargets) as DefenderId[]).forEach((id) => {
+        const target = next.boxOutTargets?.[id];
+        const cur = next.defPos[id];
+        if (!target || !cur) return;
+        next.defPos[id] = { ...cur, x: target.x, y: target.y };
+      });
+    }
   }
 
   const elapsed = next.possessionTimeMs - next.transitionStartedAtMs;
   if (elapsed < TRANSITION_PAUSE_MS) {
     return next; // toujours en pause
   }
+
+  // Pause terminée : on désarme le box-out (la transition va peut-être
+  // reset les positions ou démarrer une nouvelle possession).
+  next.boxOutTargets = null;
+  next.boxOutStartedAtMs = null;
 
   // Pause terminée → résoudre la transition.
   return executeTransition(next, baseAppState, options);
@@ -1038,34 +1085,37 @@ function resolveShot(
     shotPointsAttempted: action.shotPoints,
   });
   state.intent = { kind: 'idle' };
-  // Phase E.1 V1 — box-out visuel : chaque défenseur shift vers son
-  // matched attaquant + offset BOXOUT_OFFSET_PX en direction du panier.
-  // Visible pendant la pause de transition (1.5 s) avant la résolution
-  // du rebond.
-  applyBoxOutPositions(state, hoop);
+  // Box-Out V2 — au lieu de snapper instantanément les défenseurs sur
+  // leurs positions de box-out, on POSE les cibles et on laisse
+  // handleTransitionPause animer le déplacement sur BOXOUT_ANIMATION_MS.
+  state.boxOutTargets = computeBoxOutTargets(state, hoop);
+  state.boxOutStartedAtMs = state.possessionTimeMs;
   return state;
 }
 
-function applyBoxOutPositions(state: MatchState, hoop: Point): void {
+function computeBoxOutTargets(
+  state: MatchState,
+  hoop: Point
+): Partial<Record<DefenderId, Point>> {
+  const targets: Partial<Record<DefenderId, Point>> = {};
   (Object.keys(state.defPos) as DefenderId[]).forEach((id) => {
     const def = state.defPos[id];
     if (!def) return;
     const matchedAtt = state.off[def.matchedTo as AttackerId];
     if (!matchedAtt) return;
-    // Direction de l'attaquant vers le panier — c'est cette direction
-    // qu'il faut bloquer (le défenseur se met "entre l'attaquant et
-    // le panier"). On positionne le défenseur à BOXOUT_OFFSET_PX
-    // de l'attaquant côté panier.
     const dx = hoop.x - matchedAtt.x;
     const dy = hoop.y - matchedAtt.y;
     const d = Math.hypot(dx, dy);
-    if (d < 0.01) return;
-    state.defPos[id] = {
-      ...def,
+    if (d < 0.01) {
+      targets[id] = { x: def.x, y: def.y };
+      return;
+    }
+    targets[id] = {
       x: matchedAtt.x + (dx / d) * BOXOUT_OFFSET_PX,
       y: matchedAtt.y + (dy / d) * BOXOUT_OFFSET_PX,
     };
   });
+  return targets;
 }
 
 function refreshDefense(state: MatchState, baseAppState: AppState): void {

@@ -395,8 +395,34 @@ export function CourtView(props: CourtViewProps) {
               : ctx === 'inbound-sideline-low'
                 ? 'SLOB bas · 5s'
                 : 'SLOB haut · 5s';
+          // Pression visuelle : trouver le défenseur du passeur (= défenseur
+          // matched, ou le plus proche par défaut). Anneau pulsant rouge
+          // pour indiquer que ce défenseur DOIT presser pour forcer la
+          // violation 5s.
+          let presserX: number | null = null;
+          let presserY: number | null = null;
+          let bestDist = Infinity;
+          (Object.entries(frame.defPos) as Array<[string, { x: number; y: number; matchedTo?: string }]>).forEach(
+            ([, def]) => {
+              if (def.matchedTo === frame.carrier) {
+                presserX = def.x;
+                presserY = def.y;
+              }
+            }
+          );
+          if (presserX === null) {
+            (Object.values(frame.defPos) as Array<{ x: number; y: number }>).forEach((def) => {
+              const d = Math.hypot(def.x - carrierPos.x, def.y - carrierPos.y);
+              if (d < bestDist) {
+                bestDist = d;
+                presserX = def.x;
+                presserY = def.y;
+              }
+            });
+          }
           return (
             <g pointerEvents="none">
+              {/* Badge label */}
               <rect
                 x={carrierPos.x - 32}
                 y={carrierPos.y - 36}
@@ -416,6 +442,44 @@ export function CourtView(props: CourtViewProps) {
               >
                 ⏱ {label}
               </text>
+              {/* Pression visuelle : anneau pulsant rouge autour du
+                  défenseur qui presse le passeur. */}
+              {presserX !== null && presserY !== null && (
+                <>
+                  <circle
+                    cx={presserX}
+                    cy={presserY}
+                    r={22}
+                    fill="none"
+                    stroke="#dc2626"
+                    strokeWidth={2}
+                    opacity={0.85}
+                  >
+                    <animate
+                      attributeName="r"
+                      values="22;28;22"
+                      dur="1.2s"
+                      repeatCount="indefinite"
+                    />
+                    <animate
+                      attributeName="opacity"
+                      values="0.85;0.3;0.85"
+                      dur="1.2s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                  <text
+                    x={presserX}
+                    y={presserY - 26}
+                    textAnchor="middle"
+                    fontSize={9}
+                    fontWeight={700}
+                    fill="#dc2626"
+                  >
+                    🔥 presse
+                  </text>
+                </>
+              )}
             </g>
           );
         })()}
