@@ -72,7 +72,7 @@ function contestMultiplier(distToNearestDef: number): number {
   return 0.5 + 0.5 * Math.min(1, distToNearestDef / 80);
 }
 
-function nearestDefenderDistance(pos: Point, defPos: ComputedDefense): number {
+export function nearestDefenderDistance(pos: Point, defPos: ComputedDefense): number {
   let min = Infinity;
   Object.values(defPos).forEach((d) => {
     const dd = distance({ x: d.x, y: d.y }, pos);

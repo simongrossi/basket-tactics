@@ -43,6 +43,21 @@ export interface AiPossessionEvent {
   successRate?: number;
   scoreProbability?: number;
   points?: number;
+  /** B3a — métadonnées de tir enrichies, présentes uniquement sur les
+   *  événements `'shot'` ou `'forced-shot'`. Permet aux consommateurs
+   *  (HUD live, replay, analyse stats) de détailler le tir sans devoir
+   *  recompute.
+   */
+  shotZone?: 'rim' | 'paint' | 'mid' | 'three' | 'deep';
+  /** Distance (px) du défenseur le plus proche au moment du tir. */
+  contestDistance?: number;
+  /** True si le tir est considéré contesté (défenseur ≤ `CONTEST_THRESHOLD_PX`). */
+  contested?: boolean;
+  /** Position du tir final pour rejeu / heatmap. */
+  shotPos?: Point;
+  /** Valeur du tir tenté (2 ou 3 points), indépendamment du fait qu'il
+   *  soit réussi ou pas (= shotPoints de OffensiveAction). */
+  shotPointsAttempted?: 2 | 3;
 }
 
 export interface AiPossessionPlan {

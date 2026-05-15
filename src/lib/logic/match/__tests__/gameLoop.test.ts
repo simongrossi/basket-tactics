@@ -130,6 +130,80 @@ describe('gameLoop — tickMatch', () => {
   });
 });
 
+/** Cherche une seed qui produit un événement de tir (pas un turnover).
+ *  Certaines possessions se terminent par une passe perdue avant le tir,
+ *  on itère jusqu'à trouver une seed "shot terminal". */
+function findShotPossession(
+  baseState: AppState,
+  startSeed: number,
+  maxAttempts = 30
+): ReturnType<typeof runUntilEnd> {
+  for (let i = 0; i < maxAttempts; i += 1) {
+    const seed = startSeed + i * 7919; // prime stride
+    const final = runUntilEnd(baseState, seed);
+    if (final.eventLog.some((e) => e.type === 'shot' || e.type === 'forced-shot')) {
+      return final;
+    }
+  }
+  throw new Error(`Aucune seed dans [${startSeed}, +30×7919] ne produit de tir`);
+}
+
+describe('gameLoop — B3a shot model enrichi', () => {
+  it("enrichit l'event de tir avec zone, contestation, position", () => {
+    const baseState = buildState('pnr-central');
+    const final = findShotPossession(baseState, 333);
+    const shotEvent = final.eventLog.find(
+      (e) => e.type === 'shot' || e.type === 'forced-shot'
+    );
+    expect(shotEvent).toBeDefined();
+    // shotZone est l'un des 5 buckets définis dans threats.ts
+    expect(['rim', 'paint', 'mid', 'three', 'deep']).toContain(shotEvent!.shotZone);
+    // contestDistance est un nombre fini ≥ 0
+    expect(typeof shotEvent!.contestDistance).toBe('number');
+    expect(shotEvent!.contestDistance).toBeGreaterThanOrEqual(0);
+    expect(Number.isFinite(shotEvent!.contestDistance!)).toBe(true);
+    // contested est cohérent avec le seuil (≤ 30 px)
+    expect(shotEvent!.contested).toBe(shotEvent!.contestDistance! <= 30);
+    // shotPos contient bien des coordonnées
+    expect(shotEvent!.shotPos).toBeDefined();
+    expect(typeof shotEvent!.shotPos!.x).toBe('number');
+    expect(typeof shotEvent!.shotPos!.y).toBe('number');
+    // shotPointsAttempted ∈ {2, 3}
+    expect([2, 3]).toContain(shotEvent!.shotPointsAttempted);
+  });
+
+  it("label de tir inclut la zone (et la mention 'contesté' si applicable)", () => {
+    const baseState = buildState('pnr-central');
+    const final = findShotPossession(baseState, 555);
+    const shotEvent = final.eventLog.find(
+      (e) => e.type === 'shot' || e.type === 'forced-shot'
+    );
+    expect(shotEvent).toBeDefined();
+    // Le label contient toujours le pourcentage et au moins un libellé de zone
+    const label = shotEvent!.label.toLowerCase();
+    const zoneTerms = ['cercle', 'raquette', 'mi-distance', '3 pts', 'longue distance'];
+    expect(zoneTerms.some((t) => label.includes(t))).toBe(true);
+    // Si le tir est contesté, le label doit le mentionner
+    if (shotEvent!.contested) {
+      expect(label).toContain('contesté');
+    }
+  });
+
+  it("shotPos coïncide avec la position du shooter (à la précision du tick)", () => {
+    const baseState = buildState('pnr-central');
+    const final = findShotPossession(baseState, 42);
+    const shotEvent = final.eventLog.find(
+      (e) => e.type === 'shot' || e.type === 'forced-shot'
+    );
+    expect(shotEvent).toBeDefined();
+    // shotPos doit être dans la bounding box du terrain.
+    expect(shotEvent!.shotPos!.x).toBeGreaterThanOrEqual(0);
+    expect(shotEvent!.shotPos!.x).toBeLessThanOrEqual(600);
+    expect(shotEvent!.shotPos!.y).toBeGreaterThanOrEqual(0);
+    expect(shotEvent!.shotPos!.y).toBeLessThanOrEqual(1080);
+  });
+});
+
 describe('gameLoop — intent persistance', () => {
   it("garde l'intent drive entre 2 ticks tant que le porteur n'a pas atteint sa cible", () => {
     const baseState = buildState('pnr-central');

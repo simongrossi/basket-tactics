@@ -390,6 +390,28 @@ function LiveMatchPanel({ state }: { state: AppState }) {
           {outcomeLabel} · {matchState!.tickCount} ticks · {(matchState!.possessionTimeMs / 1000).toFixed(1)}s
         </div>
       )}
+
+      {/* B3a — affiche le label enrichi du tir final (zone + contestation) */}
+      {isFinished && matchState && (() => {
+        const shotEvent = [...matchState.eventLog]
+          .reverse()
+          .find((e) => e.type === 'shot' || e.type === 'forced-shot');
+        if (!shotEvent) return null;
+        return (
+          <div
+            style={{
+              marginTop: 4,
+              padding: '4px 8px',
+              fontSize: 10,
+              color: '#475569',
+              fontStyle: 'italic',
+              textAlign: 'center',
+            }}
+          >
+            {shotEvent.label}
+          </div>
+        );
+      })()}
     </div>
   );
 }

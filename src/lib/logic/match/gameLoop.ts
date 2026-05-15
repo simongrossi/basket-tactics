@@ -31,8 +31,11 @@ import { activeBallCarrier, activeOffense } from '../players';
 import { effectiveDefensePositions, getDefenseHoop } from '../engine';
 import {
   evaluateOffensiveOptions,
+  nearestDefenderDistance,
   type OffensiveAction,
 } from '../offense';
+import { shotZoneFor, type ShotZone } from '../threats';
+import { distance } from '../geometry';
 import {
   seededAiRng,
 } from './aiPossession';
@@ -62,6 +65,21 @@ const LOW_CLOCK_MS = 4_500;
 const MAX_CARRIER_STEP_PX = 50;
 
 const DEFAULT_CREATIVITY = 0.35;
+
+/** B3a — seuil de contestation. Un défenseur à ≤ CONTEST_THRESHOLD_PX
+ *  du tireur compte le tir comme "contesté". Aligné avec
+ *  `contestMultiplier` dans `offense.ts` (palier à 80 px).
+ *  À 30 px (~80 cm), c'est une vraie main au visage du shooter. */
+const CONTEST_THRESHOLD_PX = 30;
+
+/** Labels FR par zone de tir pour les events lisibles côté HUD. */
+const SHOT_ZONE_LABELS: Record<ShotZone, string> = {
+  rim: 'au cercle',
+  paint: 'dans la raquette',
+  mid: 'à mi-distance',
+  three: 'à 3 pts',
+  deep: 'longue distance',
+};
 
 // ============================================================
 // Types
@@ -199,7 +217,7 @@ export function tickMatch(
   // forcé à 0 % si rien d'utile).
   if (next.shotClockMs === 0 && next.intent.kind !== 'shoot') {
     const action = pickForcedShot(next, baseAppState);
-    return resolveShot(next, action, rng, true);
+    return resolveShot(next, action, rng, true, baseAppState);
   }
 
   // Si intent en cours, le faire avancer.
@@ -208,6 +226,12 @@ export function tickMatch(
   }
   if (next.intent.kind === 'pass') {
     return advancePass(next, dtMs, baseAppState);
+  }
+  // Drive arrivé à destination → intent 'shoot' posté au tick précédent.
+  // On résout le tir maintenant. Sans ce handler explicite, l'intent
+  // 'shoot' tomberait dans decideNextAction et perdrait l'action stockée.
+  if (next.intent.kind === 'shoot') {
+    return resolveShot(next, next.intent.action, rng, next.intent.forced, baseAppState);
   }
 
   // Pas d'intent : décider la prochaine action.
@@ -219,7 +243,7 @@ export function tickMatch(
 
   // Appliquer l'action choisie.
   if (action.type === 'shoot') {
-    return resolveShot(next, action, rng, false);
+    return resolveShot(next, action, rng, false, baseAppState);
   }
   if (action.type === 'drive') {
     next.intent = { kind: 'drive', target: action.shotPos, expectedAction: action };
@@ -394,7 +418,8 @@ function resolveShot(
   state: MatchState,
   action: OffensiveAction,
   rng: () => number,
-  forced: boolean
+  forced: boolean,
+  baseAppState: AppState
 ): MatchState {
   const made = rng() < action.scoreProbability;
   const points = made ? action.shotPoints : 0;
@@ -406,15 +431,36 @@ function resolveShot(
     : forced
       ? 'forced-shot-missed'
       : 'shot-missed';
+
+  // B3a — métadonnées de tir enrichies : zone, contestation, position.
+  // On reprend les mêmes helpers que `evaluateOffensiveOptions` pour
+  // garantir la cohérence avec le `scoreProbability` déjà calculé.
+  const hoop = getDefenseHoop(baseAppState);
+  const distFromHoop = distance(action.shotPos, hoop);
+  const shotZone = shotZoneFor(distFromHoop);
+  const contestDistance = nearestDefenderDistance(action.shotPos, state.defPos);
+  const contested = contestDistance <= CONTEST_THRESHOLD_PX;
+
+  const verb = forced ? 'Tir forcé' : 'Tir';
+  const contestSuffix = contested ? ' contesté' : '';
+  const zoneSuffix = SHOT_ZONE_LABELS[shotZone];
+  const pctText = `${Math.round(action.scoreProbability * 100)} %`;
+  const label = `${verb} ${state.carrier} ${zoneSuffix}${contestSuffix} (${pctText})`;
+
   state.eventLog.push({
     possession: state.possession,
     clock: state.shotClockMs / 1000,
     actor: state.carrier,
     type: forced ? 'forced-shot' : 'shot',
-    label: `${forced ? 'Tir forcé' : 'Tir'} ${state.carrier} (${Math.round(action.scoreProbability * 100)} %)`,
+    label,
     expectedPoints: action.expectedPoints,
     scoreProbability: action.scoreProbability,
     points,
+    shotZone,
+    contestDistance,
+    contested,
+    shotPos: { ...action.shotPos },
+    shotPointsAttempted: action.shotPoints,
   });
   state.intent = { kind: 'idle' };
   return state;
