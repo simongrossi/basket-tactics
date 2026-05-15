@@ -28,7 +28,7 @@
 | Item | Statut | Description | Effort | Priorité |
 |---|---|---|---|---|
 | ~~**F.2** — Free throw avec course-rebond~~ | 🟢 livré 2026-05-16 (commit `6bb780a`) | Setter `addFreeThrowReboundStep(made)` qui ajoute une étape post-lancer animée. Blocks défensifs gagnent rebond, slots offensifs over-the-top. Made = transition adverse. | — | — |
-| **F.4** — Pénalité technique / DQ | ⚪ | Marquer un joueur disqualifié (grisé/absent) + recompose matchups à 4v5 temporaire. Situation rare mais cas réel à modéliser. | ~0.5 j | 🏀 **P3** |
+| ~~**F.4** — Pénalité technique / DQ~~ | 🟢 livré 2026-05-16 (commit `5ae6e10`) | Toggle DQ par joueur (10 boutons dans ParametresPanel) + overlay rouge "DQ" sur le terrain. V1 visuel seulement (engine non modifié). | — | — |
 
 ### Extensions remises en jeu V2 (basket pur)
 
@@ -37,15 +37,15 @@
 | ~~**Box-out auto post-shot**~~ | 🟢 livré 2026-05-16 (commit `e79453c`) | Coach diagnostic `boxOutCheckRule` qui détecte phase de rebond et flag défenseurs mal positionnés. Le box-out animé live existait déjà (E.1 V2). | — | — |
 | ~~**Diagnostic défensif sur remise**~~ | 🟢 livré 2026-05-16 (commit `dcfe8c3`) | Règle coach `inboundDefenseRule` : 3 checks (pression passeur, deny receveur principal, attaquants ouverts). Verdict ok-vs-warning-vs-critical. | — | — |
 | ~~**Templates défense d'attaque**~~ | 🟢 livré 2026-05-16 (commit `e73aad2`) | 3 templates pédagogiques : Box vs face-guard, Stack vs zone 2-3, Hammer vs zone-press. Défense figée par defenseOverrides. | — | — |
-| **Compteur 5s diagnostic statique** | 🟡 | Le timer live est livré. Ajouter un diagnostic statique qui calcule la durée estimée des étapes inbound (basé sur `secondsPerStep`) et flag warning si > 5s. | ~1h | 🏀 **P3** |
+| ~~**Compteur 5s diagnostic statique**~~ | 🟢 livré 2026-05-16 (commit `6dd7e83`) | Extension inboundFiveSecRule : scan steps suivants pour trouver passe, calcule durée estimée × secondsPerStep, flag critical si > 5s. | — | — |
 
 ### Phase I — Polish Play IA (basket dans le tuning)
 
 | Item | Statut | Description | Effort | Priorité |
 |---|---|---|---|---|
 | ~~**B5+ — Auto-tuning calibration**~~ | 🟢 livré 2026-05-16 (commit `0192916`) | Dichotomie sur creativity, max 8 itérations. Bouton "🎯 auto-tune" dans CalibrationPanel. Verdict converged/non + historique. | — | — |
-| **B6 — Vitesse accélérée live** | ⚪ | Multiplicateurs ×2 / ×4 / ×8 sur la game loop pour tests rapides (déjà partiellement câblé via `useMatchLoop.speed`). Utile pour valider des séries de possessions. | ~30 min | 🏀 **P3** |
-| **B7 — Replay détaillé post-match** | ⚪ | Vue "post-mortem" qui affiche la séquence d'événements + permet le scrub sur le matchState complet (au-delà du current step-by-step). | ~1 j | 🏀 **P3** |
+| ~~**B6 — Vitesse accélérée live**~~ | 🟢 livré 2026-05-16 (commit `6dd7e83`) | Sélecteur ×1/×2/×4/×8 dans LiveMatchPanel. | — | — |
+| ~~**B7 — Replay détaillé post-match**~~ | 🟢 livré 2026-05-16 (commit `486b039`) | Modal `<MatchReplay>` avec timeline par possession + filtres + icônes. | — | — |
 
 ### Phase G — Tooling basket-related
 
@@ -104,13 +104,13 @@ Total basket P1 + P2 : **~10-15 jours** ouvrés.
 7. ~~**Templates défense d'attaque**~~ ✅ commit `e73aad2`
 8. ~~**B5+ — Auto-tuning**~~ ✅ commit `0192916`
 
-### Salve P3 (polish basket) — ~3-5 jours
-9. **F.4 — Pénalité technique** (~0.5j)
-10. **Compteur 5s statique** (~1h)
-11. **B6 — Vitesse accélérée** (~30 min)
-12. **B7 — Replay post-match** (~1j)
-13. **Profiling avancé** (~1-2j) — si besoin
-14. **Golden metrics élargis** (~1-2j) — si besoin
+### ~~Salve P3 (polish basket)~~ — 🟢 livrée 2026-05-16 (4/4 items + 2 optionnels en suspens)
+9. ~~**F.4 — Pénalité technique**~~ ✅ commit `5ae6e10`
+10. ~~**Compteur 5s statique**~~ ✅ commit `6dd7e83`
+11. ~~**B6 — Vitesse accélérée**~~ ✅ commit `6dd7e83`
+12. ~~**B7 — Replay post-match**~~ ✅ commit `486b039`
+13. **Profiling avancé** (~1-2j) — toujours en suspens, non critique
+14. **Golden metrics élargis** (~1-2j) — toujours en suspens, non critique
 
 ---
 
