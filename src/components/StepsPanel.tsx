@@ -1,6 +1,6 @@
 'use client';
 
-import type { AppState, AttackerId } from '@/lib/types';
+import type { AppState, AttackerId, InboundSide } from '@/lib/types';
 import { activeBallCarrier, getActiveAttackerIds, isActiveAttacker } from '@/lib/logic/players';
 import { Panel, Section, Button, COLORS } from './ui';
 
@@ -15,7 +15,22 @@ interface StepsPanelProps {
   onDeleteAnnotation: (idx: number) => void;
   /** F.3 — Convertit le step actif en setup de lancer franc. */
   onConvertToFreeThrow?: () => void;
+  /** Convertit le step actif en setup de remise en jeu (BLOB ou SLOB). */
+  onConvertToInbound?: (side: InboundSide) => void;
 }
+
+const inboundButtonStyle = {
+  flex: 1,
+  fontSize: 10,
+  padding: '4px 4px',
+  borderRadius: 4,
+  border: '1px solid #dc2626',
+  background: '#fff',
+  color: '#7f1d1d',
+  cursor: 'pointer' as const,
+  fontWeight: 600,
+  minWidth: 0,
+};
 
 const ANNOTATION_LABELS: Record<'pass' | 'dribble' | 'cut' | 'screen', { label: string; symbol: string }> = {
   pass: { label: 'passe', symbol: '⇢' },
@@ -88,6 +103,22 @@ export function StepsPanel(props: StepsPanelProps) {
                       title="Lancer franc — positions réglementaires figées"
                     >
                       🏀 LF
+                    </span>
+                  )}
+                  {(s.context === 'inbound-baseline' ||
+                    s.context === 'inbound-sideline-low' ||
+                    s.context === 'inbound-sideline-high') && (
+                    <span
+                      style={{ fontSize: 10, color: '#7f1d1d', background: '#fee2e2', padding: '1px 4px', borderRadius: 3, fontWeight: 600 }}
+                      title={`Remise en jeu — ${
+                        s.context === 'inbound-baseline'
+                          ? 'ligne de fond (BLOB)'
+                          : s.context === 'inbound-sideline-low'
+                            ? 'touche bas (SLOB offensif)'
+                            : 'touche haut (SLOB transition)'
+                      }`}
+                    >
+                      ⏱ {s.context === 'inbound-baseline' ? 'BLOB' : 'SLOB'}
                     </span>
                   )}
                 </div>
@@ -200,6 +231,46 @@ export function StepsPanel(props: StepsPanelProps) {
               title="Force les 10 positions sur les 6 slots du couloir LF + tireur + outlets 3pt. Marque le step comme context='free-throw'."
             >
               🏀 convertir en lancer franc
+            </button>
+          </div>
+        )}
+        {props.onConvertToInbound && (
+          <div style={{ marginTop: 4, display: 'flex', gap: 3 }}>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('Convertir cette étape en remise ligne de fond (BLOB) ? Box set classique.')) {
+                  props.onConvertToInbound!('inbound-baseline');
+                }
+              }}
+              style={inboundButtonStyle}
+              title="Remise ligne de fond (BLOB). Passeur derrière le panier, 4 attaquants en Box set, défenseurs face-à-face."
+            >
+              ⏱ BLOB
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('Convertir cette étape en remise de touche côté offensif (SLOB low) ?')) {
+                  props.onConvertToInbound!('inbound-sideline-low');
+                }
+              }}
+              style={inboundButtonStyle}
+              title="Remise touche côté offensif. Passeur sur la touche au niveau du free throw line étendu."
+            >
+              ⏱ SLOB bas
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('Convertir cette étape en remise de touche côté défensif (SLOB transition) ?')) {
+                  props.onConvertToInbound!('inbound-sideline-high');
+                }
+              }}
+              style={inboundButtonStyle}
+              title="Remise touche côté défensif (transition, advance the ball)."
+            >
+              ⏱ SLOB haut
             </button>
           </div>
         )}

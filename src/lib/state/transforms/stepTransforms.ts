@@ -2,9 +2,10 @@
 // Toutes les fonctions sont pures (AppState → AppState) pour être testables
 // sans React et composables sans surprise.
 
-import type { AppState, AttackerId, Step } from '@/lib/types';
+import type { AppState, AttackerId, InboundSide, Step } from '@/lib/types';
 import { makeStep } from '@/lib/data/initial';
 import { buildFreeThrowSetup } from '@/lib/logic/freeThrowSetup';
+import { buildInboundSetup } from '@/lib/logic/inboundSetup';
 
 export function setActiveStep(s: AppState, idx: number): AppState {
   return { ...s, activeStep: Math.max(0, Math.min(s.steps.length - 1, idx)) };
@@ -92,5 +93,37 @@ export function convertStepToFreeThrow(s: AppState): AppState {
   // Synchronise `defenseInitial` quand on convertit le step 0 (édition libre).
   const defenseInitial =
     s.activeStep === 0 ? ft.def : s.defenseInitial;
+  return { ...s, steps, defenseInitial };
+}
+
+/**
+ * Convertit le step actif en setup de remise en jeu (inbound). Pose
+ * le passeur ~12 px hors-ligne, dispose les 4 autres attaquants en
+ * setup canonique (Box pour BLOB, diagonale pour SLOB), et place les
+ * défenseurs en man-to-man face à face. Pose `step.context` au type
+ * d'inbound choisi pour permettre aux couches en aval (UI, indicateur
+ * "REMISE 5s") de réagir.
+ *
+ * Le passeur devient le `ballCarrier`. Les annotations existantes sont
+ * effacées. Marque le step comme `manualOverride` pour préserver le
+ * setup en cas de recompilation de scénario.
+ */
+export function convertStepToInbound(s: AppState, side: InboundSide): AppState {
+  const setup = buildInboundSetup(side);
+  const cur = s.steps[s.activeStep];
+  if (!cur) return s;
+  const steps = [...s.steps];
+  steps[s.activeStep] = {
+    ...cur,
+    off: setup.off,
+    ballCarrier: setup.inbounder,
+    annotations: [],
+    context: side,
+    defenseOverrides: setup.def,
+    forcedScreener: undefined,
+    manualOverride: true,
+  };
+  const defenseInitial =
+    s.activeStep === 0 ? setup.def : s.defenseInitial;
   return { ...s, steps, defenseInitial };
 }

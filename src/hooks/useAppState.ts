@@ -239,6 +239,13 @@ export function useAppState() {
     setStateWithHistory(stepTx.convertStepToFreeThrow);
   }, [setStateWithHistory]);
 
+  const convertStepToInbound = useCallback(
+    (side: import('@/lib/types').InboundSide) => {
+      setStateWithHistory((s) => stepTx.convertStepToInbound(s, side));
+    },
+    [setStateWithHistory]
+  );
+
   // -- Joueurs (positions) --
   // Note : moves utilisent `playerMove` directement (déjà extrait), pas un
   // transform dédié, pour éviter une double indirection sur le chemin chaud.
@@ -609,6 +616,7 @@ export function useAppState() {
     setStepLabel,
     setBallCarrier,
     convertStepToFreeThrow,
+    convertStepToInbound,
     loadTemplate,
     clearDefenseOverride,
     autoPositionOffBall,

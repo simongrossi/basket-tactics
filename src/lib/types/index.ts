@@ -115,11 +115,21 @@ export interface Step {
    *  ne pas les considérer pour le matching manualOverride, etc. Les positions
    *  sont interpolées linéairement. */
   isInterpolated?: boolean;
-  /** F.3 — Contexte du step. `'free-throw'` indique un lancer franc : les 10
-   *  positions sont sur les 6 slots du couloir LF (blocks défense + slots
-   *  offense + outlets 3pt). Default implicite : `'live-play'`. */
-  context?: 'live-play' | 'free-throw';
+  /** Contexte du step.
+   *  - `'free-throw'` : les 10 positions sont sur les 6 slots du couloir
+   *    LF (F.3).
+   *  - `'inbound-baseline'` : remise en jeu sur la ligne de fond (BLOB).
+   *    Le passeur (carrier) est placé hors-terrain près du panier défendu.
+   *  - `'inbound-sideline-low'` : remise sur la touche, côté bas du
+   *    terrain (côté demi-cour offensif).
+   *  - `'inbound-sideline-high'` : remise sur la touche, côté haut du
+   *    terrain (côté demi-cour défensif, transition).
+   *  Default implicite : `'live-play'`. */
+  context?: 'live-play' | 'free-throw' | 'inbound-baseline' | 'inbound-sideline-low' | 'inbound-sideline-high';
 }
+
+/** Types d'aide pour les remises en jeu — utilisé par les setters et l'UI. */
+export type InboundSide = 'inbound-baseline' | 'inbound-sideline-low' | 'inbound-sideline-high';
 
 // =============================================================
 // Scénario scripté (couche au-dessus de Step[])

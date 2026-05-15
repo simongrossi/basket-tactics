@@ -374,6 +374,51 @@ export function CourtView(props: CourtViewProps) {
         <CourtPlayersLayer state={state} frame={frame} selectedDefenders={selectedDefenders} />
 
         {/* ---- Overlays avant (au-dessus des sprites) ---- */}
+        {/* Inbound — badge "⏱ REMISE 5s" près du passeur si le step est
+            en context inbound-*. Aide à comprendre que le passeur est
+            hors-ligne et qu'on étudie une remise spécifique. */}
+        {(() => {
+          const cur = state.steps[state.activeStep];
+          const ctx = cur?.context;
+          if (
+            ctx !== 'inbound-baseline' &&
+            ctx !== 'inbound-sideline-low' &&
+            ctx !== 'inbound-sideline-high'
+          ) {
+            return null;
+          }
+          const carrierPos = frame.off[frame.carrier];
+          if (!carrierPos) return null;
+          const label =
+            ctx === 'inbound-baseline'
+              ? 'BLOB · 5s'
+              : ctx === 'inbound-sideline-low'
+                ? 'SLOB bas · 5s'
+                : 'SLOB haut · 5s';
+          return (
+            <g pointerEvents="none">
+              <rect
+                x={carrierPos.x - 32}
+                y={carrierPos.y - 36}
+                width={64}
+                height={16}
+                rx={3}
+                fill="#7f1d1d"
+                opacity={0.92}
+              />
+              <text
+                x={carrierPos.x}
+                y={carrierPos.y - 24}
+                textAnchor="middle"
+                fontSize={10}
+                fontWeight={700}
+                fill="#fee2e2"
+              >
+                ⏱ {label}
+              </text>
+            </g>
+          );
+        })()}
         {/* A.4 — Badges détections (reject screen, snake, empty side, def 3sec).
             Rendus APRÈS les joueurs pour passer au-dessus, AVANT les threats
             badges pour pouvoir cohabiter sans masquer. */}

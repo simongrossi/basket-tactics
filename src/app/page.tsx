@@ -396,6 +396,7 @@ export default function Page() {
               onSetBallCarrier={app.setBallCarrier}
               onDeleteAnnotation={app.deleteAnnotation}
               onConvertToFreeThrow={app.convertStepToFreeThrow}
+              onConvertToInbound={app.convertStepToInbound}
             />
             <ScenarioPanel
               scriptedActions={app.state.scriptedActions ?? []}
