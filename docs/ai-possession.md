@@ -1,10 +1,22 @@
 # AI possession mode
 
-> **Statut** : 🟡 V1 livrée (commit `313e015`, 2026-05-15). **Décision
-> projet 2026-05-15 : on continue jusqu'au game loop autonome
-> complet** (B1 → B5). La Phase I n'est plus reportée — c'est
-> maintenant un chantier actif. Détail B1-B5 + séquencement dans
-> [ROADMAP § Phase I](../ROADMAP.md).
+> **Statut 2026-05-16** : Phase I 🟢 **100% livrée** (B1-B5 + B5+ B6
+> B7 polish + E.1 V2 stage 1+2a opposition adverse rendue). Reste V2
+> stage 2b (refacto AppState 2-way natif) à attaquer en session
+> dédiée. Cf. [ROADMAP § Phase I](../ROADMAP.md) pour la liste
+> exhaustive des commits.
+
+## Synthèse rapide
+
+Le moteur de match autonome 5v5 est fonctionnel et calibré :
+- **Game loop continu 30 Hz** avec intent persistant porteur + off-ball
+- **Multi-possessions** avec rebond géométrique (offensif / défensif)
+- **Possession adverse rendue** visuellement (ballon + 5 sprites
+  adverses animés, V2 stage 2a)
+- **Score 2-côtés** HOME/AWAY séparés
+- **Calibration auto-tunée** sur creativity (dichotomie ±0.15 PPP)
+- **Replay post-match** détaillé (timeline par possession + filtres)
+- **Vitesse ×1/×2/×4/×8** pour tests rapides
 
 Module `src/lib/logic/match/aiPossession.ts`. Génère une **possession
 entière jouée par l'IA** depuis l'étape active, produit des steps,

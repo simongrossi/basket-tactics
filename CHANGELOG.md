@@ -6,6 +6,177 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-05-16
+
+Grosse session axée **basket pur** (UX, mobile, tests UI repoussés
+par consigne user). 30+ commits, 1232/1232 verts (puis 1237/1237).
+
+### Phase I — Polish Play IA (B5+, B6, B7) 🟢 complète
+
+Étend la phase I déjà livrée en [0.9.0] avec 3 items de polish :
+
+- **B5+ Auto-tuning calibration** (commit `0192916`) : dichotomie
+  automatique sur `creativity` jusqu'à `|Δ PPP| ≤ 0.15`. Max 8
+  itérations. Bouton "🎯 auto-tune" dans CalibrationPanel. Module
+  `src/lib/logic/match/autoTuning.ts`. +5 tests.
+- **B6 Vitesse accélérée live** (commit `6dd7e83`) : sélecteur ×1/
+  ×2/×4/×8 dans LiveMatchPanel, modifiable en cours de match.
+- **B7 Replay détaillé post-match** (commit `486b039`) : modal
+  `<MatchReplay>` qui affiche la timeline par possession + filtres
+  par type d'événement + icônes colorées. Accessible via bouton
+  "📼 voir replay détaillé" quand session terminée.
+
+### Phase E — Cycle complet basket 🟢
+
+- **E.1 V1 — Rebond + cycle home/away stub** (commits `5e48549`,
+  `b504dfd`, `4cf98a4`) : modèle de rebond géométrique avec poids
+  par profil (rim-roller × 1.4, shooter × 0.85, def bonus × 1.6,
+  shooter penalty × 0.4). Possession adverse stubbée (positions
+  figées home + ballon animé). Score 2-côtés HOME/AWAY séparés.
+  Box-out V1 (snap) puis V2 (animé 500 ms ease-out via
+  `boxOutTargets`).
+- **E.1 V2 stage 1 — Ballon adverse animé** (commit `6d99024`) :
+  ballon rouge pulsant entre 4 waypoints (outlet → relai → drive →
+  tir) pendant la phase away. Banner "🔄 POSSESSION ADVERSE".
+- **E.1 V2 stage 2a — 5 adversaires simulés** (commit `1cefa67`) :
+  positions miroir verticales autour de y=540, course progressive
+  vers le panier home modulée par poste (PG ×0.5 → C ×0.95).
+  Rendu SVG : sprites rouges "A1-A5". +5 tests.
+- **E.2 — Jump ball initial** (commit `a61323c`) : nouveau context
+  `'jump-ball'` + `convertStepToJumpBall(s)` + bouton dans
+  StepsPanel. Setup canonique 2 sauteurs + 4+4 en arc, Règle 1
+  validée sur 45 paires. Module `src/lib/logic/jumpBallSetup.ts`.
+  +6 tests.
+- **E.3 — Rebond animé** (commit `874d96c`) : pré-calcul du rebond
+  au moment du tir (`MatchState.pendingRebound`), animation
+  parabolique 2 phases du ballon (shooter → cercle → rebondeur).
+  +6 tests.
+
+### Phase F — Lancers francs et situations 🟢
+
+- **F.2 — Free throw post-lancer (course-rebond)** (commit `6bb780a`) :
+  `buildFreeThrowReboundSetup(made)` + `addFreeThrowReboundStep`.
+  Sur miss, blocks défensifs gagnent le rebond (D4/D5 proches
+  baseline), slots offensifs en over-the-top (O4/O5 au-dessus du
+  cercle). Sur made, transition adverse. UI : 2 boutons (🏀 +1
+  LF réussi / ⚠ LF manqué + rebond) dans StepsPanel. +9 tests.
+- **F.4 — Pénalité technique / DQ** (commit `5ae6e10`) : nouveau
+  champ `AppState.disqualifiedPlayers?: PlayerId[]`. Toggle DQ
+  par joueur dans ParametresPanel + overlay rouge "DQ" sur terrain.
+  V1 visuel uniquement (engine inchangé). +5 tests.
+
+### 🛡 Système remises en jeu COMPLET 🟢
+
+Phase entière livrée cette session — extension du moteur tactique
+pour étudier les BLOB/SLOB. Pattern aligné sur F.3 (free throw).
+
+#### Setup et templates
+
+- 3 zones FIBA via `step.context: 'inbound-baseline' |
+  'inbound-sideline-low' | 'inbound-sideline-high'`
+- Helper `buildInboundSetup(side)` (module
+  `src/lib/logic/inboundSetup.ts`) — positions canoniques avec
+  passeur 12 px hors-ligne
+- Setter `convertStepToInbound(s, side)` dans `stepTransforms.ts`
+- **17 templates classiques** dans `inboundTemplates.ts` :
+  - 6 BLOB : Box Curl, Stack Cross, Triangle, Zipper, Elevator
+    (Spurs), Hawk (Atlanta)
+  - 5 SLOB bas : Stagger, Hammer, Iverson, Floppy, + 3 "défense
+    d'attaque"
+  - 4 SLOB haut : Outlet, Drag screen, Quick advance, Bypass trappe
+  - 3 défense d'attaque : Box vs face-guard, Stack vs zone 2-3,
+    Hammer vs zone-press
+
+#### Défense spécifique
+
+- Nouveau type `InboundDefenseMode = 'man' | 'face-guard' |
+  'deny-deny' | 'zone-press'`
+- Module `src/lib/logic/inboundDefenseSetup.ts` :
+  `buildInboundDefenseSetup({ off, inbounder, mode, hoop })`
+- Setter `setInboundDefenseMode(s, mode)` dans `stepTransforms.ts`
+- UI : section "🛡 DÉFENSE SUR REMISE" dans StepsPanel (visible
+  uniquement sur step inbound)
+- +6 tests dédiés (`inboundDefenseSetup.test.ts`)
+
+#### Live mode & diagnostics
+
+- **Timer 5s live** (`MatchState.inboundTimerMs`) : décompté à
+  chaque tick, force `turnover-pass` à 0. Désarmé sur premier
+  intent 'pass'. +5 tests.
+- **Box-out V2 animé** (`MatchState.boxOutTargets +
+  boxOutStartedAtMs`) : lerp ease-out cubic 500 ms vers les
+  positions de box-out (vs snap instant V1). +4 tests.
+- **Pression visuelle** sur défenseur du passeur : anneau pulsant
+  rouge + 🔥 sur le défenseur matched
+- **Diagnostic coach `inboundFiveSecRule`** (statique + timer) :
+  3 verdicts info/warning/critical. Compteur 5s statique étendu
+  (P3.2) : durée estimée × `secondsPerStep`, critical si > 5s.
+  +7 tests.
+- **Diagnostic coach `inboundDefenseRule`** (P2.2, commit
+  `dcfe8c3`) : 3 checks (pression passeur, deny receveur principal,
+  attaquants ouverts). +5 tests.
+- **Diagnostic coach `boxOutCheckRule`** (commit `e79453c`) :
+  détection phase de rebond (heuristique label / context LF
+  précédent) + check box-out géométrique. +4 tests.
+
+### Game loop optimisations
+
+- **Tick rate 5 Hz → 30 Hz** (commit `7ed6cc0`) : MATCH_TICK_MS
+  passe de 200 à 33 ms, scaling proportionnel de toutes les
+  constantes de vitesse et intervalles décisionnels. Animation
+  visuellement fluide (vs 5 fps saccadé). Tests adaptés.
+
+### Mode "Match plein écran"
+
+- Bouton "🔳 plein écran" dans LiveMatchPanel qui en un clic active
+  `state.fullCourt = true` + `presentMode = true` +
+  `document.requestFullscreen()` (commit `e9ca07f`)
+- Composant `<LiveMatchOverlay>` (HUD compact : scores HOME/AWAY,
+  shot clock, possession N/max, boutons stop/exit). Esc quitte.
+
+### UX et corrections
+
+- **Badge "auto IA" 🧠 inversé** (commit `b504dfd`) : convention
+  visuelle changée — défenseurs en auto portent le badge, manuels
+  sans badge. Plus intuitif quand 4/5 sont auto.
+- **Boutons "Tout en auto" rapide vs réel** (commit `4cf98a4`) :
+  ⚡ instantané pour coach + ▶ animé 700 ms ease-out pour démo.
+- **Fix UCLA cut anti-flip D1** (commit `303fb25`) :
+  `pushOutOfManyConstrained` pour éviter le flip de côté quand
+  D coincé entre cutter et screener. Mesure UCLA scrub :
+  52 → 25 px max.
+- **Garde-fou diagnostic anti-téléport central** (commit `1c3feab`) :
+  `collectDecisions` + 16 templates instrumentés.
+
+### Documentation
+
+- **`docs/todo-priorities.md`** : fichier dédié au TODO consignes,
+  basket priorisé en P1/P2/P3, UX/tests UI/mobile repoussés.
+- **`docs/mobile-plan.md`** (existait) : plan Capacitor iOS en 5
+  phases, à attaquer plus tard.
+- **`docs/ai-possession.md`** : statut Phase I 100% (B1-B5 + B5+
+  + B6 + B7).
+
+### Régression
+
+Cumulé sur la session : **+~250 tests** (1227 → 1237 verts).
+Toutes les invariants moteur conservés (Règle 1, MIN_CLEARANCE,
+saut max 5.5 m/étape, anti-téléport ≤ 18 px/frame en live).
+
+### Reste explicite pour V3 / sessions futures
+
+- **E.1 V2 stage 2b** (~2-4j) : refacto AppState avec
+  `currentlyAttackingTeam` natif, matchups inversés en mémoire,
+  engine défensif appliqué côté home pendant phase away,
+  diagnostic coach spécifique aux possessions adverses.
+- **Profiling avancé + golden metrics élargis** (~2-4j optionnels) :
+  heatmap CPU par couche, screenshots SVG automatiques pour
+  visual regression.
+- **Phase A UX, Phase H tests UI, Mobile iOS** : repoussés par
+  consigne user. Cf. `docs/todo-priorities.md`.
+
+---
+
 ## [0.9.0] — 2026-05-15
 
 ### Phase J — Qualité moteur d'écran & outillage (8 chantiers)

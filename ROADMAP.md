@@ -919,33 +919,73 @@ historique mais limite à terme. Si on veut renforcer :
 
 ---
 
-### Phase I — Mode Play IA (🟢 livrée 2026-05-15, 6/6 chantiers)
+### Phase I — Mode Play IA (🟢 100% livrée, B1 → B7 + V2 stage 1+2a)
 
-**Status final** : précédemment "repoussé bas de pile" puis "🟡 chantier
-actif", désormais **100 % livrée** en une session unique. Le moteur de
-match autonome 5v5 est fonctionnel, multi-possessions, et calibrable
-via comparaison Monte-Carlo.
+**Status final 2026-05-16** : 100% livrée (B1-B5 noyau + B5+ B6 B7
+polish + V2 stage 1+2a opposition adverse rendue). Seul reste V2
+stage 2b (refacto AppState 2-way natif) qui demande sa propre session.
 
-Récap des chantiers (effort réel total ~3j, vs 10-15j estimé init) :
+Récap chantiers livrés :
 
 | # | Status | Commit | Description |
 |---|---|---|---|
-| B1 | 🟢 | `edb43e6` | Game loop continu 5 Hz, intent persistant porteur (drive/pass/shoot) |
+| B1 | 🟢 | `edb43e6` | Game loop continu, intent persistant porteur (drive/pass/shoot) |
 | B3a | 🟢 | `bd2dccf` | Shot model enrichi (zone, contestation, position) + fix intent 'shoot' |
 | B2 | 🟢 | `0da33a4` | Décideur off-ball (cut, space-drift, relocate) avec budget cuts |
 | B4 | 🟢 | `ac1bece` | UI live complète : CourtView lit `matchState`, HUD événements |
 | B3b | 🟢 | `40e5f0f` | Transition multi-possessions (rebond off 28 %, new poss reset) |
 | B5 | 🟢 | `2e9ffee` | Calibration live vs Monte-Carlo (tolérance ±0.15 PPP) |
+| Tick fix | 🟢 | `7ed6cc0` | Tick rate 5 Hz → 30 Hz, scaling proportionnel des constantes |
+| **B5+** | 🟢 | `0192916` | Auto-tuning calibration par dichotomie (max 8 itérations) |
+| **B6** | 🟢 | `6dd7e83` | Vitesse accélérée live ×1/×2/×4/×8 |
+| **B7** | 🟢 | `486b039` | Replay détaillé post-match avec timeline + filtres |
+| **V2 stage 1** | 🟢 | `6d99024` | Ballon adverse animé pendant phase away |
+| **V2 stage 2a** | 🟢 | `1cefa67` | 5 adversaires simulés rendus visuellement (sprites rouges) |
 
-**Modules livrés** :
-- `src/lib/logic/match/gameLoop.ts` — pipeline tick + intents + transitions
-- `src/lib/logic/match/decisions/offBallMover.ts` — movers off-ball
-- `src/lib/logic/match/calibration.ts` — headless runner + comparison
-- `src/hooks/useMatchLoop.ts` — hook React 5 Hz
-- `LiveMatchPanel` + `CalibrationPanel` dans `SimulationSection`
+**Reste pour V3** :
+- **V2 stage 2b** (~2-4j) : refacto AppState avec
+  `currentlyAttackingTeam` natif, matchups inversés en mémoire,
+  engine défensif appliqué côté home pendant phase away.
 
-Doc : [docs/ai-possession.md](docs/ai-possession.md) (à mettre à jour
-pour refléter le scope final livré).
+**Modules livrés** (au-delà de la session initiale) :
+- `src/lib/logic/match/autoTuning.ts` — dichotomie sur creativity
+- `src/components/MatchReplay.tsx` — modal post-match timeline
+- `MatchState` étendu : `awayBallPos`, `awayPlayerPositions`,
+  `pendingRebound`, `shotBallStartPos`, `boxOutTargets`,
+  `inboundTimerMs`
+
+Doc : [docs/ai-possession.md](docs/ai-possession.md).
+
+### Phase E.1 V1 + V2 stage 1+2a — Rebond + cycle home/away (🟢 livré)
+
+| Item | Commit | Description |
+|---|---|---|
+| Modèle rebond géométrique | `5e48549` | Module `match/rebound.ts` : poids par profil, distance, zone tir |
+| Box-Out V1 (snap) | `5e48549` | Shift défenseurs vers homme + offset panier au moment du tir |
+| Box-Out V2 (animé) | `17aaac9` | Lerp ease-out 500 ms vers targets, `boxOutStartedAtMs` |
+| Cycle home → away stub | `5e48549` | Phase adverse 12 s, score AWAY 50%, return to home |
+| Score 2-côtés HOME/AWAY | `5e48549` | `homeScore`/`awayScore` séparés dans MatchState |
+| V2 stage 1 ballon animé | `6d99024` | `awayBallPos` 4 waypoints |
+| V2 stage 2a 5 adversaires | `1cefa67` | `awayPlayerPositions` miroir + course |
+
+### Phase E.2 + E.3 + F.2 + F.4 — Situations basket complémentaires (🟢 livré)
+
+> ⚠️ **Note de numérotation** : ces items sont indexés selon
+> `docs/todo-priorities.md` créé pour la session, **différent** de la
+> numérotation Phase E/F historique de cette roadmap (où E.2 = Export
+> GIF, F.2 = Press full-court, etc., toujours pending).
+
+| Item | Commit | Description |
+|---|---|---|
+| **E.2 Jump ball** | `a61323c` | Setup canonique entre-deux : 2 sauteurs + 4+4 en arc. Module `jumpBallSetup.ts` + setter `convertStepToJumpBall` |
+| **E.3 Rebond animé** | `874d96c` | Pré-calcul rebond + animation parabole 2 phases du ballon (shooter→cercle→rebondeur) |
+| **F.2 Free throw post-lancer** | `6bb780a` | `buildFreeThrowReboundSetup(made)` + `addFreeThrowReboundStep`. Course-rebond animée sur miss, transition adverse sur made |
+| **F.4 Pénalité technique / DQ** | `5ae6e10` | `AppState.disqualifiedPlayers` + toggle UI + overlay rouge "DQ". V1 visuel uniquement |
+
+### Système remises en jeu — 17 templates + diag + timer + modes défensifs (🟢 livré)
+
+Phase complète documentée séparément :
+[docs/inbound-system.md](docs/inbound-system.md).
 
 ---
 
