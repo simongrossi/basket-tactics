@@ -420,9 +420,9 @@ export function CourtView(props: CourtViewProps) {
             })}
           </g>
         )}
-        {/* E.1 V2 stage 1 — possession adverse stub : affiche le ballon
-            adverse animé + banner "POSSESSION ADVERSE" pendant la phase
-            away. Donne du mouvement visible (au lieu de positions figées). */}
+        {/* E.1 V2 stage 1+2a — possession adverse : ballon + 5 adversaires
+            simulés rendus visuellement (couleur rouge distinctive). Donne
+            le visuel complet de "l'autre équipe attaque". */}
         {props.liveMatchState?.awayBallPos &&
           props.liveMatchState.attackingTeam === 'away' && (
             <g pointerEvents="none">
@@ -446,7 +446,34 @@ export function CourtView(props: CourtViewProps) {
               >
                 🔄 POSSESSION ADVERSE
               </text>
-              {/* Ballon adverse animé */}
+              {/* V2 stage 2a — 5 adversaires simulés en sprites rouges */}
+              {props.liveMatchState.awayPlayerPositions &&
+                (Object.entries(props.liveMatchState.awayPlayerPositions) as Array<
+                  [string, { x: number; y: number }]
+                >).map(([id, pos]) => (
+                  <g key={`away-${id}`}>
+                    <circle
+                      cx={pos.x}
+                      cy={pos.y}
+                      r={14}
+                      fill="#fee2e2"
+                      stroke="#dc2626"
+                      strokeWidth={2}
+                      opacity={0.85}
+                    />
+                    <text
+                      x={pos.x}
+                      y={pos.y + 4}
+                      textAnchor="middle"
+                      fontSize={10}
+                      fontWeight={700}
+                      fill="#7f1d1d"
+                    >
+                      A{id.slice(1)}
+                    </text>
+                  </g>
+                ))}
+              {/* Ballon adverse animé (au-dessus des sprites) */}
               <circle
                 cx={props.liveMatchState.awayBallPos.x}
                 cy={props.liveMatchState.awayBallPos.y}

@@ -214,6 +214,11 @@ export interface MatchState {
    *  `away-possession`. Animé entre 3-4 points imaginaires dans le
    *  back-court pour donner du mouvement visible. `null` hors away. */
   awayBallPos: Point | null;
+  /** E.1 V2 stage 2a — positions des 5 joueurs adverses simulés
+   *  pendant la phase `away-possession`. Calculées comme miroir des
+   *  défenseurs home, puis animées vers leur panier (haut du terrain
+   *  en full court, hors viewport en half court). `null` hors away. */
+  awayPlayerPositions: Record<DefenderId, Point> | null;
   /** B3b — nombre de possessions terminées (= 0 si encore dans la 1ère). */
   possessionsPlayed: number;
   /** B3b — limite de possessions pour cette session. `null` = endless,
@@ -305,6 +310,7 @@ export function createInitialMatchState(
     pendingRebound: null,
     shotBallStartPos: null,
     awayBallPos: null,
+    awayPlayerPositions: null,
   };
 }
 
@@ -870,18 +876,23 @@ function advanceAwayPossession(
   if (state.intent.kind !== 'away-possession') return state;
   const remaining = state.intent.remainingMs - dtMs;
   if (remaining > 0) {
-    // E.1 V2 stage 1 — anime le ballon adverse entre 4 waypoints
-    // imaginaires dans le back-court (visualise leur possession).
-    // Progresse de waypoint en waypoint sur la durée totale.
+    // E.1 V2 stage 1 + 2a — anime le ballon adverse ET les 5 positions
+    // des joueurs adverses pendant la possession stubbée.
     const totalDuration = AWAY_POSSESSION_DURATION_MS;
     const elapsed = totalDuration - remaining;
     const progress = Math.max(0, Math.min(1, elapsed / totalDuration));
     const awayBallPos = computeAwayBallPosition(progress, baseAppState);
+    const awayPlayerPositions = computeAwayPlayerPositions(
+      progress,
+      state.defPos,
+      baseAppState
+    );
     return {
       ...state,
       intent: { kind: 'away-possession', remainingMs: remaining },
       shotClockMs: Math.max(0, remaining),
       awayBallPos,
+      awayPlayerPositions,
     };
   }
   // Possession adverse terminée : outcome.
@@ -935,7 +946,68 @@ function advanceAwayPossession(
     // la possession maison précédente). Ici on démarre juste la suivante.
     transitionStartedAtMs: null,
     awayBallPos: null, // désarme l'animation
+    awayPlayerPositions: null,
   };
+}
+
+/**
+ * E.1 V2 stage 2a — Calcule les positions des 5 joueurs adverses
+ * simulés pendant leur possession. Initialement = miroir vertical des
+ * défenseurs home autour de y=540 (centre du full court). À mesure
+ * que la possession progresse, les adversaires "remontent" vers leur
+ * panier (= côté bas du terrain home).
+ *
+ * Convention V1 : on indexe les positions par DefenderId pour simplifier
+ * le tracking (D1 adverse = miroir de D1 home, etc.). Pas de notion de
+ * matchups inversés en mémoire (= V2 stage 2b).
+ */
+function computeAwayPlayerPositions(
+  progress: number,
+  homeDefPos: ComputedDefense,
+  baseAppState: AppState
+): Record<DefenderId, Point> {
+  const isFullCourt = baseAppState.fullCourt === true;
+  const out = {} as Record<DefenderId, Point>;
+  // Positions initiales : miroir vertical autour de la ligne médiane.
+  // En full court, ligne médiane = y=540. En half court, on simule
+  // un miroir autour de y=540 mais ça déborde du viewport visible —
+  // les positions seront partiellement hors-écran (acceptable, le
+  // ballon principal awayBallPos reste visible).
+  const mirrorAxisY = 540;
+
+  // Une vague de "remontée" pendant la possession : à progress=0 les
+  // adversaires sont dans leur back-court, à progress=1 ils sont
+  // proches du panier home (= ils ont attaqué).
+  // En full court, panier home = (300, 75) — donc ils remontent vers
+  // y faible. En half court, idem mais les positions de départ sont
+  // y >> 540 (déborde) puis convergent vers y=540-300 visible.
+  const targetHoopY = isFullCourt ? 90 : 200; // approximation visible
+  // L'amplitude de la course dépend du progress et du joueur (les
+  // intérieurs courent plus vite, les ailiers moins).
+  const courseFactors: Record<DefenderId, number> = {
+    D1: 0.5,  // PG adverse, modère
+    D2: 0.6,  // SG, course
+    D3: 0.65, // SF, course
+    D4: 0.85, // PF, course intérieur
+    D5: 0.95, // C, le plus rapide vers le panier
+  };
+
+  (Object.keys(homeDefPos) as DefenderId[]).forEach((id) => {
+    const homePos = homeDefPos[id];
+    if (!homePos) {
+      out[id] = { x: 300, y: mirrorAxisY };
+      return;
+    }
+    // Position miroir initiale.
+    const mirrorX = homePos.x;
+    const mirrorY = 2 * mirrorAxisY - homePos.y;
+    // Course vers le panier home selon le facteur du joueur.
+    const factor = courseFactors[id] ?? 0.5;
+    const reachY = mirrorY + (targetHoopY - mirrorY) * progress * factor;
+    out[id] = { x: mirrorX, y: reachY };
+  });
+
+  return out;
 }
 
 /**

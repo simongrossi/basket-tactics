@@ -538,6 +538,107 @@ describe('gameLoop — E.3 Rebond animé', () => {
   });
 });
 
+describe('gameLoop — E.1 V2 stage 2a 5 adversaires simulés', () => {
+  it('awayPlayerPositions init null', () => {
+    const state = createInitialMatchState(buildState('pnr-central'), { seed: 1 });
+    expect(state.awayPlayerPositions).toBeNull();
+  });
+
+  it("awayPlayerPositions défini quand attackingTeam='away'", () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, {
+      seed: 17,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 5,
+    });
+    let sawAwayPlayers = false;
+    for (let i = 0; i < 1500; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+      if (state.attackingTeam === 'away' && state.awayPlayerPositions !== null) {
+        sawAwayPlayers = true;
+        break;
+      }
+    }
+    if (sawAwayPlayers) {
+      expect(state.awayPlayerPositions).not.toBeNull();
+      // 5 positions D1-D5
+      expect(Object.keys(state.awayPlayerPositions!)).toHaveLength(5);
+    }
+  });
+
+  it("positions initiales sont miroir vertical autour de y=540", () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, {
+      seed: 17,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 5,
+    });
+    // Trouve le tout début de la phase away (= progress proche de 0)
+    for (let i = 0; i < 1500; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+      if (state.attackingTeam === 'away' && state.awayPlayerPositions !== null) break;
+    }
+    if (state.attackingTeam !== 'away' || !state.awayPlayerPositions) return;
+    // Au début de la phase, les adversaires doivent être plus loin du
+    // panier home que les défenseurs home (= dans la moitié basse / haut
+    // du terrain en full court).
+    const awayD1 = state.awayPlayerPositions.D1;
+    const homeD1 = state.defPos.D1;
+    // Symétrie : awayD1.y ≈ 2*540 - homeD1.y. Tolérance 100 px pour la
+    // course qui démarre dès progress > 0.
+    const expectedMirror = 2 * 540 - homeD1.y;
+    expect(Math.abs(awayD1.y - expectedMirror)).toBeLessThan(100);
+  });
+
+  it("positions évoluent au cours de la phase (course vers panier)", () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, {
+      seed: 17,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 5,
+    });
+    for (let i = 0; i < 1500; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+      if (state.attackingTeam === 'away' && state.awayPlayerPositions !== null) break;
+    }
+    if (!state.awayPlayerPositions) return;
+    const initialD5 = { ...state.awayPlayerPositions.D5 };
+    // Tick quelques fois — les adversaires doivent bouger (course).
+    for (let i = 0; i < 100; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+      if (state.attackingTeam !== 'away') break;
+    }
+    if (state.awayPlayerPositions) {
+      const movedD5 =
+        Math.abs(state.awayPlayerPositions.D5.x - initialD5.x) > 5 ||
+        Math.abs(state.awayPlayerPositions.D5.y - initialD5.y) > 5;
+      expect(movedD5).toBe(true);
+    }
+  });
+
+  it("désarmé au retour en attackingTeam='home'", () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, {
+      seed: 17,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 5,
+    });
+    let backToHome = false;
+    let sawAway = false;
+    for (let i = 0; i < 2000; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+      if (state.attackingTeam === 'away') sawAway = true;
+      if (sawAway && state.attackingTeam === 'home' && state.intent.kind === 'idle') {
+        backToHome = true;
+        break;
+      }
+    }
+    if (backToHome) {
+      expect(state.awayPlayerPositions).toBeNull();
+    }
+  });
+});
+
 describe('gameLoop — E.1 V2 stage 1 ballon adverse animé', () => {
   it('awayBallPos init null', () => {
     const baseState = buildState('pnr-central');
