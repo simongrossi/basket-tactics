@@ -1,4 +1,5 @@
 import type { AttackerPositions, DefenderPositions, Step, Annotation } from '../types';
+import { INBOUND_TEMPLATES } from './inboundTemplates';
 
 export interface Template {
   id: string;
@@ -840,6 +841,7 @@ export const CLASSIC_TEMPLATES: Template[] = [
   UCLA_CUT,
   FLOPPY,
   HAMMER,
+  ...INBOUND_TEMPLATES,
 ];
 
 export const LAB_TEMPLATES: Template[] = [
