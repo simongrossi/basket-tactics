@@ -708,6 +708,19 @@ restent fixes, les autres joueurs sont séparés par une clearance
 visuelle bornée, puis reclamp anti-saut. Les golden metrics montent le
 seuil minimal de clearance playback de 10 px à 20 px.
 
+**D.4 exploration 2026-05-15.** Ne pas brancher un A* global directement
+dans `effectiveDefensePositions` : le moteur écran possède déjà ses
+routes tactiques (`over/under/hedge`, stagger/elevator, side constraints)
+et un A* naïf risquerait de les contredire. Chemin sûr recommandé :
+1. créer un helper pur `defensiveRoute` qui génère 2-3 routes candidates
+   autour des obstacles dynamiques non-screen ;
+2. l'activer uniquement hors `screenLockedDefenders`, hors override
+   manuel, et seulement si le segment direct coupe plusieurs obstacles ;
+3. garder les endpoints de step inchangés, ne modifier que la trajectoire
+   playback ;
+4. comparer via golden metrics (`maxJump`, `minClearance`, temps resolve)
+   avant d'envisager un vrai A* grille.
+
 ---
 
 ### Phase E — Changement de scope (le gros)

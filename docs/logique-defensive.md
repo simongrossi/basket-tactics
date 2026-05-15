@@ -379,6 +379,21 @@ Le but est de supprimer les overlaps transitoires qui peuvent revenir
 après un rate limiter ou une correction d'inertie, notamment sur les
 cuts croisés hors-ballon.
 
+### Préparation pathfinding défensif
+
+Le contournement actuel est volontairement local : Bezier autour des
+clusters d'écran, inertie, collision finale. Un vrai A* défensif ne doit
+pas remplacer ce pipeline tant que les règles d'écran restent la source
+de vérité tactique.
+
+La voie sûre est un helper pur de routes candidates hors-écran :
+direct, détour gauche, détour droite, puis choix par coût
+`longueur + pénalité collision + pénalité changement de direction`. Ce
+helper ne doit s'activer que pour les défenseurs non lockés, sans
+override manuel, quand le segment direct coupe plusieurs obstacles
+non-screen. Les endpoints de step resteraient inchangés ; seule la
+trajectoire playback serait adoucie.
+
 ### Solveur de collisions strict
 
 Toujours appliqué après le contournement Bezier : voir section suivante.
