@@ -398,6 +398,56 @@ function LiveMatchPanel({
 
       {matchState && (
         <>
+          {/* E.1 V1 — tableau score home / away avec indicateur d'attaque */}
+          <div
+            style={{
+              display: 'flex',
+              gap: 4,
+              padding: '6px 8px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: 5,
+              fontSize: 11,
+              color: '#1e293b',
+              marginBottom: 4,
+            }}
+          >
+            <div
+              style={{
+                flex: 1,
+                padding: 4,
+                borderRadius: 4,
+                background: matchState.attackingTeam === 'home' ? '#dbeafe' : 'transparent',
+                border: matchState.attackingTeam === 'home' ? '1px solid #3b82f6' : '1px solid transparent',
+              }}
+            >
+              <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+                {matchState.attackingTeam === 'home' ? '▶ HOME' : 'HOME'}
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#1e3a8a', lineHeight: 1.1 }}>
+                {matchState.homeScore}
+                {matchState.score > 0 && matchState.attackingTeam === 'home' && !isFinished && (
+                  <span style={{ fontSize: 10, color: '#16a34a', marginLeft: 3 }}>+{matchState.score}</span>
+                )}
+              </div>
+            </div>
+            <div
+              style={{
+                flex: 1,
+                padding: 4,
+                borderRadius: 4,
+                background: matchState.attackingTeam === 'away' ? '#fee2e2' : 'transparent',
+                border: matchState.attackingTeam === 'away' ? '1px solid #dc2626' : '1px solid transparent',
+              }}
+            >
+              <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+                {matchState.attackingTeam === 'away' ? '▶ AWAY' : 'AWAY'}
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#991b1b', lineHeight: 1.1 }}>
+                {matchState.awayScore}
+              </div>
+            </div>
+          </div>
           <div
             style={{
               display: 'flex',
@@ -418,21 +468,20 @@ function LiveMatchPanel({
               </div>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>score</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#1e3a8a', lineHeight: 1.1 }}>
-                {matchState.cumulativeScore}
-                {matchState.score > 0 && !isFinished && (
-                  <span style={{ fontSize: 10, color: '#16a34a', marginLeft: 3 }}>+{matchState.score}</span>
-                )}
-              </div>
-            </div>
-            <div style={{ flex: 1 }}>
               <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>possession</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: '#7c2d12', lineHeight: 1.1 }}>
                 {matchState.possession}
                 {matchState.maxPossessions !== null && (
                   <span style={{ fontSize: 10, color: '#94a3b8' }}>/{matchState.maxPossessions}</span>
                 )}
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+                {matchState.attackingTeam === 'home' ? 'porteur' : 'phase'}
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#7c2d12', lineHeight: 1.1 }}>
+                {matchState.attackingTeam === 'home' ? matchState.carrier : '🛡 def'}
               </div>
             </div>
           </div>

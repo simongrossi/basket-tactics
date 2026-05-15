@@ -50,6 +50,7 @@ import {
   triggerRelocateAfterPass,
   type OffBallIntents,
 } from './decisions/offBallMover';
+import { computeRebound, type ReboundResult } from './rebound';
 
 // ============================================================
 // Constantes
@@ -82,8 +83,21 @@ const LOW_CLOCK_MS = 4_500;
 const TRANSITION_PAUSE_MS = 1_500;
 
 /** B3b — probabilité de rebond offensif sur tir manqué. Stub très simple
- *  basé sur stats moyennes NBA (~25-28 %). Surchargeable via options. */
+ *  basé sur stats moyennes NBA (~25-28 %). Conservé pour rétrocompat
+ *  des tests, mais E.1 V1 remplace par un modèle géométrique. */
 const DEFAULT_OFFENSIVE_REBOUND_RATE = 0.28;
+
+/** Phase E.1 V1 — paramètres de la possession adverse stubbée.
+ *  Sur rebond défensif, on simule l'équipe adverse qui attaque sans
+ *  rendu visuel : le shot clock tourne, puis on tire au sort un outcome. */
+const AWAY_POSSESSION_DURATION_MS = 12_000;
+/** Proba de score sur la possession adverse stubbée. 50 % × 2 pts =
+ *  1.0 PPP adverse (en-dessous de la moyenne NBA ~1.1 mais assumée
+ *  comme stub — on calibrera en V2 si nécessaire). */
+const AWAY_SCORE_PROBABILITY = 0.5;
+/** Décalage de box-out : chaque défenseur shift vers son matched
+ *  attaquant + offset panier. Visuel pendant la résolution du tir. */
+const BOXOUT_OFFSET_PX = 18;
 
 /** Vitesse max du porteur en px/tick. À 30 Hz et 8 px/tick = 240 px/s
  *  ≈ 6.5 m/s, sprint réaliste basket. Avant : 50 px à 5 Hz (même vitesse,
@@ -112,12 +126,17 @@ const SHOT_ZONE_LABELS: Record<ShotZone, string> = {
 // ============================================================
 
 /** Intent en cours pour le porteur. Persiste entre ticks tant que
- *  l'action n'est pas terminée. */
+ *  l'action n'est pas terminée.
+ *
+ *  Phase E.1 V1 : ajout de `away-possession` pour modéliser le stub de
+ *  possession adverse (shot clock tourne, pas de rendu, outcome au
+ *  bout de AWAY_POSSESSION_DURATION_MS). */
 export type CarrierIntent =
   | { kind: 'idle' }
   | { kind: 'drive'; target: Point; expectedAction: OffensiveAction }
   | { kind: 'pass'; receiver: AttackerId; progress: number; expectedAction: OffensiveAction }
-  | { kind: 'shoot'; action: OffensiveAction; forced: boolean };
+  | { kind: 'shoot'; action: OffensiveAction; forced: boolean }
+  | { kind: 'away-possession'; remainingMs: number };
 
 /** État live d'une possession simulée par la game loop.
  *  Mutable (par tick) — pas dans `AppState` (transient UI). */
@@ -147,8 +166,17 @@ export interface MatchState {
   score: number;
   /** Outcome final si la possession est terminée, sinon `null` (= en cours). */
   outcome: AiPossessionOutcome | null;
-  /** B3b — score cumulé sur toute la session (toutes possessions confondues). */
+  /** B3b — score cumulé sur toute la session (toutes possessions confondues).
+   *  Phase E.1 V1 : alias historique pour `homeScore`. Maintenu pour
+   *  rétrocompat (UI / tests existants). */
   cumulativeScore: number;
+  /** Phase E.1 V1 — score domicile (notre équipe attaquante). */
+  homeScore: number;
+  /** Phase E.1 V1 — score visiteur (l'adversaire stub). */
+  awayScore: number;
+  /** Phase E.1 V1 — équipe qui attaque actuellement. Bascule sur rebond
+   *  défensif, revient sur fin de possession adverse. */
+  attackingTeam: 'home' | 'away';
   /** B3b — nombre de possessions terminées (= 0 si encore dans la 1ère). */
   possessionsPlayed: number;
   /** B3b — limite de possessions pour cette session. `null` = endless,
@@ -222,6 +250,9 @@ export function createInitialMatchState(
     seed,
     possession,
     cumulativeScore: 0,
+    homeScore: 0,
+    awayScore: 0,
+    attackingTeam: 'home',
     possessionsPlayed: 0,
     maxPossessions: options.maxPossessions ?? null,
     transitionStartedAtMs: null,
@@ -304,6 +335,11 @@ export function tickMatch(
     return resolveShot(next, action, rng, true, baseAppState);
   }
 
+  // E.1 V1 — possession adverse stubbée : on décrémente le clock,
+  // pas de décision côté maison, outcome au bout du timer.
+  if (next.intent.kind === 'away-possession') {
+    return advanceAwayPossession(next, dtMs, baseAppState, rng);
+  }
   // Si intent en cours, le faire avancer.
   if (next.intent.kind === 'drive') {
     return advanceDrive(next, dtMs, baseAppState);
@@ -398,42 +434,139 @@ function executeTransition(
 ): MatchState {
   const isMissedShot =
     state.outcome === 'shot-missed' || state.outcome === 'forced-shot-missed';
-  const reboundRate = options.offensiveReboundRate ?? DEFAULT_OFFENSIVE_REBOUND_RATE;
   const rng = seededAiRng(state.seed + state.tickCount + state.possession * 1000);
 
-  // Cumule le score de cette possession.
-  const cumulativeScore = state.cumulativeScore + state.score;
+  // Cumule le score de cette possession sur le bon côté.
+  const homeScore = state.homeScore + (state.attackingTeam === 'home' ? state.score : 0);
+  const awayScore = state.awayScore + (state.attackingTeam === 'away' ? state.score : 0);
+  const cumulativeScore = homeScore; // alias rétrocompat
 
-  // Rebond offensif ? Même possession continue, juste reset clock + carrier.
-  if (isMissedShot && rng() < reboundRate) {
-    return continueWithOffensiveRebound(state, cumulativeScore, baseAppState);
+  // On évalue le rebond ICI (mode E.1 V1) pour savoir si la possession
+  // se termine ou continue (rebond offensif = même possession).
+  const reboundRateOverride = options.offensiveReboundRate;
+  let rebound: ReboundResult | null = null;
+  let offensiveReboundDecided = false;
+  if (isMissedShot) {
+    if (reboundRateOverride !== undefined) {
+      offensiveReboundDecided = rng() < reboundRateOverride;
+    } else {
+      const hoop = getDefenseHoop(baseAppState);
+      const shotEvent = [...state.eventLog].reverse().find(
+        (e) => e.type === 'shot' || e.type === 'forced-shot'
+      );
+      const shotPos = shotEvent?.shotPos ?? state.off[state.carrier] ?? hoop;
+      rebound = computeRebound({
+        off: state.off,
+        defPos: state.defPos,
+        hoop,
+        shotPos,
+        attackerProfiles: baseAppState.attackerProfiles,
+        shooter: state.carrier,
+        rng,
+      });
+      offensiveReboundDecided = rebound.type === 'offensive';
+    }
   }
 
-  // Sinon : nouvelle possession (reset positions, increment compteur).
-  return startFreshPossession(state, baseAppState, cumulativeScore);
+  // `possessionsPlayed` ne compte que les possessions maison TERMINÉES.
+  // Un rebond offensif continue la même possession (pas d'incrément).
+  // Une possession adverse stubbée n'incrémente pas non plus (= notre
+  // possession maison ne change pas de "numéro" pendant l'aller-retour
+  // adverse).
+  const possessionContinues = offensiveReboundDecided;
+  const homeEnded = state.attackingTeam === 'home' && !possessionContinues;
+  const nextPossessionsPlayed = homeEnded
+    ? state.possessionsPlayed + 1
+    : state.possessionsPlayed;
+
+  // Session terminée → fige sans transition. L'outcome reste set, donc
+  // isSessionDone() retournera true au tick suivant et le tick devient
+  // no-op strict.
+  if (
+    state.maxPossessions !== null &&
+    nextPossessionsPlayed >= state.maxPossessions
+  ) {
+    return {
+      ...state,
+      cumulativeScore,
+      homeScore,
+      awayScore,
+      possessionsPlayed: nextPossessionsPlayed,
+      transitionStartedAtMs: null,
+    };
+  }
+
+  const stateForTransition: MatchState = {
+    ...state,
+    possessionsPlayed: nextPossessionsPlayed,
+  };
+
+  // Branchage final selon le résultat du rebond / type d'outcome.
+  if (isMissedShot) {
+    if (offensiveReboundDecided) {
+      return continueWithOffensiveRebound(
+        stateForTransition,
+        cumulativeScore,
+        baseAppState,
+        homeScore,
+        awayScore,
+        rebound
+      );
+    }
+    // Pas de rebond offensif :
+    if (reboundRateOverride !== undefined) {
+      // Mode legacy B3b : nouvelle possession maison directe.
+      return startFreshPossession(stateForTransition, baseAppState, cumulativeScore, homeScore, awayScore);
+    }
+    // Mode E.1 V1 : rebond défensif → possession adverse stubbée.
+    return startAwayPossession(stateForTransition, cumulativeScore, homeScore, awayScore, rebound);
+  }
+
+  // Tir réussi / turnover / forced shot manqué sans rebond off →
+  // possession adverse (l'adversaire récupère la balle).
+  if (state.attackingTeam === 'home') {
+    return startAwayPossession(stateForTransition, cumulativeScore, homeScore, awayScore, null);
+  }
+  // Sinon (fin de possession adverse) : nouvelle possession maison.
+  return startFreshPossession(stateForTransition, baseAppState, cumulativeScore, homeScore, awayScore);
 }
 
 function continueWithOffensiveRebound(
   state: MatchState,
   cumulativeScore: number,
-  baseAppState: AppState
+  baseAppState: AppState,
+  homeScore: number = cumulativeScore,
+  awayScore: number = state.awayScore,
+  rebound?: ReboundResult | null
 ): MatchState {
   const hoop = getDefenseHoop(baseAppState);
-  // Le rebondeur = off-ball le plus proche du panier (exclut le shooter).
+  // E.1 V1 — si rebond fourni et qu'il pointe vers un attaquant, on
+  // l'utilise. Sinon (B3b legacy) : fallback heuristique = off-ball
+  // le plus proche du panier.
   const shooter = state.carrier;
-  let best: AttackerId | null = null;
-  let bestDist = Infinity;
-  (Object.keys(state.off) as AttackerId[]).forEach((id) => {
-    if (id === shooter) return;
-    const p = state.off[id];
-    if (!p) return;
-    const d = Math.hypot(p.x - hoop.x, p.y - hoop.y);
-    if (d < bestDist) {
-      bestDist = d;
-      best = id;
-    }
-  });
-  const newCarrier = best ?? shooter;
+  let newCarrier: AttackerId;
+  if (
+    rebound &&
+    rebound.type === 'offensive' &&
+    rebound.rebounder &&
+    rebound.rebounder.startsWith('O')
+  ) {
+    newCarrier = rebound.rebounder as AttackerId;
+  } else {
+    let best: AttackerId | null = null;
+    let bestDist = Infinity;
+    (Object.keys(state.off) as AttackerId[]).forEach((id) => {
+      if (id === shooter) return;
+      const p = state.off[id];
+      if (!p) return;
+      const d = Math.hypot(p.x - hoop.x, p.y - hoop.y);
+      if (d < bestDist) {
+        bestDist = d;
+        best = id;
+      }
+    });
+    newCarrier = best ?? shooter;
+  }
   const carrierPos = state.off[newCarrier];
 
   // Event log : marque le rebond pour le HUD.
@@ -459,6 +592,8 @@ function continueWithOffensiveRebound(
     offBallIntents: {},
     eventLog,
     cumulativeScore,
+    homeScore,
+    awayScore,
     // possessionsPlayed inchangé (= même possession qui continue)
     // possession ID inchangé
     transitionStartedAtMs: null,
@@ -468,7 +603,9 @@ function continueWithOffensiveRebound(
 function startFreshPossession(
   state: MatchState,
   baseAppState: AppState,
-  cumulativeScore: number
+  cumulativeScore: number,
+  homeScore: number = cumulativeScore,
+  awayScore: number = state.awayScore
 ): MatchState {
   // Repart de l'étape de base (positions "home"). Incrémente compteur.
   const step = baseAppState.steps[baseAppState.activeStep];
@@ -481,7 +618,7 @@ function startFreshPossession(
   const defPos = effectiveDefensePositions(baseAppState, baseAppState.activeStep);
   const carrierPos = off[carrier] ?? { x: 0, y: 0 };
   const newPossession = state.possession + 1;
-  const possessionsPlayed = state.possessionsPlayed + 1;
+  // possessionsPlayed déjà incrémenté dans executeTransition (E.1 V1).
 
   const eventLog = [
     ...state.eventLog,
@@ -508,8 +645,134 @@ function startFreshPossession(
     outcome: null,
     eventLog,
     cumulativeScore,
-    possessionsPlayed,
+    homeScore,
+    awayScore,
+    attackingTeam: 'home',
     possession: newPossession,
+    transitionStartedAtMs: null,
+  };
+}
+
+// ============================================================
+// E.1 V1 — possession adverse stubbée
+// ============================================================
+
+/**
+ * Démarre une possession adverse stubbée. L'adversaire n'est pas rendu
+ * visuellement : les positions de notre équipe restent figées (utiles
+ * pour le rebond défensif visible), le shot clock tourne pendant
+ * `AWAY_POSSESSION_DURATION_MS`, puis outcome aléatoire au bout du
+ * timer (AWAY_SCORE_PROBABILITY × 2 pts).
+ */
+function startAwayPossession(
+  state: MatchState,
+  cumulativeScore: number,
+  homeScore: number,
+  awayScore: number,
+  rebound: ReboundResult | null
+): MatchState {
+  // possessionsPlayed déjà incrémenté dans executeTransition.
+  const reboundLabel = rebound?.rebounder
+    ? `Rebond défensif ${rebound.rebounder}`
+    : "Fin de possession maison — transition adverse";
+  const eventLog = [
+    ...state.eventLog,
+    {
+      possession: state.possession,
+      clock: state.shotClockMs / 1000,
+      actor: state.carrier,
+      type: 'pass' as const,
+      label: reboundLabel,
+    },
+  ];
+  return {
+    ...state,
+    score: 0,
+    outcome: null,
+    intent: { kind: 'away-possession', remainingMs: AWAY_POSSESSION_DURATION_MS },
+    offBallIntents: {},
+    eventLog,
+    cumulativeScore,
+    homeScore,
+    awayScore,
+    attackingTeam: 'away',
+    transitionStartedAtMs: null,
+    // Shot clock visible côté adverse : on initialise à la durée de la
+    // possession adverse pour que le countdown soit lisible.
+    shotClockMs: AWAY_POSSESSION_DURATION_MS,
+    possessionTimeMs: 0,
+  };
+}
+
+/**
+ * Avance la possession adverse stubbée. Décrémente le timer, et quand
+ * il atteint 0, tire au sort l'outcome (score ou non), met à jour
+ * `awayScore`, puis enchaîne sur une possession maison.
+ */
+function advanceAwayPossession(
+  state: MatchState,
+  dtMs: number,
+  baseAppState: AppState,
+  rng: () => number
+): MatchState {
+  if (state.intent.kind !== 'away-possession') return state;
+  const remaining = state.intent.remainingMs - dtMs;
+  if (remaining > 0) {
+    return {
+      ...state,
+      intent: { kind: 'away-possession', remainingMs: remaining },
+      shotClockMs: Math.max(0, remaining),
+    };
+  }
+  // Possession adverse terminée : outcome.
+  const made = rng() < AWAY_SCORE_PROBABILITY;
+  const pts = made ? 2 : 0;
+  const newAwayScore = state.awayScore + pts;
+  const eventLog = [
+    ...state.eventLog,
+    {
+      possession: state.possession,
+      clock: 0,
+      actor: state.carrier,
+      type: 'shot' as const,
+      label: made ? `Adversaire +${pts} pts` : 'Adversaire — tir manqué',
+      points: pts,
+    },
+  ];
+  // Enchaîne directement sur une nouvelle possession maison.
+  const step = baseAppState.steps[baseAppState.activeStep];
+  if (!step) {
+    return {
+      ...state,
+      awayScore: newAwayScore,
+      intent: { kind: 'idle' },
+      attackingTeam: 'home',
+      eventLog,
+    };
+  }
+  const off = activeOffense(step.off, baseAppState.playerCount);
+  const carrier = activeBallCarrier(step, baseAppState.playerCount);
+  const defPos = effectiveDefensePositions(baseAppState, baseAppState.activeStep);
+  const carrierPos = off[carrier] ?? { x: 0, y: 0 };
+  const newPossession = state.possession + 1;
+  return {
+    ...state,
+    off: cloneOff(off),
+    defPos: cloneDef(defPos),
+    carrier,
+    ballPos: { x: carrierPos.x + 16, y: carrierPos.y - 16 },
+    shotClockMs: DEFAULT_SHOT_CLOCK_MS,
+    possessionTimeMs: 0,
+    intent: { kind: 'idle' },
+    offBallIntents: {},
+    score: 0,
+    outcome: null,
+    eventLog,
+    awayScore: newAwayScore,
+    attackingTeam: 'home',
+    possession: newPossession,
+    // possessionsPlayed déjà incrémenté au startAwayPossession (fin de
+    // la possession maison précédente). Ici on démarre juste la suivante.
     transitionStartedAtMs: null,
   };
 }
@@ -737,7 +1000,34 @@ function resolveShot(
     shotPointsAttempted: action.shotPoints,
   });
   state.intent = { kind: 'idle' };
+  // Phase E.1 V1 — box-out visuel : chaque défenseur shift vers son
+  // matched attaquant + offset BOXOUT_OFFSET_PX en direction du panier.
+  // Visible pendant la pause de transition (1.5 s) avant la résolution
+  // du rebond.
+  applyBoxOutPositions(state, hoop);
   return state;
+}
+
+function applyBoxOutPositions(state: MatchState, hoop: Point): void {
+  (Object.keys(state.defPos) as DefenderId[]).forEach((id) => {
+    const def = state.defPos[id];
+    if (!def) return;
+    const matchedAtt = state.off[def.matchedTo as AttackerId];
+    if (!matchedAtt) return;
+    // Direction de l'attaquant vers le panier — c'est cette direction
+    // qu'il faut bloquer (le défenseur se met "entre l'attaquant et
+    // le panier"). On positionne le défenseur à BOXOUT_OFFSET_PX
+    // de l'attaquant côté panier.
+    const dx = hoop.x - matchedAtt.x;
+    const dy = hoop.y - matchedAtt.y;
+    const d = Math.hypot(dx, dy);
+    if (d < 0.01) return;
+    state.defPos[id] = {
+      ...def,
+      x: matchedAtt.x + (dx / d) * BOXOUT_OFFSET_PX,
+      y: matchedAtt.y + (dy / d) * BOXOUT_OFFSET_PX,
+    };
+  });
 }
 
 function refreshDefense(state: MatchState, baseAppState: AppState): void {

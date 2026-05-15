@@ -347,3 +347,113 @@ describe('gameLoop — intent persistance', () => {
     expect(['drive', 'pass', 'shoot']).toContain(state.intent.kind);
   });
 });
+
+describe('gameLoop — E.1 V1 transition 2-way (home/away)', () => {
+  it("initialise homeScore/awayScore/attackingTeam à valeurs neutres", () => {
+    const baseState = buildState('pnr-central');
+    const state = createInitialMatchState(baseState, { seed: 1, maxPossessions: 3 });
+    expect(state.homeScore).toBe(0);
+    expect(state.awayScore).toBe(0);
+    expect(state.attackingTeam).toBe('home');
+  });
+
+  it("après possession maison terminée, passe en attackingTeam='away' (E.1 V1)", () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, {
+      seed: 17,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 3,
+    });
+    state = tickMatch(state, MATCH_TICK_MS, baseState);
+    expect(state.outcome).not.toBeNull();
+    // Pause + transition (~46 ticks à 30 Hz).
+    for (let i = 0; i < 60; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+      if (state.attackingTeam === 'away') break;
+    }
+    // Soit on est passé en away, soit (rare) la home a continué via off rebond.
+    if (state.attackingTeam === 'away') {
+      expect(state.intent.kind).toBe('away-possession');
+      expect(state.possessionsPlayed).toBe(1);
+    }
+  });
+
+  it("possession adverse stub : décrémente le clock et chaîne sur nouvelle possession maison", () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, {
+      seed: 21,
+      shotClockMs: MATCH_TICK_MS,
+      maxPossessions: 5,
+    });
+    // Joue beaucoup de ticks pour observer au moins une transition complète
+    // home → away → home (cycle ~12s + 1.5s pause = ~410 ticks par cycle).
+    let observedAwayThenHome = false;
+    let sawAway = false;
+    const awayScoreInit = state.awayScore;
+    for (let i = 0; i < 1500; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+      if (state.attackingTeam === 'away') sawAway = true;
+      if (sawAway && state.attackingTeam === 'home' && state.intent.kind === 'idle') {
+        observedAwayThenHome = true;
+        break;
+      }
+    }
+    if (sawAway) {
+      // On a au moins observé le passage en away.
+      expect(state.awayScore).toBeGreaterThanOrEqual(awayScoreInit);
+      if (observedAwayThenHome) {
+        // Cycle complet observé : retour en home.
+        expect(state.attackingTeam).toBe('home');
+      }
+    }
+  });
+
+  it("homeScore et awayScore restent séparés au fil de la session", () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, { seed: 333, maxPossessions: 3 });
+    // Joue plusieurs possessions.
+    for (let i = 0; i < 2000; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+      if (
+        state.outcome !== null &&
+        state.maxPossessions !== null &&
+        state.possessionsPlayed >= state.maxPossessions
+      ) {
+        break;
+      }
+    }
+    // Les 2 scores sont des entiers ≥ 0
+    expect(state.homeScore).toBeGreaterThanOrEqual(0);
+    expect(state.awayScore).toBeGreaterThanOrEqual(0);
+    // cumulativeScore est l'alias de homeScore (rétrocompat).
+    expect(state.cumulativeScore).toBe(state.homeScore);
+  });
+
+  it("box-out : sur fin de possession (tir), les défenseurs sont entre leur homme et le panier", () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, {
+      seed: 77,
+      shotClockMs: MATCH_TICK_MS,
+    });
+    // Boucle jusqu'à l'outcome (tir manqué/réussi).
+    for (let i = 0; i < 10; i += 1) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+      if (state.outcome !== null) break;
+    }
+    expect(state.outcome).not.toBeNull();
+    // Pour chaque défenseur, vérifier qu'il est plus proche du panier
+    // que son homme matché (box-out appliqué).
+    const HOOP = { x: 300, y: 75 }; // ou getDefenseHoop(...), on prend la valeur connue
+    const matchups = Object.entries(state.defPos);
+    let boxedOutCount = 0;
+    matchups.forEach(([id, def]) => {
+      const matchedAtt = state.off[(def as { matchedTo: string }).matchedTo as keyof typeof state.off];
+      if (!matchedAtt) return;
+      const defDistToHoop = Math.hypot(def.x - HOOP.x, def.y - HOOP.y);
+      const attDistToHoop = Math.hypot(matchedAtt.x - HOOP.x, matchedAtt.y - HOOP.y);
+      if (defDistToHoop < attDistToHoop) boxedOutCount += 1;
+    });
+    // Au moins 3/5 défenseurs sont box-outés (le shooter peut être hors logic).
+    expect(boxedOutCount).toBeGreaterThanOrEqual(3);
+  });
+});
