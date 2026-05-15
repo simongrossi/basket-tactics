@@ -683,6 +683,179 @@ const BLOB_HAWK: Template = {
 };
 
 // ============================================================
+// SLOB HIGH DRAG — advance + drag screen mi-terrain
+// ============================================================
+//
+// Transition rapide : outlet à O2, qui dribble en advance, et O5
+// (intérieur arrière) remonte poser un drag screen au milieu pour
+// libérer un mid-range ou un roll dunk.
+// ------------------------------------------------------------
+
+const slobHighDragSetup: AttackerPositions = {
+  O1: { x: 592, y: 440 },  // passeur transition
+  O2: { x: 420, y: 460 },  // primary outlet (= advance ball)
+  O3: { x: 200, y: 460 },  // weak outlet
+  O4: { x: 300, y: 380 },  // milieu de terrain
+  O5: { x: 300, y: 260 },  // intérieur, courant vers l'avant
+};
+const slobHighDragAdvance: AttackerPositions = {
+  ...slobHighDragSetup,
+  O2: { x: 380, y: 380 },  // reçoit + advance dribble
+  O5: { x: 350, y: 320 },  // revient poser drag screen
+};
+const slobHighDragRoll: AttackerPositions = {
+  ...slobHighDragAdvance,
+  O2: { x: 320, y: 250 },  // dribble post-drag, mid-range
+  O5: { x: 400, y: 200 },  // roll vers panier après screen
+};
+
+const SLOB_HIGH_DRAG: Template = {
+  id: 'slob-high-drag',
+  name: 'SLOB haut · Drag screen',
+  description: 'Transition rapide. Outlet à O2, advance dribble, drag screen de O5 mi-terrain pour mid-range / roll dunk.',
+  defenseInitial: defaultDef(slobHighDragSetup),
+  steps: [
+    {
+      label: 'Setup transition',
+      off: slobHighDragSetup,
+      ballCarrier: 'O1',
+      annotations: [],
+      context: 'inbound-sideline-high',
+      manualOverride: true,
+    },
+    {
+      label: 'Outlet + drag screen',
+      off: slobHighDragAdvance,
+      ballCarrier: 'O2',
+      annotations: [
+        { type: 'pass', fromId: 'O1', toId: 'O2', from: slobHighDragSetup.O1, to: slobHighDragSetup.O2 } as Annotation,
+        { type: 'cut', fromId: 'O2', toId: null, from: slobHighDragSetup.O2, to: slobHighDragAdvance.O2 } as Annotation,
+        { type: 'cut', fromId: 'O5', toId: null, from: slobHighDragSetup.O5, to: slobHighDragAdvance.O5 } as Annotation,
+        { type: 'screen', fromId: 'O5', toId: 'O2', from: slobHighDragAdvance.O5, to: slobHighDragAdvance.O5 } as Annotation,
+      ],
+    },
+    {
+      label: 'O2 mid-range + O5 roll',
+      off: slobHighDragRoll,
+      ballCarrier: 'O2',
+      annotations: [
+        { type: 'dribble', fromId: 'O2', toId: null, from: slobHighDragAdvance.O2, to: slobHighDragRoll.O2 } as Annotation,
+        { type: 'cut', fromId: 'O5', toId: null, from: slobHighDragAdvance.O5, to: slobHighDragRoll.O5 } as Annotation,
+      ],
+    },
+  ],
+};
+
+// ============================================================
+// SLOB HIGH QUICK — long pass d'avance direct
+// ============================================================
+//
+// Pédagogie : "ne dribble pas, passe en avant". 2 steps : remise
+// directe à O5 qui court vers le panier. Pour conditions où une
+// défense pressante est en place et un coureur est libre devant.
+// ------------------------------------------------------------
+
+const slobHighQuickSetup: AttackerPositions = {
+  O1: { x: 592, y: 440 },
+  O2: { x: 480, y: 380 },  // ball-side outlet
+  O3: { x: 200, y: 380 },  // weak outlet
+  O4: { x: 350, y: 260 },  // milieu (=relai/spacing)
+  O5: { x: 350, y: 130 },  // déjà avancé (= coureur)
+};
+const slobHighQuickFinish: AttackerPositions = {
+  ...slobHighQuickSetup,
+  O5: { x: 320, y: 90 },   // arrivée panier
+};
+
+const SLOB_HIGH_QUICK: Template = {
+  id: 'slob-high-quick',
+  name: 'SLOB haut · Quick advance',
+  description: 'Transition express. O1 passe directement à O5 déjà parti vers le panier. Pas de dribble intermédiaire.',
+  defenseInitial: defaultDef(slobHighQuickSetup),
+  steps: [
+    {
+      label: 'Setup quick',
+      off: slobHighQuickSetup,
+      ballCarrier: 'O1',
+      annotations: [],
+      context: 'inbound-sideline-high',
+      manualOverride: true,
+    },
+    {
+      label: 'O5 finit + long pass',
+      off: slobHighQuickFinish,
+      ballCarrier: 'O5',
+      annotations: [
+        { type: 'cut', fromId: 'O5', toId: null, from: slobHighQuickSetup.O5, to: slobHighQuickFinish.O5 } as Annotation,
+        { type: 'pass', fromId: 'O1', toId: 'O5', from: slobHighQuickSetup.O1, to: slobHighQuickFinish.O5 } as Annotation,
+      ],
+    },
+  ],
+};
+
+// ============================================================
+// SLOB HIGH TRAP BREAK — bypass de trappe sideline
+// ============================================================
+//
+// Scénario anti-presse : la défense piège ball-side après la remise.
+// Solution : passe haute ball-side à O4 qui plonge derrière, O2
+// (cutter) reçoit ensuite en haut du cercle pour avancer la balle.
+// ------------------------------------------------------------
+
+const slobHighTrapSetup: AttackerPositions = {
+  O1: { x: 592, y: 440 },  // passeur (sous pression piège)
+  O2: { x: 520, y: 360 },  // cutter ball-side (= advance final)
+  O4: { x: 480, y: 460 },  // backup outlet ball-side
+  O3: { x: 300, y: 380 },  // outlet milieu
+  O5: { x: 200, y: 460 },  // outlet weak
+};
+const slobHighTrapHigh: AttackerPositions = {
+  ...slobHighTrapSetup,
+  O4: { x: 450, y: 380 },  // monte recevoir première passe
+  O2: { x: 550, y: 280 },  // cut ball-side haut
+};
+const slobHighTrapAdvance: AttackerPositions = {
+  ...slobHighTrapHigh,
+  O2: { x: 520, y: 230 },  // wing ball-side, avance
+};
+
+const SLOB_HIGH_TRAP_BREAK: Template = {
+  id: 'slob-high-trap-break',
+  name: 'SLOB haut · Bypass trappe',
+  description: 'Anti-presse. O4 monte ball-side recevoir, O2 cut derrière, passe vers le haut du cercle pour briser le trap sideline.',
+  defenseInitial: defaultDef(slobHighTrapSetup),
+  steps: [
+    {
+      label: 'Setup anti-trap',
+      off: slobHighTrapSetup,
+      ballCarrier: 'O1',
+      annotations: [],
+      context: 'inbound-sideline-high',
+      manualOverride: true,
+    },
+    {
+      label: 'O4 high + O2 cut',
+      off: slobHighTrapHigh,
+      ballCarrier: 'O4',
+      annotations: [
+        { type: 'cut', fromId: 'O4', toId: null, from: slobHighTrapSetup.O4, to: slobHighTrapHigh.O4 } as Annotation,
+        { type: 'cut', fromId: 'O2', toId: null, from: slobHighTrapSetup.O2, to: slobHighTrapHigh.O2 } as Annotation,
+        { type: 'pass', fromId: 'O1', toId: 'O4', from: slobHighTrapSetup.O1, to: slobHighTrapHigh.O4 } as Annotation,
+      ],
+    },
+    {
+      label: 'O4 → O2 advance',
+      off: slobHighTrapAdvance,
+      ballCarrier: 'O2',
+      annotations: [
+        { type: 'cut', fromId: 'O2', toId: null, from: slobHighTrapHigh.O2, to: slobHighTrapAdvance.O2 } as Annotation,
+        { type: 'pass', fromId: 'O4', toId: 'O2', from: slobHighTrapHigh.O4, to: slobHighTrapAdvance.O2 } as Annotation,
+      ],
+    },
+  ],
+};
+
+// ============================================================
 // Liste exportée — agrégée dans CLASSIC_TEMPLATES de templates.ts
 // ============================================================
 
@@ -698,4 +871,7 @@ export const INBOUND_TEMPLATES: Template[] = [
   SLOB_IVERSON,
   SLOB_FLOPPY,
   SLOB_HIGH_OUTLET,
+  SLOB_HIGH_DRAG,
+  SLOB_HIGH_QUICK,
+  SLOB_HIGH_TRAP_BREAK,
 ];
