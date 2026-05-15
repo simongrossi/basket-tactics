@@ -1,8 +1,10 @@
 # AI possession mode
 
-> **Statut** : 🟡 V1 livrée (commit `313e015`, 2026-05-15). Premier pas
-> vers la **Phase I — Play IA** annoncée dans la roadmap comme
-> "repoussée bas de pile" — à clarifier si l'effort se poursuit.
+> **Statut** : 🟡 V1 livrée (commit `313e015`, 2026-05-15). **Décision
+> projet 2026-05-15 : on continue jusqu'au game loop autonome
+> complet** (B1 → B5). La Phase I n'est plus reportée — c'est
+> maintenant un chantier actif. Détail B1-B5 + séquencement dans
+> [ROADMAP § Phase I](../ROADMAP.md).
 
 Module `src/lib/logic/match/aiPossession.ts`. Génère une **possession
 entière jouée par l'IA** depuis l'étape active, produit des steps,
@@ -159,21 +161,25 @@ IA" complète annoncée dans la roadmap :
 
 ---
 
-## Décisions de scope à clarifier
+## Décision de scope — 2026-05-15
 
-> ⚠️ **À discuter avec le projet** : la roadmap mentionnait Phase I
-> "repoussée bas de pile" — l'arrivée de `aiPossession.ts` indique
-> que l'effort a démarré. Plusieurs options pour la suite :
->
-> 1. **Arrêter ici** : V1 suffit comme "outil exploratoire single-shot",
->    on ne va pas jusqu'au game loop autonome.
-> 2. **Continuer B2 + B4** sans game loop continu : on enchaîne des
->    possessions IA dans la timeline sans le mode live HUD.
-> 3. **Aller jusqu'au bout** : B1-B5 complets, mode "▶ Play IA (live)"
->    qui joue 5v5 en continu sur 24 s avec HUD.
+**Choix : on va jusqu'au game loop complet (option 3).**
 
-Tant que la décision n'est pas prise, V1 reste utilisable seule et
-n'introduit pas de dette technique sur le moteur.
+Justification : V1 single-shot est utile mais sous-exploite le moteur
+défensif existant. Un game loop autonome 5v5 valide formellement le
+moteur sur des séquences longues (24 s shot clock) et est la brique
+nécessaire pour B5 (tuning Monte-Carlo comparé live vs simulator).
+
+Séquence d'exécution adoptée (cf. [ROADMAP § Phase I](../ROADMAP.md)) :
+
+1. **B1 — Game loop** (`match/gameLoop.ts` + `tick(matchState, dt)`)
+2. **B3a — Modèle de tir minimal** (réutilise `evaluateOffensiveOptions`)
+3. **B2 — Décideur off-ball** (spacing / cuts permanents)
+4. **B4 — UI "▶ Play IA (live)"** + HUD
+5. **B3b — Rebond + transition possession** (dépend Phase E.1
+   box-out/rebond — si E.1 n'est pas livré, on stub la transition par
+   "fin de possession, score noté")
+6. **B5 — Tuning Monte-Carlo comparé**
 
 ---
 

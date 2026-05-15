@@ -548,28 +548,44 @@ comme moment qui termine la séquence), une nouvelle phase de simulation
 soient instruits. Le moteur actuel sert très bien à enseigner la défense
 de placement ; le rebond est une couche au-dessus.
 
-### ⚪ Mode "Play IA — voir un match jouer tout seul" (parties B1-B5 du plan)
+### 🟡 Mode "Play IA — voir un match jouer tout seul" (B1-B5) — chantier actif
 
-L'infrastructure existe (géométrie, threats, offense EV, défense réactive, simulator Monte-Carlo) mais il **manque la boucle de match autonome** : pas de bouton "▶ Play IA" qui fasse jouer 5v5 en continu sur 24 secondes de shot clock visualisable. Le simulateur actuel fait des possessions stochastiques sur un état figé.
+L'infrastructure existe (géométrie, threats, offense EV, défense
+réactive, simulator Monte-Carlo) **et** un socle de génération de
+possession discrète vient d'être livré (`aiPossession.ts`, 2026-05-15).
+Le chantier complet pour atteindre le mode "match live" est désormais
+**actif** (décision projet 2026-05-15) — fini le "repoussé bas de pile".
 
-Ce qu'il faut pour que ça marche :
-- **B1 — Game loop** : `match/gameLoop.ts` avec `tick(matchState, dt) → matchState'`. Cadence de décision ~5 Hz, interpolation entre.
-- **B2 — Décideur joueur autonome** : `match/decisions/ballHandler.ts` (dribble continu / passer / tirer / reset), `match/decisions/offBallMover.ts` (spacing / cuts / écrans). Mémoire courte d'intent par joueur.
-- **B3 — Modèle de tir + rebond + transition possession**.
-- **B4 — UI** : bouton "▶ Play IA (live)" dans `SimulationSection`, HUD léger (possession, shot clock, score, dernière action), pause + vitesse.
-- **B5 — Tuning** via Monte-Carlo en parallèle (PPP du mode live vs simulator → ±0.15 attendu).
-
-**Statut 2026-05-15** : socle initial livré. Le panneau `Simulation & IA`
+**Statut V1 livrée** : `generateAiPossessionPlan` + `generateAiMatchSeries`
+dans `src/lib/logic/match/aiPossession.ts`. Panneau `Simulation & IA`
 peut générer 3 possessions autonomes depuis l'état courant, afficher le
-résumé PPP/outcomes, puis charger une possession en `Step[]` dans la
-timeline pour observer attaque + défense avec le moteur existant.
+résumé PPP/outcomes, charger une possession en `Step[]` dans la timeline.
+Doc : [docs/ai-possession.md](docs/ai-possession.md).
 
-Ce qui reste pour le vrai "match live" :
-- B1 loop temps réel `tick(matchState, dt)` avec continuité 24s.
-- B2 intentions persistantes par joueur (handler + off-ball movers).
-- B3 tir/rebond/transition de possession.
-- B4 HUD live complet (pause, vitesse, score, shot clock).
-- B5 calibration PPP live vs Monte-Carlo.
+**Ce qui reste — plan d'exécution adopté** :
+
+| # | Chantier | Effort | Dépendances |
+|---|---|---|---|
+| **B1** | **Game loop continu** — `match/gameLoop.ts` avec `tick(matchState, dt)`, cadence 5 Hz, interpolation entre ticks, continuité 24 s shot clock | 3-4j | aucune (= bloque B2-B5) |
+| **B3a** | **Modèle de tir minimal** — réutilise `evaluateOffensiveOptions` + `scoreOutcome` déjà dans `aiPossession.ts` ; mute `matchState` (score, shot clock reset) | 1j | B1 |
+| **B2** | **Décideur off-ball** — `match/decisions/ballHandler.ts` (dribble continu / passer / tirer / reset) + `match/decisions/offBallMover.ts` (spacing / cuts permanents / pose d'écran). Mémoire d'intent par joueur. | 3-4j | B1 |
+| **B4** | **UI "▶ Play IA (live)"** — bouton dans `SimulationSection`, HUD léger (possession, shot clock, score, dernière action), pause + vitesse | 1-2j | B1, B2, B3a |
+| **B3b** | **Rebond + transition possession** — si Phase E.1 (box-out) livrée, brancher dessus ; sinon stub "fin de possession, score noté" | 1-2j | B1, B3a, idéal E.1 |
+| **B5** | **Tuning Monte-Carlo comparé** — PPP du mode live vs simulator → cible ±0.15. Boucle de calibration des paramètres `creativity`, `actionTemperature`, seuils décisionnels | 2-3j | B1-B4 |
+
+**Total estimé** : ~10-15j ouvrés. Découpé pour pouvoir s'arrêter
+proprement après chaque sous-chantier (chacun apporte une valeur
+indépendante) :
+
+- Après B1 + B3a : on peut JOUER une possession en continu mais sans
+  off-ball intelligent (les coéquipiers restent statiques).
+- Après B2 : la possession ressemble enfin à une vraie séquence basket.
+- Après B4 : c'est utilisable côté coach (mode "▶ Play IA (live)").
+- Après B5 : c'est calibré et trustable comme tool d'analyse.
+
+**Ordre d'attaque** : B1 → B3a → B2 → B4 → B3b → B5. B1 est le bloqueur
+critique. B3a avant B2 pour avoir un cycle complet (possession qui se
+TERMINE) avant d'enrichir la qualité du jeu off-ball.
 
 ---
 
@@ -905,10 +921,15 @@ historique mais limite à terme. Si on veut renforcer :
 
 ---
 
-### Phase I — Mode Play IA (repoussé bas de pile)
+### Phase I — Mode Play IA (🟡 chantier actif, décision 2026-05-15)
 
-Cf. section "A12" plus haut. Game loop autonome 5v5 (B1-B5 du plan
-original). **1-2 semaines** d'effort. Repoussé par décision projet.
+**Status changé** : précédemment "repoussé bas de pile", désormais
+chantier actif. V1 socle livrée (`aiPossession.ts`). Plan d'exécution
+B1 → B3a → B2 → B4 → B3b → B5 détaillé dans la section 4 plus haut
+(§ Mode "Play IA"). **10-15j ouvrés** estimés au total, découpés en
+livrables indépendants.
+
+Doc : [docs/ai-possession.md](docs/ai-possession.md).
 
 ---
 
