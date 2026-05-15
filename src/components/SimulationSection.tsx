@@ -23,6 +23,9 @@ interface SimulationSectionProps {
   /** B4 — partagé via page.tsx pour synchroniser CourtView et HUD live.
    *  Si absent, le composant instancie son propre hook (rétrocompat tests). */
   matchLoop?: UseMatchLoopResult;
+  /** Match plein écran : déclenche fullCourt + presentMode + browser
+   *  fullscreen sur le terrain. Optionnel. */
+  onEnterFullscreenMatch?: () => void;
 }
 
 const PRESET_RUNS = [50, 200, 1000];
@@ -54,7 +57,7 @@ const AI_OUTCOME_LABELS: Record<AiPossessionOutcome, string> = {
  * La défense est figée pendant la simulation — limite assumée du MVP.
  * Les softmax(EV/τ=0.3) gouvernent les décisions offensives.
  */
-export function SimulationSection({ state, onLoadAiSteps, matchLoop }: SimulationSectionProps) {
+export function SimulationSection({ state, onLoadAiSteps, matchLoop, onEnterFullscreenMatch }: SimulationSectionProps) {
   const c = COLORS.defense;
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [aiSeries, setAiSeries] = useState<AiMatchSeries | null>(null);
@@ -137,7 +140,7 @@ export function SimulationSection({ state, onLoadAiSteps, matchLoop }: Simulatio
       )}
 
       <div style={{ height: 1, background: '#e2e8f0', margin: '10px 0 8px' }} />
-      <LiveMatchPanel state={state} matchLoop={matchLoop} />
+      <LiveMatchPanel state={state} matchLoop={matchLoop} onEnterFullscreenMatch={onEnterFullscreenMatch} />
 
       <div style={{ height: 1, background: '#e2e8f0', margin: '10px 0 8px' }} />
       <CalibrationPanel state={state} />
@@ -302,9 +305,11 @@ function SimulationStats({ result }: { result: SimulationResult }) {
 function LiveMatchPanel({
   state,
   matchLoop,
+  onEnterFullscreenMatch,
 }: {
   state: AppState;
   matchLoop?: UseMatchLoopResult;
+  onEnterFullscreenMatch?: () => void;
 }) {
   // Fallback : si pas de matchLoop fourni en prop (cas tests / usage local),
   // on instancie un hook local. Le code de page.tsx fournit toujours le prop
@@ -392,6 +397,26 @@ function LiveMatchPanel({
         {matchState && (
           <button type="button" onClick={stop} style={liveButtonStyle('stop')}>
             ⏹ stop
+          </button>
+        )}
+        {matchState && onEnterFullscreenMatch && (
+          <button
+            type="button"
+            onClick={onEnterFullscreenMatch}
+            title="Match plein écran : active terrain complet + présentation + fullscreen navigateur"
+            style={{
+              flex: '0 0 auto',
+              fontSize: 11,
+              padding: '5px 8px',
+              borderRadius: 4,
+              border: '1px solid #4338ca',
+              background: '#eef2ff',
+              color: '#3730a3',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            🔳 plein écran
           </button>
         )}
       </div>

@@ -15,6 +15,7 @@ import { ParametresLauncher } from '@/components/ParametresLauncher';
 import { LibraryPanel } from '@/components/LibraryPanel';
 import { Timeline } from '@/components/Timeline';
 import { CourtView } from '@/components/CourtView';
+import { LiveMatchOverlay } from '@/components/LiveMatchOverlay';
 import { PlaybookView } from '@/components/PlaybookView';
 import { PlayerTimelineModal } from '@/components/PlayerTimelineModal';
 import { MultiTrackTimeline } from '@/components/MultiTrackTimeline';
@@ -46,6 +47,26 @@ export default function Page() {
   // pour partager le matchState live entre CourtView (rendu terrain) et
   // SimulationSection (HUD événements + contrôles).
   const matchLoop = useMatchLoop({ baseState: app.state });
+
+  // E.1 V1 + A.2 — mode "match plein écran" : active fullCourt +
+  // presentMode + browser fullscreen en une seule action.
+  const handleEnterFullscreenMatch = useCallback(() => {
+    if (!app.state.fullCourt) {
+      app.patch({ fullCourt: true });
+    }
+    setPresentMode(true);
+    // Best-effort native fullscreen (peut échouer si l'utilisateur n'a
+    // pas interagi avec un geste utilisateur ou si bloqué par le navigateur).
+    if (typeof document !== 'undefined' && !document.fullscreenElement) {
+      void document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+  }, [app]);
+  const handleExitFullscreenMatch = useCallback(() => {
+    setPresentMode(false);
+    if (typeof document !== 'undefined' && document.fullscreenElement) {
+      void document.exitFullscreen?.().catch(() => {});
+    }
+  }, []);
 
   const metrics = useMemo(() => {
     const step = app.state.steps[app.state.activeStep];
@@ -204,6 +225,7 @@ export default function Page() {
               onClearAllDefenseOverridesAnimated={app.clearAllDefenseOverridesActiveStepAnimated}
               matchLoop={matchLoop}
               onLoadAiSteps={handleLoadAiSteps}
+              onEnterFullscreenMatch={handleEnterFullscreenMatch}
               scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
               onToggleScriptedDefense={app.toggleScriptedDefense}
               userDefensePresets={lib.library.defensePresets}
@@ -224,6 +246,16 @@ export default function Page() {
           <div style={{ position: 'relative', minHeight: 0, overflow: 'hidden', display: 'grid' }}>
             {app.state.showCoachDiagnostics !== false && (
               <CoachDiagnosticsOverlay diagnostics={coachDiagnostics} />
+            )}
+            {/* E.1 V1 — HUD compact en overlay quand mode présentation actif
+                pendant un match live. Sans ça l'utilisateur perd toute info
+                (score, shot clock) en passant en plein écran. */}
+            {presentMode && matchLoop.matchState && (
+              <LiveMatchOverlay
+                matchState={matchLoop.matchState}
+                onStop={matchLoop.stop}
+                onExitPresent={handleExitFullscreenMatch}
+              />
             )}
             <CourtView
               state={app.state}

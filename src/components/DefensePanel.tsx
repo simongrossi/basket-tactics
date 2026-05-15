@@ -53,6 +53,9 @@ interface DefensePanelProps {
    *  SimulationSection (HUD) et CourtView (rendu terrain) partagent la
    *  même source. Optionnel pour rétrocompat. */
   matchLoop?: import('@/hooks/useMatchLoop').UseMatchLoopResult;
+  /** Active le mode "match plein écran" (fullCourt + presentMode +
+   *  browser fullscreen). Propagé à SimulationSection qui rend le bouton. */
+  onEnterFullscreenMatch?: () => void;
   scriptedDefenseEnabled?: boolean;
   onToggleScriptedDefense: () => void;
   userDefensePresets?: UserDefensePreset[];
@@ -1166,7 +1169,12 @@ export function DefensePanel(props: DefensePanelProps) {
         variant="secondary"
         defaultOpen={false}
       >
-        <SimulationSection state={state} onLoadAiSteps={props.onLoadAiSteps} matchLoop={props.matchLoop} />
+        <SimulationSection
+          state={state}
+          onLoadAiSteps={props.onLoadAiSteps}
+          matchLoop={props.matchLoop}
+          onEnterFullscreenMatch={props.onEnterFullscreenMatch}
+        />
       </AccordionSection>
     </Panel>
   );
