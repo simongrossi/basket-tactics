@@ -6,6 +6,203 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-05-15
+
+### Phase J — Qualité moteur d'écran & outillage (8 chantiers)
+
+Suite de la session debug UCLA cut (saut D1 ~52 px entre f113-f114).
+La phase J consolide le moteur d'écran et son outillage **sans changer
+le scope basket**. Cf. [ROADMAP § Phase J](ROADMAP.md#phase-j--moteur-d%C3%A9cran--playback--qualit%C3%A9--outillage-mai-2026).
+
+#### J.0a — Fix anti-flip D1 (pushOutOfManyConstrained)
+
+`resolveFrameAt` ne flippe plus D1 d'un côté à l'autre du poseur quand
+il est coincé entre cutter et screener (UCLA cut). Quand un seul cluster
+d'écran a déclenché la Bezier de contournement, on contraint chaque
+push à ne pas franchir le segment `defA → defB` vers le côté du
+cluster. Mesure UCLA scrub : saut max **52 → 25 px**, plus de flip
+de côté. Commit `303fb25`, 3 tests dédiés (`uclaCutAntiFlip.test.ts`).
+
+#### J.0b — Garde-fou diagnostic anti-téléport central
+
+`resolveFrameAt({ collectDecisions: true })` expose `frame.debug.defenders[id]`
+avec : `screenMode`, `quality`, `carrierContact`, `offBallContactType`,
+`curveBranch`, `clusterId`, `pushMode`, `forcedPushSign`, `matchedTo`,
+`late`. Le test `screenLabPlaybackJumps` couvre maintenant 16 templates
+(9 Labs + 7 classiques : pnr-central, horns-flare, pindown-corner,
+spain-pnr, ucla-cut, floppy, hammer). Sur tout saut > 20 px, dump
+automatique du diff de décision avant/après. Commit `1c3feab`.
+
+#### J.1 — Parité scrub ↔ playback
+
+Le scrub recompute désormais un préfixe synthétique depuis le début du
+segment pour avoir la même stabilité que le playback (rate limiter
+appliqué). Plus de différence visuelle scrub vs play. Commit `38209d6`.
+
+#### J.2 — Cache segmentaire du resolver
+
+Les valeurs stables par segment `idxA → idxB` (`ctxA`, `ctxB`,
+`screenerObstacles`, contacts, routes, `screenLockedDefenders`) sont
+memoizées. Profilage indique ~50 % de calcul sauvé en playback continu,
+particulièrement visible quand `collectDecisions` ou overlays debug
+sont actifs. Commit `87b212c`.
+
+#### J.3 — Solveur de contraintes unifié
+
+Nouveau module `src/lib/logic/constraintSolver.ts` (208 lignes) qui
+unifie toute la logique de projection point/obstacles avec contraintes
+de demi-plan et de collisions multi-entités. `pushOutOfScreenContact`,
+`pushOutOfMany` et `resolvePlayerCollisions` délèguent désormais au
+même socle. Plus de surface d'attaque pour les régressions latérales.
+Commits `f7fcb8a` (cœur), `6ba3927` (push radial), `f1a6b64`
+(finalisation multi-entités).
+
+#### J.4 — Off-ball avancé
+
+Les écrans hors-ballon ont désormais des routes par type (`flare`,
+`backscreen`, `hammer`, etc.), un gap explicite pour les elevators
+(le défenseur passe par l'unique fente entre les deux poseurs), une
+sortie tangentielle active après contact, et une mémoire multi-contact
+pour les stagger séquentiels (D2 transite proprement de O4 vers O5
+sans retour à l'homme). Gros gain sur UCLA, floppy, pindown, hammer.
+Commits `c50615d`, `836e523`, `285b9ff`, `46c42fd`.
+
+#### J.5 — Profiling + budget frame
+
+`resolveFrameAt({ profile: true })` expose `frame.profile.totalMs` +
+sous-temps par phase. Test dédié `playbackProfilingBudget.test.ts`
+mesure la moyenne sur les 16 templates et fail si dépassement du
+budget (cible : `< 2 ms en 5v5`). Commit `a40a8bc`.
+
+#### J.6 — Golden scenario metrics
+
+Nouveau module `src/lib/logic/playbackGoldenMetrics.ts` qui produit
+un snapshot par template : `maxAttackerJumpPx`, `maxDefenderJumpPx`,
+`minPlayerClearancePx`, `screenContactFrames`, `averageResolveMs`.
+Snapshots versionnés. Toute évolution du moteur sera **automatiquement
+comparée** à l'état de référence. Commit `e8ad45b`.
+
+#### J.7 — Panneau debug joueur
+
+Nouvel overlay `ScreenPlayerDebugPanel.tsx` (activable via
+`state.showPlayerDebug` dans Paramètres) qui affiche par défenseur
+sélectionné : `screenMode`, `quality`, `clusterId`, `pushMode`,
+`forcedPushSign`, `matchedTo`, `late`, `jumpLastFrame`. Réutilise
+l'option `collectDecisions` déjà branchée. Commit `37a370f`.
+
+### Phase C — Réalisme défensif complet (C.1 → C.7)
+
+7 chantiers de réalisme défensif livrés sur 2026-05-12/13. Tous opt-in
+pour préserver la rétrocompat.
+
+- **C.1 — Closeout footwork** (commit `8b65aa6`) : `closeoutEasing`
+  applique sprint(65 %) puis freinage(35 %) sur la transition d'un
+  défenseur en closeout. Visuellement "in control, bras hauts".
+- **C.2 — Help-and-recover timing** : nouveau setting
+  `state.helpStickiness?: number` (1..3 steps avec decay linéaire).
+  Couche `helpStickyLayer` (1.6 du pipeline).
+- **C.3 — Hedge length** : `state.hedgeRecoveryDelay` (1..3 steps)
+  avant recover forcé. Helper pur `hedgeStepCounter`.
+- **C.4 — Pre-rotation shift** : `state.preRotationEnabled` shifte
+  carrierDef ~10 px vers un poseur imminent (détecté avant impact).
+- **C.5 — Tag-then-switch** : `state.tagThenSwitchEnabled` bascule
+  en switch implicite si le roller arrive ≤ 150 px du panier.
+- **C.6 — Help angle continu** : mode `open-weighted` qui pondère le
+  bias d'aide par les distances réelles plutôt que par l'angle binaire.
+- **C.7 V1 + V2 — Action chains** : détecte 3 patterns
+  (`re-screen`, `stagger-sequential`, `flare-then-fade`) ; V2 fait
+  réagir la défense (shift tangentiel re-screen + gazeLock flare-fade).
+  Setting `state.readScreenChainsEnabled?: boolean`. Couche
+  `chainResponseLayer` (2.5). +21 tests dédiés.
+
+### D.2 + D.5 — Réalisme physique playback
+
+- **D.2 — Inertie défenseurs** (commits `7b1e12e`, `a6b871b`) : un
+  changement de direction brutal coûte du temps. Modélisé via une
+  courbe d'accélération bornée + V2 modulée par la vitesse précédente
+  (un défenseur qui sprintait ralentit moins vite qu'un défenseur
+  arrêté). Les déplacements deviennent moins robotiques.
+- **D.5 — Anti-collision pendant l'interpolation** (commit `3b00c04`) :
+  passe finale de clearance sur la frame interpolée garantit que les
+  collisions transitoires entre 2 endpoints "propres" sont résolues
+  côté visuel. Complète l'invariant Règle 1.
+
+### Phase I — AI possession mode (démarrage)
+
+Nouveau module `src/lib/logic/match/aiPossession.ts` qui génère une
+possession entière jouée par l'IA depuis l'étape active. Expose :
+
+- `generateAiPossessionPlan(state, options)` — produit `steps[]` +
+  `events[]` (passe / drive / shot / turnover) + `outcome` + `points`
+- `generateAiMatchSeries(state, options)` — itère N possessions
+- RNG seedé (`seededAiRng`) pour reproductibilité
+- Setting `creativity` (0..1) module la "température" de la sélection
+  d'action
+
+Câblage UI dans `SimulationSection`. **Premier pas vers la Phase I
+Play IA** (game loop autonome 5v5) annoncée comme repoussée — à
+clarifier dans la roadmap si l'effort se poursuit. Doc dédiée :
+[docs/ai-possession.md](docs/ai-possession.md). Commit `313e015`.
+
+### F.3 — Free throw rebound positioning
+
+Setup automatique des 10 positions canoniques autour de la raquette
+sur LF (NBA/FIBA). Nouveau champ `Step.context?: 'live-play' | 'free-throw'`.
+`applyFreeThrowSetup(state)` configure les slots. 11 tests, commit
+livré 2026-05-13.
+
+### Tooling — Diagnostics réutilisables
+
+Nouveau module `src/lib/logic/playbackDiagnostics.ts` (commit `aa39193`)
+qui extrait le code de détection/formatting des sauts du test
+`screenLabPlaybackJumps` pour le rendre réutilisable (`collectPlaybackJumpDiagnostics`,
+`formatPlaybackJumpDiagnostics`). Permettra de l'invoquer depuis d'autres
+tests ou outils dev sans dupliquer la logique.
+
+### Documentation
+
+- **[ROADMAP.md](ROADMAP.md)** : nouvelle Phase J entièrement détaillée
+  (8 chantiers + plans + risques) ; D.2/D.5 marqués livrés ; Phase
+  I AI possession reflète le démarrage.
+- **[docs/SCREEN-ENGINE.md](docs/SCREEN-ENGINE.md)** : sections
+  ajoutées sur le `constraintSolver`, le `contact state machine`,
+  l'hystérésis qualité/spatiale.
+- **[docs/mobile-plan.md](docs/mobile-plan.md)** (nouveau) : plan
+  Capacitor iOS en 5 phases pour le portage futur, à attaquer quand
+  l'app desktop sera stable.
+- **[docs/ai-possession.md](docs/ai-possession.md)** (nouveau) :
+  documentation du module `aiPossession.ts` + scope Phase I.
+
+### Bouton "Tout en auto" — 2 variantes (rapide / réel)
+
+Le bouton libérant les overrides défense se dédouble pour servir 2 cas
+d'usage distincts :
+
+- **🧠 ⚡ rapide** : instantané. Pour le coach qui itère sur ses
+  scénarios. Comportement existant.
+- **🧠 ▶ réel** : anime le retour sur ~700 ms (ease-out cubique) depuis
+  les positions manuelles capturées vers les positions auto recomputées.
+  Pédagogique : sert à montrer aux joueurs la réaction défensive
+  attendue plutôt qu'un téléport.
+
+État transitoire `DefenseReleaseTransition` dans `useAppState` (non
+persisté, hors `AppState`) + `releaseFrame` dans `useCourtFrame`
+intercalé entre scrub et static. Tick `requestAnimationFrame`
+uniquement pendant la durée active. Commit `4cf98a4`.
+
+### Badge "auto IA" + bouton "Tout en auto" déplacé
+
+Inversion de la convention visuelle des badges défense : les défenseurs
+en mode auto portent désormais un 🧠 (fond indigo clair), les manuels
+n'ont plus de badge. Le défenseur "déviant" devient celui sans cerveau,
+plus intuitif quand 4/5 défenseurs sont en auto. Bouton "Tout en auto"
+déplacé en tête du panneau "Système de défense" pour accès rapide.
+Commit `b504dfd`.
+
+---
+
+## [0.8.5] — 2026-05-12
+
 ### A.1 + A.4 — UI accessible + badges détections sur le terrain
 
 Deux chantiers de la Phase A (audit roadmap) livrés ensemble pour

@@ -189,6 +189,7 @@ La cinématique : comment un joueur passe d'un point A à un point B, à quelle 
 |---|---|---|
 | [`data/physics.ts`](../src/lib/data/physics.ts) | **Constantes physiques centralisées** | `PX_PER_M`, `PLAYER_RADIUS`, `MIN_PLAYER_CLEARANCE_PX`, `DEFAULT_DEFENSE_MAX_SPEED_PX`, `DEFAULT_DEFENSE_DISTANCE_PX`, `DEFAULT_CLOSEOUT_BOOST`, `DEFAULT_DENY_AGGRESSIVENESS`, `MAX_SPEED_BY_POSITION_PX`, `DEFAULT_SCREEN_RADIUS_PX`, `RIM_PROTECTION_DROP_ZONE_PX`, helpers `metersToPx` / `pxToMeters` |
 | [`geometry.ts`](../src/lib/logic/geometry.ts) | Math 2D + trajectoires | `distance`, `lerp`, `clamp`, `normalize`, `pushOutOfMany`, `resolvePlayerCollisions`, `curveAroundObstacle`, `pickBlockingCluster`, `pickStaggeredPair`, `curveAroundStaggeredPair`, `pathArcLength`, `proximityFriction`, `computeBallFrame`, `makeCluster` |
+| [`constraintSolver.ts`](../src/lib/logic/constraintSolver.ts) | **Solveur de contraintes unifié** (J.3, 2026-05-15) | `solvePointConstraints` (point + obstacles + demi-plan optionnel) ; `solveEntityCollisions` (collisions multi-entités). Socle commun derrière `pushOutOfMany`, `pushOutOfScreenContact`, `resolvePlayerCollisions`. |
 | [`data/court.ts`](../src/lib/data/court.ts) | Dimensions structurelles du terrain (FIBA) | `COURT 600×560`, `FULL_COURT_HEIGHT = 1080`, `HOOP {300,75}`, `HOOP_OPPOSITE`, `THREE_POINT_RADIUS = 250`, `PAINT`, `FT_LINE_Y`, `RESTRICTED_AREA_RADIUS`, `CENTER_CIRCLE_RADIUS`, etc. |
 | [`engine.ts`](../src/lib/logic/engine.ts) (section bas) | Application des contraintes | `effectiveDefensePositions` : path arc length, friction, maxSpeed, closeoutBoost |
 
@@ -222,6 +223,20 @@ Pour chaque défenseur, à chaque étape :
 3. **Friction de proximité** : `proximityFriction(from, to, obstacles)` réduit la vitesse max si le trajet frôle un joueur non-matché. Modélise le contact épaule.
 4. **MaxSpeed** : `effectiveMaxSpeed = (rule.maxSpeed × closeoutBoost × profileBonus) × friction`. Si `pathLen > effectiveMaxSpeed`, le défenseur s'arrête en chemin et reçoit `late=true`.
 5. **Solveur de collisions final** : `resolvePlayerCollisions` itère pour qu'aucun défenseur ne se superpose à un autre joueur (sauf son matchedTo).
+
+> **Note J.3 (2026-05-15)** : depuis la phase J.3, toutes les passes
+> de projection (`pushOutOfMany`, `pushOutOfScreenContact`,
+> `resolvePlayerCollisions`) délèguent à
+> [`constraintSolver.ts`](../src/lib/logic/constraintSolver.ts) qui
+> expose deux primitives unifiées : `solvePointConstraints` (un point +
+> obstacles + demi-plan optionnel) et `solveEntityCollisions`
+> (entités mobiles + obstacles statiques). Les wrappers historiques
+> gardent leurs noms pour préserver les appels existants, mais la
+> logique itérative ne vit plus dans `geometry.ts`. Bénéfices :
+> moins de surface d'attaque pour les régressions latérales (cf. fix
+> UCLA cut), socle commun pour faire évoluer la stratégie de
+> projection (ex : passer à SoR ou QP léger). Détails dans
+> [SCREEN-ENGINE § J.3](SCREEN-ENGINE.md).
 
 **Côté attaquants** (depuis P6) : pendant l'interpolation A→B dans [`CourtView.tsx`](../src/components/CourtView.tsx), `pickBlockingCluster` + `curveAroundObstacle` génèrent une trajectoire Bezier qui contourne les autres joueurs. Pas de `maxSpeed` (l'utilisateur garde la liberté de placement) ; un diagnostic warning s'affiche si saut > 4 m sur une étape.
 
