@@ -337,6 +337,26 @@ Avec `linkDist = 4 * PLAYER_RADIUS` (64px) : si le défenseur du poseur est à m
 
 `easeSlowAtApex(t, a=0.3)` : `t + a · sin(2πt) / (2π)`. La dérivée vaut `1 + a` aux extrémités et `1 − a` au milieu — visuellement, le défenseur "négocie" l'écran (ralentit en plein contournement) au lieu de filer comme une fusée.
 
+### Inertie playback sur changement de direction
+
+Quand `resolveFrameAt` reçoit une `prevFrame`, il conserve aussi une
+mémoire courte de vélocité défensive (`motionMemory`). Si le vecteur de
+déplacement demandé sur la frame courante change brutalement de direction
+par rapport à la frame précédente, le défenseur garde une petite partie
+de son élan et perd un peu de distance sur cette frame.
+
+Cette inertie est volontairement bornée :
+- elle ne s'applique pas sans `prevFrame` : les positions de step restent
+  déterministes et inchangées en calcul isolé ;
+- elle est désactivée pour les défenseurs verrouillés sur écran, en phase
+  `impact`/`stuck`, ou placés manuellement via `defenseOverrides` ;
+- elle repasse ensuite par le solveur de collisions, puis par le rate
+  limiter anti-saut.
+
+Le debug écran expose `motionTurnDeg` et `motionInertia` pour vérifier
+qu'un amortissement vient bien d'un virage réel, pas d'un flip de
+détection.
+
 ### Solveur de collisions strict
 
 Toujours appliqué après le contournement Bezier : voir section suivante.

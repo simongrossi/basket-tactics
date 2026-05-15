@@ -119,6 +119,8 @@ export function formatPlaybackJumpDiagnostics(
             `push=${j.curDebug.pushMode} sign=${j.curDebug.forcedPushSign} ` +
             `screeners=${j.curDebug.contactScreeners?.join('+') ?? '-'} ` +
             `active=${j.curDebug.activeScreener ?? '-'} ` +
+            `inertia=${j.curDebug.motionInertia?.toFixed(2) ?? '-'} ` +
+            `turn=${j.curDebug.motionTurnDeg?.toFixed(0) ?? '-'} ` +
             `matched=${j.curDebug.matchedTo} late=${j.curDebug.late} ` +
             `jump=${j.curDebug.lastJumpPx?.toFixed(1) ?? '-'} ` +
             `offBall=${j.curDebug.offBallContactType}`

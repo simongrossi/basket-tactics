@@ -689,6 +689,14 @@ lieu, donc se fait avoir par les mêmes patterns en boucle.
 | D.4 | **Pathfinding A* défensif** : un défenseur va en ligne droite vers sa cible, `resolvePlayerCollisions` corrige a posteriori. A* simplifié sur obstacles dynamiques éviterait le bruit. | 3-4j | 🔴 | Moyen |
 | D.5 | **Anti-collision pendant l'interpolation** : `resolvePlayerCollisions` agit sur les cibles, pas sur les positions interpolées entre steps. Collisions transitoires visibles. | 1-2j | 🟡 | Moyen |
 
+**D.2 V1 livré 2026-05-15.** `resolveFrameAt` a maintenant une
+mémoire courte de vélocité défensive (`motionMemory`) et amortit les
+changements de direction violents pendant le playback. L'effet est
+désactivé sur écran verrouillé et override manuel, puis repasse par les
+collisions + rate limiter. Reste une V2 plus profonde si besoin :
+accélération/top speed par profil joueur et pathfinding défensif
+pré-collision.
+
 ---
 
 ### Phase E — Changement de scope (le gros)

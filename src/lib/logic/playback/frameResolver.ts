@@ -126,6 +126,10 @@ export interface FrameDecision {
   late: boolean;
   /** Distance finale parcourue depuis la frame précédente, si disponible. */
   lastJumpPx: number | undefined;
+  /** Angle de changement de direction détecté par l'inertie playback. */
+  motionTurnDeg: number | undefined;
+  /** Intensité d'inertie appliquée à cette frame (0..1). */
+  motionInertia: number | undefined;
 }
 
 export interface FrameDebug {
@@ -167,6 +171,14 @@ export interface ScreenContactMemoryEntry {
 
 export type ScreenContactMemory = Partial<Record<DefenderId, ScreenContactMemoryEntry>>;
 
+export interface DefenderMotionMemoryEntry {
+  velocity: Point;
+  turnDeg: number;
+  inertia: number;
+}
+
+export type DefenderMotionMemory = Partial<Record<DefenderId, DefenderMotionMemoryEntry>>;
+
 export interface PlaybackFrame {
   off: AttackerPositions;
   defPos: ComputedDefense;
@@ -182,6 +194,8 @@ export interface PlaybackFrame {
   /** Mémoire courte de contact écran, propagée uniquement par le playback
    *  via `options.prevFrame`. Le scrub pur n'en dépend pas. */
   screenMemory?: ScreenContactMemory;
+  /** Mémoire courte de vélocité défensive pour l'inertie playback. */
+  motionMemory?: DefenderMotionMemory;
   /** Décisions internes par défenseur, populées uniquement si
    *  `options.collectDecisions` est true. Sinon undefined. */
   debug?: FrameDebug;
@@ -229,6 +243,13 @@ const MAX_DEFENDER_JUMP_PX = 18;
  *  réel à 7 m/s ≈ 4.4 px/frame, largement sous le seuil. Borne les pics
  *  de `curveAroundObstacle` quand le cluster bouge (cause du jump O2 mi-Pindown). */
 const MAX_ATTACKER_JUMP_PX = 18;
+
+/** Démarre l'inertie quand le défenseur change fortement de direction.
+ *  cos(70°) ≈ 0.34 : sous ce seuil, le virage devient visible à l'oeil. */
+const DEFENDER_INERTIA_TURN_START_COS = 0.35;
+const DEFENDER_INERTIA_MAX_BLEND = 0.28;
+const DEFENDER_INERTIA_SPEED_LOSS = 0.45;
+const DEFENDER_INERTIA_MIN_SPEED_PX = 0.6;
 
 interface SegmentScreenStatic {
   matchupsA: Matchups;
@@ -879,6 +900,8 @@ export function resolveFrameAt(
         matchedTo: defB[id].matchedTo,
         late: defB[id].late,
         lastJumpPx: undefined,
+        motionTurnDeg: undefined,
+        motionInertia: undefined,
       };
     }
     defPos[id] = {
@@ -921,7 +944,27 @@ export function resolveFrameAt(
     8,
     screenLockedDefenders
   );
-  recomputeDefenseFrameOrientations(state, off, carrier, defPos);
+  const motionResult = options.prevFrame
+    ? applyDefenderMotionInertia({
+        state,
+        idxA,
+        idxB,
+        defPos,
+        prevFrame: options.prevFrame,
+        defenderIds,
+        lockedDefenders: screenLockedDefenders,
+        decisions,
+      })
+    : undefined;
+  if (motionResult?.applied) {
+    resolvePlayerCollisions(
+      defPos as unknown as Record<string, ComputedDefense[DefenderId]>,
+      off,
+      PLAYER_MIN_CLEARANCE_PX,
+      4,
+      screenLockedDefenders
+    );
+  }
   profiler?.lap('collisions');
 
   // 5.b — Rate limiter sur défenseurs : si `options.prevFrame` est fourni
@@ -949,6 +992,10 @@ export function resolveFrameAt(
       }
     });
   }
+  const nextMotionMemory = options.prevFrame
+    ? buildDefenderMotionMemory(defPos, options.prevFrame, defenderIds, motionResult?.stats)
+    : undefined;
+  recomputeDefenseFrameOrientations(state, off, carrier, defPos);
   profiler?.lap('rateLimiter');
 
   // ---------------------------------------------------------------------
@@ -981,6 +1028,7 @@ export function resolveFrameAt(
     attackerIsScreening,
     attackerMovementType,
     screenMemory: Object.keys(nextScreenMemory).length > 0 ? nextScreenMemory : undefined,
+    motionMemory: nextMotionMemory,
     debug: decisions ? { idxA, idxB, localT, defenders: decisions } : undefined,
     profile,
   };
@@ -1038,6 +1086,132 @@ function matchClusterToScreenObstacle(
 
 function lerpPoint(a: Point, b: Point, t: number): Point {
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+}
+
+interface DefenderMotionStat {
+  turnDeg: number;
+  inertia: number;
+}
+
+interface DefenderMotionInertiaResult {
+  stats: Partial<Record<DefenderId, DefenderMotionStat>>;
+  applied: boolean;
+}
+
+function applyDefenderMotionInertia(params: {
+  state: AppState;
+  idxA: number;
+  idxB: number;
+  defPos: ComputedDefense;
+  prevFrame: PlaybackFrame;
+  defenderIds: DefenderId[];
+  lockedDefenders: ReadonlySet<DefenderId>;
+  decisions: Partial<Record<DefenderId, FrameDecision>> | null;
+}): DefenderMotionInertiaResult {
+  const stats: Partial<Record<DefenderId, DefenderMotionStat>> = {};
+  let applied = false;
+  params.defenderIds.forEach((id) => {
+    const prev = params.prevFrame.defPos[id];
+    const current = params.defPos[id];
+    if (!prev || !current) return;
+
+    const previousVelocity = params.prevFrame.motionMemory?.[id]?.velocity;
+    if (!previousVelocity) return;
+
+    const desired = { x: current.x - prev.x, y: current.y - prev.y };
+    const desiredDist = Math.hypot(desired.x, desired.y);
+    const previousSpeed = Math.hypot(previousVelocity.x, previousVelocity.y);
+    if (desiredDist < DEFENDER_INERTIA_MIN_SPEED_PX || previousSpeed < DEFENDER_INERTIA_MIN_SPEED_PX) {
+      return;
+    }
+
+    const cos = clampScalar(
+      (desired.x * previousVelocity.x + desired.y * previousVelocity.y) /
+        (desiredDist * previousSpeed),
+      -1,
+      1
+    );
+    const turnDeg = Math.acos(cos) * 180 / Math.PI;
+    let inertia = 0;
+
+    if (!shouldSkipDefenderMotionInertia(params.state, params.idxA, params.idxB, id, current, params.lockedDefenders)) {
+      inertia = clampScalar(
+        (DEFENDER_INERTIA_TURN_START_COS - cos) / (DEFENDER_INERTIA_TURN_START_COS + 1),
+        0,
+        1
+      ) * DEFENDER_INERTIA_MAX_BLEND;
+
+      if (inertia > 0.001) {
+        const desiredUnit = { x: desired.x / desiredDist, y: desired.y / desiredDist };
+        const previousUnit = {
+          x: previousVelocity.x / previousSpeed,
+          y: previousVelocity.y / previousSpeed,
+        };
+        const mixed = normalizeVector({
+          x: desiredUnit.x * (1 - inertia) + previousUnit.x * inertia,
+          y: desiredUnit.y * (1 - inertia) + previousUnit.y * inertia,
+        });
+        const adjustedDist = desiredDist * (1 - inertia * DEFENDER_INERTIA_SPEED_LOSS);
+        current.x = prev.x + mixed.x * adjustedDist;
+        current.y = prev.y + mixed.y * adjustedDist;
+        applied = true;
+      }
+    }
+
+    stats[id] = { turnDeg, inertia };
+    const decision = params.decisions?.[id];
+    if (decision) {
+      decision.motionTurnDeg = turnDeg;
+      decision.motionInertia = inertia;
+    }
+  });
+  return { stats, applied };
+}
+
+function buildDefenderMotionMemory(
+  defPos: ComputedDefense,
+  prevFrame: PlaybackFrame,
+  defenderIds: DefenderId[],
+  stats: Partial<Record<DefenderId, DefenderMotionStat>> | undefined
+): DefenderMotionMemory {
+  const out: DefenderMotionMemory = {};
+  defenderIds.forEach((id) => {
+    const prev = prevFrame.defPos[id];
+    const current = defPos[id];
+    if (!prev || !current) return;
+    const stat = stats?.[id];
+    out[id] = {
+      velocity: { x: current.x - prev.x, y: current.y - prev.y },
+      turnDeg: stat?.turnDeg ?? 0,
+      inertia: stat?.inertia ?? 0,
+    };
+  });
+  return out;
+}
+
+function shouldSkipDefenderMotionInertia(
+  state: AppState,
+  idxA: number,
+  idxB: number,
+  id: DefenderId,
+  current: ComputedDefense[DefenderId],
+  lockedDefenders: ReadonlySet<DefenderId>
+): boolean {
+  if (lockedDefenders.has(id)) return true;
+  if (current.onScreen || current.screenPhase === 'impact' || current.screenPhase === 'stuck') {
+    return true;
+  }
+  return !!state.steps[idxA]?.defenseOverrides?.[id] || !!state.steps[idxB]?.defenseOverrides?.[id];
+}
+
+function normalizeVector(p: Point): Point {
+  const len = Math.hypot(p.x, p.y);
+  if (len < 0.000001) return { x: 1, y: 0 };
+  return { x: p.x / len, y: p.y / len };
+}
+
+function clampScalar(v: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, v));
 }
 
 function plainDefPositions(def: ComputedDefense): Record<DefenderId, Point> {

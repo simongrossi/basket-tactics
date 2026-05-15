@@ -43,6 +43,9 @@ export function ScreenPlayerDebugPanel({
         const screeners = decision?.contactScreeners?.length
           ? decision.contactScreeners.join('+')
           : decision?.contactScreener ?? '-';
+        const inertia = decision?.motionInertia !== undefined
+          ? `${Math.round(decision.motionInertia * 100)}% / ${Math.round(decision.motionTurnDeg ?? 0)}deg`
+          : '-';
         return (
           <div
             key={id}
@@ -65,6 +68,7 @@ export function ScreenPlayerDebugPanel({
                 ['actif', decision?.activeScreener ?? decision?.contactScreener ?? '-'],
                 ['qualité', decision ? String(Math.round(decision.quality)) : '-'],
                 ['mémoire', decision?.memoryUsed ? 'oui' : 'non'],
+                ['inertie', inertia],
                 ['push', decision?.pushMode ?? '-'],
                 ['cluster', decision?.clusterId ?? '-'],
                 ['jump', decision?.lastJumpPx !== undefined ? `${decision.lastJumpPx.toFixed(1)}px` : '-'],
