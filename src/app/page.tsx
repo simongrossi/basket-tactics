@@ -14,9 +14,7 @@ import { ScenarioPanel } from '@/components/ScenarioPanel';
 import { ScenarioReader } from '@/components/ScenarioReader';
 import { DefensePanel } from '@/components/DefensePanel';
 import { FloatingActionsMenu } from '@/components/FloatingActionsMenu';
-import { ParametresLauncher } from '@/components/ParametresLauncher';
 import { ParametresPanel } from '@/components/ParametresPanel';
-import { LibraryPanel } from '@/components/LibraryPanel';
 import { LibraryModal } from '@/components/LibraryModal';
 import { Timeline } from '@/components/Timeline';
 import { CourtView } from '@/components/CourtView';
@@ -209,13 +207,10 @@ export default function Page() {
       }}
     >
       <div
-        className={`layout-grid${presentMode ? ' presenting' : ''}${
-          sidebar.activeView !== 'court' && !presentMode ? ' no-right-col' : ''
-        }`}
+        className={presentMode ? 'layout-grid presenting' : 'layout-grid'}
         style={{
-          // Refonte UI Phase 1 — la largeur de la sidebar est pilotée par
-          // useSidebarState. Le mode présentation conserve une seule colonne
-          // (le CSS .layout-grid.presenting prend le dessus).
+          // Refonte UI — largeur de la sidebar pilotée par useSidebarState.
+          // Le mode présentation force une seule colonne (cf. .presenting).
           ['--sidebar-w' as string]: `${
             sidebar.collapsed ? SIDEBAR.widthCollapsed : SIDEBAR.widthExpanded
           }px`,
@@ -264,6 +259,39 @@ export default function Page() {
                     app.patch(defensePatch);
                   }}
                   onDeleteDefensePreset={lib.deleteDefensePreset}
+                />
+                <StepsPanel
+                  state={app.state}
+                  onSetActiveStep={app.setActiveStep}
+                  onAddStep={app.addStep}
+                  onDuplicateStep={app.duplicateStep}
+                  onDeleteStep={app.deleteStep}
+                  onSetStepLabel={app.setStepLabel}
+                  onSetBallCarrier={app.setBallCarrier}
+                  onDeleteAnnotation={app.deleteAnnotation}
+                  onConvertToFreeThrow={app.convertStepToFreeThrow}
+                  onConvertToInbound={app.convertStepToInbound}
+                  onSetInboundDefenseMode={app.setInboundDefenseMode}
+                  onAddFreeThrowReboundStep={app.addFreeThrowReboundStep}
+                  onConvertToJumpBall={app.convertStepToJumpBall}
+                />
+                <ScenarioPanel
+                  scriptedActions={app.state.scriptedActions ?? []}
+                  scenarioBranches={app.state.scenarioBranches ?? []}
+                  activeBranchId={app.state.activeBranchId ?? null}
+                  playerCount={app.state.playerCount}
+                  onAddAction={app.addScriptedAction}
+                  onUpdateAction={app.updateScriptedAction}
+                  onDeleteAction={app.deleteScriptedAction}
+                  onMoveAction={app.moveScriptedAction}
+                  onClearAll={app.clearScriptedActions}
+                  onAddDefensiveAction={app.addDefensiveAction}
+                  onUpdateDefensiveAction={app.updateDefensiveAction}
+                  onDeleteDefensiveAction={app.deleteDefensiveAction}
+                  onAddBranch={app.addScenarioBranch}
+                  onUpdateBranch={app.updateScenarioBranch}
+                  onDeleteBranch={app.deleteScenarioBranch}
+                  onSetActiveBranch={app.setActiveBranch}
                 />
               </>
             }
@@ -468,70 +496,6 @@ export default function Page() {
           )}
         </div>
 
-        {!presentMode && sidebar.activeView === 'court' && (
-          <div className="side-col">
-            {/* LIVRAISON 1 — colonne droite workspace : étapes + scénario +
-                bibliothèque + paramètres. Manipulation du matériau de jeu. */}
-            <StepsPanel
-              state={app.state}
-              onSetActiveStep={app.setActiveStep}
-              onAddStep={app.addStep}
-              onDuplicateStep={app.duplicateStep}
-              onDeleteStep={app.deleteStep}
-              onSetStepLabel={app.setStepLabel}
-              onSetBallCarrier={app.setBallCarrier}
-              onDeleteAnnotation={app.deleteAnnotation}
-              onConvertToFreeThrow={app.convertStepToFreeThrow}
-              onConvertToInbound={app.convertStepToInbound}
-              onSetInboundDefenseMode={app.setInboundDefenseMode}
-              onAddFreeThrowReboundStep={app.addFreeThrowReboundStep}
-              onConvertToJumpBall={app.convertStepToJumpBall}
-            />
-            <ScenarioPanel
-              scriptedActions={app.state.scriptedActions ?? []}
-              scenarioBranches={app.state.scenarioBranches ?? []}
-              activeBranchId={app.state.activeBranchId ?? null}
-              playerCount={app.state.playerCount}
-              onAddAction={app.addScriptedAction}
-              onUpdateAction={app.updateScriptedAction}
-              onDeleteAction={app.deleteScriptedAction}
-              onMoveAction={app.moveScriptedAction}
-              onClearAll={app.clearScriptedActions}
-              onAddDefensiveAction={app.addDefensiveAction}
-              onUpdateDefensiveAction={app.updateDefensiveAction}
-              onDeleteDefensiveAction={app.deleteDefensiveAction}
-              onAddBranch={app.addScenarioBranch}
-              onUpdateBranch={app.updateScenarioBranch}
-              onDeleteBranch={app.deleteScenarioBranch}
-              onSetActiveBranch={app.setActiveBranch}
-            />
-            <LibraryPanel
-              state={app.state}
-              library={lib.library}
-              onLoadTemplate={app.loadTemplate}
-              onLoadSavedSystem={(sys) => app.importState(lib.loadSystem(app.state, sys))}
-              onSaveSystem={(folderId, name, description) =>
-                lib.saveSystem(app.state, folderId, name, description)
-              }
-              onRenameSystem={lib.renameSystem}
-              onDeleteSystem={lib.deleteSystem}
-              onMoveSystem={lib.moveSystem}
-              onCreateFolder={lib.createFolder}
-              onRenameFolder={lib.renameFolder}
-              onDeleteFolder={lib.deleteFolder}
-              onExportFolder={lib.exportFolder}
-              onImportFolder={lib.importFolder}
-            />
-            <ParametresLauncher
-              state={app.state}
-              onPatch={app.patch}
-              onSetPlayerCount={app.setPlayerCount}
-              onAutoPositionOffBall={app.autoPositionOffBall}
-              onTogglePlayerDisqualified={app.togglePlayerDisqualified}
-              onClearDisqualified={app.clearDisqualified}
-            />
-          </div>
-        )}
       </div>
 
       <input
@@ -570,7 +534,7 @@ export default function Page() {
           __html: `
         .layout-grid {
           display: grid;
-          grid-template-columns: var(--sidebar-w, 240px) 1fr 300px;
+          grid-template-columns: var(--sidebar-w, 240px) 1fr;
           grid-template-rows: minmax(0, 1fr);
           gap: 10px;
           flex: 1;
@@ -579,9 +543,6 @@ export default function Page() {
         }
         .layout-grid.presenting {
           grid-template-columns: 1fr;
-        }
-        .layout-grid.no-right-col {
-          grid-template-columns: var(--sidebar-w, 240px) 1fr;
         }
         .center-col {
           display: grid;
@@ -607,10 +568,7 @@ export default function Page() {
           overflow-x: hidden;
         }
         @media (max-width: 1100px) {
-          .layout-grid:not(.presenting):not(.no-right-col) {
-            grid-template-columns: var(--sidebar-w, 220px) 1fr 260px;
-          }
-          .layout-grid.no-right-col:not(.presenting) {
+          .layout-grid:not(.presenting) {
             grid-template-columns: var(--sidebar-w, 220px) 1fr;
           }
         }
