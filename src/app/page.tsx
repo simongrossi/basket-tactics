@@ -596,9 +596,15 @@ export default function Page() {
           border-radius: 8px;
           color: #e5e7eb;
         }
-        /* Overrides dark pour la Timeline + Metrics + ScenarioReader sous le
-           court (vue Terrain). Ne touche pas le SVG du court lui-même (les
-           couleurs SVG sont des attributs fill/stroke, pas style inline). */
+        /* Overrides dark pour la Timeline + Metrics + ScenarioReader +
+           CoachDiagnostics sous le court (vue Terrain). Ne touche pas le SVG
+           du court lui-même (les couleurs SVG sont des attributs fill/stroke,
+           pas style inline). */
+        .center-col:not(.center-col-view) [style*="background: rgb(255, 255, 255)"]:not(input):not(select):not(textarea),
+        .center-col:not(.center-col-view) [style*="background: #fff"]:not(input):not(select):not(textarea),
+        .center-col:not(.center-col-view) [style*="background:#fff"]:not(input):not(select):not(textarea) {
+          background: #2f343d !important;
+        }
         .center-col:not(.center-col-view) [style*="background: rgb(241, 245, 249)"],
         .center-col:not(.center-col-view) [style*="background: #f1f5f9"] {
           background: #262a32 !important;
@@ -614,8 +620,75 @@ export default function Page() {
           border-color: #2a2d35 !important;
         }
         .center-col:not(.center-col-view) [style*="color: rgb(71, 85, 105)"],
-        .center-col:not(.center-col-view) [style*="color: #475569"] {
+        .center-col:not(.center-col-view) [style*="color: #475569"],
+        .center-col:not(.center-col-view) [style*="color: rgb(51, 65, 85)"],
+        .center-col:not(.center-col-view) [style*="color: #334155"],
+        .center-col:not(.center-col-view) [style*="color: rgb(100, 116, 139)"],
+        .center-col:not(.center-col-view) [style*="color: #64748b"],
+        .center-col:not(.center-col-view) [style*="color: rgb(87, 83, 78)"],
+        .center-col:not(.center-col-view) [style*="color: #57534e"] {
           color: #e5e7eb !important;
+        }
+        /* Inversion sémantique : textes foncés saturés (vert/rouge/amber/bleu)
+           → versions claires pour rester lisibles sur fond dark mais préserver
+           le sens (vert=bon, rouge=mauvais, amber=warning, bleu=info). */
+        .center-col:not(.center-col-view) [style*="color: rgb(6, 95, 70)"],
+        .center-col:not(.center-col-view) [style*="color: #065f46"] {
+          color: #6ee7b7 !important;
+        }
+        .center-col:not(.center-col-view) [style*="color: rgb(153, 27, 27)"],
+        .center-col:not(.center-col-view) [style*="color: #991b1b"],
+        .center-col:not(.center-col-view) [style*="color: rgb(127, 29, 29)"],
+        .center-col:not(.center-col-view) [style*="color: #7f1d1d"] {
+          color: #fca5a5 !important;
+        }
+        .center-col:not(.center-col-view) [style*="color: rgb(146, 64, 14)"],
+        .center-col:not(.center-col-view) [style*="color: #92400e"],
+        .center-col:not(.center-col-view) [style*="color: rgb(180, 83, 9)"],
+        .center-col:not(.center-col-view) [style*="color: #b45309"],
+        .center-col:not(.center-col-view) [style*="color: rgb(124, 45, 18)"],
+        .center-col:not(.center-col-view) [style*="color: #7c2d12"] {
+          color: #fbbf24 !important;
+        }
+        .center-col:not(.center-col-view) [style*="color: rgb(30, 58, 138)"],
+        .center-col:not(.center-col-view) [style*="color: #1e3a8a"],
+        .center-col:not(.center-col-view) [style*="color: rgb(30, 64, 175)"],
+        .center-col:not(.center-col-view) [style*="color: #1e40af"] {
+          color: #93c5fd !important;
+        }
+        /* Bordures pastel chips MetricsBar */
+        .center-col:not(.center-col-view) [style*="border: 1px solid rgb(167, 243, 208)"],
+        .center-col:not(.center-col-view) [style*="border: 1px solid #a7f3d0"],
+        .center-col:not(.center-col-view) [style*="border: 1px solid rgb(253, 230, 138)"],
+        .center-col:not(.center-col-view) [style*="border: 1px solid #fde68a"],
+        .center-col:not(.center-col-view) [style*="border: 1px solid rgb(254, 202, 202)"],
+        .center-col:not(.center-col-view) [style*="border: 1px solid #fecaca"] {
+          border-color: #2a2d35 !important;
+        }
+        /* Backgrounds chips clairs sémantiques (good/warn/bad) → dark mais
+           gardent l'identité via le texte coloré (vu juste au-dessus). */
+        .center-col:not(.center-col-view) [style*="background: rgb(209, 250, 229)"],
+        .center-col:not(.center-col-view) [style*="background: #d1fae5"] {
+          background: rgba(110, 231, 183, 0.12) !important;
+        }
+        .center-col:not(.center-col-view) [style*="background: rgb(254, 243, 199)"],
+        .center-col:not(.center-col-view) [style*="background: #fef3c7"] {
+          background: rgba(251, 191, 36, 0.12) !important;
+        }
+        .center-col:not(.center-col-view) [style*="background: rgb(254, 226, 226)"],
+        .center-col:not(.center-col-view) [style*="background: #fee2e2"] {
+          background: rgba(252, 165, 165, 0.12) !important;
+        }
+        /* Tag chips MetricsBar avec backgrounds très pâles (vert, rouge, etc.) */
+        .center-col:not(.center-col-view) [style*="background: rgb(220, 252, 231)"],
+        .center-col:not(.center-col-view) [style*="background: #dcfce7"],
+        .center-col:not(.center-col-view) [style*="background: rgb(254, 226, 226)"],
+        .center-col:not(.center-col-view) [style*="background: #fee2e2"],
+        .center-col:not(.center-col-view) [style*="background: rgb(254, 243, 199)"],
+        .center-col:not(.center-col-view) [style*="background: #fef3c7"],
+        .center-col:not(.center-col-view) [style*="background: rgb(219, 234, 254)"],
+        .center-col:not(.center-col-view) [style*="background: #dbeafe"] {
+          background: #2f343d !important;
         }
         /* Override scoped pour passer le contenu hérité (LibraryModal,
            PlaybookView) en thème dark sans toucher chaque ligne de styles
