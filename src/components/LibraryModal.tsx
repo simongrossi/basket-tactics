@@ -158,32 +158,36 @@ export function LibraryModal(props: LibraryModalProps) {
               }
         }
       >
-        <header
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 18px', borderBottom: `1px solid ${c.border}`, background: c.bg,
-          }}
-        >
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: c.accentText, letterSpacing: '-0.01em' }}>
-              📚 Bibliothèque
-            </div>
-            <div style={{ fontSize: 11, color: '#78716c', marginTop: 2 }}>
-              Systèmes classiques · {library.folders.length} dossier(s) personnel(s)
-            </div>
-          </div>
-          <button
-            onClick={onClose}
+        {/* En mode inline, la sidebar gauche indique déjà la vue active —
+            pas besoin de header "Bibliothèque · X dossier(s)" + bouton ×. */}
+        {!inline && (
+          <header
             style={{
-              fontSize: 20, border: 'none', background: 'transparent',
-              cursor: 'pointer', color: '#64748b', padding: '4px 10px',
-              borderRadius: 4, lineHeight: 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '14px 18px', borderBottom: `1px solid ${c.border}`, background: c.bg,
             }}
-            title="Fermer (Échap)"
           >
-            ×
-          </button>
-        </header>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: c.accentText, letterSpacing: '-0.01em' }}>
+                📚 Bibliothèque
+              </div>
+              <div style={{ fontSize: 11, color: '#78716c', marginTop: 2 }}>
+                Systèmes classiques · {library.folders.length} dossier(s) personnel(s)
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                fontSize: 20, border: 'none', background: 'transparent',
+                cursor: 'pointer', color: '#64748b', padding: '4px 10px',
+                borderRadius: 4, lineHeight: 1,
+              }}
+              title="Fermer (Échap)"
+            >
+              ×
+            </button>
+          </header>
+        )}
 
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
           {/* Sidebar dossiers */}
@@ -374,7 +378,9 @@ export function LibraryModal(props: LibraryModalProps) {
           }}
         >
           <span>Tous les systèmes personnels sont sauvegardés en local (localStorage).</span>
-          <span>Échap pour fermer</span>
+          {/* "Échap pour fermer" n'a de sens qu'en modal — en inline,
+              la sidebar reste accessible pour naviguer ailleurs. */}
+          {!inline && <span>Échap pour fermer</span>}
         </footer>
       </div>
 

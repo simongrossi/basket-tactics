@@ -146,9 +146,13 @@ export function PlaybookView({ state, title, onClose, mode = 'modal' }: Playbook
           <button onClick={() => window.print()} style={{ padding: '6px 12px' }}>
             🖨 imprimer / PDF
           </button>
-          <button onClick={onClose} style={{ padding: '6px 12px' }}>
-            fermer
-          </button>
+          {/* En mode inline (vue routée depuis la sidebar), la nav gauche
+              permet déjà de revenir au terrain. Pas de bouton "fermer". */}
+          {mode !== 'inline' && (
+            <button onClick={onClose} style={{ padding: '6px 12px' }}>
+              fermer
+            </button>
+          )}
         </div>
 
         <div
