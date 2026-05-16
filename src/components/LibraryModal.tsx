@@ -238,12 +238,21 @@ export function LibraryModal(props: LibraryModalProps) {
                 const name = prompt('Nom du nouveau dossier :');
                 if (name && name.trim()) onCreateFolder(name.trim());
               }}
-              style={{
-                marginTop: 6, padding: '6px 8px', fontSize: 11,
-                border: `1px dashed ${c.border}`, borderRadius: 6,
-                background: 'transparent', color: c.accentText, cursor: 'pointer',
-                textAlign: 'left',
-              }}
+              style={
+                inline
+                  ? {
+                      marginTop: 6, padding: '8px 10px', fontSize: 12,
+                      border: '1px dashed #2a2d35', borderRadius: 6,
+                      background: 'transparent', color: '#cbd5e1', cursor: 'pointer',
+                      textAlign: 'left',
+                    }
+                  : {
+                      marginTop: 6, padding: '6px 8px', fontSize: 11,
+                      border: `1px dashed ${c.border}`, borderRadius: 6,
+                      background: 'transparent', color: c.accentText, cursor: 'pointer',
+                      textAlign: 'left',
+                    }
+              }
             >
               + nouveau dossier
             </button>
@@ -300,22 +309,40 @@ export function LibraryModal(props: LibraryModalProps) {
             ) : userFolder ? (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: c.accentText }}>
+                  <div style={{
+                    fontSize: 13, fontWeight: 600,
+                    color: inline ? '#f3f4f6' : c.accentText,
+                  }}>
                     {userFolder.name} · {userFolder.systems.length} système(s)
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button
                       onClick={() => setShowSaveDialog(true)}
-                      style={smallBtn(c.accent, '#fff')}
+                      style={
+                        inline
+                          ? darkPrimaryBtn(c.accent)
+                          : smallBtn(c.accent, '#fff')
+                      }
                     >
                       + sauvegarder l'état courant
                     </button>
-                    <button onClick={handleExportFolder} style={smallBtn('transparent', c.accentText, c.border)}>
+                    <button
+                      onClick={handleExportFolder}
+                      style={
+                        inline
+                          ? darkSecondaryBtn()
+                          : smallBtn('transparent', c.accentText, c.border)
+                      }
+                    >
                       ⬇ exporter
                     </button>
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      style={smallBtn('transparent', c.accentText, c.border)}
+                      style={
+                        inline
+                          ? darkSecondaryBtn()
+                          : smallBtn('transparent', c.accentText, c.border)
+                      }
                     >
                       ⬆ importer
                     </button>
@@ -417,25 +444,72 @@ function smallBtn(bg: string, fg: string, border?: string): React.CSSProperties 
   };
 }
 
+// Boutons style dark moderne — cohérence avec la sidebar gauche (items
+// Terrain/Playbook/etc.). Primaire = accent saturé avec teinte subtile,
+// secondaire = fond transparent + bordure dark.
+function darkPrimaryBtn(accent: string): React.CSSProperties {
+  return {
+    padding: '6px 12px',
+    fontSize: 12,
+    fontWeight: 600,
+    border: `1px solid ${accent}`,
+    borderRadius: 6,
+    background: accent,
+    color: '#fff',
+    cursor: 'pointer',
+  };
+}
+function darkSecondaryBtn(): React.CSSProperties {
+  return {
+    padding: '6px 12px',
+    fontSize: 12,
+    fontWeight: 500,
+    border: '1px solid #2a2d35',
+    borderRadius: 6,
+    background: 'transparent',
+    color: '#cbd5e1',
+    cursor: 'pointer',
+  };
+}
+
 function FolderRow({
   label, count, active, onClick, onRename, onDelete,
 }: {
   label: string; count: number; active: boolean;
   onClick: () => void; onRename?: () => void; onDelete?: () => void;
 }) {
+  // Aligné sur le style des items de la sidebar gauche (Terrain, Playbook…) :
+  // ligne 34px, fond dark hover/active, accent violet, texte clair.
   return (
     <div
       onClick={onClick}
+      role="button"
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
-        padding: '6px 8px', borderRadius: 5, cursor: 'pointer',
-        background: active ? '#fff' : 'transparent',
-        border: `1px solid ${active ? '#e5e5e5' : 'transparent'}`,
-        fontSize: 12, fontWeight: 500, color: '#1c1917',
+        padding: '0 10px', height: 34, borderRadius: 6, cursor: 'pointer',
+        background: active ? 'rgba(167, 139, 250, 0.14)' : 'transparent',
+        color: active ? '#f3f4f6' : '#cbd5e1',
+        fontSize: 13, fontWeight: active ? 600 : 500,
+        transition: 'background 120ms ease, color 120ms ease',
+      }}
+      onMouseEnter={(e) => {
+        if (!active) {
+          e.currentTarget.style.background = '#262a32';
+          e.currentTarget.style.color = '#f3f4f6';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!active) {
+          e.currentTarget.style.background = 'transparent';
+          e.currentTarget.style.color = '#cbd5e1';
+        }
       }}
     >
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {label} <span style={{ color: '#a8a29e', fontSize: 10 }}>({count})</span>
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+        {label}{' '}
+        <span style={{ color: '#94a3b8', fontSize: 11, fontWeight: 500 }}>
+          ({count})
+        </span>
       </span>
       {(onRename || onDelete) && (
         <span style={{ display: 'flex', gap: 2 }}>
@@ -443,7 +517,10 @@ function FolderRow({
             <button
               onClick={(e) => { e.stopPropagation(); onRename(); }}
               title="Renommer"
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 10, padding: 2 }}
+              style={{
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                fontSize: 11, padding: 2, color: '#94a3b8',
+              }}
             >
               ✎
             </button>
@@ -452,7 +529,10 @@ function FolderRow({
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
               title="Supprimer"
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 10, padding: 2, color: '#dc2626' }}
+              style={{
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                fontSize: 11, padding: 2, color: '#fca5a5',
+              }}
             >
               🗑
             </button>
