@@ -244,13 +244,13 @@ export function CourtView(props: CourtViewProps) {
       onContextMenu={onContextMenu}
       style={{
         position: 'relative',
-        background: '#f5f5f4',
+        background: '#262a32',
         borderRadius: 12,
         padding: 6,
         minHeight: 0,
         minWidth: 0,
         overflow: 'hidden',
-        boxShadow: '0 2px 12px rgba(15, 23, 42, 0.06)',
+        border: '1px solid #2a2d35',
       }}
     >
       <svg

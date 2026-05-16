@@ -123,6 +123,39 @@ export function Sidebar({
         .sidebar-tools-scope [style*="background: #fafaf9"] {
           background: ${SIDEBAR.bg} !important;
         }
+        /* Bordures saturées (rouge BLOB, ambre LF, vert LF+, violet jump ball)
+           → neutralisées en bordure dark subtile. Évite l'effet "alarmes
+           colorées" sur fond sombre. */
+        .sidebar-tools-scope [style*="border: 1px solid rgb(220, 38, 38)"],
+        .sidebar-tools-scope [style*="border: 1px solid #dc2626"],
+        .sidebar-tools-scope [style*="border: 1px solid rgb(245, 158, 11)"],
+        .sidebar-tools-scope [style*="border: 1px solid #f59e0b"],
+        .sidebar-tools-scope [style*="border: 1px solid rgb(16, 185, 129)"],
+        .sidebar-tools-scope [style*="border: 1px solid #10b981"],
+        .sidebar-tools-scope [style*="border: 1px solid rgb(124, 58, 237)"],
+        .sidebar-tools-scope [style*="border: 1px solid #7c3aed"],
+        .sidebar-tools-scope [style*="border: 1px solid rgb(216, 90, 48)"],
+        .sidebar-tools-scope [style*="border: 1px solid #D85A30"],
+        .sidebar-tools-scope [style*="border: 1px solid rgb(55, 138, 221)"],
+        .sidebar-tools-scope [style*="border: 1px solid #378ADD"] {
+          border-color: ${SIDEBAR.border} !important;
+        }
+        /* Textes saturés (rouge foncé, ambre foncé, vert foncé, violet foncé)
+           → texte light pour lisibilité sur dark. */
+        .sidebar-tools-scope [style*="color: rgb(127, 29, 29)"],
+        .sidebar-tools-scope [style*="color: #7f1d1d"],
+        .sidebar-tools-scope [style*="color: rgb(146, 64, 14)"],
+        .sidebar-tools-scope [style*="color: #92400e"],
+        .sidebar-tools-scope [style*="color: rgb(6, 95, 70)"],
+        .sidebar-tools-scope [style*="color: #065f46"],
+        .sidebar-tools-scope [style*="color: rgb(91, 33, 182)"],
+        .sidebar-tools-scope [style*="color: #5b21b6"],
+        .sidebar-tools-scope [style*="color: rgb(124, 45, 18)"],
+        .sidebar-tools-scope [style*="color: #7c2d12"],
+        .sidebar-tools-scope [style*="color: rgb(30, 58, 138)"],
+        .sidebar-tools-scope [style*="color: #1e3a8a"] {
+          color: ${SIDEBAR.text} !important;
+        }
       `}} />
       <div
         style={{

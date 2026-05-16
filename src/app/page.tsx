@@ -596,6 +596,27 @@ export default function Page() {
           border-radius: 8px;
           color: #e5e7eb;
         }
+        /* Overrides dark pour la Timeline + Metrics + ScenarioReader sous le
+           court (vue Terrain). Ne touche pas le SVG du court lui-même (les
+           couleurs SVG sont des attributs fill/stroke, pas style inline). */
+        .center-col:not(.center-col-view) [style*="background: rgb(241, 245, 249)"],
+        .center-col:not(.center-col-view) [style*="background: #f1f5f9"] {
+          background: #262a32 !important;
+        }
+        .center-col:not(.center-col-view) [style*="background: rgb(203, 213, 225)"],
+        .center-col:not(.center-col-view) [style*="background: #cbd5e1"] {
+          background: #3a3f48 !important;
+        }
+        .center-col:not(.center-col-view) [style*="border: 1px solid rgb(226, 232, 240)"],
+        .center-col:not(.center-col-view) [style*="border: 1px solid #e2e8f0"],
+        .center-col:not(.center-col-view) [style*="border: 1px solid rgb(203, 213, 225)"],
+        .center-col:not(.center-col-view) [style*="border: 1px solid #cbd5e1"] {
+          border-color: #2a2d35 !important;
+        }
+        .center-col:not(.center-col-view) [style*="color: rgb(71, 85, 105)"],
+        .center-col:not(.center-col-view) [style*="color: #475569"] {
+          color: #e5e7eb !important;
+        }
         /* Override scoped pour passer le contenu hérité (LibraryModal,
            PlaybookView) en thème dark sans toucher chaque ligne de styles
            inline. */

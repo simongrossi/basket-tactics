@@ -47,7 +47,7 @@ function HalfCourt() {
         y={PAINT.y1}
         width={PAINT.x2 - PAINT.x1}
         height={PAINT.y2 - PAINT.y1}
-        fill="#C97A3A"
+        fill="#7a5538"
         stroke={LINE_COLOR}
         strokeWidth={LINE_WIDTH}
       />
@@ -149,7 +149,7 @@ export function CourtBackground({ fullCourt = false, attackingDirection = 'up' }
   return (
     <>
       {/* Fond du SVG */}
-      <rect x={0} y={0} width={COURT.width} height={totalHeight} fill="#E8C99B" />
+      <rect x={0} y={0} width={COURT.width} height={totalHeight} fill="#9a7a5a" />
 
       {/* Bordure extérieure du terrain (touches + ligne de fond) */}
       <rect
