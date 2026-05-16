@@ -2,23 +2,26 @@
 // La zone centrale garde la palette claire de ui.tsx, donc ces tokens
 // ne servent QUE pour les composants sidebar/* et leurs popovers.
 
+// Palette bleu-gris foncé (style Claude dashboard) — pas noir pur, plus chaud
+// et plus lisible. Aligné avec DARK_PANEL pour cohérence entre sidebar et
+// vues routées inline.
 export const SIDEBAR = {
-  bg: '#0b0b0f',
-  bgHover: '#16161d',
-  bgActive: '#1f1f29',
-  border: '#1f1f29',
-  borderSubtle: '#15151b',
-  text: '#e5e5e5',
-  textMuted: '#8b8b94',
-  textDim: '#6b6b73',
+  bg: '#1a1d23',
+  bgHover: '#262a32',
+  bgActive: '#2f343d',
+  border: '#2a2d35',
+  borderSubtle: '#22252c',
+  text: '#e5e7eb',
+  textMuted: '#9ca3af',
+  textDim: '#6b7280',
   accent: '#a78bfa',
-  accentBg: 'rgba(167, 139, 250, 0.12)',
+  accentBg: 'rgba(167, 139, 250, 0.14)',
   // Largeurs
   widthExpanded: 240,
   widthCollapsed: 56,
   // Tailles
-  itemHeight: 36,
-  iconSize: 18,
+  itemHeight: 34,
+  iconSize: 17,
   sectionGap: 12,
   paddingX: 10,
 } as const;

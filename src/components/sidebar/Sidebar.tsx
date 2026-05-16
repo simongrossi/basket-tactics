@@ -1,11 +1,22 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import type { SidebarView } from '@/hooks/useSidebarState';
 import { SIDEBAR } from './tokens';
 import { SidebarNav } from './SidebarNav';
 import { SidebarFooter } from './SidebarFooter';
 import { SidebarThemeProvider } from './SidebarThemeContext';
+import { SidebarToolGroup } from './SidebarToolGroup';
+
+export type ToolGroup = {
+  id: string;
+  icon: LucideIcon;
+  label: string;
+  accent?: string;
+  defaultOpen?: boolean;
+  content: ReactNode;
+};
 
 type Props = {
   activeView: SidebarView;
@@ -14,13 +25,12 @@ type Props = {
   onToggleCollapse: () => void;
   version?: string;
   /**
-   * Contenu de la section "outils contextuels" (Offense, Defense, Steps,
-   * Scenario). Rendu uniquement quand activeView === 'court'. La sidebar
-   * elle-même ignore le contenu et se contente de le rendre dans son layout
-   * dark, ce qui permet aux phases ultérieures de remplacer ce contenu par
-   * des accordions sans toucher au chrome.
+   * Liste des groupes d'outils contextuels (Attaque, Défense, Étapes,
+   * Scénario). Chaque groupe = un item dépliable de la sidebar, visuellement
+   * cohérent avec les items de Vues du dessus.
+   * Rendu uniquement quand activeView === 'court'.
    */
-  toolsContent?: ReactNode;
+  toolGroups?: ToolGroup[];
   /** Slot pour le menu ⋯ d'actions globales (cf. SidebarOverflowMenu). */
   overflowMenu?: ReactNode;
 };
@@ -31,10 +41,11 @@ export function Sidebar({
   onSelectView,
   onToggleCollapse,
   version,
-  toolsContent,
+  toolGroups,
   overflowMenu,
 }: Props) {
-  const showTools = activeView === 'court' && !collapsed && toolsContent != null;
+  const hasTools = toolGroups != null && toolGroups.length > 0;
+  const showTools = activeView === 'court' && hasTools;
 
   return (
     <aside
@@ -152,25 +163,41 @@ export function Sidebar({
               minHeight: 0,
               overflowY: 'auto',
               overflowX: 'hidden',
-              padding: '0 8px 10px',
+              padding: '0 6px 10px',
               display: 'flex',
               flexDirection: 'column',
-              gap: 10,
+              gap: 2,
             }}
           >
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: 1,
-                color: SIDEBAR.textDim,
-                textTransform: 'uppercase',
-                padding: '0 6px 4px',
-              }}
-            >
-              Outils
-            </div>
-            <SidebarThemeProvider dark>{toolsContent}</SidebarThemeProvider>
+            {!collapsed && (
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: 1,
+                  color: SIDEBAR.textDim,
+                  textTransform: 'uppercase',
+                  padding: '4px 10px 6px',
+                }}
+              >
+                Outils
+              </div>
+            )}
+            <SidebarThemeProvider dark>
+              {toolGroups!.map((g) => (
+                <SidebarToolGroup
+                  key={g.id}
+                  id={g.id}
+                  icon={g.icon}
+                  label={g.label}
+                  accent={g.accent}
+                  defaultOpen={g.defaultOpen}
+                  collapsed={collapsed}
+                >
+                  {g.content}
+                </SidebarToolGroup>
+              ))}
+            </SidebarThemeProvider>
           </div>
         </>
       )}

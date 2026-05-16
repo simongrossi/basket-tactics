@@ -6,8 +6,9 @@ import { useLibrary } from '@/hooks/useLibrary';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useMatchLoop } from '@/hooks/useMatchLoop';
 import { useSidebarState } from '@/hooks/useSidebarState';
-import { Sidebar } from '@/components/sidebar/Sidebar';
+import { Sidebar, type ToolGroup } from '@/components/sidebar/Sidebar';
 import { SIDEBAR } from '@/components/sidebar/tokens';
+import { Swords, Shield, ListOrdered, GitBranch } from 'lucide-react';
 import { OffenseToolsPanel } from '@/components/OffenseToolsPanel';
 import { StepsPanel } from '@/components/StepsPanel';
 import { ScenarioPanel } from '@/components/ScenarioPanel';
@@ -199,12 +200,12 @@ export default function Page() {
         height: '100vh',
         maxHeight: '100vh',
         overflow: 'hidden',
-        background: '#0b0b0f',
+        background: '#1a1d23',
         padding: '8px 12px 10px',
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
-        color: '#e5e5e5',
+        color: '#e5e7eb',
       }}
     >
       <div
@@ -235,78 +236,106 @@ export default function Page() {
                 collapsed={sidebar.collapsed}
               />
             }
-            toolsContent={
-              <>
-                <OffenseToolsPanel
-                  tool={app.state.tool}
-                  onSetTool={app.setTool}
-                />
-                <DefensePanel
-                  state={app.state}
-                  onSetScreenRule={app.setScreenRule}
-                  onResetSwitches={app.resetSwitches}
-                  onPatch={app.patch}
-                  onUpdateRule={app.updateRule}
-                  onUpdateAllRules={app.updateAllRules}
-                  onResetIndividualOverrides={app.resetIndividualOverrides}
-                  onSetDefenseSystem={app.setDefenseSystem}
-                  onUpdateZoneConfig={app.updateZoneConfig}
-                  onApplyDefensePreset={app.applyDefensePreset}
-                  onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
-                  onClearAllDefenseOverridesAnimated={app.clearAllDefenseOverridesActiveStepAnimated}
-                  matchLoop={matchLoop}
-                  matchSpeed={matchSpeed}
-                  onSetMatchSpeed={setMatchSpeed}
-                  onLoadAiSteps={handleLoadAiSteps}
-                  onEnterFullscreenMatch={handleEnterFullscreenMatch}
-                  scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
-                  onToggleScriptedDefense={app.toggleScriptedDefense}
-                  userDefensePresets={lib.library.defensePresets}
-                  onSaveDefensePreset={(name) => lib.saveDefensePreset(app.state, name)}
-                  onApplyUserDefensePreset={(preset) => {
-                    const {
-                      id: _id, name: _name, description: _desc, createdAt: _t,
-                      ...defensePatch
-                    } = preset;
-                    app.patch(defensePatch);
-                  }}
-                  onDeleteDefensePreset={lib.deleteDefensePreset}
-                />
-                <StepsPanel
-                  state={app.state}
-                  onSetActiveStep={app.setActiveStep}
-                  onAddStep={app.addStep}
-                  onDuplicateStep={app.duplicateStep}
-                  onDeleteStep={app.deleteStep}
-                  onSetStepLabel={app.setStepLabel}
-                  onSetBallCarrier={app.setBallCarrier}
-                  onDeleteAnnotation={app.deleteAnnotation}
-                  onConvertToFreeThrow={app.convertStepToFreeThrow}
-                  onConvertToInbound={app.convertStepToInbound}
-                  onSetInboundDefenseMode={app.setInboundDefenseMode}
-                  onAddFreeThrowReboundStep={app.addFreeThrowReboundStep}
-                  onConvertToJumpBall={app.convertStepToJumpBall}
-                />
-                <ScenarioPanel
-                  scriptedActions={app.state.scriptedActions ?? []}
-                  scenarioBranches={app.state.scenarioBranches ?? []}
-                  activeBranchId={app.state.activeBranchId ?? null}
-                  playerCount={app.state.playerCount}
-                  onAddAction={app.addScriptedAction}
-                  onUpdateAction={app.updateScriptedAction}
-                  onDeleteAction={app.deleteScriptedAction}
-                  onMoveAction={app.moveScriptedAction}
-                  onClearAll={app.clearScriptedActions}
-                  onAddDefensiveAction={app.addDefensiveAction}
-                  onUpdateDefensiveAction={app.updateDefensiveAction}
-                  onDeleteDefensiveAction={app.deleteDefensiveAction}
-                  onAddBranch={app.addScenarioBranch}
-                  onUpdateBranch={app.updateScenarioBranch}
-                  onDeleteBranch={app.deleteScenarioBranch}
-                  onSetActiveBranch={app.setActiveBranch}
-                />
-              </>
-            }
+            toolGroups={[
+              {
+                id: 'offense',
+                icon: Swords,
+                label: 'Attaque',
+                accent: '#f97316',
+                defaultOpen: true,
+                content: (
+                  <OffenseToolsPanel tool={app.state.tool} onSetTool={app.setTool} />
+                ),
+              },
+              {
+                id: 'defense',
+                icon: Shield,
+                label: 'Défense',
+                accent: '#3b82f6',
+                content: (
+                  <DefensePanel
+                    state={app.state}
+                    onSetScreenRule={app.setScreenRule}
+                    onResetSwitches={app.resetSwitches}
+                    onPatch={app.patch}
+                    onUpdateRule={app.updateRule}
+                    onUpdateAllRules={app.updateAllRules}
+                    onResetIndividualOverrides={app.resetIndividualOverrides}
+                    onSetDefenseSystem={app.setDefenseSystem}
+                    onUpdateZoneConfig={app.updateZoneConfig}
+                    onApplyDefensePreset={app.applyDefensePreset}
+                    onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
+                    onClearAllDefenseOverridesAnimated={app.clearAllDefenseOverridesActiveStepAnimated}
+                    matchLoop={matchLoop}
+                    matchSpeed={matchSpeed}
+                    onSetMatchSpeed={setMatchSpeed}
+                    onLoadAiSteps={handleLoadAiSteps}
+                    onEnterFullscreenMatch={handleEnterFullscreenMatch}
+                    scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
+                    onToggleScriptedDefense={app.toggleScriptedDefense}
+                    userDefensePresets={lib.library.defensePresets}
+                    onSaveDefensePreset={(name) => lib.saveDefensePreset(app.state, name)}
+                    onApplyUserDefensePreset={(preset) => {
+                      const {
+                        id: _id, name: _name, description: _desc, createdAt: _t,
+                        ...defensePatch
+                      } = preset;
+                      app.patch(defensePatch);
+                    }}
+                    onDeleteDefensePreset={lib.deleteDefensePreset}
+                  />
+                ),
+              },
+              {
+                id: 'steps',
+                icon: ListOrdered,
+                label: 'Étapes',
+                accent: '#f97316',
+                content: (
+                  <StepsPanel
+                    state={app.state}
+                    onSetActiveStep={app.setActiveStep}
+                    onAddStep={app.addStep}
+                    onDuplicateStep={app.duplicateStep}
+                    onDeleteStep={app.deleteStep}
+                    onSetStepLabel={app.setStepLabel}
+                    onSetBallCarrier={app.setBallCarrier}
+                    onDeleteAnnotation={app.deleteAnnotation}
+                    onConvertToFreeThrow={app.convertStepToFreeThrow}
+                    onConvertToInbound={app.convertStepToInbound}
+                    onSetInboundDefenseMode={app.setInboundDefenseMode}
+                    onAddFreeThrowReboundStep={app.addFreeThrowReboundStep}
+                    onConvertToJumpBall={app.convertStepToJumpBall}
+                  />
+                ),
+              },
+              {
+                id: 'scenario',
+                icon: GitBranch,
+                label: 'Scénario',
+                accent: '#a78bfa',
+                content: (
+                  <ScenarioPanel
+                    scriptedActions={app.state.scriptedActions ?? []}
+                    scenarioBranches={app.state.scenarioBranches ?? []}
+                    activeBranchId={app.state.activeBranchId ?? null}
+                    playerCount={app.state.playerCount}
+                    onAddAction={app.addScriptedAction}
+                    onUpdateAction={app.updateScriptedAction}
+                    onDeleteAction={app.deleteScriptedAction}
+                    onMoveAction={app.moveScriptedAction}
+                    onClearAll={app.clearScriptedActions}
+                    onAddDefensiveAction={app.addDefensiveAction}
+                    onUpdateDefensiveAction={app.updateDefensiveAction}
+                    onDeleteDefensiveAction={app.deleteDefensiveAction}
+                    onAddBranch={app.addScenarioBranch}
+                    onUpdateBranch={app.updateScenarioBranch}
+                    onDeleteBranch={app.deleteScenarioBranch}
+                    onSetActiveBranch={app.setActiveBranch}
+                  />
+                ),
+              },
+            ]}
           />
         )}
 
@@ -353,7 +382,7 @@ export default function Page() {
                   height: '100%',
                   overflow: 'auto',
                   padding: 16,
-                  background: '#0b0b0f',
+                  background: '#1a1d23',
                   borderRadius: 8,
                   boxSizing: 'border-box',
                 }}
@@ -560,11 +589,12 @@ export default function Page() {
         }
         .center-col.center-col-view {
           /* Vues routées (Playbook, Bibliothèque, Paramètres) : une seule
-             rangée plein hauteur, pas de timeline ni metrics, fond dark. */
+             rangée plein hauteur, pas de timeline ni metrics, fond dark
+             bleu-gris cohérent avec la sidebar. */
           grid-template-rows: 1fr;
-          background: #0b0b0f;
+          background: #1a1d23;
           border-radius: 8px;
-          color: #e5e5e5;
+          color: #e5e7eb;
         }
         /* Override scoped pour passer le contenu hérité (LibraryModal,
            PlaybookView) en thème dark sans toucher chaque ligne de styles
@@ -574,9 +604,9 @@ export default function Page() {
         .inline-view-scope input[type="number"],
         .inline-view-scope input[type="search"],
         .inline-view-scope textarea {
-          background: #1f1f29 !important;
+          background: #262a32 !important;
           color: #e5e5e5 !important;
-          border-color: #2a2a35 !important;
+          border-color: #2a2d35 !important;
         }
         .inline-view-scope input::placeholder,
         .inline-view-scope textarea::placeholder {
@@ -585,19 +615,19 @@ export default function Page() {
         .inline-view-scope [style*="rgb(255, 255, 255)"]:not(input):not(select):not(textarea):not(button[style*="background: rgb(216, 90, 48)"]),
         .inline-view-scope [style*="background: #fff"]:not(input):not(select):not(textarea),
         .inline-view-scope [style*="background:#fff"]:not(input):not(select):not(textarea) {
-          background: #16161d !important;
+          background: #1a1d23 !important;
         }
         .inline-view-scope [style*="background: rgb(250, 250, 249)"],
         .inline-view-scope [style*="background: #fafaf9"],
         .inline-view-scope [style*="background: rgb(241, 245, 249)"],
         .inline-view-scope [style*="background: #f1f5f9"] {
-          background: #0b0b0f !important;
+          background: #161a20 !important;
         }
         .inline-view-scope [style*="background: rgb(255, 247, 237)"],
         .inline-view-scope [style*="background: #fff7ed"],
         .inline-view-scope [style*="background: rgb(239, 246, 255)"],
         .inline-view-scope [style*="background: #eff6ff"] {
-          background: #1f1f29 !important;
+          background: #262a32 !important;
         }
         .inline-view-scope [style*="color: rgb(120, 113, 108)"],
         .inline-view-scope [style*="color: #78716c"],
@@ -637,7 +667,7 @@ export default function Page() {
         .inline-view-scope [style*="border-bottom: 1px solid #fed7aa"],
         .inline-view-scope [style*="border-bottom: 1px solid rgb(191, 219, 254)"],
         .inline-view-scope [style*="border-bottom: 1px solid #bfdbfe"] {
-          border-color: #2a2a35 !important;
+          border-color: #2a2d35 !important;
         }
         .side-col {
           display: flex;

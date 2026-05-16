@@ -34,12 +34,12 @@ export function useSidebarTheme() {
 // les tokens SIDEBAR (cf. tokens.ts) mais on les expose ici pour que les
 // composants ui.tsx ne dépendent pas de tokens.ts directement.
 export const DARK_PANEL = {
-  bg: '#16161d',
-  bgSubtle: '#1f1f29',
-  bgRaised: '#1f1f29',
-  border: '#2a2a35',
-  borderSubtle: '#222229',
-  text: '#e5e5e5',
-  textMuted: '#a1a1aa',
-  textDim: '#71717a',
+  bg: '#1a1d23',
+  bgSubtle: '#262a32',
+  bgRaised: '#2f343d',
+  border: '#2a2d35',
+  borderSubtle: '#22252c',
+  text: '#e5e7eb',
+  textMuted: '#9ca3af',
+  textDim: '#6b7280',
 } as const;

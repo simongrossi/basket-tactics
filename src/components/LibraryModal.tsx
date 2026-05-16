@@ -129,7 +129,7 @@ export function LibraryModal(props: LibraryModalProps) {
               justifyContent: 'center',
               padding: 0,
               boxSizing: 'border-box',
-              background: '#0b0b0f',
+              background: '#1a1d23',
             }
           : {
               position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)',
@@ -144,7 +144,7 @@ export function LibraryModal(props: LibraryModalProps) {
           inline
             ? {
                 width: '100%', maxWidth: 1100,
-                background: '#0b0b0f',
+                background: '#1a1d23',
                 display: 'flex', flexDirection: 'column', overflow: 'hidden',
               }
             : {
