@@ -86,8 +86,25 @@ export function Sidebar({
           color: ${SIDEBAR.textDim} !important;
         }
         .sidebar-tools-scope [style*="rgb(255, 255, 255)"]:not(input):not(select):not(textarea),
+        .sidebar-tools-scope [style*="rgb(255,255,255)"]:not(input):not(select):not(textarea),
         .sidebar-tools-scope [style*="background: #fff"]:not(input):not(select):not(textarea),
-        .sidebar-tools-scope [style*="background:#fff"]:not(input):not(select):not(textarea) {
+        .sidebar-tools-scope [style*="background:#fff"]:not(input):not(select):not(textarea),
+        .sidebar-tools-scope [style*="background: #FFFFFF"]:not(input):not(select):not(textarea),
+        .sidebar-tools-scope [style*="background: #ffffff"]:not(input):not(select):not(textarea) {
+          background: ${SIDEBAR.bgActive} !important;
+        }
+        /* Cream backgrounds des thèmes accent (offense orange #fff7ed,
+           defense bleu #eff6ff) — survivent à l'override blanc puisqu'ils
+           NE sont pas blancs. Doivent passer aussi en dark pour cohérence
+           (active step row dans StepsPanel, panneau pinned dans Defense). */
+        .sidebar-tools-scope [style*="background: rgb(255, 247, 237)"],
+        .sidebar-tools-scope [style*="background: #fff7ed"],
+        .sidebar-tools-scope [style*="background: rgb(255, 237, 213)"],
+        .sidebar-tools-scope [style*="background: #ffedd5"],
+        .sidebar-tools-scope [style*="background: rgb(239, 246, 255)"],
+        .sidebar-tools-scope [style*="background: #eff6ff"],
+        .sidebar-tools-scope [style*="background: rgb(219, 234, 254)"],
+        .sidebar-tools-scope [style*="background: #dbeafe"] {
           background: ${SIDEBAR.bgActive} !important;
         }
         .sidebar-tools-scope [style*="color: rgb(71, 85, 105)"],
@@ -140,21 +157,47 @@ export function Sidebar({
         .sidebar-tools-scope [style*="border: 1px solid #378ADD"] {
           border-color: ${SIDEBAR.border} !important;
         }
-        /* Textes saturés (rouge foncé, ambre foncé, vert foncé, violet foncé)
-           → texte light pour lisibilité sur dark. */
+        /* Textes saturés (rouge/ambre/vert/violet/orange/bleu foncés) →
+           versions claires de la même teinte pour rester lisibles sur dark
+           ET préserver le sens. */
         .sidebar-tools-scope [style*="color: rgb(127, 29, 29)"],
         .sidebar-tools-scope [style*="color: #7f1d1d"],
+        .sidebar-tools-scope [style*="color: rgb(153, 27, 27)"],
+        .sidebar-tools-scope [style*="color: #991b1b"] {
+          color: #fca5a5 !important;
+        }
         .sidebar-tools-scope [style*="color: rgb(146, 64, 14)"],
         .sidebar-tools-scope [style*="color: #92400e"],
+        .sidebar-tools-scope [style*="color: rgb(180, 83, 9)"],
+        .sidebar-tools-scope [style*="color: #b45309"] {
+          color: #fbbf24 !important;
+        }
         .sidebar-tools-scope [style*="color: rgb(6, 95, 70)"],
-        .sidebar-tools-scope [style*="color: #065f46"],
+        .sidebar-tools-scope [style*="color: #065f46"] {
+          color: #6ee7b7 !important;
+        }
         .sidebar-tools-scope [style*="color: rgb(91, 33, 182)"],
-        .sidebar-tools-scope [style*="color: #5b21b6"],
+        .sidebar-tools-scope [style*="color: #5b21b6"] {
+          color: #c4b5fd !important;
+        }
         .sidebar-tools-scope [style*="color: rgb(124, 45, 18)"],
-        .sidebar-tools-scope [style*="color: #7c2d12"],
+        .sidebar-tools-scope [style*="color: #7c2d12"] {
+          color: #fdba74 !important;
+        }
         .sidebar-tools-scope [style*="color: rgb(30, 58, 138)"],
-        .sidebar-tools-scope [style*="color: #1e3a8a"] {
-          color: ${SIDEBAR.text} !important;
+        .sidebar-tools-scope [style*="color: #1e3a8a"],
+        .sidebar-tools-scope [style*="color: rgb(30, 64, 175)"],
+        .sidebar-tools-scope [style*="color: #1e40af"] {
+          color: #93c5fd !important;
+        }
+        /* Bordures pastel chips (vert clair, ambre clair, rouge clair) */
+        .sidebar-tools-scope [style*="border: 1px solid rgb(167, 243, 208)"],
+        .sidebar-tools-scope [style*="border: 1px solid #a7f3d0"],
+        .sidebar-tools-scope [style*="border: 1px solid rgb(253, 230, 138)"],
+        .sidebar-tools-scope [style*="border: 1px solid #fde68a"],
+        .sidebar-tools-scope [style*="border: 1px solid rgb(254, 202, 202)"],
+        .sidebar-tools-scope [style*="border: 1px solid #fecaca"] {
+          border-color: ${SIDEBAR.border} !important;
         }
       `}} />
       <div

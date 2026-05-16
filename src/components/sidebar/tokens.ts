@@ -11,9 +11,9 @@ export const SIDEBAR = {
   bgActive: '#2f343d',
   border: '#2a2d35',
   borderSubtle: '#22252c',
-  text: '#e5e7eb',
-  textMuted: '#9ca3af',
-  textDim: '#6b7280',
+  text: '#f3f4f6',
+  textMuted: '#cbd5e1',
+  textDim: '#94a3b8',
   accent: '#a78bfa',
   accentBg: 'rgba(167, 139, 250, 0.14)',
   // Largeurs

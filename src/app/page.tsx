@@ -601,9 +601,30 @@ export default function Page() {
            du court lui-même (les couleurs SVG sont des attributs fill/stroke,
            pas style inline). */
         .center-col:not(.center-col-view) [style*="background: rgb(255, 255, 255)"]:not(input):not(select):not(textarea),
+        .center-col:not(.center-col-view) [style*="background: rgb(255,255,255)"]:not(input):not(select):not(textarea),
         .center-col:not(.center-col-view) [style*="background: #fff"]:not(input):not(select):not(textarea),
-        .center-col:not(.center-col-view) [style*="background:#fff"]:not(input):not(select):not(textarea) {
+        .center-col:not(.center-col-view) [style*="background:#fff"]:not(input):not(select):not(textarea),
+        .center-col:not(.center-col-view) [style*="background: #FFFFFF"]:not(input):not(select):not(textarea),
+        .center-col:not(.center-col-view) [style*="background: #ffffff"]:not(input):not(select):not(textarea) {
           background: #2f343d !important;
+        }
+        /* Inputs/selects/textarea aussi dans le court view (Timeline a un
+           range slider qui apparaît avec scrollbar/track natifs blancs). */
+        .center-col:not(.center-col-view) select,
+        .center-col:not(.center-col-view) input[type="text"],
+        .center-col:not(.center-col-view) input[type="number"],
+        .center-col:not(.center-col-view) input[type="search"] {
+          background: #262a32 !important;
+          color: #f3f4f6 !important;
+          border-color: #2a2d35 !important;
+        }
+        /* Placeholders lisibles dans toute la sidebar + court view */
+        .sidebar-tools-scope input::placeholder,
+        .sidebar-tools-scope textarea::placeholder,
+        .center-col:not(.center-col-view) input::placeholder,
+        .center-col:not(.center-col-view) textarea::placeholder {
+          color: #94a3b8 !important;
+          opacity: 1;
         }
         .center-col:not(.center-col-view) [style*="background: rgb(241, 245, 249)"],
         .center-col:not(.center-col-view) [style*="background: #f1f5f9"] {
