@@ -446,11 +446,13 @@ export function CheckboxLine({ checked, label, onChange, title }: CheckboxLinePr
     <label
       style={{
         display: 'flex',
-        gap: 6,
+        gap: 8,
         alignItems: 'center',
         fontSize: 12,
         color: dark ? DARK_PANEL.text : '#1f2937',
         cursor: 'pointer',
+        lineHeight: 1.25,
+        minWidth: 0,
       }}
       title={title}
     >
@@ -458,6 +460,8 @@ export function CheckboxLine({ checked, label, onChange, title }: CheckboxLinePr
       <span style={{
         textDecoration: title ? `underline dotted ${dark ? DARK_PANEL.border : '#cbd5e1'}` : undefined,
         textUnderlineOffset: 3,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
       }}>
         {label}
       </span>

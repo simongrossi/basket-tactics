@@ -381,13 +381,13 @@ export default function Page() {
                   width: '100%',
                   height: '100%',
                   overflow: 'auto',
-                  padding: 16,
-                  background: '#1a1d23',
+                  padding: '24px 28px',
+                  background: '#171a20',
                   borderRadius: 8,
                   boxSizing: 'border-box',
                 }}
               >
-                <div style={{ maxWidth: 720, margin: '0 auto' }}>
+                <div style={{ maxWidth: 1040, margin: '0 auto' }}>
                   <ParametresPanel
                     state={app.state}
                     onPatch={app.patch}

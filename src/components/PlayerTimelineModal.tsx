@@ -10,6 +10,31 @@ import {
   type TrackSegment,
 } from '@/lib/logic/playerTracks';
 
+const MODAL_UI = {
+  overlay: 'rgba(7, 10, 15, 0.72)',
+  bg: '#171b22',
+  surface: '#20252d',
+  cell: '#252b34',
+  border: '#343b47',
+  borderStrong: '#465061',
+  text: '#f3f4f6',
+  muted: '#cbd5e1',
+  dim: '#94a3b8',
+  orange: '#D85A30',
+} as const;
+
+const DARK_ACTIVITY_COLORS: typeof ACTIVITY_COLORS = {
+  idle:     { bg: '#222831', fg: '#94a3b8', label: 'idle' },
+  pos:      { bg: '#26313d', fg: '#cbd5e1', label: 'position' },
+  dribble:  { bg: 'rgba(249, 115, 22, 0.22)', fg: '#fdba74', label: 'dribble' },
+  cut:      { bg: 'rgba(251, 191, 36, 0.23)', fg: '#fbbf24', label: 'cut' },
+  screen:   { bg: 'rgba(248, 113, 113, 0.22)', fg: '#fca5a5', label: 'écran' },
+  pass:     { bg: 'rgba(245, 158, 11, 0.22)', fg: '#fcd34d', label: 'passe' },
+  tracking: { bg: 'rgba(96, 165, 250, 0.24)', fg: '#93c5fd', label: 'suit' },
+  closeout: { bg: 'rgba(56, 189, 248, 0.22)', fg: '#7dd3fc', label: 'closeout' },
+  help:     { bg: 'rgba(167, 139, 250, 0.24)', fg: '#c4b5fd', label: 'aide' },
+};
+
 interface PlayerTimelineModalProps {
   state: AppState;
   /** Step index dans state.steps (incluant interpolés). Pour positionner
@@ -51,7 +76,7 @@ export function PlayerTimelineModal({
   if (tracks.length === 0 || realStepsCount < 2) {
     return (
       <Backdrop onClose={onClose}>
-        <div style={{ padding: 24, fontSize: 13, color: '#475569' }}>
+        <div style={{ padding: 24, fontSize: 13, color: MODAL_UI.muted }}>
           Crée au moins 2 étapes pour voir la timeline détaillée par joueur.
         </div>
       </Backdrop>
@@ -65,9 +90,10 @@ export function PlayerTimelineModal({
     <Backdrop onClose={onClose}>
       <div
         style={{
-          background: '#fff',
+          background: MODAL_UI.bg,
+          border: `1px solid ${MODAL_UI.border}`,
           borderRadius: 10,
-          boxShadow: '0 12px 32px rgba(15, 23, 42, 0.25)',
+          boxShadow: '0 22px 60px rgba(0, 0, 0, 0.45)',
           padding: 16,
           width: 'min(95vw, 1100px)',
           maxHeight: '85vh',
@@ -83,18 +109,19 @@ export function PlayerTimelineModal({
           marginBottom: 14,
         }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: MODAL_UI.text }}>
               Timeline détaillée — pistes par joueur
             </div>
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: MODAL_UI.dim, marginTop: 2 }}>
               {realStepsCount} étapes · {tracks.length} joueurs · les téléports interpolés sont fusionnés
             </div>
           </div>
           <button
             onClick={onClose}
             style={{
-              border: '1px solid #cbd5e1',
-              background: '#fff',
+              border: `1px solid ${MODAL_UI.borderStrong}`,
+              background: MODAL_UI.surface,
+              color: MODAL_UI.text,
               borderRadius: 6,
               padding: '4px 10px',
               fontSize: 12,
@@ -110,7 +137,7 @@ export function PlayerTimelineModal({
           gap: 4,
           marginBottom: 6,
           fontSize: 10,
-          color: '#64748b',
+          color: MODAL_UI.dim,
         }}>
           <div></div>
           {Array.from({ length: transitionCount }, (_, i) => (
@@ -156,23 +183,23 @@ export function PlayerTimelineModal({
         <div style={{
           marginTop: 14,
           padding: 10,
-          borderTop: '1px solid #e2e8f0',
+          borderTop: `1px solid ${MODAL_UI.border}`,
           display: 'flex',
           flexWrap: 'wrap',
           gap: 8,
           fontSize: 11,
         }}>
-          <span style={{ fontWeight: 600, color: '#475569', marginRight: 4 }}>Légende :</span>
+          <span style={{ fontWeight: 700, color: MODAL_UI.muted, marginRight: 4 }}>Légende :</span>
           {(['dribble', 'cut', 'screen', 'pass'] as const).map((act) => (
             <LegendChip key={act} activity={act} />
           ))}
-          <span style={{ color: '#cbd5e1', margin: '0 4px' }}>·</span>
+          <span style={{ color: MODAL_UI.dim, margin: '0 4px' }}>·</span>
           {(['tracking', 'closeout', 'help', 'pos'] as const).map((act) => (
             <LegendChip key={act} activity={act} />
           ))}
-          <span style={{ color: '#cbd5e1', margin: '0 4px' }}>·</span>
+          <span style={{ color: MODAL_UI.dim, margin: '0 4px' }}>·</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#ea580c' }} />
+            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: MODAL_UI.orange }} />
             porteur
           </span>
         </div>
@@ -206,11 +233,12 @@ function TrackRow({
         alignItems: 'center',
         gap: 4,
         padding: '4px 6px',
-        background: track.kind === 'attacker' ? '#fed7aa' : '#bfdbfe',
-        color: track.kind === 'attacker' ? '#9a3412' : '#1e3a8a',
-        borderRadius: 4,
+        background: track.kind === 'attacker' ? 'rgba(249, 115, 22, 0.2)' : 'rgba(55, 138, 221, 0.2)',
+        color: track.kind === 'attacker' ? '#fdba74' : '#93c5fd',
+        border: `1px solid ${track.kind === 'attacker' ? 'rgba(249, 115, 22, 0.28)' : 'rgba(55, 138, 221, 0.32)'}`,
+        borderRadius: 6,
         fontSize: 11,
-        fontWeight: 700,
+        fontWeight: 800,
         justifyContent: 'center',
       }}>
         {track.id}
@@ -237,7 +265,7 @@ function SegmentCell({
   isCursorHere: boolean;
   onClick?: () => void;
 }) {
-  const color = ACTIVITY_COLORS[segment.activity];
+  const color = DARK_ACTIVITY_COLORS[segment.activity];
   const showCarrierDot = segment.isCarrier;
   return (
     <div
@@ -248,13 +276,13 @@ function SegmentCell({
         padding: '4px 6px',
         background: color.bg,
         color: color.fg,
-        borderRadius: 4,
+        borderRadius: 6,
         fontSize: 10,
-        fontWeight: 600,
+        fontWeight: 700,
         textAlign: 'center',
         cursor: onClick ? 'pointer' : 'default',
-        border: isCursorHere ? '2px solid #D85A30' : '1px solid transparent',
-        boxShadow: isCursorHere ? '0 0 0 1px #fff inset' : 'none',
+        border: isCursorHere ? `2px solid ${MODAL_UI.orange}` : `1px solid ${color.fg}30`,
+        boxShadow: isCursorHere ? '0 0 0 1px rgba(255,255,255,0.16) inset' : 'none',
         userSelect: 'none',
         overflow: 'hidden',
         whiteSpace: 'nowrap',
@@ -270,7 +298,7 @@ function SegmentCell({
             width: 6,
             height: 6,
             borderRadius: '50%',
-            background: '#ea580c',
+            background: MODAL_UI.orange,
           }}
           title="Porteur de balle"
         />
@@ -285,16 +313,18 @@ function SegmentCell({
 
 function LegendChip({ activity }: { activity: keyof typeof ACTIVITY_COLORS }) {
   const c = ACTIVITY_COLORS[activity];
+  const dark = DARK_ACTIVITY_COLORS[activity];
   return (
     <span style={{
       display: 'inline-flex',
       alignItems: 'center',
       gap: 4,
       padding: '1px 6px',
-      background: c.bg,
-      color: c.fg,
-      borderRadius: 3,
-      fontWeight: 600,
+      background: dark.bg,
+      color: dark.fg,
+      border: `1px solid ${dark.fg}30`,
+      borderRadius: 5,
+      fontWeight: 700,
     }}>
       {c.label}
     </span>
@@ -308,7 +338,7 @@ function Backdrop({ children, onClose }: { children: React.ReactNode; onClose: (
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(15, 23, 42, 0.5)',
+        background: MODAL_UI.overlay,
         zIndex: 1000,
         display: 'flex',
         alignItems: 'center',

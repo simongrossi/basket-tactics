@@ -10,6 +10,20 @@ import {
   totalDurationSeconds,
 } from '@/lib/logic/timecode';
 
+const TIMELINE_UI = {
+  surface: '#20252d',
+  surfaceRaised: '#252b34',
+  surfaceHover: '#303744',
+  border: '#343b47',
+  borderStrong: '#465061',
+  text: '#f3f4f6',
+  muted: '#cbd5e1',
+  dim: '#94a3b8',
+  orange: '#D85A30',
+  orangeSoft: '#fdba74',
+  blue: '#378ADD',
+} as const;
+
 interface TimelineProps {
   state: AppState;
   onSetActiveStep: (idx: number) => void;
@@ -157,10 +171,10 @@ export function Timeline({
       style={{
         position: 'relative',
         height: 28,
-        background: '#262a32',
+        background: TIMELINE_UI.surfaceRaised,
         borderRadius: 8,
         cursor: total > 1 ? (dragging ? 'grabbing' : 'grab') : 'default',
-        border: '1px solid #2a2d35',
+        border: `1px solid ${TIMELINE_UI.border}`,
         padding: '0 14px',
         touchAction: 'none',
         userSelect: 'none',
@@ -175,7 +189,7 @@ export function Timeline({
           left: 14,
           right: 14,
           height: 4,
-          background: '#3a3f48',
+          background: '#3a424f',
           borderRadius: 2,
           transform: 'translateY(-50%)',
         }}
@@ -187,7 +201,7 @@ export function Timeline({
           left: 14,
           width: `calc((100% - 28px) * ${ratio})`,
           height: 4,
-          background: isPlaying ? '#1e40af' : '#D85A30',
+          background: isPlaying ? TIMELINE_UI.blue : TIMELINE_UI.orange,
           borderRadius: 2,
           transform: 'translateY(-50%)',
           transition: dragging || isPlaying ? 'none' : 'width 200ms',
@@ -214,8 +228,8 @@ export function Timeline({
               width: isInterp ? 8 : 14,
               height: isInterp ? 8 : 14,
               borderRadius: isInterp ? 4 : 7,
-              background: isCurrent ? '#D85A30' : isInterp ? '#3a3f48' : '#2f343d',
-              border: `${isInterp ? 1 : 2}px solid ${isCurrent ? '#9a3412' : isInterp ? '#4a4f58' : '#5a606b'}`,
+              background: isCurrent ? TIMELINE_UI.orange : isInterp ? '#3a424f' : TIMELINE_UI.surface,
+              border: `${isInterp ? 1 : 2}px solid ${isCurrent ? TIMELINE_UI.orangeSoft : isInterp ? '#4a5362' : TIMELINE_UI.borderStrong}`,
               opacity: isInterp ? 0.6 : 1,
               transform: 'translate(-50%, -50%)',
               cursor: 'pointer',
@@ -233,8 +247,8 @@ export function Timeline({
           width: 18,
           height: 18,
           borderRadius: 9,
-          background: isPlaying ? '#1e40af' : '#D85A30',
-          border: '2px solid #fff',
+          background: isPlaying ? TIMELINE_UI.blue : TIMELINE_UI.orange,
+          border: '2px solid #f3f4f6',
           boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
           transform: 'translate(-50%, -50%)',
           pointerEvents: 'none',
@@ -255,9 +269,9 @@ export function Timeline({
                 fontSize: 12,
                 padding: '4px 10px',
                 borderRadius: 6,
-                border: `1px solid ${isPlaying ? '#9a3412' : '#fed7aa'}`,
-                background: isPlaying ? '#D85A30' : '#fff',
-                color: isPlaying ? '#fff' : '#7c2d12',
+                border: `1px solid ${isPlaying ? TIMELINE_UI.orangeSoft : TIMELINE_UI.borderStrong}`,
+                background: isPlaying ? TIMELINE_UI.orange : TIMELINE_UI.surfaceRaised,
+                color: isPlaying ? '#fff' : TIMELINE_UI.orangeSoft,
                 cursor: 'pointer',
                 fontWeight: 500,
                 flex: '0 0 auto',
@@ -272,9 +286,9 @@ export function Timeline({
                 fontSize: 12,
                 padding: '4px 10px',
                 borderRadius: 6,
-                border: '1px solid #2a2d35',
-                background: '#2f343d',
-                color: '#fdba74',
+                border: `1px solid ${TIMELINE_UI.border}`,
+                background: TIMELINE_UI.surface,
+                color: TIMELINE_UI.orangeSoft,
                 cursor: 'pointer',
                 fontWeight: 500,
                 flex: '0 0 auto',
@@ -294,9 +308,9 @@ export function Timeline({
                 fontSize: 11,
                 padding: '4px 5px',
                 borderRadius: 6,
-                border: '1px solid #2a2d35',
-                background: '#2f343d',
-                color: '#fdba74',
+                border: `1px solid ${TIMELINE_UI.border}`,
+                background: TIMELINE_UI.surface,
+                color: TIMELINE_UI.orangeSoft,
                 cursor: isPlaying || displayT <= 0 ? 'not-allowed' : 'pointer',
                 opacity: isPlaying || displayT <= 0 ? 0.4 : 1,
                 flex: '0 0 auto',
@@ -312,9 +326,9 @@ export function Timeline({
                 fontSize: 11,
                 padding: '4px 6px',
                 borderRadius: 6,
-                border: '1px solid #2a2d35',
-                background: '#2f343d',
-                color: '#fdba74',
+                border: `1px solid ${TIMELINE_UI.border}`,
+                background: TIMELINE_UI.surface,
+                color: TIMELINE_UI.orangeSoft,
                 cursor: isPlaying || currentFineIdx <= 0 ? 'not-allowed' : 'pointer',
                 opacity: isPlaying || currentFineIdx <= 0 ? 0.4 : 1,
                 flex: '0 0 auto',
@@ -326,7 +340,7 @@ export function Timeline({
               title="Frame fine courante / total (résolution 1/60 step). ←/→ clavier pour avancer fin, Shift+←/→ pour avancer grossier."
               style={{
                 fontSize: 10,
-                color: '#cbd5e1',
+                color: TIMELINE_UI.muted,
                 fontVariantNumeric: 'tabular-nums',
                 minWidth: 56,
                 textAlign: 'center',
@@ -343,9 +357,9 @@ export function Timeline({
                 fontSize: 11,
                 padding: '4px 6px',
                 borderRadius: 6,
-                border: '1px solid #2a2d35',
-                background: '#2f343d',
-                color: '#fdba74',
+                border: `1px solid ${TIMELINE_UI.border}`,
+                background: TIMELINE_UI.surface,
+                color: TIMELINE_UI.orangeSoft,
                 cursor: isPlaying || currentFineIdx >= totalFineFrames ? 'not-allowed' : 'pointer',
                 opacity: isPlaying || currentFineIdx >= totalFineFrames ? 0.4 : 1,
                 flex: '0 0 auto',
@@ -361,9 +375,9 @@ export function Timeline({
                 fontSize: 11,
                 padding: '4px 5px',
                 borderRadius: 6,
-                border: '1px solid #2a2d35',
-                background: '#2f343d',
-                color: '#fdba74',
+                border: `1px solid ${TIMELINE_UI.border}`,
+                background: TIMELINE_UI.surface,
+                color: TIMELINE_UI.orangeSoft,
                 cursor: isPlaying || displayT >= totalT ? 'not-allowed' : 'pointer',
                 opacity: isPlaying || displayT >= totalT ? 0.4 : 1,
                 flex: '0 0 auto',
@@ -386,13 +400,13 @@ export function Timeline({
               title={`vitesse : ${playbackSpeed!.toFixed(1)}×`}
               style={{ width: 70 }}
             />
-            <span style={{ fontSize: 10, minWidth: 28, textAlign: 'right', color: '#cbd5e1' }}>
+            <span style={{ fontSize: 10, minWidth: 28, textAlign: 'right', color: TIMELINE_UI.muted }}>
               {playbackSpeed!.toFixed(1)}×
             </span>
           </div>
         )}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#cbd5e1', lineHeight: 1.2, alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: TIMELINE_UI.muted, lineHeight: 1.2, alignItems: 'center' }}>
         <span>
           Étape {currentStepIdx + 1} / {total}
           {currentStep?.label ? ` — ${currentStep.label}` : ''}
@@ -407,8 +421,9 @@ export function Timeline({
               padding: '1px 6px',
               borderRadius: 4,
               fontWeight: 700,
-              background: violation ? '#fee2e2' : shotLeft < 5 ? '#fef3c7' : '#f1f5f9',
-              color: violation ? '#991b1b' : shotLeft < 5 ? '#92400e' : '#334155',
+              background: violation ? 'rgba(248, 113, 113, 0.16)' : shotLeft < 5 ? 'rgba(251, 191, 36, 0.16)' : TIMELINE_UI.surfaceRaised,
+              color: violation ? '#fca5a5' : shotLeft < 5 ? '#fbbf24' : TIMELINE_UI.muted,
+              border: `1px solid ${violation ? 'rgba(248, 113, 113, 0.28)' : shotLeft < 5 ? 'rgba(251, 191, 36, 0.26)' : TIMELINE_UI.border}`,
             }}
           >
             ⏱ {violation ? 'VIOL.' : formatShotClock(shotLeft)}
