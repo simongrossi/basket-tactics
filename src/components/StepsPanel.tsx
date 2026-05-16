@@ -31,8 +31,8 @@ const inboundButtonStyle = {
   padding: '4px 4px',
   borderRadius: 4,
   border: '1px solid #dc2626',
-  background: '#fff',
-  color: '#7f1d1d',
+  background: '#262a32',
+  color: '#fca5a5',
   cursor: 'pointer' as const,
   fontWeight: 600,
   minWidth: 0,
@@ -98,14 +98,14 @@ export function StepsPanel(props: StepsPanelProps) {
                       style={{ flex: 1, fontSize: 11, padding: '2px 4px', border: `1px solid ${c.border}`, borderRadius: 3 }}
                     />
                   ) : (
-                    <span style={{ flex: 1, color: '#57534e', fontStyle: s.label ? 'normal' : 'italic' }}>
+                    <span style={{ flex: 1, color: '#cbd5e1', fontStyle: s.label ? 'normal' : 'italic' }}>
                       {s.label || '(sans label)'}
                     </span>
                   )}
                   {s.switches && <span style={{ fontSize: 10, color: '#999' }}>↔</span>}
                   {s.context === 'free-throw' && (
                     <span
-                      style={{ fontSize: 10, color: '#92400e', background: '#fef3c7', padding: '1px 4px', borderRadius: 3, fontWeight: 600 }}
+                      style={{ fontSize: 10, color: '#fbbf24', background: '#fef3c7', padding: '1px 4px', borderRadius: 3, fontWeight: 600 }}
                       title="Lancer franc — positions réglementaires figées"
                     >
                       🏀 LF
@@ -115,7 +115,7 @@ export function StepsPanel(props: StepsPanelProps) {
                     s.context === 'inbound-sideline-low' ||
                     s.context === 'inbound-sideline-high') && (
                     <span
-                      style={{ fontSize: 10, color: '#7f1d1d', background: '#fee2e2', padding: '1px 4px', borderRadius: 3, fontWeight: 600 }}
+                      style={{ fontSize: 10, color: '#fca5a5', background: '#fee2e2', padding: '1px 4px', borderRadius: 3, fontWeight: 600 }}
                       title={`Remise en jeu — ${
                         s.context === 'inbound-baseline'
                           ? 'ligne de fond (BLOB)'
@@ -136,7 +136,7 @@ export function StepsPanel(props: StepsPanelProps) {
                     </span>
                   )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#78716c' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#94a3b8' }}>
                   <span>porteur</span>
                   {isActive ? (
                     <select
@@ -170,7 +170,7 @@ export function StepsPanel(props: StepsPanelProps) {
                             fontSize: 10,
                             padding: '2px 4px',
                             borderRadius: 3,
-                            background: '#fff',
+                            background: '#262a32',
                             border: '1px solid #fed7aa',
                           }}
                         >
@@ -178,7 +178,7 @@ export function StepsPanel(props: StepsPanelProps) {
                             {ai + 1}
                           </span>
                           <span style={{ fontSize: 11 }}>{meta.symbol}</span>
-                          <span style={{ flex: 1, color: '#57534e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span style={{ flex: 1, color: '#cbd5e1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {meta.label} {a.fromId}
                             {a.toId ? ` → ${a.toId}` : ''}
                           </span>
@@ -237,8 +237,8 @@ export function StepsPanel(props: StepsPanelProps) {
                 padding: '4px 6px',
                 borderRadius: 4,
                 border: '1px solid #f59e0b',
-                background: '#fff',
-                color: '#92400e',
+                background: '#262a32',
+                color: '#fbbf24',
                 cursor: 'pointer',
                 fontWeight: 600,
               }}
@@ -262,7 +262,7 @@ export function StepsPanel(props: StepsPanelProps) {
                   padding: '4px 4px',
                   borderRadius: 4,
                   border: '1px solid #10b981',
-                  background: '#fff',
+                  background: '#262a32',
                   color: '#065f46',
                   cursor: 'pointer',
                   fontWeight: 600,
@@ -281,8 +281,8 @@ export function StepsPanel(props: StepsPanelProps) {
                   padding: '4px 4px',
                   borderRadius: 4,
                   border: '1px solid #f59e0b',
-                  background: '#fff',
-                  color: '#92400e',
+                  background: '#262a32',
+                  color: '#fbbf24',
                   cursor: 'pointer',
                   fontWeight: 600,
                   minWidth: 0,
@@ -348,7 +348,7 @@ export function StepsPanel(props: StepsPanelProps) {
                 padding: '4px 6px',
                 borderRadius: 4,
                 border: '1px solid #7c3aed',
-                background: '#fff',
+                background: '#262a32',
                 color: '#5b21b6',
                 cursor: 'pointer',
                 fontWeight: 600,
@@ -366,7 +366,7 @@ export function StepsPanel(props: StepsPanelProps) {
             props.state.steps[props.state.activeStep].context === 'inbound-sideline-low' ||
             props.state.steps[props.state.activeStep].context === 'inbound-sideline-high') && (
             <div style={{ marginTop: 6, padding: '4px 6px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 4 }}>
-              <div style={{ fontSize: 9, fontWeight: 600, color: '#991b1b', marginBottom: 3, letterSpacing: 0.3 }}>
+              <div style={{ fontSize: 9, fontWeight: 600, color: '#fca5a5', marginBottom: 3, letterSpacing: 0.3 }}>
                 🛡 DÉFENSE SUR REMISE
               </div>
               <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
@@ -387,8 +387,8 @@ export function StepsPanel(props: StepsPanelProps) {
                       padding: '3px 6px',
                       borderRadius: 3,
                       border: '1px solid #fca5a5',
-                      background: '#fff',
-                      color: '#991b1b',
+                      background: '#262a32',
+                      color: '#fca5a5',
                       cursor: 'pointer',
                       fontWeight: 600,
                       minWidth: 0,

@@ -47,9 +47,9 @@ export function ParametresPanel({
                 fontSize: 11,
                 padding: '5px 6px',
                 borderRadius: 5,
-                border: `1px solid ${active ? c.accent : c.border}`,
-                background: active ? c.accent : '#fff',
-                color: active ? '#fff' : c.accentText,
+                border: `1px solid ${active ? c.accent : '#2a2d35'}`,
+                background: active ? c.accent : '#262a32',
+                color: active ? '#fff' : '#cbd5e1',
                 cursor: 'pointer',
                 fontWeight: active ? 700 : 500,
               }}
@@ -79,9 +79,9 @@ export function ParametresPanel({
                     fontSize: 9,
                     padding: '2px 0',
                     borderRadius: 3,
-                    border: isDq ? '1px solid #dc2626' : '1px solid #cbd5e1',
-                    background: isDq ? '#fee2e2' : '#fff',
-                    color: isDq ? '#991b1b' : '#94a3b8',
+                    border: isDq ? '1px solid rgba(252, 165, 165, 0.4)' : '1px solid #2a2d35',
+                    background: isDq ? 'rgba(252, 165, 165, 0.12)' : '#262a32',
+                    color: isDq ? '#fca5a5' : '#cbd5e1',
                     cursor: 'pointer',
                     fontWeight: isDq ? 700 : 500,
                   }}
@@ -104,9 +104,9 @@ export function ParametresPanel({
                     fontSize: 9,
                     padding: '2px 0',
                     borderRadius: 3,
-                    border: isDq ? '1px solid #dc2626' : '1px solid #cbd5e1',
-                    background: isDq ? '#fee2e2' : '#fff',
-                    color: isDq ? '#991b1b' : '#94a3b8',
+                    border: isDq ? '1px solid rgba(252, 165, 165, 0.4)' : '1px solid #2a2d35',
+                    background: isDq ? 'rgba(252, 165, 165, 0.12)' : '#262a32',
+                    color: isDq ? '#fca5a5' : '#cbd5e1',
                     cursor: 'pointer',
                     fontWeight: isDq ? 700 : 500,
                   }}
@@ -126,8 +126,8 @@ export function ParametresPanel({
                 padding: '3px 6px',
                 borderRadius: 3,
                 border: '1px solid #cbd5e1',
-                background: '#fff',
-                color: '#475569',
+                background: '#262a32',
+                color: '#cbd5e1',
                 cursor: 'pointer',
                 marginBottom: 4,
               }}
@@ -143,7 +143,7 @@ export function ParametresPanel({
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 8px', marginBottom: 6, fontSize: 11 }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 6 }} title="Durée d'une étape en secondes. Affecte uniquement l'horloge et le shot clock — le moteur reste step-based.">
-          <span style={{ flex: '0 0 70px', color: c.accentText }}>s / étape</span>
+          <span style={{ flex: '0 0 70px', color: '#cbd5e1' }}>s / étape</span>
           <input
             type="number"
             min={0.5}
@@ -155,7 +155,7 @@ export function ParametresPanel({
           />
         </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: 6 }} title="Durée totale de la possession (24s FIBA / 14s reset après rebond offensif).">
-          <span style={{ flex: '0 0 70px', color: c.accentText }}>possession</span>
+          <span style={{ flex: '0 0 70px', color: '#cbd5e1' }}>possession</span>
           <input
             type="number"
             min={1}
@@ -297,8 +297,8 @@ export function ParametresPanel({
             padding: '4px 8px',
             borderRadius: 4,
             border: '1px solid #cbd5e1',
-            background: '#fff',
-            color: '#334155',
+            background: '#262a32',
+            color: '#e5e7eb',
             cursor: 'pointer',
             textAlign: 'left',
             marginTop: 4,
@@ -452,7 +452,7 @@ function Swatch({ color, sample }: { color: string; sample: LegendSample }) {
 
 function LegendRow({ color, sample, label }: { color: string; sample: LegendSample; label: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#475569', lineHeight: 1.2 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#cbd5e1', lineHeight: 1.2 }}>
       <Swatch color={color} sample={sample} />
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
     </div>
@@ -469,7 +469,7 @@ function LegendCheckboxLine({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label style={{ display: 'flex', gap: 5, alignItems: 'center', fontSize: 12, color: '#1f2937', cursor: 'pointer' }}>
+    <label style={{ display: 'flex', gap: 5, alignItems: 'center', fontSize: 12, color: '#e5e7eb', cursor: 'pointer' }}>
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <Swatch color={color} sample={sample} />
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
