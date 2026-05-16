@@ -5,6 +5,10 @@
 //    "override individuel", avec bouton ↻ pour revenir au global
 //  - `GazeLockButton` : petit bouton on/off pour le verrouillage du regard
 
+import { DARK_PANEL } from '../sidebar/SidebarThemeContext';
+
+const ACCENT = '#fdba74';
+
 export function Row({
   label,
   children,
@@ -19,9 +23,9 @@ export function Row({
       <span
         style={{
           fontSize: 12,
-          color: '#666',
+          color: DARK_PANEL.textMuted,
           width: 88,
-          textDecoration: title ? 'underline dotted #cbd5e1' : undefined,
+          textDecoration: title ? `underline dotted ${DARK_PANEL.border}` : undefined,
           textUnderlineOffset: 3,
           cursor: title ? 'help' : 'default',
         }}
@@ -54,7 +58,7 @@ export function OverrideSliderRow({
   const display = overridden ? value!.toFixed(step < 1 ? 2 : 0) : 'global';
   return (
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }} title={title}>
-      <span style={{ fontSize: 12, color: overridden ? '#9a3412' : '#666', width: 88, fontWeight: overridden ? 600 : 400 }}>
+      <span style={{ fontSize: 12, color: overridden ? ACCENT : DARK_PANEL.textMuted, width: 88, fontWeight: overridden ? 600 : 400 }}>
         {label}
       </span>
       <input
@@ -66,7 +70,7 @@ export function OverrideSliderRow({
         onChange={(e) => onChange(parseFloat(e.target.value))}
         style={{ flex: 1, opacity: overridden ? 1 : 0.55 }}
       />
-      <span style={{ fontSize: 11, color: overridden ? '#9a3412' : '#94a3b8', minWidth: 36, textAlign: 'right', fontWeight: overridden ? 600 : 400 }}>
+      <span style={{ fontSize: 11, color: overridden ? ACCENT : DARK_PANEL.textDim, minWidth: 36, textAlign: 'right', fontWeight: overridden ? 600 : 400 }}>
         {display}
       </span>
       {overridden && (
@@ -106,9 +110,9 @@ export function GazeLockButton({
         fontSize: 11,
         padding: '3px 6px',
         borderRadius: 3,
-        border: `1px solid ${active ? '#9a3412' : '#cbd5e1'}`,
-        background: active ? '#ea580c' : '#fff',
-        color: active ? '#fff' : '#475569',
+        border: `1px solid ${active ? '#ea580c' : DARK_PANEL.border}`,
+        background: active ? '#ea580c' : DARK_PANEL.bgSubtle,
+        color: active ? '#fff' : DARK_PANEL.textMuted,
         cursor: 'pointer',
         fontWeight: active ? 600 : 400,
         whiteSpace: 'nowrap',

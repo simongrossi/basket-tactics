@@ -14,6 +14,7 @@ import {
   generateAutoAnnotation,
   type ScreenSide,
 } from '@/lib/logic/autoActions/generateAutoAnnotation';
+import { DARK_PANEL } from '../sidebar/SidebarThemeContext';
 
 interface AutoActionSubmenuProps {
   state: AppState;
@@ -48,9 +49,9 @@ export function AutoActionSubmenu({ state, fromId, onCreate, onClose }: AutoActi
     fontSize: 12,
     padding: '6px 8px',
     borderRadius: 4,
-    border: '1px solid #e7e5e4',
-    background: active ? '#fff7ed' : '#fff',
-    color: '#1c1917',
+    border: `1px solid ${active ? 'rgba(253, 186, 116, 0.35)' : DARK_PANEL.border}`,
+    background: active ? 'rgba(216, 90, 48, 0.15)' : DARK_PANEL.bgSubtle,
+    color: active ? '#fdba74' : DARK_PANEL.text,
     cursor: 'pointer' as const,
     fontWeight: active ? 600 : 400,
   });
@@ -62,9 +63,9 @@ export function AutoActionSubmenu({ state, fromId, onCreate, onClose }: AutoActi
     fontSize: 11,
     padding: '4px 8px',
     borderRadius: 3,
-    border: '1px solid #ede9d8',
-    background: '#fafaf9',
-    color: '#1c1917',
+    border: `1px solid ${DARK_PANEL.borderSubtle}`,
+    background: DARK_PANEL.bg,
+    color: DARK_PANEL.textMuted,
     cursor: 'pointer' as const,
   };
 
@@ -120,7 +121,7 @@ export function AutoActionSubmenu({ state, fromId, onCreate, onClose }: AutoActi
           ))}
           <button
             onClick={() => setScreenTarget(null)}
-            style={{ ...subBtnStyle, color: '#94a3b8' }}
+            style={{ ...subBtnStyle, color: DARK_PANEL.textDim }}
           >
             ← retour
           </button>

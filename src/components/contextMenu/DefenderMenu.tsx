@@ -16,6 +16,11 @@ import { DEFENDER_PROFILES, type DefenderProfile } from '@/lib/data/defenderProf
 import { useClampedPosition, useDraggablePopup } from './popupHooks';
 import { ToolBar } from './ToolBar';
 import { Row, OverrideSliderRow, GazeLockButton } from './sharedRows';
+import { DARK_PANEL } from '../sidebar/SidebarThemeContext';
+
+const BLUE_ACCENT = '#4ba3ff';
+const AMBER_TINT_BG = 'rgba(245, 158, 11, 0.15)';
+const AMBER_TINT_BORDER = 'rgba(252, 211, 77, 0.35)';
 
 export interface DefenderMenuProps {
   kind: 'defender';
@@ -70,13 +75,14 @@ export function DefenderMenu({
         position: 'absolute',
         left: drag.pos.x,
         top: drag.pos.y,
-        background: '#fff',
-        border: '1px solid #ddd',
+        background: DARK_PANEL.bg,
+        border: `1px solid ${DARK_PANEL.border}`,
+        color: DARK_PANEL.text,
         borderRadius: 8,
         padding: 10,
         minWidth: 240,
         zIndex: 1000,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.45)',
       }}
     >
       <div
@@ -94,7 +100,7 @@ export function DefenderMenu({
         <span
           onPointerDown={(e) => e.stopPropagation()}
           onClick={onClose}
-          style={{ float: 'right', cursor: 'pointer', color: '#999', fontSize: 14 }}
+          style={{ float: 'right', cursor: 'pointer', color: DARK_PANEL.textDim, fontSize: 14 }}
         >
           ×
         </span>
@@ -110,8 +116,8 @@ export function DefenderMenu({
           marginBottom: 10,
           padding: '4px 6px',
           borderRadius: 5,
-          background: hasOverride ? '#fef3c7' : '#f1f5f9',
-          border: `1px solid ${hasOverride ? '#fcd34d' : '#e2e8f0'}`,
+          background: hasOverride ? AMBER_TINT_BG : DARK_PANEL.bgSubtle,
+          border: `1px solid ${hasOverride ? AMBER_TINT_BORDER : DARK_PANEL.border}`,
         }}
         title={
           hasOverride
@@ -119,7 +125,7 @@ export function DefenderMenu({
             : "Position calculée par le moteur d'après les règles d'aide, l'écran, le strong-side denial. Drag le défenseur pour passer en Manuel."
         }
       >
-        <span style={{ fontSize: 11, color: '#475569', fontWeight: 500 }}>placement</span>
+        <span style={{ fontSize: 11, color: DARK_PANEL.textMuted, fontWeight: 500 }}>placement</span>
         <div style={{ display: 'flex', flex: 1, gap: 2, marginLeft: 4 }}>
           <button
             onClick={() => {
@@ -133,9 +139,9 @@ export function DefenderMenu({
               fontSize: 11,
               padding: '3px 4px',
               borderRadius: 3,
-              border: `1px solid ${!hasOverride ? '#0284c7' : '#cbd5e1'}`,
-              background: !hasOverride ? '#0284c7' : '#fff',
-              color: !hasOverride ? '#fff' : '#475569',
+              border: `1px solid ${!hasOverride ? BLUE_ACCENT : DARK_PANEL.border}`,
+              background: !hasOverride ? BLUE_ACCENT : DARK_PANEL.bgSubtle,
+              color: !hasOverride ? '#0a1929' : DARK_PANEL.textMuted,
               cursor: hasOverride ? 'pointer' : 'default',
               fontWeight: !hasOverride ? 600 : 400,
             }}
@@ -149,9 +155,9 @@ export function DefenderMenu({
               fontSize: 11,
               padding: '3px 4px',
               borderRadius: 3,
-              border: `1px solid ${hasOverride ? '#d97706' : '#cbd5e1'}`,
-              background: hasOverride ? '#f59e0b' : '#fff',
-              color: hasOverride ? '#fff' : '#94a3b8',
+              border: `1px solid ${hasOverride ? '#d97706' : DARK_PANEL.border}`,
+              background: hasOverride ? '#f59e0b' : DARK_PANEL.bgSubtle,
+              color: hasOverride ? '#1f1300' : DARK_PANEL.textDim,
               cursor: 'default',
               fontWeight: hasOverride ? 600 : 400,
             }}
@@ -272,7 +278,7 @@ export function DefenderMenu({
           }}
           style={{ flex: 1 }}
         />
-        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: rule.orientation ? '#9a3412' : '#94a3b8', fontWeight: rule.orientation ? 600 : 400 }}>
+        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: rule.orientation ? BLUE_ACCENT : DARK_PANEL.textDim, fontWeight: rule.orientation ? 600 : 400 }}>
           {rule.orientation ? `${rule.orientation > 0 ? '+' : ''}${rule.orientation}°` : '0°'}
         </span>
         {rule.orientation !== undefined && rule.orientation !== 0 && (
@@ -344,7 +350,7 @@ export function DefenderMenu({
           }}
           style={{ flex: 1 }}
         />
-        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: rule.bodyOrientation !== undefined ? '#9a3412' : '#94a3b8', fontWeight: rule.bodyOrientation !== undefined ? 600 : 400 }}>
+        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: rule.bodyOrientation !== undefined ? BLUE_ACCENT : DARK_PANEL.textDim, fontWeight: rule.bodyOrientation !== undefined ? 600 : 400 }}>
           {rule.bodyOrientation !== undefined ? `${rule.bodyOrientation}°` : 'auto'}
         </span>
         {rule.bodyOrientation !== undefined && (

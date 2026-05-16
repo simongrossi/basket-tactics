@@ -4,6 +4,7 @@
 // (l'outil est un mode global, pas un mode joueur).
 
 import type { Tool } from '@/lib/types';
+import { DARK_PANEL } from '../sidebar/SidebarThemeContext';
 
 export interface ToolBarProps {
   tool: Tool;
@@ -38,9 +39,9 @@ export function ToolBar({ tool, onSetTool, defenderContext }: ToolBarProps) {
               fontSize: 10,
               padding: '4px 2px',
               borderRadius: 4,
-              border: `1px solid ${active ? '#9a3412' : '#e2e8f0'}`,
-              background: active ? '#D85A30' : '#fff',
-              color: active ? '#fff' : (greyed ? '#cbd5e1' : '#7c2d12'),
+              border: `1px solid ${active ? '#D85A30' : DARK_PANEL.border}`,
+              background: active ? '#D85A30' : DARK_PANEL.bgSubtle,
+              color: active ? '#fff' : (greyed ? DARK_PANEL.textDim : '#fdba74'),
               cursor: 'pointer',
               fontWeight: 500,
               display: 'flex',
