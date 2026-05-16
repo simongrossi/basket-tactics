@@ -5,6 +5,7 @@ import type { SidebarView } from '@/hooks/useSidebarState';
 import { SIDEBAR } from './tokens';
 import { SidebarNav } from './SidebarNav';
 import { SidebarFooter } from './SidebarFooter';
+import { SidebarThemeProvider } from './SidebarThemeContext';
 
 type Props = {
   activeView: SidebarView;
@@ -48,6 +49,67 @@ export function Sidebar({
         overflow: 'hidden',
       }}
     >
+      {/*
+        Override scoped pour les éléments stylés inline dans les panneaux
+        Offense/Defense/Steps/Scenario qui n'utilisent pas SidebarThemeContext.
+        On cible les inputs et selects (déterministe via type), et les
+        patterns de fond blanc inline pour les boutons / éléments génériques.
+        Les couleurs d'accent (orange/bleu) restent intactes — elles
+        fonctionnent sur dark.
+      */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .sidebar-tools-scope select,
+        .sidebar-tools-scope input[type="text"],
+        .sidebar-tools-scope input[type="number"],
+        .sidebar-tools-scope input[type="search"],
+        .sidebar-tools-scope textarea {
+          background: ${SIDEBAR.bgActive} !important;
+          color: ${SIDEBAR.text} !important;
+          border-color: ${SIDEBAR.border} !important;
+        }
+        .sidebar-tools-scope input::placeholder,
+        .sidebar-tools-scope textarea::placeholder {
+          color: ${SIDEBAR.textDim} !important;
+        }
+        .sidebar-tools-scope [style*="rgb(255, 255, 255)"]:not(input):not(select):not(textarea),
+        .sidebar-tools-scope [style*="background: #fff"]:not(input):not(select):not(textarea),
+        .sidebar-tools-scope [style*="background:#fff"]:not(input):not(select):not(textarea) {
+          background: ${SIDEBAR.bgActive} !important;
+        }
+        .sidebar-tools-scope [style*="color: rgb(71, 85, 105)"],
+        .sidebar-tools-scope [style*="color: #475569"],
+        .sidebar-tools-scope [style*="color:#475569"],
+        .sidebar-tools-scope [style*="color: rgb(100, 116, 139)"],
+        .sidebar-tools-scope [style*="color: #64748b"],
+        .sidebar-tools-scope [style*="color: rgb(51, 65, 85)"],
+        .sidebar-tools-scope [style*="color: #334155"],
+        .sidebar-tools-scope [style*="color: rgb(31, 41, 55)"],
+        .sidebar-tools-scope [style*="color: #1f2937"] {
+          color: ${SIDEBAR.text} !important;
+        }
+        .sidebar-tools-scope [style*="color: rgb(120, 113, 108)"],
+        .sidebar-tools-scope [style*="color: #78716c"],
+        .sidebar-tools-scope [style*="color: rgb(148, 163, 184)"],
+        .sidebar-tools-scope [style*="color: #94a3b8"] {
+          color: ${SIDEBAR.textMuted} !important;
+        }
+        /* Bordures pâles fréquentes */
+        .sidebar-tools-scope [style*="border: 1px solid rgb(203, 213, 225)"],
+        .sidebar-tools-scope [style*="border: 1px solid #cbd5e1"],
+        .sidebar-tools-scope [style*="border: 1px solid rgb(226, 232, 240)"],
+        .sidebar-tools-scope [style*="border: 1px solid #e2e8f0"] {
+          border-color: ${SIDEBAR.border} !important;
+        }
+        /* Backgrounds gris pâles utilisés pour les zones repliées / passives */
+        .sidebar-tools-scope [style*="background: rgb(241, 245, 249)"],
+        .sidebar-tools-scope [style*="background: #f1f5f9"],
+        .sidebar-tools-scope [style*="background: rgb(248, 250, 252)"],
+        .sidebar-tools-scope [style*="background: #f8fafc"],
+        .sidebar-tools-scope [style*="background: rgb(250, 250, 249)"],
+        .sidebar-tools-scope [style*="background: #fafaf9"] {
+          background: ${SIDEBAR.bg} !important;
+        }
+      `}} />
       <div
         style={{
           display: 'flex',
@@ -81,6 +143,7 @@ export function Sidebar({
             }}
           />
           <div
+            className="sidebar-tools-scope"
             style={{
               flex: 1,
               minHeight: 0,
@@ -104,7 +167,7 @@ export function Sidebar({
             >
               Outils
             </div>
-            {toolsContent}
+            <SidebarThemeProvider dark>{toolsContent}</SidebarThemeProvider>
           </div>
         </>
       )}

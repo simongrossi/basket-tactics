@@ -3,6 +3,7 @@
 import * as React from 'react';
 import type { ReactNode } from 'react';
 import { useAccordionState } from '@/hooks/useAccordionState';
+import { useSidebarTheme, DARK_PANEL } from './sidebar/SidebarThemeContext';
 
 export const COLORS = {
   offense: {
@@ -43,11 +44,12 @@ interface PanelProps {
 export function Panel({ theme, title, children, fill }: PanelProps) {
   const c = COLORS[theme];
   const accent = 'accent' in c ? c.accent : '#94a3b8';
+  const { dark } = useSidebarTheme();
   return (
     <aside
       style={{
-        background: '#fff',
-        border: `1px solid ${c.border}`,
+        background: dark ? DARK_PANEL.bg : '#fff',
+        border: `1px solid ${dark ? DARK_PANEL.border : c.border}`,
         borderRadius: 10,
         padding: 10,
         display: 'flex',
@@ -56,7 +58,10 @@ export function Panel({ theme, title, children, fill }: PanelProps) {
         minHeight: 0,
         overflow: 'hidden',
         flex: fill ? '1 1 0' : '0 0 auto',
-        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04)',
+        boxShadow: dark
+          ? 'none'
+          : '0 1px 3px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04)',
+        color: dark ? DARK_PANEL.text : undefined,
       }}
     >
       <div
@@ -65,7 +70,7 @@ export function Panel({ theme, title, children, fill }: PanelProps) {
           alignItems: 'center',
           gap: 8,
           paddingBottom: 6,
-          borderBottom: `1px solid ${c.border}`,
+          borderBottom: `1px solid ${dark ? DARK_PANEL.borderSubtle : c.border}`,
         }}
       >
         <div style={{ width: 4, height: 16, background: accent, borderRadius: 2 }} />
@@ -74,7 +79,7 @@ export function Panel({ theme, title, children, fill }: PanelProps) {
             fontSize: 12,
             fontWeight: 700,
             letterSpacing: '-0.01em',
-            color: 'accentText' in c ? c.accentText : c.text,
+            color: dark ? DARK_PANEL.text : 'accentText' in c ? c.accentText : c.text,
           }}
         >
           {title}
@@ -96,14 +101,21 @@ interface SectionProps {
 
 export function Section({ theme, label, open, children }: SectionProps) {
   const c = COLORS[theme];
+  const { dark } = useSidebarTheme();
   return (
-    <details open={open} style={{ borderTop: `1px solid ${c.border}`, paddingTop: 6 }}>
+    <details
+      open={open}
+      style={{
+        borderTop: `1px solid ${dark ? DARK_PANEL.borderSubtle : c.border}`,
+        paddingTop: 6,
+      }}
+    >
       <summary
         style={{
           fontSize: 11,
           fontWeight: 600,
           cursor: 'pointer',
-          color: 'accentText' in c ? c.accentText : c.text,
+          color: dark ? DARK_PANEL.textMuted : 'accentText' in c ? c.accentText : c.text,
           letterSpacing: '0.02em',
           listStyle: 'none',
           display: 'flex',
@@ -157,6 +169,7 @@ export function AccordionSection({
   children,
 }: AccordionSectionProps) {
   const c = COLORS[theme];
+  const { dark } = useSidebarTheme();
   const isPinned = variant === 'pinned';
   const [open, setOpen] = useAccordionState(
     id,
@@ -165,15 +178,27 @@ export function AccordionSection({
   const effectiveOpen = isPinned || open;
 
   // Couleurs par variant
-  const bg =
-    variant === 'pinned'
-      ? '#eff6ff' // bleu pâle (top-of-mind)
+  const bg = dark
+    ? variant === 'pinned'
+      ? DARK_PANEL.bgRaised
       : variant === 'secondary'
-        ? '#fafaf9' // gris très pâle
+        ? DARK_PANEL.bgSubtle
+        : DARK_PANEL.bg
+    : variant === 'pinned'
+      ? '#eff6ff'
+      : variant === 'secondary'
+        ? '#fafaf9'
         : '#fff';
-  const borderColor =
-    variant === 'pinned' ? '#bfdbfe' : c.border;
-  const accentText = 'accentText' in c ? c.accentText : c.text;
+  const borderColor = dark
+    ? DARK_PANEL.border
+    : variant === 'pinned'
+      ? '#bfdbfe'
+      : c.border;
+  const accentText = dark
+    ? DARK_PANEL.text
+    : 'accentText' in c
+      ? c.accentText
+      : c.text;
 
   return (
     <div
@@ -229,7 +254,7 @@ export function AccordionSection({
             style={{
               fontSize: 9,
               fontWeight: 600,
-              background: '#fff',
+              background: dark ? DARK_PANEL.bgSubtle : '#fff',
               color: accentText,
               border: `1px solid ${borderColor}`,
               padding: '1px 5px',
@@ -283,6 +308,7 @@ interface SliderProps {
  * pas perturber la frappe avec des arrondis intermédiaires.
  */
 export function Slider({ label, min, max, step, value, onChange, title }: SliderProps) {
+  const { dark } = useSidebarTheme();
   // Buffer local pour la saisie texte. Synchronisé avec `value` quand on est
   // hors focus ; pendant le focus, l'utilisateur peut taper librement (y
   // compris des valeurs hors bornes) — clampées au blur.
@@ -315,9 +341,9 @@ export function Slider({ label, min, max, step, value, onChange, title }: Slider
       <span
         style={{
           fontSize: 11,
-          color: '#475569',
+          color: dark ? DARK_PANEL.textMuted : '#475569',
           minWidth: 70,
-          textDecoration: title ? 'underline dotted #cbd5e1' : undefined,
+          textDecoration: title ? `underline dotted ${dark ? DARK_PANEL.border : '#cbd5e1'}` : undefined,
           textUnderlineOffset: 3,
           cursor: title ? 'help' : 'default',
         }}
@@ -359,12 +385,12 @@ export function Slider({ label, min, max, step, value, onChange, title }: Slider
         style={{
           width: 44,
           fontSize: 11,
-          color: '#475569',
+          color: dark ? DARK_PANEL.text : '#475569',
           textAlign: 'right',
-          border: '1px solid #e2e8f0',
+          border: `1px solid ${dark ? DARK_PANEL.border : '#e2e8f0'}`,
           borderRadius: 3,
           padding: '1px 3px',
-          background: '#fff',
+          background: dark ? DARK_PANEL.bgSubtle : '#fff',
         }}
       />
     </div>
@@ -388,13 +414,24 @@ interface CheckboxLineProps {
 }
 
 export function CheckboxLine({ checked, label, onChange, title }: CheckboxLineProps) {
+  const { dark } = useSidebarTheme();
   return (
     <label
-      style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, color: '#1f2937', cursor: 'pointer' }}
+      style={{
+        display: 'flex',
+        gap: 6,
+        alignItems: 'center',
+        fontSize: 12,
+        color: dark ? DARK_PANEL.text : '#1f2937',
+        cursor: 'pointer',
+      }}
       title={title}
     >
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <span style={{ textDecoration: title ? 'underline dotted #cbd5e1' : undefined, textUnderlineOffset: 3 }}>
+      <span style={{
+        textDecoration: title ? `underline dotted ${dark ? DARK_PANEL.border : '#cbd5e1'}` : undefined,
+        textUnderlineOffset: 3,
+      }}>
         {label}
       </span>
     </label>
@@ -440,6 +477,7 @@ interface ButtonProps {
 
 export function Button({ onClick, theme = 'neutral', variant = 'outline', fullWidth, children, title }: ButtonProps) {
   const c = COLORS[theme];
+  const { dark } = useSidebarTheme();
   const accent = 'accent' in c ? c.accent : c.text;
   const accentText = 'accentText' in c ? c.accentText : c.text;
   const isSolid = variant === 'solid';
@@ -451,9 +489,9 @@ export function Button({ onClick, theme = 'neutral', variant = 'outline', fullWi
         fontSize: 12,
         padding: '6px 10px',
         borderRadius: 6,
-        border: `1px solid ${c.border}`,
-        background: isSolid ? accent : '#fff',
-        color: isSolid ? '#fff' : accentText,
+        border: `1px solid ${dark ? DARK_PANEL.border : c.border}`,
+        background: isSolid ? accent : dark ? DARK_PANEL.bgSubtle : '#fff',
+        color: isSolid ? '#fff' : dark ? DARK_PANEL.text : accentText,
         cursor: 'pointer',
         fontWeight: 500,
         width: fullWidth ? '100%' : undefined,
