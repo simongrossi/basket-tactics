@@ -122,16 +122,14 @@ export function LibraryModal(props: LibraryModalProps) {
       style={
         inline
           ? {
-              // Refonte UI — rendu inline dans le grid principal.
               width: '100%',
               height: '100%',
               display: 'flex',
               alignItems: 'stretch',
               justifyContent: 'center',
-              padding: 12,
+              padding: 0,
               boxSizing: 'border-box',
-              background: '#f1f5f9',
-              borderRadius: 8,
+              background: '#0b0b0f',
             }
           : {
               position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)',
@@ -146,8 +144,7 @@ export function LibraryModal(props: LibraryModalProps) {
           inline
             ? {
                 width: '100%', maxWidth: 1100,
-                background: '#fff', borderRadius: 10,
-                boxShadow: '0 1px 3px rgba(15,23,42,0.08)',
+                background: '#0b0b0f',
                 display: 'flex', flexDirection: 'column', overflow: 'hidden',
               }
             : {

@@ -16,6 +16,7 @@ import { DefensePanel } from '@/components/DefensePanel';
 import { SidebarOverflowMenu } from '@/components/sidebar/SidebarOverflowMenu';
 import { ParametresPanel } from '@/components/ParametresPanel';
 import { LibraryModal } from '@/components/LibraryModal';
+import { SidebarThemeProvider } from '@/components/sidebar/SidebarThemeContext';
 import { Timeline } from '@/components/Timeline';
 import { CourtView } from '@/components/CourtView';
 import { LiveMatchOverlay } from '@/components/LiveMatchOverlay';
@@ -198,11 +199,12 @@ export default function Page() {
         height: '100vh',
         maxHeight: '100vh',
         overflow: 'hidden',
-        background: 'linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%)',
+        background: '#0b0b0f',
         padding: '8px 12px 10px',
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
+        color: '#e5e5e5',
       }}
     >
       <div
@@ -308,60 +310,66 @@ export default function Page() {
           />
         )}
 
-        <div className={`center-col${sidebar.activeView !== 'court' ? ' center-col-view' : ''}`}>
+        <div className={`center-col${sidebar.activeView !== 'court' ? ' center-col-view inline-view-scope' : ''}`}>
           {sidebar.activeView === 'playbook' && (
-            <PlaybookView
-              state={app.state}
-              mode="inline"
-              onClose={() => sidebar.setActiveView('court')}
-            />
+            <SidebarThemeProvider dark>
+              <PlaybookView
+                state={app.state}
+                mode="inline"
+                onClose={() => sidebar.setActiveView('court')}
+              />
+            </SidebarThemeProvider>
           )}
           {sidebar.activeView === 'library' && (
-            <LibraryModal
-              mode="inline"
-              hasWorkInProgress={
-                app.state.steps.length > 1 || app.state.steps[0].annotations.length > 0
-              }
-              library={lib.library}
-              onLoadSavedSystem={(sys) => app.importState(lib.loadSystem(app.state, sys))}
-              onLoadTemplate={app.loadTemplate}
-              onSaveCurrent={(folderId, name, description) =>
-                lib.saveSystem(app.state, folderId, name, description)
-              }
-              onRenameSystem={lib.renameSystem}
-              onDeleteSystem={lib.deleteSystem}
-              onMoveSystem={lib.moveSystem}
-              onCreateFolder={lib.createFolder}
-              onRenameFolder={lib.renameFolder}
-              onDeleteFolder={lib.deleteFolder}
-              onExportFolder={lib.exportFolder}
-              onImportFolder={lib.importFolder}
-              onClose={() => sidebar.setActiveView('court')}
-            />
+            <SidebarThemeProvider dark>
+              <LibraryModal
+                mode="inline"
+                hasWorkInProgress={
+                  app.state.steps.length > 1 || app.state.steps[0].annotations.length > 0
+                }
+                library={lib.library}
+                onLoadSavedSystem={(sys) => app.importState(lib.loadSystem(app.state, sys))}
+                onLoadTemplate={app.loadTemplate}
+                onSaveCurrent={(folderId, name, description) =>
+                  lib.saveSystem(app.state, folderId, name, description)
+                }
+                onRenameSystem={lib.renameSystem}
+                onDeleteSystem={lib.deleteSystem}
+                onMoveSystem={lib.moveSystem}
+                onCreateFolder={lib.createFolder}
+                onRenameFolder={lib.renameFolder}
+                onDeleteFolder={lib.deleteFolder}
+                onExportFolder={lib.exportFolder}
+                onImportFolder={lib.importFolder}
+                onClose={() => sidebar.setActiveView('court')}
+              />
+            </SidebarThemeProvider>
           )}
           {sidebar.activeView === 'settings' && (
-            <div
-              style={{
-                width: '100%',
-                height: '100%',
-                overflow: 'auto',
-                padding: 16,
-                background: '#f1f5f9',
-                borderRadius: 8,
-                boxSizing: 'border-box',
-              }}
-            >
-              <div style={{ maxWidth: 720, margin: '0 auto' }}>
-                <ParametresPanel
-                  state={app.state}
-                  onPatch={app.patch}
-                  onSetPlayerCount={app.setPlayerCount}
-                  onAutoPositionOffBall={app.autoPositionOffBall}
-                  onTogglePlayerDisqualified={app.togglePlayerDisqualified}
-                  onClearDisqualified={app.clearDisqualified}
-                />
+            <SidebarThemeProvider dark>
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  overflow: 'auto',
+                  padding: 16,
+                  background: '#0b0b0f',
+                  borderRadius: 8,
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div style={{ maxWidth: 720, margin: '0 auto' }}>
+                  <ParametresPanel
+                    state={app.state}
+                    onPatch={app.patch}
+                    onSetPlayerCount={app.setPlayerCount}
+                    onAutoPositionOffBall={app.autoPositionOffBall}
+                    onTogglePlayerDisqualified={app.togglePlayerDisqualified}
+                    onClearDisqualified={app.clearDisqualified}
+                  />
+                </div>
               </div>
-            </div>
+            </SidebarThemeProvider>
           )}
           {sidebar.activeView === 'court' && (
           <>
@@ -551,10 +559,85 @@ export default function Page() {
           overflow: hidden;
         }
         .center-col.center-col-view {
-          /* Pour les vues routées (Playbook, Bibliothèque, Paramètres) :
-             une seule rangée qui occupe toute la hauteur, pas de timeline ni
-             metrics. */
+          /* Vues routées (Playbook, Bibliothèque, Paramètres) : une seule
+             rangée plein hauteur, pas de timeline ni metrics, fond dark. */
           grid-template-rows: 1fr;
+          background: #0b0b0f;
+          border-radius: 8px;
+          color: #e5e5e5;
+        }
+        /* Override scoped pour passer le contenu hérité (LibraryModal,
+           PlaybookView) en thème dark sans toucher chaque ligne de styles
+           inline. */
+        .inline-view-scope select,
+        .inline-view-scope input[type="text"],
+        .inline-view-scope input[type="number"],
+        .inline-view-scope input[type="search"],
+        .inline-view-scope textarea {
+          background: #1f1f29 !important;
+          color: #e5e5e5 !important;
+          border-color: #2a2a35 !important;
+        }
+        .inline-view-scope input::placeholder,
+        .inline-view-scope textarea::placeholder {
+          color: #71717a !important;
+        }
+        .inline-view-scope [style*="rgb(255, 255, 255)"]:not(input):not(select):not(textarea):not(button[style*="background: rgb(216, 90, 48)"]),
+        .inline-view-scope [style*="background: #fff"]:not(input):not(select):not(textarea),
+        .inline-view-scope [style*="background:#fff"]:not(input):not(select):not(textarea) {
+          background: #16161d !important;
+        }
+        .inline-view-scope [style*="background: rgb(250, 250, 249)"],
+        .inline-view-scope [style*="background: #fafaf9"],
+        .inline-view-scope [style*="background: rgb(241, 245, 249)"],
+        .inline-view-scope [style*="background: #f1f5f9"] {
+          background: #0b0b0f !important;
+        }
+        .inline-view-scope [style*="background: rgb(255, 247, 237)"],
+        .inline-view-scope [style*="background: #fff7ed"],
+        .inline-view-scope [style*="background: rgb(239, 246, 255)"],
+        .inline-view-scope [style*="background: #eff6ff"] {
+          background: #1f1f29 !important;
+        }
+        .inline-view-scope [style*="color: rgb(120, 113, 108)"],
+        .inline-view-scope [style*="color: #78716c"],
+        .inline-view-scope [style*="color: rgb(148, 163, 184)"],
+        .inline-view-scope [style*="color: #94a3b8"],
+        .inline-view-scope [style*="color: rgb(168, 162, 158)"],
+        .inline-view-scope [style*="color: #a8a29e"] {
+          color: #a1a1aa !important;
+        }
+        .inline-view-scope [style*="color: rgb(87, 83, 78)"],
+        .inline-view-scope [style*="color: #57534e"],
+        .inline-view-scope [style*="color: rgb(71, 85, 105)"],
+        .inline-view-scope [style*="color: #475569"],
+        .inline-view-scope [style*="color: rgb(51, 65, 85)"],
+        .inline-view-scope [style*="color: #334155"],
+        .inline-view-scope [style*="color: rgb(31, 41, 55)"],
+        .inline-view-scope [style*="color: #1f2937"] {
+          color: #e5e5e5 !important;
+        }
+        .inline-view-scope [style*="border: 1px solid rgb(254, 215, 170)"],
+        .inline-view-scope [style*="border: 1px solid #fed7aa"],
+        .inline-view-scope [style*="border: 1px solid rgb(191, 219, 254)"],
+        .inline-view-scope [style*="border: 1px solid #bfdbfe"],
+        .inline-view-scope [style*="border: 1px solid rgb(203, 213, 225)"],
+        .inline-view-scope [style*="border: 1px solid #cbd5e1"],
+        .inline-view-scope [style*="border: 1px solid rgb(226, 232, 240)"],
+        .inline-view-scope [style*="border: 1px solid #e2e8f0"],
+        .inline-view-scope [style*="border-right: 1px solid rgb(254, 215, 170)"],
+        .inline-view-scope [style*="border-right: 1px solid #fed7aa"],
+        .inline-view-scope [style*="border-right: 1px solid rgb(191, 219, 254)"],
+        .inline-view-scope [style*="border-right: 1px solid #bfdbfe"],
+        .inline-view-scope [style*="border-top: 1px solid rgb(254, 215, 170)"],
+        .inline-view-scope [style*="border-top: 1px solid #fed7aa"],
+        .inline-view-scope [style*="border-top: 1px solid rgb(191, 219, 254)"],
+        .inline-view-scope [style*="border-top: 1px solid #bfdbfe"],
+        .inline-view-scope [style*="border-bottom: 1px solid rgb(254, 215, 170)"],
+        .inline-view-scope [style*="border-bottom: 1px solid #fed7aa"],
+        .inline-view-scope [style*="border-bottom: 1px solid rgb(191, 219, 254)"],
+        .inline-view-scope [style*="border-bottom: 1px solid #bfdbfe"] {
+          border-color: #2a2a35 !important;
         }
         .side-col {
           display: flex;
