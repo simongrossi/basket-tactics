@@ -58,6 +58,9 @@ export function Sidebar({
         fonctionnent sur dark.
       */}
       <style dangerouslySetInnerHTML={{ __html: `
+        .sidebar-tools-scope .sidebar-tool-section:last-of-type {
+          border-bottom: none !important;
+        }
         .sidebar-tools-scope select,
         .sidebar-tools-scope input[type="text"],
         .sidebar-tools-scope input[type="number"],

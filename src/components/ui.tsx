@@ -45,11 +45,55 @@ export function Panel({ theme, title, children, fill }: PanelProps) {
   const c = COLORS[theme];
   const accent = 'accent' in c ? c.accent : '#94a3b8';
   const { dark } = useSidebarTheme();
+
+  // En mode dark/sidebar : on retire complètement le chrome du Panel (carte,
+  // bordure, gros titre avec filet d'accent). Reste : un label discret SIDEBAR
+  // section-style (uppercase, petite caps, accent color en tiret coloré
+  // optionnel) et le contenu plat. Le but est d'éviter les "mini-navs"
+  // empilées dans la nav.
+  if (dark) {
+    const titleClean = title.replace(/^[^\w]+\s*/, ''); // strip leading emoji
+    return (
+      <section
+        className="sidebar-tool-section"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+          minHeight: 0,
+          flex: fill ? '1 1 0' : '0 0 auto',
+          padding: '8px 6px 10px',
+          borderBottom: `1px solid ${DARK_PANEL.borderSubtle}`,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '2px 4px 6px',
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: 1,
+            textTransform: 'uppercase',
+            color: DARK_PANEL.textDim,
+          }}
+        >
+          <span style={{ width: 6, height: 6, background: accent, borderRadius: 2, display: 'inline-block' }} />
+          {titleClean}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflow: 'auto', minHeight: 0 }}>
+          {children}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <aside
       style={{
-        background: dark ? DARK_PANEL.bg : '#fff',
-        border: `1px solid ${dark ? DARK_PANEL.border : c.border}`,
+        background: '#fff',
+        border: `1px solid ${c.border}`,
         borderRadius: 10,
         padding: 10,
         display: 'flex',
@@ -58,10 +102,7 @@ export function Panel({ theme, title, children, fill }: PanelProps) {
         minHeight: 0,
         overflow: 'hidden',
         flex: fill ? '1 1 0' : '0 0 auto',
-        boxShadow: dark
-          ? 'none'
-          : '0 1px 3px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04)',
-        color: dark ? DARK_PANEL.text : undefined,
+        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04)',
       }}
     >
       <div
@@ -70,7 +111,7 @@ export function Panel({ theme, title, children, fill }: PanelProps) {
           alignItems: 'center',
           gap: 8,
           paddingBottom: 6,
-          borderBottom: `1px solid ${dark ? DARK_PANEL.borderSubtle : c.border}`,
+          borderBottom: `1px solid ${c.border}`,
         }}
       >
         <div style={{ width: 4, height: 16, background: accent, borderRadius: 2 }} />
@@ -79,7 +120,7 @@ export function Panel({ theme, title, children, fill }: PanelProps) {
             fontSize: 12,
             fontWeight: 700,
             letterSpacing: '-0.01em',
-            color: dark ? DARK_PANEL.text : 'accentText' in c ? c.accentText : c.text,
+            color: 'accentText' in c ? c.accentText : c.text,
           }}
         >
           {title}
@@ -177,20 +218,22 @@ export function AccordionSection({
   );
   const effectiveOpen = isPinned || open;
 
-  // Couleurs par variant
+  // Couleurs par variant — en dark, on retire totalement le fond/bordure
+  // par défaut (transparent), sauf pour 'pinned' qui garde une teinte
+  // légèrement plus claire pour rester top-of-mind.
   const bg = dark
     ? variant === 'pinned'
-      ? DARK_PANEL.bgRaised
-      : variant === 'secondary'
-        ? DARK_PANEL.bgSubtle
-        : DARK_PANEL.bg
+      ? DARK_PANEL.bgSubtle
+      : 'transparent'
     : variant === 'pinned'
       ? '#eff6ff'
       : variant === 'secondary'
         ? '#fafaf9'
         : '#fff';
   const borderColor = dark
-    ? DARK_PANEL.border
+    ? variant === 'pinned'
+      ? DARK_PANEL.border
+      : 'transparent'
     : variant === 'pinned'
       ? '#bfdbfe'
       : c.border;
