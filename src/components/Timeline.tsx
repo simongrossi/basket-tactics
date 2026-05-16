@@ -157,10 +157,10 @@ export function Timeline({
       style={{
         position: 'relative',
         height: 28,
-        background: '#f1f5f9',
+        background: '#262a32',
         borderRadius: 8,
         cursor: total > 1 ? (dragging ? 'grabbing' : 'grab') : 'default',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #2a2d35',
         padding: '0 14px',
         touchAction: 'none',
         userSelect: 'none',
@@ -175,7 +175,7 @@ export function Timeline({
           left: 14,
           right: 14,
           height: 4,
-          background: '#cbd5e1',
+          background: '#3a3f48',
           borderRadius: 2,
           transform: 'translateY(-50%)',
         }}
@@ -214,8 +214,8 @@ export function Timeline({
               width: isInterp ? 8 : 14,
               height: isInterp ? 8 : 14,
               borderRadius: isInterp ? 4 : 7,
-              background: isCurrent ? '#D85A30' : isInterp ? '#cbd5e1' : '#fff',
-              border: `${isInterp ? 1 : 2}px solid ${isCurrent ? '#9a3412' : isInterp ? '#94a3b8' : '#94a3b8'}`,
+              background: isCurrent ? '#D85A30' : isInterp ? '#3a3f48' : '#2f343d',
+              border: `${isInterp ? 1 : 2}px solid ${isCurrent ? '#9a3412' : isInterp ? '#4a4f58' : '#5a606b'}`,
               opacity: isInterp ? 0.6 : 1,
               transform: 'translate(-50%, -50%)',
               cursor: 'pointer',
@@ -272,9 +272,9 @@ export function Timeline({
                 fontSize: 12,
                 padding: '4px 10px',
                 borderRadius: 6,
-                border: '1px solid #fed7aa',
-                background: '#fff',
-                color: '#7c2d12',
+                border: '1px solid #2a2d35',
+                background: '#2f343d',
+                color: '#fdba74',
                 cursor: 'pointer',
                 fontWeight: 500,
                 flex: '0 0 auto',
@@ -294,9 +294,9 @@ export function Timeline({
                 fontSize: 11,
                 padding: '4px 5px',
                 borderRadius: 6,
-                border: '1px solid #fed7aa',
-                background: '#fff',
-                color: '#7c2d12',
+                border: '1px solid #2a2d35',
+                background: '#2f343d',
+                color: '#fdba74',
                 cursor: isPlaying || displayT <= 0 ? 'not-allowed' : 'pointer',
                 opacity: isPlaying || displayT <= 0 ? 0.4 : 1,
                 flex: '0 0 auto',
@@ -312,9 +312,9 @@ export function Timeline({
                 fontSize: 11,
                 padding: '4px 6px',
                 borderRadius: 6,
-                border: '1px solid #fed7aa',
-                background: '#fff',
-                color: '#7c2d12',
+                border: '1px solid #2a2d35',
+                background: '#2f343d',
+                color: '#fdba74',
                 cursor: isPlaying || currentFineIdx <= 0 ? 'not-allowed' : 'pointer',
                 opacity: isPlaying || currentFineIdx <= 0 ? 0.4 : 1,
                 flex: '0 0 auto',
@@ -326,7 +326,7 @@ export function Timeline({
               title="Frame fine courante / total (résolution 1/60 step). ←/→ clavier pour avancer fin, Shift+←/→ pour avancer grossier."
               style={{
                 fontSize: 10,
-                color: '#57534e',
+                color: '#cbd5e1',
                 fontVariantNumeric: 'tabular-nums',
                 minWidth: 56,
                 textAlign: 'center',
@@ -343,9 +343,9 @@ export function Timeline({
                 fontSize: 11,
                 padding: '4px 6px',
                 borderRadius: 6,
-                border: '1px solid #fed7aa',
-                background: '#fff',
-                color: '#7c2d12',
+                border: '1px solid #2a2d35',
+                background: '#2f343d',
+                color: '#fdba74',
                 cursor: isPlaying || currentFineIdx >= totalFineFrames ? 'not-allowed' : 'pointer',
                 opacity: isPlaying || currentFineIdx >= totalFineFrames ? 0.4 : 1,
                 flex: '0 0 auto',
@@ -361,9 +361,9 @@ export function Timeline({
                 fontSize: 11,
                 padding: '4px 5px',
                 borderRadius: 6,
-                border: '1px solid #fed7aa',
-                background: '#fff',
-                color: '#7c2d12',
+                border: '1px solid #2a2d35',
+                background: '#2f343d',
+                color: '#fdba74',
                 cursor: isPlaying || displayT >= totalT ? 'not-allowed' : 'pointer',
                 opacity: isPlaying || displayT >= totalT ? 0.4 : 1,
                 flex: '0 0 auto',
@@ -386,13 +386,13 @@ export function Timeline({
               title={`vitesse : ${playbackSpeed!.toFixed(1)}×`}
               style={{ width: 70 }}
             />
-            <span style={{ fontSize: 10, minWidth: 28, textAlign: 'right', color: '#57534e' }}>
+            <span style={{ fontSize: 10, minWidth: 28, textAlign: 'right', color: '#cbd5e1' }}>
               {playbackSpeed!.toFixed(1)}×
             </span>
           </div>
         )}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#64748b', lineHeight: 1.2, alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#cbd5e1', lineHeight: 1.2, alignItems: 'center' }}>
         <span>
           Étape {currentStepIdx + 1} / {total}
           {currentStep?.label ? ` — ${currentStep.label}` : ''}

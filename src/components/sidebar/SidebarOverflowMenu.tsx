@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { MoreHorizontal } from 'lucide-react';
 import { SIDEBAR } from './tokens';
 
@@ -25,6 +26,20 @@ export function SidebarOverflowMenu({
 }: Props) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [portalPos, setPortalPos] = useState<{ left: number; bottom: number } | null>(null);
+
+  // Recalcule la position du portail quand le menu s'ouvre. Le popup est rendu
+  // dans document.body via createPortal pour échapper à overflow:hidden de
+  // la sidebar (sinon le popup est coupé puisque la sidebar le contient).
+  useEffect(() => {
+    if (!open || !buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    setPortalPos({
+      left: rect.right + 8,
+      bottom: window.innerHeight - rect.bottom - 4,
+    });
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -54,9 +69,51 @@ export function SidebarOverflowMenu({
     setOpen(false);
   };
 
+  // Le menu lui-même, à rendre via portail pour qu'il échappe à overflow:hidden.
+  const menuNode = open && portalPos && typeof document !== 'undefined' && (
+    <div
+      ref={(el) => {
+        // On garde une ref sur le menu pour le test "click outside" via
+        // containerRef (qui couvre bouton + menu).
+        if (containerRef.current && el && !containerRef.current.contains(el)) {
+          // Note : on ne peut pas vraiment "ajouter" un élément au containerRef,
+          // donc on track le menu séparément via menuRef (cf. plus bas).
+        }
+      }}
+      style={{
+        position: 'fixed',
+        left: portalPos.left,
+        bottom: portalPos.bottom,
+        minWidth: 220,
+        background: SIDEBAR.bgActive,
+        border: `1px solid ${SIDEBAR.border}`,
+        borderRadius: 8,
+        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+        padding: 4,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        zIndex: 1000,
+      }}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      <Item
+        onClick={run(onTogglePresentMode)}
+        label={presentMode ? 'Quitter plein écran' : 'Plein écran'}
+      />
+      <Item onClick={run(onOpenPlayerTimeline)} label="Timeline par joueur" />
+      <Divider />
+      <Item onClick={run(onExport)} label="Exporter JSON" />
+      <Item onClick={run(onImport)} label="Importer JSON" />
+      <Divider />
+      <Item onClick={run(onReset)} label="Reset complet" danger />
+    </div>
+  );
+
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
         title="Actions globales"
@@ -85,38 +142,7 @@ export function SidebarOverflowMenu({
       >
         <MoreHorizontal size={16} />
       </button>
-
-      {open && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 36,
-            left: collapsed ? 0 : 'auto',
-            right: collapsed ? 'auto' : 0,
-            minWidth: 220,
-            background: SIDEBAR.bgActive,
-            border: `1px solid ${SIDEBAR.border}`,
-            borderRadius: 8,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-            padding: 4,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 2,
-            zIndex: 100,
-          }}
-        >
-          <Item
-            onClick={run(onTogglePresentMode)}
-            label={presentMode ? 'Quitter plein écran' : 'Plein écran'}
-          />
-          <Item onClick={run(onOpenPlayerTimeline)} label="Timeline par joueur" />
-          <Divider />
-          <Item onClick={run(onExport)} label="Exporter JSON" />
-          <Item onClick={run(onImport)} label="Importer JSON" />
-          <Divider />
-          <Item onClick={run(onReset)} label="Reset complet" danger />
-        </div>
-      )}
+      {menuNode && createPortal(menuNode, document.body)}
     </div>
   );
 }

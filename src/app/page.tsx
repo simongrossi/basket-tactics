@@ -491,10 +491,10 @@ export default function Page() {
               style={{
                 padding: '6px 10px',
                 fontSize: 12,
-                border: '1px solid #cbd5e1',
+                border: '1px solid #2a2d35',
                 borderRadius: 6,
-                background: showMultiTrack ? '#fed7aa' : '#fff',
-                color: showMultiTrack ? '#9a3412' : '#475569',
+                background: showMultiTrack ? 'rgba(216, 90, 48, 0.2)' : '#2f343d',
+                color: showMultiTrack ? '#fdba74' : '#cbd5e1',
                 cursor: 'pointer',
                 fontWeight: 600,
                 whiteSpace: 'nowrap',
