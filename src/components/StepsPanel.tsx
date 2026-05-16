@@ -1,5 +1,6 @@
 'use client';
 
+import { Plus, Copy, Trash2 } from 'lucide-react';
 import type { AppState, AttackerId, InboundDefenseMode, InboundSide } from '@/lib/types';
 import { activeBallCarrier, getActiveAttackerIds, isActiveAttacker } from '@/lib/logic/players';
 import { Panel, Section, Button, COLORS } from './ui';
@@ -217,10 +218,80 @@ export function StepsPanel(props: StepsPanelProps) {
             );
           })}
         </div>
-        <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
-          <Button theme="offense" onClick={props.onAddStep}>+ étape</Button>
-          <Button theme="offense" onClick={props.onDuplicateStep}>dup.</Button>
-          <Button theme="offense" onClick={props.onDeleteStep}>suppr.</Button>
+        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          {/* Action primaire : ajouter une étape — solid orange (accent
+              offense). Action que le user fait le plus souvent. */}
+          <button
+            type="button"
+            onClick={props.onAddStep}
+            title="Ajouter une nouvelle étape"
+            style={{
+              flex: '1 1 0',
+              minWidth: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              fontSize: 12,
+              fontWeight: 600,
+              padding: '7px 8px',
+              borderRadius: 6,
+              border: '1px solid #ea580c',
+              background: '#ea580c',
+              color: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            <Plus size={14} strokeWidth={2.5} /> étape
+          </button>
+          {/* Action secondaire : dupliquer — outline neutre */}
+          <button
+            type="button"
+            onClick={props.onDuplicateStep}
+            title="Dupliquer l'étape active"
+            style={{
+              flex: '1 1 0',
+              minWidth: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              fontSize: 12,
+              fontWeight: 500,
+              padding: '7px 8px',
+              borderRadius: 6,
+              border: '1px solid #2a2d35',
+              background: '#262a32',
+              color: '#cbd5e1',
+              cursor: 'pointer',
+            }}
+          >
+            <Copy size={13} strokeWidth={2} /> dup.
+          </button>
+          {/* Action destructive : supprimer — accent rouge */}
+          <button
+            type="button"
+            onClick={props.onDeleteStep}
+            title="Supprimer l'étape active"
+            style={{
+              flex: '1 1 0',
+              minWidth: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              fontSize: 12,
+              fontWeight: 500,
+              padding: '7px 8px',
+              borderRadius: 6,
+              border: '1px solid rgba(252, 165, 165, 0.4)',
+              background: 'rgba(252, 165, 165, 0.10)',
+              color: '#fca5a5',
+              cursor: 'pointer',
+            }}
+          >
+            <Trash2 size={13} strokeWidth={2} /> suppr.
+          </button>
         </div>
         {props.onConvertToFreeThrow && (
           <div style={{ marginTop: 4 }}>
