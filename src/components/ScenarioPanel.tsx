@@ -182,8 +182,8 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
         <div style={{
           fontSize: 11,
           color: '#fbbf24',
-          background: '#fffbeb',
-          border: '1px solid #fde68a',
+          background: 'rgba(251, 191, 36, 0.12)',
+          border: '1px solid rgba(251, 191, 36, 0.4)',
           borderRadius: 4,
           padding: '6px 8px',
         }}>
@@ -260,7 +260,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
 
             {/* Panneau déplié */}
             {isExpanded && (
-              <div style={{ borderTop: '1px solid #f3f4f6', padding: 10, background: '#fffbf5' }}>
+              <div style={{ borderTop: '1px solid #2a2d35', padding: 10, background: '#1f2329' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: '#fdba74', marginBottom: 6 }}>
                   PARAMÈTRES
                 </div>
@@ -276,8 +276,10 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                     disabled={idx === 0}
                     style={{
                       flex: 1, padding: '6px 10px', fontSize: 11,
-                      border: '1px solid #cbd5e1', borderRadius: 4,
-                      background: idx === 0 ? '#f1f5f9' : '#fff',
+                      border: '1px solid #2a2d35', borderRadius: 4,
+                      background: '#262a32',
+                      color: idx === 0 ? '#6b7280' : '#cbd5e1',
+                      opacity: idx === 0 ? 0.5 : 1,
                       cursor: idx === 0 ? 'not-allowed' : 'pointer',
                     }}
                   >▲ monter</button>
@@ -286,8 +288,10 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                     disabled={idx === offensiveActions.length - 1}
                     style={{
                       flex: 1, padding: '6px 10px', fontSize: 11,
-                      border: '1px solid #cbd5e1', borderRadius: 4,
-                      background: idx === offensiveActions.length - 1 ? '#f1f5f9' : '#fff',
+                      border: '1px solid #2a2d35', borderRadius: 4,
+                      background: '#262a32',
+                      color: idx === offensiveActions.length - 1 ? '#6b7280' : '#cbd5e1',
+                      opacity: idx === offensiveActions.length - 1 ? 0.5 : 1,
                       cursor: idx === offensiveActions.length - 1 ? 'not-allowed' : 'pointer',
                     }}
                   >▼ descendre</button>
@@ -302,7 +306,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                   return (
                     <div style={{
                       marginTop: 12, paddingTop: 10,
-                      borderTop: '1px dashed #e2e8f0',
+                      borderTop: '1px dashed #2a2d35',
                     }}>
                       <div style={{ fontSize: 10, fontWeight: 700, color: '#93c5fd', marginBottom: 6 }}>
                         🛡️ COUVERTURES DÉFENSIVES
@@ -766,9 +770,9 @@ function BranchTab({
         borderRadius: 4,
         fontSize: 11,
         fontWeight: active ? 700 : 500,
-        background: active ? '#ea580c' : '#fff',
-        color: active ? '#fff' : '#9a3412',
-        border: '1px solid #fed7aa',
+        background: active ? '#ea580c' : '#262a32',
+        color: active ? '#fff' : '#fdba74',
+        border: `1px solid ${active ? '#ea580c' : '#2a2d35'}`,
         cursor: 'pointer',
         userSelect: 'none',
       }}
