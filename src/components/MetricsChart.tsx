@@ -10,6 +10,7 @@
 // entre renders. Si lenteur ressentie, ajouter `useMemo` ici sur `[state]`.
 
 import { useMemo, useState } from 'react';
+import { LineChart, X } from 'lucide-react';
 import type { AppState } from '@/lib/types';
 import { effectiveDefensePositions, getDefenseHoop } from '@/lib/logic/engine';
 import { computeMetrics } from '@/lib/logic/metrics';
@@ -50,6 +51,16 @@ const METRIC_LABELS: Record<MetricKey, { label: string; description: string; for
 const CHART_HEIGHT = 70;
 const CHART_PADDING = { top: 6, right: 8, bottom: 14, left: 8 };
 
+const CHART_UI = {
+  bg: '#20252d',
+  surface: '#252b34',
+  border: '#343b47',
+  text: '#cbd5e1',
+  dim: '#94a3b8',
+  accent: '#378ADD',
+  danger: '#f87171',
+} as const;
+
 export function MetricsChart({ state, activeStep, onSetActiveStep }: MetricsChartProps) {
   const [metric, setMetric] = useState<MetricKey>('maxGap');
   const [collapsed, setCollapsed] = useState(true);
@@ -79,15 +90,20 @@ export function MetricsChart({ state, activeStep, onSetActiveStep }: MetricsChar
           style={{
             fontSize: 10,
             padding: '3px 8px',
-            border: '1px solid #cbd5e1',
-            borderRadius: 4,
-            background: '#fff',
-            color: '#475569',
+            border: `1px solid ${CHART_UI.border}`,
+            borderRadius: 6,
+            background: CHART_UI.surface,
+            color: CHART_UI.text,
             cursor: 'pointer',
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
           }}
           title="Afficher l'évolution d'une métrique défensive au fil des étapes"
         >
-          📈 graphique métrique
+          <LineChart size={12} strokeWidth={2.2} />
+          graphique métrique
         </button>
       </div>
     );
@@ -114,13 +130,13 @@ export function MetricsChart({ state, activeStep, onSetActiveStep }: MetricsChar
       style={{
         marginTop: 6,
         padding: 6,
-        background: '#fafafa',
-        borderRadius: 6,
-        border: '1px solid #e5e5e5',
+        background: CHART_UI.bg,
+        borderRadius: 7,
+        border: `1px solid ${CHART_UI.border}`,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-        <span style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>📈</span>
+        <LineChart size={13} strokeWidth={2.2} color={CHART_UI.dim} />
         <div style={{ display: 'flex', gap: 2, flex: 1 }}>
           {(Object.keys(METRIC_LABELS) as MetricKey[]).map((k) => (
             <button
@@ -130,12 +146,12 @@ export function MetricsChart({ state, activeStep, onSetActiveStep }: MetricsChar
               style={{
                 fontSize: 10,
                 padding: '2px 6px',
-                border: `1px solid ${metric === k ? '#0284c7' : '#cbd5e1'}`,
-                background: metric === k ? '#0284c7' : '#fff',
-                color: metric === k ? '#fff' : '#475569',
-                borderRadius: 3,
+                border: `1px solid ${metric === k ? CHART_UI.accent : CHART_UI.border}`,
+                background: metric === k ? 'rgba(55, 138, 221, 0.22)' : CHART_UI.surface,
+                color: metric === k ? '#dbeafe' : CHART_UI.text,
+                borderRadius: 5,
                 cursor: 'pointer',
-                fontWeight: metric === k ? 600 : 400,
+                fontWeight: metric === k ? 800 : 600,
               }}
             >
               {METRIC_LABELS[k].label}
@@ -147,15 +163,15 @@ export function MetricsChart({ state, activeStep, onSetActiveStep }: MetricsChar
           style={{
             fontSize: 10,
             padding: '2px 6px',
-            border: '1px solid #cbd5e1',
-            background: '#fff',
-            color: '#475569',
-            borderRadius: 3,
+            border: `1px solid ${CHART_UI.border}`,
+            background: CHART_UI.surface,
+            color: CHART_UI.text,
+            borderRadius: 5,
             cursor: 'pointer',
           }}
           title="Replier le graphique"
         >
-          ✕
+          <X size={11} strokeWidth={2.4} />
         </button>
       </div>
       <svg
@@ -169,13 +185,13 @@ export function MetricsChart({ state, activeStep, onSetActiveStep }: MetricsChar
           y1={CHART_PADDING.top + innerH}
           x2={CHART_PADDING.left + innerW}
           y2={CHART_PADDING.top + innerH}
-          stroke="#e2e8f0"
+          stroke="#3a424f"
           strokeWidth={1}
         />
         {/* Path de la courbe */}
         <path
           d={pathD}
-          stroke="#0284c7"
+          stroke={CHART_UI.accent}
           strokeWidth={1.8}
           fill="none"
           strokeLinejoin="round"
@@ -203,7 +219,7 @@ export function MetricsChart({ state, activeStep, onSetActiveStep }: MetricsChar
                 cx={cx}
                 cy={cy}
                 r={isActive ? 3.5 : 2.5}
-                fill={isActive ? '#dc2626' : '#0284c7'}
+                fill={isActive ? CHART_UI.danger : CHART_UI.accent}
                 pointerEvents="none"
               />
             </g>
@@ -215,7 +231,7 @@ export function MetricsChart({ state, activeStep, onSetActiveStep }: MetricsChar
           y1={CHART_PADDING.top}
           x2={x(activeStep)}
           y2={CHART_PADDING.top + innerH}
-          stroke="#dc2626"
+          stroke={CHART_UI.danger}
           strokeWidth={1}
           strokeDasharray="2 2"
           opacity={0.6}
@@ -226,7 +242,7 @@ export function MetricsChart({ state, activeStep, onSetActiveStep }: MetricsChar
           x={CHART_PADDING.left + 2}
           y={CHART_PADDING.top + 7}
           fontSize={8}
-          fill="#94a3b8"
+          fill={CHART_UI.dim}
         >
           {METRIC_LABELS[metric].format(maxVal)}
         </text>
@@ -234,7 +250,7 @@ export function MetricsChart({ state, activeStep, onSetActiveStep }: MetricsChar
           x={CHART_PADDING.left + 2}
           y={H - 2}
           fontSize={8}
-          fill="#94a3b8"
+          fill={CHART_UI.dim}
         >
           0
         </text>

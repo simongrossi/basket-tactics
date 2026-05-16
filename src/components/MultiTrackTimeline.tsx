@@ -11,6 +11,32 @@ import {
 } from '@/lib/logic/playerTracks';
 import { getSecondsPerStep } from '@/lib/logic/timecode';
 
+const TRACK_UI = {
+  bg: '#171b22',
+  surface: '#20252d',
+  cell: '#252b34',
+  cellBorder: '#343b47',
+  divider: '#475569',
+  text: '#f3f4f6',
+  muted: '#cbd5e1',
+  dim: '#94a3b8',
+  orange: '#D85A30',
+  orangeSoft: '#fdba74',
+  blue: '#378ADD',
+} as const;
+
+const DARK_ACTIVITY_COLORS: typeof ACTIVITY_COLORS = {
+  idle:     { bg: '#222831', fg: '#94a3b8', label: 'idle' },
+  pos:      { bg: '#26313d', fg: '#cbd5e1', label: 'position' },
+  dribble:  { bg: 'rgba(249, 115, 22, 0.22)', fg: '#fdba74', label: 'dribble' },
+  cut:      { bg: 'rgba(251, 191, 36, 0.23)', fg: '#fbbf24', label: 'cut' },
+  screen:   { bg: 'rgba(248, 113, 113, 0.22)', fg: '#fca5a5', label: 'écran' },
+  pass:     { bg: 'rgba(245, 158, 11, 0.22)', fg: '#fcd34d', label: 'passe' },
+  tracking: { bg: 'rgba(96, 165, 250, 0.24)', fg: '#93c5fd', label: 'suit' },
+  closeout: { bg: 'rgba(56, 189, 248, 0.22)', fg: '#7dd3fc', label: 'closeout' },
+  help:     { bg: 'rgba(167, 139, 250, 0.24)', fg: '#c4b5fd', label: 'aide' },
+};
+
 interface MultiTrackTimelineProps {
   state: AppState;
   /** t en espace full-step (0..totalSteps-1, incluant interpolés). Vient du
@@ -66,12 +92,14 @@ export function MultiTrackTimeline({
   return (
     <div
       style={{
-        background: '#fafbfc',
-        borderTop: '1px solid #e2e8f0',
+        background: TRACK_UI.bg,
+        border: `1px solid ${TRACK_UI.cellBorder}`,
+        borderRadius: 8,
         maxHeight,
         overflowY: 'auto',
-        padding: '8px 12px',
+        padding: '10px 12px',
         position: 'relative',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
       }}
     >
       {/* En-tête des colonnes (numéros de transition) */}
@@ -81,11 +109,11 @@ export function MultiTrackTimeline({
         gap: 3,
         marginBottom: 4,
         fontSize: 9,
-        color: '#94a3b8',
-        fontWeight: 600,
+        color: TRACK_UI.dim,
+        fontWeight: 700,
         position: 'sticky',
         top: 0,
-        background: '#fafbfc',
+        background: TRACK_UI.bg,
         zIndex: 2,
       }}>
         <div></div>
@@ -118,10 +146,10 @@ export function MultiTrackTimeline({
             top: 0,
             bottom: 0,
             width: 2,
-            background: '#D85A30',
+            background: TRACK_UI.orange,
             zIndex: 3,
             pointerEvents: 'none',
-            boxShadow: '0 0 4px rgba(216, 90, 48, 0.4)',
+            boxShadow: '0 0 8px rgba(216, 90, 48, 0.55)',
           }}
         />
 
@@ -136,7 +164,7 @@ export function MultiTrackTimeline({
             onSetQuality={onSetQuality}
           />
         ))}
-        <div style={{ height: 4, borderTop: '1px dashed #cbd5e1', margin: '2px 0' }} />
+        <div style={{ height: 6, borderTop: `1px dashed ${TRACK_UI.divider}`, margin: '3px 0' }} />
         {tracks.filter((t) => t.kind === 'defender').map((track) => (
           <TrackRow
             key={track.id}
@@ -180,11 +208,12 @@ function TrackRow({
         alignItems: 'center',
         gap: 4,
         padding: '2px 6px',
-        background: track.kind === 'attacker' ? '#fed7aa' : '#bfdbfe',
-        color: track.kind === 'attacker' ? '#9a3412' : '#1e3a8a',
-        borderRadius: 3,
+        background: track.kind === 'attacker' ? 'rgba(249, 115, 22, 0.2)' : 'rgba(55, 138, 221, 0.2)',
+        color: track.kind === 'attacker' ? '#fdba74' : '#93c5fd',
+        border: `1px solid ${track.kind === 'attacker' ? 'rgba(249, 115, 22, 0.28)' : 'rgba(55, 138, 221, 0.32)'}`,
+        borderRadius: 6,
         fontSize: 10,
-        fontWeight: 700,
+        fontWeight: 800,
         justifyContent: 'center',
       }}>
         {track.id}
@@ -216,7 +245,7 @@ function SegmentCell({
   onTrimTiming?: (stepFullIdx: number, annoIdx: number, tStart: number, tEnd: number) => void;
   onSetQuality?: (stepFullIdx: number, annoIdx: number, quality: number) => void;
 }) {
-  const color = ACTIVITY_COLORS[segment.activity];
+  const color = DARK_ACTIVITY_COLORS[segment.activity];
   const isMovementWithAnno =
     (segment.activity === 'cut' || segment.activity === 'screen' || segment.activity === 'dribble') &&
     segment.annoStepFullIdx !== undefined &&
@@ -302,10 +331,10 @@ function SegmentCell({
       onPointerCancel={handlePointerUp}
       style={{
         position: 'relative',
-        height: 18,
-        background: '#f8fafc',
-        border: '1px solid #e2e8f0',
-        borderRadius: 3,
+        height: 20,
+        background: TRACK_UI.cell,
+        border: `1px solid ${TRACK_UI.cellBorder}`,
+        borderRadius: 5,
         // overflow: visible permet au segment de déborder sur les cellules
         // adjacentes quand tStart < 0 ou tEnd > 1.
         overflow: 'visible',
@@ -325,9 +354,10 @@ function SegmentCell({
           padding: '0 4px',
           background: color.bg,
           color: color.fg,
-          borderRadius: 3,
+          border: `1px solid ${color.fg}30`,
+          borderRadius: 5,
           fontSize: 9,
-          fontWeight: 600,
+          fontWeight: 700,
           textAlign: 'center',
           cursor: onClick ? 'pointer' : 'default',
           userSelect: 'none',
@@ -350,7 +380,7 @@ function SegmentCell({
               width: 5,
               height: 5,
               borderRadius: '50%',
-              background: '#ea580c',
+              background: TRACK_UI.orange,
             }}
           />
         )}
@@ -365,7 +395,7 @@ function SegmentCell({
             style={{
               marginLeft: 4,
               padding: '0 4px',
-              background: 'rgba(0,0,0,0.18)',
+              background: 'rgba(0,0,0,0.24)',
               borderRadius: 2,
               fontSize: 8,
               fontWeight: 700,
@@ -391,8 +421,8 @@ function SegmentCell({
             width: 10,
             height: 10,
             padding: 0,
-            border: 'none',
-            background: '#fff',
+            border: `1px solid ${TRACK_UI.cellBorder}`,
+            background: TRACK_UI.surface,
             cursor: 'pointer',
             fontSize: 8,
             color: color.fg,
@@ -421,7 +451,7 @@ function SegmentCell({
             height: '100%',
             cursor: 'ew-resize',
             zIndex: 4,
-            background: dragging === 'start' ? '#D85A30' : 'rgba(0,0,0,0.05)',
+            background: dragging === 'start' ? TRACK_UI.orange : 'rgba(255,255,255,0.06)',
             borderRadius: 2,
           }}
         />
@@ -442,7 +472,7 @@ function SegmentCell({
             height: '100%',
             cursor: 'ew-resize',
             zIndex: 4,
-            background: dragging === 'end' ? '#D85A30' : 'rgba(0,0,0,0.05)',
+            background: dragging === 'end' ? TRACK_UI.orange : 'rgba(255,255,255,0.06)',
             borderRadius: 2,
           }}
         />

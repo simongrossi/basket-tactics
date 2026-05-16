@@ -141,7 +141,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
 
   return (
     <Panel theme="offense" title="🎬 Scénario">
-      <div style={{ fontSize: 11, color: '#475569', lineHeight: 1.4 }}>
+      <div style={{ fontSize: 11, color: '#cbd5e1', lineHeight: 1.4 }}>
         Empile des actions FIBA nommées. Le système génère automatiquement les
         étapes correspondantes. Tu peux toujours retoucher chaque étape à la
         main ensuite — les modifs manuelles seront préservées.
@@ -181,9 +181,9 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
       {activeBranch && (
         <div style={{
           fontSize: 11,
-          color: '#92400e',
-          background: '#fffbeb',
-          border: '1px solid #fde68a',
+          color: '#fbbf24',
+          background: 'rgba(251, 191, 36, 0.12)',
+          border: '1px solid rgba(251, 191, 36, 0.4)',
           borderRadius: 4,
           padding: '6px 8px',
         }}>
@@ -212,7 +212,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
               border: '1px solid #fed7aa',
               borderLeft: '3px solid #ea580c',
               borderRadius: 6,
-              background: '#fff',
+              background: '#262a32',
               overflow: 'hidden',
             }}
           >
@@ -228,10 +228,10 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                 userSelect: 'none',
               }}
             >
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#9a3412' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#fdba74' }}>
                 #{(idx + 1).toString().padStart(2, '0')}
               </span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#1f2937', flex: 1 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#e5e7eb', flex: 1 }}>
                 {def.label}
               </span>
               <span style={{ fontSize: 11, color: '#9ca3af' }}>{isExpanded ? '▲' : '▼'}</span>
@@ -239,8 +239,8 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                 <button
                   onClick={(e) => { e.stopPropagation(); handleAddBranch(action.id); }}
                   style={{
-                    border: '1px solid #fed7aa', background: '#fff7ed', cursor: 'pointer',
-                    fontSize: 10, color: '#9a3412', padding: '2px 6px', borderRadius: 3,
+                    border: '1px solid #fed7aa', background: '#262a32', cursor: 'pointer',
+                    fontSize: 10, color: '#fdba74', padding: '2px 6px', borderRadius: 3,
                   }}
                   title="Créer une variante qui diverge après cette action"
                 >+ variante</button>
@@ -254,14 +254,14 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                 title="Supprimer"
               >✕</button>
             </div>
-            <div style={{ fontSize: 11, color: '#475569', padding: '0 10px 8px 28px' }}>
+            <div style={{ fontSize: 11, color: '#cbd5e1', padding: '0 10px 8px 28px' }}>
               {action.label || def.reader(action.params)}
             </div>
 
             {/* Panneau déplié */}
             {isExpanded && (
-              <div style={{ borderTop: '1px solid #f3f4f6', padding: 10, background: '#fffbf5' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#9a3412', marginBottom: 6 }}>
+              <div style={{ borderTop: '1px solid #2a2d35', padding: 10, background: '#1f2329' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#fdba74', marginBottom: 6 }}>
                   PARAMÈTRES
                 </div>
                 <ActionForm
@@ -276,8 +276,10 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                     disabled={idx === 0}
                     style={{
                       flex: 1, padding: '6px 10px', fontSize: 11,
-                      border: '1px solid #cbd5e1', borderRadius: 4,
-                      background: idx === 0 ? '#f1f5f9' : '#fff',
+                      border: '1px solid #2a2d35', borderRadius: 4,
+                      background: '#262a32',
+                      color: idx === 0 ? '#6b7280' : '#cbd5e1',
+                      opacity: idx === 0 ? 0.5 : 1,
                       cursor: idx === 0 ? 'not-allowed' : 'pointer',
                     }}
                   >▲ monter</button>
@@ -286,8 +288,10 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                     disabled={idx === offensiveActions.length - 1}
                     style={{
                       flex: 1, padding: '6px 10px', fontSize: 11,
-                      border: '1px solid #cbd5e1', borderRadius: 4,
-                      background: idx === offensiveActions.length - 1 ? '#f1f5f9' : '#fff',
+                      border: '1px solid #2a2d35', borderRadius: 4,
+                      background: '#262a32',
+                      color: idx === offensiveActions.length - 1 ? '#6b7280' : '#cbd5e1',
+                      opacity: idx === offensiveActions.length - 1 ? 0.5 : 1,
                       cursor: idx === offensiveActions.length - 1 ? 'not-allowed' : 'pointer',
                     }}
                   >▼ descendre</button>
@@ -302,9 +306,9 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                   return (
                     <div style={{
                       marginTop: 12, paddingTop: 10,
-                      borderTop: '1px dashed #e2e8f0',
+                      borderTop: '1px dashed #2a2d35',
                     }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#1e3a8a', marginBottom: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#93c5fd', marginBottom: 6 }}>
                         🛡️ COUVERTURES DÉFENSIVES
                       </div>
                       {attached.length === 0 ? (
@@ -317,12 +321,12 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                             const cdef = DEFENSIVE_ACTIONS_CATALOG[cov.type];
                             return (
                               <div key={cov.id} style={{
-                                background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: 4,
+                                background: '#262a32', border: '1px solid #dbeafe', borderRadius: 4,
                                 padding: '6px 8px', fontSize: 11, display: 'flex',
                                 alignItems: 'center', gap: 6,
                               }}>
-                                <span style={{ fontWeight: 600, color: '#1e3a8a' }}>{cdef.label}</span>
-                                <span style={{ color: '#475569', flex: 1 }}>{cdef.reader(cov.params)}</span>
+                                <span style={{ fontWeight: 600, color: '#93c5fd' }}>{cdef.label}</span>
+                                <span style={{ color: '#cbd5e1', flex: 1 }}>{cdef.reader(cov.params)}</span>
                                 <button
                                   onClick={() => props.onDeleteDefensiveAction(cov.id)}
                                   style={{
@@ -341,7 +345,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                         style={{
                           fontSize: 11, padding: '5px 10px',
                           border: '1px solid #1e3a8a', borderRadius: 4,
-                          background: '#fff', color: '#1e3a8a', cursor: 'pointer',
+                          background: '#262a32', color: '#93c5fd', cursor: 'pointer',
                           fontWeight: 600,
                         }}
                       >+ ajouter une couverture</button>
@@ -364,7 +368,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
         return (
           <>
             <div style={{
-              fontSize: 10, fontWeight: 700, color: '#1e3a8a',
+              fontSize: 10, fontWeight: 700, color: '#93c5fd',
               marginTop: 8, marginBottom: 4, letterSpacing: 0.5,
             }}>🛡️ DÉFENSE (LIBRE)</div>
             {free.map((act) => {
@@ -374,14 +378,14 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                 <div key={act.id} style={{
                   border: '1px solid #dbeafe',
                   borderLeft: '3px solid #1e3a8a',
-                  borderRadius: 6, background: '#fff', overflow: 'hidden',
+                  borderRadius: 6, background: '#262a32', overflow: 'hidden',
                 }}>
                   <div onClick={() => toggleExpand(act.id)} style={{
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '8px 10px', cursor: 'pointer', userSelect: 'none',
                   }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#1e3a8a' }}>🛡️</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#1f2937', flex: 1 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#93c5fd' }}>🛡️</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#e5e7eb', flex: 1 }}>
                       {cdef.label}
                     </span>
                     <span style={{ fontSize: 11, color: '#9ca3af' }}>{isExpanded ? '▲' : '▼'}</span>
@@ -393,18 +397,18 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                       }}
                     >✕</button>
                   </div>
-                  <div style={{ fontSize: 11, color: '#475569', padding: '0 10px 8px 28px' }}>
+                  <div style={{ fontSize: 11, color: '#cbd5e1', padding: '0 10px 8px 28px' }}>
                     {cdef.reader(act.params)} · steps : {(act.affectedSteps ?? []).join(',') || '—'}
                   </div>
                   {isExpanded && (
-                    <div style={{ padding: 10, background: '#eff6ff' }}>
+                    <div style={{ padding: 10, background: '#262a32' }}>
                       <DefensiveActionForm
                         action={act}
                         defenderIds={defenderIds}
                         attackerIds={attackerIds}
                         onChange={(updated) => props.onUpdateDefensiveAction(act.id, updated)}
                       />
-                      <div style={{ marginTop: 8, fontSize: 10, fontWeight: 700, color: '#1e3a8a' }}>
+                      <div style={{ marginTop: 8, fontSize: 10, fontWeight: 700, color: '#93c5fd' }}>
                         STEPS CIBLES
                       </div>
                       <input
@@ -512,7 +516,7 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: '#fff',
+          background: '#262a32',
           borderRadius: 12,
           width: 'min(640px, 100%)',
           maxHeight: '85vh',
@@ -538,7 +542,7 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
             onClick={onClose}
             style={{
               fontSize: 13, padding: '4px 10px', borderRadius: 6,
-              border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', color: '#475569',
+              border: '1px solid #e2e8f0', background: '#262a32', cursor: 'pointer', color: '#cbd5e1',
             }}
             title="Fermer (Échap)"
           >✕</button>
@@ -571,7 +575,7 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
                 <div
                   style={{
                     fontSize: 10,
-                    color: '#64748b',
+                    color: '#94a3b8',
                     textTransform: 'uppercase',
                     marginBottom: 6,
                     letterSpacing: 0.5,
@@ -592,7 +596,7 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
                         padding: '8px 10px',
                         borderRadius: 6,
                         border: `1px solid ${c.border}`,
-                        background: '#fff',
+                        background: '#262a32',
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
@@ -600,7 +604,7 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
                       }}
                     >
                       <span style={{ fontWeight: 600, color: c.accentText }}>{def.label}</span>
-                      <span style={{ fontSize: 11, color: '#64748b' }}>{def.description}</span>
+                      <span style={{ fontSize: 11, color: '#94a3b8' }}>{def.description}</span>
                     </button>
                   ))}
                 </div>
@@ -623,7 +627,7 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
             return (
               <div style={{ marginBottom: 14 }}>
                 <div style={{
-                  fontSize: 10, color: '#1e3a8a', textTransform: 'uppercase',
+                  fontSize: 10, color: '#93c5fd', textTransform: 'uppercase',
                   marginBottom: 6, letterSpacing: 0.5, fontWeight: 600,
                 }}>
                   🛡️ Défense (libre)
@@ -640,11 +644,11 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
                           textAlign: 'left', fontSize: 12,
                           padding: '8px 10px',
                           border: '1px solid #dbeafe', borderRadius: 6,
-                          background: '#fff', cursor: 'pointer',
+                          background: '#262a32', cursor: 'pointer',
                         }}
                       >
-                        <div style={{ fontWeight: 600, color: '#1e3a8a' }}>{def.label}</div>
-                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{def.description}</div>
+                        <div style={{ fontWeight: 600, color: '#93c5fd' }}>{def.label}</div>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{def.description}</div>
                       </button>
                     );
                   })}
@@ -687,7 +691,7 @@ function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6, marginLeft: 24 }}>
       {allParams.map((paramKey) => (
         <div key={paramKey} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 11, color: '#475569', minWidth: 80 }}>
+          <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 80 }}>
             {PARAM_LABELS[paramKey]}{def.requiredParams.includes(paramKey) ? ' *' : ''}
           </span>
           {isZoneParam(paramKey) ? (
@@ -718,7 +722,7 @@ function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
         />
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontSize: 11, color: '#475569', minWidth: 80 }}>Libellé libre</span>
+        <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 80 }}>Libellé libre</span>
         <input
           type="text"
           value={action.label ?? ''}
@@ -766,9 +770,9 @@ function BranchTab({
         borderRadius: 4,
         fontSize: 11,
         fontWeight: active ? 700 : 500,
-        background: active ? '#ea580c' : '#fff',
-        color: active ? '#fff' : '#9a3412',
-        border: '1px solid #fed7aa',
+        background: active ? '#ea580c' : '#262a32',
+        color: active ? '#fff' : '#fdba74',
+        border: `1px solid ${active ? '#ea580c' : '#2a2d35'}`,
         cursor: 'pointer',
         userSelect: 'none',
       }}

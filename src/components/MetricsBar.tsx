@@ -20,6 +20,12 @@ const ACTION_LABELS: Record<OffensiveAction['type'], string> = {
   'pass-shoot': 'passe',
 };
 
+const BAR_UI = {
+  bg: '#20252d',
+  border: '#343b47',
+  textDim: '#94a3b8',
+} as const;
+
 export function MetricsBar({ metrics, bestAction, screenAction }: MetricsBarProps) {
   return (
     <div
@@ -27,11 +33,11 @@ export function MetricsBar({ metrics, bestAction, screenAction }: MetricsBarProp
         display: 'flex',
         gap: 4,
         padding: '4px 6px',
-        background: '#fff',
-        border: '1px solid #e2e8f0',
-        borderRadius: 6,
+        background: BAR_UI.bg,
+        border: `1px solid ${BAR_UI.border}`,
+        borderRadius: 7,
         flexWrap: 'wrap',
-        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
         flex: '0 0 auto',
       }}
     >
@@ -104,10 +110,10 @@ export function MetricsBar({ metrics, bestAction, screenAction }: MetricsBarProp
 type Tone = 'good' | 'warn' | 'bad' | 'neutral';
 
 const TONE_STYLES: Record<Tone, { bg: string; fg: string; border: string }> = {
-  good: { bg: '#d1fae5', fg: '#065f46', border: '#a7f3d0' },
-  warn: { bg: '#fef3c7', fg: '#92400e', border: '#fde68a' },
-  bad: { bg: '#fee2e2', fg: '#991b1b', border: '#fecaca' },
-  neutral: { bg: '#f1f5f9', fg: '#334155', border: '#e2e8f0' },
+  good: { bg: 'rgba(52, 211, 153, 0.14)', fg: '#6ee7b7', border: 'rgba(52, 211, 153, 0.26)' },
+  warn: { bg: 'rgba(251, 191, 36, 0.14)', fg: '#fbbf24', border: 'rgba(251, 191, 36, 0.25)' },
+  bad: { bg: 'rgba(248, 113, 113, 0.14)', fg: '#fca5a5', border: 'rgba(248, 113, 113, 0.28)' },
+  neutral: { bg: '#252b34', fg: '#cbd5e1', border: '#343b47' },
 };
 
 function Pill({
@@ -137,9 +143,10 @@ function Pill({
         color: s.fg,
         cursor: title ? 'help' : 'default',
         lineHeight: 1.4,
+        fontWeight: 600,
       }}
     >
-      <span style={{ opacity: 0.7 }}>{label}</span>
+      <span style={{ color: BAR_UI.textDim }}>{label}</span>
       <span style={{ fontWeight: 700 }}>{value}</span>
     </div>
   );

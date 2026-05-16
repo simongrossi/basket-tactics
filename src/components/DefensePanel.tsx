@@ -93,11 +93,11 @@ export function DefensePanel(props: DefensePanelProps) {
         <div
           style={{
             padding: '6px 10px',
-            background: '#fef3c7',
-            border: '1px solid #fcd34d',
+            background: 'rgba(251, 191, 36, 0.12)',
+            border: '1px solid rgba(251, 191, 36, 0.4)',
             borderRadius: 6,
             fontSize: 11,
-            color: '#92400e',
+            color: '#fbbf24',
             display: 'flex',
             alignItems: 'center',
             gap: 6,
@@ -173,7 +173,7 @@ export function DefensePanel(props: DefensePanelProps) {
                 </button>
               </div>
               {overrideCount > 0 && (
-                <div style={{ fontSize: 10, color: '#64748b', textAlign: 'center' }}>
+                <div style={{ fontSize: 10, color: '#94a3b8', textAlign: 'center' }}>
                   {countLabel}
                 </div>
               )}
@@ -192,15 +192,15 @@ export function DefensePanel(props: DefensePanelProps) {
             style={{
               marginTop: 10,
               padding: 8,
-              background: '#f0fdf4',
-              border: '1px solid #bbf7d0',
+              background: '#262a32',
+              border: '1px solid #2a2d35',
               borderRadius: 6,
               display: 'flex',
               flexDirection: 'column',
               gap: 6,
             }}
           >
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#166534', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.4 }}>
               ⚙ Réglages zone
             </div>
             <Slider
@@ -284,7 +284,7 @@ export function DefensePanel(props: DefensePanelProps) {
         {/* Preset officiel (uniquement en mode individuelle — choix Q4) */}
         {isMan && (
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <span style={{ fontSize: 10, color: '#475569', flex: '0 0 48px' }}>preset</span>
+            <span style={{ fontSize: 10, color: '#cbd5e1', flex: '0 0 48px' }}>preset</span>
             <select
               value=""
               onChange={(e) => {
@@ -311,7 +311,7 @@ export function DefensePanel(props: DefensePanelProps) {
 
         {/* Consigne écran porteur (toujours visible, central pour démos) */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <span style={{ fontSize: 10, color: '#475569', flex: '0 0 48px' }}>écran</span>
+          <span style={{ fontSize: 10, color: '#cbd5e1', flex: '0 0 48px' }}>écran</span>
           <select
             value={state.screenRule}
             onChange={(e) => props.onSetScreenRule(e.target.value as ScreenRule)}
@@ -385,7 +385,7 @@ export function DefensePanel(props: DefensePanelProps) {
           }}
           title="Auto = le moteur recalcule à chaque step. Manuel = les positions actuelles sont figées (utile pour figer une configuration avant démonstration)."
         >
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#1e3a8a' }}>Mode :</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#93c5fd' }}>Mode :</span>
           <label
             style={{
               display: 'flex',
@@ -443,7 +443,7 @@ export function DefensePanel(props: DefensePanelProps) {
           variant="neutral"
           defaultOpen={false}
         >
-          <div style={{ fontSize: 10, color: '#64748b', marginBottom: 4 }}>
+          <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 4 }}>
             Paramètres de marquage qui s'appliquent à toute l'équipe par défaut.
           </div>
           <Slider
@@ -514,7 +514,7 @@ export function DefensePanel(props: DefensePanelProps) {
               />
               {(state.screenRule === 'drop' || state.screenRule === 'peel-switch') && (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }}>profondeur</span>
+                  <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 60 }}>profondeur</span>
                   <select
                     value={state.dropDepth}
                     onChange={(e) => props.onPatch({ dropDepth: e.target.value as DropDepth })}
@@ -539,7 +539,7 @@ export function DefensePanel(props: DefensePanelProps) {
               )}
               {state.screenRule === 'hedge' && (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: '#475569', minWidth: 70 }} title="C.3 — Nombre de steps consécutifs avant recovery forcé">
+                  <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 70 }} title="C.3 — Nombre de steps consécutifs avant recovery forcé">
                     durée hedge
                   </span>
                   <select
@@ -559,7 +559,7 @@ export function DefensePanel(props: DefensePanelProps) {
               )}
               {(state.screenRule === 'switch' || state.screenRule === 'peel-switch') && (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }} title="B8 — Filtre les switchs autorisés au niveau team">
+                  <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 60 }} title="B8 — Filtre les switchs autorisés au niveau team">
                     policy
                   </span>
                   <select
@@ -575,7 +575,7 @@ export function DefensePanel(props: DefensePanelProps) {
                 </div>
               )}
               {(state.screenRule === 'switch' || state.screenRule === 'peel-switch') && (
-                <div style={{ padding: 6, background: '#fef3c7', borderRadius: 4, border: '1px solid #fcd34d' }}>
+                <div style={{ padding: 6, background: 'rgba(251, 191, 36, 0.12)', borderRadius: 4, border: '1px solid rgba(251, 191, 36, 0.4)' }}>
                   <CheckboxLine
                     checked={!!state.scramSwitchEnabled}
                     label="scram switch auto"
@@ -584,7 +584,7 @@ export function DefensePanel(props: DefensePanelProps) {
                   />
                   {state.scramSwitchEnabled && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
-                      <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }}>seuil</span>
+                      <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 60 }}>seuil</span>
                       <select
                         value={state.mismatchThreshold ?? 2}
                         onChange={(e) => props.onPatch({ mismatchThreshold: parseInt(e.target.value) })}
@@ -624,7 +624,7 @@ export function DefensePanel(props: DefensePanelProps) {
               ▸ Écran non-porteur
             </summary>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
-              <span style={{ fontSize: 11, color: '#475569', minWidth: 60 }}>consigne</span>
+              <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 60 }}>consigne</span>
               <select
                 value={state.offBallScreenRule}
                 onChange={(e) => props.onPatch({ offBallScreenRule: e.target.value as OffBallScreenRule })}
@@ -661,7 +661,7 @@ export function DefensePanel(props: DefensePanelProps) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
               {/* B6 — Couverture post-up */}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: '#475569', minWidth: 70 }} title="B6 — couverture défensive auto au post-up">
+                <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 70 }} title="B6 — couverture défensive auto au post-up">
                   post-up
                 </span>
                 <select
@@ -712,7 +712,7 @@ export function DefensePanel(props: DefensePanelProps) {
               />
               {/* C.2 — Help-and-recover timing */}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: '#475569', minWidth: 80 }} title="C.2 — durée de l'aide après disparition du trigger">
+                <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 80 }} title="C.2 — durée de l'aide après disparition du trigger">
                   durée d'aide
                 </span>
                 <select
@@ -785,7 +785,7 @@ export function DefensePanel(props: DefensePanelProps) {
         icon="🎯"
         variant="pinned"
       >
-        <div style={{ fontSize: 10, color: '#64748b', marginBottom: 6 }}>
+        <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 6 }}>
           Pousse la même consigne sur les {defenderIds.length} défenseurs en un clic.
         </div>
 
@@ -871,7 +871,7 @@ export function DefensePanel(props: DefensePanelProps) {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={{ fontSize: 10, color: '#78716c', fontStyle: 'italic', marginBottom: 4 }}>
+            <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginBottom: 4 }}>
               En zone : les sliders agissent sur la zone globale. Les rotations s'appliquent à tous.
             </div>
             <MassRow label="pression bal.">
@@ -937,8 +937,8 @@ export function DefensePanel(props: DefensePanelProps) {
                 padding: '4px 8px',
                 borderRadius: 4,
                 border: '1px solid #cbd5e1',
-                background: '#fff',
-                color: '#475569',
+                background: '#262a32',
+                color: '#cbd5e1',
                 cursor: 'pointer',
                 width: '100%',
               }}
@@ -962,10 +962,10 @@ export function DefensePanel(props: DefensePanelProps) {
           variant="neutral"
           defaultOpen={false}
         >
-          <div style={{ fontSize: 10, color: '#64748b', marginBottom: 2 }}>
+          <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 2 }}>
             Astuce : clic-droit sur un défenseur pour ouvrir un menu rapide.
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '24px 36px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: 3, fontSize: 10, color: '#64748b' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '24px 36px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: 3, fontSize: 10, color: '#94a3b8' }}>
             <span></span>
             <span>aide</span>
             <span>prio.</span>
@@ -1052,7 +1052,7 @@ export function DefensePanel(props: DefensePanelProps) {
           variant="neutral"
           defaultOpen={false}
         >
-          <div style={{ fontSize: 11, color: '#64748b', padding: 4, fontStyle: 'italic' }}>
+          <div style={{ fontSize: 11, color: '#94a3b8', padding: 4, fontStyle: 'italic' }}>
             En zone, les défenseurs n'ont pas de matchup individuel.
             Activer <strong>✎ mode édition zones</strong> dans le Système pour
             ajuster les homePos / régions.
@@ -1073,7 +1073,7 @@ export function DefensePanel(props: DefensePanelProps) {
           defaultOpen={false}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 10, color: '#475569' }}>
+            <span style={{ fontSize: 10, color: '#cbd5e1' }}>
               Sauvegardes utilisateur (rules + screens + B/C settings)
             </span>
             <button
@@ -1114,7 +1114,7 @@ export function DefensePanel(props: DefensePanelProps) {
                     padding: '4px 6px',
                     borderRadius: 5,
                     border: '1px solid #bbf7d0',
-                    background: '#f0fdf4',
+                    background: 'rgba(110, 231, 183, 0.10)',
                   }}
                 >
                   <button
@@ -1131,7 +1131,7 @@ export function DefensePanel(props: DefensePanelProps) {
                       padding: 0,
                       border: 'none',
                       background: 'transparent',
-                      color: '#14532d',
+                      color: '#6ee7b7',
                       cursor: 'pointer',
                       fontWeight: 500,
                     }}
@@ -1197,7 +1197,7 @@ export function DefensePanel(props: DefensePanelProps) {
 function MassRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-      <span style={{ fontSize: 10, color: '#64748b', flex: '0 0 80px' }}>{label}</span>
+      <span style={{ fontSize: 10, color: '#94a3b8', flex: '0 0 80px' }}>{label}</span>
       <div style={{ flex: '1 1 0%', minWidth: 0 }}>{children}</div>
     </div>
   );
@@ -1224,7 +1224,7 @@ function HelpTriggerCheckbox({
           minWidth: 0,
           flex: '1 1 auto',
           fontSize: 12,
-          color: '#1f2937',
+          color: '#e5e7eb',
           cursor: 'pointer',
         }}
       >

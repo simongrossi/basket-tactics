@@ -1,0 +1,189 @@
+:root {
+  --bt-bg: #171a20;
+  --bt-surface: #1f242c;
+  --bt-surface-raised: #262b34;
+  --bt-surface-hover: #303744;
+  --bt-border: #343b47;
+  --bt-border-strong: #465061;
+  --bt-text: #f3f4f6;
+  --bt-text-muted: #cbd5e1;
+  --bt-text-dim: #94a3b8;
+  --bt-accent: #378add;
+  --bt-accent-strong: #4ba3ff;
+  --bt-orange: #d85a30;
+  --bt-orange-soft: #fdba74;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bt-bg);
+  color: var(--bt-text);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+::selection {
+  background: rgba(55, 138, 221, 0.35);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3d4653 #171a20;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #171a20;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #3d4653;
+  border: 2px solid #171a20;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #4b5565;
+}
+
+input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin: 0;
+  border: 1px solid #526074;
+  border-radius: 5px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 100%),
+    #171c24;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
+}
+
+input[type='checkbox']:hover {
+  border-color: #7a8798;
+}
+
+input[type='checkbox']:checked {
+  border-color: var(--bt-accent-strong);
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='M4 8.3 6.7 11 12.4 5'/%3E%3C/svg%3E")
+      center / 13px 13px no-repeat,
+    linear-gradient(180deg, #58adff 0%, #1f77d4 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.24),
+    0 0 0 3px rgba(55, 138, 221, 0.18),
+    0 4px 12px rgba(31, 119, 212, 0.24);
+}
+
+input[type='checkbox']:focus-visible,
+input[type='range']:focus-visible,
+input[type='number']:focus-visible,
+input[type='text']:focus-visible,
+input[type='search']:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid rgba(75, 163, 255, 0.7);
+  outline-offset: 2px;
+}
+
+input[type='range'] {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 18px;
+  background: transparent;
+  accent-color: var(--bt-accent);
+  cursor: pointer;
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+  height: 5px;
+  border: 1px solid #333b47;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #3a424f 0%, #2b313b 100%);
+}
+
+input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -7px;
+  border: 2px solid #f3f4f6;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ffffff 0%, #dbeafe 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+input[type='range']::-moz-range-track {
+  height: 5px;
+  border: 1px solid #333b47;
+  border-radius: 999px;
+  background: #2b313b;
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f4f6;
+  border-radius: 50%;
+  background: #e5efff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+input[type='number'],
+input[type='text'],
+input[type='search'],
+select,
+textarea {
+  border: 1px solid var(--bt-border);
+  border-radius: 6px;
+  background: var(--bt-surface-raised);
+  color: var(--bt-text);
+}
+
+input[type='number'] {
+  appearance: textfield;
+  color-scheme: dark;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--bt-text-dim);
+  opacity: 1;
+}

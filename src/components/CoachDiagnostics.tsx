@@ -7,10 +7,10 @@ interface CoachDiagnosticsProps {
 }
 
 const SEVERITY_STYLES: Record<CoachSeverity, { bg: string; fg: string; border: string; icon: string }> = {
-  good:     { bg: '#d1fae5', fg: '#065f46', border: '#a7f3d0', icon: '✓' },
-  info:     { bg: '#dbeafe', fg: '#1e3a8a', border: '#bfdbfe', icon: 'ⓘ' },
-  warning:  { bg: '#fef3c7', fg: '#92400e', border: '#fde68a', icon: '⚠' },
-  critical: { bg: '#fee2e2', fg: '#991b1b', border: '#fecaca', icon: '✕' },
+  good:     { bg: 'rgba(52, 211, 153, 0.14)', fg: '#6ee7b7', border: 'rgba(52, 211, 153, 0.26)', icon: '✓' },
+  info:     { bg: 'rgba(96, 165, 250, 0.15)', fg: '#93c5fd', border: 'rgba(96, 165, 250, 0.28)', icon: 'ⓘ' },
+  warning:  { bg: 'rgba(251, 191, 36, 0.14)', fg: '#fbbf24', border: 'rgba(251, 191, 36, 0.25)', icon: '⚠' },
+  critical: { bg: 'rgba(248, 113, 113, 0.14)', fg: '#fca5a5', border: 'rgba(248, 113, 113, 0.28)', icon: '✕' },
 };
 
 const SEVERITY_RANK: Record<CoachSeverity, number> = {
@@ -41,16 +41,16 @@ export function CoachDiagnostics({ diagnostics }: CoachDiagnosticsProps) {
         flexDirection: 'column',
         gap: 3,
         padding: '5px 6px',
-        background: '#fff',
-        border: '1px solid #e2e8f0',
-        borderRadius: 6,
-        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+        background: '#20252d',
+        border: '1px solid #343b47',
+        borderRadius: 7,
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
         flex: '0 0 auto',
       }}
     >
       {sortedDefense.length > 0 && (
         <>
-          <div style={{ fontSize: 9, fontWeight: 700, color: '#475569', letterSpacing: '0.04em', opacity: 0.7 }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: '#94a3b8', letterSpacing: '0.06em' }}>
             LECTURE COACH
           </div>
           {sortedDefense.map((d) => (
@@ -64,9 +64,8 @@ export function CoachDiagnostics({ diagnostics }: CoachDiagnosticsProps) {
             style={{
               fontSize: 9,
               fontWeight: 700,
-              color: '#475569',
-              letterSpacing: '0.04em',
-              opacity: 0.7,
+              color: '#94a3b8',
+              letterSpacing: '0.06em',
               marginTop: sortedDefense.length > 0 ? 4 : 0,
             }}
           >

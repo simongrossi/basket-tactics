@@ -56,26 +56,26 @@ export function CoachDiagnosticsOverlay({ diagnostics }: Props) {
             gap: 6,
             height: 32,
             padding: '0 12px',
-            background: '#fff',
-            border: '1px solid #cbd5e1',
+            background: '#252b34',
+            border: '1px solid #343b47',
             borderRadius: 16,
-            boxShadow: '0 1px 3px rgba(15,23,42,0.12)',
+            boxShadow: '0 8px 20px rgba(0,0,0,0.22)',
             fontSize: 13,
             fontWeight: 700,
-            color: '#334155',
+            color: '#f3f4f6',
             cursor: 'pointer',
             lineHeight: 1,
           }}
         >
           <span style={{ fontSize: 14, lineHeight: 1 }}>💡</span>
           {critWarn > 0 && (
-            <span style={{ color: '#b45309', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <span style={{ color: '#fbbf24', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
               ⚠ {critWarn}
             </span>
           )}
           {critWarn > 0 && reads > 0 && <span style={{ opacity: 0.35 }}>·</span>}
           {reads > 0 && (
-            <span style={{ color: '#1e3a8a', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <span style={{ color: '#93c5fd', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
               → {reads}
             </span>
           )}
@@ -95,10 +95,10 @@ export function CoachDiagnosticsOverlay({ diagnostics }: Props) {
               width: 20,
               height: 20,
               padding: 0,
-              border: '1px solid #e2e8f0',
+              border: '1px solid #343b47',
               borderRadius: 4,
-              background: '#fff',
-              color: '#64748b',
+              background: '#252b34',
+              color: '#cbd5e1',
               fontSize: 12,
               lineHeight: 1,
               cursor: 'pointer',

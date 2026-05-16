@@ -2,6 +2,7 @@
 
 import type { Tool } from '@/lib/types';
 import { Panel, Section, COLORS } from './ui';
+import { useSidebarTheme, DARK_PANEL } from './sidebar/SidebarThemeContext';
 
 interface OffenseToolsPanelProps {
   tool: Tool;
@@ -63,6 +64,10 @@ function ToolIcon({ tool, color }: { tool: Tool; color: string }) {
  */
 export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
   const c = COLORS.offense;
+  const { dark } = useSidebarTheme();
+  const idleBg = dark ? DARK_PANEL.bgSubtle : '#fff';
+  const idleBorder = dark ? DARK_PANEL.border : c.border;
+  const idleText = dark ? DARK_PANEL.text : c.accentText;
   return (
     <Panel theme="offense" title="⚪ Attaque">
       <Section theme="offense" label="Actions" open>
@@ -78,9 +83,9 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
                   fontSize: 11,
                   padding: '6px 6px',
                   borderRadius: 6,
-                  border: `1px solid ${active ? c.accent : c.border}`,
-                  background: active ? c.accent : '#fff',
-                  color: active ? '#fff' : c.accentText,
+                  border: `1px solid ${active ? c.accent : idleBorder}`,
+                  background: active ? c.accent : idleBg,
+                  color: active ? '#fff' : idleText,
                   cursor: 'pointer',
                   fontWeight: 500,
                   display: 'inline-flex',
@@ -89,7 +94,7 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
                   gap: 5,
                 }}
               >
-                <ToolIcon tool={t.value} color={active ? '#fff' : c.accentText} />
+                <ToolIcon tool={t.value} color={active ? '#fff' : idleText} />
                 {t.label}
               </button>
             );

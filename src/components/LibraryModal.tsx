@@ -28,6 +28,12 @@ interface LibraryModalProps {
   onExportFolder: (folderId: string) => string | null;
   onImportFolder: (json: string) => void;
   onClose: () => void;
+  /**
+   * Mode d'affichage. 'modal' (défaut) = overlay centré + backdrop ;
+   * 'inline' = card rendue dans le flux (refonte UI : vue routée depuis
+   * la sidebar gauche).
+   */
+  mode?: 'modal' | 'inline';
 }
 
 export function LibraryModal(props: LibraryModalProps) {
@@ -36,7 +42,9 @@ export function LibraryModal(props: LibraryModalProps) {
     library, hasWorkInProgress, onLoadSavedSystem, onLoadTemplate, onSaveCurrent,
     onRenameSystem, onDeleteSystem, onMoveSystem, onCreateFolder, onRenameFolder,
     onDeleteFolder, onExportFolder, onImportFolder, onClose,
+    mode = 'modal',
   } = props;
+  const inline = mode === 'inline';
 
   const [selectedFolderId, setSelectedFolderId] = useState<string>(
     library.folders[0]?.id ?? CLASSIC_FOLDER_ID
@@ -110,48 +118,73 @@ export function LibraryModal(props: LibraryModalProps) {
 
   return (
     <div
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)',
-        zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 24,
-      }}
+      onClick={inline ? undefined : onClose}
+      style={
+        inline
+          ? {
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'stretch',
+              justifyContent: 'center',
+              padding: 0,
+              boxSizing: 'border-box',
+              background: '#1a1d23',
+            }
+          : {
+              position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)',
+              zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 24,
+            }
+      }
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '100%', maxWidth: 920, maxHeight: '85vh',
-          background: '#fff', borderRadius: 12,
-          boxShadow: '0 20px 60px rgba(15, 23, 42, 0.25)',
-          display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        }}
+        style={
+          inline
+            ? {
+                width: '100%', maxWidth: 1100,
+                background: '#1a1d23',
+                display: 'flex', flexDirection: 'column', overflow: 'hidden',
+              }
+            : {
+                width: '100%', maxWidth: 920, maxHeight: '85vh',
+                background: '#fff', borderRadius: 12,
+                boxShadow: '0 20px 60px rgba(15, 23, 42, 0.25)',
+                display: 'flex', flexDirection: 'column', overflow: 'hidden',
+              }
+        }
       >
-        <header
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 18px', borderBottom: `1px solid ${c.border}`, background: c.bg,
-          }}
-        >
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: c.accentText, letterSpacing: '-0.01em' }}>
-              📚 Bibliothèque
-            </div>
-            <div style={{ fontSize: 11, color: '#78716c', marginTop: 2 }}>
-              Systèmes classiques · {library.folders.length} dossier(s) personnel(s)
-            </div>
-          </div>
-          <button
-            onClick={onClose}
+        {/* En mode inline, la sidebar gauche indique déjà la vue active —
+            pas besoin de header "Bibliothèque · X dossier(s)" + bouton ×. */}
+        {!inline && (
+          <header
             style={{
-              fontSize: 20, border: 'none', background: 'transparent',
-              cursor: 'pointer', color: '#64748b', padding: '4px 10px',
-              borderRadius: 4, lineHeight: 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '14px 18px', borderBottom: `1px solid ${c.border}`, background: c.bg,
             }}
-            title="Fermer (Échap)"
           >
-            ×
-          </button>
-        </header>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: c.accentText, letterSpacing: '-0.01em' }}>
+                📚 Bibliothèque
+              </div>
+              <div style={{ fontSize: 11, color: '#78716c', marginTop: 2 }}>
+                Systèmes classiques · {library.folders.length} dossier(s) personnel(s)
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                fontSize: 20, border: 'none', background: 'transparent',
+                cursor: 'pointer', color: '#64748b', padding: '4px 10px',
+                borderRadius: 4, lineHeight: 1,
+              }}
+              title="Fermer (Échap)"
+            >
+              ×
+            </button>
+          </header>
+        )}
 
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
           {/* Sidebar dossiers */}
@@ -205,12 +238,21 @@ export function LibraryModal(props: LibraryModalProps) {
                 const name = prompt('Nom du nouveau dossier :');
                 if (name && name.trim()) onCreateFolder(name.trim());
               }}
-              style={{
-                marginTop: 6, padding: '6px 8px', fontSize: 11,
-                border: `1px dashed ${c.border}`, borderRadius: 6,
-                background: 'transparent', color: c.accentText, cursor: 'pointer',
-                textAlign: 'left',
-              }}
+              style={
+                inline
+                  ? {
+                      marginTop: 6, padding: '8px 10px', fontSize: 12,
+                      border: '1px dashed #2a2d35', borderRadius: 6,
+                      background: 'transparent', color: '#cbd5e1', cursor: 'pointer',
+                      textAlign: 'left',
+                    }
+                  : {
+                      marginTop: 6, padding: '6px 8px', fontSize: 11,
+                      border: `1px dashed ${c.border}`, borderRadius: 6,
+                      background: 'transparent', color: c.accentText, cursor: 'pointer',
+                      textAlign: 'left',
+                    }
+              }
             >
               + nouveau dossier
             </button>
@@ -267,22 +309,40 @@ export function LibraryModal(props: LibraryModalProps) {
             ) : userFolder ? (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: c.accentText }}>
+                  <div style={{
+                    fontSize: 13, fontWeight: 600,
+                    color: inline ? '#f3f4f6' : c.accentText,
+                  }}>
                     {userFolder.name} · {userFolder.systems.length} système(s)
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button
                       onClick={() => setShowSaveDialog(true)}
-                      style={smallBtn(c.accent, '#fff')}
+                      style={
+                        inline
+                          ? darkPrimaryBtn(c.accent)
+                          : smallBtn(c.accent, '#fff')
+                      }
                     >
                       + sauvegarder l'état courant
                     </button>
-                    <button onClick={handleExportFolder} style={smallBtn('transparent', c.accentText, c.border)}>
+                    <button
+                      onClick={handleExportFolder}
+                      style={
+                        inline
+                          ? darkSecondaryBtn()
+                          : smallBtn('transparent', c.accentText, c.border)
+                      }
+                    >
                       ⬇ exporter
                     </button>
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      style={smallBtn('transparent', c.accentText, c.border)}
+                      style={
+                        inline
+                          ? darkSecondaryBtn()
+                          : smallBtn('transparent', c.accentText, c.border)
+                      }
                     >
                       ⬆ importer
                     </button>
@@ -342,7 +402,9 @@ export function LibraryModal(props: LibraryModalProps) {
           }}
         >
           <span>Tous les systèmes personnels sont sauvegardés en local (localStorage).</span>
-          <span>Échap pour fermer</span>
+          {/* "Échap pour fermer" n'a de sens qu'en modal — en inline,
+              la sidebar reste accessible pour naviguer ailleurs. */}
+          {!inline && <span>Échap pour fermer</span>}
         </footer>
       </div>
 
@@ -382,25 +444,72 @@ function smallBtn(bg: string, fg: string, border?: string): React.CSSProperties 
   };
 }
 
+// Boutons style dark moderne — cohérence avec la sidebar gauche (items
+// Terrain/Playbook/etc.). Primaire = accent saturé avec teinte subtile,
+// secondaire = fond transparent + bordure dark.
+function darkPrimaryBtn(accent: string): React.CSSProperties {
+  return {
+    padding: '6px 12px',
+    fontSize: 12,
+    fontWeight: 600,
+    border: `1px solid ${accent}`,
+    borderRadius: 6,
+    background: accent,
+    color: '#fff',
+    cursor: 'pointer',
+  };
+}
+function darkSecondaryBtn(): React.CSSProperties {
+  return {
+    padding: '6px 12px',
+    fontSize: 12,
+    fontWeight: 500,
+    border: '1px solid #2a2d35',
+    borderRadius: 6,
+    background: 'transparent',
+    color: '#cbd5e1',
+    cursor: 'pointer',
+  };
+}
+
 function FolderRow({
   label, count, active, onClick, onRename, onDelete,
 }: {
   label: string; count: number; active: boolean;
   onClick: () => void; onRename?: () => void; onDelete?: () => void;
 }) {
+  // Aligné sur le style des items de la sidebar gauche (Terrain, Playbook…) :
+  // ligne 34px, fond dark hover/active, accent violet, texte clair.
   return (
     <div
       onClick={onClick}
+      role="button"
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
-        padding: '6px 8px', borderRadius: 5, cursor: 'pointer',
-        background: active ? '#fff' : 'transparent',
-        border: `1px solid ${active ? '#e5e5e5' : 'transparent'}`,
-        fontSize: 12, fontWeight: 500, color: '#1c1917',
+        padding: '0 10px', height: 34, borderRadius: 6, cursor: 'pointer',
+        background: active ? 'rgba(167, 139, 250, 0.14)' : 'transparent',
+        color: active ? '#f3f4f6' : '#cbd5e1',
+        fontSize: 13, fontWeight: active ? 600 : 500,
+        transition: 'background 120ms ease, color 120ms ease',
+      }}
+      onMouseEnter={(e) => {
+        if (!active) {
+          e.currentTarget.style.background = '#262a32';
+          e.currentTarget.style.color = '#f3f4f6';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!active) {
+          e.currentTarget.style.background = 'transparent';
+          e.currentTarget.style.color = '#cbd5e1';
+        }
       }}
     >
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {label} <span style={{ color: '#a8a29e', fontSize: 10 }}>({count})</span>
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+        {label}{' '}
+        <span style={{ color: '#94a3b8', fontSize: 11, fontWeight: 500 }}>
+          ({count})
+        </span>
       </span>
       {(onRename || onDelete) && (
         <span style={{ display: 'flex', gap: 2 }}>
@@ -408,7 +517,10 @@ function FolderRow({
             <button
               onClick={(e) => { e.stopPropagation(); onRename(); }}
               title="Renommer"
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 10, padding: 2 }}
+              style={{
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                fontSize: 11, padding: 2, color: '#94a3b8',
+              }}
             >
               ✎
             </button>
@@ -417,7 +529,10 @@ function FolderRow({
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
               title="Supprimer"
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 10, padding: 2, color: '#dc2626' }}
+              style={{
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                fontSize: 11, padding: 2, color: '#fca5a5',
+              }}
             >
               🗑
             </button>

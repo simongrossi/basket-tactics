@@ -5,14 +5,19 @@ import { useAppState } from '@/hooks/useAppState';
 import { useLibrary } from '@/hooks/useLibrary';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useMatchLoop } from '@/hooks/useMatchLoop';
+import { useSidebarState } from '@/hooks/useSidebarState';
+import { Sidebar, type ToolGroup } from '@/components/sidebar/Sidebar';
+import { SIDEBAR } from '@/components/sidebar/tokens';
+import { Swords, Shield, ListOrdered, GitBranch } from 'lucide-react';
 import { OffenseToolsPanel } from '@/components/OffenseToolsPanel';
 import { StepsPanel } from '@/components/StepsPanel';
 import { ScenarioPanel } from '@/components/ScenarioPanel';
 import { ScenarioReader } from '@/components/ScenarioReader';
 import { DefensePanel } from '@/components/DefensePanel';
-import { FloatingActionsMenu } from '@/components/FloatingActionsMenu';
-import { ParametresLauncher } from '@/components/ParametresLauncher';
-import { LibraryPanel } from '@/components/LibraryPanel';
+import { SidebarOverflowMenu } from '@/components/sidebar/SidebarOverflowMenu';
+import { ParametresPanel } from '@/components/ParametresPanel';
+import { LibraryModal } from '@/components/LibraryModal';
+import { SidebarThemeProvider } from '@/components/sidebar/SidebarThemeContext';
 import { Timeline } from '@/components/Timeline';
 import { CourtView } from '@/components/CourtView';
 import { LiveMatchOverlay } from '@/components/LiveMatchOverlay';
@@ -32,10 +37,10 @@ import type { AppState, Step } from '@/lib/types';
 export default function Page() {
   const app = useAppState();
   const lib = useLibrary();
+  const sidebar = useSidebarState();
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [playbackT, setPlaybackT] = useState<number | null>(null);
-  const [showPlaybook, setShowPlaybook] = useState(false);
   const [showPlayerTimeline, setShowPlayerTimeline] = useState(false);
   const [showMultiTrack, setShowMultiTrack] = useState(false);
   const [scrubT, setScrubT] = useState<number | null>(null);
@@ -195,58 +200,208 @@ export default function Page() {
         height: '100vh',
         maxHeight: '100vh',
         overflow: 'hidden',
-        background: 'linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%)',
+        background: '#1a1d23',
         padding: '8px 12px 10px',
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
+        color: '#e5e7eb',
       }}
     >
-      <div className={presentMode ? 'layout-grid presenting' : 'layout-grid'}>
+      <div
+        className={presentMode ? 'layout-grid presenting' : 'layout-grid'}
+        style={{
+          // Refonte UI — largeur de la sidebar pilotée par useSidebarState.
+          // Le mode présentation force une seule colonne (cf. .presenting).
+          ['--sidebar-w' as string]: `${
+            sidebar.collapsed ? SIDEBAR.widthCollapsed : SIDEBAR.widthExpanded
+          }px`,
+        }}
+      >
         {!presentMode && (
-          <div className="side-col">
-            {/* LIVRAISON 1 — colonne gauche tactique : Attaque (outils) + Défense.
-                La liste des étapes + scénario + bibliothèque + paramètres sont
-                maintenant à droite. */}
-            <OffenseToolsPanel
-              tool={app.state.tool}
-              onSetTool={app.setTool}
-            />
-            <DefensePanel
-              state={app.state}
-              onSetScreenRule={app.setScreenRule}
-              onResetSwitches={app.resetSwitches}
-              onPatch={app.patch}
-              onUpdateRule={app.updateRule}
-              onUpdateAllRules={app.updateAllRules}
-              onResetIndividualOverrides={app.resetIndividualOverrides}
-              onSetDefenseSystem={app.setDefenseSystem}
-              onUpdateZoneConfig={app.updateZoneConfig}
-              onApplyDefensePreset={app.applyDefensePreset}
-              onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
-              onClearAllDefenseOverridesAnimated={app.clearAllDefenseOverridesActiveStepAnimated}
-              matchLoop={matchLoop}
-              matchSpeed={matchSpeed}
-              onSetMatchSpeed={setMatchSpeed}
-              onLoadAiSteps={handleLoadAiSteps}
-              onEnterFullscreenMatch={handleEnterFullscreenMatch}
-              scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
-              onToggleScriptedDefense={app.toggleScriptedDefense}
-              userDefensePresets={lib.library.defensePresets}
-              onSaveDefensePreset={(name) => lib.saveDefensePreset(app.state, name)}
-              onApplyUserDefensePreset={(preset) => {
-                const {
-                  id: _id, name: _name, description: _desc, createdAt: _t,
-                  ...defensePatch
-                } = preset;
-                app.patch(defensePatch);
-              }}
-              onDeleteDefensePreset={lib.deleteDefensePreset}
-            />
-          </div>
+          <Sidebar
+            activeView={sidebar.activeView}
+            collapsed={sidebar.collapsed}
+            onSelectView={sidebar.setActiveView}
+            onToggleCollapse={sidebar.toggleCollapse}
+            version="0.10.0"
+            overflowMenu={
+              <SidebarOverflowMenu
+                presentMode={presentMode}
+                onTogglePresentMode={() => setPresentMode((p) => !p)}
+                onOpenPlayerTimeline={() => setShowPlayerTimeline(true)}
+                onExport={handleExport}
+                onImport={handleImport}
+                onReset={app.resetAll}
+                collapsed={sidebar.collapsed}
+              />
+            }
+            toolGroups={[
+              {
+                id: 'offense',
+                icon: Swords,
+                label: 'Attaque',
+                accent: '#f97316',
+                defaultOpen: true,
+                content: (
+                  <OffenseToolsPanel tool={app.state.tool} onSetTool={app.setTool} />
+                ),
+              },
+              {
+                id: 'defense',
+                icon: Shield,
+                label: 'Défense',
+                accent: '#3b82f6',
+                content: (
+                  <DefensePanel
+                    state={app.state}
+                    onSetScreenRule={app.setScreenRule}
+                    onResetSwitches={app.resetSwitches}
+                    onPatch={app.patch}
+                    onUpdateRule={app.updateRule}
+                    onUpdateAllRules={app.updateAllRules}
+                    onResetIndividualOverrides={app.resetIndividualOverrides}
+                    onSetDefenseSystem={app.setDefenseSystem}
+                    onUpdateZoneConfig={app.updateZoneConfig}
+                    onApplyDefensePreset={app.applyDefensePreset}
+                    onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
+                    onClearAllDefenseOverridesAnimated={app.clearAllDefenseOverridesActiveStepAnimated}
+                    matchLoop={matchLoop}
+                    matchSpeed={matchSpeed}
+                    onSetMatchSpeed={setMatchSpeed}
+                    onLoadAiSteps={handleLoadAiSteps}
+                    onEnterFullscreenMatch={handleEnterFullscreenMatch}
+                    scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
+                    onToggleScriptedDefense={app.toggleScriptedDefense}
+                    userDefensePresets={lib.library.defensePresets}
+                    onSaveDefensePreset={(name) => lib.saveDefensePreset(app.state, name)}
+                    onApplyUserDefensePreset={(preset) => {
+                      const {
+                        id: _id, name: _name, description: _desc, createdAt: _t,
+                        ...defensePatch
+                      } = preset;
+                      app.patch(defensePatch);
+                    }}
+                    onDeleteDefensePreset={lib.deleteDefensePreset}
+                  />
+                ),
+              },
+              {
+                id: 'steps',
+                icon: ListOrdered,
+                label: 'Étapes',
+                accent: '#f97316',
+                content: (
+                  <StepsPanel
+                    state={app.state}
+                    onSetActiveStep={app.setActiveStep}
+                    onAddStep={app.addStep}
+                    onDuplicateStep={app.duplicateStep}
+                    onDeleteStep={app.deleteStep}
+                    onSetStepLabel={app.setStepLabel}
+                    onSetBallCarrier={app.setBallCarrier}
+                    onDeleteAnnotation={app.deleteAnnotation}
+                    onConvertToFreeThrow={app.convertStepToFreeThrow}
+                    onConvertToInbound={app.convertStepToInbound}
+                    onSetInboundDefenseMode={app.setInboundDefenseMode}
+                    onAddFreeThrowReboundStep={app.addFreeThrowReboundStep}
+                    onConvertToJumpBall={app.convertStepToJumpBall}
+                  />
+                ),
+              },
+              {
+                id: 'scenario',
+                icon: GitBranch,
+                label: 'Scénario',
+                accent: '#a78bfa',
+                content: (
+                  <ScenarioPanel
+                    scriptedActions={app.state.scriptedActions ?? []}
+                    scenarioBranches={app.state.scenarioBranches ?? []}
+                    activeBranchId={app.state.activeBranchId ?? null}
+                    playerCount={app.state.playerCount}
+                    onAddAction={app.addScriptedAction}
+                    onUpdateAction={app.updateScriptedAction}
+                    onDeleteAction={app.deleteScriptedAction}
+                    onMoveAction={app.moveScriptedAction}
+                    onClearAll={app.clearScriptedActions}
+                    onAddDefensiveAction={app.addDefensiveAction}
+                    onUpdateDefensiveAction={app.updateDefensiveAction}
+                    onDeleteDefensiveAction={app.deleteDefensiveAction}
+                    onAddBranch={app.addScenarioBranch}
+                    onUpdateBranch={app.updateScenarioBranch}
+                    onDeleteBranch={app.deleteScenarioBranch}
+                    onSetActiveBranch={app.setActiveBranch}
+                  />
+                ),
+              },
+            ]}
+          />
         )}
 
-        <div className="center-col">
+        <div className={`center-col${sidebar.activeView !== 'court' ? ' center-col-view inline-view-scope' : ''}`}>
+          {sidebar.activeView === 'playbook' && (
+            <SidebarThemeProvider dark>
+              <PlaybookView
+                state={app.state}
+                mode="inline"
+                onClose={() => sidebar.setActiveView('court')}
+              />
+            </SidebarThemeProvider>
+          )}
+          {sidebar.activeView === 'library' && (
+            <SidebarThemeProvider dark>
+              <LibraryModal
+                mode="inline"
+                hasWorkInProgress={
+                  app.state.steps.length > 1 || app.state.steps[0].annotations.length > 0
+                }
+                library={lib.library}
+                onLoadSavedSystem={(sys) => app.importState(lib.loadSystem(app.state, sys))}
+                onLoadTemplate={app.loadTemplate}
+                onSaveCurrent={(folderId, name, description) =>
+                  lib.saveSystem(app.state, folderId, name, description)
+                }
+                onRenameSystem={lib.renameSystem}
+                onDeleteSystem={lib.deleteSystem}
+                onMoveSystem={lib.moveSystem}
+                onCreateFolder={lib.createFolder}
+                onRenameFolder={lib.renameFolder}
+                onDeleteFolder={lib.deleteFolder}
+                onExportFolder={lib.exportFolder}
+                onImportFolder={lib.importFolder}
+                onClose={() => sidebar.setActiveView('court')}
+              />
+            </SidebarThemeProvider>
+          )}
+          {sidebar.activeView === 'settings' && (
+            <SidebarThemeProvider dark>
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  overflow: 'auto',
+                  padding: '24px 28px',
+                  background: '#171a20',
+                  borderRadius: 8,
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div style={{ maxWidth: 1040, margin: '0 auto' }}>
+                  <ParametresPanel
+                    state={app.state}
+                    onPatch={app.patch}
+                    onSetPlayerCount={app.setPlayerCount}
+                    onAutoPositionOffBall={app.autoPositionOffBall}
+                    onTogglePlayerDisqualified={app.togglePlayerDisqualified}
+                    onClearDisqualified={app.clearDisqualified}
+                  />
+                </div>
+              </div>
+            </SidebarThemeProvider>
+          )}
+          {sidebar.activeView === 'court' && (
+          <>
           <div style={{ position: 'relative', minHeight: 0, overflow: 'hidden', display: 'grid' }}>
             {app.state.showCoachDiagnostics !== false && (
               <CoachDiagnosticsOverlay diagnostics={coachDiagnostics} />
@@ -301,15 +456,6 @@ export default function Page() {
               defenseReleaseTransition={app.defenseReleaseTransition}
               liveMatchState={matchLoop.matchState}
             />
-            <FloatingActionsMenu
-              presentMode={presentMode}
-              onTogglePresentMode={() => setPresentMode((p) => !p)}
-              onOpenPlaybook={() => setShowPlaybook(true)}
-              onOpenPlayerTimeline={() => setShowPlayerTimeline(true)}
-              onExport={handleExport}
-              onImport={handleImport}
-              onReset={app.resetAll}
-            />
           </div>
           {(app.state.scriptedActions?.length ?? 0) > 0 && (
             <ScenarioReader
@@ -345,10 +491,10 @@ export default function Page() {
               style={{
                 padding: '6px 10px',
                 fontSize: 12,
-                border: '1px solid #cbd5e1',
+                border: '1px solid #2a2d35',
                 borderRadius: 6,
-                background: showMultiTrack ? '#fed7aa' : '#fff',
-                color: showMultiTrack ? '#9a3412' : '#475569',
+                background: showMultiTrack ? 'rgba(216, 90, 48, 0.2)' : '#2f343d',
+                color: showMultiTrack ? '#fdba74' : '#cbd5e1',
                 cursor: 'pointer',
                 fontWeight: 600,
                 whiteSpace: 'nowrap',
@@ -384,72 +530,10 @@ export default function Page() {
             activeStep={app.state.activeStep}
             onSetActiveStep={app.setActiveStep}
           />
+          </>
+          )}
         </div>
 
-        {!presentMode && (
-          <div className="side-col">
-            {/* LIVRAISON 1 — colonne droite workspace : étapes + scénario +
-                bibliothèque + paramètres. Manipulation du matériau de jeu. */}
-            <StepsPanel
-              state={app.state}
-              onSetActiveStep={app.setActiveStep}
-              onAddStep={app.addStep}
-              onDuplicateStep={app.duplicateStep}
-              onDeleteStep={app.deleteStep}
-              onSetStepLabel={app.setStepLabel}
-              onSetBallCarrier={app.setBallCarrier}
-              onDeleteAnnotation={app.deleteAnnotation}
-              onConvertToFreeThrow={app.convertStepToFreeThrow}
-              onConvertToInbound={app.convertStepToInbound}
-              onSetInboundDefenseMode={app.setInboundDefenseMode}
-              onAddFreeThrowReboundStep={app.addFreeThrowReboundStep}
-              onConvertToJumpBall={app.convertStepToJumpBall}
-            />
-            <ScenarioPanel
-              scriptedActions={app.state.scriptedActions ?? []}
-              scenarioBranches={app.state.scenarioBranches ?? []}
-              activeBranchId={app.state.activeBranchId ?? null}
-              playerCount={app.state.playerCount}
-              onAddAction={app.addScriptedAction}
-              onUpdateAction={app.updateScriptedAction}
-              onDeleteAction={app.deleteScriptedAction}
-              onMoveAction={app.moveScriptedAction}
-              onClearAll={app.clearScriptedActions}
-              onAddDefensiveAction={app.addDefensiveAction}
-              onUpdateDefensiveAction={app.updateDefensiveAction}
-              onDeleteDefensiveAction={app.deleteDefensiveAction}
-              onAddBranch={app.addScenarioBranch}
-              onUpdateBranch={app.updateScenarioBranch}
-              onDeleteBranch={app.deleteScenarioBranch}
-              onSetActiveBranch={app.setActiveBranch}
-            />
-            <LibraryPanel
-              state={app.state}
-              library={lib.library}
-              onLoadTemplate={app.loadTemplate}
-              onLoadSavedSystem={(sys) => app.importState(lib.loadSystem(app.state, sys))}
-              onSaveSystem={(folderId, name, description) =>
-                lib.saveSystem(app.state, folderId, name, description)
-              }
-              onRenameSystem={lib.renameSystem}
-              onDeleteSystem={lib.deleteSystem}
-              onMoveSystem={lib.moveSystem}
-              onCreateFolder={lib.createFolder}
-              onRenameFolder={lib.renameFolder}
-              onDeleteFolder={lib.deleteFolder}
-              onExportFolder={lib.exportFolder}
-              onImportFolder={lib.importFolder}
-            />
-            <ParametresLauncher
-              state={app.state}
-              onPatch={app.patch}
-              onSetPlayerCount={app.setPlayerCount}
-              onAutoPositionOffBall={app.autoPositionOffBall}
-              onTogglePlayerDisqualified={app.togglePlayerDisqualified}
-              onClearDisqualified={app.clearDisqualified}
-            />
-          </div>
-        )}
       </div>
 
       <input
@@ -459,9 +543,6 @@ export default function Page() {
         style={{ display: 'none' }}
         onChange={handleFile}
       />
-      {showPlaybook && (
-        <PlaybookView state={app.state} onClose={() => setShowPlaybook(false)} />
-      )}
       {showPlayerTimeline && (
         <PlayerTimelineModal
           state={app.state}
@@ -488,11 +569,12 @@ export default function Page() {
           __html: `
         .layout-grid {
           display: grid;
-          grid-template-columns: 260px 1fr 300px;
+          grid-template-columns: var(--sidebar-w, 240px) 1fr;
           grid-template-rows: minmax(0, 1fr);
           gap: 10px;
           flex: 1;
           min-height: 0;
+          transition: grid-template-columns 160ms ease;
         }
         .layout-grid.presenting {
           grid-template-columns: 1fr;
@@ -505,6 +587,206 @@ export default function Page() {
           min-height: 0;
           overflow: hidden;
         }
+        .center-col.center-col-view {
+          /* Vues routées (Playbook, Bibliothèque, Paramètres) : une seule
+             rangée plein hauteur, pas de timeline ni metrics, fond dark
+             bleu-gris cohérent avec la sidebar. */
+          grid-template-rows: 1fr;
+          background: #1a1d23;
+          border-radius: 8px;
+          color: #e5e7eb;
+        }
+        /* Overrides dark pour la Timeline + Metrics + ScenarioReader +
+           CoachDiagnostics sous le court (vue Terrain). Ne touche pas le SVG
+           du court lui-même (les couleurs SVG sont des attributs fill/stroke,
+           pas style inline). */
+        .center-col:not(.center-col-view) [style*="background: rgb(255, 255, 255)"]:not(input):not(select):not(textarea),
+        .center-col:not(.center-col-view) [style*="background: rgb(255,255,255)"]:not(input):not(select):not(textarea),
+        .center-col:not(.center-col-view) [style*="background: #fff"]:not(input):not(select):not(textarea),
+        .center-col:not(.center-col-view) [style*="background:#fff"]:not(input):not(select):not(textarea),
+        .center-col:not(.center-col-view) [style*="background: #FFFFFF"]:not(input):not(select):not(textarea),
+        .center-col:not(.center-col-view) [style*="background: #ffffff"]:not(input):not(select):not(textarea) {
+          background: #2f343d !important;
+        }
+        /* Inputs/selects/textarea aussi dans le court view (Timeline a un
+           range slider qui apparaît avec scrollbar/track natifs blancs). */
+        .center-col:not(.center-col-view) select,
+        .center-col:not(.center-col-view) input[type="text"],
+        .center-col:not(.center-col-view) input[type="number"],
+        .center-col:not(.center-col-view) input[type="search"] {
+          background: #262a32 !important;
+          color: #f3f4f6 !important;
+          border-color: #2a2d35 !important;
+        }
+        /* Placeholders lisibles dans toute la sidebar + court view */
+        .sidebar-tools-scope input::placeholder,
+        .sidebar-tools-scope textarea::placeholder,
+        .center-col:not(.center-col-view) input::placeholder,
+        .center-col:not(.center-col-view) textarea::placeholder {
+          color: #94a3b8 !important;
+          opacity: 1;
+        }
+        .center-col:not(.center-col-view) [style*="background: rgb(241, 245, 249)"],
+        .center-col:not(.center-col-view) [style*="background: #f1f5f9"] {
+          background: #262a32 !important;
+        }
+        .center-col:not(.center-col-view) [style*="background: rgb(203, 213, 225)"],
+        .center-col:not(.center-col-view) [style*="background: #cbd5e1"] {
+          background: #3a3f48 !important;
+        }
+        .center-col:not(.center-col-view) [style*="border: 1px solid rgb(226, 232, 240)"],
+        .center-col:not(.center-col-view) [style*="border: 1px solid #e2e8f0"],
+        .center-col:not(.center-col-view) [style*="border: 1px solid rgb(203, 213, 225)"],
+        .center-col:not(.center-col-view) [style*="border: 1px solid #cbd5e1"] {
+          border-color: #2a2d35 !important;
+        }
+        .center-col:not(.center-col-view) [style*="color: rgb(71, 85, 105)"],
+        .center-col:not(.center-col-view) [style*="color: #475569"],
+        .center-col:not(.center-col-view) [style*="color: rgb(51, 65, 85)"],
+        .center-col:not(.center-col-view) [style*="color: #334155"],
+        .center-col:not(.center-col-view) [style*="color: rgb(100, 116, 139)"],
+        .center-col:not(.center-col-view) [style*="color: #64748b"],
+        .center-col:not(.center-col-view) [style*="color: rgb(87, 83, 78)"],
+        .center-col:not(.center-col-view) [style*="color: #57534e"] {
+          color: #e5e7eb !important;
+        }
+        /* Inversion sémantique : textes foncés saturés (vert/rouge/amber/bleu)
+           → versions claires pour rester lisibles sur fond dark mais préserver
+           le sens (vert=bon, rouge=mauvais, amber=warning, bleu=info). */
+        .center-col:not(.center-col-view) [style*="color: rgb(6, 95, 70)"],
+        .center-col:not(.center-col-view) [style*="color: #065f46"] {
+          color: #6ee7b7 !important;
+        }
+        .center-col:not(.center-col-view) [style*="color: rgb(153, 27, 27)"],
+        .center-col:not(.center-col-view) [style*="color: #991b1b"],
+        .center-col:not(.center-col-view) [style*="color: rgb(127, 29, 29)"],
+        .center-col:not(.center-col-view) [style*="color: #7f1d1d"] {
+          color: #fca5a5 !important;
+        }
+        .center-col:not(.center-col-view) [style*="color: rgb(146, 64, 14)"],
+        .center-col:not(.center-col-view) [style*="color: #92400e"],
+        .center-col:not(.center-col-view) [style*="color: rgb(180, 83, 9)"],
+        .center-col:not(.center-col-view) [style*="color: #b45309"],
+        .center-col:not(.center-col-view) [style*="color: rgb(124, 45, 18)"],
+        .center-col:not(.center-col-view) [style*="color: #7c2d12"] {
+          color: #fbbf24 !important;
+        }
+        .center-col:not(.center-col-view) [style*="color: rgb(30, 58, 138)"],
+        .center-col:not(.center-col-view) [style*="color: #1e3a8a"],
+        .center-col:not(.center-col-view) [style*="color: rgb(30, 64, 175)"],
+        .center-col:not(.center-col-view) [style*="color: #1e40af"] {
+          color: #93c5fd !important;
+        }
+        /* Bordures pastel chips MetricsBar */
+        .center-col:not(.center-col-view) [style*="border: 1px solid rgb(167, 243, 208)"],
+        .center-col:not(.center-col-view) [style*="border: 1px solid #a7f3d0"],
+        .center-col:not(.center-col-view) [style*="border: 1px solid rgb(253, 230, 138)"],
+        .center-col:not(.center-col-view) [style*="border: 1px solid #fde68a"],
+        .center-col:not(.center-col-view) [style*="border: 1px solid rgb(254, 202, 202)"],
+        .center-col:not(.center-col-view) [style*="border: 1px solid #fecaca"] {
+          border-color: #2a2d35 !important;
+        }
+        /* Backgrounds chips clairs sémantiques (good/warn/bad) → dark mais
+           gardent l'identité via le texte coloré (vu juste au-dessus). */
+        .center-col:not(.center-col-view) [style*="background: rgb(209, 250, 229)"],
+        .center-col:not(.center-col-view) [style*="background: #d1fae5"] {
+          background: rgba(110, 231, 183, 0.12) !important;
+        }
+        .center-col:not(.center-col-view) [style*="background: rgb(254, 243, 199)"],
+        .center-col:not(.center-col-view) [style*="background: #fef3c7"] {
+          background: rgba(251, 191, 36, 0.12) !important;
+        }
+        .center-col:not(.center-col-view) [style*="background: rgb(254, 226, 226)"],
+        .center-col:not(.center-col-view) [style*="background: #fee2e2"] {
+          background: rgba(252, 165, 165, 0.12) !important;
+        }
+        /* Tag chips MetricsBar avec backgrounds très pâles (vert, rouge, etc.) */
+        .center-col:not(.center-col-view) [style*="background: rgb(220, 252, 231)"],
+        .center-col:not(.center-col-view) [style*="background: #dcfce7"],
+        .center-col:not(.center-col-view) [style*="background: rgb(254, 226, 226)"],
+        .center-col:not(.center-col-view) [style*="background: #fee2e2"],
+        .center-col:not(.center-col-view) [style*="background: rgb(254, 243, 199)"],
+        .center-col:not(.center-col-view) [style*="background: #fef3c7"],
+        .center-col:not(.center-col-view) [style*="background: rgb(219, 234, 254)"],
+        .center-col:not(.center-col-view) [style*="background: #dbeafe"] {
+          background: #2f343d !important;
+        }
+        /* Override scoped pour passer le contenu hérité (LibraryModal,
+           PlaybookView) en thème dark sans toucher chaque ligne de styles
+           inline. */
+        .inline-view-scope select,
+        .inline-view-scope input[type="text"],
+        .inline-view-scope input[type="number"],
+        .inline-view-scope input[type="search"],
+        .inline-view-scope textarea {
+          background: #262a32 !important;
+          color: #e5e5e5 !important;
+          border-color: #2a2d35 !important;
+        }
+        .inline-view-scope input::placeholder,
+        .inline-view-scope textarea::placeholder {
+          color: #71717a !important;
+        }
+        .inline-view-scope [style*="rgb(255, 255, 255)"]:not(input):not(select):not(textarea):not(button[style*="background: rgb(216, 90, 48)"]),
+        .inline-view-scope [style*="background: rgb(255,255,255)"]:not(input):not(select):not(textarea),
+        .inline-view-scope [style*="background: #fff"]:not(input):not(select):not(textarea),
+        .inline-view-scope [style*="background:#fff"]:not(input):not(select):not(textarea),
+        .inline-view-scope [style*="background: #FFFFFF"]:not(input):not(select):not(textarea),
+        .inline-view-scope [style*="background: #ffffff"]:not(input):not(select):not(textarea) {
+          background: #262a32 !important;
+        }
+        .inline-view-scope [style*="background: rgb(250, 250, 249)"],
+        .inline-view-scope [style*="background: #fafaf9"],
+        .inline-view-scope [style*="background: rgb(241, 245, 249)"],
+        .inline-view-scope [style*="background: #f1f5f9"] {
+          background: #161a20 !important;
+        }
+        .inline-view-scope [style*="background: rgb(255, 247, 237)"],
+        .inline-view-scope [style*="background: #fff7ed"],
+        .inline-view-scope [style*="background: rgb(239, 246, 255)"],
+        .inline-view-scope [style*="background: #eff6ff"] {
+          background: #262a32 !important;
+        }
+        .inline-view-scope [style*="color: rgb(120, 113, 108)"],
+        .inline-view-scope [style*="color: #78716c"],
+        .inline-view-scope [style*="color: rgb(148, 163, 184)"],
+        .inline-view-scope [style*="color: #94a3b8"],
+        .inline-view-scope [style*="color: rgb(168, 162, 158)"],
+        .inline-view-scope [style*="color: #a8a29e"] {
+          color: #a1a1aa !important;
+        }
+        .inline-view-scope [style*="color: rgb(87, 83, 78)"],
+        .inline-view-scope [style*="color: #57534e"],
+        .inline-view-scope [style*="color: rgb(71, 85, 105)"],
+        .inline-view-scope [style*="color: #475569"],
+        .inline-view-scope [style*="color: rgb(51, 65, 85)"],
+        .inline-view-scope [style*="color: #334155"],
+        .inline-view-scope [style*="color: rgb(31, 41, 55)"],
+        .inline-view-scope [style*="color: #1f2937"] {
+          color: #e5e5e5 !important;
+        }
+        .inline-view-scope [style*="border: 1px solid rgb(254, 215, 170)"],
+        .inline-view-scope [style*="border: 1px solid #fed7aa"],
+        .inline-view-scope [style*="border: 1px solid rgb(191, 219, 254)"],
+        .inline-view-scope [style*="border: 1px solid #bfdbfe"],
+        .inline-view-scope [style*="border: 1px solid rgb(203, 213, 225)"],
+        .inline-view-scope [style*="border: 1px solid #cbd5e1"],
+        .inline-view-scope [style*="border: 1px solid rgb(226, 232, 240)"],
+        .inline-view-scope [style*="border: 1px solid #e2e8f0"],
+        .inline-view-scope [style*="border-right: 1px solid rgb(254, 215, 170)"],
+        .inline-view-scope [style*="border-right: 1px solid #fed7aa"],
+        .inline-view-scope [style*="border-right: 1px solid rgb(191, 219, 254)"],
+        .inline-view-scope [style*="border-right: 1px solid #bfdbfe"],
+        .inline-view-scope [style*="border-top: 1px solid rgb(254, 215, 170)"],
+        .inline-view-scope [style*="border-top: 1px solid #fed7aa"],
+        .inline-view-scope [style*="border-top: 1px solid rgb(191, 219, 254)"],
+        .inline-view-scope [style*="border-top: 1px solid #bfdbfe"],
+        .inline-view-scope [style*="border-bottom: 1px solid rgb(254, 215, 170)"],
+        .inline-view-scope [style*="border-bottom: 1px solid #fed7aa"],
+        .inline-view-scope [style*="border-bottom: 1px solid rgb(191, 219, 254)"],
+        .inline-view-scope [style*="border-bottom: 1px solid #bfdbfe"] {
+          border-color: #2a2d35 !important;
+        }
         .side-col {
           display: flex;
           flex-direction: column;
@@ -515,7 +797,9 @@ export default function Page() {
           overflow-x: hidden;
         }
         @media (max-width: 1100px) {
-          .layout-grid:not(.presenting) { grid-template-columns: 220px 1fr 260px; }
+          .layout-grid:not(.presenting) {
+            grid-template-columns: var(--sidebar-w, 220px) 1fr;
+          }
         }
         @media (max-width: 900px) {
           main { height: auto !important; max-height: none !important; overflow: auto !important; }

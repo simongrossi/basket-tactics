@@ -3,6 +3,7 @@
 import * as React from 'react';
 import type { ReactNode } from 'react';
 import { useAccordionState } from '@/hooks/useAccordionState';
+import { useSidebarTheme, DARK_PANEL } from './sidebar/SidebarThemeContext';
 
 export const COLORS = {
   offense: {
@@ -43,6 +44,31 @@ interface PanelProps {
 export function Panel({ theme, title, children, fill }: PanelProps) {
   const c = COLORS[theme];
   const accent = 'accent' in c ? c.accent : '#94a3b8';
+  const { dark } = useSidebarTheme();
+
+  // En mode dark/sidebar : on retire complètement le chrome du Panel (carte,
+  // bordure, gros titre avec filet d'accent). Reste : un label discret SIDEBAR
+  // section-style (uppercase, petite caps, accent color en tiret coloré
+  // optionnel) et le contenu plat. Le but est d'éviter les "mini-navs"
+  // empilées dans la nav.
+  if (dark) {
+    // En mode dark/sidebar, le SidebarToolGroup parent fournit déjà le
+    // header (icône + label + chevron), donc le Panel ne dessine plus
+    // son propre titre/cadre. Reste : juste les enfants dans un flow
+    // vertical serré.
+    return (
+      <section
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+        }}
+      >
+        {children}
+      </section>
+    );
+  }
+
   return (
     <aside
       style={{
@@ -96,14 +122,21 @@ interface SectionProps {
 
 export function Section({ theme, label, open, children }: SectionProps) {
   const c = COLORS[theme];
+  const { dark } = useSidebarTheme();
   return (
-    <details open={open} style={{ borderTop: `1px solid ${c.border}`, paddingTop: 6 }}>
+    <details
+      open={open}
+      style={{
+        borderTop: `1px solid ${dark ? DARK_PANEL.borderSubtle : c.border}`,
+        paddingTop: 6,
+      }}
+    >
       <summary
         style={{
           fontSize: 11,
           fontWeight: 600,
           cursor: 'pointer',
-          color: 'accentText' in c ? c.accentText : c.text,
+          color: dark ? DARK_PANEL.textMuted : 'accentText' in c ? c.accentText : c.text,
           letterSpacing: '0.02em',
           listStyle: 'none',
           display: 'flex',
@@ -157,6 +190,7 @@ export function AccordionSection({
   children,
 }: AccordionSectionProps) {
   const c = COLORS[theme];
+  const { dark } = useSidebarTheme();
   const isPinned = variant === 'pinned';
   const [open, setOpen] = useAccordionState(
     id,
@@ -164,16 +198,30 @@ export function AccordionSection({
   );
   const effectiveOpen = isPinned || open;
 
-  // Couleurs par variant
-  const bg =
-    variant === 'pinned'
-      ? '#eff6ff' // bleu pâle (top-of-mind)
+  // Couleurs par variant — en dark, on retire totalement le fond/bordure
+  // par défaut (transparent), sauf pour 'pinned' qui garde une teinte
+  // légèrement plus claire pour rester top-of-mind.
+  const bg = dark
+    ? variant === 'pinned'
+      ? DARK_PANEL.bgSubtle
+      : 'transparent'
+    : variant === 'pinned'
+      ? '#eff6ff'
       : variant === 'secondary'
-        ? '#fafaf9' // gris très pâle
+        ? '#fafaf9'
         : '#fff';
-  const borderColor =
-    variant === 'pinned' ? '#bfdbfe' : c.border;
-  const accentText = 'accentText' in c ? c.accentText : c.text;
+  const borderColor = dark
+    ? variant === 'pinned'
+      ? DARK_PANEL.border
+      : 'transparent'
+    : variant === 'pinned'
+      ? '#bfdbfe'
+      : c.border;
+  const accentText = dark
+    ? DARK_PANEL.text
+    : 'accentText' in c
+      ? c.accentText
+      : c.text;
 
   return (
     <div
@@ -229,7 +277,7 @@ export function AccordionSection({
             style={{
               fontSize: 9,
               fontWeight: 600,
-              background: '#fff',
+              background: dark ? DARK_PANEL.bgSubtle : '#fff',
               color: accentText,
               border: `1px solid ${borderColor}`,
               padding: '1px 5px',
@@ -283,6 +331,7 @@ interface SliderProps {
  * pas perturber la frappe avec des arrondis intermédiaires.
  */
 export function Slider({ label, min, max, step, value, onChange, title }: SliderProps) {
+  const { dark } = useSidebarTheme();
   // Buffer local pour la saisie texte. Synchronisé avec `value` quand on est
   // hors focus ; pendant le focus, l'utilisateur peut taper librement (y
   // compris des valeurs hors bornes) — clampées au blur.
@@ -311,15 +360,19 @@ export function Slider({ label, min, max, step, value, onChange, title }: Slider
   };
 
   return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }} title={title}>
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', minWidth: 0 }} title={title}>
       <span
         style={{
           fontSize: 11,
-          color: '#475569',
-          minWidth: 70,
-          textDecoration: title ? 'underline dotted #cbd5e1' : undefined,
+          color: dark ? DARK_PANEL.textMuted : '#475569',
+          flex: '0 0 auto',
+          maxWidth: 80,
+          textDecoration: title ? `underline dotted ${dark ? DARK_PANEL.border : '#cbd5e1'}` : undefined,
           textUnderlineOffset: 3,
           cursor: title ? 'help' : 'default',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
         }}
       >
         {label}
@@ -331,7 +384,7 @@ export function Slider({ label, min, max, step, value, onChange, title }: Slider
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        style={{ flex: 1 }}
+        style={{ flex: '1 1 0', minWidth: 0 }}
       />
       <input
         type="number"
@@ -359,12 +412,12 @@ export function Slider({ label, min, max, step, value, onChange, title }: Slider
         style={{
           width: 44,
           fontSize: 11,
-          color: '#475569',
+          color: dark ? DARK_PANEL.text : '#475569',
           textAlign: 'right',
-          border: '1px solid #e2e8f0',
+          border: `1px solid ${dark ? DARK_PANEL.border : '#e2e8f0'}`,
           borderRadius: 3,
           padding: '1px 3px',
-          background: '#fff',
+          background: dark ? DARK_PANEL.bgSubtle : '#fff',
         }}
       />
     </div>
@@ -388,13 +441,28 @@ interface CheckboxLineProps {
 }
 
 export function CheckboxLine({ checked, label, onChange, title }: CheckboxLineProps) {
+  const { dark } = useSidebarTheme();
   return (
     <label
-      style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, color: '#1f2937', cursor: 'pointer' }}
+      style={{
+        display: 'flex',
+        gap: 8,
+        alignItems: 'center',
+        fontSize: 12,
+        color: dark ? DARK_PANEL.text : '#1f2937',
+        cursor: 'pointer',
+        lineHeight: 1.25,
+        minWidth: 0,
+      }}
       title={title}
     >
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <span style={{ textDecoration: title ? 'underline dotted #cbd5e1' : undefined, textUnderlineOffset: 3 }}>
+      <span style={{
+        textDecoration: title ? `underline dotted ${dark ? DARK_PANEL.border : '#cbd5e1'}` : undefined,
+        textUnderlineOffset: 3,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+      }}>
         {label}
       </span>
     </label>
@@ -440,6 +508,7 @@ interface ButtonProps {
 
 export function Button({ onClick, theme = 'neutral', variant = 'outline', fullWidth, children, title }: ButtonProps) {
   const c = COLORS[theme];
+  const { dark } = useSidebarTheme();
   const accent = 'accent' in c ? c.accent : c.text;
   const accentText = 'accentText' in c ? c.accentText : c.text;
   const isSolid = variant === 'solid';
@@ -451,9 +520,9 @@ export function Button({ onClick, theme = 'neutral', variant = 'outline', fullWi
         fontSize: 12,
         padding: '6px 10px',
         borderRadius: 6,
-        border: `1px solid ${c.border}`,
-        background: isSolid ? accent : '#fff',
-        color: isSolid ? '#fff' : accentText,
+        border: `1px solid ${dark ? DARK_PANEL.border : c.border}`,
+        background: isSolid ? accent : dark ? DARK_PANEL.bgSubtle : '#fff',
+        color: isSolid ? '#fff' : dark ? DARK_PANEL.text : accentText,
         cursor: 'pointer',
         fontWeight: 500,
         width: fullWidth ? '100%' : undefined,
