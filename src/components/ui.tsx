@@ -52,7 +52,10 @@ export function Panel({ theme, title, children, fill }: PanelProps) {
   // optionnel) et le contenu plat. Le but est d'éviter les "mini-navs"
   // empilées dans la nav.
   if (dark) {
-    const titleClean = title.replace(/^[^\w]+\s*/, ''); // strip leading emoji
+    // Strip emoji + whitespace devant le titre, fallback sur le titre brut
+    // si le strip vide tout (e.g. titre purement non-word).
+    const stripped = title.replace(/^[^\w]+\s*/, '').trim();
+    const titleClean = stripped.length > 0 ? stripped : title;
     return (
       <section
         className="sidebar-tool-section"
@@ -60,8 +63,10 @@ export function Panel({ theme, title, children, fill }: PanelProps) {
           display: 'flex',
           flexDirection: 'column',
           gap: 6,
-          minHeight: 0,
-          flex: fill ? '1 1 0' : '0 0 auto',
+          // Important : pas de flex:1 ni de overflow:auto ici. La sidebar
+          // parent (.sidebar-tools-scope) gère le scroll global. Mettre un
+          // flex:1 + overflow:auto sur le panneau dark causait l'écrasement
+          // à 0px (Defense disparaissait visuellement).
           padding: '8px 6px 10px',
           borderBottom: `1px solid ${DARK_PANEL.borderSubtle}`,
         }}
@@ -82,7 +87,7 @@ export function Panel({ theme, title, children, fill }: PanelProps) {
           <span style={{ width: 6, height: 6, background: accent, borderRadius: 2, display: 'inline-block' }} />
           {titleClean}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflow: 'auto', minHeight: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {children}
         </div>
       </section>
