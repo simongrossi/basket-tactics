@@ -728,9 +728,12 @@ export default function Page() {
           color: #71717a !important;
         }
         .inline-view-scope [style*="rgb(255, 255, 255)"]:not(input):not(select):not(textarea):not(button[style*="background: rgb(216, 90, 48)"]),
+        .inline-view-scope [style*="background: rgb(255,255,255)"]:not(input):not(select):not(textarea),
         .inline-view-scope [style*="background: #fff"]:not(input):not(select):not(textarea),
-        .inline-view-scope [style*="background:#fff"]:not(input):not(select):not(textarea) {
-          background: #1a1d23 !important;
+        .inline-view-scope [style*="background:#fff"]:not(input):not(select):not(textarea),
+        .inline-view-scope [style*="background: #FFFFFF"]:not(input):not(select):not(textarea),
+        .inline-view-scope [style*="background: #ffffff"]:not(input):not(select):not(textarea) {
+          background: #262a32 !important;
         }
         .inline-view-scope [style*="background: rgb(250, 250, 249)"],
         .inline-view-scope [style*="background: #fafaf9"],

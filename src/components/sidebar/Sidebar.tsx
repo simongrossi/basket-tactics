@@ -80,6 +80,17 @@ export function Sidebar({
           background: ${SIDEBAR.bgActive} !important;
           color: ${SIDEBAR.text} !important;
           border-color: ${SIDEBAR.border} !important;
+          max-width: 100% !important;
+          box-sizing: border-box;
+        }
+        /* Évite que les rows flex (select + label) débordent au-delà de la
+           largeur de la sidebar quand un contenu intrinsèque est trop large. */
+        .sidebar-tools-scope > * {
+          max-width: 100%;
+        }
+        .sidebar-tools-scope > * > * {
+          max-width: 100%;
+          box-sizing: border-box;
         }
         .sidebar-tools-scope input::placeholder,
         .sidebar-tools-scope textarea::placeholder {

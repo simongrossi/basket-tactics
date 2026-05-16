@@ -32,7 +32,7 @@ export function ParametresPanel({
   const c = COLORS.defense;
   return (
     <Panel theme="defense" title="⚙ Paramètres">
-      <div style={{ fontSize: 10, fontWeight: 600, color: c.accentText, opacity: 0.8, letterSpacing: '0.02em' }}>
+      <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
         FORMAT DE JEU
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, marginBottom: 6 }}>
@@ -63,7 +63,7 @@ export function ParametresPanel({
       {/* F.4 — Disqualifications */}
       {onTogglePlayerDisqualified && (
         <>
-          <div style={{ fontSize: 10, fontWeight: 600, color: c.accentText, opacity: 0.8, letterSpacing: '0.02em', marginTop: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 8 }}>
             🚫 DISQUALIFICATIONS
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 3, marginBottom: 4 }}>
@@ -138,7 +138,7 @@ export function ParametresPanel({
         </>
       )}
 
-      <div style={{ fontSize: 10, fontWeight: 600, color: c.accentText, opacity: 0.8, letterSpacing: '0.02em', marginTop: 8 }}>
+      <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 8 }}>
         TIMECODE
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 8px', marginBottom: 6, fontSize: 11 }}>
@@ -168,7 +168,7 @@ export function ParametresPanel({
         </label>
       </div>
 
-      <div style={{ fontSize: 10, fontWeight: 600, color: c.accentText, opacity: 0.8, letterSpacing: '0.02em' }}>
+      <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
         VISU & LÉGENDE
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 8px' }}>

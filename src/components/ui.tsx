@@ -360,15 +360,19 @@ export function Slider({ label, min, max, step, value, onChange, title }: Slider
   };
 
   return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }} title={title}>
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', minWidth: 0 }} title={title}>
       <span
         style={{
           fontSize: 11,
           color: dark ? DARK_PANEL.textMuted : '#475569',
-          minWidth: 70,
+          flex: '0 0 auto',
+          maxWidth: 80,
           textDecoration: title ? `underline dotted ${dark ? DARK_PANEL.border : '#cbd5e1'}` : undefined,
           textUnderlineOffset: 3,
           cursor: title ? 'help' : 'default',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
         }}
       >
         {label}
@@ -380,7 +384,7 @@ export function Slider({ label, min, max, step, value, onChange, title }: Slider
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        style={{ flex: 1 }}
+        style={{ flex: '1 1 0', minWidth: 0 }}
       />
       <input
         type="number"

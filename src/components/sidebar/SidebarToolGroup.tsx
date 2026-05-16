@@ -112,9 +112,10 @@ export function SidebarToolGroup({
       {open && (
         <div
           style={{
-            padding: '4px 4px 8px 14px',
-            marginLeft: 4,
+            padding: '4px 2px 8px 8px',
+            marginLeft: 8,
             borderLeft: `1px solid ${SIDEBAR.borderSubtle}`,
+            minWidth: 0,
           }}
         >
           {children}
