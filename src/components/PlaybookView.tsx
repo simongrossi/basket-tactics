@@ -7,6 +7,7 @@ import { compileScenario } from '@/lib/logic/compileScenario';
 import { getSecondsPerStep, formatClock } from '@/lib/logic/timecode';
 import { computePlayerTracks, ACTIVITY_COLORS } from '@/lib/logic/playerTracks';
 import { annotationSummary } from '@/lib/logic/pdfRecap';
+import { DARK_PANEL } from './sidebar/SidebarThemeContext';
 
 interface PlaybookViewProps {
   state: AppState;
@@ -99,7 +100,9 @@ export function PlaybookView({ state, title, onClose, mode = 'modal' }: Playbook
           style={{
             width: '100%',
             maxWidth: 900,
-            background: '#fff',
+            background: DARK_PANEL.bg,
+            border: `1px solid ${DARK_PANEL.border}`,
+            color: DARK_PANEL.text,
             padding: '12px 16px',
             borderRadius: 8,
             display: 'flex',
@@ -115,7 +118,7 @@ export function PlaybookView({ state, title, onClose, mode = 'modal' }: Playbook
             value={docTitle}
             onChange={(e) => setDocTitle(e.target.value)}
             placeholder="Titre du playbook"
-            style={{ fontSize: 14, padding: '4px 8px', flex: '1 1 200px', borderRadius: 4, border: '1px solid #cbd5e1' }}
+            style={{ fontSize: 14, padding: '4px 8px', flex: '1 1 200px', borderRadius: 4, border: `1px solid ${DARK_PANEL.border}` }}
           />
           <label style={{ fontSize: 12, display: 'flex', gap: 4, alignItems: 'center' }}>
             colonnes
@@ -143,13 +146,37 @@ export function PlaybookView({ state, title, onClose, mode = 'modal' }: Playbook
               variantes
             </label>
           )}
-          <button onClick={() => window.print()} style={{ padding: '6px 12px' }}>
+          <button
+            onClick={() => window.print()}
+            style={{
+              padding: '6px 12px',
+              borderRadius: 6,
+              border: `1px solid ${DARK_PANEL.border}`,
+              background: DARK_PANEL.bgSubtle,
+              color: DARK_PANEL.text,
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 500,
+            }}
+          >
             🖨 imprimer / PDF
           </button>
           {/* En mode inline (vue routée depuis la sidebar), la nav gauche
               permet déjà de revenir au terrain. Pas de bouton "fermer". */}
           {mode !== 'inline' && (
-            <button onClick={onClose} style={{ padding: '6px 12px' }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '6px 12px',
+                borderRadius: 6,
+                border: `1px solid ${DARK_PANEL.border}`,
+                background: DARK_PANEL.bgSubtle,
+                color: DARK_PANEL.text,
+                cursor: 'pointer',
+                fontSize: 12,
+                fontWeight: 500,
+              }}
+            >
               fermer
             </button>
           )}
