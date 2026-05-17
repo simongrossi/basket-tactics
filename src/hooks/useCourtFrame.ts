@@ -93,7 +93,7 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     onPlaybackTick?.(t);
     const frame = resolveFrameAt(cur, t, {
       prevFrame: prevFrameRef.current ?? undefined,
-      collectDecisions: !!cur.showScreenDebug,
+      collectDecisions: !!cur.showScreenDebug || !!cur.showPlayerDebug,
     });
     if (frame) {
       setPlayFrame(frame);

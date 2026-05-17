@@ -1166,7 +1166,22 @@ l'état de référence — plus de "ça marche encore comme avant ?" à l'œil.
 3-4 templates clés (UCLA cut, PnR central, pindown, floppy) avant
 généralisation.
 
-#### ⚪ J.7 — Panneau debug joueur — détail du plan
+#### 🟢 J.7 — Panneau debug joueur — livré V1
+
+V1 livré 2026-05-18 :
+- Nouveau toggle `state.showPlayerDebug?: boolean` (toggle dans
+  ParametresPanel, à côté de `debug écran`).
+- Quand actif, `useCourtFrame` ajoute `collectDecisions: true` dans
+  l'appel à `resolveFrameAt` → `frame.debug.defenders` rempli.
+- Nouveau composant `<PlayerDebugTable>` (overlays/) qui affiche un
+  tableau compact des 5 défenseurs avec : matched, screenState, route,
+  helpKind/factor. Position absolue en haut-droite du terrain.
+- Coexiste avec `ScreenPlayerDebugPanel` qui reste dédié à l'analyse
+  screen-engine fine sur sélection.
+
+Plan d'origine ci-dessous comme référence.
+
+⚪ Plan d'origine :
 
 **Problème actuel.** `collectDecisions` (livré J.0b) expose les
 décisions par défenseur dans `frame.debug.defenders[id]`, mais

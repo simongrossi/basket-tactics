@@ -42,6 +42,7 @@ import { TacticalMetricsOverlay } from './overlays/TacticalMetricsOverlay';
 import { HelpDebugOverlay } from './overlays/HelpDebugOverlay';
 import { ScreenDebugOverlay } from './overlays/ScreenDebugOverlay';
 import { ScreenPlayerDebugPanel } from './overlays/ScreenPlayerDebugPanel';
+import { PlayerDebugTable } from './overlays/PlayerDebugTable';
 import { FieldOfViewOverlay } from './overlays/FieldOfViewOverlay';
 import { getZoneLayout, mirrorZoneLayout, applyZoneOverrides } from '@/lib/data/zones';
 import { ZoneEditOverlay } from './overlays/ZoneEditOverlay';
@@ -824,6 +825,10 @@ export function CourtView(props: CourtViewProps) {
 
       {state.showScreenDebug && (
         <ScreenPlayerDebugPanel frame={frame} selectedDefenders={selectedDefenders} />
+      )}
+
+      {state.showPlayerDebug && (
+        <PlayerDebugTable frame={frame} visible />
       )}
 
       {/* ---- Badge "lecture en cours" ---- */}

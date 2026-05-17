@@ -782,6 +782,10 @@ export interface AppState {
    *  Legacy : conservé pour rétrocompat des scénarios pré-V2. Si
    *  `helpStickinessMs` est défini, celui-ci prime. */
   helpStickiness?: number;
+  /** J.7 — Affiche un panneau debug pour tous les défenseurs (flags clés
+   *  extraits de frame.debug.defenders). Active aussi collectDecisions
+   *  dans le pipeline. Default false. */
+  showPlayerDebug?: boolean;
   /** D.1 — Easing visuel global de l'interpolation cross-step.
    *  - 'linear'      (défaut) : interpolation linéaire (comportement legacy).
    *  - 'ease-in-out' : démarrage lent + accélération milieu + ralenti fin.

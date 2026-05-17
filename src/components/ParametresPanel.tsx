@@ -368,6 +368,12 @@ export function ParametresPanel({
               onChange={(v) => onPatch({ showScreenDebug: v })}
             />
             <ToggleCard
+              checked={!!state.showPlayerDebug}
+              label="debug joueur"
+              sample="circle-dashed" color={UI.violet}
+              onChange={(v) => onPatch({ showPlayerDebug: v })}
+            />
+            <ToggleCard
               checked={state.showStateRings !== false}
               label="anneaux déf."
               sample="ring" color={UI.amber}
