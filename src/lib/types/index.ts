@@ -772,6 +772,15 @@ export interface AppState {
    *  Legacy : conservé pour rétrocompat des scénarios pré-V2. Si
    *  `helpStickinessMs` est défini, celui-ci prime. */
   helpStickiness?: number;
+  /** D.1 — Easing visuel global de l'interpolation cross-step.
+   *  - 'linear'      (défaut) : interpolation linéaire (comportement legacy).
+   *  - 'ease-in-out' : démarrage lent + accélération milieu + ralenti fin.
+   *  - 'ease-out'    : démarrage rapide + ralenti progressif (typique d'un
+   *    closeout : sprint puis freinage).
+   *  Appliqué sur le `localT` du frameResolver — vaut pour TOUS les joueurs
+   *  et toutes les positions/orientations (cohérence des extrémités t=0/1
+   *  préservée, donc aucun écart sur les snapshots step exactes). */
+  movementEasing?: 'linear' | 'ease-in-out' | 'ease-out';
   /** G.4 — Profil athlétique des défenseurs (multiplicateur sur la vitesse
    *  max). 'elite' ×1.3, 'standard' ×1.0 (= défaut implicite), 'lent' ×0.7.
    *  Permet de différencier "ce poste est lent" (déjà couvert par

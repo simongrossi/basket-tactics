@@ -38,6 +38,7 @@ import {
 } from '../geometry';
 import { pushOutOfScreenContact } from '../screenCollision';
 import { solveEntityCollisions } from '../constraintSolver';
+import { applyEasing } from './easing';
 import { activeBallCarrier, activeOffense } from '../players';
 import { attackerTrajectoryAt, type MovementType } from '../playbackTrajectory';
 import { lerpAngleDeg } from '../angles';
@@ -289,7 +290,8 @@ export function resolveFrameAtDeterministicScrub(
 
   const clamped = Math.max(0, Math.min(totalSteps, t));
   const idxA = Math.floor(clamped);
-  const localT = clamped - idxA;
+  // D.1 — easing visuel appliqué au localT. Default 'linear' = identité.
+  const localT = applyEasing(clamped - idxA, state.movementEasing);
   const fps = Math.max(1, Math.round(options.fps ?? 60));
   const { fps: _fps, ...baseOptions } = options;
 
@@ -362,7 +364,8 @@ export function resolveFrameAt(
   const clamped = Math.max(0, Math.min(totalSteps, t));
   const idxA = Math.floor(clamped);
   const idxB = Math.min(idxA + 1, totalSteps);
-  const localT = clamped - idxA;
+  // D.1 — easing visuel appliqué au localT. Default 'linear' = identité.
+  const localT = applyEasing(clamped - idxA, state.movementEasing);
 
   const a = state.steps[idxA];
   const b = state.steps[idxB];

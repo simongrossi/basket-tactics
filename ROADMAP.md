@@ -703,7 +703,7 @@ lieu, donc se fait avoir par les mêmes patterns en boucle.
 
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
-| D.1 | **Lissage cross-step easing** : easing par défenseur (slow start/end, sprint au milieu). Aujourd'hui linéaire entre 2 steps. | 1-2j | 🟢 | Moyen-haut |
+| ~~D.1~~ | ~~**Easing cross-step** : `state.movementEasing?: 'linear' \| 'ease-in-out' \| 'ease-out'` appliqué sur localT du frameResolver. Default 'linear' = legacy. Invariants snapshots step préservés (e(0)=0, e(1)=1).~~ | — | — | — | 🟢 V1 livré 2026-05-18 (8 tests, 1303 verts) |
 | D.2 | **Inertie / momentum** : un changement de direction brutal coûte du temps. Modélisé via courbe `acceleration(dt)`. Joueurs moins "robotiques". | 2-3j | 🟡 | Haut (réalisme visuel) |
 | D.3 | **Trajectoires de passes variées** : lob (parabole haute), bounce (rebond au sol = 2 paraboles), skip (longue, parabole plate). Aujourd'hui passe rectiligne 2D + parabole z. | 1-2j | 🟢 | Moyen |
 | D.4 | **Pathfinding A* défensif** : un défenseur va en ligne droite vers sa cible, `resolvePlayerCollisions` corrige a posteriori. A* simplifié sur obstacles dynamiques éviterait le bruit. | 3-4j | 🔴 | Moyen |
