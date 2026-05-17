@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import type { AppState, ScenarioBranch, Step } from '@/lib/types';
 import { StepThumbnail } from './StepThumbnail';
 import { compileScenario } from '@/lib/logic/compileScenario';
-import { getSecondsPerStep, formatClock } from '@/lib/logic/timecode';
+import { realStepToSeconds, formatClock } from '@/lib/logic/timecode';
 import { computePlayerTracks, ACTIVITY_COLORS } from '@/lib/logic/playerTracks';
 import { annotationSummary } from '@/lib/logic/pdfRecap';
 import { DARK_PANEL } from './sidebar/SidebarThemeContext';
@@ -51,7 +51,6 @@ export function PlaybookView({ state, title, onClose, mode = 'modal' }: Playbook
   }, [includeBranches, state.scenarioBranches, state.scriptedActions, state.steps, state.playerCount]);
 
   const mainSteps = state.steps.filter((s) => !s.isInterpolated);
-  const sps = getSecondsPerStep(state);
 
   return (
     <>
@@ -233,7 +232,7 @@ export function PlaybookView({ state, title, onClose, mode = 'modal' }: Playbook
                     <span style={{ fontSize: 10, color: '#64748b' }}>porteur : {step.ballCarrier}</span>
                   </div>
                   <StepThumbnail state={state} stepIdx={realIdx} showDefense={showDefense} />
-                  <StepAnnotationsRecap step={step} stepIdxReal={i} sps={sps} />
+                  <StepAnnotationsRecap step={step} stepIdxReal={i} state={state} />
                 </div>
               );
             })}
@@ -274,7 +273,7 @@ export function PlaybookView({ state, title, onClose, mode = 'modal' }: Playbook
                       stepIdx={i}
                       showDefense={showDefense}
                     />
-                    <StepAnnotationsRecap step={step} stepIdxReal={i} sps={sps} />
+                    <StepAnnotationsRecap step={step} stepIdxReal={i} state={state} />
                   </div>
                 ))}
               </div>
@@ -282,7 +281,7 @@ export function PlaybookView({ state, title, onClose, mode = 'modal' }: Playbook
           ))}
 
           {showMultiTrack && mainSteps.length > 1 && (
-            <PrintMultiTrack state={state} sps={sps} />
+            <PrintMultiTrack state={state} />
           )}
 
           {showLegend && (
@@ -333,27 +332,29 @@ export function PlaybookView({ state, title, onClose, mode = 'modal' }: Playbook
 function StepAnnotationsRecap({
   step,
   stepIdxReal,
-  sps,
+  state,
 }: {
   step: Step;
   stepIdxReal: number;
-  sps: number;
+  state: AppState;
 }) {
   const movement = step.annotations.filter(
     (a) => a.type === 'cut' || a.type === 'dribble' || a.type === 'screen' || a.type === 'pass'
   );
   if (movement.length === 0) return null;
 
-  const tStart = stepIdxReal * sps;
-  const tEnd = (stepIdxReal + 1) * sps;
+  // B.1 — borne réelle de la transition, respecte Step.duration.
+  const tStart = realStepToSeconds(state, stepIdxReal);
+  const tEnd = realStepToSeconds(state, stepIdxReal + 1);
+  const stepDuration = tEnd - tStart;
   return (
     <div style={{ marginTop: 4, fontSize: 9, color: '#475569', lineHeight: 1.35 }}>
       <div style={{ color: '#0f172a', fontWeight: 600 }}>
-        {formatClock(tStart)} → {formatClock(tEnd)} ({(tEnd - tStart).toFixed(1)}s)
+        {formatClock(tStart)} → {formatClock(tEnd)} ({stepDuration.toFixed(1)}s)
       </div>
       <ul style={{ margin: '2px 0 0 0', padding: '0 0 0 12px' }}>
         {movement.map((a, i) => (
-          <li key={i}>{annotationSummary(a, tStart, sps)}</li>
+          <li key={i}>{annotationSummary(a, tStart, stepDuration)}</li>
         ))}
       </ul>
     </div>
@@ -365,10 +366,14 @@ function StepAnnotationsRecap({
  * transition. Pour chaque segment, on dessine une barre positionnée selon
  * tStart/tEnd (segments à cheval cumulés visuellement). Imprime sur ~1 page A4.
  */
-function PrintMultiTrack({ state, sps }: { state: AppState; sps: number }) {
+function PrintMultiTrack({ state }: { state: AppState }) {
   const tracks = computePlayerTracks(state);
   const realCount = tracks[0]?.segments.length ?? 0; // = transitions count
   if (realCount === 0) return null;
+  // B.1 — temps absolus per-transition (respecte Step.duration).
+  const transitionTimes = Array.from({ length: realCount }, (_, i) =>
+    realStepToSeconds(state, i)
+  );
 
   return (
     <div
@@ -393,7 +398,7 @@ function PrintMultiTrack({ state, sps }: { state: AppState; sps: number }) {
         <div></div>
         {Array.from({ length: realCount }, (_, i) => (
           <div key={i} style={{ textAlign: 'center', fontWeight: 600, color: '#475569', fontVariantNumeric: 'tabular-nums' }}>
-            {(i * sps).toFixed(1)}s
+            {transitionTimes[i].toFixed(1)}s
           </div>
         ))}
 

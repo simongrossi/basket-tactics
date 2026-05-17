@@ -5,8 +5,8 @@ import type { AppState } from '@/lib/types';
 import {
   formatClock,
   formatShotClock,
-  getSecondsPerStep,
   getPossessionSeconds,
+  realStepToSeconds,
   totalDurationSeconds,
 } from '@/lib/logic/timecode';
 
@@ -153,8 +153,9 @@ export function Timeline({
     return iA + lerp;
   };
   const realT = fullToRealStep(displayT);
-  const sps = getSecondsPerStep(state);
-  const elapsedSec = realT * sps;
+  // B.1 — accumule les durations individuelles de chaque step au lieu d'une
+  // simple multiplication globale, pour respecter Step.duration quand défini.
+  const elapsedSec = realStepToSeconds(state, realT);
   const possSec = getPossessionSeconds(state);
   const shotLeft = Math.max(0, possSec - elapsedSec);
   const totalSec = totalDurationSeconds(state);
@@ -412,7 +413,7 @@ export function Timeline({
           {currentStep?.label ? ` — ${currentStep.label}` : ''}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontVariantNumeric: 'tabular-nums' }}>
-          <span title={`Possession : ${sps.toFixed(1)} s / étape · total ${totalSec.toFixed(1)} s`}>
+          <span title={`Possession totale : ${totalSec.toFixed(1)} s`}>
             {formatClock(elapsedSec)} / {formatClock(totalSec)}
           </span>
           <span

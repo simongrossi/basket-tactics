@@ -9,7 +9,7 @@ import {
   type PlayerTrack,
   type TrackSegment,
 } from '@/lib/logic/playerTracks';
-import { getSecondsPerStep } from '@/lib/logic/timecode';
+import { realStepToSeconds } from '@/lib/logic/timecode';
 
 const TRACK_UI = {
   bg: '#171b22',
@@ -87,7 +87,10 @@ export function MultiTrackTimeline({
   const transitionCount = realStepsCount - 1;
   const cursorRatio = transitionCount > 0 ? realT / transitionCount : 0;
   const cursorPct = Math.max(0, Math.min(100, cursorRatio * 100));
-  const sps = getSecondsPerStep(state);
+  // B.1 — temps absolus per-transition (respecte Step.duration individuel).
+  const transitionTimes = Array.from({ length: transitionCount + 1 }, (_, i) =>
+    realStepToSeconds(state, i)
+  );
 
   return (
     <div
@@ -118,8 +121,8 @@ export function MultiTrackTimeline({
       }}>
         <div></div>
         {Array.from({ length: transitionCount }, (_, i) => {
-          const tA = (i * sps).toFixed(1);
-          const tB = ((i + 1) * sps).toFixed(1);
+          const tA = transitionTimes[i].toFixed(1);
+          const tB = transitionTimes[i + 1].toFixed(1);
           return (
             <div
               key={i}
