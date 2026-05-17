@@ -707,7 +707,7 @@ lieu, donc se fait avoir par les mêmes patterns en boucle.
 | D.2 | **Inertie / momentum** : un changement de direction brutal coûte du temps. Modélisé via courbe `acceleration(dt)`. Joueurs moins "robotiques". | 2-3j | 🟡 | Haut (réalisme visuel) |
 | ~~D.3~~ | ~~**Trajectoires de passes V1** : `Annotation.passKind?: 'direct' \| 'lob' \| 'bounce' \| 'skip'`. computeBallFrame étendu : lob ×0.65 lift (plafond 130 px), skip ×0.12 (plafond 40 px), bounce 2 paraboles (touche sol à mi-trajet), direct ×0.28 (legacy).~~ | — | — | — | 🟢 V1 livré 2026-05-18 (7 tests, 1310 verts) |
 | D.4 | **Pathfinding A* défensif** : un défenseur va en ligne droite vers sa cible, `resolvePlayerCollisions` corrige a posteriori. A* simplifié sur obstacles dynamiques éviterait le bruit. | 3-4j | 🔴 | Moyen |
-| D.5 | **Anti-collision pendant l'interpolation** : `resolvePlayerCollisions` agit sur les cibles, pas sur les positions interpolées entre steps. Collisions transitoires visibles. | 1-2j | 🟡 | Moyen |
+| ~~D.5~~ | ~~**Anti-collision pendant l'interpolation** : invariant confirmé. resolvePlayerCollisions est appelé sur defPos interpolées dans frameResolver (l. ~948). Test bout-en-bout sample 40 frames × N transitions × M scénarios (drive, écran, passe, statique) → clearance ≥ PLAYER_MIN_CLEARANCE_PX préservée.~~ | — | — | — | 🟢 V1 livré 2026-05-18 (test d'invariant, 1314 verts) |
 
 **D.2 V1 livré 2026-05-15.** `resolveFrameAt` a maintenant une
 mémoire courte de vélocité défensive (`motionMemory`) et amortit les
