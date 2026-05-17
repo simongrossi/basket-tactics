@@ -1040,11 +1040,22 @@ export function resolveFrameAt(
   //    Pour les passes (carrierChanged), on prend les positions interpolées
   //    des deux porteurs (passeur et receveur) — la parabole est correcte.
   // ---------------------------------------------------------------------
+  // D.3 — Récupère le type de passe pour moduler la parabole. On cherche
+  // une annotation 'pass' sur le step destination (b) qui matche le couple
+  // carrierA → carrierB. Si trouvée et passKind défini, on l'utilise.
+  let passKind: 'direct' | 'lob' | 'bounce' | 'skip' | undefined;
+  if (carrierA !== carrierB) {
+    const passAnn = b.annotations.find(
+      (a) => a.type === 'pass' && a.fromId === carrierA && a.toId === carrierB
+    );
+    passKind = passAnn?.passKind;
+  }
   const ball = computeBallFrame(
     off[carrierA] ?? offA[carrierA],
     off[carrierB] ?? offB[carrierB],
     carrierA !== carrierB,
-    localT
+    localT,
+    passKind
   );
   profiler?.lap('ball');
   const profile = profiler?.finish();

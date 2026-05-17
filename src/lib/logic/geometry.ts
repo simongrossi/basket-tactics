@@ -245,7 +245,8 @@ export function computeBallFrame(
   prevCarrier: Point,
   nextCarrier: Point,
   carrierChanged: boolean,
-  localT: number
+  localT: number,
+  passKind?: 'direct' | 'lob' | 'bounce' | 'skip'
 ): { pos: Point; inFlight: boolean } {
   const offsetX = 16;
   const offsetY = -16;
@@ -259,9 +260,35 @@ export function computeBallFrame(
   const start = { x: prevCarrier.x + offsetX, y: prevCarrier.y + offsetY };
   const end = { x: nextCarrier.x + offsetX, y: nextCarrier.y + offsetY };
   const dist = Math.hypot(end.x - start.x, end.y - start.y);
-  // Hauteur de l'arc proportionnelle à la distance, plafonnée. Soustraction
-  // sur Y car le repère SVG a Y vers le bas — l'arc monte vers le haut.
-  const lift = Math.min(80, dist * 0.28);
+
+  // D.3 — Le coefficient de lift et la forme de la trajectoire dépendent
+  // du type de passe. La soustraction sur Y monte la trajectoire (repère
+  // SVG Y bas).
+  const kind = passKind ?? 'direct';
+
+  if (kind === 'bounce') {
+    // Bounce pass — 2 paraboles consécutives, touche le sol à mi-trajet.
+    // Lift bas pour avoir un rebond crédible.
+    const liftBounce = Math.min(35, dist * 0.15);
+    // sin(π * t) revient à 0 aux extrémités ; on combine 2 demi-paraboles
+    // qui touchent le sol à t=0.5.
+    const arc = localT < 0.5
+      ? Math.sin(Math.PI * (localT * 2)) // 0 → 1 → 0 entre t∈[0, 0.5]
+      : Math.sin(Math.PI * ((localT - 0.5) * 2));
+    const x = start.x + (end.x - start.x) * localT;
+    const y = start.y + (end.y - start.y) * localT - arc * liftBounce;
+    return { pos: { x, y }, inFlight: true };
+  }
+
+  const liftCoef =
+    kind === 'lob'  ? 0.65 :
+    kind === 'skip' ? 0.12 :
+    /* direct */      0.28;
+  const liftCap =
+    kind === 'lob'  ? 130 :
+    kind === 'skip' ? 40  :
+    /* direct */      80;
+  const lift = Math.min(liftCap, dist * liftCoef);
   const ctrlX = (start.x + end.x) / 2;
   const ctrlY = (start.y + end.y) / 2 - lift;
   const omt = 1 - localT;

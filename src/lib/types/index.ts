@@ -78,6 +78,16 @@ export interface Annotation {
    *  par drag des bords des segments dans MultiTrackTimeline. */
   tStart?: number;
   tEnd?: number;
+  /** D.3 — Variante de trajectoire pour les annotations `pass`.
+   *  - 'direct' (défaut) : parabole standard, lift ≈ 0.28 × distance.
+   *  - 'lob'    : parabole haute pour passer par-dessus la défense (alley-oop,
+   *    skip-lob). Lift ≈ 0.65 × distance, plafond 130 px.
+   *  - 'bounce' : passe à terre. Deux paraboles successives (rebond au sol).
+   *    Utile pour les passes pivot ou les couloirs encombrés.
+   *  - 'skip'   : trajectoire plate, longue. Lift ≈ 0.12 × distance, plafond
+   *    40 px. Typique des skip pass d'aile à aile.
+   *  Indéfini = 'direct' (rétrocompat). */
+  passKind?: 'direct' | 'lob' | 'bounce' | 'skip';
   /** Qualité d'écran (0-100) — Étape 12. Utilisé uniquement pour les
    *  annotations type='screen'. Module la pénalité de vitesse appliquée
    *  au défenseur du porteur :
