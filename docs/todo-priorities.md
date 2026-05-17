@@ -61,7 +61,7 @@ les détails.
 
 | Item | Statut | Description | Effort | Priorité |
 |---|---|---|---|---|
-| **G.1** — Doc calibration vitesse | ⚪ | Clarifier le scope du moteur (tactique vs sprint réel ; D1 max 1.96 m/s ≈ 22% NBA). | ~1j | 🏀 **P2** |
+| ~~**G.1** — Doc calibration vitesse~~ | 🟢 livré 2026-05-18 | `docs/physics-calibration.md` — scope tactique vs sprint réel, ratios chiffrés, coût du passage sprint, cas où le mode tactique gêne. | — | — |
 
 ---
 

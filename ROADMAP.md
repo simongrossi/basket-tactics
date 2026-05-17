@@ -911,12 +911,12 @@ Aujourd'hui : D1 max 1.96 m/s ≈ 7 km/h = **22 % d'un sprint NBA réel**.
 Calibré pour les **mouvements tactiques**, pas les sprints. À expliciter
 ou affiner.
 
-| # | Chantier | Effort | Risque | Valeur |
-|---|---|---|---|---|
-| G.1 | **Doc calibration explicite** : section dans `physics.md` qui dit "vitesse = trot tactique, pas sprint NBA". Aujourd'hui implicite. | 30min | 🟢 | Moyen (clarté) |
-| G.2 | **Vitesses variables par contexte** : sprint = ×2 pendant 1 step. Setting `state.sprintBoost: boolean`. | 1-2j | 🟡 | Moyen |
-| G.3 | **Différenciation accélération vs top speed** : un guard atteint 9 m/s mais met 2 s à y arriver. Aujourd'hui binaire. | 2-3j | 🟡 | Haut (réalisme) |
-| G.4 | **Profil athlétique** au-delà du poste : `playerSpeedProfile: 'élite' \| 'standard' \| 'lent'` override `MAX_SPEED_BY_POSITION`. | 1j | 🟢 | Moyen |
+| # | Chantier | Effort | Risque | Valeur | Statut |
+|---|---|---|---|---|---|
+| ~~G.1~~ | ~~**Doc calibration explicite** : nouveau `docs/physics-calibration.md` qui pose le scope tactique vs sprint réel, ratios chiffrés vs NBA, coût d'un passage en sprint, cas où le mode tactique gêne.~~ | — | — | — | 🟢 livré 2026-05-18 |
+| G.2 | **Vitesses variables par contexte** : sprint = ×2 pendant 1 step. Setting `state.sprintBoost: boolean`. | 1-2j | 🟡 | Moyen | ⚪ |
+| G.3 | **Différenciation accélération vs top speed** : un guard atteint 9 m/s mais met 2 s à y arriver. Aujourd'hui binaire. | 2-3j | 🟡 | Haut (réalisme) | ⚪ |
+| G.4 | **Profil athlétique** au-delà du poste : `playerSpeedProfile: 'élite' \| 'standard' \| 'lent'` override `MAX_SPEED_BY_POSITION`. | 1j | 🟢 | Moyen | ⚪ |
 
 ---
 

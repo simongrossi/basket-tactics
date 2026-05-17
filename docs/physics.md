@@ -41,7 +41,7 @@ Helpers : `metersToPx(m)` et `pxToMeters(px)` pour les conversions.
 | `forward` | 90 | 2,4 | 1,2 | ailier fort |
 | `center` | 75 | 2,0 | 1,0 | pivot, raquette |
 
-Ces valeurs sont **sous-réelles** (un sprint NBA atteint 7 m/s). C'est volontaire : le simulateur travaille au pas tactique, pas au pas physique. Augmenter ces valeurs réduit l'effet "défense en retard" sur les rotations longues mais rend le moteur plus permissif.
+Ces valeurs sont **sous-réelles** (un sprint NBA atteint 9 m/s ; le moteur tourne à ~22 % de cette vitesse). C'est volontaire : le simulateur travaille au pas tactique, pas au pas physique. Augmenter ces valeurs réduit l'effet "défense en retard" sur les rotations longues mais rend le moteur plus permissif. Pour le détail des trade-offs, les cas où ce choix gêne, et le chemin hypothétique vers un mode sprint réel, voir [`physics-calibration.md`](./physics-calibration.md) (G.1).
 
 ## Aide défensive
 
