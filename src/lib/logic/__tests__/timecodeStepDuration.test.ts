@@ -11,6 +11,7 @@ import {
   realStepToSeconds,
   totalDurationSeconds,
   getSecondsPerStep,
+  shotClockBand,
 } from '@/lib/logic/timecode';
 
 const POS: AttackerPositions = {
@@ -158,6 +159,26 @@ describe('B.1 — realStepToSeconds', () => {
     // 4 real steps, 3 transitions : 1.2 + 0.8 + 3.5 = 5.5
     expect(totalDurationSeconds(s)).toBeCloseTo(5.5, 5);
     expect(realStepToSeconds(s, 3)).toBeCloseTo(totalDurationSeconds(s), 5);
+  });
+});
+
+describe('B.2 — shotClockBand', () => {
+  it('classe en safe au-dessus de 8s', () => {
+    expect(shotClockBand(24)).toBe('safe');
+    expect(shotClockBand(9)).toBe('safe');
+    expect(shotClockBand(8.1)).toBe('safe');
+  });
+  it('classe en warning entre 5s et 8s inclus', () => {
+    expect(shotClockBand(8)).toBe('warning');
+    expect(shotClockBand(6)).toBe('warning');
+    expect(shotClockBand(5)).toBe('warning');
+    expect(shotClockBand(4.1)).toBe('warning');
+  });
+  it('classe en danger à 4s ou moins', () => {
+    expect(shotClockBand(4)).toBe('danger');
+    expect(shotClockBand(2)).toBe('danger');
+    expect(shotClockBand(0.1)).toBe('danger');
+    expect(shotClockBand(0)).toBe('danger');
   });
 });
 

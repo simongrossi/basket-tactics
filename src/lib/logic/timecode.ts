@@ -102,6 +102,23 @@ export function formatShotClock(secondsLeft: number): string {
 }
 
 /**
+ * B.2 — Catégorise un shot clock restant en 3 paliers visuels :
+ *   - 'safe'    > 8 s : zone verte, la défense a le temps
+ *   - 'warning' 5-8 s : zone jaune, fin de possession imminente
+ *   - 'danger'  ≤ 4 s : zone rouge, l'attaque DOIT shooter (cf. F.5)
+ *
+ * Utilisé par Timeline, SimulationSection et LiveMatchOverlay pour
+ * unifier les seuils (auparavant dupliqués).
+ */
+export type ShotClockBand = 'safe' | 'warning' | 'danger';
+
+export function shotClockBand(secondsLeft: number): ShotClockBand {
+  if (secondsLeft <= 4) return 'danger';
+  if (secondsLeft <= 8) return 'warning';
+  return 'safe';
+}
+
+/**
  * Renvoie le shot clock restant à un index d'étape réel donné.
  * Si la possession est plus courte que le total d'étapes réelles,
  * peut renvoyer 0 (violation des 24s).

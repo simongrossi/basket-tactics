@@ -12,6 +12,7 @@
 // utiliser.
 
 import type { MatchState } from '@/lib/logic/match/gameLoop';
+import { shotClockBand } from '@/lib/logic/timecode';
 
 interface LiveMatchOverlayProps {
   matchState: MatchState | null;
@@ -25,8 +26,10 @@ export function LiveMatchOverlay({ matchState, onStop, onExitPresent }: LiveMatc
   if (!matchState) return null;
 
   const shotClockSec = Math.max(0, matchState.shotClockMs / 1000);
+  // B.2 — seuils unifiés via shotClockBand (timecode.ts).
+  const band = shotClockBand(shotClockSec);
   const shotClockColor =
-    shotClockSec <= 4 ? '#dc2626' : shotClockSec <= 8 ? '#d97706' : '#16a34a';
+    band === 'danger' ? '#dc2626' : band === 'warning' ? '#d97706' : '#16a34a';
   const isAway = matchState.attackingTeam === 'away';
 
   return (

@@ -6,6 +6,7 @@ import { Section, COLORS } from './ui';
 import { effectiveDefensePositions, getDefenseHoop } from '@/lib/logic/engine';
 import { simulatePossessions, type SimulationResult } from '@/lib/logic/simulator';
 import { activeBallCarrier, activeOffense } from '@/lib/logic/players';
+import { shotClockBand } from '@/lib/logic/timecode';
 import {
   generateAiMatchSeries,
   type AiMatchSeries,
@@ -342,8 +343,11 @@ function LiveMatchPanel({
   const [showReplay, setShowReplay] = useState(false);
 
   const shotClockSec = matchState ? Math.max(0, matchState.shotClockMs / 1000) : 24;
-  const shotClockColor =
-    shotClockSec <= 4 ? '#dc2626' : shotClockSec <= 8 ? '#d97706' : '#16a34a';
+  // B.2 — seuils unifiés via shotClockBand (timecode.ts).
+  const shotClockColor = (() => {
+    const band = shotClockBand(shotClockSec);
+    return band === 'danger' ? '#dc2626' : band === 'warning' ? '#d97706' : '#16a34a';
+  })();
 
   const outcomeLabel = matchState?.outcome ? AI_OUTCOME_LABELS[matchState.outcome] : null;
   // B3b — distinguer "possession terminée" et "session terminée".

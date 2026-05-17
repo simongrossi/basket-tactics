@@ -7,6 +7,7 @@ import {
   formatShotClock,
   getPossessionSeconds,
   realStepToSeconds,
+  shotClockBand,
   totalDurationSeconds,
 } from '@/lib/logic/timecode';
 
@@ -417,15 +418,40 @@ export function Timeline({
             {formatClock(elapsedSec)} / {formatClock(totalSec)}
           </span>
           <span
-            title="Shot clock (24s par défaut)"
-            style={{
-              padding: '1px 6px',
-              borderRadius: 4,
-              fontWeight: 700,
-              background: violation ? 'rgba(248, 113, 113, 0.16)' : shotLeft < 5 ? 'rgba(251, 191, 36, 0.16)' : TIMELINE_UI.surfaceRaised,
-              color: violation ? '#fca5a5' : shotLeft < 5 ? '#fbbf24' : TIMELINE_UI.muted,
-              border: `1px solid ${violation ? 'rgba(248, 113, 113, 0.28)' : shotLeft < 5 ? 'rgba(251, 191, 36, 0.26)' : TIMELINE_UI.border}`,
-            }}
+            title="Shot clock (24s par défaut). Vert > 8s · jaune 5-8s · rouge ≤ 4s · VIOL. au-delà."
+            style={(() => {
+              if (violation) {
+                return {
+                  padding: '1px 6px', borderRadius: 4, fontWeight: 700,
+                  background: 'rgba(248, 113, 113, 0.18)',
+                  color: '#fca5a5',
+                  border: '1px solid rgba(248, 113, 113, 0.32)',
+                };
+              }
+              const band = shotClockBand(shotLeft);
+              if (band === 'danger') {
+                return {
+                  padding: '1px 6px', borderRadius: 4, fontWeight: 700,
+                  background: 'rgba(220, 38, 38, 0.18)',
+                  color: '#fca5a5',
+                  border: '1px solid rgba(220, 38, 38, 0.36)',
+                };
+              }
+              if (band === 'warning') {
+                return {
+                  padding: '1px 6px', borderRadius: 4, fontWeight: 700,
+                  background: 'rgba(251, 191, 36, 0.16)',
+                  color: '#fbbf24',
+                  border: '1px solid rgba(251, 191, 36, 0.28)',
+                };
+              }
+              return {
+                padding: '1px 6px', borderRadius: 4, fontWeight: 700,
+                background: 'rgba(22, 163, 74, 0.14)',
+                color: '#86efac',
+                border: '1px solid rgba(22, 163, 74, 0.26)',
+              };
+            })()}
           >
             ⏱ {violation ? 'VIOL.' : formatShotClock(shotLeft)}
           </span>
