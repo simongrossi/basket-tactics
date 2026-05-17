@@ -2,13 +2,91 @@
 
 > Vue consolidée de **ce qui est fait**, **ce qui est en cours**, et **ce qui reste à faire**, pour ne rien oublier entre deux sessions de travail.
 >
-> Mise à jour : **2026-05-11** (post-sprint Étape 15 réalisme écrans).
+> Mise à jour : **2026-05-18** (post-session B.1 / B.2 / C.2 V2 / F.4 / F.5).
 >
-> Pour la roadmap exhaustive des actions FIBA, voir [`fiba-actions-roadmap.md`](./fiba-actions-roadmap.md).
+> Pour le détail commit-par-commit, voir [`CHANGELOG.md`](../CHANGELOG.md).
+> Pour la roadmap basket exhaustive, voir [`../ROADMAP.md`](../ROADMAP.md).
+> Pour les chantiers restants priorisés, voir [`todo-priorities.md`](./todo-priorities.md).
 
 ---
 
-## 🆕 Travail récent — Étapes 2/3/4 réflexes défensifs (sur `main`)
+## 🆕 Travail récent (2026-05-17/18) — Temps réel + défense fin de possession
+
+Triple session axée sur la **modélisation fine du temps** et son
+exploitation par la défense. **1279/1279 tests verts**, 7 commits sur `main`.
+
+### B.1 — Durée individuelle par step (commits `1670f10`, `7e67e79`)
+
+Champ optionnel `Step.duration?: number` (secondes). Default = fallback
+sur `state.secondsPerStep` (rétrocompat totale). Le helper
+`getStepDurationSeconds(state, stepIdx)` + la refonte de
+`realStepToSeconds` / `totalDurationSeconds` accumulent les durations
+individuelles au lieu d'une multiplication globale. Consommateurs migrés :
+Timeline, MultiTrackTimeline, PlaybookView (recap + synoptique imprimable).
+Input `durée (s)` ajouté dans StepsPanel pour le step actif. **17 tests**.
+
+### B.2 — Shot clock display 3 bandes (commit `4c3af36`)
+
+Helper `shotClockBand(secondsLeft)` centralise les paliers (> 8 s safe,
+5-8 s warning, ≤ 4 s danger). Le badge shot clock de la Timeline passe
+en vert/jaune/rouge selon le palier (cas violation conservé). Seuils
+mutualisés avec LiveMatchOverlay et SimulationSection. **3 tests**.
+
+### C.2 V2 — `helpStickinessMs` (commit `751acf6`)
+
+Setting `state.helpStickinessMs?: number` (range 100-2500 ms) qui prime
+sur `helpStickiness` V1 (steps). Helper `cumulatedHelpMs` somme
+`Step.duration × 1000` sur les steps comptés par `consecutiveHelpSteps`
+— bénéficie de B.1 pour la granularité fine. `helpStickyLayer` branche
+V2 vs V1 selon settings. UI : slider 0-2500 ms par pas de 100 dans
+DefensePanel (V2 → désactive V1 automatiquement). **8 tests**.
+Cible basket : 1200 ms ≈ standard NBA, indépendant du découpage en
+steps. **Phase C désormais complète (7/7)**.
+
+### F.4 — End-of-quarter foul to give V1 (commit `fac20b2`)
+
+Détection coach des opportunités de **faute volontaire en fin de quart**
+(sous 5 s, équipe < 5 fautes, drive actif). Helper
+`defense/detectFoulToGiveOpportunity.ts`. Règle coach `foulToGiveRule`
+émet un diagnostic `critical`. Badge SVG `🟥 FOUL TO GIVE` posé sur le
+défenseur du porteur dans DetectionBadgesOverlay. UI : input fautes
+équipe dans DefensePanel + input `quart (s)` per-step dans StepsPanel.
+**9 tests**.
+
+### F.5 — Late shot clock defense V1 (commit `fac20b2`)
+
+Nouvelle couche `defense/lateShotClockLayer.ts` (couche 1.7 de l'engine).
+Si `state.lateShotClockDefenseEnabled` + `step.shotClockRemaining < 5` :
+carrierDef voit sa cible décalée de +10 px vers le porteur (contest
+accru) ; tous les autres défenseurs perdent leur aide (helpFactor=0,
+helpTriggered=false). Invariant de clearance min ≥ 34 px préservé. UI :
+checkbox + input `shot clk` per-step dans StepsPanel. **5 tests**.
+
+### Polish dark mode résiduel (commits `684c6d6`, `a22d69c`)
+
+- Toolbar Playbook : bouton "🖨 imprimer / PDF", bouton "fermer",
+  wrapper toolbar en tokens `DARK_PANEL.*` (étaient blancs car rendu
+  navigateur natif).
+- Menus contextuels joueurs : AttackerMenu, DefenderMenu, ToolBar,
+  sharedRows, AutoActionSubmenu — refonte complète des fonds blancs/cream
+  en dark. Accents orange (offense) et bleu (defense) conservés pour
+  les états actifs.
+
+---
+
+## 🗓️ Travail récent antérieur — voir CHANGELOG
+
+- **[0.10.0] 2026-05-16** : Phase I polish Play IA (B5+/B6/B7), Phase E cycle complet (E.1 V2 + E.2 + E.3), Phase F lancers francs (F.2/F.4), système remises en jeu complet. 30+ commits.
+- **[0.9.0] 2026-05-15** : Phase I Play IA principale, refacto A4-A10.
+- **[0.8.0] 2026-05-13** : C.1 → C.6 phase C livrée + C.7 V1+V2 + nettoyage défensif tier 2.
+
+Pour l'historique antérieur (Étapes 2-15 de la refonte zone-defense),
+voir les sections plus bas — elles restent une référence valable pour
+comprendre la genèse du moteur défensif actuel.
+
+---
+
+## 🆕 Travail antérieur — Étapes 2/3/4 réflexes défensifs (sur `main`)
 
 Refonte significative de la défense de zone pour encoder les **principes basket fondamentaux** qui doivent l'emporter sur la simple ownership géométrique. Documentation détaillée : [logique-defensive.md > Réflexes défensifs avancés](./logique-defensive.md#réflexes-défensifs-avancés-étapes-2-4).
 

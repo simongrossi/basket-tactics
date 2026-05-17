@@ -4,6 +4,28 @@ Notes de développement au fil de l'eau. Les items en haut sont les plus récent
 
 ---
 
+## Session 2026-05-17/18 — Temps réel + défense fin de possession (FAIT)
+
+- **B.1** : champ `Step.duration?` + accumulation cumulative dans
+  timecode. Timeline / MultiTrack / Playbook recap migrés. 17 tests.
+  Voir CHANGELOG [0.11.0].
+- **B.2** : helper `shotClockBand()` 3 bandes (vert/jaune/rouge),
+  mutualisé Timeline + LiveMatchOverlay + SimulationSection. 3 tests.
+- **C.2 V2** : `helpStickinessMs` (100-2500 ms) prime sur V1 steps.
+  S'appuie sur B.1 pour la granularité fine. Slider DefensePanel.
+  8 tests. Phase C complète (7/7).
+- **F.4 V1** : foul to give opportunity detection — diag coach
+  `critical` + badge SVG `🟥 FOUL TO GIVE`. 9 tests.
+- **F.5 V1** : late shot clock defense — couche 1.7 désactive l'aide
+  sous 5 s du shot clock + contest accru sur porteur. 5 tests.
+- **Polish dark mode** : toolbar Playbook + 5 fichiers context menu
+  joueurs migrés sur tokens `DARK_PANEL.*`.
+
+Reste accessible (cf. `docs/todo-priorities.md`) : B.3, B.4, F.1, F.3,
+A11, G.1.
+
+---
+
 ## Changements récents (rétro-historique condensé)
 
 ### Lecture & timeline (FAIT)

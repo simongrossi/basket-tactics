@@ -6,6 +6,95 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-05-18
+
+Session triple : **temps réel** (B.1 + B.2), **défense de fin de
+possession** (C.2 V2 + F.4 + F.5), polish UI dark mode résiduel.
+1262 → **1279 tests verts** (+17). 7 commits. Tous push'és sur `main`.
+
+### Phase B — Notion du temps 🟡 (B.1 + B.2 livrés, B.3/B.4 restent)
+
+- **B.1 — Durée individuelle par step** (commits `1670f10` + `7e67e79`).
+  Nouveau champ `Step.duration?: number` (secondes). Default = fallback
+  sur `state.secondsPerStep`, rétrocompat totale. Helper
+  `timecode.getStepDurationSeconds(state, stepIdx)` + refonte de
+  `realStepToSeconds` et `totalDurationSeconds` pour accumuler les
+  durées individuelles au lieu d'une multiplication globale.
+  Consommateurs migrés : `Timeline.tsx`, `MultiTrackTimeline.tsx`,
+  `PlaybookView.tsx` (StepAnnotationsRecap + PrintMultiTrack).
+  Input "durée (s)" ajouté dans StepsPanel pour le step actif. +17 tests
+  (timecodeStepDuration.test.ts).
+- **B.2 — Shot clock display 3-band** (commit `4c3af36`). Helper
+  `shotClockBand(secondsLeft)` centralise les seuils (>8s safe / 5-8s
+  warning / ≤4s danger). Le badge shot clock de la Timeline passe en
+  vert/jaune/rouge selon le palier (cas violation conservé). Seuils
+  mutualisés avec `LiveMatchOverlay` et `SimulationSection`. +3 tests.
+
+### Phase C — Réalisme défensif (C.2 V2 livré, phase C complète 7/7)
+
+- **C.2 V2 — `helpStickinessMs`** (commit `751acf6`). Nouveau setting
+  `state.helpStickinessMs?: number` (range 100-2500 ms) qui prime sur
+  `helpStickiness` V1 (steps). Helper `cumulatedHelpMs(state, stepIdx,
+  defenderId)` somme `Step.duration × 1000` sur les steps comptés par
+  `consecutiveHelpSteps` — dépend de B.1 pour la granularité fine
+  (fallback `secondsPerStep` sinon). `helpStickyLayer` branche V2 vs V1
+  selon settings. UI : slider 0-2500 ms par pas de 100 dans DefensePanel
+  (activation V2 → désactive V1 legacy automatiquement). +8 tests.
+  Cible basket : 1200 ms ≈ standard NBA, indépendant du découpage en
+  steps.
+
+### Phase F — Situations spécialisées (F.4 + F.5 V1)
+
+- **F.4 — End-of-quarter foul to give** (commit `fac20b2`, 9 tests).
+  Nouveau champ `Step.clockSeconds?: number` + `AppState.defenseTeamFouls
+  ?: number` (0-5). Helper pur `defense/detectFoulToGiveOpportunity.ts`
+  qui détecte clock < 5 + fautes < 5 + drive actif (trigger explicite
+  ou delta-distance > 30 px vers le panier). Identifie le défenseur du
+  porteur via matchups. Règle coach `foulToGiveRule` émet un diagnostic
+  `critical` tag `foul-to-give`. Badge SVG `🟥 FOUL TO GIVE` posé sur
+  le défenseur du porteur dans `DetectionBadgesOverlay`. UI : input
+  fautes équipe dans DefensePanel + input `quart (s)` per-step dans
+  StepsPanel.
+- **F.5 — Late shot clock defense** (commit `fac20b2`, 5 tests). Nouveau
+  champ `Step.shotClockRemaining?: number` +
+  `AppState.lateShotClockDefenseEnabled?: boolean`. Nouvelle couche
+  `defense/lateShotClockLayer.ts` (couche 1.7 de l'engine, après help
+  sticky, avant pnrLayer). Si flag actif et `shotClockRemaining < 5` :
+  carrierDef voit sa cible décalée de +10 px vers le porteur (contest
+  accru) ; tous les autres défenseurs perdent leur aide
+  (helpFactor=0, helpTriggered=false). Invariant clearance ≥ 34 px
+  préservé. UI : checkbox dans DefensePanel + input `shot clk` per-step
+  dans StepsPanel.
+
+### Refacto interne
+
+- **Transform générique `patchStep(state, idx, patch)`** ajoutée à
+  `stepTransforms.ts` + `useAppState.patchStep`. Permet d'écrire
+  n'importe quel champ optionnel sur un step sans transform dédiée
+  (consommée par les 3 nouveaux inputs B.1 / F.4 / F.5).
+
+### Polish UI dark mode (post-PR `sad-kirch-7f9794` merged 2026-05-16)
+
+- **Toolbar Playbook** (commit `684c6d6`). Le bouton "🖨 imprimer / PDF"
+  + le bouton "fermer" + le wrapper toolbar passent en tokens
+  `DARK_PANEL.*` au lieu d'un rendu navigateur par défaut blanc.
+- **Menus contextuels joueurs** (commit `a22d69c`). AttackerMenu,
+  DefenderMenu, ToolBar, sharedRows (Row / OverrideSliderRow /
+  GazeLockButton) et AutoActionSubmenu : refonte complète des fonds
+  blancs/cream en dark. Accents orange (offense) et bleu (defense)
+  conservés pour les états actifs.
+
+### Nettoyage
+
+- 4 branches locales mergées supprimées (les distantes laissées sur
+  GitHub) — voir notes session.
+
+### ROADMAP
+
+Section détaillée C.2 corrigée (le récap disait V1 livré 2026-05-13
+mais la section ⚪ — incohérence résolue), section C.2 marquée
+🟢 V1 + V2. Phases B et F mises à jour.
+
 ## [0.10.0] — 2026-05-16
 
 Grosse session axée **basket pur** (UX, mobile, tests UI repoussés

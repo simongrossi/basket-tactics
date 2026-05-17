@@ -14,46 +14,54 @@
 
 ## 🏀 BASKET — priorité absolue
 
+### Phase B — Notion du temps (foundation)
+
+| Item | Statut | Description | Effort | Priorité |
+|---|---|---|---|---|
+| ~~**B.1** — Durée individuelle par step~~ | 🟢 livré 2026-05-17 (commits `1670f10` + `7e67e79`) | Champ `Step.duration?`. Accumulation cumulative dans Timeline + MultiTrack + Playbook recap. 17 tests. | — | — |
+| ~~**B.2** — Shot clock display vert/jaune/rouge~~ | 🟢 livré 2026-05-18 (commit `4c3af36`) | Helper `shotClockBand()` mutualisé. Timeline + LiveMatchOverlay + SimulationSection alignés. | — | — |
+| **B.3** — End-of-clock defense awareness | ⚪ | `defensiveContext.timeRemaining` lu par les couches. À <5 s : `contest mode` (no fouls, all-hands-up). Note : F.5 déjà livre le no-help en bout de shot clock, B.3 serait l'équivalent en bout de quart. | ~2h | 🏀 **P2** |
+| **B.4** — Synchronisation cross-actor | ⚪ | `annotation.tStart/tEnd` en secondes ABSOLUES plutôt que fraction du step. Permet à O1 (dribble 1.5s) et O5 (cut 0.8s) de finir à des moments différents. | ~4-6h | 🏀 **P2** |
+
 ### Phase E — Situations spéciales basket
 
 | Item | Statut | Description | Effort | Priorité |
 |---|---|---|---|---|
-| ~~**E.3** — Rebond animé~~ | 🟢 livré 2026-05-16 (commit `874d96c`) | Trajectoire ballon shooter → cercle → rebondeur, parabole 2 phases. Rebond pré-calculé pour cohérence animation/outcome. | — | — |
-| ~~**E.2** — Jump ball initial~~ | 🟢 livré 2026-05-16 (commit `a61323c`) | Setup canonique entre-deux : 2 sauteurs au cercle central + 4+4 en arc, Règle 1 validée sur 45 paires. | — | — |
-| **E.1 V2 stage 1** | 🟢 livré 2026-05-16 (commit `6d99024`) | Ballon adverse animé entre 4 waypoints pendant `away-possession`. Banner "🔄 POSSESSION ADVERSE". Donne le visuel "il se passe qqch côté adverse". | — | — |
-| **E.1 V2 stage 2a** | 🟢 livré 2026-05-16 (commit `1cefa67`) | 5 adversaires miroir vertical autour de y=540, animés vers panier home, rendus en sprites rouges distinctifs. | — | — |
 | **E.1 V2 stage 2b** — refacto 2-way | ⚪ | Refacto AppState avec `currentlyAttackingTeam` natif, matchups inversés en mémoire, engine défensif côté home pendant phase away, diagnostic coach spécifique. | 2-4 j | 🏀 **P3** (futur) |
+| **A11** — Box-out / rebond après tir (demi-jeu) | ⚪ | Ajouter la phase "tir → rebond → transition" comme demi-jeu complet (≠ E.1 stage 2b qui est just l'autre côté). Modèle physique de rebond, contestabilité. | 1-2 sem | 🏀 **P2** |
 
-### Phase F — Situations FIBA basket
-
-| Item | Statut | Description | Effort | Priorité |
-|---|---|---|---|---|
-| ~~**F.2** — Free throw avec course-rebond~~ | 🟢 livré 2026-05-16 (commit `6bb780a`) | Setter `addFreeThrowReboundStep(made)` qui ajoute une étape post-lancer animée. Blocks défensifs gagnent rebond, slots offensifs over-the-top. Made = transition adverse. | — | — |
-| ~~**F.4** — Pénalité technique / DQ~~ | 🟢 livré 2026-05-16 (commit `5ae6e10`) | Toggle DQ par joueur (10 boutons dans ParametresPanel) + overlay rouge "DQ" sur le terrain. V1 visuel seulement (engine non modifié). | — | — |
-
-### Extensions remises en jeu V2 (basket pur)
+### Phase F — Situations FIBA / haute compétition
 
 | Item | Statut | Description | Effort | Priorité |
 |---|---|---|---|---|
-| ~~**Box-out auto post-shot**~~ | 🟢 livré 2026-05-16 (commit `e79453c`) | Coach diagnostic `boxOutCheckRule` qui détecte phase de rebond et flag défenseurs mal positionnés. Le box-out animé live existait déjà (E.1 V2). | — | — |
-| ~~**Diagnostic défensif sur remise**~~ | 🟢 livré 2026-05-16 (commit `dcfe8c3`) | Règle coach `inboundDefenseRule` : 3 checks (pression passeur, deny receveur principal, attaquants ouverts). Verdict ok-vs-warning-vs-critical. | — | — |
-| ~~**Templates défense d'attaque**~~ | 🟢 livré 2026-05-16 (commit `e73aad2`) | 3 templates pédagogiques : Box vs face-guard, Stack vs zone 2-3, Hammer vs zone-press. Défense figée par defenseOverrides. | — | — |
-| ~~**Compteur 5s diagnostic statique**~~ | 🟢 livré 2026-05-16 (commit `6dd7e83`) | Extension inboundFiveSecRule : scan steps suivants pour trouver passe, calcule durée estimée × secondsPerStep, flag critical si > 5s. | — | — |
+| ~~**F.4** — End-of-quarter foul to give~~ | 🟢 V1 livré 2026-05-18 (commit `fac20b2`) | Helper + diag critical + badge SVG `🟥 FOUL TO GIVE`. 9 tests. | — | — |
+| ~~**F.5** — Late shot clock defense~~ | 🟢 V1 livré 2026-05-18 (commit `fac20b2`) | `lateShotClockLayer` couche 1.7. carrierDef contest accru, autres défenseurs no-help. 5 tests. | — | — |
+| **F.1** — Junk defenses (box-and-1, triangle-and-2) | ⚪ | Couvertures hybrides homme-zone pour neutraliser un shooter dominant. V1 box-and-1. | ~6h V1 | 🏀 **P2** |
+| **F.3** — FT rebound positioning | ⚪ | 10 positions canoniques + transform + badge UI. | ~3h V1 | 🏀 **P2** |
+| **F.2** — Press full/half-court | ⚪ | Pression tout terrain. Gros chantier (refonte `getDefenseHoop`). | ~10-12h V1 | 🏀 **P3** |
 
-### Phase I — Polish Play IA (basket dans le tuning)
+### Phase C — Réalisme physique modéré ✅ COMPLÈTE (7/7)
+
+C.1 → C.7 livrés (V1 + V2 inclus). C.2 V2 (`helpStickinessMs`) livré
+le 2026-05-17, commit `751acf6`, 8 nouveaux tests. Voir ROADMAP pour
+les détails.
+
+### Phase J — Moteur écran / playback fines
 
 | Item | Statut | Description | Effort | Priorité |
 |---|---|---|---|---|
-| ~~**B5+ — Auto-tuning calibration**~~ | 🟢 livré 2026-05-16 (commit `0192916`) | Dichotomie sur creativity, max 8 itérations. Bouton "🎯 auto-tune" dans CalibrationPanel. Verdict converged/non + historique. | — | — |
-| ~~**B6 — Vitesse accélérée live**~~ | 🟢 livré 2026-05-16 (commit `6dd7e83`) | Sélecteur ×1/×2/×4/×8 dans LiveMatchPanel. | — | — |
-| ~~**B7 — Replay détaillé post-match**~~ | 🟢 livré 2026-05-16 (commit `486b039`) | Modal `<MatchReplay>` avec timeline par possession + filtres + icônes. | — | — |
+| **J.1** — Parité scrub ↔ playback | ⚪ | Décrochages détectés en scrub absents en lecture animée. | ~6-8h | 🏀 **P3** |
+| **J.2** — Cache segmentaire du resolver | ⚪ | Mémoïse les segments inchangés entre frames. | ~6-8h | 🏀 **P3** |
+| **J.3** — Solver de contraintes unifié | ⚪ | Reformule le pipeline en problème d'optimisation (plus prédictible). | ~2-3j | 🏀 **P3** |
+| **J.5** — Profiling + budget frame | ⚪ | Heatmap CPU par couche défensive. | ~1-2j | 🏀 **P3** |
+| **J.6** — Visual regression légère | ⚪ | Snapshots SVG par template pour détecter régressions UI. | ~1-2j | 🏀 **P3** |
+| **J.7** — Panneau debug joueur | ⚪ | Vue détaillée des décisions du moteur pour un joueur donné. | ~1-2j | 🏀 **P3** |
 
-### Phase G — Tooling basket-related
+### Phase G — Calibration vitesse réelle
 
 | Item | Statut | Description | Effort | Priorité |
 |---|---|---|---|---|
-| **Profiling avancé** | 🟡 | Le profiling de base est livré (J.5). Extensions : heatmap CPU par couche défensive, graphe d'appels resolveFrameAt frame par frame. | ~1-2 j | 🏀 **P3** |
-| **Golden metrics élargis** | 🟡 | Le golden metrics est livré (J.6). Extensions : screenshots SVG automatiques per template pour visual regression complet (image diff). | ~1-2 j | 🏀 **P3** |
+| **G.1** — Doc calibration vitesse | ⚪ | Clarifier le scope du moteur (tactique vs sprint réel ; D1 max 1.96 m/s ≈ 22% NBA). | ~1j | 🏀 **P2** |
 
 ---
 
@@ -90,28 +98,26 @@
 
 ## 🎯 Ordre d'attaque proposé (basket only)
 
-Total basket P1 + P2 : **~10-15 jours** ouvrés.
+État au **2026-05-18** : Phase B partiellement livrée (B.1 + B.2),
+Phase C complète (C.1 → C.7), F.4 + F.5 V1 livrés. Restent ~3-5
+chantiers basket de bonne valeur.
 
-### ~~Salve P1 (essentiels)~~ — 🟢 livrée 2026-05-16 (4 commits)
-1. ~~**E.3 — Rebond animé**~~ ✅ commit `874d96c`
-2. ~~**F.2 — Free throw post-lancer**~~ ✅ commit `6bb780a`
-3. ~~**Box-out auto post-shot**~~ ✅ commit `e79453c`
-4. ~~**E.2 — Jump ball initial**~~ ✅ commit `a61323c`
+### Court terme (1-2 sessions)
+1. **B.3** — End-of-quarter defense awareness (~2h) — complète F.5
+   en miroir côté chrono de quart
+2. **F.3** — FT rebound positioning (~3h) — gain visuel direct sur LF
+3. **F.1** — Junk defenses (~6h V1) — box-and-1 first
 
-### ~~Salve P2 (extensions tactiques)~~ — 🟡 partiellement livrée 2026-05-16
-5. **E.1 V2 stage 1** ✅ commit `6d99024` — ballon adverse animé
-5b. **E.1 V2 stage 2** ⚪ reste (3-5j) — 5 adversaires complets + matchups + refacto
-6. ~~**Diagnostic défensif sur remise**~~ ✅ commit `dcfe8c3`
-7. ~~**Templates défense d'attaque**~~ ✅ commit `e73aad2`
-8. ~~**B5+ — Auto-tuning**~~ ✅ commit `0192916`
+### Moyen terme
+4. **B.4** — Annotation tStart/tEnd absolu (~4-6h) — débloque la
+   synchro cross-actor fine
+5. **A11 / E.1 V2 stage 2b** — Box-out / demi-jeu rebond (1-2 sem) —
+   gros chantier mais ouvre le 2-way complet
+6. **G.1** — Doc calibration vitesse (~1j) — clarifie le scope
 
-### ~~Salve P3 (polish basket)~~ — 🟢 livrée 2026-05-16 (4/4 items + 2 optionnels en suspens)
-9. ~~**F.4 — Pénalité technique**~~ ✅ commit `5ae6e10`
-10. ~~**Compteur 5s statique**~~ ✅ commit `6dd7e83`
-11. ~~**B6 — Vitesse accélérée**~~ ✅ commit `6dd7e83`
-12. ~~**B7 — Replay post-match**~~ ✅ commit `486b039`
-13. **Profiling avancé** (~1-2j) — toujours en suspens, non critique
-14. **Golden metrics élargis** (~1-2j) — toujours en suspens, non critique
+### À reporter sauf demande explicite
+- **F.2** Press full/half-court (10-12h V1, refonte `getDefenseHoop`)
+- Phase J fines (J.1/J.2/J.3/J.5/J.6/J.7) — moteur fonctionne déjà bien
 
 ---
 
@@ -121,8 +127,11 @@ Total basket P1 + P2 : **~10-15 jours** ouvrés.
 > nouvelles, refus de scope, deadlines, etc.
 
 - **Priorité globale 2026-05-15** : basket uniquement, UX/mobile/tests UI repoussés
+- **Décision 2026-05-17** : C.2 V2 livrée en s'appuyant sur B.1 (la
+  cible basket "1.2s d'aide standard NBA" est désormais exprimable en
+  ms, indépendante du découpage en steps).
 -
 
 ---
 
-Mise à jour : 2026-05-15 (annotation priorités basket)
+Mise à jour : 2026-05-18 (post-session B.1/B.2/C.2 V2/F.4/F.5)
