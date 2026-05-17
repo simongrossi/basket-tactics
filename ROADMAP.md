@@ -818,7 +818,26 @@ défense" du moteur actuel.
 **Estimation** : V1 10-12h (le plus coûteux des F.*), V2 +2j.
 **Risque 🔴** : touche `getDefenseHoop` (orientation par défaut des défenseurs) et plusieurs hypothèses du moteur. **À éviter sauf demande coach explicite.**
 
-#### ⚪ F.3 — FT rebound positioning — détail du plan
+#### 🟢 F.3 — FT rebound positioning — livré
+
+V1 entièrement intégrée bien avant cette session (l'item ⚪ était une
+désynchronisation du ROADMAP) :
+- `src/lib/logic/freeThrowSetup.ts::buildFreeThrowSetup()` — 10
+  positions canoniques (O1 tireur, D4/D5 blocks, O4/O5 slots, D1 trail,
+  O2/O3 + D2/D3 outlets 3pt). Toutes les paires respectent
+  `PLAYER_MIN_CLEARANCE_PX`.
+- `convertStepToFreeThrow(s)` dans `stepTransforms.ts` (transform pur +
+  `Step.context: 'free-throw'` + `defenseOverrides` posés).
+- UI : bouton "convertir en LF" dans StepsPanel + badge `🏀 LF` sur
+  les steps contexte free-throw.
+- Extension F.2 livrée 2026-05-16 : `buildFreeThrowReboundSetup(made)`
+  + `addFreeThrowReboundStep` pour la phase course-rebond.
+- Tests : `f3FreeThrowSetup.test.ts` — 11 tests (canoniques + transform
+  + invariant clearance + intégration engine).
+
+Le détail du plan ci-dessous reste comme référence historique.
+
+⚪ Plan d'origine (livré) :
 
 **Concept.** Sur un lancer franc, les 10 joueurs occupent 6 slots
 normalisés autour de la raquette (NBA/FIBA rules). Defense prend cases
@@ -1221,7 +1240,7 @@ V1, refonte `getDefenseHoop`).
 | C.7 Action chains | 🟢 V1 + V2 livrés (diag+badge + réaction défensive) | 21 | (commits C.7 V1, V2) |
 | F.1 Junk defenses | ⚪ détaillé (V1 box-and-1) | — | — |
 | F.2 Press | ⚪ détaillé (V1 half-court) | — | — |
-| F.3 FT rebound | ⚪ détaillé (V1 positions statiques) | — | — |
+| F.3 FT rebound | 🟢 V1 livré (positions canoniques + F.2 extension rebond) | 11 | — |
 | F.4 Foul to give | ⚪ détaillé (V1 diag+badge) | — | — |
 | F.5 Late shot clock | ⚪ détaillé (V1 modulation globale) | — | — |
 

@@ -34,10 +34,10 @@
 
 | Item | Statut | Description | Effort | Priorité |
 |---|---|---|---|---|
+| ~~**F.3** — FT rebound positioning~~ | 🟢 V1 livré 2026-05-13 (11 tests) | `buildFreeThrowSetup` + `convertStepToFreeThrow` + badge UI `🏀 LF` + extension F.2 rebond. ROADMAP désynchronisé jusqu'au 2026-05-18. | — | — |
 | ~~**F.4** — End-of-quarter foul to give~~ | 🟢 V1 livré 2026-05-18 (commit `fac20b2`) | Helper + diag critical + badge SVG `🟥 FOUL TO GIVE`. 9 tests. | — | — |
 | ~~**F.5** — Late shot clock defense~~ | 🟢 V1 livré 2026-05-18 (commit `fac20b2`) | `lateShotClockLayer` couche 1.7. carrierDef contest accru, autres défenseurs no-help. 5 tests. | — | — |
 | **F.1** — Junk defenses (box-and-1, triangle-and-2) | ⚪ | Couvertures hybrides homme-zone pour neutraliser un shooter dominant. V1 box-and-1. | ~6h V1 | 🏀 **P2** |
-| **F.3** — FT rebound positioning | ⚪ | 10 positions canoniques + transform + badge UI. | ~3h V1 | 🏀 **P2** |
 | **F.2** — Press full/half-court | ⚪ | Pression tout terrain. Gros chantier (refonte `getDefenseHoop`). | ~10-12h V1 | 🏀 **P3** |
 
 ### Phase C — Réalisme physique modéré ✅ COMPLÈTE (7/7)
