@@ -59,6 +59,7 @@ import { tacticalReadsRule } from './rules/tacticalReads';
 import { inboundFiveSecRule } from './rules/inboundFiveSec';
 import { boxOutCheckRule } from './rules/boxOutCheck';
 import { inboundDefenseRule } from './rules/inboundDefense';
+import { foulToGiveRule } from './rules/foulToGive';
 
 const REGISTRY: Rule[] = [
   closeoutLongRule,
@@ -82,6 +83,7 @@ const REGISTRY: Rule[] = [
   inboundDefenseRule,
   boxOutCheckRule,
   tacticalReadsRule,
+  foulToGiveRule,
 ];
 
 /**

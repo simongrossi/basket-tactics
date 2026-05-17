@@ -66,6 +66,22 @@ export function setStepLabel(s: AppState, idx: number, label: string): AppState 
   return { ...s, steps };
 }
 
+/**
+ * Patch partiel d'un step. Utilisé pour les champs périphériques qui n'ont
+ * pas leur propre transform dédiée (B.1 duration, F.4 clockSeconds, F.5
+ * shotClockRemaining, etc.). N'altère pas `activeStep`.
+ */
+export function patchStep(
+  s: AppState,
+  idx: number,
+  patch: Partial<AppState['steps'][number]>
+): AppState {
+  if (idx < 0 || idx >= s.steps.length) return s;
+  const steps = [...s.steps];
+  steps[idx] = { ...steps[idx], ...patch };
+  return { ...s, steps };
+}
+
 export function setBallCarrier(s: AppState, carrier: AttackerId): AppState {
   const steps = [...s.steps];
   steps[s.activeStep] = { ...steps[s.activeStep], ballCarrier: carrier };

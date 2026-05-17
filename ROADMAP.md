@@ -763,8 +763,8 @@ de possession. Reset shot clock à 14 s (rebond offensif) ou switch possession.
 | F.1 | **Junk defenses** (box-and-1, triangle-and-2, diamond-and-1) | 6h V1 / 2j V2 | 🟡 | Moyen-haut |
 | F.2 | **Press full/half-court** : pression tout terrain | 10-12h V1 | 🔴 | Moyen |
 | ~~F.3~~ | ~~**Free throw rebound positioning** : 10 positions canoniques + transform + badge UI~~ | — | — | — | 🟢 livré 2026-05-13 (11 tests, 899 verts) |
-| F.4 | **End-of-quarter foul to give** : foul stratégique | 2-3h V1 | 🟢 | Faible (diag only) |
-| F.5 | **Late shot clock defense** : modulation globale | 3h V1 | 🟢 | Moyen |
+| ~~F.4~~ | ~~**End-of-quarter foul to give** : helper + diag critical + badge SVG `🟥 FOUL TO GIVE` + UI globale (defenseTeamFouls) + per-step (clockSeconds)~~ | — | — | — | 🟢 V1 livré 2026-05-18 (9 tests, 1279 verts) |
+| ~~F.5~~ | ~~**Late shot clock defense** : `lateShotClockLayer` (couche 1.7, opt-in via lateShotClockDefenseEnabled + step.shotClockRemaining<5). carrierDef contest accru, autres défenseurs no-help.~~ | — | — | — | 🟢 V1 livré 2026-05-18 (5 tests, 1279 verts) |
 
 #### ⚪ F.1 — Junk defenses — détail du plan
 
@@ -838,7 +838,7 @@ normalisés autour de la raquette (NBA/FIBA rules). Defense prend cases
 
 **Estimation** : V1 4h. Pas de V2 prévue (sauf à ajouter rebond offensif/défensif post-shot, qui touche E.1).
 
-#### ⚪ F.4 — End-of-quarter foul to give — détail du plan
+#### 🟢 F.4 — End-of-quarter foul to give — livré
 
 **Concept.** Si l'équipe en défense a < 5 fautes au quart-temps, elle
 peut "foul to give" sur les dernières secondes pour empêcher un
@@ -861,7 +861,7 @@ tir-au-buzzer. Stratégie ultra-courante NBA/EuroLeague.
 
 **Estimation** : V1 2-3h (juste détection + badge), V2 +3h.
 
-#### ⚪ F.5 — Late shot clock defense — détail du plan
+#### 🟢 F.5 — Late shot clock defense — livré
 
 **Concept.** Sous les 5 dernières secondes du shot clock, la défense
 sait que l'attaquant DOIT shooter. Donc : contest tout, no fouls, no

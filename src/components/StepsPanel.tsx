@@ -12,6 +12,10 @@ interface StepsPanelProps {
   onDuplicateStep: () => void;
   onDeleteStep: () => void;
   onSetStepLabel: (idx: number, label: string) => void;
+  /** B.1 / F.4 / F.5 — patch partiel d'un step (duration, clockSeconds,
+   *  shotClockRemaining…). Utilisé pour les inputs d'horloges sur le step
+   *  actif. */
+  onPatchStep?: (idx: number, patch: Partial<AppState['steps'][number]>) => void;
   onSetBallCarrier: (carrier: AttackerId) => void;
   onDeleteAnnotation: (idx: number) => void;
   /** F.3 — Convertit le step actif en setup de lancer franc. */
@@ -155,6 +159,71 @@ export function StepsPanel(props: StepsPanelProps) {
                   )}
                   <span style={{ marginLeft: 'auto' }}>{visibleAnnotations.length} annot.</span>
                 </div>
+                {/* Horloges per-step (B.1 duration, F.4 clockSeconds, F.5 shotClockRemaining).
+                    Visible uniquement sur l'étape active, et seulement si onPatchStep est branché. */}
+                {isActive && props.onPatchStep && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr 1fr',
+                      gap: 4,
+                      marginTop: 4,
+                      fontSize: 9,
+                      color: '#94a3b8',
+                    }}
+                  >
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }} title="B.1 — durée narrative de cette étape (s). Vide = défaut global.">
+                      <span>durée (s)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.1}
+                        placeholder="auto"
+                        value={s.duration ?? ''}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          const v = raw === '' ? undefined : Math.max(0, parseFloat(raw) || 0);
+                          props.onPatchStep!(i, { duration: v });
+                        }}
+                        style={{ fontSize: 10, padding: '2px 4px' }}
+                      />
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }} title="F.4 — secondes restantes au chrono du quart à ce step. Vide = règle inactive.">
+                      <span>quart (s)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.1}
+                        placeholder="—"
+                        value={s.clockSeconds ?? ''}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          const v = raw === '' ? undefined : Math.max(0, parseFloat(raw) || 0);
+                          props.onPatchStep!(i, { clockSeconds: v });
+                        }}
+                        style={{ fontSize: 10, padding: '2px 4px' }}
+                      />
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }} title="F.5 — secondes restantes au shot clock à ce step. Vide = règle inactive.">
+                      <span>shot clk</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={24}
+                        step={0.5}
+                        placeholder="—"
+                        value={s.shotClockRemaining ?? ''}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          const v = raw === '' ? undefined : Math.max(0, Math.min(24, parseFloat(raw) || 0));
+                          props.onPatchStep!(i, { shotClockRemaining: v });
+                        }}
+                        style={{ fontSize: 10, padding: '2px 4px' }}
+                      />
+                    </label>
+                  </div>
+                )}
                 {/* Liste des annotations supprimables — visible seulement sur l'étape active */}
                 {isActive && visibleAnnotations.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4 }}>

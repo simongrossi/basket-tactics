@@ -120,6 +120,14 @@ export interface Step {
    *  ne pas les considérer pour le matching manualOverride, etc. Les positions
    *  sont interpolées linéairement. */
   isInterpolated?: boolean;
+  /** F.4 — Secondes restantes au CHRONO DE QUART à ce step (pas le shot
+   *  clock). Utilisé par `detectFoulToGiveOpportunity` : la fin de quart
+   *  + défense pas encore en bonus déclenche le "foul to give" légal.
+   *  Indéfini → règle inactive sur ce step. */
+  clockSeconds?: number;
+  /** F.5 — Secondes restantes au SHOT CLOCK à ce step. Indéfini → la couche
+   *  `lateShotClockLayer` ne s'active pas. Default conceptuel 24. */
+  shotClockRemaining?: number;
   /** B.1 — Durée individuelle de la transition step → step+1, en secondes.
    *  Indéfini = fallback sur `state.secondsPerStep` (default 4s). Permet de
    *  moduler la durée narrative de chaque étape indépendamment (un dribble
@@ -759,6 +767,15 @@ export interface AppState {
    *  Legacy : conservé pour rétrocompat des scénarios pré-V2. Si
    *  `helpStickinessMs` est défini, celui-ci prime. */
   helpStickiness?: number;
+  /** F.4 — Fautes équipe défense pour le quart en cours (0-5). À ≥ 5,
+   *  l'équipe est en BONUS : "foul to give" devient interdit (donne LF).
+   *  Default 0 (rentrée fraîche dans le quart). */
+  defenseTeamFouls?: number;
+  /** F.5 — Active la modulation défensive automatique sous les 5 dernières
+   *  secondes du shot clock (closeoutBoost ×1.3, helpMode passif,
+   *  vsCarrier contester). Effet uniquement si `step.shotClockRemaining`
+   *  est défini ET < 5. */
+  lateShotClockDefenseEnabled?: boolean;
   /** C.2 V2 — Help-and-recover timing (millisecondes) : seuil en ms pour
    *  le sticky help, plus fidèle basket que le compte de steps puisque
    *  indépendant du découpage (~1200 ms = standard NBA). Range 100..2500.

@@ -299,6 +299,7 @@ export default function Page() {
                     onDuplicateStep={app.duplicateStep}
                     onDeleteStep={app.deleteStep}
                     onSetStepLabel={app.setStepLabel}
+                    onPatchStep={app.patchStep}
                     onSetBallCarrier={app.setBallCarrier}
                     onDeleteAnnotation={app.deleteAnnotation}
                     onConvertToFreeThrow={app.convertStepToFreeThrow}

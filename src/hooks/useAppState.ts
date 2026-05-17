@@ -231,6 +231,13 @@ export function useAppState() {
     setStateWithHistory((s) => stepTx.setStepLabel(s, idx, label));
   }, [setStateWithHistory]);
 
+  const patchStep = useCallback(
+    (idx: number, patch: Partial<AppState['steps'][number]>) => {
+      setStateWithHistory((s) => stepTx.patchStep(s, idx, patch));
+    },
+    [setStateWithHistory],
+  );
+
   const setBallCarrier = useCallback((carrier: AttackerId) => {
     setStateWithHistory((s) => stepTx.setBallCarrier(s, carrier));
   }, [setStateWithHistory]);
@@ -643,6 +650,7 @@ export function useAppState() {
     clearAllDefenseOverridesActiveStepAnimated,
     defenseReleaseTransition,
     setStepLabel,
+    patchStep,
     setBallCarrier,
     convertStepToFreeThrow,
     convertStepToInbound,

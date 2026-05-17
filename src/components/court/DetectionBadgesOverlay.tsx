@@ -117,6 +117,20 @@ export function DetectionBadgesOverlay({
         return <ChainBadge key={tag} pos={cp} label={label} color={color} title={diag.message} />;
       })}
 
+      {/* F.4 — Foul to give opportunity (badge sur le défenseur du porteur) */}
+      {(() => {
+        const diag = byTag.get('foul-to-give');
+        if (!diag) return null;
+        const dId = diag.defenders[0];
+        if (!dId || !defPos[dId]) return null;
+        return (
+          <FoulToGiveBadge
+            pos={{ x: defPos[dId].x, y: defPos[dId].y }}
+            title={diag.message}
+          />
+        );
+      })()}
+
       {/* B7 — Defensive 3-second violation */}
       {diagnostics
         .filter((d) => d.tag === 'defensive-3sec')
@@ -221,6 +235,33 @@ function EmptySideBadge({ pos }: { pos: Point }) {
         textAnchor="middle"
       >
         ↻ EMPTY SIDE
+      </text>
+    </g>
+  );
+}
+
+/** Badge rouge "🟥 FOUL TO GIVE" — opportunité de faute volontaire fin de
+ *  quart (F.4). Posé sur le défenseur qui matched le porteur. */
+function FoulToGiveBadge({ pos, title }: { pos: Point; title: string }) {
+  const width = 86;
+  const dx = -width / 2;
+  const dy = -PLAYER_RADIUS - 32;
+  return (
+    <g transform={`translate(${pos.x + dx}, ${pos.y + dy})`}>
+      <title>{title}</title>
+      {/* Pastille de fond avec contour rouge vif. */}
+      <rect x={0} y={-8} width={width} height={16} rx={3} fill="#dc2626" opacity={0.95} />
+      <rect x={0} y={-8} width={width} height={16} rx={3} fill="none" stroke="#fca5a5" strokeWidth={0.8} />
+      <text
+        x={width / 2}
+        y={3}
+        fontSize={9}
+        fontWeight={700}
+        fill="#fff"
+        textAnchor="middle"
+        letterSpacing={0.3}
+      >
+        🟥 FOUL TO GIVE
       </text>
     </g>
   );

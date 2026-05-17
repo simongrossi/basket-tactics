@@ -17,6 +17,7 @@ import { buildDefenseFrameContext } from './defense/context';
 import { applyBaseTargetsLayer } from './defense/baseTargets';
 import { applyRimProtectionLayer } from './defense/rimProtectionLayer';
 import { applyHelpStickyLayer } from './defense/helpStickyLayer';
+import { applyLateShotClockLayer } from './defense/lateShotClockLayer';
 import { applyPnRRotationsLayer } from './defense/pnrLayer';
 import { applyChainResponseLayer } from './defense/chainResponseLayer';
 import { applyOffBallScreenLayer } from './defense/offBallScreenLayer';
@@ -91,6 +92,10 @@ export function computeDefenseTargets(
   // Évite le snap-back instantané sur le matchup quand le trigger d'aide
   // disparaît. Opt-in via `state.helpStickiness` (1..3 steps).
   applyHelpStickyLayer(positions, matchups, ctx);
+  // Couche 1.7 — F.5 Late shot clock defense : sous 5s du shot clock,
+  // l'attaque doit shooter → no help, carrierDef contest accru.
+  // Opt-in via `state.lateShotClockDefenseEnabled` + `step.shotClockRemaining`.
+  applyLateShotClockLayer(positions, matchups, ctx);
   // Couche 2 — Rotations PnR (low-man tag + X-out + nail stunt).
   applyPnRRotationsLayer(positions, matchups, ctx);
   // Couche 2.5 — C.7 V2 réaction défensive aux chaînes d'écrans (re-screen

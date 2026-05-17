@@ -741,6 +741,32 @@ export function DefensePanel(props: DefensePanelProps) {
                 C.1 closeout sprint+freinage et C.6 help angle continu sont
                 actifs en permanence (sans toggle).
               </div>
+              {/* F.4 — Fautes équipe défense pour le quart en cours */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 110 }} title="F.4 — Fautes équipe défense du quart. À 5, l'équipe est en bonus et le 'foul to give' devient interdit.">
+                  fautes équipe (F.4)
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  max={5}
+                  step={1}
+                  value={state.defenseTeamFouls ?? 0}
+                  onChange={(e) => {
+                    const v = Math.max(0, Math.min(5, parseInt(e.target.value) || 0));
+                    props.onPatch({ defenseTeamFouls: v });
+                  }}
+                  style={{ width: 56, fontSize: 11, padding: '3px 4px' }}
+                />
+                <span style={{ fontSize: 10, color: '#94a3b8' }}>/ 5</span>
+              </div>
+              {/* F.5 — Late shot clock defense */}
+              <CheckboxLine
+                checked={!!state.lateShotClockDefenseEnabled}
+                label="late shot clock — no help (F.5)"
+                onChange={(v) => props.onPatch({ lateShotClockDefenseEnabled: v })}
+                title="Sous 5s du shot clock, la défense désactive l'aide (contest direct sur le porteur). Effet seulement si step.shotClockRemaining est défini."
+              />
             </div>
           </details>
         </AccordionSection>
