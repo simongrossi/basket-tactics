@@ -128,6 +128,11 @@ export interface Step {
   /** F.5 — Secondes restantes au SHOT CLOCK à ce step. Indéfini → la couche
    *  `lateShotClockLayer` ne s'active pas. Default conceptuel 24. */
   shotClockRemaining?: number;
+  /** G.2 — Sprint contextuel : si true, la vitesse max effective des
+   *  défenseurs est ×1.8 sur la transition step→step+1 (fast break,
+   *  transition, run-out post-rebond). Default false = no-op. Cumulable
+   *  avec defenderSpeedProfiles (G.4) et rule.closeoutBoost. */
+  sprintBoost?: boolean;
   /** B.1 — Durée individuelle de la transition step → step+1, en secondes.
    *  Indéfini = fallback sur `state.secondsPerStep` (default 4s). Permet de
    *  moduler la durée narrative de chaque étape indépendamment (un dribble

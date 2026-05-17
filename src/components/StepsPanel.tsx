@@ -224,6 +224,30 @@ export function StepsPanel(props: StepsPanelProps) {
                     </label>
                   </div>
                 )}
+                {/* G.2 — Sprint boost contextuel (toggle sur step actif) */}
+                {isActive && props.onPatchStep && (
+                  <label
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      marginTop: 3,
+                      fontSize: 9,
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                    }}
+                    title="G.2 — Sprint contextuel : vitesse max défense ×1.8 sur ce step (fast break / transition / run-out)."
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!!s.sprintBoost}
+                      onChange={(e) => props.onPatchStep!(i, { sprintBoost: e.target.checked || undefined })}
+                      style={{ width: 12, height: 12, flex: '0 0 12px' }}
+                    />
+                    sprint (×1.8 vitesse défense)
+                  </label>
+                )}
                 {/* Liste des annotations supprimables — visible seulement sur l'étape active */}
                 {isActive && visibleAnnotations.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4 }}>
