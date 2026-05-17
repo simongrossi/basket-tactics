@@ -27,7 +27,7 @@
 
 import type { DefenderId, Matchups, Point } from '../../types';
 import { computeDefenseTargets } from '../engine';
-import { consecutiveHelpSteps } from './helpStepCounter';
+import { consecutiveHelpSteps, cumulatedHelpMs } from './helpStepCounter';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
 
@@ -38,9 +38,12 @@ export function applyHelpStickyLayer(
 ): void {
   const { state, stepIdx, defenderIds } = ctx;
 
-  // Opt-in. Si undefined ou 0, comportement legacy strict.
+  // V2 (ms) prime sur V1 (steps). Si aucun défini → legacy strict.
+  const stickinessMs = state.helpStickinessMs;
   const stickiness = state.helpStickiness;
-  if (!stickiness || stickiness <= 0) return;
+  const useV2 = typeof stickinessMs === 'number' && stickinessMs > 0;
+  const useV1 = !useV2 && typeof stickiness === 'number' && stickiness > 0;
+  if (!useV2 && !useV1) return;
   if (stepIdx === 0) return;
 
   // Récupère les positions du step précédent UNE seule fois (coûteux).
@@ -66,10 +69,19 @@ export function applyHelpStickyLayer(
     // Skip si défenseur impliqué dans un scram switch ou switchedThisStep.
     if (target.switchedThisStep || target.scrammedThisStep) return;
 
-    // Combien de steps consécutifs d'aide aux STEPS PRÉCÉDENTS ?
-    const consec = consecutiveHelpSteps(state, stepIdx, dId);
-    if (consec === 0) return; // jamais en aide récemment → recover normal
-    if (consec >= stickiness) return; // au-delà du seuil → recover complet
+    // Calcule le blend factor selon V1 (steps) ou V2 (ms).
+    let blendFactor: number;
+    if (useV2) {
+      const cumMs = cumulatedHelpMs(state, stepIdx, dId);
+      if (cumMs === 0) return;                   // jamais en aide récemment
+      if (cumMs >= stickinessMs!) return;        // au-delà du seuil → recover complet
+      blendFactor = Math.max(0, 1 - cumMs / stickinessMs!);
+    } else {
+      const consec = consecutiveHelpSteps(state, stepIdx, dId);
+      if (consec === 0) return;
+      if (consec >= stickiness!) return;
+      blendFactor = Math.max(0, 1 - consec / stickiness!);
+    }
 
     // Lazy load des positions précédentes.
     if (!prevTargets) {
@@ -82,11 +94,8 @@ export function applyHelpStickyLayer(
     // on prend la position précédente du défenseur lui-même.
     const stickyPoint: Point = prevHelpAim ?? { x: prevTarget.x, y: prevTarget.y };
 
-    // Decay : plus consec est élevé (proche du seuil), moins on garde de
-    // sticky. consec=1 / stickiness=3 → blend 0.667. consec=2 / 3 → 0.333.
-    // À consec === stickiness on quitte avant (recover complet).
-    const blendFactor = Math.max(0, 1 - consec / stickiness);
-
+    // Decay déjà calculé au-dessus (V1 ou V2). À blendFactor=0 on bail out,
+    // à blendFactor proche de 1 on garde majoritairement la cible d'aide.
     positions[dId].x = stickyPoint.x * blendFactor + target.x * (1 - blendFactor);
     positions[dId].y = stickyPoint.y * blendFactor + target.y * (1 - blendFactor);
 

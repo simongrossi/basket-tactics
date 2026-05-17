@@ -31,6 +31,7 @@ import type {
 import { detectTriggers } from '../triggers';
 import { getDefenseHoop } from '../engine';
 import { activeBallCarrier, activeOffense } from '../players';
+import { getStepDurationSeconds } from '../timecode';
 
 /**
  * Compte combien de steps consécutifs (REMONTANT depuis `stepIdx - 1`) ont
@@ -65,6 +66,36 @@ export function consecutiveHelpSteps(
     count++;
   }
   return count;
+}
+
+/**
+ * C.2 V2 — Temps cumulé (en ms) d'aide consécutive aux steps précédents.
+ *
+ * Combine `consecutiveHelpSteps` (compte) et `getStepDurationSeconds`
+ * (durée individuelle de chaque step, B.1) pour exprimer le seuil de
+ * "sticky help" en millisecondes plutôt qu'en steps. Plus fidèle basket
+ * (1.2s d'aide ≈ standard NBA) car indépendant du découpage en steps.
+ *
+ * Sémantique : si steps [stepIdx-consec .. stepIdx-1] étaient en aide,
+ * la durée cumulée est Σ step[stepIdx-k].duration pour k=1..consec.
+ * Chaque `step[k].duration` représente la transition step[k] → step[k+1],
+ * donc le temps passé "dans la stance d'aide" pendant ce step.
+ */
+export function cumulatedHelpMs(
+  state: AppState,
+  stepIdx: number,
+  defenderId: DefenderId,
+  maxLookback: number = 5
+): number {
+  const consec = consecutiveHelpSteps(state, stepIdx, defenderId, maxLookback);
+  if (consec === 0) return 0;
+  let totalMs = 0;
+  for (let k = 1; k <= consec; k++) {
+    const idx = stepIdx - k;
+    if (idx < 0) break;
+    totalMs += getStepDurationSeconds(state, idx) * 1000;
+  }
+  return totalMs;
 }
 
 /** Vérifie qu'un trigger d'aide est actif au step `i` (drive/post/paint).

@@ -753,14 +753,19 @@ export interface AppState {
    *  route over/under. Défaut false (opt-in). Effet ≈ 8-12 px de shift,
    *  insuffisant pour modifier le marquage mais visible sur le terrain. */
   preRotationEnabled?: boolean;
-  /** C.2 — Help-and-recover timing : nombre de steps consécutifs où un
-   *  défenseur MAINTIENT sa position d'aide après que le trigger ait
-   *  disparu (au lieu de revenir instantanément sur son homme).
-   *  Range 1..3. `undefined` → comportement legacy (recover instantané).
-   *  Effet : blend décroissant (decay) entre la position d'aide précédente
-   *  et la cible homme-à-homme courante, pour un retour progressif et
-   *  visuellement réaliste. */
+  /** C.2 V1 — Help-and-recover timing (steps) : nombre de steps consécutifs
+   *  où un défenseur MAINTIENT sa position d'aide après que le trigger ait
+   *  disparu. Range 1..3. `undefined` → legacy strict.
+   *  Legacy : conservé pour rétrocompat des scénarios pré-V2. Si
+   *  `helpStickinessMs` est défini, celui-ci prime. */
   helpStickiness?: number;
+  /** C.2 V2 — Help-and-recover timing (millisecondes) : seuil en ms pour
+   *  le sticky help, plus fidèle basket que le compte de steps puisque
+   *  indépendant du découpage (~1200 ms = standard NBA). Range 100..2500.
+   *  `undefined` → fallback sur `helpStickiness` (V1) ou legacy strict.
+   *  Effet : blend décroissant entre la position d'aide précédente et la
+   *  cible homme-à-homme courante, sur la base du temps cumulé d'aide. */
+  helpStickinessMs?: number;
   /** C.7 V2 — Read offensive action chains : si activé, la défense RÉAGIT
    *  aux chaînes détectées par `detectScreenChain` (re-screen, stagger,
    *  flare-then-fade) au lieu de juste les diagnoster.

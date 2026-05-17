@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { AppState, AttackerPositions } from '@/lib/types';
 import { makeInitialState } from '@/lib/data/initial';
 import { effectiveDefensePositions } from '@/lib/logic/engine';
-import { consecutiveHelpSteps } from '@/lib/logic/defense/helpStepCounter';
+import { consecutiveHelpSteps, cumulatedHelpMs } from '@/lib/logic/defense/helpStepCounter';
 import { PLAYER_MIN_CLEARANCE_PX } from '@/lib/data/court';
 
 /** Construit un AppState 3-steps avec un drive trigger qui s'éteint au step 2.
@@ -154,5 +154,89 @@ describe('C.2 — helpStickiness intégration', () => {
     expect(def.D1.onScreen).toBe(true);
     // Le sticky ne saute pas dessus (et il ne pourrait pas vu stepIdx=0
     // de toute façon, mais on garde le test pour signaler l'intent).
+  });
+});
+
+// ============================================================================
+// C.2 V2 — helpStickinessMs (seuil en millisecondes, dépend B.1 step.duration)
+// ============================================================================
+
+describe('cumulatedHelpMs (C.2 V2)', () => {
+  it('retourne 0 quand consecutiveHelpSteps retourne 0', () => {
+    const state = makeHelpScenario();
+    expect(cumulatedHelpMs(state, 0, 'D3')).toBe(0);
+  });
+
+  it('utilise step.duration quand défini, fallback secondsPerStep sinon', () => {
+    const state = makeHelpScenario();
+    state.rules.D3 = { ...state.rules.D3, helpPct: 50 };
+    state.secondsPerStep = 4; // 1 step = 4s = 4000 ms
+    // Au step 2 : consecutiveHelpSteps = 1 (step 1 = drive trigger ON).
+    // duration non défini → fallback sps = 4 → 4000 ms cumulés.
+    expect(cumulatedHelpMs(state, 2, 'D3')).toBe(4000);
+  });
+
+  it('respecte step.duration individuel sur les steps comptés', () => {
+    const state = makeHelpScenario();
+    state.rules.D3 = { ...state.rules.D3, helpPct: 50 };
+    state.steps[1] = { ...state.steps[1], duration: 1.2 }; // 1200 ms
+    expect(cumulatedHelpMs(state, 2, 'D3')).toBe(1200);
+  });
+});
+
+describe('C.2 V2 — helpStickinessMs intégration', () => {
+  it('helpStickinessMs prime sur helpStickiness quand les deux sont définis', () => {
+    const stateBoth = makeHelpScenario({
+      helpStickiness: 1,         // V1 dirait : bail out (consec >= 1)
+      helpStickinessMs: 5000,    // V2 dirait : stick (cumMs 4000 < 5000)
+    });
+    stateBoth.rules.D3 = { ...stateBoth.rules.D3, helpPct: 50 };
+    stateBoth.secondsPerStep = 4;
+    const def = effectiveDefensePositions(stateBoth, 2);
+    // Si V2 prime, sticky actif → helpTriggered = true.
+    expect(def.D3.helpTriggered).toBe(true);
+  });
+
+  it('helpStickinessMs=5000 → sticky actif au step 2 (cumMs 4000 < 5000)', () => {
+    const state = makeHelpScenario({ helpStickinessMs: 5000 });
+    state.rules.D3 = { ...state.rules.D3, helpPct: 50 };
+    state.secondsPerStep = 4;
+    const def = effectiveDefensePositions(state, 2);
+    expect(def.D3.helpTriggered).toBe(true);
+  });
+
+  it('helpStickinessMs=2000 → recover complet au step 2 (cumMs 4000 >= 2000)', () => {
+    const state = makeHelpScenario({ helpStickinessMs: 2000 });
+    state.rules.D3 = { ...state.rules.D3, helpPct: 50 };
+    state.secondsPerStep = 4;
+    const def = effectiveDefensePositions(state, 2);
+    // cumMs >= seuil → bail out, comportement legacy.
+    expect(def.D3.helpTriggered).toBeFalsy();
+  });
+
+  it('helpStickinessMs s\'adapte automatiquement à Step.duration (granularité fine)', () => {
+    // Avec step.duration = 1.5s, cumMs = 1500 ms au step 2.
+    // Seuil 2000 → sticky actif (1500 < 2000).
+    const state = makeHelpScenario({ helpStickinessMs: 2000 });
+    state.rules.D3 = { ...state.rules.D3, helpPct: 50 };
+    state.steps[1] = { ...state.steps[1], duration: 1.5 };
+    const def = effectiveDefensePositions(state, 2);
+    expect(def.D3.helpTriggered).toBe(true);
+  });
+
+  it('INVARIANT : helpStickinessMs=5000 ne casse aucune clearance', () => {
+    const state = makeHelpScenario({ helpStickinessMs: 5000 });
+    state.rules.D3 = { ...state.rules.D3, helpPct: 50 };
+    state.secondsPerStep = 4;
+    const def = effectiveDefensePositions(state, 2);
+    const off = state.steps[2].off;
+    const DEFS = ['D1', 'D2', 'D3', 'D4', 'D5'] as const;
+    const ATTS = ['O1', 'O2', 'O3', 'O4', 'O5'] as const;
+    DEFS.forEach((dId) => {
+      ATTS.forEach((oId) => {
+        const d = Math.hypot(def[dId].x - off[oId].x, def[dId].y - off[oId].y);
+        expect(d, `${dId} ↔ ${oId}`).toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.5);
+      });
+    });
   });
 });

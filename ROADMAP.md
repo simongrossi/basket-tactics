@@ -623,12 +623,12 @@ hautement valorisantes.
 Aujourd'hui : steps abstraits, durée uniforme 2 s, pas de shot clock.
 Cette phase pose les fondations pour la suite (closeout réaliste, end-of-clock defense, etc.).
 
-| # | Chantier | Effort | Risque | Valeur |
-|---|---|---|---|---|
-| B.1 | **Durée individuelle par step** : nouveau champ `step.duration?: number` (s, default 2). `PLAYBACK_STEP_DURATION_MS` devient default. La timeline affiche `t=` cumulé. | 3-4h | 🟡 | Haut |
-| B.2 | **Shot clock display** (24 s NBA / 14 s reset) : décrémente au fil des steps (basé sur leur durée cumulée). Couleurs vert/jaune/rouge selon temps restant. | 1-2h | 🟢 | Moyen-haut |
-| B.3 | **End-of-clock defense awareness** : `defensiveContext.timeRemaining` lu par les couches. À <5 s : `contest mode` (no fouls, all-hands-up). | 2h | 🟡 | Moyen |
-| B.4 | **Synchronisation cross-actor** : `annotation.tStart/tEnd` en secondes ABSOLUES plutôt que fraction du step. Permet à O1 (dribble 1.5s) et O5 (cut 0.8s) de finir à des moments différents. | 4-6h | 🟡 | Moyen |
+| # | Chantier | Effort | Risque | Valeur | Statut |
+|---|---|---|---|---|---|
+| ~~B.1~~ | ~~**Durée individuelle par step** : nouveau champ `step.duration?: number` (s, default `state.secondsPerStep`). Timeline + MultiTrack + Playbook recap utilisent `realStepToSeconds` cumulé.~~ | — | — | — | 🟢 livré 2026-05-17 (17 tests, 1262 verts) |
+| B.2 | **Shot clock display** (24 s NBA / 14 s reset) : décrémente au fil des steps (basé sur leur durée cumulée). Couleurs vert/jaune/rouge selon temps restant. | 1-2h | 🟢 | Moyen-haut | ⚪ |
+| B.3 | **End-of-clock defense awareness** : `defensiveContext.timeRemaining` lu par les couches. À <5 s : `contest mode` (no fouls, all-hands-up). | 2h | 🟡 | Moyen | ⚪ |
+| B.4 | **Synchronisation cross-actor** : `annotation.tStart/tEnd` en secondes ABSOLUES plutôt que fraction du step. Permet à O1 (dribble 1.5s) et O5 (cut 0.8s) de finir à des moments différents. | 4-6h | 🟡 | Moyen | ⚪ |
 
 ---
 
@@ -647,26 +647,22 @@ juste plus de fidélité tactique.
 | ~~C.6~~ | ~~**Help angle** : mode `open-weighted` (distances)~~ | — | — | — | 🟢 livré 2026-05-12 (3 tests, 724 verts) |
 | ~~C.7~~ | ~~**Read offensive action chains** : V1 diag/badge + V2 réaction défensive (re-screen tangentiel + flare-fade gazeLock)~~ | — | — | — | 🟢 V1 + V2 livrés 2026-05-13 (21 tests, 888 verts) |
 
-#### ⚪ C.2 — Help-and-recover timing — détail du plan
+#### 🟢 C.2 — Help-and-recover timing — livré
 
-**Problème actuel.** Un défenseur aide au step N (helpTriggered=true), puis
-revient instantanément sur son homme au step N+1. Pas de notion "il faut
-1-2 secondes avant recovery", donc en match enchaîné rapidement, l'aide
-disparaît avant même que la menace passe.
+**Problème résolu.** Un défenseur aidait au step N (helpTriggered=true),
+puis revenait instantanément sur son homme au step N+1. Maintenant le
+recover est progressif, avec decay configurable en steps ou en ms.
 
-**V1 (livrable sans dépendance B.1)** — compteur step-based.
-- Helper pur `defense/helpStepCounter.ts` : `consecutiveHelpSteps(state, stepIdx, defenderId)` qui compte combien de steps consécutifs en remontant ont eu `helpTriggered === true` sur ce défenseur. Pattern strictement identique à `consecutiveHedgeSteps` (C.3) → utilise `approxDefenderPositions` pour éviter récursion.
-- Setting opt-in `state.helpStickiness?: number` (range 1-3, default undefined = comportement legacy).
-- Couche d'intégration `defense/helpStickyLayer.ts` (après baseTargets, avant pnrLayer) : si le défenseur n'est plus en `helpTriggered` à ce step MAIS l'était au step précédent ET `consecutiveHelpSteps(stepIdx-1) < helpStickiness`, on **maintient** sa position d'aide (offset vers le porteur) pour ce step.
-- UI : slider "durée d'aide" dans la section *Couvertures avancées* (valeurs auto/1/2/3 steps).
-- Tests : 4-5 (helper + 2-3 intégration + monotonie).
+**V1 livré 2026-05-13** (compteur step-based, 10 tests).
+- Helper pur `defense/helpStepCounter.ts::consecutiveHelpSteps(state, stepIdx, defenderId)` (compte les steps consécutifs avec trigger d'aide plausible — drive/post/paint + helpPct>0 + stance sag).
+- Setting opt-in `state.helpStickiness?: number` (range 1-3, default undefined = legacy).
+- Couche d'intégration `defense/helpStickyLayer.ts` (couche 1.6, après baseTargets/rimProtection, avant pnrRotations). Skip si onScreen, pnrRole, switchedThisStep, scrammedThisStep. Decay : `blendFactor = 1 - consec / stickiness`.
 
-**V2 (avec B.1 step.duration livré)** — conversion temps réel.
-- `helpStickiness` devient un seuil en **ms** (range 0-2000, default undefined).
-- `consecutiveHelpSteps` retourne le **temps cumulé** au lieu d'un compteur.
-- Plus fidèle basket (1.2 s d'aide ≈ standard NBA).
-
-**Estimation** : V1 3-4h, V2 +2h une fois B.1 livré.
+**V2 livré 2026-05-17** (conversion temps réel, 8 tests, 1262 verts).
+- Setting opt-in `state.helpStickinessMs?: number` (range 100-2500 ms). Prime sur V1 quand défini.
+- Helper `cumulatedHelpMs(state, stepIdx, defenderId)` : somme `Step.duration × 1000` sur les steps comptés par `consecutiveHelpSteps`. Dépend de B.1 (step.duration) pour la granularité réelle, fallback `state.secondsPerStep` sinon.
+- `helpStickyLayer` : si V2 actif, `blendFactor = 1 - cumMs / stickinessMs`. Plus fidèle basket (1200 ms ≈ standard NBA, indépendant du découpage en steps).
+- UI : slider 0-2500 ms par pas de 100 ms dans `DefensePanel` (section *Couvertures avancées*) ; activation V2 → désactive V1 legacy automatiquement.
 
 #### ⚪ C.7 — Read offensive action chains — détail du plan
 
@@ -1177,8 +1173,9 @@ comprendre.
 
 ### Synthèse — ordre conseillé
 
-**Phase C — état au 2026-05-12** : 5/7 livrés (C.1, C.3, C.4, C.5, C.6).
-Reste **C.2** (3-4h V1) et **C.7** (6-8h V1+V2).
+**Phase C — état au 2026-05-17** : 7/7 livrés (C.1 → C.7, V1+V2 inclus).
+Phase C complète. Phase B partiellement livrée (B.1 livré 2026-05-17,
+reste B.2/B.3/B.4).
 
 **Cette semaine** (~6h) : A.2 + A.3 + B.1 → débloque shot clock,
 défense end-of-clock, plus de finesse coach.
@@ -1216,7 +1213,7 @@ V1, refonte `getDefenseHoop`).
 | Item | Statut | Tests | Commit |
 |------|--------|-------|--------|
 | C.1 Closeout footwork | 🟢 livré | 7 | `8b65aa6` |
-| C.2 Help-and-recover | 🟢 livré (V1 step-based) | 10 | (commit C.2) |
+| C.2 Help-and-recover | 🟢 V1 + V2 livrés (step + ms, slider DefensePanel) | 18 | (commits C.2 V1, V2 2026-05-17) |
 | C.3 Hedge length | 🟢 livré | 8 | `5758086` |
 | C.4 Pre-rotation | 🟢 livré | 10 | `9f2e21a` |
 | C.5 Tag-then-switch | 🟢 livré | 4 | `18bf440` |

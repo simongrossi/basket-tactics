@@ -710,24 +710,32 @@ export function DefensePanel(props: DefensePanelProps) {
                 onChange={(v) => props.onPatch({ readScreenChainsEnabled: v })}
                 title="Active la réaction défensive aux re-screens / staggers / flares"
               />
-              {/* C.2 — Help-and-recover timing */}
+              {/* C.2 V2 — Help-and-recover timing (millisecondes) */}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 80 }} title="C.2 — durée de l'aide après disparition du trigger">
+                <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 80 }} title="C.2 V2 — durée d'aide après disparition du trigger (ms). 1200 ms ≈ standard NBA.">
                   durée d'aide
                 </span>
-                <select
-                  value={state.helpStickiness ?? 'auto'}
+                <input
+                  type="range"
+                  min={0}
+                  max={2500}
+                  step={100}
+                  value={state.helpStickinessMs ?? 0}
                   onChange={(e) => {
-                    const v = e.target.value;
-                    props.onPatch({ helpStickiness: v === 'auto' ? undefined : parseInt(v) });
+                    const v = parseInt(e.target.value);
+                    // Active V2 → désactive V1 legacy (évite double mode).
+                    props.onPatch({
+                      helpStickinessMs: v === 0 ? undefined : v,
+                      helpStickiness: undefined,
+                    });
                   }}
-                  style={{ flex: 1, fontSize: 11, padding: '3px 4px' }}
-                >
-                  <option value="auto">auto (instantané)</option>
-                  <option value={1}>1 step</option>
-                  <option value={2}>2 steps (standard)</option>
-                  <option value={3}>3 steps (sticky)</option>
-                </select>
+                  style={{ flex: 1 }}
+                />
+                <span style={{ fontSize: 10, color: '#94a3b8', minWidth: 56, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                  {state.helpStickinessMs && state.helpStickinessMs > 0
+                    ? `${state.helpStickinessMs} ms`
+                    : 'auto'}
+                </span>
               </div>
               <div style={{ fontSize: 9, color: '#94a3b8', fontStyle: 'italic', padding: '4px 0' }}>
                 C.1 closeout sprint+freinage et C.6 help angle continu sont
