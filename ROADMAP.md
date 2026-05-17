@@ -627,7 +627,7 @@ Cette phase pose les fondations pour la suite (closeout réaliste, end-of-clock 
 |---|---|---|---|---|---|
 | ~~B.1~~ | ~~**Durée individuelle par step** : nouveau champ `step.duration?: number` (s, default `state.secondsPerStep`). Timeline + MultiTrack + Playbook recap utilisent `realStepToSeconds` cumulé.~~ | — | — | — | 🟢 livré 2026-05-17 (17 tests, 1262 verts) |
 | B.2 | **Shot clock display** (24 s NBA / 14 s reset) : décrémente au fil des steps (basé sur leur durée cumulée). Couleurs vert/jaune/rouge selon temps restant. | 1-2h | 🟢 | Moyen-haut | ⚪ |
-| B.3 | **End-of-clock defense awareness** : `defensiveContext.timeRemaining` lu par les couches. À <5 s : `contest mode` (no fouls, all-hands-up). | 2h | 🟡 | Moyen | ⚪ |
+| ~~B.3~~ | ~~**End-of-clock defense awareness** : helper + règle coach 'warning' + badge SVG `🚫 NO FOUL` quand clockSeconds<5 ET fautes≥5 (équipe en bonus). Exclusif de F.4 sur l'axe defenseTeamFouls.~~ | — | — | — | 🟢 V1 livré 2026-05-18 (7 tests, 1286 verts) |
 | B.4 | **Synchronisation cross-actor** : `annotation.tStart/tEnd` en secondes ABSOLUES plutôt que fraction du step. Permet à O1 (dribble 1.5s) et O5 (cut 0.8s) de finir à des moments différents. | 4-6h | 🟡 | Moyen | ⚪ |
 
 ---

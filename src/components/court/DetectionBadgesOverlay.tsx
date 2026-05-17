@@ -131,6 +131,20 @@ export function DetectionBadgesOverlay({
         );
       })()}
 
+      {/* B.3 — End-of-quarter contest (équipe en bonus, no fouls) */}
+      {(() => {
+        const diag = byTag.get('end-of-clock-contest');
+        if (!diag) return null;
+        const dId = diag.defenders[0];
+        if (!dId || !defPos[dId]) return null;
+        return (
+          <EndOfClockBadge
+            pos={{ x: defPos[dId].x, y: defPos[dId].y }}
+            title={diag.message}
+          />
+        );
+      })()}
+
       {/* B7 — Defensive 3-second violation */}
       {diagnostics
         .filter((d) => d.tag === 'defensive-3sec')
@@ -262,6 +276,33 @@ function FoulToGiveBadge({ pos, title }: { pos: Point; title: string }) {
         letterSpacing={0.3}
       >
         🟥 FOUL TO GIVE
+      </text>
+    </g>
+  );
+}
+
+/** Badge ambre "🚫 NO FOUL" — fin de quart + équipe en bonus, contest mode
+ *  prudent (B.3). Posé sur le défenseur du porteur. Couleur ambre pour
+ *  signaler "warning préventif", à distinguer du rouge F.4 "opportunity". */
+function EndOfClockBadge({ pos, title }: { pos: Point; title: string }) {
+  const width = 78;
+  const dx = -width / 2;
+  const dy = -PLAYER_RADIUS - 32;
+  return (
+    <g transform={`translate(${pos.x + dx}, ${pos.y + dy})`}>
+      <title>{title}</title>
+      <rect x={0} y={-8} width={width} height={16} rx={3} fill="#d97706" opacity={0.95} />
+      <rect x={0} y={-8} width={width} height={16} rx={3} fill="none" stroke="#fbbf24" strokeWidth={0.8} />
+      <text
+        x={width / 2}
+        y={3}
+        fontSize={9}
+        fontWeight={700}
+        fill="#fff"
+        textAnchor="middle"
+        letterSpacing={0.3}
+      >
+        🚫 NO FOUL
       </text>
     </g>
   );
