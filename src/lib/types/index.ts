@@ -767,6 +767,12 @@ export interface AppState {
    *  Legacy : conservé pour rétrocompat des scénarios pré-V2. Si
    *  `helpStickinessMs` est défini, celui-ci prime. */
   helpStickiness?: number;
+  /** G.4 — Profil athlétique des défenseurs (multiplicateur sur la vitesse
+   *  max). 'elite' ×1.3, 'standard' ×1.0 (= défaut implicite), 'lent' ×0.7.
+   *  Permet de différencier "ce poste est lent" (déjà couvert par
+   *  MAX_SPEED_BY_POSITION) et "ce JOUEUR est lent/rapide pour son poste".
+   *  Indéfini ou 'standard' → no-op. */
+  defenderSpeedProfiles?: Partial<Record<DefenderId, 'elite' | 'standard' | 'lent'>>;
   /** F.4 — Fautes équipe défense pour le quart en cours (0-5). À ≥ 5,
    *  l'équipe est en BONUS : "foul to give" devient interdit (donne LF).
    *  Default 0 (rentrée fraîche dans le quart). */

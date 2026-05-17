@@ -386,10 +386,17 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
       ? closeoutProfileBonus(state.attackerProfiles?.[curCarrier])
       : 1;
     const closeoutBoost = (ruleBoost ?? state.closeoutBoost ?? DEFAULT_CLOSEOUT_BOOST) * profileBonus;
-    // Vitesse max individuelle (rule.maxSpeed) > globale (en zone, on garde la rotation)
-    const indivMaxSpeed = state.defenseSystem === 'man'
+    // Vitesse max individuelle (rule.maxSpeed) > globale (en zone, on garde la rotation).
+    // G.4 — modulation par profil athlétique du défenseur (elite ×1.3,
+    // lent ×0.7, standard/undefined ×1.0).
+    const rawIndivMaxSpeed = state.defenseSystem === 'man'
       ? (state.rules[dId]?.maxSpeed ?? baseMaxSpeed)
       : baseMaxSpeed;
+    const speedProfile = state.defenderSpeedProfiles?.[dId];
+    const profileMultiplier =
+      speedProfile === 'elite' ? 1.3 :
+      speedProfile === 'lent' ? 0.7 : 1.0;
+    const indivMaxSpeed = rawIndivMaxSpeed * profileMultiplier;
     const maxSpeed = closingOut ? indivMaxSpeed * closeoutBoost : indivMaxSpeed;
     // Pénalité de contact d'écran : un défenseur qui prend un écran perd du
     // temps à se dégager. La pénalité est modulée par la

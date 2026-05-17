@@ -916,7 +916,7 @@ ou affiner.
 | ~~G.1~~ | ~~**Doc calibration explicite** : nouveau `docs/physics-calibration.md` qui pose le scope tactique vs sprint réel, ratios chiffrés vs NBA, coût d'un passage en sprint, cas où le mode tactique gêne.~~ | — | — | — | 🟢 livré 2026-05-18 |
 | G.2 | **Vitesses variables par contexte** : sprint = ×2 pendant 1 step. Setting `state.sprintBoost: boolean`. | 1-2j | 🟡 | Moyen | ⚪ |
 | G.3 | **Différenciation accélération vs top speed** : un guard atteint 9 m/s mais met 2 s à y arriver. Aujourd'hui binaire. | 2-3j | 🟡 | Haut (réalisme) | ⚪ |
-| G.4 | **Profil athlétique** au-delà du poste : `playerSpeedProfile: 'élite' \| 'standard' \| 'lent'` override `MAX_SPEED_BY_POSITION`. | 1j | 🟢 | Moyen | ⚪ |
+| ~~G.4~~ | ~~**Profil athlétique** : `state.defenderSpeedProfiles?: Partial<Record<DefenderId, 'elite' \| 'standard' \| 'lent'>>` multiplie maxSpeed effective ×1.3 / ×1.0 / ×0.7. Module per-défenseur en plus de MAX_SPEED_BY_POSITION.~~ | — | — | — | 🟢 V1 livré 2026-05-18 (5 tests, 1291 verts) |
 
 ---
 
