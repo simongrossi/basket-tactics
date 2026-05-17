@@ -120,6 +120,13 @@ export interface Step {
    *  ne pas les considérer pour le matching manualOverride, etc. Les positions
    *  sont interpolées linéairement. */
   isInterpolated?: boolean;
+  /** B.1 — Durée individuelle de la transition step → step+1, en secondes.
+   *  Indéfini = fallback sur `state.secondsPerStep` (default 4s). Permet de
+   *  moduler la durée narrative de chaque étape indépendamment (un dribble
+   *  patient 4s, une passe rapide 0.8s, etc.). Consommée par `timecode.ts`
+   *  pour l'affichage et par C.2 V2 (helpStickinessMs) pour la conversion
+   *  step→ms. Orthogonal au slider de vitesse de lecture (0.3×→2×). */
+  duration?: number;
   /** Contexte du step.
    *  - `'free-throw'` : les 10 positions sont sur les 6 slots du couloir
    *    LF (F.3).

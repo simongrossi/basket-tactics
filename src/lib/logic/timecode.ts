@@ -11,11 +11,23 @@ import { countRealSteps } from './playerTracks';
 export const DEFAULT_SECONDS_PER_STEP = 4;
 export const DEFAULT_POSSESSION_SECONDS = 24;
 
-/** Renvoie la durée d'une étape (en s), avec fallback sur le défaut. */
+/** Renvoie la durée d'une étape (en s), avec fallback sur le défaut.
+ *  C'est la valeur GLOBALE par défaut, utilisée si `step.duration` n'est
+ *  pas défini (cf. `getStepDurationSeconds`). */
 export function getSecondsPerStep(state: AppState): number {
   const v = state.secondsPerStep;
   if (typeof v !== 'number' || !isFinite(v) || v <= 0) return DEFAULT_SECONDS_PER_STEP;
   return v;
+}
+
+/** B.1 — Durée d'un step donné (transition step → step+1) en secondes.
+ *  Lit `step.duration` si défini et valide, sinon retombe sur la valeur
+ *  globale `state.secondsPerStep`. Sécurise contre les index hors-bornes. */
+export function getStepDurationSeconds(state: AppState, stepIdx: number): number {
+  const step = state.steps[stepIdx];
+  const d = step?.duration;
+  if (typeof d === 'number' && isFinite(d) && d > 0) return d;
+  return getSecondsPerStep(state);
 }
 
 /** Renvoie la durée totale de possession (en s), avec fallback. */
@@ -28,14 +40,44 @@ export function getPossessionSeconds(state: AppState): number {
 /**
  * Convertit un index d'étape (peut être fractionnaire pendant la lecture,
  * exprimé en espace "real steps" non-interpolés) en secondes depuis le début
- * de la possession.
+ * de la possession. B.1 — accumule `step.duration` par step au lieu d'un
+ * multiplicateur global, pour respecter les durées individuelles.
  *
  * realStepIdx=0 → 0s
- * realStepIdx=1 → secondsPerStep
- * realStepIdx=N (dernière étape) → N × secondsPerStep
+ * realStepIdx=1 → duration(realSteps[0])
+ * realStepIdx=k.frac → Σ duration(realSteps[0..k-1]) + frac · duration(realSteps[k])
  */
 export function realStepToSeconds(state: AppState, realStepIdx: number): number {
-  return Math.max(0, realStepIdx) * getSecondsPerStep(state);
+  const i = Math.max(0, realStepIdx);
+  const whole = Math.floor(i);
+  const frac = i - whole;
+
+  const realIndices: number[] = [];
+  for (let idx = 0; idx < state.steps.length; idx++) {
+    if (!state.steps[idx].isInterpolated) realIndices.push(idx);
+  }
+  if (realIndices.length === 0) return 0;
+
+  const sps = getSecondsPerStep(state);
+  let acc = 0;
+  for (let k = 0; k < whole; k++) {
+    // Transitions internes : utilisent la duration du step k ; au-delà du
+    // dernier real step (shotClockAt extrapole parfois), on retombe sur
+    // la valeur globale (pas de duration disponible).
+    if (k < realIndices.length - 1) {
+      acc += getStepDurationSeconds(state, realIndices[k]);
+    } else {
+      acc += sps;
+    }
+  }
+  if (frac > 0) {
+    if (whole < realIndices.length - 1) {
+      acc += frac * getStepDurationSeconds(state, realIndices[whole]);
+    } else {
+      acc += frac * sps;
+    }
+  }
+  return acc;
 }
 
 /**
@@ -70,11 +112,19 @@ export function shotClockAt(state: AppState, realStepIdx: number): number {
 }
 
 /**
- * Durée totale du scénario en secondes (basée sur le nombre d'étapes réelles).
- * Une possession a (N-1) transitions × secondsPerStep, où N = realStepsCount.
+ * Durée totale du scénario en secondes. B.1 — somme les durées individuelles
+ * de chaque step réel (transition step→step+1). Sans `step.duration` défini,
+ * tous les steps utilisent `getSecondsPerStep(state)` (rétrocompat).
  */
 export function totalDurationSeconds(state: AppState): number {
-  const real = countRealSteps(state);
-  if (real <= 1) return 0;
-  return (real - 1) * getSecondsPerStep(state);
+  const realIndices: number[] = [];
+  for (let idx = 0; idx < state.steps.length; idx++) {
+    if (!state.steps[idx].isInterpolated) realIndices.push(idx);
+  }
+  if (realIndices.length <= 1) return 0;
+  let total = 0;
+  for (let k = 0; k < realIndices.length - 1; k++) {
+    total += getStepDurationSeconds(state, realIndices[k]);
+  }
+  return total;
 }
