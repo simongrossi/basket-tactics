@@ -3,6 +3,7 @@
 // absolus en secondes, et formate un libellé court lisible en print.
 
 import type { Annotation } from '../types';
+import { resolveAnnotationTiming } from './annotationTiming';
 
 export function qualityLabel(q: number): string {
   if (q <= 12) return 'ghost';
@@ -20,8 +21,8 @@ export function qualityLabel(q: number): string {
  * @param sps          secondsPerStep (pour convertir tStart/tEnd → secondes)
  */
 export function annotationSummary(a: Annotation, transStart: number, sps: number): string {
-  const tA = typeof a.tStart === 'number' ? a.tStart : 0;
-  const tB = typeof a.tEnd === 'number' ? a.tEnd : 1;
+  // B.4 — résolution unifiée des bornes (tStartAbs/tEndAbs prennent priorité).
+  const { tStart: tA, tEnd: tB } = resolveAnnotationTiming(a, sps);
   const absA = transStart + tA * sps;
   const absB = transStart + tB * sps;
   const dur = absB - absA;

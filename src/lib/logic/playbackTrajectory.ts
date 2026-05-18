@@ -1,5 +1,6 @@
 import type { Annotation, AnnotationType, AttackerId, Point, Step } from '@/lib/types';
 import { samplePolyline } from './polyline';
+import { resolveAnnotationTiming } from './annotationTiming';
 
 const SCREEN_SET_FRACTION = 0.35;
 
@@ -60,6 +61,11 @@ export function attackerTrajectoryAt(
   stepIdx: number,
   playerId: AttackerId,
   localT: number,
+  /** B.4 — Optionnel. Si fourni, la résolution des bornes temporelles
+   *  d'annotation passe par `resolveAnnotationTiming`, qui priorise
+   *  `tStartAbs/tEndAbs` (secondes) sur `tStart/tEnd` (fractions). Sans
+   *  cette fonction, comportement legacy (fractions uniquement). */
+  getStepDurationSec?: (idx: number) => number,
 ): PlaybackTrajectory {
   const cur = steps[stepIdx];
   const next = steps[stepIdx + 1];
@@ -85,8 +91,10 @@ export function attackerTrajectoryAt(
   for (const checkIdx of [stepIdx, stepIdx + 1]) {
     if (checkIdx < 0 || checkIdx >= steps.length) continue;
     for (const a of findMovementAnnotations(steps[checkIdx], playerId)) {
-      const tSraw = a.tStart ?? 0;
-      const tEraw = a.tEnd ?? 1;
+      // B.4 — résolution unifiée des bornes temporelles. Sans
+      // getStepDurationSec → fallback fractions legacy.
+      const stepDurSec = getStepDurationSec ? getStepDurationSec(checkIdx) : 1;
+      const { tStart: tSraw, tEnd: tEraw } = resolveAnnotationTiming(a, stepDurSec);
       const absStart = checkIdx + tSraw;
       const absEnd = checkIdx + tEraw;
       // Ne garder que si la fenêtre chevauche la transition courante [stepIdx, stepIdx+1]

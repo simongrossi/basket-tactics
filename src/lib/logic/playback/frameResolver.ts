@@ -39,6 +39,7 @@ import {
 import { pushOutOfScreenContact } from '../screenCollision';
 import { solveEntityCollisions } from '../constraintSolver';
 import { applyEasing } from './easing';
+import { getStepDurationSeconds } from '../timecode';
 import { activeBallCarrier, activeOffense } from '../players';
 import { attackerTrajectoryAt, type MovementType } from '../playbackTrajectory';
 import { lerpAngleDeg } from '../angles';
@@ -385,7 +386,15 @@ export function resolveFrameAt(
   const attackerMovementType: Partial<Record<AttackerId, MovementType>> = {};
   const attackerIsScreening: Partial<Record<AttackerId, boolean>> = {};
   attackerIds.forEach((id) => {
-    const traj = attackerTrajectoryAt(state.steps, idxA, id, localT);
+    const traj = attackerTrajectoryAt(
+      state.steps,
+      idxA,
+      id,
+      localT,
+      // B.4 — fournir la durée per-step pour que resolveAnnotationTiming
+      // puisse traiter tStartAbs/tEndAbs en secondes absolues.
+      (idx) => getStepDurationSeconds(state, idx),
+    );
     attackerMovementType[id] = traj.movementType;
     attackerIsScreening[id] = traj.isScreening;
     let p = traj.position;

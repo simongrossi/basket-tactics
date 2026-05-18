@@ -78,6 +78,17 @@ export interface Annotation {
    *  par drag des bords des segments dans MultiTrackTimeline. */
   tStart?: number;
   tEnd?: number;
+  /** B.4 — Bornes temporelles en SECONDES ABSOLUES depuis le début de la
+   *  transition step→step+1. Priment sur tStart/tEnd quand définis.
+   *  Avantages :
+   *  - Sémantique narrative invariante : un dribble de 1.5 s reste 1.5 s
+   *    même si la durée du step (B.1) change.
+   *  - Permet une synchro cross-actor lisible : O1 dribble [0, 1.5s] +
+   *    O5 cut [0.3s, 1.1s] sur un step de 2 s.
+   *  Conversion vers fraction : `tFrac = tStartAbs / stepDurationSec`,
+   *  via le helper `resolveAnnotationTiming` (annotationTiming.ts). */
+  tStartAbs?: number;
+  tEndAbs?: number;
   /** D.3 — Variante de trajectoire pour les annotations `pass`.
    *  - 'direct' (défaut) : parabole standard, lift ≈ 0.28 × distance.
    *  - 'lob'    : parabole haute pour passer par-dessus la défense (alley-oop,

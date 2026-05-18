@@ -12,6 +12,8 @@ import {
 } from './players';
 import { effectiveDefensePositions } from './engine';
 import { distance } from './geometry';
+import { resolveAnnotationTiming } from './annotationTiming';
+import { getStepDurationSeconds } from './timecode';
 
 /**
  * Type d'activité d'un joueur sur une transition (Step N → Step N+1).
@@ -143,8 +145,16 @@ export function computePlayerTracks(state: AppState): PlayerTrack[] {
         phase = annoMove === annoStartOnNext ? 'start' : 'end';
         annoStepFullIdx = annoMove === annoStartOnNext ? realSteps[i + 1].idx : realSteps[i].idx;
         annoIdx = annoMove === annoStartOnNext ? annoStartIdx : annoEndIdx;
-        segTStart = annoMove.tStart;
-        segTEnd = annoMove.tEnd;
+        // B.4 — résolution unifiée des bornes. Si annoMove a tStartAbs/tEndAbs,
+        // ils priment via resolveAnnotationTiming.
+        const stepDurSec = getStepDurationSeconds(state, annoStepFullIdx);
+        const timing = resolveAnnotationTiming(annoMove, stepDurSec);
+        segTStart = annoMove.tStartAbs !== undefined || annoMove.tEndAbs !== undefined
+          ? timing.tStart
+          : annoMove.tStart;
+        segTEnd = annoMove.tStartAbs !== undefined || annoMove.tEndAbs !== undefined
+          ? timing.tEnd
+          : annoMove.tEnd;
         if (annoMove.type === 'screen') segQuality = annoMove.quality;
       } else if (annoPass) {
         activity = 'pass';
