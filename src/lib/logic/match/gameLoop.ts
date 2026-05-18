@@ -459,7 +459,15 @@ export function tickMatch(
 
   // Shot clock expiré : forced shot sur l'action shoot disponible (ou tir
   // forcé à 0 % si rien d'utile).
-  if (next.shotClockMs === 0 && next.intent.kind !== 'shoot') {
+  // Phase 1.1 fix — Skip forced-shot pendant le stub away-possession :
+  // sinon le shotClockMs synchronisé à `remaining` déclenche un forced-shot
+  // sur les positions home (qui sont en BLOB après away score), tir à ~0%,
+  // au lieu du clean coinflip AWAY_SCORE_PROBABILITY de la terminal branch.
+  if (
+    next.shotClockMs === 0 &&
+    next.intent.kind !== 'shoot' &&
+    next.intent.kind !== 'away-possession'
+  ) {
     const action = pickForcedShot(next, baseAppState);
     return resolveShot(next, action, rng, true, baseAppState);
   }
