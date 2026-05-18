@@ -62,6 +62,8 @@ interface DefensePanelProps {
   /** Active le mode "match plein écran" (fullCourt + presentMode +
    *  browser fullscreen). Propagé à SimulationSection qui rend le bouton. */
   onEnterFullscreenMatch?: () => void;
+  /** Phase 1.3 — Lance le Mode démo 1-click (10 possessions, full court, ×2). */
+  onStartDemoMode?: () => void;
   scriptedDefenseEnabled?: boolean;
   onToggleScriptedDefense: () => void;
   userDefensePresets?: UserDefensePreset[];
@@ -1398,6 +1400,7 @@ export function DefensePanel(props: DefensePanelProps) {
           matchSpeed={props.matchSpeed}
           onSetMatchSpeed={props.onSetMatchSpeed}
           onEnterFullscreenMatch={props.onEnterFullscreenMatch}
+          onStartDemoMode={props.onStartDemoMode}
         />
       </AccordionSection>
     </Panel>

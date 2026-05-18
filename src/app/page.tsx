@@ -75,6 +75,14 @@ export default function Page() {
     }
   }, []);
 
+  // Phase 1.3 — Mode démo : 10 possessions, full court, ×2 speed, en 1 clic.
+  // Réutilise handleEnterFullscreenMatch pour fullCourt + presentMode.
+  const handleStartDemoMode = useCallback(() => {
+    handleEnterFullscreenMatch();
+    setMatchSpeed(2);
+    matchLoop.start({ maxPossessions: 10 });
+  }, [handleEnterFullscreenMatch, matchLoop]);
+
   const metrics = useMemo(() => {
     const step = app.state.steps[app.state.activeStep];
     if (!step) return null;
@@ -271,6 +279,7 @@ export default function Page() {
                     onSetMatchSpeed={setMatchSpeed}
                     onLoadAiSteps={handleLoadAiSteps}
                     onEnterFullscreenMatch={handleEnterFullscreenMatch}
+                    onStartDemoMode={handleStartDemoMode}
                     scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
                     onToggleScriptedDefense={app.toggleScriptedDefense}
                     userDefensePresets={lib.library.defensePresets}

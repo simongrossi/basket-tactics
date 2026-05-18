@@ -35,6 +35,9 @@ interface SimulationSectionProps {
   /** Match plein écran : déclenche fullCourt + presentMode + browser
    *  fullscreen sur le terrain. Optionnel. */
   onEnterFullscreenMatch?: () => void;
+  /** Phase 1.3 — Mode démo : lance 10 possessions en full court ×2
+   *  speed en un clic. Cumule fullCourt + matchSpeed=2 + start(maxPossessions=10). */
+  onStartDemoMode?: () => void;
 }
 
 const PRESET_RUNS = [50, 200, 1000];
@@ -66,7 +69,7 @@ const AI_OUTCOME_LABELS: Record<AiPossessionOutcome, string> = {
  * La défense est figée pendant la simulation — limite assumée du MVP.
  * Les softmax(EV/τ=0.3) gouvernent les décisions offensives.
  */
-export function SimulationSection({ state, onLoadAiSteps, matchLoop, matchSpeed, onSetMatchSpeed, onEnterFullscreenMatch }: SimulationSectionProps) {
+export function SimulationSection({ state, onLoadAiSteps, matchLoop, matchSpeed, onSetMatchSpeed, onEnterFullscreenMatch, onStartDemoMode }: SimulationSectionProps) {
   const c = COLORS.defense;
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [aiSeries, setAiSeries] = useState<AiMatchSeries | null>(null);
@@ -155,6 +158,7 @@ export function SimulationSection({ state, onLoadAiSteps, matchLoop, matchSpeed,
         matchSpeed={matchSpeed}
         onSetMatchSpeed={onSetMatchSpeed}
         onEnterFullscreenMatch={onEnterFullscreenMatch}
+        onStartDemoMode={onStartDemoMode}
       />
 
       <div style={{ height: 1, background: '#e2e8f0', margin: '10px 0 8px' }} />
@@ -323,12 +327,14 @@ function LiveMatchPanel({
   matchSpeed,
   onSetMatchSpeed,
   onEnterFullscreenMatch,
+  onStartDemoMode,
 }: {
   state: AppState;
   matchLoop?: UseMatchLoopResult;
   matchSpeed?: number;
   onSetMatchSpeed?: (speed: number) => void;
   onEnterFullscreenMatch?: () => void;
+  onStartDemoMode?: () => void;
 }) {
   // Fallback : si pas de matchLoop fourni en prop (cas tests / usage local),
   // on instancie un hook local. Le code de page.tsx fournit toujours le prop
@@ -369,6 +375,30 @@ function LiveMatchPanel({
         Lance une possession simulée tick par tick (5 Hz). MVP B1 — le terrain n'est pas encore
         synchronisé (B4) ; on observe le shot clock + outcome.
       </div>
+
+      {/* Phase 1.3 — Bouton Mode démo 1-click : 10 possessions, full court, ×2 speed */}
+      {!matchState && onStartDemoMode && (
+        <button
+          type="button"
+          onClick={onStartDemoMode}
+          style={{
+            width: '100%',
+            padding: '6px 8px',
+            marginBottom: 8,
+            border: '1px solid #4338ca',
+            borderRadius: 4,
+            background: 'linear-gradient(180deg, #6366f1, #4338ca)',
+            color: '#fff',
+            fontSize: 11,
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 1px 2px rgba(67, 56, 202, 0.3)',
+          }}
+          title="10 possessions enchaînées, terrain complet, vitesse ×2"
+        >
+          ▶ Mode démo (regarder un match)
+        </button>
+      )}
 
       {/* B3b — sélecteur de longueur de session, visible quand pas en cours */}
       {!matchState && (
