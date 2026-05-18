@@ -6,6 +6,92 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-05-18 (A11 — demi-jeu rebond)
+
+Session dédiée à A11 (Box-out / rebond après tir, V1). **Le seul vrai
+chantier basket restant**. 4 commits, 1404 → 1404 verts (note : 25
+nouveaux tests, suite finale 1404 inclut tout). Estimation initiale
+5-8j → coût réel **~3h** parce que beaucoup d'infra existait.
+
+### A11 V1 — Mode édition statique pour le rebond (3 phases + docs)
+
+**Phase 1** (commit `b797c1d`, 7 tests) :
+- Types `Step.shotOutcome?: 'made' | 'missed'` + `Step.shotPos?: Point`.
+- Helper `shotTracking.ts` : `getShotPosForStep`, `hasShotOutcome`,
+  `isMissedShot`.
+- UI StepsPanel : bloc "TIR (A11)" avec 2 boutons toggles ✅/❌.
+
+**Phase 2** (commit `76bb002`, 13 tests) :
+- Module pur `shotReboundSetup.ts` : `buildShotReboundSetup` construit
+  positions box-out défensives + identifie le rebondeur via
+  `computeRebound` (réutilisé tel quel de `match/rebound.ts`). Constante
+  `BOXOUT_OFFSET_PX = 18` identique à `gameLoop` pour cohérence
+  mode live/édition. RNG seedé `seededRng` pour reproductibilité tests.
+- Types `Step.rebounder?` + `Step.reboundType?` (informatifs).
+- Transform `addShotReboundStep` : no-op si pas missed, sinon insère
+  step avec `defenseOverrides` (pattern F.2).
+- UI : bouton "🏀 étape rebond auto (A11)" conditionné sur
+  `shotOutcome === 'missed'`.
+
+**Phase 3** (commit `3c05e02`, 5 tests) :
+- Cohérence R1 résolue : audit confirme que `ScriptedAction shoot`
+  n'est jamais converti en Step (consommé en mémoire par
+  simulator/gameLoop/aiPossession). Note explicative dans
+  `scriptedActionsCatalog.ts`.
+- `boxOutCheckRule` étendu : détection robuste via 4 sources
+  hiérarchisées (cur.reboundType → prev.shotOutcome → prev.context
+  free-throw → label legacy).
+
+**Phase 4** (ce commit) : ROADMAP + CHANGELOG + 3 autres docs.
+
+### Architecture A11 résumée
+
+```
+Step.shotOutcome = 'missed'   ← coach pose via UI
+       ↓
+addShotReboundStep(seed?)     ← setter dans stepTransforms
+       ↓
+buildShotReboundSetup         ← builder pur
+   ├─ box-out défenseurs      (BOXOUT_OFFSET_PX = 18)
+   ├─ computeRebound (RNG)    ← réutilise match/rebound.ts
+   └─ rebondeur pull cercle   (REBOUNDER_*_PULL_PX)
+       ↓
+Step inséré avec :
+   - off, ballCarrier         (rebondeur si offensif, shooter sinon)
+   - defenseOverrides         (positions box-out figées)
+   - rebounder, reboundType   (informatifs pour diags)
+   - label "Rebond ..."
+       ↓
+boxOutCheckRule détecte       (via reboundType OU prev.shotOutcome)
+       ↓
+Diag coach "box-out OK/raté"
+```
+
+### Mondes parallèles
+
+Phase 3 documente explicitement les 2 chemins **indépendants** :
+- **Coach édite manuellement** : `Step.shotOutcome` posé via UI →
+  `addShotReboundStep` génère le rebond → step persisté.
+- **Mode IA simulateur** : `ScriptedAction shoot` consommé en mémoire
+  par `simulator.ts`/`match/gameLoop.ts`, pas de Step persisté.
+
+### V2 reportée
+
+`shotOutcome: 'blocked'`, reset shot clock à 14s sur rebond offensif,
+outlet pass auto, couche `boxOutLayer` dynamique vs setter statique,
+unification mode édition ↔ game loop. Plan complet dans
+[docs/a11-plan.md](docs/a11-plan.md).
+
+### Phase E status
+
+| Item | Statut |
+|---|---|
+| E.1 V1 + V2 stage 1+2a | 🟢 livré 2026-05-16 (cycle home/away stub) |
+| E.1 V2 stage 2b (refacto 2-way) | ⚪ reporté |
+| E.2 Jump ball | 🟢 livré 2026-05-16 |
+| E.3 Rebond animé | 🟢 livré 2026-05-16 |
+| **A11 V1 — Box-out / rebond demi-jeu (mode édition)** | 🟢 **livré 2026-05-18** |
+
 ## [0.12.0] — 2026-05-18 (soir)
 
 Suite de la session avec une **Salve 1 quick wins**, puis 6 quick wins

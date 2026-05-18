@@ -521,7 +521,55 @@ forme `(ctx) => CoachDiagnostic[]`. Pour ajouter un diagnostic basket :
 créer 1 fichier dans `rules/` + 1 entrée dans `REGISTRY`. Plus aucune
 lecture des 833 autres lignes.
 
-### ⚪ A11 — Box-out / rebond après tir (demi-jeu manquant)
+### 🟢 A11 V1 — Box-out / rebond après tir — livré 2026-05-18 (mode édition)
+
+V1 livré 2026-05-18 en 3 phases + 1 docs. **3 commits + 25 tests** :
+
+**Phase 1** (commit `b797c1d`, 7 tests) :
+- Types `Step.shotOutcome?: 'made' | 'missed'` + `Step.shotPos?: Point`.
+- Helper pur `shotTracking.ts` : `getShotPosForStep`, `hasShotOutcome`,
+  `isMissedShot`.
+- UI dans StepsPanel : bloc "TIR (A11)" avec 2 boutons toggles
+  ✅ tir réussi / ❌ tir manqué.
+
+**Phase 2** (commit `76bb002`, 13 tests) :
+- Module pur `shotReboundSetup.ts` :
+  - `buildShotReboundSetup(state, sourceStepIdx, { seed? })` construit
+    les positions box-out défensives (constante `BOXOUT_OFFSET_PX = 18`
+    identique à `gameLoop.computeBoxOutTargets`) + identifie le
+    rebondeur via `computeRebound` de `match/rebound.ts` (réutilisé,
+    déjà testé).
+  - Rebond offensif → rebondeur poussé au cercle, devient ballCarrier.
+  - Rebond défensif → rebondeur poussé au cercle, ballCarrier reste
+    shooter (le moteur n'accepte qu'AttackerId).
+  - `seededRng()` xorshift32 pour reproductibilité tests.
+- Types `Step.rebounder?: AttackerId | DefenderId` + `Step.reboundType?:
+  'offensive' | 'defensive' | 'team-out'` (informatifs).
+- Transform `stepTransforms.addShotReboundStep(s, options?)` no-op si
+  pas missed, sinon insère un step avec `defenseOverrides` (pattern F.2).
+- UI : bouton "🏀 étape rebond auto (A11)" visible quand
+  `shotOutcome === 'missed'`.
+
+**Phase 3** (commit `3c05e02`, 5 tests) :
+- Cohérence R1 résolue par audit : `ScriptedAction shoot` jamais
+  converti en Step (consommé en mémoire par simulator/gameLoop/
+  aiPossession). Note explicative ajoutée à `scriptedActionsCatalog.ts`
+  pour clarifier les 2 mondes parallèles (coach édition vs mode IA).
+- `boxOutCheckRule` étendu : détection robuste de la phase rebond via
+  4 sources hiérarchisées (cur.reboundType → prev.shotOutcome →
+  prev.context === 'free-throw' → label legacy).
+
+**Coût réel** : ~3h (vs 5-8j estimé ROADMAP). Sous-estimation initiale
+parce que beaucoup d'infra existait déjà (computeRebound, boxOutCheckRule,
+pattern F.2, useAppState.patchStep).
+
+**V2 reportée** : `shotOutcome: 'blocked'`, reset shot clock à 14s sur
+rebond offensif, outlet pass auto sur rebond défensif (génère un step
+transition / inbound), couche `boxOutLayer` dynamique vs setter statique,
+unification mode édition ↔ game loop. Plan complet dans
+[docs/a11-plan.md](docs/a11-plan.md).
+
+⚪ Plan d'origine :
 
 **Quoi.** Le moteur ne réagit pas au tir. Aucun box-out, aucun
 positionnement de rebond, aucune transition possession. C'est un

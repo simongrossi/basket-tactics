@@ -2,7 +2,7 @@
 
 > Vue consolidée de **ce qui est fait**, **ce qui est en cours**, et **ce qui reste à faire**, pour ne rien oublier entre deux sessions de travail.
 >
-> Mise à jour : **2026-05-18 (tooling)** — post-session B.3 / B.4 / D.1 / D.3 / D.5 / F.1 V1+V2 / G.1 / G.2 / G.3 / G.4 / J.5 / J.6 / J.7.
+> Mise à jour : **2026-05-18 (A11)** — post-session B.3 / B.4 / D.1 / D.3 / D.5 / F.1 V1+V2 / G.1-4 / J.1 / J.5 / J.6 / J.7 / **A11 V1**.
 >
 > Pour le détail commit-par-commit, voir [`CHANGELOG.md`](../CHANGELOG.md).
 > Pour la roadmap basket exhaustive, voir [`../ROADMAP.md`](../ROADMAP.md).
@@ -76,6 +76,35 @@ verrouillage croisé). 21 tests cumulés.
 `useCourtFrame` + nouveau composant `<PlayerDebugTable>` (overlay
 haut-droite, tableau 5 défenseurs × 5 colonnes). Toggle dans
 ParametresPanel.
+
+### A11 V1 — Box-out / rebond demi-jeu (4 commits, mode édition)
+
+Le seul vrai chantier basket restant. Estimation initiale 5-8j → coût
+réel ~3h parce que `computeRebound` + `boxOutCheckRule` + pattern F.2
+existaient déjà.
+
+- **Phase 1** (`b797c1d`) : types `Step.shotOutcome`, `Step.shotPos` +
+  helper `shotTracking.ts` + UI 2 boutons toggle dans StepsPanel.
+- **Phase 2** (`76bb002`) : builder pur `shotReboundSetup.ts` (box-out
+  + computeRebound réutilisé) + transform `addShotReboundStep` +
+  bouton UI "🏀 étape rebond auto". Types `Step.rebounder` /
+  `Step.reboundType` informatifs.
+- **Phase 3** (`3c05e02`) : `boxOutCheckRule` détection robuste via
+  4 sources hiérarchisées + note cohérence sur `ScriptedAction shoot`
+  (mondes parallèles édition coach vs mode IA documentés).
+- **Phase 4** : docs (ce commit).
+
+Plan complet dans [docs/a11-plan.md](a11-plan.md). V2 reportée
+('blocked', reset shot clock 14s, outlet pass auto, couche dynamique,
+unification édition↔match).
+
+### J.1 V1 — Parité scrub ↔ playback (`67815d0`)
+
+Audit a confirmé que la parité POSITIONNELLE était déjà garantie par
+`resolveFrameAtDeterministicScrub`. Le seul vrai gap = options
+`collectDecisions` et `profile` désynchronisées entre scrub et playback.
+Fix de 2 lignes dans `useCourtFrame.ts`. 8 tests d'invariant nouveaux.
+Checklist Règle 1bis : 155 tests screen tous verts.
 
 ### J.5 + J.6 — Tooling moteur (`ccf73b9` + `d1d6792`)
 

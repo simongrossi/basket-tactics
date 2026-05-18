@@ -27,8 +27,9 @@
 
 | Item | Statut | Description | Effort | Priorité |
 |---|---|---|---|---|
+| ~~**A11**~~ | 🟢 V1 livré 2026-05-18 (`b797c1d` + `76bb002` + `3c05e02`) | Mode édition statique : Step.shotOutcome + addShotReboundStep + boxOutCheckRule robuste. 25 tests. Coût réel ~3h (vs 5-8j estimé). | — | — |
 | **E.1 V2 stage 2b** — refacto 2-way | ⚪ | Refacto AppState avec `currentlyAttackingTeam` natif, matchups inversés en mémoire, engine défensif côté home pendant phase away, diagnostic coach spécifique. | 2-4 j | 🏀 **P3** (futur) |
-| **A11** — Box-out / rebond après tir (demi-jeu) | ⚪ | Ajouter la phase "tir → rebond → transition" comme demi-jeu complet (≠ E.1 stage 2b qui est just l'autre côté). Modèle physique de rebond, contestabilité. | 1-2 sem | 🏀 **P2** |
+| **A11 V2** | ⚪ reporté | 'blocked', reset shot clock 14s, outlet pass auto, couche dynamique, unification édition↔match. Plan dans [a11-plan.md](a11-plan.md). | — | — |
 
 ### Phase F — Situations FIBA / haute compétition ✅ 5/5 livrés (F.2 reporté)
 
@@ -118,10 +119,17 @@ moteur tactique est dans un état excellent ET muni d'outils de mesure
 + régression auto. Il ne reste vraiment qu'un gros chantier basket
 (A11) et du tooling moteur optionnel (J.1/J.2/J.3).
 
-### Le seul gros chantier basket restant
-1. **A11 / E.1 V2 stage 2b** — Box-out / rebond demi-jeu (5-8 jours)
-   — le SEUL vrai changement de scope basket. Modélise la phase
-   post-shot (rebond contesté, transition home/away).
+### Tous les chantiers basket sont désormais livrés ✅
+
+A11 V1 (le dernier gros chantier basket) livré 2026-05-18 en ~3h
+(estimation initiale 5-8j). Le moteur tactique est **complet** :
+- Toutes les phases défensives (B, C, F, G) à 100 %.
+- Phase D 4/5 (D.4 reportée par choix).
+- Phase J 5/7 (J.4, J.5, J.6, J.7, J.1).
+- Phase E partielle : E.2, E.3, E.1 V2 stage 1+2a, A11 V1. Reste
+  E.1 V2 stage 2b (refacto 2-way) — gros chantier reporté.
+
+Le projet est livrable pour démos coachs réels.
 
 ### À reporter sauf demande explicite
 - **F.2** Press full/half-court (10-12h V1, refonte `getDefenseHoop`).
@@ -156,8 +164,14 @@ moteur tactique est dans un état excellent ET muni d'outils de mesure
   d'un filet de sécurité automatique : toute future modif moteur
   déclenche un diff snapshot lisible. Profile overlay live disponible
   pour mesurer A11 ou tout futur chantier.
+- **Bilan 2026-05-18 A11** : J.1 livré (parité scrub/playback, 2 lignes
+  + 8 tests) puis A11 V1 livré (demi-jeu rebond, 3 phases, 25 tests,
+  ~3h vs 5-8j estimé). 1404/1404 verts. **Le seul gros chantier basket
+  restant est désormais livré.** Reste pour le futur : A11 V2 (blocked,
+  reset shot clock, outlet pass auto), E.1 V2 stage 2b (refacto 2-way),
+  F.2 press, J.2/J.3 (qualité moteur). Tous reportés / optionnels.
 -
 
 ---
 
-Mise à jour : 2026-05-18 tooling (J.5 profile overlay + J.6 golden snapshots)
+Mise à jour : 2026-05-18 A11 (J.1 + A11 V1 demi-jeu rebond)

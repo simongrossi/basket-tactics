@@ -27,11 +27,22 @@ CHANGELOG [0.12.0]. Faits marquants :
 - **J.6** visual regression légère — snapshots Vitest sur 4 templates
   (ucla-cut, pnr-central, pindown-corner, floppy). Toute régression
   future du moteur sera détectée automatiquement au prochain test run.
+- **J.1** parité scrub ↔ playback — 2 lignes + 8 tests d'invariant.
+  Les overlays J.5/J.7 marchent maintenant aussi en scrub.
+- **A11 V1** Box-out / rebond demi-jeu — le seul gros chantier basket
+  restant. Livré en 3 phases (types + setter + cohérence) + 1 docs.
+  Coût réel ~3h vs 5-8j estimé : énormément d'infra existait déjà
+  (`computeRebound`, `boxOutCheckRule`, pattern F.2 free-throw). 25
+  tests. Plan complet dans [docs/a11-plan.md](docs/a11-plan.md).
 
-Le moteur tactique est désormais dans un état très complet ET muni
-d'outils de mesure + régression. Seul chantier basket restant = A11
-(box-out / rebond demi-jeu, 5-8j). F.2 press et J.1/J.2/J.3 reportés
-par choix.
+**Le moteur tactique est désormais complet.** Tous les gros chantiers
+basket sont livrés. Reportés sans impact bloquant :
+- A11 V2 (blocked, reset shot clock, outlet pass auto)
+- E.1 V2 stage 2b (refacto 2-way home/away)
+- F.2 press full/half-court
+- J.2/J.3 qualité moteur (perf cache, solver unifié)
+
+Le projet est livrable pour démos coachs réels.
 
 ---
 
