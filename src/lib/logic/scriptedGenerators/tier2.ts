@@ -82,13 +82,20 @@ const genICut: Generator = (prev, action) => {
   const step1 = makeStepFrom(off1, prev.ballCarrier, [
     annot('cut', cutter, prev.off, off1),
   ], { generatedBy: action.id, label: 'I-cut plonge' });
+  // Step 1b : dwell anti-flicker — le cutter TIENT la position de plonge
+  // pendant 1 step avant de ressortir. Sans ce step, demi-tour à 180° en 1
+  // step (cf. fix PnR Phase K K.4 flicker critical).
+  const step1b = makeStepFrom(off1, prev.ballCarrier, [], {
+    generatedBy: action.id,
+    label: 'I-cut tenue plonge',
+  });
   // Step 2 : ressort vers la zone (ou point de départ).
   const out = zoneOrDefault(action.params.targetZone, carrier, start);
   const off2 = move(off1, cutter, out);
   const step2 = makeStepFrom(off2, prev.ballCarrier, [
     annot('cut', cutter, off1, off2),
   ], { generatedBy: action.id, label: 'I-cut ressort' });
-  return [step1, step2];
+  return [step1, step1b, step2];
 };
 
 const genPopoutCut: Generator = (prev, action) => {
@@ -390,13 +397,20 @@ const genSlip: Generator = (prev, action) => {
   const step1 = makeStepFrom(off1, prev.ballCarrier, [
     annot('cut', screener, prev.off, off1),
   ], { generatedBy: action.id, label: 'Feint écran' });
+  // Step 1b : dwell anti-flicker — le screener TIENT la feinte pendant 1
+  // step avant de slipper. Sans ce step, demi-tour ~163° en 1 step (cf.
+  // fix PnR Phase K K.4 flicker critical).
+  const step1b = makeStepFrom(off1, prev.ballCarrier, [], {
+    generatedBy: action.id,
+    label: 'Tenue feinte',
+  });
   // Step 2 : screener slip vers cible (panier ou zone).
   const target = zoneOrDefault(action.params.targetZone, carrierPos, lerp(fakePos, HOOP, 0.7));
   const off2 = move(off1, screener, target);
   const step2 = makeStepFrom(off2, prev.ballCarrier, [
     annot('cut', screener, off1, off2),
   ], { generatedBy: action.id, label: 'Slip panier' });
-  return [step1, step2];
+  return [step1, step1b, step2];
 };
 
 const genReject: Generator = (prev, action) => {
