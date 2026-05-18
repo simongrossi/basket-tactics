@@ -1536,11 +1536,14 @@ défenseur) à un paradigme **émergeant** de forces vectorielles pondérées
   des sorties anciennes (`Point` cible), nettoyage de la double-sortie.
 
 **Chantier 2 — Influence Map & trajectoires invisibles**
-- Génération temps-réel des segments **porteur ↔ non-porteurs** (lignes
-  de passe) et **porteur ↔ hoop** (couloir de pénétration).
-- Distance perpendiculaire signée défenseur ↔ segment, injectée comme
-  force d'alignement `interpose` (aide / deny), modulée par
-  strong-side / weak-side ([docs/logique-defensive.md](docs/logique-defensive.md)).
+- 🟡 **Infra livrée (2026-05-19)** : module
+  [`src/lib/logic/influenceMap.ts`](src/lib/logic/influenceMap.ts) —
+  `InfluenceLane`, `buildPassingLanes`, `buildDrivingLane`,
+  `signedPerpDistance`, `projectOnSegment`, `interposeForce`,
+  `interposeForcesAgainstLanes`. 20 tests. **Non câblée**.
+- ⚪ **Sous-étape 2b** : câbler `interposeForcesAgainstLanes` au
+  pipeline défensif (probablement nouvelle couche `influenceLayer`).
+  Modulation strong-side / weak-side via `state.ballSide`.
 
 **Chantier 3 — Triangle défensif vectoriel dynamique**
 - Repère **Ballon – Défenseur – Attaquant – Panier** : angle θ continu

@@ -6,6 +6,36 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### CVT Chantier 2 — Influence Map & lignes invisibles (infra, non câblée)
+
+Nouveau module
+[`src/lib/logic/influenceMap.ts`](src/lib/logic/influenceMap.ts).
+Pose les primitives géométriques pour le contrôle défensif des lignes
+de passe et couloirs de pénétration. **Non câblée** au pipeline
+défensif — utilisable mais inutilisée. Le câblage (probablement
+nouvelle couche `influenceLayer` entre `baseTargets` et
+`pnrRotations`) sera la sous-étape 2b.
+
+- `InfluenceLane` : segment porteur ↔ cible avec `kind: 'pass' | 'drive'`.
+- `buildPassingLanes(carrierId, carrierPos, off)` : génère un segment
+  par non-porteur présent.
+- `buildDrivingLane(carrierPos, hoop?)` : segment porteur ↔ panier.
+- `signedPerpDistance(p, a, b)` : distance perpendiculaire **signée**
+  d'un point à la droite passant par `a` et `b`. Positif à gauche
+  du vecteur `a→b` (convention produit vectoriel 2D).
+- `projectOnSegment(p, a, b)` : projection orthogonale clampée aux
+  extrémités.
+- `interposeForce(defenderRef, a, b, weight, label)` : force `seek`
+  vers la projection orthogonale — pousse le défenseur sur la ligne
+  tactique. Variante de `seek` avec cible dynamique.
+- `interposeForcesAgainstLanes(defenderRef, lanes, weight)` : batch
+  avec labels détaillés (`interpose-pass-O3`, etc.).
+- **20 nouveaux tests** : génération de lanes, exclusion du porteur,
+  filtrage attaquants absents, signe perpendiculaire (gauche/droite/
+  on-line/dégénéré), projection clampée (intérieur/avant/après/
+  dégénérée), interpose direction/poids/composeTarget.
+- 1601 → **1621 tests verts**. Zéro impact runtime.
+
 ### CVT Chantier 1.3 — Infra `repel` autour des poseurs d'écran (non câblée)
 
 Nouveau module
