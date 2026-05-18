@@ -2,7 +2,7 @@
 
 > Vue consolidée de **ce qui est fait**, **ce qui est en cours**, et **ce qui reste à faire**, pour ne rien oublier entre deux sessions de travail.
 >
-> Mise à jour : **2026-05-18 (soir)** — post-session B.3 / B.4 / D.1 / D.3 / D.5 / F.1 V1+V2 / G.1 / G.2 / G.3 / G.4 / J.7.
+> Mise à jour : **2026-05-18 (tooling)** — post-session B.3 / B.4 / D.1 / D.3 / D.5 / F.1 V1+V2 / G.1 / G.2 / G.3 / G.4 / J.5 / J.6 / J.7.
 >
 > Pour le détail commit-par-commit, voir [`CHANGELOG.md`](../CHANGELOG.md).
 > Pour la roadmap basket exhaustive, voir [`../ROADMAP.md`](../ROADMAP.md).
@@ -76,6 +76,23 @@ verrouillage croisé). 21 tests cumulés.
 `useCourtFrame` + nouveau composant `<PlayerDebugTable>` (overlay
 haut-droite, tableau 5 défenseurs × 5 colonnes). Toggle dans
 ParametresPanel.
+
+### J.5 + J.6 — Tooling moteur (`ccf73b9` + `d1d6792`)
+
+- **J.5 V1** — Profile overlay live. Module `playback/profileAggregator.ts`
+  (aggregateProfiles + ProfileRingBuffer). Overlay haut-gauche du
+  terrain avec mean/p95/max par phase défensive, phase la plus coûteuse
+  highlightée (🔥). `state.showProfileOverlay` + toggle ParametresPanel.
+  9 tests.
+- **J.6 V1** — Visual regression légère. Helper
+  `playback/sceneSnapshot.ts::snapshotScene` capture positions + flags
+  défenseurs clés. Test golden sur 4 templates (`ucla-cut`,
+  `pnr-central`, `pindown-corner`, `floppy`). Snapshots Vitest natifs
+  versionnés. Régénération : `npx vitest run j6GoldenSnapshots -u`.
+  9 tests + 4 snapshots (1477 lignes).
+
+Phase J désormais **4/7** livrée (J.4 + J.5 + J.6 + J.7). Restent J.1,
+J.2, J.3 — non-bloquants.
 
 ---
 

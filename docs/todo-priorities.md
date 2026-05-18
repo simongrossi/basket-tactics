@@ -56,16 +56,17 @@ les détails.
 | **D.4** | ⚪ reporté (plan écrit) | Pathfinding défensif. Plan d'audit risque dans [d4-pathfinding-plan.md](d4-pathfinding-plan.md). Non lancé : ratio risque (Règle 1bis) / valeur (visuel) défavorable. |
 | ~~**D.5**~~ | 🟢 validé 2026-05-18 | Invariant collision cross-frame testé bout-en-bout (4 tests). |
 
-### Phase J — Moteur écran / playback fines
+### Phase J — Moteur écran / playback fines 🟡 4/7 (3 reportés)
 
 | Item | Statut | Description | Effort |
 |---|---|---|---|
-| ~~**J.7**~~ | 🟢 V1 livré 2026-05-18 (`b5aced8`) | Panneau debug joueur `<PlayerDebugTable>` overlay + toggle ParametresPanel. | — |
-| **J.1** — Parité scrub ↔ playback | ⚪ | Décrochages détectés en scrub absents en lecture animée. | ~6-8h |
-| **J.2** — Cache segmentaire du resolver | ⚪ | Mémoïse les segments inchangés entre frames. | ~6-8h |
-| **J.3** — Solver de contraintes unifié | ⚪ | Reformule le pipeline en problème d'optimisation. | ~2-3j |
-| **J.5** — Profiling + budget frame | ⚪ | Heatmap CPU par couche défensive. | ~1-2j |
-| **J.6** — Visual regression légère | ⚪ | Snapshots SVG par template. | ~1-2j |
+| ~~**J.4**~~ | 🟢 livré 2026-05-15 | Off-ball avancé. | — |
+| ~~**J.5**~~ | 🟢 V1 livré 2026-05-18 (`ccf73b9`) | Profile overlay live (mean/p95/max par phase, hottest highlight). | — |
+| ~~**J.6**~~ | 🟢 V1 livré 2026-05-18 (`d1d6792`) | Golden snapshots Vitest sur 4 templates (ucla-cut, pnr-central, pindown-corner, floppy). | — |
+| ~~**J.7**~~ | 🟢 V1 livré 2026-05-18 (`b5aced8`) | Panneau debug joueur (overlay tableau 5 défenseurs). | — |
+| **J.1** — Parité scrub ↔ playback | ⚪ reporté | Décrochages détectés en scrub absents en lecture animée. | ~6-8h |
+| **J.2** — Cache segmentaire du resolver | ⚪ reporté | Mémoïse les segments inchangés entre frames. | ~6-8h |
+| **J.3** — Solver de contraintes unifié | ⚪ reporté | Reformule le pipeline en problème d'optimisation. | ~2-3j |
 
 ### Phase G — Calibration vitesse ✅ COMPLÈTE (4/4)
 
@@ -111,10 +112,11 @@ les détails.
 
 ## 🎯 Ordre d'attaque proposé (basket only)
 
-État au **2026-05-18 soir** : Phases B/C/F/G **complètes** (20/20),
-Phase D 4/5 (D.4 reportée), J.7 livré. Le moteur tactique est dans un
-état excellent. Il ne reste vraiment qu'un gros chantier basket et du
-tooling moteur optionnel.
+État au **2026-05-18 (tooling)** : Phases B/C/F/G **complètes** (20/20),
+Phase D 4/5 (D.4 reportée), Phase J 4/7 (J.4 + J.5 + J.6 + J.7). Le
+moteur tactique est dans un état excellent ET muni d'outils de mesure
++ régression auto. Il ne reste vraiment qu'un gros chantier basket
+(A11) et du tooling moteur optionnel (J.1/J.2/J.3).
 
 ### Le seul gros chantier basket restant
 1. **A11 / E.1 V2 stage 2b** — Box-out / rebond demi-jeu (5-8 jours)
@@ -149,8 +151,13 @@ tooling moteur optionnel.
   le risque sur les 13 tests screen sensibles (Règle 1bis CLAUDE.md).
 - **Bilan 2026-05-18 soir** : Phases B/C/F/G 100 % livrées. 1353/1353
   tests verts. Le moteur tactique est livrable pour feedback coachs.
+- **Bilan 2026-05-18 tooling** : Phase J étendue à 4/7 (J.5 profile +
+  J.6 golden snapshots). 1371/1371 verts. Le projet bénéficie maintenant
+  d'un filet de sécurité automatique : toute future modif moteur
+  déclenche un diff snapshot lisible. Profile overlay live disponible
+  pour mesurer A11 ou tout futur chantier.
 -
 
 ---
 
-Mise à jour : 2026-05-18 soir (post-session B.3/B.4/D.1-3-5/F.1 V1+V2/G.1-4/J.7)
+Mise à jour : 2026-05-18 tooling (J.5 profile overlay + J.6 golden snapshots)

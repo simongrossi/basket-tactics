@@ -22,10 +22,16 @@ CHANGELOG [0.12.0]. Faits marquants :
   **G.2** sprint boost contextuel, **G.3** modèle d'accélération, **G.4**
   profil athlétique défenseurs. Phase G complète 4/4.
 - **J.7** panneau debug joueur (overlay tableau 5 défenseurs).
+- **J.5** profile overlay live — mean/p95/max par phase défensive,
+  buffer glissant 120 frames, phase la plus coûteuse highlight 🔥.
+- **J.6** visual regression légère — snapshots Vitest sur 4 templates
+  (ucla-cut, pnr-central, pindown-corner, floppy). Toute régression
+  future du moteur sera détectée automatiquement au prochain test run.
 
-Le moteur tactique est désormais dans un état très complet : seul
-chantier basket restant = A11 (box-out / rebond demi-jeu, 5-8j).
-F.2 press et Phase J fines reportées par choix.
+Le moteur tactique est désormais dans un état très complet ET muni
+d'outils de mesure + régression. Seul chantier basket restant = A11
+(box-out / rebond demi-jeu, 5-8j). F.2 press et J.1/J.2/J.3 reportés
+par choix.
 
 ---
 

@@ -96,6 +96,30 @@ haut-droite : tableau compact 5 défenseurs × 5 colonnes (id, matched,
 screen state, route, helpKind/factor). Toggle "debug joueur" dans
 ParametresPanel, indépendant du toggle "debug écran" existant.
 
+### Phase J — Tooling moteur (J.5 + J.6, commits `ccf73b9` + `d1d6792`)
+
+- **J.5 V1** — Profile overlay live (9 tests). Module pur
+  `playback/profileAggregator.ts` :
+  `aggregateProfiles(profiles[])` → stats `mean / p95 / max / sum`
+  par phase (attackers, screens, obstacles, defenders, collisions,
+  rateLimiter, ball). Classe `ProfileRingBuffer` (maxSize 120 = 2s
+  à 60fps). `state.showProfileOverlay?: boolean` active `profile: true`
+  dans useCourtFrame + monte `<FrameProfileOverlay>` (haut-gauche).
+  Phase la plus coûteuse mise en évidence (🔥). Toggle "profile (J.5)"
+  dans ParametresPanel.
+- **J.6 V1** — Visual regression légère (9 tests). Helper pur
+  `playback/sceneSnapshot.ts::snapshotScene(state, label, sampleTs?)`
+  capture positions ballon + 10 joueurs + flags défenseurs clés à
+  des instants choisis. Positions arrondies à 1 décimale (stable
+  cross-machine). Test `j6GoldenSnapshots.test.ts` couvre 4 templates :
+  `ucla-cut`, `pnr-central`, `pindown-corner`, `floppy`. Snapshots
+  Vitest natifs versionnés dans `__snapshots__/`. Régénération
+  volontaire : `npx vitest run j6GoldenSnapshots -u`.
+
+Bilan Phase J après J.5 + J.6 : **4/7 livrés** (J.4 off-ball avancé,
+J.5 profiling, J.6 golden, J.7 panneau debug). Restent J.1, J.2, J.3
+(non-bloquants, reportés).
+
 ### Refacto interne
 
 - **`stepTransforms.patchStep`** ajouté (commit `fac20b2` matin) :
