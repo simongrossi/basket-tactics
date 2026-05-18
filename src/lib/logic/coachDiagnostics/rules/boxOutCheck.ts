@@ -2,15 +2,20 @@
 //
 // Le box-out V2 anime déjà les défenseurs en mode live (game loop)
 // après un tir. Cette règle complète en mode édition statique : sur
-// les steps de phase de rebond (post-LF, post-shot annotés), elle
+// les steps de phase de rebond (post-LF, post-shot annotés, A11), elle
 // vérifie que chaque défenseur est BIEN entre son homme et le panier
 // et flag les défaillances.
 //
-// Phases de rebond détectées :
-//  - Step actif avec context = 'free-throw' suivi d'un step sans LF
-//    (= phase course-rebond ajoutée par F.2)
-//  - Step actif labellé "rebond" / "rebound" / "course" / "miss"
-//  - Le step précédent a context 'free-throw' (= on est en post-lancer)
+// Phases de rebond détectées (par ordre de robustesse) :
+//  1. A11 — Le step PRÉCÉDENT a `shotOutcome === 'missed'` (= ce step
+//     est généré par addShotReboundStep, ou le coach l'a édité manuel).
+//     → Détection 100 % robuste via un champ structuré.
+//  2. A11 — Le step courant a `reboundType` défini (rebond posé par
+//     addShotReboundStep). → Détection 100 % robuste.
+//  3. F.2 — Step actif avec context = 'free-throw' suivi d'un step
+//     sans LF (= phase course-rebond ajoutée par F.2).
+//  4. Heuristique label : "rebond" / "rebound" / "course" / "miss"
+//     (fallback legacy, conservé pour les scénarios pre-A11).
 
 import type { Rule } from '../types';
 
@@ -19,16 +24,31 @@ import type { Rule } from '../types';
  *  raté. */
 const BOX_OUT_TOLERANCE_PX = 8;
 
-function isReboundPhase(state: { steps: Array<{ context?: string; label?: string }> }, stepIdx: number): boolean {
+function isReboundPhase(
+  state: {
+    steps: Array<{
+      context?: string;
+      label?: string;
+      shotOutcome?: 'made' | 'missed';
+      reboundType?: 'offensive' | 'defensive' | 'team-out';
+    }>;
+  },
+  stepIdx: number,
+): boolean {
   const cur = state.steps[stepIdx];
   const prev = state.steps[stepIdx - 1];
+  // A11 V1 — détection robuste via champs structurés.
+  if (cur?.reboundType) return true;
+  if (prev?.shotOutcome === 'missed') return true;
+  // F.2 — détection robuste via context.
+  if (prev?.context === 'free-throw') return true;
+  // Legacy heuristique sur label (fallback pour scénarios pre-A11).
   if (cur?.label) {
     const l = cur.label.toLowerCase();
     if (l.includes('rebond') || l.includes('rebound') || l.includes('course') || l.includes('manqué') || l.includes('miss')) {
       return true;
     }
   }
-  if (prev?.context === 'free-throw') return true;
   return false;
 }
 

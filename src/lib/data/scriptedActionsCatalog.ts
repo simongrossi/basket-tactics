@@ -247,6 +247,14 @@ export const SCRIPTED_ACTIONS_CATALOG: Record<ScriptedActionType, ScriptedAction
     type: 'shoot',
     label: 'Tir',
     fibaTerm: 'Shoot / Finish',
+    // A11 V1 (2026-05-18) — note de cohérence : ce ScriptedAction est
+    // consommé UNIQUEMENT en mode IA / simulateur (match/gameLoop,
+    // match/aiPossession, logic/simulator). Il n'est PAS converti en
+    // Step persisté. Pour le mode édition coach, utiliser plutôt
+    // `Step.shotOutcome` ('made' | 'missed') posé manuellement via
+    // StepsPanel, et le setter `addShotReboundStep` pour générer la
+    // phase rebond. Les deux mondes sont parallèles : un coach qui
+    // édite à la main et le simulateur IA n'interagissent pas.
     description: 'Le porteur prend son tir (clôture le scénario).',
     category: 'finition',
     requiredParams: ['shooter'],
