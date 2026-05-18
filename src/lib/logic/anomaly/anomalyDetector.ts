@@ -1,4 +1,4 @@
-// K.0 + K.1 + K.2 — Détecteur d'anomalies de comportement joueur (couche pure).
+// K.0 + K.1 + K.2 + K.3 — Détecteur d'anomalies de comportement joueur (couche pure).
 //
 // Aucun side effect, aucune mutation. Prend des snapshots minimaux et
 // retourne un tableau d'AnomalyReport. Branché sur le pipeline depuis
@@ -6,6 +6,13 @@
 
 import type { AttackerPositions, ComputedDefense, DefenderId, DefenderRules, Point } from '@/lib/types';
 import type { AnomalyReport, PlayerId } from './types';
+
+/** K.3 — Au-delà de cette distance, un défenseur est considéré "décroché"
+ *  de son homme. 250 px ≈ 8 m sur le terrain. */
+export const DETACHED_DEFENDER_PX = 250;
+
+/** K.3 — Au-delà : la décroche est `critical`. */
+export const DETACHED_DEFENDER_CRITICAL_PX = 450;
 
 /** Seuil de saut entre deux frames consécutives, en pixels.
  *  Le pipeline clampe déjà visuellement à 18 px/frame (MAX_DEFENDER_JUMP_PX
@@ -152,6 +159,58 @@ export function detectAberrantSpeed(
       message: `${id} a parcouru ${d.toFixed(0)} px en 1 step (max ~${indivMax.toFixed(0)} px, ratio ×${ratio.toFixed(2)})`,
       value: d,
       threshold: limit,
+    });
+  });
+
+  return out;
+}
+
+/**
+ * K.3 V1 — Détecte les défenseurs "décrochés" de leur homme matché.
+ *
+ * Conditions cumulées :
+ *  - Distance défenseur ↔ son homme matché > `threshold` (default 250 px)
+ *  - `helpFactor < 0.1` (n'est PAS en train d'aider — sinon la distance
+ *    est attendue)
+ *  - `screenPhase` ∈ {undefined, 'idle'} (n'est PAS coincé dans un screen
+ *    en contact — sinon la distance est attendue)
+ *
+ * Ne fait PAS de check sur la zone de défense : en zone/junk/press, le
+ * concept de matchup individuel n'a pas le même sens. L'appelant doit
+ * filtrer si `defenseSystem !== 'man'`.
+ */
+export function detectDetachedDefenders(
+  off: AttackerPositions,
+  defPos: ComputedDefense,
+  stepIdx: number,
+  threshold: number = DETACHED_DEFENDER_PX,
+  criticalThreshold: number = DETACHED_DEFENDER_CRITICAL_PX,
+): AnomalyReport[] {
+  const out: AnomalyReport[] = [];
+
+  (Object.keys(defPos) as DefenderId[]).forEach((id) => {
+    const def = defPos[id];
+    if (!def) return;
+    // Exclusions explicites
+    if ((def.helpFactor ?? 0) >= 0.1) return;
+    const phase = def.screenPhase;
+    if (phase && phase !== 'idle') return;
+    const matchedTo = def.matchedTo;
+    if (!matchedTo) return;
+    const att = off[matchedTo];
+    if (!att) return;
+
+    const d = dist({ x: def.x, y: def.y }, att);
+    if (d <= threshold) return;
+
+    out.push({
+      kind: 'detached',
+      severity: d >= criticalThreshold ? 'critical' : 'warning',
+      playerId: id,
+      stepIdx,
+      message: `${id} décroché de ${matchedTo} : ${d.toFixed(0)} px (seuil ${threshold} px)`,
+      value: d,
+      threshold,
     });
   });
 
