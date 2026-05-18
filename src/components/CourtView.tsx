@@ -422,6 +422,37 @@ export function CourtView(props: CourtViewProps) {
             })}
           </g>
         )}
+        {/* E.1 V2 stage 2b — banner "PHASE ADVERSE" en mode édition statique.
+            Affiché quand le step actif a Step.viewSide === 'away' (= généré
+            par convertStepToAwayPossession). Différent du banner game loop
+            (qui dépend de liveMatchState.attackingTeam). */}
+        {state.steps[state.activeStep]?.viewSide === 'away' && !props.liveMatchState && (
+          <g pointerEvents="none">
+            <rect
+              x={170}
+              y={40}
+              width={260}
+              height={22}
+              rx={4}
+              fill="#991b1b"
+              opacity={0.85}
+              stroke="#dc2626"
+              strokeWidth={1}
+            />
+            <text
+              x={300}
+              y={55}
+              textAnchor="middle"
+              fontSize={11}
+              fontWeight={700}
+              fill="#fee2e2"
+              letterSpacing={0.4}
+            >
+              🔄 PHASE ADVERSE (édition)
+            </text>
+          </g>
+        )}
+
         {/* E.1 V2 stage 1+2a — possession adverse : ballon + 5 adversaires
             simulés rendus visuellement (couleur rouge distinctive). Donne
             le visuel complet de "l'autre équipe attaque". */}

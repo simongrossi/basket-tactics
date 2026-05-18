@@ -19,6 +19,10 @@ interface StepsPanelProps {
   /** A11 — Génère un step de rebond après un tir manqué (computeRebound +
    *  box-out auto). Le step actif doit avoir shotOutcome === 'missed'. */
   onAddShotReboundStep?: (options?: { seed?: number; sourceStepIdx?: number }) => void;
+  /** E.1 stage 2b — Convertit/ajoute un step en mode "possession adverse"
+   *  (mirror vertical des positions autour de y=540). Le mode 'insert'
+   *  ajoute un step après ; 'replace' remplace le step actif. */
+  onConvertStepToAwayPossession?: (options?: { mode?: 'insert' | 'replace'; sourceStepIdx?: number }) => void;
   onSetBallCarrier: (carrier: AttackerId) => void;
   onDeleteAnnotation: (idx: number) => void;
   /** F.3 — Convertit le step actif en setup de lancer franc. */
@@ -500,6 +504,74 @@ export function StepsPanel(props: StepsPanelProps) {
                   🏀 étape {outcome === 'blocked' ? 'post-contre' : 'rebond'} auto (A11)
                 </button>
               )}
+              {/* E.1 stage 2b — Bouton "étape transition adverse" guidé par
+                  outletPassPending (= rebond défensif récent). */}
+              {activeStep.outletPassPending && props.onConvertStepToAwayPossession && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Générer une étape de transition adverse ? Les positions sont inversées verticalement (équipe adverse en bas, nos joueurs en défense haut).')) {
+                      props.onConvertStepToAwayPossession!({ mode: 'insert' });
+                    }
+                  }}
+                  title="E.1 stage 2b — Suite naturelle d'un rebond défensif. Bascule en phase adverse : O = adversaires (rouge), D = nos défenseurs home (bleu)."
+                  style={{
+                    width: '100%',
+                    fontSize: 10,
+                    padding: '5px 6px',
+                    borderRadius: 4,
+                    border: '1px solid #dc2626',
+                    background: '#262a32',
+                    color: '#fca5a5',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    marginTop: 4,
+                  }}
+                >
+                  🔄 étape transition adverse (E.1 stage 2b)
+                </button>
+              )}
+              {/* E.1 stage 2b — Bouton libre "Convertir en possession adverse"
+                  disponible sur tout step actif. Permet d'éditer un scénario
+                  en partant directement d'une phase adverse, ou de basculer
+                  un step home → away (et inverse). */}
+              {props.onConvertStepToAwayPossession && (() => {
+                const isAway = activeStep.viewSide === 'away';
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isAway) {
+                        if (confirm('Repasser ce step en mode "home" ? Les positions restent inchangées (juste l\'affichage).')) {
+                          props.onPatchStep?.(props.state.activeStep, { viewSide: 'home' });
+                        }
+                      } else {
+                        if (confirm('Convertir CE step en phase adverse ? Mirror vertical des positions autour de y=540 (= demi-court).')) {
+                          props.onConvertStepToAwayPossession!({ mode: 'replace' });
+                        }
+                      }
+                    }}
+                    title={isAway
+                      ? 'Step actuellement en mode adverse. Cliquer pour revenir en home (affichage uniquement).'
+                      : 'Convertit ce step en phase adverse (mirror vertical des positions).'
+                    }
+                    style={{
+                      width: '100%',
+                      fontSize: 10,
+                      padding: '5px 6px',
+                      borderRadius: 4,
+                      border: `1px solid ${isAway ? '#22c55e' : '#dc2626'}`,
+                      background: '#262a32',
+                      color: isAway ? '#86efac' : '#fca5a5',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      marginTop: 4,
+                    }}
+                  >
+                    {isAway ? '↩ revenir en mode home' : '↩ convertir en phase adverse'}
+                  </button>
+                );
+              })()}
             </div>
           );
         })()}

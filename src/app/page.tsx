@@ -301,6 +301,7 @@ export default function Page() {
                     onSetStepLabel={app.setStepLabel}
                     onPatchStep={app.patchStep}
                     onAddShotReboundStep={app.addShotReboundStep}
+                    onConvertStepToAwayPossession={app.convertStepToAwayPossession}
                     onSetBallCarrier={app.setBallCarrier}
                     onDeleteAnnotation={app.deleteAnnotation}
                     onConvertToFreeThrow={app.convertStepToFreeThrow}
