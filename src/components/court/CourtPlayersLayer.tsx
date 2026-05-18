@@ -51,13 +51,11 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
   frame.offBallScreens.forEach((s) => screenerIds.add(s.screener));
   const forcedScreenerId = state.steps[state.activeStep]?.forcedScreener;
 
-  // Phase 1.1 — Pendant la phase away en live match, on masque les sprites
-  // home (O1-O5 et D1-D5) pour ne pas avoir 15 joueurs visibles. Seuls
-  // les sprites away (rendus dans CourtView via awayPlayerPositions) sont
-  // visibles. Phase 2 remplacera ça par un vrai swap home↔away symétrique.
-  if (frame.attackingTeam === 'away') {
-    return <g />;
-  }
+  // Phase 2 — Plus de masquage : state.off et state.defPos contiennent
+  // maintenant les VRAIES positions des deux équipes (mirrored au bottom
+  // pendant la phase away). On rend tout normalement. La distinction
+  // visuelle home/away pourrait être améliorée en Phase 3 (badges par
+  // équipe, couleurs distinctes), mais V2 reste minimal côté UI.
 
   return (
     <g>

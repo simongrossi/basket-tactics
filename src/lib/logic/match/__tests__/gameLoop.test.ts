@@ -837,7 +837,9 @@ describe('gameLoop — E.1 V1 transition 2-way (home/away)', () => {
     }
     // Soit on est passé en away, soit (rare) la home a continué via off rebond.
     if (state.attackingTeam === 'away') {
-      expect(state.intent.kind).toBe('away-possession');
+      // Phase 2 : plus de stub 'away-possession', l'away est en intent
+      // normal (idle/drive/pass) après le swap symétrique.
+      expect(state.intent.kind).not.toBe('away-possession');
       expect(state.possessionsPlayed).toBe(1);
     }
   });

@@ -52,7 +52,7 @@ import {
 } from './decisions/offBallMover';
 import { computeRebound, type ReboundResult } from './rebound';
 import { buildInboundSetup } from '../inboundSetup';
-import { HALF_COURT_Y } from '../awayPossessionSetup';
+import { HALF_COURT_Y, buildAwayPossessionSetup } from '../awayPossessionSetup';
 import { advanceBallAdvance } from './ballAdvance';
 
 // ============================================================
@@ -782,19 +782,26 @@ function executeTransition(
         rebound
       );
     }
-    // Pas de rebond offensif :
+    // Mode legacy B3b (utilisé par les tests) : reboundRateOverride force
+    // une transition directe vers la nouvelle possession maison, sans
+    // passer par la possession adverse. Conservé pour rétrocompat tests.
     if (reboundRateOverride !== undefined) {
-      // Mode legacy B3b : nouvelle possession maison directe.
       return startFreshPossession(stateForTransition, baseAppState, cumulativeScore, homeScore, awayScore);
     }
-    // Mode E.1 V1 : rebond défensif → possession adverse stubbée.
-    return startAwayPossession(stateForTransition, cumulativeScore, homeScore, awayScore, rebound);
+    // Phase 2 — Rebond défensif : l'équipe DÉFENSIVE (= adverse de
+    // l'attackingTeam actuel) récupère le ballon.
+    if (state.attackingTeam === 'home') {
+      // Home a raté, away récupère
+      return startAwayPossession(stateForTransition, baseAppState, cumulativeScore, homeScore, awayScore, rebound);
+    }
+    // Away a raté, home récupère (pas d'inbound : rebond live)
+    return startFreshPossession(stateForTransition, baseAppState, cumulativeScore, homeScore, awayScore);
   }
 
   // Tir réussi / turnover / forced shot manqué sans rebond off →
   // possession adverse (l'adversaire récupère la balle).
   if (state.attackingTeam === 'home') {
-    return startAwayPossession(stateForTransition, cumulativeScore, homeScore, awayScore, null);
+    return startAwayPossession(stateForTransition, baseAppState, cumulativeScore, homeScore, awayScore, null);
   }
   // Sinon (fin de possession adverse) : nouvelle possession maison.
   return startFreshPossession(stateForTransition, baseAppState, cumulativeScore, homeScore, awayScore);
@@ -876,25 +883,50 @@ function startFreshPossession(
   homeScore: number = cumulativeScore,
   awayScore: number = state.awayScore
 ): MatchState {
-  // Repart de l'étape de base (positions "home"). Incrémente compteur.
+  // Phase 2 — Détermine si la transition vient d'un panier marqué adverse :
+  // si oui, home récupère le ballon pour une remise en jeu au baseline du
+  // bas (BLOB box-set mirroré). Sinon (turnover away, rebond live), reprise
+  // depuis l'étape de base au top.
+  const awayJustScored =
+    state.attackingTeam === 'away' &&
+    (state.outcome === 'shot-made' || state.outcome === 'forced-shot-made');
+
   const step = baseAppState.steps[baseAppState.activeStep];
   if (!step) {
-    // Cas dégénéré : on stoppe.
     return { ...state, cumulativeScore, possessionsPlayed: state.possessionsPlayed + 1 };
   }
-  const off = activeOffense(step.off, baseAppState.playerCount);
-  const carrier = activeBallCarrier(step, baseAppState.playerCount);
+
+  let newOff: AttackerPositions;
+  let newCarrier: AttackerId;
+  let inboundTimerMs: number | null = null;
+
+  if (awayJustScored) {
+    // Home inbound au bas du terrain : BLOB box-set mirroré autour de HALF_COURT_Y
+    const inboundSetup = buildInboundSetup('inbound-baseline');
+    newOff = Object.fromEntries(
+      Object.entries(inboundSetup.off).map(([id, p]) => [
+        id,
+        { x: p.x, y: 2 * HALF_COURT_Y - p.y },
+      ])
+    ) as AttackerPositions;
+    newCarrier = inboundSetup.inbounder;
+    inboundTimerMs = INBOUND_TIMER_MS;
+  } else {
+    // Reprise depuis l'étape de base (positions "home" canoniques)
+    newOff = cloneOff(activeOffense(step.off, baseAppState.playerCount));
+    newCarrier = activeBallCarrier(step, baseAppState.playerCount);
+  }
+
   const defPos = effectiveDefensePositions(baseAppState, baseAppState.activeStep);
-  const carrierPos = off[carrier] ?? { x: 0, y: 0 };
+  const carrierPos = newOff[newCarrier] ?? { x: 0, y: 0 };
   const newPossession = state.possession + 1;
-  // possessionsPlayed déjà incrémenté dans executeTransition (E.1 V1).
 
   const eventLog = [
     ...state.eventLog,
     {
       possession: newPossession,
       clock: DEFAULT_SHOT_CLOCK_MS / 1000,
-      actor: carrier,
+      actor: newCarrier,
       type: 'pass' as const,
       label: `— Nouvelle possession #${newPossession} —`,
     },
@@ -902,9 +934,9 @@ function startFreshPossession(
 
   return {
     ...state,
-    off: cloneOff(off),
+    off: newOff,
     defPos: cloneDef(defPos),
-    carrier,
+    carrier: newCarrier,
     ballPos: { x: carrierPos.x + 16, y: carrierPos.y - 16 },
     shotClockMs: DEFAULT_SHOT_CLOCK_MS,
     possessionTimeMs: 0,
@@ -919,28 +951,82 @@ function startFreshPossession(
     attackingTeam: 'home',
     possession: newPossession,
     transitionStartedAtMs: null,
+    inboundTimerMs,
+    // Reset stub fields (Phase 1 legacy)
+    awayBallPos: null,
+    awayPlayerPositions: null,
+    // Reset animation/rebound state pour qu'aucun résidu de la possession
+    // précédente ne persiste dans la nouvelle.
+    pendingRebound: null,
+    shotBallStartPos: null,
+    boxOutTargets: null,
+    boxOutStartedAtMs: null,
   };
 }
 
 // ============================================================
-// E.1 V1 — possession adverse stubbée
+// Phase 2 — Vraie possession adverse (moteur symétrique)
 // ============================================================
 
+/** Construit un ComputedDefense minimal à partir de positions brutes.
+ *  Phase 2 — utilisé lors du swap quand on rebalance state.defPos sans
+ *  passer par le pipeline défense complet (qui assumerait home attaque). */
+function buildMinimalDefense(
+  positions: Record<DefenderId, Point>,
+  attackerIds: AttackerId[],
+  defenderIds: DefenderId[]
+): ComputedDefense {
+  const result = {} as ComputedDefense;
+  defenderIds.forEach((dId, i) => {
+    const p = positions[dId] ?? { x: 300, y: 540 };
+    const matched = attackerIds[i] ?? attackerIds[0];
+    // Defaults visuels neutres (orientation = sud / vers le panier opposé,
+    // bras + regard pointent vers le porteur — calculé en V3 via le pipeline
+    // visuel adapté. Pour V2 V0, placeholders cohérents).
+    const facingPoint: Point = { x: p.x, y: p.y - 30 };
+    result[dId] = {
+      x: p.x,
+      y: p.y,
+      late: false,
+      helpFactor: 0,
+      isCarrierDefender: false,
+      matchedTo: matched,
+      onScreen: false,
+      switchedThisStep: false,
+      orientation: 0,
+      gazeOrientation: 0,
+      facing: facingPoint,
+      armBallSide: facingPoint,
+      armManSide: facingPoint,
+    };
+  });
+  return result;
+}
+
 /**
- * Démarre une possession adverse stubbée. L'adversaire n'est pas rendu
- * visuellement : les positions de notre équipe restent figées (utiles
- * pour le rebond défensif visible), le shot clock tourne pendant
- * `AWAY_POSSESSION_DURATION_MS`, puis outcome aléatoire au bout du
- * timer (AWAY_SCORE_PROBABILITY × 2 pts).
+ * Démarre une possession adverse RÉELLE (Phase 2, plus de stub).
+ *
+ * Au lieu de l'ancien stub (intent='away-possession' + animation hardcodée),
+ * on swap les positions : l'away devient l'équipe attaquante (state.off),
+ * notre équipe home devient les défenseurs (state.defPos), mirrored
+ * autour de HALF_COURT_Y pour les placer dans la moitié bas du terrain
+ * où l'away attaque HOOP_OPPOSITE (y=1005).
+ *
+ * Deux cas selon le contexte du transition :
+ * - Panier home marqué (`isMadeShot=true`) : away inbound au top en BLOB
+ *   box-set (y < 170) + timer remise 5s. L'IA fera la passe rentrante
+ *   puis Phase 1.2 advance vers le bas-court.
+ * - Rebond défensif ou turnover : away directement en attack formation
+ *   au bas (utilise `buildAwayPossessionSetup` mirror de la step source).
  */
 function startAwayPossession(
   state: MatchState,
+  baseAppState: AppState,
   cumulativeScore: number,
   homeScore: number,
   awayScore: number,
   rebound: ReboundResult | null
 ): MatchState {
-  // possessionsPlayed déjà incrémenté dans executeTransition.
   const reboundLabel = rebound?.rebounder
     ? `Rebond défensif ${rebound.rebounder}`
     : "Fin de possession maison — transition adverse";
@@ -954,39 +1040,45 @@ function startAwayPossession(
       label: reboundLabel,
     },
   ];
-  // Phase 1.1 — Si home vient de marquer un panier, on enclenche un
-  // timer de remise en jeu 5s (FIBA). Pendant ce timer, l'away est
-  // visuellement en position de remise au top du terrain :
-  // - 5 away players en BLOB box-set derrière la baseline home
-  //   (y entre 8 et 170, BLOB classique)
-  // - awayBallPos sur l'inbounder (y ≈ 8)
-  // Sur défensif rebound ou turnover, pas d'inbound baseline.
+
   const isMadeShot =
     state.outcome === 'shot-made' || state.outcome === 'forced-shot-made';
   const inboundTimerMs = isMadeShot ? INBOUND_TIMER_MS : null;
+  const attackerIds: AttackerId[] = ['O1', 'O2', 'O3', 'O4', 'O5'];
+  const defenderIds: DefenderId[] = ['D1', 'D2', 'D3', 'D4', 'D5'];
 
-  let awayPlayerPositions: Record<DefenderId, Point> | null = null;
-  let awayBallPos: Point | null = null;
+  let newOff: AttackerPositions;
+  let newDef: ComputedDefense;
+  let newCarrier: AttackerId;
+
   if (isMadeShot) {
-    const setup = buildInboundSetup('inbound-baseline');
-    // Re-key off (O1..O5) → defender ids (D1..D5) puisque
-    // awayPlayerPositions est indexé par DefenderId. Mapping nominal
-    // (O1→D1, etc.) — pas de matchup réel en Phase 1.
-    awayPlayerPositions = {
-      D1: setup.off.O1,
-      D2: setup.off.O2,
-      D3: setup.off.O3,
-      D4: setup.off.O4,
-      D5: setup.off.O5,
-    };
-    awayBallPos = { ...setup.off[setup.inbounder] };
+    // Away inbound au TOP — BLOB box-set au-dessus du panier home
+    // (l'away vient juste d'encaisser et inbound depuis sa baseline
+    // défensive = derrière le panier home y=75).
+    const inboundSetup = buildInboundSetup('inbound-baseline');
+    newOff = cloneOff(inboundSetup.off);
+    newCarrier = inboundSetup.inbounder;
+    newDef = buildMinimalDefense(inboundSetup.def, attackerIds, defenderIds);
+  } else {
+    // Rebond défensif / turnover : away directement en attack formation
+    // au bas du terrain (mirror du source step home).
+    const awaySetup = buildAwayPossessionSetup(baseAppState, baseAppState.activeStep);
+    newOff = cloneOff(awaySetup.off);
+    newCarrier = awaySetup.ballCarrier;
+    newDef = buildMinimalDefense(awaySetup.def, attackerIds, defenderIds);
   }
+
+  const carrierPos = newOff[newCarrier] ?? { x: 300, y: 540 };
 
   return {
     ...state,
+    off: newOff,
+    defPos: newDef,
+    carrier: newCarrier,
+    ballPos: { x: carrierPos.x + 16, y: carrierPos.y - 16 },
     score: 0,
     outcome: null,
-    intent: { kind: 'away-possession', remainingMs: AWAY_POSSESSION_DURATION_MS },
+    intent: { kind: 'idle' },
     offBallIntents: {},
     eventLog,
     cumulativeScore,
@@ -995,12 +1087,17 @@ function startAwayPossession(
     attackingTeam: 'away',
     transitionStartedAtMs: null,
     inboundTimerMs,
-    awayPlayerPositions,
-    awayBallPos,
-    // Shot clock visible côté adverse : on initialise à la durée de la
-    // possession adverse pour que le countdown soit lisible.
-    shotClockMs: AWAY_POSSESSION_DURATION_MS,
+    // Phase 2 : plus de stub render, on rend les VRAIES positions via state.off
+    awayPlayerPositions: null,
+    awayBallPos: null,
+    shotClockMs: DEFAULT_SHOT_CLOCK_MS,
     possessionTimeMs: 0,
+    // Reset animation/rebound state pour qu'aucun résidu de la possession
+    // précédente ne persiste dans la nouvelle.
+    pendingRebound: null,
+    shotBallStartPos: null,
+    boxOutTargets: null,
+    boxOutStartedAtMs: null,
   };
 }
 
