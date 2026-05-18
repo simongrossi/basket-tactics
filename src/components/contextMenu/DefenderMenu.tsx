@@ -1,16 +1,27 @@
-// Context menu défenseur : toutes les règles tactiques du défenseur cliqué.
+// Context menu défenseur : règles tactiques du défenseur cliqué.
 //
-// Sections :
-//  - ToolBar (mode global)
-//  - placement auto/manuel + clear override
-//  - profil (preset rapide)
-//  - aide % + comportement aide + priorité
-//  - vs porteur + hors-ballon
-//  - orientation (corps + regard) + bodyOrientationMode + FOV
-//  - vs écran (screenNav)
-//  - sliders override : distance / closeout× / denial agr. / vit. max
+// Organisation UI :
+//  - action globale (ToolBar)
+//  - placement + profil
+//  - défense immédiate
+//  - hors-ballon et écrans
+//  - orientation et vision
+//  - réglages avancés
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  Eye,
+  Gauge,
+  Hand,
+  RotateCcw,
+  Settings2,
+  Shield,
+  SlidersHorizontal,
+  Target,
+  Users,
+  X,
+} from 'lucide-react';
 import type { DefenderId, DefenderRule, Tool } from '@/lib/types';
 import { DEFENDER_PROFILES, type DefenderProfile } from '@/lib/data/defenderProfiles';
 import { useClampedPosition, useDraggablePopup } from './popupHooks';
@@ -19,8 +30,166 @@ import { Row, OverrideSliderRow, GazeLockButton } from './sharedRows';
 import { DARK_PANEL } from '../sidebar/SidebarThemeContext';
 
 const BLUE_ACCENT = '#4ba3ff';
+const BLUE_TINT_BG = 'rgba(75, 163, 255, 0.13)';
+const BLUE_TINT_BORDER = 'rgba(75, 163, 255, 0.32)';
 const AMBER_TINT_BG = 'rgba(245, 158, 11, 0.15)';
 const AMBER_TINT_BORDER = 'rgba(252, 211, 77, 0.35)';
+
+type IconComponent = LucideIcon;
+
+function MenuSection({
+  title,
+  icon: Icon,
+  meta,
+  metaTone = 'blue',
+  first,
+  children,
+}: {
+  title: string;
+  icon: IconComponent;
+  meta?: string;
+  metaTone?: 'blue' | 'amber';
+  first?: boolean;
+  children: ReactNode;
+}) {
+  const metaColors = metaTone === 'amber'
+    ? { color: '#fdba74', background: AMBER_TINT_BG, border: AMBER_TINT_BORDER }
+    : { color: '#bfdbfe', background: BLUE_TINT_BG, border: BLUE_TINT_BORDER };
+
+  return (
+    <section
+      style={{
+        marginTop: first ? 0 : 10,
+        paddingTop: first ? 0 : 10,
+        borderTop: first ? 'none' : `1px solid ${DARK_PANEL.borderSubtle}`,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+          marginBottom: 7,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <Icon size={15} strokeWidth={2.4} />
+          <span style={{ fontSize: 12, fontWeight: 850, color: DARK_PANEL.text, letterSpacing: 0 }}>
+            {title}
+          </span>
+        </div>
+        {meta && (
+          <span
+            style={{
+              flex: '0 0 auto',
+              padding: '3px 7px',
+              borderRadius: 999,
+              border: `1px solid ${metaColors.border}`,
+              background: metaColors.background,
+              color: metaColors.color,
+              fontSize: 11,
+              fontWeight: 850,
+              lineHeight: 1,
+            }}
+          >
+            {meta}
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'grid', gap: 6 }}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function CollapsibleMenuSection({
+  title,
+  icon: Icon,
+  children,
+  defaultOpen,
+}: {
+  title: string;
+  icon: IconComponent;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  return (
+    <details
+      className="bt-context-details"
+      {...(defaultOpen ? { open: true } : {})}
+      style={{
+        marginTop: 10,
+        paddingTop: 10,
+        borderTop: `1px solid ${DARK_PANEL.borderSubtle}`,
+      }}
+    >
+      <summary
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+          cursor: 'pointer',
+          userSelect: 'none',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon size={15} strokeWidth={2.4} />
+          <span style={{ fontSize: 12, fontWeight: 850, color: DARK_PANEL.text }}>{title}</span>
+        </div>
+        <span
+          className="bt-context-details-state"
+          aria-hidden="true"
+          style={{ color: DARK_PANEL.textDim, fontSize: 11, fontWeight: 750 }}
+        />
+      </summary>
+      <div style={{ display: 'grid', gap: 6, paddingTop: 8 }}>
+        {children}
+      </div>
+    </details>
+  );
+}
+
+function AdvancedSection({ children }: { children: ReactNode }) {
+  return (
+    <CollapsibleMenuSection title="Avancé" icon={SlidersHorizontal}>
+      {children}
+    </CollapsibleMenuSection>
+  );
+}
+
+function ResetIconButton({
+  onClick,
+  label,
+}: {
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      style={{
+        width: 24,
+        height: 24,
+        border: `1px solid ${DARK_PANEL.border}`,
+        borderRadius: 6,
+        background: DARK_PANEL.bgSubtle,
+        cursor: 'pointer',
+        color: DARK_PANEL.textDim,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 0,
+      }}
+    >
+      <RotateCcw size={14} strokeWidth={2.2} />
+    </button>
+  );
+}
 
 export interface DefenderMenuProps {
   kind: 'defender';
@@ -68,66 +237,107 @@ export function DefenderMenu({
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose, drag.isDragging]);
 
+  const placementTone = hasOverride ? 'amber' : 'blue';
+  const placementMeta = hasOverride ? 'manuel' : 'auto';
+
   return (
     <div
       ref={ref}
+      className="bt-context-menu"
       style={{
         position: 'absolute',
         left: drag.pos.x,
         top: drag.pos.y,
+        width: 420,
+        maxWidth: 'calc(100vw - 24px)',
+        maxHeight: 'min(760px, calc(100vh - 150px))',
+        overflowY: 'auto',
         background: DARK_PANEL.bg,
         border: `1px solid ${DARK_PANEL.border}`,
         color: DARK_PANEL.text,
-        borderRadius: 8,
-        padding: 10,
-        minWidth: 240,
+        borderRadius: 12,
+        padding: 12,
         zIndex: 1000,
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.45)',
+        boxShadow: '0 18px 48px rgba(0, 0, 0, 0.48)',
       }}
     >
       <div
         onPointerDown={drag.onPointerDown}
         style={{
-          fontSize: 13,
-          fontWeight: 500,
-          marginBottom: 8,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+          marginBottom: 10,
           cursor: drag.isDragging ? 'grabbing' : 'grab',
           userSelect: 'none',
           touchAction: 'none',
         }}
       >
-        {dId}
-        <span
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              background: BLUE_TINT_BG,
+              border: `1px solid ${BLUE_TINT_BORDER}`,
+              color: '#bfdbfe',
+              flex: '0 0 auto',
+            }}
+          >
+            <Shield size={16} strokeWidth={2.5} />
+          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+            <span style={{ fontSize: 18, fontWeight: 900, lineHeight: 1 }}>{dId}</span>
+            <span style={{ fontSize: 11, color: DARK_PANEL.textDim, fontWeight: 700 }}>
+              réglages défenseur
+            </span>
+          </div>
+        </div>
+        <button
+          type="button"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={onClose}
-          style={{ float: 'right', cursor: 'pointer', color: DARK_PANEL.textDim, fontSize: 14 }}
+          aria-label="Fermer le menu"
+          style={{
+            width: 30,
+            height: 30,
+            border: `1px solid ${DARK_PANEL.border}`,
+            borderRadius: 8,
+            background: DARK_PANEL.bgSubtle,
+            color: DARK_PANEL.textDim,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0,
+          }}
         >
-          ×
-        </span>
+          <X size={17} strokeWidth={2.4} />
+        </button>
       </div>
+
       <ToolBar tool={tool} onSetTool={onSetTool} defenderContext />
 
-      {/* placement auto / manuel */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-          marginBottom: 10,
-          padding: '4px 6px',
-          borderRadius: 5,
-          background: hasOverride ? AMBER_TINT_BG : DARK_PANEL.bgSubtle,
-          border: `1px solid ${hasOverride ? AMBER_TINT_BORDER : DARK_PANEL.border}`,
-        }}
-        title={
-          hasOverride
-            ? 'Position manuelle figée sur cette étape : le moteur respecte la position où tu as drag ce défenseur. Bascule en Auto pour que le moteur recalcule.'
-            : "Position calculée par le moteur d'après les règles d'aide, l'écran, le strong-side denial. Drag le défenseur pour passer en Manuel."
-        }
-      >
-        <span style={{ fontSize: 11, color: DARK_PANEL.textMuted, fontWeight: 500 }}>placement</span>
-        <div style={{ display: 'flex', flex: 1, gap: 2, marginLeft: 4 }}>
+      <MenuSection title="Placement" icon={Target} meta={placementMeta} metaTone={placementTone} first>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+            gap: 6,
+            padding: 5,
+            borderRadius: 9,
+            background: hasOverride ? AMBER_TINT_BG : BLUE_TINT_BG,
+            border: `1px solid ${hasOverride ? AMBER_TINT_BORDER : BLUE_TINT_BORDER}`,
+          }}
+        >
           <button
+            type="button"
+            disabled={!hasOverride}
             onClick={() => {
               if (hasOverride) {
                 onClearOverride();
@@ -135,306 +345,344 @@ export function DefenderMenu({
               }
             }}
             style={{
-              flex: 1,
-              fontSize: 11,
-              padding: '3px 4px',
-              borderRadius: 3,
+              minHeight: 34,
+              borderRadius: 7,
               border: `1px solid ${!hasOverride ? BLUE_ACCENT : DARK_PANEL.border}`,
               background: !hasOverride ? BLUE_ACCENT : DARK_PANEL.bgSubtle,
-              color: !hasOverride ? '#0a1929' : DARK_PANEL.textMuted,
+              color: !hasOverride ? '#07121f' : DARK_PANEL.textMuted,
               cursor: hasOverride ? 'pointer' : 'default',
-              fontWeight: !hasOverride ? 600 : 400,
+              fontWeight: 850,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 7,
+              padding: '0 8px',
             }}
           >
-            ⚙ auto
+            <Settings2 size={15} strokeWidth={2.4} />
+            auto
           </button>
           <button
+            type="button"
             disabled
+            aria-disabled
             style={{
-              flex: 1,
-              fontSize: 11,
-              padding: '3px 4px',
-              borderRadius: 3,
+              minHeight: 34,
+              borderRadius: 7,
               border: `1px solid ${hasOverride ? '#d97706' : DARK_PANEL.border}`,
               background: hasOverride ? '#f59e0b' : DARK_PANEL.bgSubtle,
               color: hasOverride ? '#1f1300' : DARK_PANEL.textDim,
               cursor: 'default',
-              fontWeight: hasOverride ? 600 : 400,
+              fontWeight: 850,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 7,
+              padding: '0 8px',
             }}
           >
-            ✋ manuel
+            <Hand size={15} strokeWidth={2.4} />
+            manuel
           </button>
         </div>
-      </div>
 
-      <Row
-        label="profil"
-        title="Applique un profil de rôle (stopper, helper, denier…) — merge superficiel : seuls les champs définis par le profil sont écrasés, les overrides individuels (distance, vit. max, orientation…) sont préservés."
-      >
-        <select
-          value=""
-          onChange={(e) => {
-            const profile = DEFENDER_PROFILES.find((p) => p.id === e.target.value);
-            if (profile) onApplyProfile(profile);
-          }}
-          style={{ flex: 1, fontSize: 11 }}
+        <Row
+          label="profil"
+          title="Applique un profil de rôle (stopper, helper, denier). Seuls les champs définis par le profil sont écrasés ; les overrides individuels sont préservés."
         >
-          <option value="" disabled>— choisir un profil —</option>
-          {DEFENDER_PROFILES.map((p) => (
-            <option key={p.id} value={p.id} title={p.description}>{p.name}</option>
-          ))}
-        </select>
-      </Row>
-      <Row
-        label="aide %"
-        title="Intensité de l'aide ce défenseur quand un trigger est actif (drive/post/raquette). 0 = ne quitte jamais son homme. 100 = bouge complètement vers la cible d'aide."
-      >
-        <input
-          type="range"
-          min={0}
-          max={100}
-          step={5}
-          value={rule.helpPct}
-          onChange={(e) => onUpdate({ helpPct: parseInt(e.target.value) })}
-          style={{ flex: 1 }}
-        />
-        <span style={{ fontSize: 12, minWidth: 32 }}>{rule.helpPct}%</span>
-      </Row>
-      <Row
-        label="comport. aide"
-        title="Comportement d'aide individuel. 'auto' = standard (aide weak-side, garde son homme strong-side). 'toujours aider' = ignore le côté du ballon, aide à fond partout. 'passif' = aide molle, garde son homme plus longtemps. 'désactivé' = ce défenseur n'aide jamais, même sur trigger."
-      >
-        <select
-          value={rule.helpMode ?? 'auto'}
-          onChange={(e) => onUpdate({ helpMode: e.target.value as DefenderRule['helpMode'] })}
-          style={{ flex: 1 }}
-        >
-          <option value="auto">auto (selon côté ballon)</option>
-          <option value="aggressive">toujours aider</option>
-          <option value="passive">passif (garde son homme)</option>
-          <option value="disabled">désactivé (n'aide jamais)</option>
-        </select>
-      </Row>
-      <Row
-        label="priorité"
-        title="Cible quand ce défenseur aide. 'protéger raquette' = vise le bloc bas le plus chargé. 'rester sur homme' = aide légère, reste à 30% du chemin vers le panier. 'ligne de passe' = se rabat sur la passe entre son homme et le porteur."
-      >
-        <select
-          value={rule.priority}
-          onChange={(e) => onUpdate({ priority: e.target.value as DefenderRule['priority'] })}
-          style={{ flex: 1 }}
-        >
-          <option value="paint">protéger raquette</option>
-          <option value="man">rester sur homme</option>
-          <option value="passlane">ligne de passe</option>
-        </select>
-      </Row>
-      <Row
-        label="vs porteur"
-        title="Comportement quand ce défenseur défend le porteur. 'coller' = pression rapprochée. 'bumper' = entre porteur et panier. 'contester' = recule actif au tir. 'reculer' = drop profond. 'topside' = force vers le milieu. 'baseline' = force vers la ligne de fond."
-      >
-        <select
-          value={rule.vsCarrier}
-          onChange={(e) => onUpdate({ vsCarrier: e.target.value as DefenderRule['vsCarrier'] })}
-          style={{ flex: 1 }}
-        >
-          <option value="coller">coller (pression)</option>
-          <option value="bumper">bumper (entre lui &amp; panier)</option>
-          <option value="contester">contester (recul actif)</option>
-          <option value="reculer">reculer (drop)</option>
-          <option value="topside">topside (force milieu)</option>
-          <option value="baseline">baseline (force ligne de fond)</option>
-        </select>
-      </Row>
-      <Row
-        label="hors-ballon"
-        title="Position quand ce défenseur ne défend pas le porteur. 'sag' = position d'aide classique. 'derrière' = entre son homme et le panier, sans aide. 'stunt' = fait mine d'aider vers le ballon (fake). '3/4 deny' = pied dans la ligne de passe. 'devant' = devant son homme face au ballon (full denial)."
-      >
-        <select
-          value={rule.offBallStance ?? 'sag'}
-          onChange={(e) => onUpdate({ offBallStance: e.target.value as DefenderRule['offBallStance'] })}
-          style={{ flex: 1 }}
-        >
-          <option value="sag">sag (aide raquette)</option>
-          <option value="behind">derrière (entre lui &amp; panier)</option>
-          <option value="stunt">stunt (fake d'aide)</option>
-          <option value="deny-3q">3/4 deny (pied dans la passe)</option>
-          <option value="fronting">devant (full denial)</option>
-        </select>
-      </Row>
-      <Row
-        label="orientation"
-        title="Rotation du corps en degrés (range -90 à +90, default 0). 0 = neutre, bras au-dessus. Positif (+) = horaire (épaule droite avancée, ferme le côté droit, pousse le porteur à gauche). Négatif (-) = anti-horaire. Applique aussi un petit décalage latéral à la position cible (max ±12px)."
-      >
-        <input
-          type="range"
-          min={-90}
-          max={90}
-          step={5}
-          value={rule.orientation ?? 0}
-          onChange={(e) => {
-            const v = parseInt(e.target.value);
-            onUpdate({ orientation: v === 0 ? undefined : v });
-          }}
-          style={{ flex: 1 }}
-        />
-        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: rule.orientation ? BLUE_ACCENT : DARK_PANEL.textDim, fontWeight: rule.orientation ? 600 : 400 }}>
-          {rule.orientation ? `${rule.orientation > 0 ? '+' : ''}${rule.orientation}°` : '0°'}
-        </span>
-        {rule.orientation !== undefined && rule.orientation !== 0 && (
-          <button
-            onClick={() => onUpdate({ orientation: undefined })}
-            title="Remettre à 0"
-            style={{
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              color: '#94a3b8',
-              fontSize: 13,
-              padding: '0 2px',
-              lineHeight: 1,
+          <select
+            value=""
+            onChange={(e) => {
+              const profile = DEFENDER_PROFILES.find((p) => p.id === e.target.value);
+              if (profile) onApplyProfile(profile);
             }}
           >
-            ↻
-          </button>
-        )}
-      </Row>
-      <Row
-        label="corps"
-        title="Consigne tactique d'orientation du corps. Auto suit la stance. Ligne de passe à plat = corps dans l'axe porteur→homme ; perpendiculaire = corps à 90° de cet axe. Le slider absolu 'orientation corps' écrase ce choix."
-      >
-        <select
-          value={rule.bodyOrientationMode ?? 'auto'}
-          onChange={(e) => {
-            const v = e.target.value as NonNullable<DefenderRule['bodyOrientationMode']>;
-            onUpdate({
-              bodyOrientationMode: v === 'auto' ? undefined : v,
-              bodyOrientation: undefined,
-            });
-          }}
-          style={{ flex: 1 }}
+            <option value="" disabled>choisir un profil</option>
+            {DEFENDER_PROFILES.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </Row>
+      </MenuSection>
+
+      <MenuSection title="Défense" icon={Shield}>
+        <Row
+          label="aide %"
+          title="Intensité de l'aide quand un trigger est actif. 0 = ne quitte jamais son homme. 100 = bouge complètement vers la cible d'aide."
         >
-          <option value="auto">auto (selon stance)</option>
-          <option value="open">ouvert homme/ballon</option>
-          <option value="open-weighted">ouvert pondéré (distances)</option>
-          <option value="face-man">face à mon homme</option>
-          <option value="face-ball">face au porteur</option>
-          <option value="pass-lane-flat">ligne passe à plat</option>
-          <option value="pass-lane-perp">ligne passe perpend.</option>
-        </select>
-      </Row>
-      <Row
-        label="champ de vision"
-        title="Affiche un cône de vision autour de ce défenseur (heatmap cyan semi-transparente, ouverture 120° centrée sur son regard). Permet de visualiser ce que voit le défenseur en plus du triangle pointeur."
-      >
-        <input
-          type="checkbox"
-          checked={!!rule.showFieldOfView}
-          onChange={(e) => onUpdate({ showFieldOfView: e.target.checked || undefined })}
-          style={{ marginLeft: 'auto' }}
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={rule.helpPct}
+            onChange={(e) => onUpdate({ helpPct: parseInt(e.target.value) })}
+            style={{ flex: 1, minWidth: 0 }}
+          />
+          <span style={{ fontSize: 13, minWidth: 44, textAlign: 'right', fontWeight: 850 }}>
+            {rule.helpPct}%
+          </span>
+        </Row>
+        <Row
+          label="mode aide"
+          title="Comportement d'aide individuel. Auto = standard selon le côté ballon. Toujours aider = aide à fond partout. Passif = garde son homme plus longtemps. Désactivé = n'aide jamais."
+        >
+          <select
+            value={rule.helpMode ?? 'auto'}
+            onChange={(e) => onUpdate({ helpMode: e.target.value as DefenderRule['helpMode'] })}
+          >
+            <option value="auto">auto (selon côté ballon)</option>
+            <option value="aggressive">toujours aider</option>
+            <option value="passive">passif (garde son homme)</option>
+            <option value="disabled">désactivé (n'aide jamais)</option>
+          </select>
+        </Row>
+        <Row
+          label="priorité"
+          title="Cible quand ce défenseur aide. Protéger raquette = vise le bloc bas le plus chargé. Rester sur homme = aide légère. Ligne de passe = se rabat entre son homme et le porteur."
+        >
+          <select
+            value={rule.priority}
+            onChange={(e) => onUpdate({ priority: e.target.value as DefenderRule['priority'] })}
+          >
+            <option value="paint">protéger raquette</option>
+            <option value="man">rester sur homme</option>
+            <option value="passlane">ligne de passe</option>
+          </select>
+        </Row>
+        <Row
+          label="vs porteur"
+          title="Comportement quand ce défenseur défend le porteur : pression, bumper, contest, drop ou orientation vers un côté."
+        >
+          <select
+            value={rule.vsCarrier}
+            onChange={(e) => onUpdate({ vsCarrier: e.target.value as DefenderRule['vsCarrier'] })}
+          >
+            <option value="coller">coller (pression)</option>
+            <option value="bumper">bumper (entre lui & panier)</option>
+            <option value="contester">contester (recul actif)</option>
+            <option value="reculer">reculer (drop)</option>
+            <option value="topside">topside (force milieu)</option>
+            <option value="baseline">baseline (force ligne de fond)</option>
+          </select>
+        </Row>
+      </MenuSection>
+
+      <CollapsibleMenuSection title="Hors ballon" icon={Users}>
+        <Row
+          label="stance"
+          title="Position quand ce défenseur ne défend pas le porteur : aide classique, derrière, stunt, denial ou fronting."
+        >
+          <select
+            value={rule.offBallStance ?? 'sag'}
+            onChange={(e) => onUpdate({ offBallStance: e.target.value as DefenderRule['offBallStance'] })}
+          >
+            <option value="sag">sag (aide raquette)</option>
+            <option value="behind">derrière (entre lui & panier)</option>
+            <option value="stunt">stunt (fake d'aide)</option>
+            <option value="deny-3q">3/4 deny (pied dans la passe)</option>
+            <option value="fronting">devant (full denial)</option>
+          </select>
+        </Row>
+        <Row
+          label="vs écran"
+          title="Réaction individuelle sur écran porteur. Auto utilise la règle globale ; les autres options forcent une couverture précise."
+        >
+          <select
+            value={rule.screenNav ?? 'auto'}
+            onChange={(e) => onUpdate({ screenNav: e.target.value as DefenderRule['screenNav'] })}
+          >
+            <option value="auto">auto (règle globale)</option>
+            <option value="over">over (par-dessus)</option>
+            <option value="under">under (en dessous)</option>
+            <option value="switch">switch (échange)</option>
+            <option value="hedge">hedge (show & recover)</option>
+            <option value="drop">drop (recul)</option>
+            <option value="blitz">blitz (piège)</option>
+            <option value="ice">ice / no-middle</option>
+            <option value="weak">weak (under léger)</option>
+            <option value="peel-switch">peel switch</option>
+          </select>
+        </Row>
+        <OverrideSliderRow
+          label="distance"
+          min={20}
+          max={80}
+          step={2}
+          value={rule.distance}
+          onChange={(v) => onUpdate({ distance: v })}
+          onReset={() => onUpdate({ distance: undefined })}
+          title="Distance individuelle défenseur ↔ son homme. Petit nombre = défenseur collant ; grand nombre = laisse de l'espace."
         />
-      </Row>
-      <Row
-        label="orientation corps"
-        title="Override absolu de l'orientation du corps en degrés (0–360°). 0° = corps face au panier opposé, 90° = côté droit, 180° = face au panier protégé, 270° = côté gauche. Si défini, écrase le calcul auto open stance."
-      >
-        <input
-          type="range"
+        <OverrideSliderRow
+          label="closeout ×"
+          min={1}
+          max={2}
+          step={0.1}
+          value={rule.closeoutBoost}
+          onChange={(v) => onUpdate({ closeoutBoost: v })}
+          onReset={() => onUpdate({ closeoutBoost: undefined })}
+          title="Multiplicateur de vitesse quand le ballon arrive sur son homme. 1 = pas de boost, 2 = très agressif."
+        />
+        <OverrideSliderRow
+          label="denial"
           min={0}
-          max={359}
-          step={5}
-          value={rule.bodyOrientation ?? 0}
-          onChange={(e) => {
-            const v = parseInt(e.target.value);
-            onUpdate({ bodyOrientation: v });
-          }}
-          style={{ flex: 1 }}
+          max={1}
+          step={0.05}
+          value={rule.denyAggressiveness}
+          onChange={(v) => onUpdate({ denyAggressiveness: v })}
+          onReset={() => onUpdate({ denyAggressiveness: undefined })}
+          title="Force du marquage en avant sur la ligne de passe. 0 = ignore, 1 = full denial assumé."
         />
-        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: rule.bodyOrientation !== undefined ? BLUE_ACCENT : DARK_PANEL.textDim, fontWeight: rule.bodyOrientation !== undefined ? 600 : 400 }}>
-          {rule.bodyOrientation !== undefined ? `${rule.bodyOrientation}°` : 'auto'}
-        </span>
-        {rule.bodyOrientation !== undefined && (
-          <button
-            onClick={() => onUpdate({ bodyOrientation: undefined })}
-            title="Revenir au calcul auto"
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
-          >↻</button>
-        )}
-      </Row>
-      <Row
-        label="regard"
-        title="Verrouillage du regard sur une cible dynamique (suit la cible étape par étape). Le clamp anatomique ±60° du corps reste prioritaire — si la cible est anatomiquement derrière, le regard est ramené au bord du cône."
-      >
-        <div style={{ display: 'flex', flex: 1, gap: 2, flexWrap: 'wrap' }}>
-          <GazeLockButton label="auto" active={rule.gazeLock === undefined} onClick={() => onUpdate({ gazeLock: undefined })} />
-          {!isCarrierDefender && (
-            <GazeLockButton label="🔒 mon homme" active={rule.gazeLock === 'opponent'} onClick={() => onUpdate({ gazeLock: 'opponent' })} />
-          )}
-          <GazeLockButton label="🔒 le porteur" active={rule.gazeLock === 'ball-carrier'} onClick={() => onUpdate({ gazeLock: 'ball-carrier' })} />
-          <GazeLockButton label="🔒 les deux" active={rule.gazeLock === 'both'} onClick={() => onUpdate({ gazeLock: 'both' })} />
-        </div>
-      </Row>
-      <Row
-        label="vs écran"
-        title="Réaction de ce défenseur sur un écran porteur. 'auto' = utilise la règle globale. 'over' = passe par-dessus l'écran. 'under' = passe en dessous (laisse le tir 3pts). 'switch' = échange avec le coéquipier qui a posé l'écran. 'hedge' = show & recover. 'drop' = recule sous l'écran. 'blitz' = prise à deux."
-      >
-        <select
-          value={rule.screenNav ?? 'auto'}
-          onChange={(e) => onUpdate({ screenNav: e.target.value as DefenderRule['screenNav'] })}
-          style={{ flex: 1 }}
+      </CollapsibleMenuSection>
+
+      <CollapsibleMenuSection title="Orientation & vision" icon={Eye}>
+        <Row
+          label="force côté"
+          title="Delta d'orientation du corps en degrés (-90 à +90). Positif = rotation horaire, négatif = anti-horaire. Ajoute aussi un petit décalage latéral."
         >
-          <option value="auto">auto (règle globale)</option>
-          <option value="over">over (par-dessus)</option>
-          <option value="under">under (en dessous)</option>
-          <option value="switch">switch (échange)</option>
-          <option value="hedge">hedge (show &amp; recover)</option>
-          <option value="drop">drop (recul)</option>
-          <option value="blitz">blitz (piège)</option>
-          <option value="ice">ice / no-middle</option>
-          <option value="weak">weak (under léger)</option>
-          <option value="peel-switch">peel switch</option>
-        </select>
-      </Row>
-      <OverrideSliderRow
-        label="distance"
-        min={20}
-        max={80}
-        step={2}
-        value={rule.distance}
-        onChange={(v) => onUpdate({ distance: v })}
-        onReset={() => onUpdate({ distance: undefined })}
-        title="Distance individuelle défenseur ↔ son homme (en pixels). Override le réglage global. Petit nombre = défenseur collant ; grand nombre = laisse de l'espace."
-      />
-      <OverrideSliderRow
-        label="closeout ×"
-        min={1}
-        max={2}
-        step={0.1}
-        value={rule.closeoutBoost}
-        onChange={(v) => onUpdate({ closeoutBoost: v })}
-        onReset={() => onUpdate({ closeoutBoost: undefined })}
-        title="Multiplicateur de vitesse pour ce défenseur quand le ballon arrive sur son homme (closeout sur passe entrante). 1 = pas de boost, 2 = très agressif. Modélise l'urgence de fermer la distance avant tir."
-      />
-      <OverrideSliderRow
-        label="denial agr."
-        min={0}
-        max={1}
-        step={0.05}
-        value={rule.denyAggressiveness}
-        onChange={(v) => onUpdate({ denyAggressiveness: v })}
-        onReset={() => onUpdate({ denyAggressiveness: undefined })}
-        title="Force du marquage en avant sur la ligne de passe quand son homme est côté ballon. 0 = ignore, 0.45 = par défaut, 1 = full denial assumé."
-      />
-      <OverrideSliderRow
-        label="vit. max"
-        min={40}
-        max={200}
-        step={5}
-        value={rule.maxSpeed}
-        onChange={(v) => onUpdate({ maxSpeed: v })}
-        onReset={() => onUpdate({ maxSpeed: undefined })}
-        title="Vitesse max individuelle de ce défenseur (px/étape). Défauts par poste : D1 meneur 145 · D2 arrière 130 · D3 ailier 110 · D4 ailier fort 90 · D5 pivot 75. Petit nombre = lent, souvent en retard sur les rotations d'aide. Grand nombre = rapide, atteint sa cible plus souvent à temps."
-      />
+          <input
+            type="range"
+            min={-90}
+            max={90}
+            step={5}
+            value={rule.orientation ?? 0}
+            onChange={(e) => {
+              const v = parseInt(e.target.value);
+              onUpdate({ orientation: v === 0 ? undefined : v });
+            }}
+            style={{ flex: 1, minWidth: 0 }}
+          />
+          <span
+            style={{
+              fontSize: 12,
+              minWidth: 44,
+              textAlign: 'right',
+              color: rule.orientation ? BLUE_ACCENT : DARK_PANEL.textDim,
+              fontWeight: rule.orientation ? 850 : 700,
+            }}
+          >
+            {rule.orientation ? `${rule.orientation > 0 ? '+' : ''}${rule.orientation}°` : '0°'}
+          </span>
+          {rule.orientation !== undefined && rule.orientation !== 0 && (
+            <ResetIconButton
+              onClick={() => onUpdate({ orientation: undefined })}
+              label="Remettre la force côté à 0"
+            />
+          )}
+        </Row>
+        <Row
+          label="corps"
+          title="Consigne tactique d'orientation du corps. Auto suit la stance ; les modes ligne de passe orientent le corps par rapport à l'axe porteur-homme."
+        >
+          <select
+            value={rule.bodyOrientationMode ?? 'auto'}
+            onChange={(e) => {
+              const v = e.target.value as NonNullable<DefenderRule['bodyOrientationMode']>;
+              onUpdate({
+                bodyOrientationMode: v === 'auto' ? undefined : v,
+                bodyOrientation: undefined,
+              });
+            }}
+          >
+            <option value="auto">auto (selon stance)</option>
+            <option value="open">ouvert homme/ballon</option>
+            <option value="open-weighted">ouvert pondéré (distances)</option>
+            <option value="face-man">face à mon homme</option>
+            <option value="face-ball">face au porteur</option>
+            <option value="pass-lane-flat">ligne passe à plat</option>
+            <option value="pass-lane-perp">ligne passe perpend.</option>
+          </select>
+        </Row>
+        <Row
+          label="champ vision"
+          title="Affiche un cône de vision autour de ce défenseur, centré sur son regard."
+        >
+          <input
+            type="checkbox"
+            checked={!!rule.showFieldOfView}
+            onChange={(e) => onUpdate({ showFieldOfView: e.target.checked || undefined })}
+            style={{ marginLeft: 'auto' }}
+          />
+        </Row>
+        <Row
+          label="angle corps"
+          title="Override absolu de l'orientation du corps en degrés (0-360). Si défini, écrase le calcul auto."
+        >
+          <input
+            type="range"
+            min={0}
+            max={359}
+            step={5}
+            value={rule.bodyOrientation ?? 0}
+            onChange={(e) => {
+              const v = parseInt(e.target.value);
+              onUpdate({ bodyOrientation: v });
+            }}
+            style={{ flex: 1, minWidth: 0 }}
+          />
+          <span
+            style={{
+              fontSize: 12,
+              minWidth: 44,
+              textAlign: 'right',
+              color: rule.bodyOrientation !== undefined ? BLUE_ACCENT : DARK_PANEL.textDim,
+              fontWeight: rule.bodyOrientation !== undefined ? 850 : 700,
+            }}
+          >
+            {rule.bodyOrientation !== undefined ? `${rule.bodyOrientation}°` : 'auto'}
+          </span>
+          {rule.bodyOrientation !== undefined && (
+            <ResetIconButton
+              onClick={() => onUpdate({ bodyOrientation: undefined })}
+              label="Revenir au calcul auto du corps"
+            />
+          )}
+        </Row>
+        <Row
+          label="regard"
+          title="Verrouille le regard sur une cible dynamique. Le clamp anatomique ±60° du corps reste prioritaire."
+        >
+          <div style={{ display: 'flex', flex: 1, gap: 5, flexWrap: 'wrap' }}>
+            <GazeLockButton label="auto" active={rule.gazeLock === undefined} onClick={() => onUpdate({ gazeLock: undefined })} />
+            {!isCarrierDefender && (
+              <GazeLockButton label="mon homme" active={rule.gazeLock === 'opponent'} onClick={() => onUpdate({ gazeLock: 'opponent' })} />
+            )}
+            <GazeLockButton label="porteur" active={rule.gazeLock === 'ball-carrier'} onClick={() => onUpdate({ gazeLock: 'ball-carrier' })} />
+            <GazeLockButton label="les deux" active={rule.gazeLock === 'both'} onClick={() => onUpdate({ gazeLock: 'both' })} />
+          </div>
+        </Row>
+      </CollapsibleMenuSection>
+
+      <AdvancedSection>
+        <OverrideSliderRow
+          label="vit. max"
+          min={40}
+          max={200}
+          step={5}
+          value={rule.maxSpeed}
+          onChange={(v) => onUpdate({ maxSpeed: v })}
+          onReset={() => onUpdate({ maxSpeed: undefined })}
+          title="Vitesse max individuelle de ce défenseur. Petit nombre = lent, grand nombre = atteint sa cible plus souvent à temps."
+        />
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 10px',
+            borderRadius: 8,
+            background: DARK_PANEL.bgSubtle,
+            border: `1px solid ${DARK_PANEL.border}`,
+            color: DARK_PANEL.textDim,
+            fontSize: 12,
+            fontWeight: 650,
+          }}
+        >
+          <Gauge size={14} strokeWidth={2.3} />
+          Les réglages non définis restent calés sur la règle globale.
+        </div>
+      </AdvancedSection>
     </div>
   );
 }

@@ -15,7 +15,6 @@ import type {
 import { Panel, AccordionSection, Slider, CheckboxLine, Button, COLORS, InfoTooltip } from './ui';
 import { DEFENSE_PRESETS, type DefensePreset } from '@/lib/data/defensePresets';
 import type { UserDefensePreset } from '@/lib/data/library';
-import { SimulationSection } from './SimulationSection';
 import { SystemSelector, type SystemChoice } from './defense/SystemSelector';
 import { getActiveDefenderIds } from '@/lib/logic/players';
 
@@ -1383,26 +1382,33 @@ export function DefensePanel(props: DefensePanelProps) {
       )}
 
       {/* ========================================================================
-          SECONDARY — Simulation / IA (action différée, tout en bas)
+          SECONDARY — Lien vers page /simulation dédiée
+          (la section Simulation a été migrée vers une page séparée pour ne pas
+          encombrer l'éditeur. Voir src/app/simulation/page.tsx)
           ====================================================================== */}
-      <AccordionSection
-        id="defense-simulation"
-        theme="defense"
-        label="Simulation & IA"
-        icon="🎬"
-        variant="secondary"
-        defaultOpen={false}
-      >
-        <SimulationSection
-          state={state}
-          onLoadAiSteps={props.onLoadAiSteps}
-          matchLoop={props.matchLoop}
-          matchSpeed={props.matchSpeed}
-          onSetMatchSpeed={props.onSetMatchSpeed}
-          onEnterFullscreenMatch={props.onEnterFullscreenMatch}
-          onStartDemoMode={props.onStartDemoMode}
-        />
-      </AccordionSection>
+      <div style={{ marginTop: 12, padding: '8px 10px' }}>
+        <a
+          href="/simulation"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '8px 12px',
+            background: 'linear-gradient(180deg, #6366f1, #4338ca)',
+            color: '#fff',
+            borderRadius: 5,
+            textDecoration: 'none',
+            fontSize: 12,
+            fontWeight: 700,
+            letterSpacing: 0.3,
+            boxShadow: '0 1px 2px rgba(67, 56, 202, 0.3)',
+          }}
+          title="Mode démo, Play IA live, Monte Carlo, replay — tout sur une page dédiée"
+        >
+          🎬 Ouvrir la simulation →
+        </a>
+      </div>
     </Panel>
   );
 }

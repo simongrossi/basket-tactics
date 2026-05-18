@@ -103,6 +103,13 @@ export function SidebarOverflowMenu({
       />
       <Item onClick={run(onOpenPlayerTimeline)} label="Timeline par joueur" />
       <Divider />
+      <Item
+        onClick={run(() => {
+          if (typeof window !== 'undefined') window.location.href = '/simulation';
+        })}
+        label="🎬 Mode simulation →"
+      />
+      <Divider />
       <Item onClick={run(onExport)} label="Exporter JSON" />
       <Item onClick={run(onImport)} label="Importer JSON" />
       <Divider />
