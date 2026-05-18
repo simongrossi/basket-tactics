@@ -246,6 +246,7 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
       attVisuals: computeAttackerVisuals(state, state.activeStep),
       attackerIsScreening: {},
       attackerMovementType: {},
+      attackingTeam: liveMatchState.attackingTeam,
     };
   }, [liveMatchState, state]);
 

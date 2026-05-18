@@ -204,6 +204,10 @@ export interface PlaybackFrame {
   debug?: FrameDebug;
   /** Profiling opt-in de `resolveFrameAt`, utile aux tests perf/debug. */
   profile?: FrameProfile;
+  /** Phase 1.1 — Équipe qui attaque actuellement. Set seulement via le
+   *  live match (sinon défaut 'home'). Utilisé par CourtPlayersLayer
+   *  pour masquer les sprites home pendant la phase away. */
+  attackingTeam?: 'home' | 'away';
 }
 
 export interface ResolveFrameOptions {
