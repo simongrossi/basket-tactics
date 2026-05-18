@@ -13,11 +13,17 @@ supplémentaires dont équivalence stricte sur grille + intégration
 pipeline complet). **1569 → 1584 verts**.
 
 **À faire (sous-étapes restantes du Chantier 1)** :
-- 1.1b — Remplacer le `seek` à poids = distance par `seek` à poids
-  fixe + `arrive` avec `slowingRadius` retuné. C'est là que commence
-  le vrai bénéfice (anti-oscillation). Les tests d'équivalence
-  stricte basculeront en tolérance ~qq px. Probablement
-  `slowingRadius` à corréler avec `PROXIMITY_FRICTION_RADIUS`.
+- 1.2 — Migrer `help.ts` (forces `arrive` vers posture d'aide,
+  prépare l'`interpose` du Chantier 2).
+- 1.3 — Migrer `defense/pnrLayer.ts` : `repel` autour des poseurs
+  remplace le push-out brutal. Premier gain visuel majeur. À mesurer
+  finement (radius candidat = `PLAYER_MIN_CLEARANCE_PX + buffer`).
+- 1.4 — Activation par défaut + nettoyage de la double-sortie.
+
+**Notes 1.1b** : `STEERING_MAN_SLOWING_RADIUS_PX = 12` ; déviation
+max théorique = `radius/4 = 3 px` à `dist = radius/2`. Pourrait être
+exposé via `state.steeringTuning` pour faciliter le retuning à la
+fin du Chantier 1.
 - 1.2 — Choisir le bon `slowingRadius` pour `arrive` : trop petit =
   pas d'effet anti-oscillation, trop grand = défenseur traînard.
   Probablement à corréler avec `PROXIMITY_FRICTION_RADIUS` existant.

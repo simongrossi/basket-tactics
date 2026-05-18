@@ -6,6 +6,42 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### CVT Chantier 1.1b — Amortissement `arrive` près de la cible (anti-oscillation)
+
+Premier vrai gain comportemental du moteur de forces. Les variantes
+de `manDefense.ts` utilisent désormais la primitive `arrive` (rampe
+linéaire dans `STEERING_MAN_SLOWING_RADIUS_PX = 12 px`) au lieu d'un
+`seek` brut. Effet : quand le défenseur est "essentiellement arrivé"
+sur sa cible (à ≤ 12 px), le target composé est légèrement dampé,
+ce qui annule les micro-oscillations entre frames sans dégrader le
+suivi en zone "loin".
+
+- Nouvelle constante [`STEERING_MAN_SLOWING_RADIUS_PX = 12`](src/lib/data/physics.ts)
+  (≈ 10 % de `DEFAULT_DEFENSE_MAX_SPEED_PX=110`, soit la zone "déjà
+  arrivé en pratique").
+- `manTargetForces` / `carrierDefenderTargetForces` /
+  `offBallStanceTargetForces` : remplacent `seek(dist)` par
+  `arrive(slowingRadius, dist)`. En zone loin (`dist ≥ slowingRadius`),
+  magnitude = dist → `composeTarget` reproduit la cible legacy
+  bit-pour-bit. En zone proche, magnitude = `dist²/radius` →
+  target amorti.
+- `defense/baseTargets.ts` : `defenderRef` passe de
+  `state.defenseInitial[dId]` à
+  `ctx.prevDefenderPositions[dId] ?? state.defenseInitial[dId]`.
+  Indispensable pour que l'amortissement fire réellement par rapport
+  à la position courante du défenseur (et pas un layout statique).
+- **4 nouveaux tests** dédiés au comportement amorti dans
+  `manDefense.test.ts` : zone loin (bit-équivalent), zone proche
+  (amorti strict), frontière (rampe = 1, bit-équivalent), écart max
+  théorique (`SLOWING/4 = 3 px` à `dist = SLOWING/2`).
+- Tests d'intégration `cvtSteeringEquivalence.test.ts` : tolérance
+  passe de `1e-6` (bit-stricte) à `STEERING_TOLERANCE_PX = 5` —
+  documenté comme borne supérieure du gain anti-oscillation, pas
+  une régression. Toujours 4 scénarios verts (chase, stances variées,
+  vsCarrier varié, att absent).
+- 1584 → **1588 tests verts**. Pipeline legacy (flag off) inchangé,
+  les 1543 tests préexistants restent verts.
+
 ### CVT Chantier 1.1 — `manDefense` câblé en double-sortie sous flag `useSteeringEngine`
 
 Première migration consommatrice du moteur de forces. `manDefense.ts`

@@ -1,8 +1,11 @@
 import type { Point, CarrierBehavior, OffBallStance } from '../types';
 import { HOOP, THREE_POINT_RADIUS } from '../data/court';
-import { MIN_PLAYER_CLEARANCE_PX } from '../data/physics';
+import {
+  MIN_PLAYER_CLEARANCE_PX,
+  STEERING_MAN_SLOWING_RADIUS_PX,
+} from '../data/physics';
 import { clamp, distance } from './geometry';
-import { seek, type SteeringForce } from './steeringEngine';
+import { arrive, type SteeringForce } from './steeringEngine';
 
 /** Décalage latéral en x à appliquer à la position cible du défenseur selon
  *  sa rotation (en degrés). Positif = défenseur shifté à droite (ferme côté
@@ -144,25 +147,28 @@ export function offBallStanceTarget(
 // CVT — Variants forces vectorielles (sous-étape 1.1, opt-in)
 // ============================================================================
 //
-// Émetteurs `SteeringForce[]` strictement bit-équivalents aux fonctions
-// `Point`-based ci-dessus, consommables via `composeTarget(defenderPos, forces)`.
+// Émetteurs `SteeringForce[]` consommables via `composeTarget(defenderPos, forces)`.
 //
 // Stratégie de migration : double-sortie sous flag `state.useSteeringEngine`.
-// Les forces actuelles émettent un unique `seek` dont le poids encode la
-// distance exacte au target legacy → l'intégration via `composeTarget`
-// reproduit numériquement le `Point` legacy quel que soit `defenderPos`.
 //
-// Sous-étape 1.1b (à venir) : ajouter `arrive` (rampe anti-oscillation
-// proche de la cible) avec `slowingRadius` retuné. Les tests
-// d'équivalence stricte basculeront alors en tolérance numérique
-// contrôlée.
+// Sous-étape 1.1 (livré) : un unique `seek` à poids = distance,
+// bit-équivalent au legacy.
+//
+// Sous-étape 1.1b (livré) : `arrive` (rampe linéaire dans
+// `STEERING_MAN_SLOWING_RADIUS_PX`) au lieu de `seek` :
+// - Loin de la cible (`dist ≥ slowingRadius`) → magnitude = dist,
+//   `composeTarget` reproduit exactement le `Point` legacy.
+// - Proche de la cible (`dist < slowingRadius`) → magnitude = dist²/radius,
+//   `composeTarget` produit un target **dampé** (lande short of legacy),
+//   ce qui annule les micro-oscillations entre frames. Effet visible
+//   uniquement quand le défenseur est déjà "essentiellement arrivé"
+//   (≤ 12 px). Écart max = `slowingRadius/4 ≈ 3 px`.
 
 /**
- * Forces équivalentes à `manTarget(att, distance, hoop)`.
- *
- * Émet un unique `seek` de `defenderPos` vers le target legacy, avec
- * `weight = distance(defenderPos, target)` → `composeTarget` reproduit
- * exactement le `Point` legacy. Retourne `[]` si `att` est undefined.
+ * Forces équivalentes à `manTarget(att, distance, hoop)` avec
+ * dampening `arrive` près de la cible. Bit-équivalent en zone "loin",
+ * amorti dans `STEERING_MAN_SLOWING_RADIUS_PX`. Retourne `[]` si `att`
+ * est undefined ou si `defenderPos === target` exact (force morte).
  */
 export function manTargetForces(
   defenderPos: Point,
@@ -174,7 +180,7 @@ export function manTargetForces(
   if (!target) return [];
   const w = distance(defenderPos, target);
   if (w < 1e-6) return [];
-  return [seek(defenderPos, target, w, 'seek-man')];
+  return [arrive(defenderPos, target, STEERING_MAN_SLOWING_RADIUS_PX, w, 'arrive-man')];
 }
 
 /** Forces équivalentes à `carrierDefenderTarget(...)`. Cf. `manTargetForces`. */
@@ -189,7 +195,7 @@ export function carrierDefenderTargetForces(
   if (!target) return [];
   const w = distance(defenderPos, target);
   if (w < 1e-6) return [];
-  return [seek(defenderPos, target, w, `seek-carrier-${vsCarrier}`)];
+  return [arrive(defenderPos, target, STEERING_MAN_SLOWING_RADIUS_PX, w, `arrive-carrier-${vsCarrier}`)];
 }
 
 /** Forces équivalentes à `offBallStanceTarget(...)`. Cf. `manTargetForces`. */
@@ -205,5 +211,5 @@ export function offBallStanceTargetForces(
   if (!target) return [];
   const w = distance(defenderPos, target);
   if (w < 1e-6) return [];
-  return [seek(defenderPos, target, w, `seek-offball-${stance}`)];
+  return [arrive(defenderPos, target, STEERING_MAN_SLOWING_RADIUS_PX, w, `arrive-offball-${stance}`)];
 }

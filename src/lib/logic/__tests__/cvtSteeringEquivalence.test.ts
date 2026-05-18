@@ -1,14 +1,16 @@
-// CVT Chantier 1.1 — Tests d'équivalence intégrés.
+// CVT Chantier 1.1 + 1.1b — Tests d'équivalence intégrés.
 //
 // Vérifie que le flag `state.useSteeringEngine = true` produit des
-// positions défensives strictement identiques au pipeline legacy
-// (bit-équivalence du target absolu, à `EQ_TOL` près pour absorber
-// les arrondis du normalize-puis-multiplie).
+// positions défensives ≈ identiques au pipeline legacy :
+// - En **zone loin** (défenseur à ≥ `STEERING_MAN_SLOWING_RADIUS_PX`
+//   de sa cible legacy) : bit-équivalent (arrive = seek dans cette zone).
+// - En **zone proche** (< slowingRadius) : target amorti, déviation
+//   bornée à `slowingRadius/4 ≈ 3 px`. C'est l'effet voulu (1.1b :
+//   anti-oscillation), pas une régression.
 //
-// Ces tests sont la garantie de non-régression de la sous-étape 1.1.
-// Quand on retunera vraiment (1.1b : ajout d'`arrive`, etc.), ces
-// tests basculeront en "tolérance contrôlée" (qq px max) au lieu
-// d'équivalence stricte.
+// Tolérance retenue : `STEERING_TOLERANCE_PX = 5` — couvre l'écart
+// math max (3 px) avec une marge pour les arrondis du pipeline complet
+// (speedConstraint + closeout + friction).
 
 import { describe, expect, it } from 'vitest';
 import type {
@@ -20,8 +22,8 @@ import type {
 import { makeInitialState } from '@/lib/data/initial';
 import { effectiveDefensePositions } from '@/lib/logic/engine';
 
-const EQ_TOL = 1e-6; // tolérance d'équivalence (très large vs 1e-9 unitaire ;
-                     // absorbe arrondis cumulés du pipeline complet)
+const STEERING_TOLERANCE_PX = 5; // borne supérieure de la déviation
+                                  // anti-oscillation (slowingRadius/4 + marge)
 
 const DEFAULT_OFF: AttackerPositions = {
   O1: { x: 300, y: 480 },
@@ -54,7 +56,11 @@ function makeScenario(overrides: Partial<AppState> = {}): AppState {
   };
 }
 
-function expectPositionsEqual(a: DefenderPositions, b: DefenderPositions): void {
+function expectPositionsClose(
+  a: DefenderPositions,
+  b: DefenderPositions,
+  tol = STEERING_TOLERANCE_PX,
+): void {
   const idsA = Object.keys(a).sort() as DefenderId[];
   const idsB = Object.keys(b).sort() as DefenderId[];
   expect(idsA).toEqual(idsB);
@@ -63,8 +69,8 @@ function expectPositionsEqual(a: DefenderPositions, b: DefenderPositions): void 
     const pb = b[id];
     expect(pa).toBeDefined();
     expect(pb).toBeDefined();
-    expect(Math.abs(pa!.x - pb!.x)).toBeLessThanOrEqual(EQ_TOL);
-    expect(Math.abs(pa!.y - pb!.y)).toBeLessThanOrEqual(EQ_TOL);
+    expect(Math.abs(pa!.x - pb!.x)).toBeLessThanOrEqual(tol);
+    expect(Math.abs(pa!.y - pb!.y)).toBeLessThanOrEqual(tol);
   }
 }
 
@@ -75,7 +81,7 @@ describe('CVT 1.1 — équivalence pipeline complet (flag off vs on)', () => {
     for (let i = 0; i < legacy.steps.length; i++) {
       const dL = effectiveDefensePositions(legacy, i);
       const dS = effectiveDefensePositions(steering, i);
-      expectPositionsEqual(dL, dS);
+      expectPositionsClose(dL, dS);
     }
   });
 
@@ -94,7 +100,7 @@ describe('CVT 1.1 — équivalence pipeline complet (flag off vs on)', () => {
     const legacy = makeScenario(stanceOverride);
     const steering = makeScenario({ ...stanceOverride, useSteeringEngine: true });
     for (let i = 0; i < legacy.steps.length; i++) {
-      expectPositionsEqual(
+      expectPositionsClose(
         effectiveDefensePositions(legacy, i),
         effectiveDefensePositions(steering, i),
       );
@@ -113,7 +119,7 @@ describe('CVT 1.1 — équivalence pipeline complet (flag off vs on)', () => {
       const legacy = makeScenario(ovr);
       const steering = makeScenario({ ...ovr, useSteeringEngine: true });
       for (let i = 0; i < legacy.steps.length; i++) {
-        expectPositionsEqual(
+        expectPositionsClose(
           effectiveDefensePositions(legacy, i),
           effectiveDefensePositions(steering, i),
         );
@@ -137,7 +143,7 @@ describe('CVT 1.1 — équivalence pipeline complet (flag off vs on)', () => {
       defenseInitial: DEFAULT_DEF,
     };
     const steering: AppState = { ...legacy, useSteeringEngine: true };
-    expectPositionsEqual(
+    expectPositionsClose(
       effectiveDefensePositions(legacy, 0),
       effectiveDefensePositions(steering, 0),
     );

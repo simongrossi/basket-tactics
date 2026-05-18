@@ -1507,11 +1507,15 @@ défenseur) à un paradigme **émergeant** de forces vectorielles pondérées
   tests** (5 unitaires bit-strict sur grille + 4 intégration pipeline
   complet + 4 helper + 2 cas dégénérés), **1584 tests verts**. Détail :
   CHANGELOG § Unreleased.
-- ⚪ **Sous-étape 1.1b** : remplacer le `seek` à poids = distance par
-  `seek` à poids fixe + `arrive` avec `slowingRadius` retuné. Les
-  tests d'équivalence stricte bascule en tolérance numérique
-  contrôlée (qq px max). Premier vrai bénéfice : anti-oscillation
-  autour de l'homme.
+- 🟢 **Sous-étape 1.1b** (livré 2026-05-19) : `arrive` remplace
+  `seek` dans les 3 variantes (`STEERING_MAN_SLOWING_RADIUS_PX = 12`
+  dans `data/physics.ts`). `defenderRef` dans `baseTargets.ts` passe
+  à `ctx.prevDefenderPositions[dId]` (vs `defenseInitial` avant) pour
+  que l'amortissement fire vs position courante. Premier gain
+  comportemental : anti-oscillation près de la cible (déviation max
+  théorique = `slowingRadius/4 = 3 px`, zone loin bit-équivalente).
+  **4 nouveaux tests** dampening + tolérance intégration ajustée à
+  5 px. **1588 tests verts**. Détail : CHANGELOG § Unreleased.
 - ⚪ **Sous-étape 1.2** : migrer `help.ts` (forces `seek` vers posture
   d'aide, prépare l'`interpose` du Chantier 2).
 - ⚪ **Sous-étape 1.3** : migrer `defense/pnrLayer.ts` et la gestion

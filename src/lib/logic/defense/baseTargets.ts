@@ -92,10 +92,12 @@ export function applyBaseTargetsLayer(
 
     // Override de distance individuel (rule.distance) > global
     const dist = rule.distance ?? state.defenseDistance;
-    // CVT 1.1 — defenderPos référence pour composer les forces. Choix neutre
-    // pour la bit-équivalence : `defenseInitial[dId]` (stable, déterministe,
-    // identique au fallback legacy quand `att` est undefined).
-    const defenderRef = state.defenseInitial[dId];
+    // CVT 1.1b — defenderPos référence = position précédente effective
+    // du défenseur (fallback : layout initial). Indispensable pour que
+    // l'`arrive` dampe réellement les micro-oscillations entre frames :
+    // c'est dist(prev, target) qui détermine si on est en zone "loin"
+    // (bit-équivalent legacy) ou "proche" (target amorti).
+    const defenderRef = prevDefenderPositions[dId] ?? state.defenseInitial[dId];
     const useForces = !!state.useSteeringEngine;
     if (isCarrierDefender) {
       if (useForces) {

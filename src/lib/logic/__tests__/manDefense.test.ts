@@ -164,3 +164,67 @@ describe('offBallStanceTargetForces — bit-équivalence avec offBallStanceTarge
     expect(offBallStanceTargetForces(P(0, 0), undefined, P(300, 470), 40, 'sag')).toEqual([]);
   });
 });
+
+// ============================================================================
+// CVT 1.1b — Amortissement `arrive` en zone proche (anti-oscillation)
+// ============================================================================
+
+describe('manTargetForces — amortissement zone proche (1.1b)', () => {
+  const SLOWING = 12; // STEERING_MAN_SLOWING_RADIUS_PX (literal pour ne pas
+                       // couper l'import depuis le ./data ; cf. assertion ci-dessous)
+
+  it("en zone loin (dist >= slowingRadius) → composeTarget reproduit la cible legacy", () => {
+    const att = P(300, 480);
+    const def = P(300, 200); // dist ≈ 240 vs slowingRadius=12 → far
+    const legacy = manTarget(att, 40)!;
+    const composed = composeTarget(def, manTargetForces(def, att, 40));
+    expect(Math.hypot(composed.x - legacy.x, composed.y - legacy.y)).toBeLessThan(1e-6);
+  });
+
+  it("en zone proche (dist < slowingRadius) → composeTarget produit un target amorti, jamais legacy exact", () => {
+    const att = P(300, 480);
+    const legacy = manTarget(att, 40)!;
+    // Défenseur à 6 px de la cible legacy → strictement à l'intérieur de
+    // SLOWING=12 → rampe = 0.5 → magnitude composée = 6 * 0.5 = 3 px
+    const dirToLegacy = { x: (legacy.x - 300) / Math.hypot(legacy.x - 300, legacy.y - 200), y: (legacy.y - 200) / Math.hypot(legacy.x - 300, legacy.y - 200) };
+    const def = P(legacy.x - dirToLegacy.x * 6, legacy.y - dirToLegacy.y * 6); // 6 px short
+    const composed = composeTarget(def, manTargetForces(def, att, 40));
+    const dComposedToLegacy = Math.hypot(composed.x - legacy.x, composed.y - legacy.y);
+    const dDefToLegacy = Math.hypot(def.x - legacy.x, def.y - legacy.y);
+    // composé strictement entre def et legacy : plus proche de legacy que def
+    // mais sans atteindre legacy exact
+    expect(dComposedToLegacy).toBeGreaterThan(0);
+    expect(dComposedToLegacy).toBeLessThan(dDefToLegacy);
+    // Formule attendue : composé = def + dir * (dist²/radius)
+    // = def + dir * 36/12 = def + dir * 3 → composé à 3 px de def
+    const dDefToComposed = Math.hypot(composed.x - def.x, composed.y - def.y);
+    expect(dDefToComposed).toBeCloseTo(3, 6);
+  });
+
+  it("à la frontière (dist = slowingRadius) → bit-équivalent (rampe = 1)", () => {
+    const att = P(300, 480);
+    const legacy = manTarget(att, 40)!;
+    const dx = legacy.x - 300; const dy = legacy.y - 200;
+    const norm = Math.hypot(dx, dy);
+    const dir = { x: dx / norm, y: dy / norm };
+    // Défenseur à exactement SLOWING (12) px de legacy
+    const def = P(legacy.x - dir.x * SLOWING, legacy.y - dir.y * SLOWING);
+    const composed = composeTarget(def, manTargetForces(def, att, 40));
+    expect(Math.hypot(composed.x - legacy.x, composed.y - legacy.y)).toBeLessThan(1e-6);
+  });
+
+  it("écart max théorique : dist = SLOWING/2 → écart à legacy = SLOWING/4", () => {
+    const att = P(300, 480);
+    const legacy = manTarget(att, 40)!;
+    const dx = legacy.x - 300; const dy = legacy.y - 200;
+    const norm = Math.hypot(dx, dy);
+    const dir = { x: dx / norm, y: dy / norm };
+    const halfRadius = SLOWING / 2; // 6 px
+    const def = P(legacy.x - dir.x * halfRadius, legacy.y - dir.y * halfRadius);
+    const composed = composeTarget(def, manTargetForces(def, att, 40));
+    // Le composé est à distance² / radius = 36/12 = 3 px de def
+    // → à 6 - 3 = 3 px de legacy = SLOWING/4 = écart max attendu sur tout le domaine
+    const dComposedToLegacy = Math.hypot(composed.x - legacy.x, composed.y - legacy.y);
+    expect(dComposedToLegacy).toBeCloseTo(SLOWING / 4, 6);
+  });
+});

@@ -67,6 +67,20 @@ export const DEFAULT_DEFENSE_MAX_SPEED_PX = 110;
 export const DEFAULT_DEFENSE_DISTANCE_PX = 40;
 
 /**
+ * CVT Chantier 1.1b — rayon de décélération pour `arrive` sur les
+ * cibles de marquage individuel. Quand le défenseur est à moins de
+ * `STEERING_MAN_SLOWING_RADIUS_PX` de sa cible legacy, le moteur
+ * de forces produit un target dampé (rampe linéaire `dist/radius`)
+ * → anti-oscillation autour de l'homme.
+ *
+ * 12 px ≈ 10 % du `DEFAULT_DEFENSE_MAX_SPEED_PX=110` — zone "déjà
+ * arrivé en pratique" : sans amortissement, le défenseur a tendance
+ * à sur-réagir aux micro-déplacements de son homme entre frames.
+ * À ne consommer que si `state.useSteeringEngine` est on.
+ */
+export const STEERING_MAN_SLOWING_RADIUS_PX = 12;
+
+/**
  * Multiplicateur de vitesse appliqué au défenseur du nouveau porteur lors
  * d'une transition de balle (closeout). 1.4 = +40 % sur l'étape de
  * transition uniquement, pour matérialiser l'accélération de fermeture.
