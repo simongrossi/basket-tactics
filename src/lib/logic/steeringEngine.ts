@@ -148,3 +148,22 @@ export function integrateForce(
   const k = mag > maxStep ? maxStep / mag : 1;
   return { x: current.x + force.x * k, y: current.y + force.y * k };
 }
+
+/**
+ * Composition vers une position absolue (pas de clamp de pas).
+ *
+ * Helper transitoire pour la migration CVT : produit un `Point` cible
+ * absolu à partir d'un set de forces, compatible avec l'API legacy
+ * des couches défensives (`manTarget`, etc.).
+ *
+ * À terme remplacé par `integrateForce` + `speedConstraint.ts` dans
+ * la boucle temps réel. Tant que le pipeline défensif raisonne en
+ * "cible absolue par step", on a besoin de ce pont.
+ */
+export function composeTarget(
+  from: Point,
+  forces: ReadonlyArray<SteeringForce>,
+): Point {
+  const f = accumulateForces(forces);
+  return { x: from.x + f.x, y: from.y + f.y };
+}

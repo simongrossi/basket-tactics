@@ -830,6 +830,12 @@ export interface AppState {
    *  (pas de re-arm à zéro). Pratiquement : on force la couverture du
    *  step N à utiliser screen=screen-detected-at-N-2. Default false (opt-in). */
   snakeKeepCoverage?: boolean;
+  /** CVT Chantier 1 (sous-étape 1.1) — Active le pipeline expérimental de
+   *  cibles défensives via forces vectorielles (steeringEngine). À ce stade,
+   *  bit-équivalent au pipeline legacy ; le flag permet de basculer en
+   *  toute sécurité et préparera les optimisations 1.1b (arrive),
+   *  1.3 (repel autour des écrans) et chantiers 2/3. Default false. */
+  useSteeringEngine?: boolean;
   /** A.4 — Affiche les badges visuels SVG sur le terrain pour les patterns
    *  détectés (reject screen, snake dribble, empty side PnR, defensive 3 sec).
    *  Lit les diagnostics coach déjà calculés. Default true. Désactiver pour

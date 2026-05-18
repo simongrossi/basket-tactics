@@ -4,17 +4,20 @@ Notes de développement au fil de l'eau. Les items en haut sont les plus récent
 
 ---
 
-## Session 2026-05-19 — CVT Chantier 1 sous-étape 1.0 (infra steering)
+## Session 2026-05-19 — CVT Chantier 1 sous-étapes 1.0 + 1.1 (infra + manDefense)
 
-Première brique livrée de la refonte cinématique vectorielle tactique.
-`steeringEngine.ts` posé en math pur, 24 tests, **1569 verts**.
+Refonte cinématique vectorielle tactique : 2 sous-étapes livrées en
+une session. `steeringEngine.ts` (math pur, 24 tests) + `manDefense.ts`
+câblé en double-sortie derrière flag `useSteeringEngine` (15 tests
+supplémentaires dont équivalence stricte sur grille + intégration
+pipeline complet). **1569 → 1584 verts**.
 
 **À faire (sous-étapes restantes du Chantier 1)** :
-- 1.1 — Migrer `manDefense.ts` en émetteur de `SteeringForce[]`.
-  Construire un harness d'équivalence : pour chaque step de chaque
-  scénario `userJson*`, comparer la cible produite par
-  `manTarget` (ancien) avec `integrateForce(current, accumulateForces([seek + arrive]), maxStep)`
-  (nouveau). Tolérance numérique à déterminer (qq px max).
+- 1.1b — Remplacer le `seek` à poids = distance par `seek` à poids
+  fixe + `arrive` avec `slowingRadius` retuné. C'est là que commence
+  le vrai bénéfice (anti-oscillation). Les tests d'équivalence
+  stricte basculeront en tolérance ~qq px. Probablement
+  `slowingRadius` à corréler avec `PROXIMITY_FRICTION_RADIUS`.
 - 1.2 — Choisir le bon `slowingRadius` pour `arrive` : trop petit =
   pas d'effet anti-oscillation, trop grand = défenseur traînard.
   Probablement à corréler avec `PROXIMITY_FRICTION_RADIUS` existant.

@@ -22,10 +22,14 @@ import { applyScreenAdjustment, detectImminentScreen } from '../screens';
 import { computeDefenderOrientation } from '../orientation';
 import {
   carrierDefenderTarget,
+  carrierDefenderTargetForces,
   manTarget,
+  manTargetForces,
   offBallStanceTarget,
+  offBallStanceTargetForces,
   orientationLateralOffset,
 } from '../manDefense';
+import { composeTarget } from '../steeringEngine';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
 import { mismatchSeverity } from './mismatchTracking';
@@ -88,14 +92,32 @@ export function applyBaseTargetsLayer(
 
     // Override de distance individuel (rule.distance) > global
     const dist = rule.distance ?? state.defenseDistance;
+    // CVT 1.1 — defenderPos référence pour composer les forces. Choix neutre
+    // pour la bit-équivalence : `defenseInitial[dId]` (stable, déterministe,
+    // identique au fallback legacy quand `att` est undefined).
+    const defenderRef = state.defenseInitial[dId];
+    const useForces = !!state.useSteeringEngine;
     if (isCarrierDefender) {
-      target = carrierDefenderTarget(rule.vsCarrier, att, dist, hoop) || state.defenseInitial[dId];
+      if (useForces) {
+        const forces = carrierDefenderTargetForces(defenderRef, rule.vsCarrier, att, dist, hoop);
+        target = forces.length > 0 ? composeTarget(defenderRef, forces) : defenderRef;
+      } else {
+        target = carrierDefenderTarget(rule.vsCarrier, att, dist, hoop) || defenderRef;
+      }
     } else {
       const stance = rule.offBallStance ?? 'sag';
-      const stancePos =
-        stance !== 'sag'
-          ? offBallStanceTarget(att, carrierPos, dist, stance, hoop) || state.defenseInitial[dId]
-          : manTarget(att, dist, hoop) || state.defenseInitial[dId];
+      let stancePos: Point;
+      if (useForces) {
+        const forces = stance !== 'sag'
+          ? offBallStanceTargetForces(defenderRef, att, carrierPos, dist, stance, hoop)
+          : manTargetForces(defenderRef, att, dist, hoop);
+        stancePos = forces.length > 0 ? composeTarget(defenderRef, forces) : defenderRef;
+      } else {
+        stancePos =
+          stance !== 'sag'
+            ? offBallStanceTarget(att, carrierPos, dist, stance, hoop) || defenderRef
+            : manTarget(att, dist, hoop) || defenderRef;
+      }
       target = stancePos;
       // Le help bias n'est appliqué qu'avec la stance "sag" — les stances
       // dirigées (deny-3q, fronting, behind) sont des positions absolues.

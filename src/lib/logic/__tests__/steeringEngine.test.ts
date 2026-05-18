@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import {
   accumulateForces,
   arrive,
+  composeTarget,
   integrateForce,
   repel,
   seek,
@@ -209,5 +210,39 @@ describe('steeringEngine — composition réaliste', () => {
     const sum = accumulateForces([f]);
     const next = integrateForce(pos, sum, 10);
     expect(next).toEqual(pos);
+  });
+});
+
+describe('steeringEngine — composeTarget', () => {
+  it('liste vide → retourne le point de départ inchangé', () => {
+    expect(composeTarget(P(10, 20), [])).toEqual({ x: 10, y: 20 });
+  });
+
+  it('seek à poids = distance → atteint exactement la cible (bit-équivalence)', () => {
+    // Cas-clé pour la migration CVT 1.1 : un seek de poids = dist
+    // composé depuis `from` reproduit exactement la cible legacy.
+    const from = P(0, 0);
+    const target = P(100, 75);
+    const w = Math.hypot(target.x - from.x, target.y - from.y); // 125
+    const f = seek(from, target, w, 'seek-eq');
+    const out = composeTarget(from, [f]);
+    expect(out.x).toBeCloseTo(target.x, 9);
+    expect(out.y).toBeCloseTo(target.y, 9);
+  });
+
+  it('plusieurs seek pondérés → barycentre vectoriel additionné', () => {
+    const from = P(0, 0);
+    const f1 = seek(from, P(10, 0), 10, 'east');
+    const f2 = seek(from, P(0, 10), 10, 'south');
+    const out = composeTarget(from, [f1, f2]);
+    expect(out.x).toBeCloseTo(10, 6);
+    expect(out.y).toBeCloseTo(10, 6);
+  });
+
+  it('forces opposées strictement égales → reste à from', () => {
+    const from = P(50, 50);
+    const east: SteeringForce = { direction: P(1, 0), weight: 7, label: 'e' };
+    const west: SteeringForce = { direction: P(-1, 0), weight: 7, label: 'w' };
+    expect(composeTarget(from, [east, west])).toEqual(from);
   });
 });

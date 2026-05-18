@@ -362,8 +362,11 @@ changer leur position absolue.
 
 ## Moteur de forces vectorielles (CVT) — chantier en cours
 
-**Statut au 2026-05-19** : infrastructure pure livrée, **non câblée** au
-pipeline défensif. Aucun impact runtime à ce stade.
+**Statut au 2026-05-19** : infrastructure pure livrée + `manDefense.ts`
+câblé en **double-sortie** derrière le flag opt-in
+`state.useSteeringEngine` (default false). Comportement bit-équivalent
+au pipeline legacy quand le flag est on — la couche est en place pour
+les retunings à venir (1.1b : `arrive`, 1.3 : `repel` sur écrans).
 
 Vision long-terme (cf. [ROADMAP § "Hors roadmap court terme"](../ROADMAP.md#hors-roadmap-court-terme))
 de passer du paradigme actuel "cibles absolues" (chaque couche défensive
@@ -396,11 +399,14 @@ Module : [`src/lib/logic/steeringEngine.ts`](../src/lib/logic/steeringEngine.ts)
 **Sous-étapes restantes du Chantier 1** (incrémentales, double-sortie
 sous flag `useSteeringEngine`, tests verts à chaque commit) :
 
-1. Migrer `manDefense.ts` en émetteur `SteeringForce[]` (seek vers
-   l'homme + arrive proche, équivalence numérique avec l'ancien `manTarget`).
-2. Migrer `help.ts` (forces `seek` vers la posture d'aide +
+1. ✅ **Livré** : `manDefense.ts` en émetteur `SteeringForce[]`
+   (un unique `seek` à poids = distance — bit-équivalent au legacy).
+2. **1.1b** : remplacer `seek` à poids = distance par `seek` à poids
+   fixe + `arrive` avec `slowingRadius` retuné. Premier vrai gain :
+   anti-oscillation près de l'homme.
+3. Migrer `help.ts` (forces `seek` vers la posture d'aide +
    futurs `interpose` du Chantier 2).
-3. Migrer `defense/pnrLayer.ts` et la gestion des écrans
+4. Migrer `defense/pnrLayer.ts` et la gestion des écrans
    (`repel` autour des poseurs remplace le push-out brutal de
    `defense/screenAvoidance` — premier gain visuel majeur).
 

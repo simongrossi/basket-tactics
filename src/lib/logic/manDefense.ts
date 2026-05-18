@@ -1,7 +1,8 @@
 import type { Point, CarrierBehavior, OffBallStance } from '../types';
 import { HOOP, THREE_POINT_RADIUS } from '../data/court';
 import { MIN_PLAYER_CLEARANCE_PX } from '../data/physics';
-import { clamp } from './geometry';
+import { clamp, distance } from './geometry';
+import { seek, type SteeringForce } from './steeringEngine';
 
 /** Décalage latéral en x à appliquer à la position cible du défenseur selon
  *  sa rotation (en degrés). Positif = défenseur shifté à droite (ferme côté
@@ -137,4 +138,72 @@ export function offBallStanceTarget(
     x: behind.x + (front.x - behind.x) * blend,
     y: behind.y + (front.y - behind.y) * blend,
   };
+}
+
+// ============================================================================
+// CVT — Variants forces vectorielles (sous-étape 1.1, opt-in)
+// ============================================================================
+//
+// Émetteurs `SteeringForce[]` strictement bit-équivalents aux fonctions
+// `Point`-based ci-dessus, consommables via `composeTarget(defenderPos, forces)`.
+//
+// Stratégie de migration : double-sortie sous flag `state.useSteeringEngine`.
+// Les forces actuelles émettent un unique `seek` dont le poids encode la
+// distance exacte au target legacy → l'intégration via `composeTarget`
+// reproduit numériquement le `Point` legacy quel que soit `defenderPos`.
+//
+// Sous-étape 1.1b (à venir) : ajouter `arrive` (rampe anti-oscillation
+// proche de la cible) avec `slowingRadius` retuné. Les tests
+// d'équivalence stricte basculeront alors en tolérance numérique
+// contrôlée.
+
+/**
+ * Forces équivalentes à `manTarget(att, distance, hoop)`.
+ *
+ * Émet un unique `seek` de `defenderPos` vers le target legacy, avec
+ * `weight = distance(defenderPos, target)` → `composeTarget` reproduit
+ * exactement le `Point` legacy. Retourne `[]` si `att` est undefined.
+ */
+export function manTargetForces(
+  defenderPos: Point,
+  att: Point | undefined,
+  defenseDistance: number,
+  hoop: Point = HOOP,
+): SteeringForce[] {
+  const target = manTarget(att, defenseDistance, hoop);
+  if (!target) return [];
+  const w = distance(defenderPos, target);
+  if (w < 1e-6) return [];
+  return [seek(defenderPos, target, w, 'seek-man')];
+}
+
+/** Forces équivalentes à `carrierDefenderTarget(...)`. Cf. `manTargetForces`. */
+export function carrierDefenderTargetForces(
+  defenderPos: Point,
+  vsCarrier: CarrierBehavior,
+  att: Point | undefined,
+  defenseDistance: number,
+  hoop: Point = HOOP,
+): SteeringForce[] {
+  const target = carrierDefenderTarget(vsCarrier, att, defenseDistance, hoop);
+  if (!target) return [];
+  const w = distance(defenderPos, target);
+  if (w < 1e-6) return [];
+  return [seek(defenderPos, target, w, `seek-carrier-${vsCarrier}`)];
+}
+
+/** Forces équivalentes à `offBallStanceTarget(...)`. Cf. `manTargetForces`. */
+export function offBallStanceTargetForces(
+  defenderPos: Point,
+  att: Point | undefined,
+  ball: Point | undefined,
+  defenseDistance: number,
+  stance: OffBallStance,
+  hoop: Point = HOOP,
+): SteeringForce[] {
+  const target = offBallStanceTarget(att, ball, defenseDistance, stance, hoop);
+  if (!target) return [];
+  const w = distance(defenderPos, target);
+  if (w < 1e-6) return [];
+  return [seek(defenderPos, target, w, `seek-offball-${stance}`)];
 }

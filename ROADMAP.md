@@ -1497,10 +1497,21 @@ défenseur) à un paradigme **émergeant** de forces vectorielles pondérées
   `accumulateForces` et intégrateur clampé `integrateForce`. 24 tests
   unitaires, 1545 → **1569 tests verts**. Aucun consommateur câblé,
   zéro impact runtime. Détail : CHANGELOG § Unreleased.
-- ⚪ **Sous-étape 1.1** : migrer `manDefense.ts` en émetteur
-  `SteeringForce[]` (seek vers l'homme + arrive proche). Double-sortie
-  sous flag `useSteeringEngine`, équivalence numérique avec l'ancien
-  `manTarget` (tests d'équivalence).
+- 🟢 **Sous-étape 1.1** (livré 2026-05-19) : `manDefense.ts` migré en
+  double-sortie. 3 variantes forces (`manTargetForces`,
+  `carrierDefenderTargetForces`, `offBallStanceTargetForces`)
+  émettant des `SteeringForce[]` bit-équivalents aux `Point` legacy.
+  Flag `state.useSteeringEngine` (default false). Branche dans
+  `defense/baseTargets.ts`. Helper `composeTarget(from, forces) → Point`
+  pour ponter avec l'API legacy pendant la transition. **15 nouveaux
+  tests** (5 unitaires bit-strict sur grille + 4 intégration pipeline
+  complet + 4 helper + 2 cas dégénérés), **1584 tests verts**. Détail :
+  CHANGELOG § Unreleased.
+- ⚪ **Sous-étape 1.1b** : remplacer le `seek` à poids = distance par
+  `seek` à poids fixe + `arrive` avec `slowingRadius` retuné. Les
+  tests d'équivalence stricte bascule en tolérance numérique
+  contrôlée (qq px max). Premier vrai bénéfice : anti-oscillation
+  autour de l'homme.
 - ⚪ **Sous-étape 1.2** : migrer `help.ts` (forces `seek` vers posture
   d'aide, prépare l'`interpose` du Chantier 2).
 - ⚪ **Sous-étape 1.3** : migrer `defense/pnrLayer.ts` et la gestion

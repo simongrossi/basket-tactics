@@ -6,6 +6,38 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### CVT Chantier 1.1 — `manDefense` câblé en double-sortie sous flag `useSteeringEngine`
+
+Première migration consommatrice du moteur de forces. `manDefense.ts`
+expose désormais 3 variantes forces (`manTargetForces`,
+`carrierDefenderTargetForces`, `offBallStanceTargetForces`)
+bit-équivalentes aux fonctions `Point` legacy. `baseTargets.ts` branche
+sur `state.useSteeringEngine` (default false). **Aucune modification
+de comportement à ce stade** — le flag prépare 1.1b (ajout
+d'`arrive` + retuning), 1.3 (`repel` autour des écrans) et chantiers 2/3.
+
+- Nouvelles fonctions dans [`manDefense.ts`](src/lib/logic/manDefense.ts) :
+  émettent un unique `seek` de poids `= distance(defenderRef, targetLegacy)`
+  → `composeTarget` reproduit exactement le `Point` legacy quel que
+  soit `defenderRef` (preuve numérique dans les tests).
+- Nouveau helper [`composeTarget(from, forces) → Point`](src/lib/logic/steeringEngine.ts)
+  pour ponter forces ↔ API legacy pendant la transition.
+- Flag `state.useSteeringEngine?: boolean` ajouté à `AppState`
+  (opt-in, default false). Documenté inline.
+- Branche dans [`defense/baseTargets.ts`](src/lib/logic/defense/baseTargets.ts) :
+  3 chemins (carrier, off-ball stance non-sag, sag) basculent vers
+  les variantes forces quand le flag est on. `defenderRef =
+  state.defenseInitial[dId]` — choix neutre (stable, déterministe).
+- **15 nouveaux tests** :
+  - 4 tests `composeTarget` (vide, bit-équivalence seek, additivité,
+    forces opposées).
+  - 5 tests unitaires d'équivalence bit-strict (1e-9) sur grille
+    croisée *attaquant × defenderRef × distance × hoop × stance*.
+  - 4 tests d'intégration pipeline complet via `effectiveDefensePositions`
+    avec flag off/on (1e-6 tolérance pour absorber arrondis cumulés).
+- 1569 → **1584 tests verts**. Zéro régression sur les tests legacy
+  (flag off = comportement bit-identique).
+
 ### CVT Chantier 1 — `steeringEngine.ts` (infra pure, non câblée)
 
 Première brique de la **Refonte cinématique vectorielle tactique** (cf.
