@@ -165,6 +165,12 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
   // Scrub frame (interpolation entre étapes pendant le drag de la timeline).
   // Même logique que la lecture continue avec un stepIdx arrondi pour afficher
   // l'étape la plus proche du curseur.
+  //
+  // J.1 — Parité scrub ↔ playback : on aligne les options de diagnostic
+  // (collectDecisions, profile) entre les deux appels pour que les overlays
+  // J.5/J.7 marchent aussi en scrub. La parité positionnelle est garantie
+  // par resolveFrameAtDeterministicScrub qui reconstruit la mémoire depuis
+  // le début du segment (cf. SCREEN-ENGINE.md).
   const scrubFrame = useMemo<PlaybackFrame | null>(() => {
     if (scrubT == null) return null;
     const totalSteps = state.steps.length - 1;
@@ -172,7 +178,8 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     const t = Math.max(0, Math.min(totalSteps, scrubT));
     return resolveFrameAtDeterministicScrub(state, t, {
       stepIdx: Math.round(t),
-      collectDecisions: !!state.showScreenDebug,
+      collectDecisions: !!state.showScreenDebug || !!state.showPlayerDebug,
+      profile: !!state.showProfileOverlay,
     });
   }, [scrubT, state]);
 

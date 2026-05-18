@@ -1048,7 +1048,36 @@ son outillage **sans changer le scope basket**.
   sortie tangentielle par poseur actif et mémoire multi-contact
   (`contactScreeners`, `activeScreener`, `contactProgress`).
 
-#### ⚪ J.1 — Parité scrub ↔ playback — détail du plan
+#### 🟢 J.1 — Parité scrub ↔ playback — livré V1 2026-05-18
+
+V1 livré 2026-05-18 (8 tests). Audit a confirmé que la parité
+POSITIONNELLE était déjà garantie par
+`resolveFrameAtDeterministicScrub` qui reconstruit la mémoire de
+playback depuis le début du segment (cf. SCREEN-ENGINE.md L.299-305).
+
+Restait une **désync des options de diagnostic** entre les 2 appels :
+- Scrub n'activait `collectDecisions` que sur `showScreenDebug` (J.7
+  panneau debug joueur ne marchait pas en scrub).
+- Scrub ne passait jamais `profile` (J.5 overlay vide en scrub).
+
+**Fix V1** (`useCourtFrame.ts` l.~173) : aligner les flags
+`collectDecisions: showScreenDebug || showPlayerDebug` et
+`profile: showProfileOverlay` entre scrub et playback. Une seule
+modification de 2 lignes.
+
+**Tests d'invariant** (`j1ScrubPlaybackParity.test.ts`, 8 tests) :
+- Positions playback ≈ scrub (écart < 25 px) sur 3 templates (ucla-cut,
+  pnr-central, pindown-corner) × 5 sample points (0.25, 0.5, 0.75, 1.0,
+  1.5).
+- Carrier identique playback/scrub.
+- Options diagnostic acceptées par scrub (collectDecisions + profile).
+- Default sans options → debug/profile undefined.
+
+**Checklist Règle 1bis CLAUDE.md** : tous les tests
+`screens*` + `overlap*` + `userJson*` + `screenLab*` (155 tests) passent
+sans régression. Suite complète : 1371 → 1379 verts (+8).
+
+⚪ Plan d'origine :
 
 **Problème actuel.** Le playback a une mémoire courte (`prevFrame` →
 rate limiter 18 px/frame). Le scrub est **volontairement sans mémoire**
