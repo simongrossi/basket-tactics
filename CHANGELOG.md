@@ -6,6 +6,60 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+## [0.16.0] — 2026-05-18 (A11 V3 outlet + F.2 V1 half-court press)
+
+Session **bonus** complétant le moteur tactique. 2 commits, 1435 → 1444
+verts (+9 nouveaux tests).
+
+### A11 V3 — addOutletPassStep (commit `82add8e`, +4 tests)
+
+Setter combiné qui unifie A11 V2 ext3 (`outletPassPending`) et E.1
+stage 2b (`convertStepToAwayPossession`) en un seul appel :
+
+1. Vérifie `outletPassPending: true` (sinon no-op idempotent).
+2. Clear le flag sur sourceStep.
+3. Insère un step adverse via `convertStepToAwayPossession`.
+
+UX : 1 clic au lieu de 2 pour le flux "rebond défensif → transition
+adverse". Bouton renommé "🔄 outlet → transition adverse (A11 V3)"
+dans StepsPanel.
+
+### F.2 V1 — Half-court press 2-2-1 (commit `ed76448`, +9 tests)
+
+**Approche pragmatique différente du ROADMAP** : au lieu de refonte
+risquée de `getDefenseHoop`, court-circuit du pipeline (pattern F.1
+junk). Zéro risque Règle 1bis.
+
+- `DefenseSystem` étendu à `'man' | 'zone' | 'junk' | 'press'`.
+- `PressType = 'half-court' | '2-2-1'`.
+- `AppState.pressConfig?: { type: PressType }`.
+- `defense/pressLayer.ts::computePressDefenseTargets` court-circuit
+  comme zone/junk.
+- Formation 2-2-1 :
+  - Front line (D2/D3 typique) : ligne médiane.
+  - Mid line (D1/D4) : zone de relais.
+  - Sweeper (D5) : centre, proche panier défense.
+- helpFactor=0 partout, matchups préservés.
+- UI : bouton "Half-court" activé dans SystemSelector (était 🚧 F.2)
+  + sub-config rouge dans DefensePanel avec description et note V1
+  statique.
+
+**Checklist Règle 1bis** : 155 tests `screens*` + `overlap*` +
+`userJson*` + `screenLab*` tous verts.
+
+**V2 reportée (par choix)** : full-court press, trap dynamique au
+franchissement médiane, retreat progressive.
+
+### Phase F désormais 6/6 (avec F.2 V1 livré)
+
+| Item | Statut |
+|---|---|
+| F.1 V1 + V2 | 🟢 Junk defenses (Box/Triangle/Diamond) |
+| **F.2 V1** | 🟢 **Half-court press 2-2-1** (nouveau) |
+| F.3 | 🟢 FT rebound positioning |
+| F.4 V1 | 🟢 Foul to give |
+| F.5 V1 | 🟢 Late shot clock defense |
+
 ## [0.15.0] — 2026-05-18 (E.1 stage 2b V1 — phase adverse édition)
 
 3 phases, 4 commits, 1416 → 1431 tests verts. Coût ~1h grâce au pattern

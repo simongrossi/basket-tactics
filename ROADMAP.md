@@ -821,7 +821,7 @@ de possession. Reset shot clock à 14 s (rebond offensif) ou switch possession.
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
 | ~~F.1~~ | ~~**Junk defenses V1 + V2 (Box-and-1, Triangle-and-2, Diamond-and-1)** : `DefenseSystem` étendu à `'junk'` + `state.junkConfig: {type, chaser, chaser2?}`. Couche `computeJunkDefenseTargets` court-circuit (comme zone). 3 formations : box (4 corners), triangle (1 haut + 2 blocks), diamond (losange 1-2-1). 1 ou 2 chasseurs selon type. helpFactor=0 partout. UI complète dans SystemSelector + sub-config chaser picker (1 ou 2 selon type).~~ | — | — | — | 🟢 V1+V2 livrés 2026-05-18 (8+13 tests, 1349 verts) |
-| F.2 | **Press full/half-court** : pression tout terrain | 10-12h V1 | 🔴 | Moyen |
+| ~~F.2~~ | ~~**Press half-court V1 (2-2-1)** : `DefenseSystem 'press'` + `state.pressConfig: { type }`. Couche `computePressDefenseTargets` court-circuit (comme zone/junk). 5 défenseurs sur positions presse statiques (2 médiane + 2 relais + 1 sweeper). Aucune modification de `getDefenseHoop` (pattern junk éprouvé, zéro risque Règle 1bis).~~ | — | — | — | 🟢 V1 livré 2026-05-18 (9 tests, 1444 verts) |
 | ~~F.3~~ | ~~**Free throw rebound positioning** : 10 positions canoniques + transform + badge UI~~ | — | — | — | 🟢 livré 2026-05-13 (11 tests, 899 verts) |
 | ~~F.4~~ | ~~**End-of-quarter foul to give** : helper + diag critical + badge SVG `🟥 FOUL TO GIVE` + UI globale (defenseTeamFouls) + per-step (clockSeconds)~~ | — | — | — | 🟢 V1 livré 2026-05-18 (9 tests, 1279 verts) |
 | ~~F.5~~ | ~~**Late shot clock defense** : `lateShotClockLayer` (couche 1.7, opt-in via lateShotClockDefenseEnabled + step.shotClockRemaining<5). carrierDef contest accru, autres défenseurs no-help.~~ | — | — | — | 🟢 V1 livré 2026-05-18 (5 tests, 1279 verts) |
@@ -866,7 +866,29 @@ niveau lycée/college NCAA contre une équipe à 1-2 stars marqués.
 **Estimation** : V1 6h, V2 +6h. **Valeur** : permet de simuler des
 défenses non-conventionnelles très demandées par les coachs lycée/U18.
 
-#### ⚪ F.2 — Press full/half-court — détail du plan
+#### 🟢 F.2 V1 — Half-court press 2-2-1 — livré 2026-05-18
+
+V1 livré (commit `ed76448`, 9 tests). **Approche pragmatique différente
+du ROADMAP** : au lieu de la refonte risquée de `getDefenseHoop`
+préconisée, on a fait un court-circuit du pipeline (pattern F.1 junk
+éprouvé) qui produit le même effet visuel sans toucher au moteur
+d'écran.
+
+- `DefenseSystem` étendu à `'press'`. `state.pressConfig: { type: 'half-court' | '2-2-1' }`.
+- `defense/pressLayer.ts::computePressDefenseTargets` court-circuit.
+- Formation 2-2-1 :
+  - Front line (2) : `dx ± 120, dy -460` du panier défense (= ligne médiane).
+  - Mid line (2) : `dx ± 110, dy -250` (= zone de relais).
+  - Sweeper (1) : `dx 0, dy -50` (= centre proche panier défense).
+- helpFactor=0 partout, matchups préservés.
+- UI : bouton "Half-court" activé dans SystemSelector + sub-config rouge.
+
+**V2 reportée** :
+- Full-court press (positions encore plus hautes côté inbound).
+- Trap dynamique au franchissement de la médiane (réutilise `applyTrap`).
+- Retreat progressive si press cassée.
+
+⚪ Plan d'origine ROADMAP (suggérait refonte `getDefenseHoop` — non retenue) :
 
 **Concept.** Pression tout terrain : la défense reste côté offensif après
 une réussite et harcèle la remise en jeu / la montée de balle. Très

@@ -40,7 +40,7 @@
 | ~~**F.3**~~ | 🟢 V1 livré 2026-05-13 | `buildFreeThrowSetup` (11 tests). |
 | ~~**F.4**~~ | 🟢 V1 livré 2026-05-18 | Helper + diag critical + badge `🟥 FOUL TO GIVE` (9 tests). |
 | ~~**F.5**~~ | 🟢 V1 livré 2026-05-18 | `lateShotClockLayer` couche 1.7 (5 tests). |
-| **F.2** — Press full/half-court | ⚪ reporté | Refonte `getDefenseHoop`. Gros chantier (10-12h V1). |
+| ~~**F.2 V1**~~ | 🟢 livré 2026-05-18 (`ed76448`, 9 tests) | Half-court press 2-2-1 via court-circuit (pattern F.1 junk), pas de refonte getDefenseHoop. V2 full-court + trap dynamique reportée. |
 
 ### Phase C — Réalisme physique modéré ✅ COMPLÈTE (7/7)
 
@@ -133,11 +133,12 @@ A11 V1 (le dernier gros chantier basket) livré 2026-05-18 en ~3h
 Le projet est livrable pour démos coachs réels.
 
 ### À reporter sauf demande explicite
-- **F.2** Press full/half-court (10-12h V1, refonte `getDefenseHoop`).
+- **F.2 V2** Full-court press + trap dynamique + retreat (~2j).
+- **A11 V3 unification** mode édition ↔ game loop (1-2j).
+- **E.1 stage 2b Options B/C** team-aware soft / refacto complet.
 - **D.4** Pathfinding défensif (plan d'audit écrit, gain visuel modéré
   vs risque Règle 1bis CLAUDE.md).
-- **Phase J fines** (J.1/J.2/J.3/J.5/J.6) — qualité moteur, pas
-  bloquant (J.7 livré pour devx).
+- **Phase J fines** (J.2/J.3) — qualité moteur, pas bloquant.
 
 ### Options "consolidation" (entre 2 sessions basket)
 - Refresh docs périodique (hygiène).

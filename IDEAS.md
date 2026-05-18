@@ -46,6 +46,15 @@ CHANGELOG [0.12.0]. Faits marquants :
   `awayPossessionRule`. Option A ultra-mini choisie (Options B/C
   reportées, plan dans [docs/e1-stage2b-plan.md](docs/e1-stage2b-plan.md)).
   15 tests. ~1h. Le moteur défensif tourne tel quel, zéro risque Règle 1bis.
+- **A11 V3 outlet setter** `addOutletPassStep` chaîne en 1 clic le
+  flux "rebond défensif → transition adverse" (clear outletPassPending
+  + insère step adverse). UX 1 clic au lieu de 2. 4 tests.
+- **F.2 V1 half-court press 2-2-1** DernierR chantier basket de la
+  roadmap. `DefenseSystem 'press'` + couche `pressLayer.ts`
+  court-circuit (pattern F.1 junk). PAS de refonte de `getDefenseHoop`
+  préconisée par le ROADMAP — approche pragmatique zéro risque
+  Règle 1bis. Formation 2-2-1 : 2 médiane + 2 relais + 1 sweeper.
+  9 tests. V2 full-court + trap dynamique reportée.
 
 **Le moteur tactique est désormais complet.** Tous les gros chantiers
 basket sont livrés. Reportés sans impact bloquant :
