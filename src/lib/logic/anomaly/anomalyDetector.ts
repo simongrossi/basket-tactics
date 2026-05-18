@@ -1,4 +1,4 @@
-// K.0 + K.1 + K.2 + K.3 — Détecteur d'anomalies de comportement joueur (couche pure).
+// K.0 → K.5 — Détecteur d'anomalies de comportement joueur (couche pure).
 //
 // Aucun side effect, aucune mutation. Prend des snapshots minimaux et
 // retourne un tableau d'AnomalyReport. Branché sur le pipeline depuis
@@ -13,6 +13,20 @@ export const DETACHED_DEFENDER_PX = 250;
 
 /** K.3 — Au-delà : la décroche est `critical`. */
 export const DETACHED_DEFENDER_CRITICAL_PX = 450;
+
+/** K.4 — Magnitude minimale de vélocité (px / step) pour considérer un
+ *  segment "actif". Sous ce seuil, on ne flag pas (joueur quasi-statique
+ *  qui oscille de 1 px à cause du clamp = bruit normal). */
+export const FLICKER_MIN_VELOCITY_PX = 5;
+
+/** K.4 — Cosinus seuil entre deux velocités consécutives. Sous cette
+ *  valeur (≈ angle > 135°), les deux directions sont quasi-opposées =
+ *  oscillation. cos(135°) = -0.707. */
+export const FLICKER_COS_THRESHOLD = -0.707;
+
+/** K.5 — Écart max corps↔regard autorisé par CLAUDE.md (Règle 3 — anatomie
+ *  figée). Au-delà : le regard est derrière la tête. */
+export const GAZE_MAX_DELTA_DEG = 90;
 
 /** Seuil de saut entre deux frames consécutives, en pixels.
  *  Le pipeline clampe déjà visuellement à 18 px/frame (MAX_DEFENDER_JUMP_PX
@@ -214,5 +228,99 @@ export function detectDetachedDefenders(
     });
   });
 
+  return out;
+}
+
+/**
+ * K.4 V1 — Détecte les oscillations (flicker) sur 3 frames consécutives.
+ *
+ * Un flicker = la direction de déplacement entre prevPrev→prev est
+ * quasi-opposée à celle de prev→cur (cos < `FLICKER_COS_THRESHOLD`),
+ * ET les deux magnitudes de vélocité sont > `FLICKER_MIN_VELOCITY_PX`.
+ *
+ * Couvre les défenseurs + attaquants. Symptôme typique d'une couche
+ * (matchup flip, screen detection qui oscille, push-out alterné) qui
+ * tire le joueur dans une direction puis dans l'autre.
+ */
+export function detectFlicker(
+  prevPrev: FrameSnapshot,
+  prev: FrameSnapshot,
+  cur: FrameSnapshot,
+  minVelocity: number = FLICKER_MIN_VELOCITY_PX,
+  cosThreshold: number = FLICKER_COS_THRESHOLD,
+): AnomalyReport[] {
+  const out: AnomalyReport[] = [];
+
+  function check(playerId: PlayerId, a: Point | undefined, b: Point | undefined, c: Point | undefined): void {
+    if (!a || !b || !c) return;
+    const v1x = b.x - a.x;
+    const v1y = b.y - a.y;
+    const v2x = c.x - b.x;
+    const v2y = c.y - b.y;
+    const m1 = Math.sqrt(v1x * v1x + v1y * v1y);
+    const m2 = Math.sqrt(v2x * v2x + v2y * v2y);
+    if (m1 < minVelocity || m2 < minVelocity) return;
+    const cos = (v1x * v2x + v1y * v2y) / (m1 * m2);
+    if (cos > cosThreshold) return;
+
+    const angleDeg = (Math.acos(Math.max(-1, Math.min(1, cos))) * 180) / Math.PI;
+    out.push({
+      kind: 'flicker',
+      severity: cos <= -0.95 ? 'critical' : 'warning',
+      playerId,
+      stepIdx: cur.stepIdx,
+      message: `${playerId} oscille : virage de ${angleDeg.toFixed(0)}° entre 2 transitions (m1=${m1.toFixed(0)} m2=${m2.toFixed(0)})`,
+      value: cos,
+      threshold: cosThreshold,
+    });
+  }
+
+  (Object.keys(cur.off) as Array<keyof typeof cur.off>).forEach((id) => {
+    check(id as PlayerId, prevPrev.off[id], prev.off[id], cur.off[id]);
+  });
+  (Object.keys(cur.defPos) as DefenderId[]).forEach((id) => {
+    check(id, prevPrev.defPos[id], prev.defPos[id], cur.defPos[id]);
+  });
+
+  return out;
+}
+
+/** Renvoie le plus petit delta angulaire signé entre deux angles 0–360°.
+ *  Résultat dans [-180, 180]. */
+export function circularDeltaDeg(a: number, b: number): number {
+  let d = ((a - b) % 360 + 540) % 360 - 180;
+  return d;
+}
+
+/**
+ * K.5 V1 — Détecte une orientation anormale (regard derrière la tête).
+ *
+ * CLAUDE.md Règle 3 : "Regard jamais derrière la tête (clamp ±90° du
+ * corps)". Le pipeline applique déjà ce clamp dans `computeAttackerVisuals`
+ * et `computeDefenderOrientation`. Ce détecteur sert de filet de sécurité :
+ * si une couche en aval injecte des angles non clampés, on les flag.
+ *
+ * Prend les paires { body, gaze } directement (les visuels computés sont
+ * stockés différemment selon l'acteur ; l'appelant flattens en amont).
+ */
+export function detectAnomalousGaze(
+  players: Array<{ id: PlayerId; body: number; gaze: number }>,
+  stepIdx: number,
+  maxDeltaDeg: number = GAZE_MAX_DELTA_DEG,
+): AnomalyReport[] {
+  const out: AnomalyReport[] = [];
+  players.forEach(({ id, body, gaze }) => {
+    const delta = Math.abs(circularDeltaDeg(gaze, body));
+    if (delta <= maxDeltaDeg) return;
+    out.push({
+      kind: 'gaze-out-of-range',
+      severity: delta >= 135 ? 'critical' : 'warning',
+      playerId: id,
+      stepIdx,
+      message: `${id} regard ${delta.toFixed(0)}° du corps (max ${maxDeltaDeg}° par CLAUDE.md Règle 3)`,
+      value: delta,
+      threshold: maxDeltaDeg,
+    });
+  });
   return out;
 }
