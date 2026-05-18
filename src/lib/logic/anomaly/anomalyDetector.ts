@@ -207,8 +207,7 @@ export function detectDetachedDefenders(
     if (!def) return;
     // Exclusions explicites
     if ((def.helpFactor ?? 0) >= 0.1) return;
-    const phase = def.screenPhase;
-    if (phase && phase !== 'idle') return;
+    if (def.screenPhase) return;
     const matchedTo = def.matchedTo;
     if (!matchedTo) return;
     const att = off[matchedTo];
