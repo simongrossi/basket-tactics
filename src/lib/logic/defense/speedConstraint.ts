@@ -195,6 +195,22 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
     prevPositions = extractDefenderPositions(prevTargets);
   }
 
+  // G.3 — V1 : modèle linéaire simple. Au step N (= stepIdx), la vitesse
+  // effective du défenseur ne peut excéder `(N + 1) × accel`, plafonnée
+  // par maxSpeed individuelle (cf. clamp plus bas). Cela modélise une
+  // montée progressive depuis le repos sur les premiers steps.
+  //
+  // Approximation V1 : on suppose que tous les défenseurs partent au
+  // repos au step 0. Pour des cas plus fins (vitesse continue à travers
+  // un changement de direction, décélération), un V2 utilisera la vitesse
+  // réelle step→step (post-clamp), ce qui nécessite un cache cross-step.
+  // Au step N, le défenseur a eu N transitions pour accélérer depuis le
+  // repos. À stepIdx=1 (= 1ère transition), budget = 1 × accel ; à stepIdx=2,
+  // budget = 2 × accel ; etc. À stepIdx=0 (pas de clamp en aval), peu importe.
+  const accelBudget = state.accelerationModelEnabled
+    ? ((state.defenderAcceleration ?? 75) * Math.max(1, stepIdx))
+    : Infinity;
+
   const overrides = state.steps[stepIdx]?.defenseOverrides;
   const offAtStep = activeOffense(state.steps[stepIdx]?.off ?? {} as AttackerPositions, state.playerCount);
 
@@ -425,7 +441,10 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         ? 'recover'
         : targets[dId].screenPhase;
     // Vitesse effective = vitesse théorique × friction × pénalité écran.
-    const effectiveMaxSpeed = maxSpeed * friction * screenContactPenalty;
+    let effectiveMaxSpeed = maxSpeed * friction * screenContactPenalty;
+    // G.3 — Plafond par budget d'accélération (V1 linéaire depuis le repos).
+    // Sans flag, accelBudget = Infinity → no-op.
+    effectiveMaxSpeed = Math.min(effectiveMaxSpeed, accelBudget);
 
     // À l'étape 0, les défenseurs SONT à leur position idéale (setup, pas
     // une transition). Le réalisme post-écran est encodé dans la CIBLE elle-

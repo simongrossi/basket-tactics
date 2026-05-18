@@ -823,6 +823,35 @@ export function DefensePanel(props: DefensePanelProps) {
                 onChange={(v) => props.onPatch({ lateShotClockDefenseEnabled: v })}
                 title="Sous 5s du shot clock, la défense désactive l'aide (contest direct sur le porteur). Effet seulement si step.shotClockRemaining est défini."
               />
+              {/* G.3 — Modèle d'accélération */}
+              <CheckboxLine
+                checked={!!state.accelerationModelEnabled}
+                label="accélération progressive (G.3)"
+                onChange={(v) => props.onPatch({ accelerationModelEnabled: v })}
+                title="Au step 1, le défenseur ne peut parcourir que `defenderAcceleration` px max (au lieu d'atteindre top speed instantanément). Modélise la latence d'accélération réelle."
+              />
+              {state.accelerationModelEnabled && (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 16 }}>
+                  <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 90 }} title="G.3 — accélération max en px/step². 75 ≈ top speed atteinte en ~2 steps.">
+                    accel (px/step²)
+                  </span>
+                  <input
+                    type="range"
+                    min={20}
+                    max={200}
+                    step={5}
+                    value={state.defenderAcceleration ?? 75}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value);
+                      props.onPatch({ defenderAcceleration: v });
+                    }}
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ fontSize: 10, color: '#94a3b8', minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                    {state.defenderAcceleration ?? 75}
+                  </span>
+                </div>
+              )}
             </div>
           </details>
         </AccordionSection>

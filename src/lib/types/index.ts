@@ -817,6 +817,19 @@ export interface AppState {
    *  et toutes les positions/orientations (cohérence des extrémités t=0/1
    *  préservée, donc aucun écart sur les snapshots step exactes). */
   movementEasing?: 'linear' | 'ease-in-out' | 'ease-out';
+  /** G.3 — Active le modèle d'accélération : la vitesse effective d'un
+   *  défenseur ne peut augmenter que de `defenderAcceleration` px/step
+   *  par rapport au step précédent. Plafonnée à la maxSpeed habituelle.
+   *  Modélise la latence d'accélération réelle (un joueur au repos qui
+   *  doit sprinter ne saute pas instantanément à top speed). Default false
+   *  = comportement legacy (atteint maxSpeed en 1 step). */
+  accelerationModelEnabled?: boolean;
+  /** G.3 — Acceleration max d'un défenseur en px/step² (= incrément de
+   *  vitesse autorisé entre 2 steps). Default 75 px/step² = un guard atteint
+   *  sa top speed (145 px/step) en ~2 steps = ~4s à 2s/step. Range
+   *  conseillée : 30 (très lent à monter) à 145 (instantané = legacy).
+   *  Sans effet si accelerationModelEnabled est false. */
+  defenderAcceleration?: number;
   /** G.4 — Profil athlétique des défenseurs (multiplicateur sur la vitesse
    *  max). 'elite' ×1.3, 'standard' ×1.0 (= défaut implicite), 'lent' ×0.7.
    *  Permet de différencier "ce poste est lent" (déjà couvert par
