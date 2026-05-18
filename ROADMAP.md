@@ -1144,7 +1144,24 @@ templates où l'off-ball domine la séquence.
 stagger, passage elevator dans le gap, mémoire qui n'empêche pas la
 sortie de l'autre côté, fluidité pindown.
 
-#### ⚪ J.5 — Profiling + budget frame — détail du plan
+#### 🟢 J.5 — Profile overlay V1 — livré 2026-05-18
+
+V1 livré 2026-05-18 (commit `ccf73b9`, 9 tests). Réutilise l'infra
+`createFrameProfiler` + `FrameProfile` existante (testée par
+`playbackPerf.test.ts`) et ajoute une couche d'agrégation + overlay.
+
+- Module pur `playback/profileAggregator.ts` :
+  `aggregateProfiles(profiles[])` → `AggregatedProfile { count, byPhase,
+  total, hottestPhase }`. Stats : `mean / max / p95 / sum` par phase.
+- Classe `ProfileRingBuffer` (maxSize 120, FIFO).
+- `state.showProfileOverlay?: boolean` active `profile: true` dans
+  `useCourtFrame` + monte `<FrameProfileOverlay>` (overlay haut-gauche
+  du terrain, tableau mean/p95/max par phase, phase hottest highlightée).
+- Toggle "profile (J.5)" dans ParametresPanel.
+
+Plan d'origine ci-dessous comme référence.
+
+⚪ Plan d'origine :
 
 **Plan.**
 - Wraper `performance.now()` autour de chaque phase clé de
@@ -1159,7 +1176,28 @@ sortie de l'autre côté, fluidité pindown.
 **Impact.** Optimisation ciblée plutôt qu'à l'aveugle. Repère pour
 juger les J.2 (cache) et J.3 (solveur unifié).
 
-#### ⚪ J.6 — Visual regression légère — détail du plan
+#### 🟢 J.6 — Visual regression légère — livré 2026-05-18
+
+V1 livré 2026-05-18 (9 tests). Utilise les snapshots Vitest natifs
+(`.toMatchSnapshot`) sur 4 templates de référence :
+- `ucla-cut` (coupe classique off-ball)
+- `pnr-central` (PnR cœur de terrain)
+- `pindown-corner` (off-ball screen latéral)
+- `floppy` (double pindown miroir)
+
+- Module pur `playback/sceneSnapshot.ts` :
+  `snapshotScene(state, label, sampleTs?)` → `SceneSnapshot { label,
+  frames }`. Capture positions ballon + 10 joueurs + flags
+  défenseurs (matchedTo, helpFactor>0, helpTriggered, onScreen,
+  screenPhase) à des instants choisis (default : début + milieu + fin
+  de chaque transition). Positions arrondies à 1 décimale.
+- Test golden `j6GoldenSnapshots.test.ts` : 4 templates × N frames
+  par template = snapshot stocké dans `__snapshots__/`.
+- Regen volontaire : `npx vitest run j6GoldenSnapshots -u`.
+
+Plan d'origine ci-dessous comme référence.
+
+⚪ Plan d'origine :
 
 **Plan.** Un test par template `goldenScenarios.test.ts` qui produit
 un snapshot JSON de métriques sur tout le playback :
