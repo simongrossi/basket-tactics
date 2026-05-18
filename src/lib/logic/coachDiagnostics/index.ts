@@ -63,6 +63,7 @@ import { foulToGiveRule } from './rules/foulToGive';
 import { endOfClockRule } from './rules/endOfClock';
 import { outletPassRule } from './rules/outletPass';
 import { awayPossessionRule } from './rules/awayPossession';
+import { playerAnomalyRule } from './rules/playerAnomaly';
 
 const REGISTRY: Rule[] = [
   closeoutLongRule,
@@ -90,6 +91,7 @@ const REGISTRY: Rule[] = [
   endOfClockRule,
   outletPassRule,
   awayPossessionRule,
+  playerAnomalyRule,
 ];
 
 /**

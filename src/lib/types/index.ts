@@ -870,6 +870,11 @@ export interface AppState {
    *  extraits de frame.debug.defenders). Active aussi collectDecisions
    *  dans le pipeline. Default false. */
   showPlayerDebug?: boolean;
+  /** K.6 — Active la couche de détection d'anomalies (K.1 téléportation,
+   *  K.2 vitesse aberrante, K.3 défenseur décroché). Quand true, la règle
+   *  coach `playerAnomalyRule` émet un diag par anomalie détectée sur le
+   *  step courant. Default false (opt-in). */
+  anomalyDetectionEnabled?: boolean;
   /** D.1 — Easing visuel global de l'interpolation cross-step.
    *  - 'linear'      (défaut) : interpolation linéaire (comportement legacy).
    *  - 'ease-in-out' : démarrage lent + accélération milieu + ralenti fin.

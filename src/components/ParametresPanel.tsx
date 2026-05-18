@@ -380,6 +380,12 @@ export function ParametresPanel({
               onChange={(v) => onPatch({ showProfileOverlay: v })}
             />
             <ToggleCard
+              checked={!!state.anomalyDetectionEnabled}
+              label="anomalies (K)"
+              sample="circle-dashed" color={UI.red}
+              onChange={(v) => onPatch({ anomalyDetectionEnabled: v })}
+            />
+            <ToggleCard
               checked={state.showStateRings !== false}
               label="anneaux déf."
               sample="ring" color={UI.amber}
