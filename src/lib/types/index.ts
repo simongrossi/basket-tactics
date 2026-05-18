@@ -183,6 +183,13 @@ export interface Step {
    *  enclencher la transition. Lu par les diagnostics coach pour
    *  suggérer un step inbound suivant. */
   outletPassPending?: boolean;
+  /** E.1 V2 stage 2b — Côté d'affichage du step. Default 'home'
+   *  (rétrocompat). Sur 'away', l'UI bascule en mode "possession adverse" :
+   *  attaquants en rouge (= équipe adverse), défenseurs en bleu home
+   *  (= nos joueurs en défense). Le moteur tourne tel quel (sémantique
+   *  O/D inchangée pour conserver la simplicité), seul l'affichage et
+   *  les diags coach changent. Posé par `convertStepToAwayPossession`. */
+  viewSide?: 'home' | 'away';
   /** B.1 — Durée individuelle de la transition step → step+1, en secondes.
    *  Indéfini = fallback sur `state.secondsPerStep` (default 4s). Permet de
    *  moduler la durée narrative de chaque étape indépendamment (un dribble

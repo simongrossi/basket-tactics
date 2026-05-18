@@ -16,6 +16,7 @@ import {
 } from '@/lib/logic/freeThrowSetup';
 import { buildInboundSetup } from '@/lib/logic/inboundSetup';
 import { buildShotReboundSetup, reboundStepLabel } from '@/lib/logic/shotReboundSetup';
+import { buildAwayPossessionSetup } from '@/lib/logic/awayPossessionSetup';
 import { buildInboundDefenseSetup } from '@/lib/logic/inboundDefenseSetup';
 import { buildJumpBallSetup } from '@/lib/logic/jumpBallSetup';
 import { activeOffense } from '@/lib/logic/players';
@@ -309,6 +310,61 @@ export function addShotReboundStep(
     ...(outletPassPending !== undefined ? { outletPassPending } : {}),
   };
 
+  const steps = [...s.steps];
+  steps.splice(sourceStepIdx + 1, 0, newStep);
+  return { ...s, steps, activeStep: sourceStepIdx + 1 };
+}
+
+/**
+ * E.1 V2 stage 2b — Convertit le step actif en phase de possession
+ * adverse, ou ajoute un step suivant en phase adverse.
+ *
+ * Options :
+ *   - `mode: 'insert' | 'replace'` (default 'insert')
+ *     - 'insert' : ajoute un nouveau step adverse après sourceStepIdx
+ *       (usage flux post-rebond défensif).
+ *     - 'replace' : remplace le step actif (= bascule visuelle pure,
+ *       le coach peut éditer librement ensuite).
+ *   - `sourceStepIdx: number` (default = s.activeStep)
+ *
+ * Le step généré/converti :
+ *   - viewSide = 'away'
+ *   - positions miroir verticales (y -> 2*540 - y)
+ *   - défenseurs sourceStep → attaquants step adverse (et inversement)
+ *   - label "Transition adverse" (ou "Phase adverse" en replace)
+ *   - defenseOverrides figés
+ */
+export function convertStepToAwayPossession(
+  s: AppState,
+  options: { mode?: 'insert' | 'replace'; sourceStepIdx?: number } = {},
+): AppState {
+  const sourceStepIdx = options.sourceStepIdx ?? s.activeStep;
+  const sourceStep = s.steps[sourceStepIdx];
+  if (!sourceStep) return s;
+
+  const setup = buildAwayPossessionSetup(s, sourceStepIdx);
+  const mode = options.mode ?? 'insert';
+  const label = mode === 'insert' ? 'Transition adverse' : 'Phase adverse';
+
+  const newStepCommon = {
+    label,
+    off: setup.off,
+    ballCarrier: setup.ballCarrier,
+    annotations: [],
+    context: 'live-play' as const,
+    manualOverride: true,
+    defenseOverrides: setup.def,
+    viewSide: 'away' as const,
+  };
+
+  if (mode === 'replace') {
+    const steps = [...s.steps];
+    steps[sourceStepIdx] = { ...sourceStep, ...newStepCommon };
+    return { ...s, steps };
+  }
+
+  // insert
+  const newStep: Step = newStepCommon;
   const steps = [...s.steps];
   steps.splice(sourceStepIdx + 1, 0, newStep);
   return { ...s, steps, activeStep: sourceStepIdx + 1 };

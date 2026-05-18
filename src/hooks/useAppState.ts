@@ -245,6 +245,13 @@ export function useAppState() {
     [setStateWithHistory],
   );
 
+  const convertStepToAwayPossession = useCallback(
+    (options?: { mode?: 'insert' | 'replace'; sourceStepIdx?: number }) => {
+      setStateWithHistory((s) => stepTx.convertStepToAwayPossession(s, options));
+    },
+    [setStateWithHistory],
+  );
+
   const setBallCarrier = useCallback((carrier: AttackerId) => {
     setStateWithHistory((s) => stepTx.setBallCarrier(s, carrier));
   }, [setStateWithHistory]);
@@ -669,6 +676,7 @@ export function useAppState() {
     setStepLabel,
     patchStep,
     addShotReboundStep,
+    convertStepToAwayPossession,
     setBallCarrier,
     convertStepToFreeThrow,
     convertStepToInbound,
