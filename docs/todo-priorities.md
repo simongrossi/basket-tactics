@@ -29,7 +29,7 @@
 |---|---|---|---|---|
 | ~~**A11 V1**~~ | 🟢 livré 2026-05-18 | Mode édition statique : Step.shotOutcome + addShotReboundStep + boxOutCheckRule robuste. 25 tests. | — | — |
 | ~~**A11 V2**~~ | 🟢 livré 2026-05-18 (`dac7fb0` + ext2+ext3) | 'blocked' déterministe + reset shot clock 14s + outletPassPending + outletPassRule diag. 12 tests. | — | — |
-| **E.1 V2 stage 2b** — refacto 2-way | ⚪ | Refacto AppState avec `currentlyAttackingTeam` natif, matchups inversés en mémoire, engine défensif côté home pendant phase away. | 2-4 j | 🏀 **P3** (futur) |
+| ~~**E.1 V2 stage 2b**~~ | 🟢 V1 livré 2026-05-18 (Option A ultra-mini, 3 commits, 15 tests) | `Step.viewSide?` + setter `convertStepToAwayPossession` (mirror y=540) + UI + diag coach. Options B/C reportées. | — | — |
 | **A11 V3** | ⚪ reporté | Couche `boxOutLayer` dynamique vs setter statique, unification mode édition ↔ game loop, outlet pass setter auto (génère step inbound après). Plan dans [a11-plan.md](a11-plan.md). | — | — |
 
 ### Phase F — Situations FIBA / haute compétition ✅ 5/5 livrés (F.2 reporté)

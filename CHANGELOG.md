@@ -6,6 +6,91 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+## [0.15.0] — 2026-05-18 (E.1 stage 2b V1 — phase adverse édition)
+
+3 phases, 4 commits, 1416 → 1431 tests verts. Coût ~1h grâce au pattern
+A11 réutilisé (Step.* champs optionnels + setter + UI conditionnelle).
+
+### Approche choisie : Option A (V1 ultra-mini)
+
+3 options architecturales documentées dans
+[docs/e1-stage2b-plan.md](docs/e1-stage2b-plan.md). Choix : **Option A**
+— flag d'affichage + setter mirror vertical. Le moteur défensif tourne
+**tel quel** (sémantique O/D inchangée). Zéro risque Règle 1bis.
+
+### Phase 1 — Types + setter (commit `efc6166`, 12 tests)
+
+- Type `Step.viewSide?: 'home' | 'away'` (default 'home', rétrocompat 100%).
+- Module pur `awayPossessionSetup.ts` :
+  `buildAwayPossessionSetup(state, sourceStepIdx)` produit un setup
+  mirror vertical autour de `HALF_COURT_Y = 540`. Mapping nominal
+  D1↔O1, D2↔O2 ... D5↔O5 préservé (= D source devient O destination
+  et inversement, avec y inversé).
+- Transform `convertStepToAwayPossession(s, options?)` :
+  - `mode 'insert'` (default) : ajoute step après sourceStepIdx.
+  - `mode 'replace'` : remplace le step actif.
+  - Pose viewSide='away' + label + defenseOverrides figés.
+- Hook `useAppState.convertStepToAwayPossession` exposé.
+
+### Phase 2 — UI (commit `d184c66`)
+
+- **StepsPanel** : 2 boutons sur step actif :
+  - "🔄 étape transition adverse (E.1 stage 2b)" : guidé, visible
+    UNIQUEMENT quand `outletPassPending: true` (= rebond défensif récent
+    A11 V2 ext3). Flux naturel post-rebond → transition.
+  - "↩ convertir en phase adverse" / "↩ revenir en mode home" : libre,
+    visible sur tout step. Toggle visuel selon viewSide actuel
+    (vert si already away, rouge si home).
+- **CourtView** : banner "🔄 PHASE ADVERSE (édition)" en haut du
+  terrain quand `state.steps[activeStep].viewSide === 'away'`. Style
+  cohérent avec le banner game loop existant (POSSESSION ADVERSE),
+  mais suffixe "édition" pour distinguer les 2 sources.
+- Page.tsx : prop `onConvertStepToAwayPossession` câblée.
+
+### Phase 3 — Diag coach + docs (ce commit, +3 tests)
+
+- Nouvelle règle `awayPossessionRule` dans `coachDiagnostics/rules/`.
+  Émet un diag 'info' tag `away-possession` sur les steps `viewSide='away'`.
+  Message clé : "les rôles offensif/défensif sont visuellement inversés.
+  Les O représentent l'équipe adverse, les D vos joueurs home désormais
+  en défense." Évite la confusion sur les autres diags qui assument
+  "O = nos attaquants".
+- Registry `coachDiagnostics/index.ts` étendu.
+
+### Architecture finale E.1 (V1 + V2 stage 1 + stage 2a + stage 2b)
+
+```
+Game loop (mode live) :
+  attackingTeam = 'home' → moteur défensif normal
+  attackingTeam = 'away' → awayBallPos + awayPlayerPositions + banner
+
+Mode édition (stage 2b) :
+  Step.viewSide = 'home' (default) → comportement legacy
+  Step.viewSide = 'away' → banner + diag 'away-possession'
+                         + mapping D↔O mirror y=540
+                         + le moteur tourne tel quel
+                         (O = ce qui attaque ce step)
+
+Flux post-A11 V2 ext3 (rebond défensif) :
+  rebond defensif (outletPassPending=true)
+        ↓
+  Bouton "🔄 étape transition adverse"
+        ↓
+  Step adverse généré avec mirror vertical
+        ↓
+  Le coach édite la phase adverse normalement
+```
+
+### Reportés (Options B et C documentées)
+
+- **Option B** (1-2j) : team-aware soft avec
+  `Step.attackerTeamLabel` pour préserver l'identité joueur à
+  travers les transitions home↔away.
+- **Option C** (4-6j) : refacto complet ROADMAP avec
+  `AppState.currentlyAttackingTeam` natif et matchups inversés en
+  mémoire. **Risque Règle 1bis ÉLEVÉ** (touche le moteur d'écran).
+  Plan complet dans [docs/e1-stage2b-plan.md](docs/e1-stage2b-plan.md).
+
 ## [0.14.0] — 2026-05-18 (A11 V2 — extensions)
 
 Trois extensions naturelles à A11 V1 (livré ce matin). 2 commits, 5

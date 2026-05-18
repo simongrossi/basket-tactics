@@ -134,3 +134,30 @@ describe('E.1 stage 2b — convertStepToAwayPossession (transform)', () => {
     });
   });
 });
+
+describe('E.1 stage 2b — awayPossessionRule (diag coach)', () => {
+  it('émet un diag info quand step.viewSide === away', async () => {
+    const state = makeBaseState();
+    const next = convertStepToAwayPossession(state);
+    const { computeCoachDiagnostics } = await import('@/lib/logic/coachDiagnostics');
+    const diags = computeCoachDiagnostics(next, 1);
+    const awayDiag = diags.find((d) => d.tag === 'away-possession');
+    expect(awayDiag).toBeDefined();
+    expect(awayDiag?.severity).toBe('info');
+  });
+
+  it("n'émet PAS de diag sur step viewSide === home (default)", async () => {
+    const state = makeBaseState();
+    const { computeCoachDiagnostics } = await import('@/lib/logic/coachDiagnostics');
+    const diags = computeCoachDiagnostics(state, 0);
+    expect(diags.find((d) => d.tag === 'away-possession')).toBeUndefined();
+  });
+
+  it("n'émet PAS de diag sur step viewSide explicitement home", async () => {
+    const state = makeBaseState();
+    state.steps[0] = { ...state.steps[0], viewSide: 'home' };
+    const { computeCoachDiagnostics } = await import('@/lib/logic/coachDiagnostics');
+    const diags = computeCoachDiagnostics(state, 0);
+    expect(diags.find((d) => d.tag === 'away-possession')).toBeUndefined();
+  });
+});

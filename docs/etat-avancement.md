@@ -2,7 +2,7 @@
 
 > Vue consolidée de **ce qui est fait**, **ce qui est en cours**, et **ce qui reste à faire**, pour ne rien oublier entre deux sessions de travail.
 >
-> Mise à jour : **2026-05-18 (A11 V2)** — post-session B.3 / B.4 / D.1 / D.3 / D.5 / F.1 V1+V2 / G.1-4 / J.1 / J.5 / J.6 / J.7 / **A11 V1 + V2**.
+> Mise à jour : **2026-05-18 (E.1 stage 2b)** — post-session B.3 / B.4 / D.1 / D.3 / D.5 / F.1 V1+V2 / G.1-4 / J.1 / J.5 / J.6 / J.7 / A11 V1+V2 / **E.1 stage 2b V1**.
 >
 > Pour le détail commit-par-commit, voir [`CHANGELOG.md`](../CHANGELOG.md).
 > Pour la roadmap basket exhaustive, voir [`../ROADMAP.md`](../ROADMAP.md).
@@ -76,6 +76,26 @@ verrouillage croisé). 21 tests cumulés.
 `useCourtFrame` + nouveau composant `<PlayerDebugTable>` (overlay
 haut-droite, tableau 5 défenseurs × 5 colonnes). Toggle dans
 ParametresPanel.
+
+### E.1 stage 2b V1 — Phase adverse en mode édition (3 commits, ~1h)
+
+Option A retenue (V1 ultra-mini, plan complet dans
+[docs/e1-stage2b-plan.md](e1-stage2b-plan.md)).
+
+- Phase 1 (`efc6166`) : `Step.viewSide?: 'home' | 'away'` + module pur
+  `awayPossessionSetup.ts` (mirror vertical autour `HALF_COURT_Y=540`,
+  mapping D1↔O1 préservé) + transform `convertStepToAwayPossession`.
+  12 tests.
+- Phase 2 (`d184c66`) : 2 boutons StepsPanel (guidé post-A11 V2
+  outletPassPending + libre toggle) + banner CourtView "🔄 PHASE
+  ADVERSE (édition)".
+- Phase 3 (ce commit) : règle coach `awayPossessionRule` qui flag
+  les steps adverses pour éviter confusion sur les autres diags.
+
+Le moteur défensif tourne **tel quel** : sémantique O/D inchangée,
+seule la sémantique d'affichage change. Zéro risque Règle 1bis.
+
+Options B (team-aware soft) et C (refacto complet) reportées.
 
 ### A11 V2 — Extensions (2 commits, ~1h)
 

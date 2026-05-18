@@ -1031,10 +1031,30 @@ Récap chantiers livrés :
 | **V2 stage 1** | 🟢 | `6d99024` | Ballon adverse animé pendant phase away |
 | **V2 stage 2a** | 🟢 | `1cefa67` | 5 adversaires simulés rendus visuellement (sprites rouges) |
 
-**Reste pour V3** :
-- **V2 stage 2b** (~2-4j) : refacto AppState avec
-  `currentlyAttackingTeam` natif, matchups inversés en mémoire,
-  engine défensif appliqué côté home pendant phase away.
+**Stage 2b — Option A (V1 ultra-mini) livré 2026-05-18** (3 commits,
+15 tests) :
+- `Step.viewSide?: 'home' | 'away'` (default 'home', rétrocompat 100%).
+- Module pur `awayPossessionSetup.ts` : `buildAwayPossessionSetup`
+  mirror vertical autour de `HALF_COURT_Y = 540` (cohérent game loop).
+  Mapping nominal D1↔O1...D5↔O5 préservé.
+- Transform `convertStepToAwayPossession` avec modes 'insert' / 'replace'.
+- UI : 2 boutons StepsPanel (guidé post-`outletPassPending` A11 V2 ext3 +
+  libre toggle home↔away) + banner "🔄 PHASE ADVERSE (édition)" dans
+  CourtView (distinct du banner game loop).
+- Diag coach `awayPossessionRule` qui flag les steps adverses (évite
+  confusion sur les autres diags qui assument "O = nos joueurs").
+
+Le moteur défensif tourne **tel quel** (sémantique O/D inchangée),
+seule la sémantique d'affichage change. Zéro risque Règle 1bis : aucune
+modification de `frameResolver`, `screens/`, `defense/*Layer.ts`.
+
+**Reste reporté (Options B et C)** :
+- **Option B** team-aware soft : `Step.attackerTeamLabel` pour préserver
+  l'identité joueur à travers les transitions home↔away.
+- **Option C** refacto complet : `AppState.currentlyAttackingTeam`
+  natif + engine défensif appliqué côté home pendant phase away +
+  matchups inversés en mémoire. Plan complet dans
+  [docs/e1-stage2b-plan.md](docs/e1-stage2b-plan.md).
 
 **Modules livrés** (au-delà de la session initiale) :
 - `src/lib/logic/match/autoTuning.ts` — dichotomie sur creativity

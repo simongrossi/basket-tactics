@@ -62,6 +62,7 @@ import { inboundDefenseRule } from './rules/inboundDefense';
 import { foulToGiveRule } from './rules/foulToGive';
 import { endOfClockRule } from './rules/endOfClock';
 import { outletPassRule } from './rules/outletPass';
+import { awayPossessionRule } from './rules/awayPossession';
 
 const REGISTRY: Rule[] = [
   closeoutLongRule,
@@ -88,6 +89,7 @@ const REGISTRY: Rule[] = [
   foulToGiveRule,
   endOfClockRule,
   outletPassRule,
+  awayPossessionRule,
 ];
 
 /**

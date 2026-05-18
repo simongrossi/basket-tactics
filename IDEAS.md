@@ -39,6 +39,13 @@ CHANGELOG [0.12.0]. Faits marquants :
   14s sur rebond offensif (règle FIBA/NBA) + `outletPassPending` marker
   sur rebond défensif + nouvelle règle coach `outletPassRule` qui
   suggère la passe outlet pour la transition. 12 tests. ~1h.
+- **E.1 stage 2b V1** Phase adverse en mode édition. `Step.viewSide?:
+  'home' | 'away'` + setter `convertStepToAwayPossession` (mirror
+  vertical autour de y=540) + 2 boutons UI (guidé post-rebond
+  défensif + libre toggle) + banner CourtView + diag coach
+  `awayPossessionRule`. Option A ultra-mini choisie (Options B/C
+  reportées, plan dans [docs/e1-stage2b-plan.md](docs/e1-stage2b-plan.md)).
+  15 tests. ~1h. Le moteur défensif tourne tel quel, zéro risque Règle 1bis.
 
 **Le moteur tactique est désormais complet.** Tous les gros chantiers
 basket sont livrés. Reportés sans impact bloquant :
