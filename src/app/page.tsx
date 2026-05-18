@@ -224,7 +224,7 @@ export default function Page() {
             collapsed={sidebar.collapsed}
             onSelectView={sidebar.setActiveView}
             onToggleCollapse={sidebar.toggleCollapse}
-            version="0.10.0"
+            version="0.18.0"
             overflowMenu={
               <SidebarOverflowMenu
                 presentMode={presentMode}

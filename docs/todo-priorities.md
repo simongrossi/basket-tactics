@@ -189,4 +189,4 @@ Le projet est livrable pour démos coachs réels.
 
 ---
 
-Mise à jour : 2026-05-18 A11 (J.1 + A11 V1 demi-jeu rebond)
+Mise à jour : 2026-05-18 Phase K (anomaly detection complète) — version UI 0.18.0
