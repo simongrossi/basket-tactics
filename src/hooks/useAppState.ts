@@ -252,6 +252,13 @@ export function useAppState() {
     [setStateWithHistory],
   );
 
+  const addOutletPassStep = useCallback(
+    (options?: { sourceStepIdx?: number }) => {
+      setStateWithHistory((s) => stepTx.addOutletPassStep(s, options));
+    },
+    [setStateWithHistory],
+  );
+
   const setBallCarrier = useCallback((carrier: AttackerId) => {
     setStateWithHistory((s) => stepTx.setBallCarrier(s, carrier));
   }, [setStateWithHistory]);
@@ -677,6 +684,7 @@ export function useAppState() {
     patchStep,
     addShotReboundStep,
     convertStepToAwayPossession,
+    addOutletPassStep,
     setBallCarrier,
     convertStepToFreeThrow,
     convertStepToInbound,

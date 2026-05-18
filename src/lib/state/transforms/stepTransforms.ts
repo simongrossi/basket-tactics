@@ -334,6 +334,34 @@ export function addShotReboundStep(
  *   - label "Transition adverse" (ou "Phase adverse" en replace)
  *   - defenseOverrides figés
  */
+/**
+ * A11 V3 — Chaîne automatiquement rebond défensif → transition adverse.
+ *
+ * Combine A11 V2 ext3 (outletPassPending) et E.1 stage 2b
+ * (convertStepToAwayPossession) en un seul setter idiomatique :
+ *   1. Vérifie que sourceStep a `outletPassPending: true`.
+ *   2. Clear le flag sur sourceStep (la transition a été jouée).
+ *   3. Ajoute un step adverse via convertStepToAwayPossession mode insert.
+ *
+ * Pré-requis : `outletPassPending === true` (= rebond défensif récent).
+ * Sinon, retourne le state inchangé (no-op).
+ */
+export function addOutletPassStep(
+  s: AppState,
+  options: { sourceStepIdx?: number } = {},
+): AppState {
+  const sourceStepIdx = options.sourceStepIdx ?? s.activeStep;
+  const sourceStep = s.steps[sourceStepIdx];
+  if (!sourceStep) return s;
+  if (!sourceStep.outletPassPending) return s;
+
+  // Clear le flag puis chaîne convertStepToAwayPossession.
+  const stepsCleared = [...s.steps];
+  stepsCleared[sourceStepIdx] = { ...sourceStep, outletPassPending: undefined };
+  const stateCleared: AppState = { ...s, steps: stepsCleared };
+  return convertStepToAwayPossession(stateCleared, { mode: 'insert', sourceStepIdx });
+}
+
 export function convertStepToAwayPossession(
   s: AppState,
   options: { mode?: 'insert' | 'replace'; sourceStepIdx?: number } = {},

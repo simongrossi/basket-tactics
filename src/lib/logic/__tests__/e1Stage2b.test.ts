@@ -161,3 +161,52 @@ describe('E.1 stage 2b — awayPossessionRule (diag coach)', () => {
     expect(diags.find((d) => d.tag === 'away-possession')).toBeUndefined();
   });
 });
+
+describe('A11 V3 — addOutletPassStep (chaîne rebond déf → transition)', () => {
+  it("no-op si outletPassPending n'est pas posé", async () => {
+    const { addOutletPassStep } = await import('@/lib/state/transforms/stepTransforms');
+    const state = makeBaseState();
+    const next = addOutletPassStep(state);
+    expect(next).toBe(state);
+  });
+
+  it("clear outletPassPending sur source ET insère step adverse", async () => {
+    const { addOutletPassStep } = await import('@/lib/state/transforms/stepTransforms');
+    const state = makeBaseState();
+    state.steps[0] = { ...state.steps[0], outletPassPending: true };
+    const next = addOutletPassStep(state);
+    // Le flag est cleared.
+    expect(next.steps[0].outletPassPending).toBeUndefined();
+    // Un nouveau step adverse a été inséré.
+    expect(next.steps.length).toBe(state.steps.length + 1);
+    expect(next.steps[1].viewSide).toBe('away');
+    expect(next.activeStep).toBe(1);
+  });
+
+  it("idempotent : second appel = no-op (flag cleared)", async () => {
+    const { addOutletPassStep } = await import('@/lib/state/transforms/stepTransforms');
+    const state = makeBaseState();
+    state.steps[0] = { ...state.steps[0], outletPassPending: true };
+    const first = addOutletPassStep(state);
+    const second = addOutletPassStep(first);
+    expect(second).toBe(first); // pas de nouveau step inséré
+  });
+
+  it("sourceStepIdx override fonctionne", async () => {
+    const { addOutletPassStep } = await import('@/lib/state/transforms/stepTransforms');
+    const base = makeBaseState();
+    const off = base.steps[0].off;
+    const state: AppState = {
+      ...base,
+      steps: [
+        { ...base.steps[0] },
+        { off, ballCarrier: 'O1', annotations: [], outletPassPending: true },
+      ],
+      activeStep: 0,
+    };
+    const next = addOutletPassStep(state, { sourceStepIdx: 1 });
+    expect(next.steps[1].outletPassPending).toBeUndefined();
+    expect(next.steps.length).toBe(3);
+    expect(next.steps[2].viewSide).toBe('away');
+  });
+});

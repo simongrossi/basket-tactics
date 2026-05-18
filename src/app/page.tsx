@@ -302,6 +302,7 @@ export default function Page() {
                     onPatchStep={app.patchStep}
                     onAddShotReboundStep={app.addShotReboundStep}
                     onConvertStepToAwayPossession={app.convertStepToAwayPossession}
+                    onAddOutletPassStep={app.addOutletPassStep}
                     onSetBallCarrier={app.setBallCarrier}
                     onDeleteAnnotation={app.deleteAnnotation}
                     onConvertToFreeThrow={app.convertStepToFreeThrow}

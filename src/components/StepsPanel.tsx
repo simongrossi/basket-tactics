@@ -23,6 +23,10 @@ interface StepsPanelProps {
    *  (mirror vertical des positions autour de y=540). Le mode 'insert'
    *  ajoute un step après ; 'replace' remplace le step actif. */
   onConvertStepToAwayPossession?: (options?: { mode?: 'insert' | 'replace'; sourceStepIdx?: number }) => void;
+  /** A11 V3 — Setter combiné : clear outletPassPending sur step source +
+   *  ajoute un step adverse (= chaîne rebond défensif → transition en
+   *  1 clic). No-op si outletPassPending n'est pas posé. */
+  onAddOutletPassStep?: (options?: { sourceStepIdx?: number }) => void;
   onSetBallCarrier: (carrier: AttackerId) => void;
   onDeleteAnnotation: (idx: number) => void;
   /** F.3 — Convertit le step actif en setup de lancer franc. */
@@ -504,17 +508,19 @@ export function StepsPanel(props: StepsPanelProps) {
                   🏀 étape {outcome === 'blocked' ? 'post-contre' : 'rebond'} auto (A11)
                 </button>
               )}
-              {/* E.1 stage 2b — Bouton "étape transition adverse" guidé par
-                  outletPassPending (= rebond défensif récent). */}
-              {activeStep.outletPassPending && props.onConvertStepToAwayPossession && (
+              {/* A11 V3 — Bouton "outlet → transition" combiné : clear le
+                  flag outletPassPending et génère le step adverse en 1 clic.
+                  Visible UNIQUEMENT quand outletPassPending: true (= rebond
+                  défensif récent). */}
+              {activeStep.outletPassPending && props.onAddOutletPassStep && (
                 <button
                   type="button"
                   onClick={() => {
-                    if (confirm('Générer une étape de transition adverse ? Les positions sont inversées verticalement (équipe adverse en bas, nos joueurs en défense haut).')) {
-                      props.onConvertStepToAwayPossession!({ mode: 'insert' });
+                    if (confirm('Générer la transition adverse ? Outlet pass joué + step adverse inséré (positions inversées verticalement).')) {
+                      props.onAddOutletPassStep!();
                     }
                   }}
-                  title="E.1 stage 2b — Suite naturelle d'un rebond défensif. Bascule en phase adverse : O = adversaires (rouge), D = nos défenseurs home (bleu)."
+                  title="A11 V3 — Chaîne automatique : clear outletPassPending + ajoute step adverse (mirror y=540). Suite naturelle d'un rebond défensif."
                   style={{
                     width: '100%',
                     fontSize: 10,
@@ -528,7 +534,7 @@ export function StepsPanel(props: StepsPanelProps) {
                     marginTop: 4,
                   }}
                 >
-                  🔄 étape transition adverse (E.1 stage 2b)
+                  🔄 outlet → transition adverse (A11 V3)
                 </button>
               )}
               {/* E.1 stage 2b — Bouton libre "Convertir en possession adverse"
