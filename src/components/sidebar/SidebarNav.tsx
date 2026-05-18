@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpen, Library, Settings, Target } from 'lucide-react';
+import { BookOpen, Clapperboard, Library, Settings, Target } from 'lucide-react';
 import type { SidebarView } from '@/hooks/useSidebarState';
 import { SIDEBAR } from './tokens';
 import { SidebarNavItem } from './SidebarNavItem';
@@ -45,6 +45,19 @@ export function SidebarNav({ activeView, collapsed, onSelect }: Props) {
           onClick={() => onSelect(it.view)}
         />
       ))}
+      {/* Phase 1.6 — Navigation vers la page /simulation dédiée.
+          Pas une VUE interne (= ne change pas activeView), mais un lien
+          de routage. Visuellement séparé des vues éditeur pour signifier
+          le changement de contexte. */}
+      <SidebarNavItem
+        icon={Clapperboard}
+        label="Simulation"
+        active={false}
+        collapsed={collapsed}
+        onClick={() => {
+          if (typeof window !== 'undefined') window.location.href = '/simulation';
+        }}
+      />
     </nav>
   );
 }
