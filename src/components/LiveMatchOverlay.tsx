@@ -175,6 +175,31 @@ export function LiveMatchOverlay({ matchState, onStop, onExitPresent }: LiveMatc
           ✕
         </button>
       )}
+
+      {/* Phase 1.5 — Badge "Simulation adverse" pendant la phase away pour
+          clarifier au user que ce qu'il voit côté away est une simulation
+          stylisée (pas un vrai 5v5). Sera retiré en Phase 2 (mirror moteur). */}
+      {isAway && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            right: 0,
+            padding: '3px 8px',
+            borderRadius: 4,
+            background: 'rgba(120, 53, 15, 0.85)',
+            border: '1px solid #d97706',
+            color: '#fed7aa',
+            fontSize: 9,
+            fontWeight: 600,
+            letterSpacing: 0.3,
+            textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          🎬 simulation adverse (V1)
+        </div>
+      )}
     </div>
   );
 }
