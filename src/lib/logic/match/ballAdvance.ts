@@ -34,6 +34,7 @@ export function advanceBallAdvance(
 
   // Violation 8s — turnover si pas franchi
   if (remaining <= 0 && carrierPos.y > state.intent.targetY) {
+    const team = state.attackingTeam;
     return {
       ...state,
       intent: { kind: 'idle' },
@@ -48,6 +49,13 @@ export function advanceBallAdvance(
           label: `⚠ Violation 8s — ${state.carrier} n'a pas franchi la médiane`,
         },
       ],
+      teamStats: {
+        ...state.teamStats,
+        [team]: {
+          ...state.teamStats[team],
+          turnovers: state.teamStats[team].turnovers + 1,
+        },
+      },
     };
   }
 

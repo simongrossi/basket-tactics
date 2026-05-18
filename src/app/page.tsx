@@ -21,6 +21,7 @@ import { SidebarThemeProvider } from '@/components/sidebar/SidebarThemeContext';
 import { Timeline } from '@/components/Timeline';
 import { CourtView } from '@/components/CourtView';
 import { LiveMatchOverlay } from '@/components/LiveMatchOverlay';
+import { MiniBoxScore } from '@/components/MiniBoxScore';
 import { PlaybookView } from '@/components/PlaybookView';
 import { PlayerTimelineModal } from '@/components/PlayerTimelineModal';
 import { MultiTrackTimeline } from '@/components/MultiTrackTimeline';
@@ -428,6 +429,11 @@ export default function Page() {
                 onStop={matchLoop.stop}
                 onExitPresent={handleExitFullscreenMatch}
               />
+            )}
+            {/* Phase 1.4 — Mini box score live (Pts/FG%/TO/REB par équipe)
+                quand match multi-possessions en mode présentation. */}
+            {presentMode && matchLoop.matchState && (
+              <MiniBoxScore matchState={matchLoop.matchState} />
             )}
             <CourtView
               state={app.state}

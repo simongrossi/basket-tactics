@@ -241,6 +241,35 @@ export interface MatchState {
   seed: number;
   /** Numéro de possession (1-indexé, pour multi-possessions futures). */
   possession: number;
+  /** Phase 1.4 — Stats équipe agrégées sur la session. Invariant :
+   *  teamStats.home.points === homeScore (idem away). */
+  teamStats: {
+    home: TeamStats;
+    away: TeamStats;
+  };
+}
+
+/** Phase 1.4 — Stats agrégées pour une équipe (cumul sur la session). */
+export interface TeamStats {
+  points: number;
+  fgMade: number;
+  fgAttempted: number;
+  turnovers: number;
+  /** Rebonds offensifs. */
+  oReb: number;
+  /** Rebonds défensifs. */
+  dReb: number;
+}
+
+function emptyTeamStats(): TeamStats {
+  return {
+    points: 0,
+    fgMade: 0,
+    fgAttempted: 0,
+    turnovers: 0,
+    oReb: 0,
+    dReb: 0,
+  };
 }
 
 export interface CreateMatchStateOptions {
@@ -322,6 +351,7 @@ export function createInitialMatchState(
     shotBallStartPos: null,
     awayBallPos: null,
     awayPlayerPositions: null,
+    teamStats: { home: emptyTeamStats(), away: emptyTeamStats() },
   };
 }
 
@@ -392,6 +422,14 @@ export function tickMatch(
       label: `⚠ Violation 5s remise — ${next.carrier} perd la balle`,
     });
     next.intent = { kind: 'idle' };
+    // Phase 1.4 — Compte le turnover sur l'équipe qui inboundait.
+    next.teamStats = {
+      ...next.teamStats,
+      [next.attackingTeam]: {
+        ...next.teamStats[next.attackingTeam],
+        turnovers: next.teamStats[next.attackingTeam].turnovers + 1,
+      },
+    };
     return next;
   }
 
@@ -679,6 +717,27 @@ function executeTransition(
     ? state.possessionsPlayed + 1
     : state.possessionsPlayed;
 
+  // Phase 1.4 — Stats équipe : sur tir manqué, le rebond va à l'équipe
+  // qui le capture. Offensive rebound = même équipe que shooter; défensif
+  // = équipe adverse.
+  let teamStats = state.teamStats;
+  if (isMissedShot) {
+    const shooterTeam = state.attackingTeam;
+    const reboundingTeam = offensiveReboundDecided
+      ? shooterTeam
+      : shooterTeam === 'home'
+        ? 'away'
+        : 'home';
+    const statKey = offensiveReboundDecided ? 'oReb' : 'dReb';
+    teamStats = {
+      ...teamStats,
+      [reboundingTeam]: {
+        ...teamStats[reboundingTeam],
+        [statKey]: teamStats[reboundingTeam][statKey] + 1,
+      },
+    };
+  }
+
   // Session terminée → fige sans transition. L'outcome reste set, donc
   // isSessionDone() retournera true au tick suivant et le tick devient
   // no-op strict.
@@ -693,12 +752,14 @@ function executeTransition(
       awayScore,
       possessionsPlayed: nextPossessionsPlayed,
       transitionStartedAtMs: null,
+      teamStats,
     };
   }
 
   const stateForTransition: MatchState = {
     ...state,
     possessionsPlayed: nextPossessionsPlayed,
+    teamStats,
   };
 
   // Branchage final selon le résultat du rebond / type d'outcome.
@@ -1063,6 +1124,16 @@ function advanceAwayPossession(
     // Phase 1.1 — Si away vient de marquer, home a 5s pour rentrer la balle.
     // Sinon (tir manqué adverse = rebond live), pas d'inbound.
     inboundTimerMs: made ? INBOUND_TIMER_MS : null,
+    // Phase 1.4 — Stats équipe : le stub away a tenté 1 tir, réussi ou non.
+    teamStats: {
+      ...state.teamStats,
+      away: {
+        ...state.teamStats.away,
+        points: state.teamStats.away.points + pts,
+        fgMade: state.teamStats.away.fgMade + (made ? 1 : 0),
+        fgAttempted: state.teamStats.away.fgAttempted + 1,
+      },
+    },
   };
 }
 
@@ -1298,6 +1369,14 @@ function advancePass(
     const passLost = newProgress > 1.5 ? false : passRng() > action.successRate;
     if (passLost) {
       state.outcome = 'turnover-pass';
+      // Phase 1.4 — Compte le turnover sur l'équipe qui passait.
+      state.teamStats = {
+        ...state.teamStats,
+        [state.attackingTeam]: {
+          ...state.teamStats[state.attackingTeam],
+          turnovers: state.teamStats[state.attackingTeam].turnovers + 1,
+        },
+      };
       state.eventLog.push({
         possession: state.possession,
         clock: state.shotClockMs / 1000,
@@ -1368,6 +1447,18 @@ function resolveShot(
     : forced
       ? 'forced-shot-missed'
       : 'shot-missed';
+
+  // Phase 1.4 — Stats équipe : agrège ce tir sur l'équipe qui attaque.
+  const team = state.attackingTeam;
+  state.teamStats = {
+    ...state.teamStats,
+    [team]: {
+      ...state.teamStats[team],
+      points: state.teamStats[team].points + points,
+      fgMade: state.teamStats[team].fgMade + (made ? 1 : 0),
+      fgAttempted: state.teamStats[team].fgAttempted + 1,
+    },
+  };
 
   // B3a — métadonnées de tir enrichies : zone, contestation, position.
   // On reprend les mêmes helpers que `evaluateOffensiveOptions` pour
