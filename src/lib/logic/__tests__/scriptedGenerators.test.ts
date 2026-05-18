@@ -20,7 +20,8 @@ describe('Pick-and-roll generator', () => {
       params: { screener: 'O5', ballHandler: 'O1', side: 'fort' },
     };
     const steps = SCRIPTED_GENERATORS['pick-and-roll'](initialStep, action);
-    expect(steps).toHaveLength(3);
+    // 4 steps : Pose écran + Tenue écran (dwell anti-flicker) + Use+roll + Finition.
+    expect(steps).toHaveLength(4);
 
     // Step 1 : screener à proximité du porteur
     const step1 = steps[0];
@@ -31,15 +32,21 @@ describe('Pick-and-roll generator', () => {
     // Annotation "screen" présente sur step 1
     expect(step1.annotations.some((a) => a.type === 'screen' && a.fromId === 'O5')).toBe(true);
 
-    // Step 3 : screener s'est rapproché du panier
-    const step3 = steps[2];
-    const screener3 = step3.off.O5;
-    const dToHoopFinal = Math.hypot(screener3.x - HOOP.x, screener3.y - HOOP.y);
+    // Step "Tenue écran" : O5 N'A PAS bougé entre Pose et Tenue (dwell pour
+    // briser le flicker step→step).
+    const step1b = steps[1];
+    expect(step1b.label).toBe('Tenue écran');
+    expect(step1b.off.O5).toEqual(step1.off.O5);
+
+    // Step final (Finition) : screener s'est rapproché du panier
+    const stepFinal = steps[3];
+    const screenerFinal = stepFinal.off.O5;
+    const dToHoopFinal = Math.hypot(screenerFinal.x - HOOP.x, screenerFinal.y - HOOP.y);
     const dToHoopInitial = Math.hypot(initialStep.off.O5.x - HOOP.x, initialStep.off.O5.y - HOOP.y);
     expect(dToHoopFinal).toBeLessThan(dToHoopInitial);
 
     // Le porteur du ballon est devenu O1 (use the screen) après step 1
-    expect(step3.ballCarrier).toBe('O1');
+    expect(stepFinal.ballCarrier).toBe('O1');
   });
 
   it('respecte le côté demandé (faible vs fort)', () => {
@@ -115,12 +122,13 @@ describe('compileScenario', () => {
       initialBallCarrier: 'O1',
       actions,
     });
-    // Steps "réels" (hors interpolés) : 1 (départ) + 3 (PnR) + 1 (shoot) = 5
+    // Steps "réels" (hors interpolés) : 1 (départ) + 4 (PnR : Pose + Tenue +
+    // Use+roll + Finition) + 1 (shoot) = 6
     const real = out.filter((s) => !s.isInterpolated);
-    expect(real).toHaveLength(5);
+    expect(real).toHaveLength(6);
     expect(real[0].label).toBe('Départ');
     expect(real[1].generatedBy).toBe('a1');
-    expect(real[4].generatedBy).toBe('a2');
+    expect(real[5].generatedBy).toBe('a2');
   });
 
   it('préserve un step manualOverride entre deux recompiles', () => {

@@ -48,19 +48,35 @@ const genPickAndRoll: Generator = (prev, action) => {
     label: 'Pose écran',
   });
 
+  // Step 1b : "Tenue écran" — le screener TIENT la position pendant que le
+  // porteur s'engage. Évite le flicker step→step (cf. Phase K K.4) : sans ce
+  // step, le screener arrive en pose et fait demi-tour à 180° en 1 step pour
+  // démarrer le roll, ce qui produit un saut visuel + flicker critical sur
+  // la trajectoire. Avec dwell, la vélocité du screener décroît à 0 avant le
+  // demi-tour.
+  const handlerEngagePos: Point = clamp(towards(carrierPos, screenerSetPos, 25));
+  const off1b = { ...off1, [ballHandler]: handlerEngagePos };
+  const ann1b: Annotation[] = [
+    annot('dribble', ballHandler, off1, off1b),
+  ];
+  const step1b = makeStepFrom(off1b, ballHandler, ann1b, {
+    generatedBy: action.id,
+    label: 'Tenue écran',
+  });
+
   // Step 2 : porteur dribble + use screen ; screener roll vers panier.
   const handlerUsePos: Point = lerp(carrierPos, HOOP, 0.45);
   // Légèrement décalé du côté de l'écran
   handlerUsePos.x += sign * 15;
   const screenerRollPos: Point = lerp(screenerSetPos, HOOP, 0.6);
   const off2 = {
-    ...off1,
+    ...off1b,
     [ballHandler]: clamp(handlerUsePos),
     [screener]: clamp(screenerRollPos),
   };
   const ann2: Annotation[] = [
-    annot('dribble', ballHandler, off1, off2),
-    annot('cut', screener, off1, off2),
+    annot('dribble', ballHandler, off1b, off2),
+    annot('cut', screener, off1b, off2),
   ];
   const step2 = makeStepFrom(off2, ballHandler, ann2, {
     generatedBy: action.id,
@@ -84,7 +100,7 @@ const genPickAndRoll: Generator = (prev, action) => {
     label: 'Finition',
   });
 
-  return [step1, step2, step3];
+  return [step1, step1b, step2, step3];
 };
 
 // ============================================================

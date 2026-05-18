@@ -23,9 +23,9 @@ describe('compileScenario — branches manuelles', () => {
       actions: mainActions,
     });
     const real = out.filter((s) => !s.isInterpolated);
-    // 1 (départ) + 3 (PnR) + 1 (shoot) = 5
-    expect(real).toHaveLength(5);
-    expect(real[4].generatedBy).toBe('a2');
+    // 1 (départ) + 4 (PnR : Pose + Tenue + Use+roll + Finition) + 1 (shoot) = 6
+    expect(real).toHaveLength(6);
+    expect(real[5].generatedBy).toBe('a2');
   });
 
   it('avec branche active : remplace les actions après le point de divergence', () => {
@@ -44,10 +44,10 @@ describe('compileScenario — branches manuelles', () => {
       activeBranch: branch,
     });
     const real = out.filter((s) => !s.isInterpolated);
-    // 1 (départ) + 3 (PnR) + 1 (shoot de la branche) = 5
-    // Mais critically le 4e step réel est de la branche, pas du main
-    expect(real).toHaveLength(5);
-    expect(real[4].generatedBy).toBe('b1'); // shoot de la branche
+    // 1 (départ) + 4 (PnR : Pose + Tenue + Use+roll + Finition) + 1 (shoot de la branche) = 6
+    // Critically le dernier step réel est de la branche, pas du main
+    expect(real).toHaveLength(6);
+    expect(real[5].generatedBy).toBe('b1'); // shoot de la branche
   });
 
   it('branche avec plusieurs actions : toutes substituent la suite du main', () => {
@@ -90,9 +90,9 @@ describe('compileScenario — branches manuelles', () => {
       activeBranch: branch,
     });
     const real = out.filter((s) => !s.isInterpolated);
-    // Doit avoir compilé le main path complet (5 steps)
-    expect(real).toHaveLength(5);
-    expect(real[4].generatedBy).toBe('a2'); // shoot du main
+    // Doit avoir compilé le main path complet (6 steps : 1 départ + 4 PnR + 1 shoot)
+    expect(real).toHaveLength(6);
+    expect(real[5].generatedBy).toBe('a2'); // shoot du main
   });
 
   it('branche vide : conserve uniquement les actions jusqu\'à la divergence', () => {
@@ -109,8 +109,8 @@ describe('compileScenario — branches manuelles', () => {
       activeBranch: branch,
     });
     const real = out.filter((s) => !s.isInterpolated);
-    // 1 (départ) + 3 (PnR) = 4
-    expect(real).toHaveLength(4);
-    expect(real[3].generatedBy).toBe('a1');
+    // 1 (départ) + 4 (PnR : Pose + Tenue + Use+roll + Finition) = 5
+    expect(real).toHaveLength(5);
+    expect(real[4].generatedBy).toBe('a1');
   });
 });
