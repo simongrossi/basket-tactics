@@ -94,6 +94,7 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     const frame = resolveFrameAt(cur, t, {
       prevFrame: prevFrameRef.current ?? undefined,
       collectDecisions: !!cur.showScreenDebug || !!cur.showPlayerDebug,
+      profile: !!cur.showProfileOverlay,
     });
     if (frame) {
       setPlayFrame(frame);

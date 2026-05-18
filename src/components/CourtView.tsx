@@ -43,6 +43,7 @@ import { HelpDebugOverlay } from './overlays/HelpDebugOverlay';
 import { ScreenDebugOverlay } from './overlays/ScreenDebugOverlay';
 import { ScreenPlayerDebugPanel } from './overlays/ScreenPlayerDebugPanel';
 import { PlayerDebugTable } from './overlays/PlayerDebugTable';
+import { FrameProfileOverlay } from './overlays/FrameProfileOverlay';
 import { FieldOfViewOverlay } from './overlays/FieldOfViewOverlay';
 import { getZoneLayout, mirrorZoneLayout, applyZoneOverrides } from '@/lib/data/zones';
 import { ZoneEditOverlay } from './overlays/ZoneEditOverlay';
@@ -829,6 +830,10 @@ export function CourtView(props: CourtViewProps) {
 
       {state.showPlayerDebug && (
         <PlayerDebugTable frame={frame} visible />
+      )}
+
+      {state.showProfileOverlay && (
+        <FrameProfileOverlay frame={frame} visible />
       )}
 
       {/* ---- Badge "lecture en cours" ---- */}

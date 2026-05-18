@@ -811,6 +811,11 @@ export interface AppState {
    *  Legacy : conservé pour rétrocompat des scénarios pré-V2. Si
    *  `helpStickinessMs` est défini, celui-ci prime. */
   helpStickiness?: number;
+  /** J.5 — Active l'overlay de profiling : active collectDecisions +
+   *  profile dans useCourtFrame, et affiche un panneau live avec les
+   *  stats agrégées (mean / max / p95 / hottest phase) sur les N
+   *  dernières frames de playback. Default false. */
+  showProfileOverlay?: boolean;
   /** J.7 — Affiche un panneau debug pour tous les défenseurs (flags clés
    *  extraits de frame.debug.defenders). Active aussi collectDecisions
    *  dans le pipeline. Default false. */

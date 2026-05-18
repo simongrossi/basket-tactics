@@ -374,6 +374,12 @@ export function ParametresPanel({
               onChange={(v) => onPatch({ showPlayerDebug: v })}
             />
             <ToggleCard
+              checked={!!state.showProfileOverlay}
+              label="profile (J.5)"
+              sample="circle-dashed" color={UI.amber}
+              onChange={(v) => onPatch({ showProfileOverlay: v })}
+            />
+            <ToggleCard
               checked={state.showStateRings !== false}
               label="anneaux déf."
               sample="ring" color={UI.amber}
