@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type {
   AppState,
+  AttackerId,
   DefenderId,
   ScreenRule,
   DefenseSystem,
@@ -195,39 +196,41 @@ export function DefensePanel(props: DefensePanelProps) {
           onChange={handleSystemChange}
         />
 
-        {/* F.1 — Sub-config junk : sélecteur de chaser (attaquant ciblé). */}
-        {state.defenseSystem === 'junk' && (
-          <div
-            style={{
-              marginTop: 10,
-              padding: '8px 10px',
-              borderRadius: 6,
-              background: 'rgba(216, 90, 48, 0.10)',
-              border: '1px solid rgba(253, 186, 116, 0.28)',
-            }}
-          >
-            <div style={{ fontSize: 11, color: '#fdba74', fontWeight: 600, marginBottom: 6 }}>
-              Box-and-1 — chasseur
-            </div>
+        {/* F.1 — Sub-config junk : 1 ou 2 sélecteurs de chasseur selon le type. */}
+        {state.defenseSystem === 'junk' && (() => {
+          const jType = state.junkConfig?.type ?? 'box-and-1';
+          const needsTwoChasers = jType === 'triangle-and-2';
+          const labels: Record<typeof jType, string> = {
+            'box-and-1':       'Box-and-1 (4 zone + 1 chasseur)',
+            'triangle-and-2':  'Triangle-and-2 (3 zone + 2 chasseurs)',
+            'diamond-and-1':   'Diamond-and-1 (losange + 1 chasseur)',
+          };
+          const desc: Record<typeof jType, string> = {
+            'box-and-1':       '4 défenseurs sur les corners de la raquette, le chasseur colle le shooter en strict.',
+            'triangle-and-2':  '3 défenseurs en triangle (1 haut + 2 blocks), 2 chasseurs sur les 2 shooters dangereux.',
+            'diamond-and-1':   '4 défenseurs en losange 1-2-1 (NCAA), le chasseur colle le shooter en strict.',
+          };
+          const renderChaserButtons = (current: AttackerId | undefined, onPick: (oId: AttackerId) => void, disabled?: AttackerId) => (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {(['O1', 'O2', 'O3', 'O4', 'O5'] as const).map((oId) => {
-                const active = state.junkConfig?.chaser === oId;
+                const active = current === oId;
+                const isDisabled = disabled === oId;
                 return (
                   <button
                     key={oId}
                     type="button"
-                    onClick={() => props.onPatch({
-                      junkConfig: { type: 'box-and-1', chaser: oId },
-                    })}
+                    disabled={isDisabled}
+                    onClick={() => !isDisabled && onPick(oId)}
                     style={{
                       fontSize: 11,
                       padding: '4px 10px',
                       borderRadius: 4,
-                      border: `1.5px solid ${active ? '#d85a30' : 'rgba(253, 186, 116, 0.4)'}`,
+                      border: `1.5px solid ${active ? '#d85a30' : isDisabled ? 'rgba(120, 113, 108, 0.35)' : 'rgba(253, 186, 116, 0.4)'}`,
                       background: active ? '#d85a30' : 'rgba(216, 90, 48, 0.05)',
-                      color: active ? '#fff' : '#fdba74',
-                      cursor: 'pointer',
+                      color: active ? '#fff' : isDisabled ? '#78716c' : '#fdba74',
+                      cursor: isDisabled ? 'not-allowed' : 'pointer',
                       fontWeight: active ? 700 : 500,
+                      opacity: isDisabled ? 0.4 : 1,
                     }}
                   >
                     {oId}
@@ -235,12 +238,47 @@ export function DefensePanel(props: DefensePanelProps) {
                 );
               })}
             </div>
-            <div style={{ fontSize: 9.5, color: '#94a3b8', marginTop: 6, lineHeight: 1.35 }}>
-              4 défenseurs en zone autour de la raquette, le défenseur naturel
-              du chasseur le colle en strict (helpMode désactivé).
+          );
+          return (
+            <div
+              style={{
+                marginTop: 10,
+                padding: '8px 10px',
+                borderRadius: 6,
+                background: 'rgba(216, 90, 48, 0.10)',
+                border: '1px solid rgba(253, 186, 116, 0.28)',
+              }}
+            >
+              <div style={{ fontSize: 11, color: '#fdba74', fontWeight: 600, marginBottom: 6 }}>
+                {labels[jType]} — chasseur{needsTwoChasers ? ' n°1' : ''}
+              </div>
+              {renderChaserButtons(
+                state.junkConfig?.chaser,
+                (oId) => props.onPatch({
+                  junkConfig: { type: jType, chaser: oId, chaser2: state.junkConfig?.chaser2 },
+                }),
+                needsTwoChasers ? state.junkConfig?.chaser2 : undefined,
+              )}
+              {needsTwoChasers && (
+                <>
+                  <div style={{ fontSize: 11, color: '#fdba74', fontWeight: 600, marginTop: 8, marginBottom: 6 }}>
+                    Chasseur n°2
+                  </div>
+                  {renderChaserButtons(
+                    state.junkConfig?.chaser2,
+                    (oId) => props.onPatch({
+                      junkConfig: { type: jType, chaser: state.junkConfig?.chaser ?? 'O1', chaser2: oId },
+                    }),
+                    state.junkConfig?.chaser,
+                  )}
+                </>
+              )}
+              <div style={{ fontSize: 9.5, color: '#94a3b8', marginTop: 6, lineHeight: 1.35 }}>
+                {desc[jType]} helpMode désactivé pour le(s) chasseur(s).
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Sub-config visible uniquement en zone (Q6 fusion) */}
         {!isMan && (

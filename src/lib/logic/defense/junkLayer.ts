@@ -1,25 +1,23 @@
-// F.1 V1 — Junk defense (Box-and-1).
+// F.1 — Junk defenses (couvertures hybrides homme + zone).
 //
-// Défense hybride : 4 défenseurs en zone autour de la raquette (formation
-// "box") + 1 chasseur en marquage strict sur un shooter cible. Utilisée
-// niveau lycée / NCAA / U18 contre une équipe à 1-2 stars marquées.
+// V1 box-and-1 livré 2026-05-18 : 4 zone + 1 chasseur.
+// V2 livré 2026-05-18 : triangle-and-2 (3 zone + 2 chasseurs) et
+//                       diamond-and-1 (4 zone losange + 1 chasseur).
 //
-// V1 logique :
-//   - Identifie le chaser (défenseur dont matchup naturel = junkConfig.chaser).
-//   - 4 autres défenseurs sur 4 slots fixes autour du panier (corners de
-//     la raquette : haut-gauche, haut-droite, bas-gauche, bas-droite).
-//   - Chaser collé à 3/4 deny (`offBallStance: 'deny-3q'` virtuel), entre
-//     le panier et son homme avec léger overlap vers le porteur.
-//   - Aucun helpFactor sur le chaser : il ne quitte JAMAIS son homme.
+// Logique commune :
+//   - Identifie le(s) chaser(s) via leur matchup naturel (baseMatchups).
+//   - Place les non-chasers sur les slots zone du type courant.
+//   - Chaque chaser collé à 3/4 deny (gazeLock opponent), sans aide.
+//   - Aucun helpFactor : pas d'aide en junk.
 //
-// V1 short-circuit : appelée à la place de baseTargets, comme la couche
-// zone. Les overrides de placement utilisateur (defenseOverrides) restent
-// honorés en aval par effectiveDefensePositions.
+// Short-circuit du pipeline man comme la zone. Les overrides utilisateur
+// (defenseOverrides) restent honorés en aval par effectiveDefensePositions.
 
 import type {
   AppState,
   AttackerId,
   DefenderId,
+  JunkType,
   Matchups,
   Point,
 } from '../../types';
@@ -30,8 +28,7 @@ import { getDefenseHoop } from '../engine';
 import { computeDefenderOrientation } from '../orientation';
 import type { DefenderTarget } from './types';
 
-/** Offsets des 4 slots zone par rapport au panier (en px). Calibré sur la
- *  raquette FIBA : 80 px ≈ moitié-largeur, 60 px ≈ profondeur depuis le cercle. */
+/** F.1 V1 — Box formation : 4 défenseurs sur les corners de la raquette. */
 const BOX_OFFSETS: { dx: number; dy: number }[] = [
   { dx: -80, dy: -60 }, // haut-gauche (côté tir)
   { dx: +80, dy: -60 }, // haut-droite
@@ -39,8 +36,41 @@ const BOX_OFFSETS: { dx: number; dy: number }[] = [
   { dx: +80, dy: +60 }, // bas-droite
 ];
 
+/** F.1 V2 — Triangle formation : 3 défenseurs en triangle 1-2 (1 haut FT
+ *  line, 2 bas blocks). Position haut "élevée" vers le tir pour fermer
+ *  la pénétration centrale. */
+const TRIANGLE_OFFSETS: { dx: number; dy: number }[] = [
+  { dx: 0,   dy: -80 }, // pointe haute (FT line area)
+  { dx: -70, dy: +55 }, // base gauche (block)
+  { dx: +70, dy: +55 }, // base droite (block)
+];
+
+/** F.1 V2 — Diamond formation : 4 défenseurs en losange 1-2-1 (NCAA
+ *  classique). 1 haut, 2 ailes, 1 bas. */
+const DIAMOND_OFFSETS: { dx: number; dy: number }[] = [
+  { dx: 0,    dy: -90 }, // pointe haute
+  { dx: -85,  dy: 0   }, // aile gauche
+  { dx: +85,  dy: 0   }, // aile droite
+  { dx: 0,    dy: +65 }, // pointe basse (sous le cercle)
+];
+
 /** Recul du chaser depuis son homme vers le panier (entre eux). */
 const CHASER_OFFSET_TO_HOOP_PX = 18;
+
+/** Retourne les offsets de slot selon le type de junk defense. */
+function slotOffsetsFor(type: JunkType): { dx: number; dy: number }[] {
+  switch (type) {
+    case 'box-and-1': return BOX_OFFSETS;
+    case 'triangle-and-2': return TRIANGLE_OFFSETS;
+    case 'diamond-and-1': return DIAMOND_OFFSETS;
+  }
+}
+
+/** Retourne le nombre de chasseurs attendus selon le type. Exporté pour
+ *  l'UI (DefensePanel affiche 1 ou 2 pickers). */
+export function chaserCountFor(type: JunkType): 1 | 2 {
+  return type === 'triangle-and-2' ? 2 : 1;
+}
 
 export function computeJunkDefenseTargets(
   state: AppState,
@@ -55,24 +85,29 @@ export function computeJunkDefenseTargets(
   const config = state.junkConfig;
   // Fallback : si pas de config (cas dégénéré), retombe sur baseMatchups
   // statiques avec une box neutre — le composant UI devrait empêcher ce cas.
-  const chaserAtt: AttackerId = config?.chaser ?? 'O1';
-  const chaserDef = pickChaserDefender(chaserAtt, defenderIds);
+  const junkType: JunkType = config?.type ?? 'box-and-1';
+  const chaserAtts: AttackerId[] = [config?.chaser ?? 'O1'];
+  if (junkType === 'triangle-and-2' && config?.chaser2 && config.chaser2 !== config.chaser) {
+    chaserAtts.push(config.chaser2);
+  }
+  const chaserDefs: DefenderId[] = chaserAtts.map((att) => pickChaserDefender(att, defenderIds));
 
   // Le sens "vers le panier" dépend de attackingDirection :
   //   - up   (default) : panier en haut, y petit
   //   - down            : panier en bas, y grand
-  // BOX_OFFSETS dy<0 désigne "vers le tir" → on adapte le signe selon hoop.y.
+  // Les offsets dy<0 désignent "vers le tir" → on adapte le signe selon hoop.y.
   const dySign = hoop.y < 300 ? 1 : -1;
 
   const positions = {} as Record<DefenderId, DefenderTarget>;
   const matchupsApplied: Matchups = { ...baseMatchups };
 
-  // Assigne les 4 slots box aux 4 défenseurs non-chasers, dans l'ordre
-  // des défenseurs actifs. L'assignement précis (qui prend quel slot)
-  // n'a pas d'impact tactique en V1 : tous les 4 sont équivalents en zone.
-  const nonChasers = defenderIds.filter((d) => d !== chaserDef);
+  // Assigne les slots zone aux défenseurs non-chasers, dans l'ordre des
+  // défenseurs actifs. L'assignement précis (qui prend quel slot) n'a pas
+  // d'impact tactique : tous les défenseurs zone sont équivalents.
+  const slotOffsets = slotOffsetsFor(junkType);
+  const nonChasers = defenderIds.filter((d) => !chaserDefs.includes(d));
   nonChasers.forEach((dId, i) => {
-    const slot = BOX_OFFSETS[i % BOX_OFFSETS.length];
+    const slot = slotOffsets[i % slotOffsets.length];
     const x = hoop.x + slot.dx;
     const y = hoop.y + slot.dy * dySign;
     const matched: AttackerId = baseMatchups[dId];
@@ -101,48 +136,48 @@ export function computeJunkDefenseTargets(
     };
   });
 
-  // Place le chaser en marquage strict sur son homme. Position entre le
-  // panier et l'attaquant ciblé, légèrement reculée pour 3/4 deny visuel.
-  // helpFactor = 0 → ne participe à aucune aide.
-  const chaserPos = chaserAttPos(off, chaserAtt, hoop);
-  const isCarrierTarget = carrier === chaserAtt;
-  positions[chaserDef] = {
-    x: chaserPos.x,
-    y: chaserPos.y,
-    helpFactor: 0,
-    isCarrierDefender: isCarrierTarget,
-    matchedTo: chaserAtt,
-    onScreen: false,
-    switchedThisStep: false,
-    denying: !isCarrierTarget, // 3/4 deny visuel quand le shooter n'a pas le ballon
-    orientation: 0, // calculé en bas
-    gazeOrientation: 0,
-    facing: off[chaserAtt] ?? hoop,
-    armBallSide: off[carrier] ?? hoop,
-    armManSide: off[chaserAtt] ?? hoop,
-    helpKind: 'none',
-  };
-  // Force le matchup chaser → chaserAtt (peut différer du natural si le
-  // user choisit un autre attaquant que celui aligné statiquement).
-  matchupsApplied[chaserDef] = chaserAtt;
+  // Place les chasseurs (1 ou 2 selon le type) en marquage strict sur leur
+  // homme. Position entre le panier et l'attaquant ciblé, légèrement reculée
+  // pour 3/4 deny visuel. helpFactor = 0 → aucune aide.
+  chaserDefs.forEach((chaserDef, idx) => {
+    const chaserAtt = chaserAtts[idx];
+    if (!chaserAtt) return;
+    const chaserPos = chaserAttPos(off, chaserAtt, hoop);
+    const isCarrierTarget = carrier === chaserAtt;
+    positions[chaserDef] = {
+      x: chaserPos.x,
+      y: chaserPos.y,
+      helpFactor: 0,
+      isCarrierDefender: isCarrierTarget,
+      matchedTo: chaserAtt,
+      onScreen: false,
+      switchedThisStep: false,
+      denying: !isCarrierTarget,
+      orientation: 0,
+      gazeOrientation: 0,
+      facing: off[chaserAtt] ?? hoop,
+      armBallSide: off[carrier] ?? hoop,
+      armManSide: off[chaserAtt] ?? hoop,
+      helpKind: 'none',
+    };
+    matchupsApplied[chaserDef] = chaserAtt;
 
-  // Orientation du chaser : 3/4 deny (corps entre homme et ballon, regard
-  // sur l'homme par gazeLock). Si le chaser EST le carrierDef, contest classique.
-  const chaserManPos = off[chaserAtt] ?? hoop;
-  const chaserBallPos = off[carrier] ?? hoop;
-  const oriChaser = computeDefenderOrientation({
-    defenderPos: { x: chaserPos.x, y: chaserPos.y },
-    manPos: chaserManPos,
-    ballPos: chaserBallPos,
-    isCarrierDefender: isCarrierTarget,
-    stance: isCarrierTarget ? undefined : 'deny-3q',
-    gazeLock: isCarrierTarget ? undefined : 'opponent',
+    // Orientation : 3/4 deny (corps entre homme et ballon, regard sur
+    // l'homme par gazeLock). Si le chaser EST le carrierDef, contest classique.
+    const oriChaser = computeDefenderOrientation({
+      defenderPos: { x: chaserPos.x, y: chaserPos.y },
+      manPos: off[chaserAtt] ?? hoop,
+      ballPos: off[carrier] ?? hoop,
+      isCarrierDefender: isCarrierTarget,
+      stance: isCarrierTarget ? undefined : 'deny-3q',
+      gazeLock: isCarrierTarget ? undefined : 'opponent',
+    });
+    positions[chaserDef].orientation = oriChaser.bodyOrientation;
+    positions[chaserDef].gazeOrientation = oriChaser.gazeOrientation;
+    positions[chaserDef].facing = oriChaser.facing;
+    positions[chaserDef].armBallSide = oriChaser.armBallSide;
+    positions[chaserDef].armManSide = oriChaser.armManSide;
   });
-  positions[chaserDef].orientation = oriChaser.bodyOrientation;
-  positions[chaserDef].gazeOrientation = oriChaser.gazeOrientation;
-  positions[chaserDef].facing = oriChaser.facing;
-  positions[chaserDef].armBallSide = oriChaser.armBallSide;
-  positions[chaserDef].armManSide = oriChaser.armManSide;
 
   return { positions, matchupsApplied };
 }

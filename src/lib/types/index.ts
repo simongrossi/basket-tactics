@@ -505,15 +505,22 @@ export type DropDepth = 'shallow' | 'medium' | 'deep';
 
 export type DefenseSystem = 'man' | 'zone' | 'junk';
 
-/** F.1 — Junk defense V1 = box-and-1 : 4 défenseurs en zone autour de
- *  la raquette + 1 chasseur en marquage strict sur un shooter cible.
- *  Réutilise les briques offBallStance/vsCarrier sans refonte des
- *  matchups (le chaser garde son matchup naturel, juste collé). */
+/** F.1 — Junk defense : couvertures hybrides homme + zone.
+ *  - V1 box-and-1     : 4 zone (rectangle) + 1 chasseur strict
+ *  - V2 triangle-and-2: 3 zone (triangle 1 haut, 2 bas) + 2 chasseurs
+ *  - V2 diamond-and-1 : 4 zone (losange 1-2-1) + 1 chasseur
+ *  Le ou les chasseurs gardent leur matchup naturel via baseMatchups.
+ *  helpFactor = 0 partout : aucune aide en junk. */
+export type JunkType = 'box-and-1' | 'triangle-and-2' | 'diamond-and-1';
+
 export interface JunkConfig {
-  type: 'box-and-1';
-  /** Attaquant ciblé par le chaser (typiquement le shooter dangereux).
-   *  Son défenseur naturel (via baseMatchups) devient le chaser. */
+  type: JunkType;
+  /** Attaquant ciblé principal (toujours présent). Son défenseur
+   *  naturel devient le chaser primaire. */
   chaser: AttackerId;
+  /** F.1 V2 — Second chasseur, requis uniquement pour 'triangle-and-2'.
+   *  Ignoré pour box-and-1 et diamond-and-1. */
+  chaser2?: AttackerId;
 }
 export type ZoneType = 'zone-2-3' | 'zone-1-3-1' | 'zone-3-2' | 'zone-2-1-2' | 'zone-matchup';
 

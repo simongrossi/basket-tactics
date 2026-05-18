@@ -760,7 +760,7 @@ de possession. Reset shot clock à 14 s (rebond offensif) ou switch possession.
 
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
-| ~~F.1~~ | ~~**Junk defenses V1 (Box-and-1)** : `DefenseSystem` étendu à `'junk'` + `state.junkConfig: {type, chaser}`. Couche `computeJunkDefenseTargets` court-circuit (comme zone) : 4 défenseurs sur slots box (±80 ±60 px du panier), chaser collé à son homme via deny-3q + gazeLock 'opponent'. helpFactor=0 partout. UI activée dans SystemSelector + sub-config chaser picker (O1-O5).~~ | — | — | — | 🟢 V1 livré 2026-05-18 (8 tests, 1332 verts). V2 triangle-and-2 + diamond-and-1 reportée. |
+| ~~F.1~~ | ~~**Junk defenses V1 + V2 (Box-and-1, Triangle-and-2, Diamond-and-1)** : `DefenseSystem` étendu à `'junk'` + `state.junkConfig: {type, chaser, chaser2?}`. Couche `computeJunkDefenseTargets` court-circuit (comme zone). 3 formations : box (4 corners), triangle (1 haut + 2 blocks), diamond (losange 1-2-1). 1 ou 2 chasseurs selon type. helpFactor=0 partout. UI complète dans SystemSelector + sub-config chaser picker (1 ou 2 selon type).~~ | — | — | — | 🟢 V1+V2 livrés 2026-05-18 (8+13 tests, 1349 verts) |
 | F.2 | **Press full/half-court** : pression tout terrain | 10-12h V1 | 🔴 | Moyen |
 | ~~F.3~~ | ~~**Free throw rebound positioning** : 10 positions canoniques + transform + badge UI~~ | — | — | — | 🟢 livré 2026-05-13 (11 tests, 899 verts) |
 | ~~F.4~~ | ~~**End-of-quarter foul to give** : helper + diag critical + badge SVG `🟥 FOUL TO GIVE` + UI globale (defenseTeamFouls) + per-step (clockSeconds)~~ | — | — | — | 🟢 V1 livré 2026-05-18 (9 tests, 1279 verts) |

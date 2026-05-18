@@ -19,7 +19,7 @@ import { COLORS } from '../ui';
 export type SystemChoice =
   | { kind: 'man' }
   | { kind: 'zone'; zoneType: ZoneType }
-  | { kind: 'junk'; junkType: 'box-and-1' };
+  | { kind: 'junk'; junkType: 'box-and-1' | 'triangle-and-2' | 'diamond-and-1' };
 
 interface SystemDef {
   id: string;
@@ -91,13 +91,13 @@ const FAMILIES: { title: string; systems: SystemDef[] }[] = [
         id: 'triangle-and-2',
         label: 'Triangle-2',
         description: 'Triangle + 2 chasseurs.',
-        pending: 'F.1',
+        choice: { kind: 'junk', junkType: 'triangle-and-2' },
       },
       {
         id: 'diamond-and-1',
         label: 'Diamond-1',
         description: 'Diamant + 1 chasseur.',
-        pending: 'F.1',
+        choice: { kind: 'junk', junkType: 'diamond-and-1' },
       },
     ],
   },
@@ -124,7 +124,7 @@ interface SystemSelectorProps {
   defenseSystem: DefenseSystem;
   zoneType: ZoneType;
   /** F.1 — Type junk actif si defenseSystem === 'junk'. */
-  junkType?: 'box-and-1';
+  junkType?: 'box-and-1' | 'triangle-and-2' | 'diamond-and-1';
   onChange: (choice: SystemChoice) => void;
 }
 
