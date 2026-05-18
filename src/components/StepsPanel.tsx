@@ -16,6 +16,9 @@ interface StepsPanelProps {
    *  shotClockRemaining…). Utilisé pour les inputs d'horloges sur le step
    *  actif. */
   onPatchStep?: (idx: number, patch: Partial<AppState['steps'][number]>) => void;
+  /** A11 — Génère un step de rebond après un tir manqué (computeRebound +
+   *  box-out auto). Le step actif doit avoir shotOutcome === 'missed'. */
+  onAddShotReboundStep?: (options?: { seed?: number; sourceStepIdx?: number }) => void;
   onSetBallCarrier: (carrier: AttackerId) => void;
   onDeleteAnnotation: (idx: number) => void;
   /** F.3 — Convertit le step actif en setup de lancer franc. */
@@ -447,6 +450,31 @@ export function StepsPanel(props: StepsPanelProps) {
                   Step marqué comme tir {outcome === 'made' ? 'réussi' : 'manqué'}.
                   Cliquer à nouveau pour annuler.
                 </div>
+              )}
+              {outcome === 'missed' && props.onAddShotReboundStep && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Générer une étape de rebond automatique ? Box-out défensif + rebondeur identifié par modèle probabiliste.')) {
+                      props.onAddShotReboundStep!();
+                    }
+                  }}
+                  title="A11 — Ajoute une étape post-tir : défenseurs en box-out (entre matched et panier), rebondeur identifié via computeRebound, label auto."
+                  style={{
+                    width: '100%',
+                    fontSize: 10,
+                    padding: '5px 6px',
+                    borderRadius: 4,
+                    border: '1px solid #f59e0b',
+                    background: '#262a32',
+                    color: '#fbbf24',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    marginTop: 4,
+                  }}
+                >
+                  🏀 étape rebond auto (A11)
+                </button>
               )}
             </div>
           );

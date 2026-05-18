@@ -15,6 +15,7 @@ import {
   buildFreeThrowReboundSetup,
 } from '@/lib/logic/freeThrowSetup';
 import { buildInboundSetup } from '@/lib/logic/inboundSetup';
+import { buildShotReboundSetup, reboundStepLabel } from '@/lib/logic/shotReboundSetup';
 import { buildInboundDefenseSetup } from '@/lib/logic/inboundDefenseSetup';
 import { buildJumpBallSetup } from '@/lib/logic/jumpBallSetup';
 import { activeOffense } from '@/lib/logic/players';
@@ -250,6 +251,52 @@ export function addFreeThrowReboundStep(
   const steps = [...s.steps];
   steps.splice(s.activeStep + 1, 0, newStep);
   return { ...s, steps, activeStep: s.activeStep + 1 };
+}
+
+/**
+ * A11 V1 — Ajoute un step de rebond après un tir manqué.
+ *
+ * Pré-requis : le step actif (ou `sourceStepIdx` si fourni) doit avoir
+ * `shotOutcome === 'missed'`. Sinon, retourne le state inchangé.
+ *
+ * Le step généré contient :
+ *   - positions attaquants box-out (rebondeur poussé vers le cercle)
+ *   - positions défenseurs en box-out figées via `defenseOverrides`
+ *   - `ballCarrier` = rebondeur si offensif, shooter sinon
+ *   - `rebounder` + `reboundType` informatifs pour les diagnostics
+ *   - label lisible "Rebond offensif/défensif/team-out X"
+ *
+ * Options :
+ *   - `seed?: number` : graine RNG pour reproductibilité (tests).
+ *   - `sourceStepIdx?: number` : défaut = s.activeStep.
+ */
+export function addShotReboundStep(
+  s: AppState,
+  options: { seed?: number; sourceStepIdx?: number } = {}
+): AppState {
+  const sourceStepIdx = options.sourceStepIdx ?? s.activeStep;
+  const sourceStep = s.steps[sourceStepIdx];
+  if (!sourceStep) return s;
+  if (sourceStep.shotOutcome !== 'missed') return s;
+
+  const setup = buildShotReboundSetup(s, sourceStepIdx, { seed: options.seed });
+  const label = reboundStepLabel(setup);
+
+  const newStep: Step = {
+    label,
+    off: setup.off,
+    ballCarrier: setup.ballCarrier,
+    annotations: [],
+    context: 'live-play' as const,
+    manualOverride: true,
+    defenseOverrides: setup.def,
+    ...(setup.rebounder ? { rebounder: setup.rebounder } : {}),
+    reboundType: setup.reboundType,
+  };
+
+  const steps = [...s.steps];
+  steps.splice(sourceStepIdx + 1, 0, newStep);
+  return { ...s, steps, activeStep: sourceStepIdx + 1 };
 }
 
 export function setInboundDefenseMode(

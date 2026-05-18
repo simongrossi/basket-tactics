@@ -165,6 +165,16 @@ export interface Step {
    *  porteur au moment du step. Permet de calculer le rebond et de
    *  visualiser la trajectoire ballon dans une UI future. */
   shotPos?: Point;
+  /** A11 V1 — Rebondeur identifié (informatif). Posé par
+   *  `addShotReboundStep` sur le step de rebond généré. Peut être un
+   *  attaquant (rebond offensif → possession continue, 2e chance) ou
+   *  un défenseur (rebond défensif → transition adverse). Permet aux
+   *  diagnostics et à l'UI de mettre en évidence le rebondeur sans
+   *  parser le label. */
+  rebounder?: AttackerId | DefenderId;
+  /** A11 V1 — Type du rebond posé sur le step de rebond généré.
+   *  'team-out' rare = aucun joueur dans le rayon d'éligibilité. */
+  reboundType?: 'offensive' | 'defensive' | 'team-out';
   /** B.1 — Durée individuelle de la transition step → step+1, en secondes.
    *  Indéfini = fallback sur `state.secondsPerStep` (default 4s). Permet de
    *  moduler la durée narrative de chaque étape indépendamment (un dribble

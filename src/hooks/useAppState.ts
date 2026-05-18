@@ -238,6 +238,13 @@ export function useAppState() {
     [setStateWithHistory],
   );
 
+  const addShotReboundStep = useCallback(
+    (options?: { seed?: number; sourceStepIdx?: number }) => {
+      setStateWithHistory((s) => stepTx.addShotReboundStep(s, options));
+    },
+    [setStateWithHistory],
+  );
+
   const setBallCarrier = useCallback((carrier: AttackerId) => {
     setStateWithHistory((s) => stepTx.setBallCarrier(s, carrier));
   }, [setStateWithHistory]);
@@ -661,6 +668,7 @@ export function useAppState() {
     defenseReleaseTransition,
     setStepLabel,
     patchStep,
+    addShotReboundStep,
     setBallCarrier,
     convertStepToFreeThrow,
     convertStepToInbound,
