@@ -28,9 +28,11 @@ export function getShotPosForStep(step: Step, playerCount: number): Point | null
   return { x: pos.x, y: pos.y };
 }
 
-/** True si le step porte un outcome de tir. */
+/** True si le step porte un outcome de tir (made, missed, ou blocked). */
 export function hasShotOutcome(step: Step): boolean {
-  return step.shotOutcome === 'made' || step.shotOutcome === 'missed';
+  return step.shotOutcome === 'made'
+    || step.shotOutcome === 'missed'
+    || step.shotOutcome === 'blocked';
 }
 
 /** True si le step a un tir manqué (= candidat à un step rebond). */

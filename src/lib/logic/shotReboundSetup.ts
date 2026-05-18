@@ -24,7 +24,8 @@ import type {
 } from '../types';
 import { effectiveDefensePositions, getDefenseHoop } from './engine';
 import { activeBallCarrier, activeOffense, getActiveDefenderIds } from './players';
-import { computeRebound, type ReboundType } from './match/rebound';
+import { computeRebound, type ReboundResult, type ReboundType } from './match/rebound';
+import type { ComputedDefense } from '../types';
 import { getShotPosForStep } from './shotTracking';
 
 /** Distance défenseur ↔ son matched lors du box-out (px). Identique à
@@ -122,17 +123,23 @@ export function buildShotReboundSetup(
     };
   });
 
-  // 2. Calcul du rebond probabiliste (réutilise computeRebound de match/).
+  // 2. Calcul du rebond.
+  //    - 'blocked' (V2) : le défenseur le plus proche du shooter récupère
+  //      directement. Pas de tirage probabiliste — c'est un contre clean.
+  //    - 'missed' (V1) : computeRebound() probabiliste classique.
   const rng = options.seed !== undefined ? seededRng(options.seed) : Math.random;
-  const reboundResult = computeRebound({
-    off,
-    defPos,
-    hoop,
-    shotPos,
-    attackerProfiles: state.attackerProfiles,
-    shooter,
-    rng,
-  });
+  const isBlocked = sourceStep.shotOutcome === 'blocked';
+  const reboundResult = isBlocked
+    ? blockedReboundResult(defPos, shotPos, defenderIds, hoop)
+    : computeRebound({
+        off,
+        defPos,
+        hoop,
+        shotPos,
+        attackerProfiles: state.attackerProfiles,
+        shooter,
+        rng,
+      });
 
   // 3. Ajustement des positions selon le type de rebond.
   const finalOff: AttackerPositions = { ...off };
@@ -183,15 +190,63 @@ export function buildShotReboundSetup(
   };
 }
 
+/**
+ * V2 — Sur tir contré (`shotOutcome === 'blocked'`), pas de tirage
+ * probabiliste : c'est le défenseur le plus proche du shooter qui a
+ * contré et récupère. Toujours rebond défensif.
+ *
+ * Heuristique :
+ *  - distance(def, shotPos) minimale parmi les défenseurs actifs.
+ *  - Limite distance : 110 px (~3 m) au-delà duquel personne n'a contré
+ *    crédiblement → fallback `team-out`.
+ */
+function blockedReboundResult(
+  defPos: ComputedDefense,
+  shotPos: Point,
+  defenderIds: DefenderId[],
+  hoop: Point,
+): ReboundResult {
+  const BLOCK_MAX_DIST_PX = 110;
+  let closestId: DefenderId | null = null;
+  let closestDist = Infinity;
+  defenderIds.forEach((dId) => {
+    const def = defPos[dId];
+    if (!def) return;
+    const d = Math.hypot(def.x - shotPos.x, def.y - shotPos.y);
+    if (d < closestDist) {
+      closestDist = d;
+      closestId = dId;
+    }
+  });
+  if (!closestId || closestDist > BLOCK_MAX_DIST_PX) {
+    return {
+      rebounder: null,
+      type: 'team-out',
+      weights: {},
+      position: { ...hoop },
+    };
+  }
+  const blockerDef: DefenderId = closestId;
+  const def = defPos[blockerDef] as { x: number; y: number };
+  return {
+    rebounder: blockerDef,
+    type: 'defensive',
+    weights: { [blockerDef]: 1 },
+    position: { x: def.x, y: def.y },
+  };
+}
+
 /** Helper pour générer un label lisible pour le step de rebond. */
-export function reboundStepLabel(setup: ShotReboundSetup): string {
+export function reboundStepLabel(setup: ShotReboundSetup, isBlocked = false): string {
   if (setup.reboundType === 'offensive' && setup.rebounder) {
     return `Rebond offensif ${setup.rebounder}`;
   }
   if (setup.reboundType === 'defensive' && setup.rebounder) {
-    return `Rebond défensif ${setup.rebounder}`;
+    return isBlocked
+      ? `Tir contré par ${setup.rebounder}`
+      : `Rebond défensif ${setup.rebounder}`;
   }
-  return 'Rebond team-out';
+  return isBlocked ? 'Tir contré team-out' : 'Rebond team-out';
 }
 
 /** Export pour les tests. */

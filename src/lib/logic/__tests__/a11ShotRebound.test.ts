@@ -188,3 +188,53 @@ describe('A11 Phase 2 — addShotReboundStep (transform)', () => {
     expect(s1.reboundType).toBe(s2.reboundType);
   });
 });
+
+// ============================================================================
+// V2 — Extensions
+// ============================================================================
+
+describe('A11 V2 — shotOutcome blocked', () => {
+  it("blocked → toujours rebondType 'defensive' (pas probabiliste)", () => {
+    const state = makeShotState();
+    state.steps[1] = { ...state.steps[1], shotOutcome: 'blocked' };
+    // Plusieurs seeds doivent donner le MÊME résultat (déterministe).
+    const r1 = addShotReboundStep(state, { seed: 1 });
+    const r2 = addShotReboundStep(state, { seed: 999 });
+    expect(r1.steps[2].reboundType).toBe('defensive');
+    expect(r2.steps[2].reboundType).toBe('defensive');
+    // Même contreur car déterministe (= défenseur le plus proche du shooter).
+    expect(r1.steps[2].rebounder).toBe(r2.steps[2].rebounder);
+  });
+
+  it("blocked → rebondeur = défenseur le plus proche du shooter", () => {
+    const state = makeShotState();
+    state.steps[1] = { ...state.steps[1], shotOutcome: 'blocked' };
+    // Le shooter est O1 à (300, 220). Les défenseurs au step 1 sont
+    // calculés via effectiveDefensePositions. D1 sera probablement le
+    // plus proche (matched à O1, donc collé).
+    const next = addShotReboundStep(state, { seed: 1 });
+    expect(next.steps[2].rebounder).toBeDefined();
+    // Le rebondeur doit être un défenseur (commence par D).
+    expect(String(next.steps[2].rebounder)[0]).toBe('D');
+  });
+
+  it("blocked accepté par addShotReboundStep (n'était que 'missed' en V1)", () => {
+    const state = makeShotState();
+    state.steps[1] = { ...state.steps[1], shotOutcome: 'blocked' };
+    const next = addShotReboundStep(state, { seed: 1 });
+    expect(next.steps.length).toBe(state.steps.length + 1);
+  });
+
+  it("blocked label commence par 'Tir contré'", () => {
+    const state = makeShotState();
+    state.steps[1] = { ...state.steps[1], shotOutcome: 'blocked' };
+    const next = addShotReboundStep(state, { seed: 1 });
+    expect(next.steps[2].label).toMatch(/^Tir contré/);
+  });
+
+  it("hasShotOutcome retourne true pour blocked aussi", async () => {
+    const { hasShotOutcome } = await import('@/lib/logic/shotTracking');
+    const dummyStep = makeShotState().steps[1];
+    expect(hasShotOutcome({ ...dummyStep, shotOutcome: 'blocked' })).toBe(true);
+  });
+});

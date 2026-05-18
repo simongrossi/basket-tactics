@@ -421,7 +421,7 @@ export function StepsPanel(props: StepsPanelProps) {
                     fontWeight: outcome === 'made' ? 700 : 500,
                   }}
                 >
-                  ✅ {outcome === 'made' ? 'TIR RÉUSSI' : 'tir réussi'}
+                  ✅ {outcome === 'made' ? 'RÉUSSI' : 'réussi'}
                 </button>
                 <button
                   type="button"
@@ -429,7 +429,7 @@ export function StepsPanel(props: StepsPanelProps) {
                     shotOutcome: outcome === 'missed' ? undefined : 'missed',
                     shotPos: outcome === 'missed' ? undefined : (activeStep.shotPos ?? activeStep.off[activeStep.ballCarrier]),
                   })}
-                  title="Marque ce step comme tir manqué. En Phase 2, débloquera le bouton 'étape rebond auto'."
+                  title="Marque ce step comme tir manqué. Débloque le bouton 'étape rebond auto'."
                   style={{
                     flex: 1,
                     fontSize: 10,
@@ -442,7 +442,28 @@ export function StepsPanel(props: StepsPanelProps) {
                     fontWeight: outcome === 'missed' ? 700 : 500,
                   }}
                 >
-                  ❌ {outcome === 'missed' ? 'TIR MANQUÉ' : 'tir manqué'}
+                  ❌ {outcome === 'missed' ? 'MANQUÉ' : 'manqué'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => props.onPatchStep!(props.state.activeStep, {
+                    shotOutcome: outcome === 'blocked' ? undefined : 'blocked',
+                    shotPos: outcome === 'blocked' ? undefined : (activeStep.shotPos ?? activeStep.off[activeStep.ballCarrier]),
+                  })}
+                  title="V2 — Marque ce step comme tir contré. Sur étape rebond auto, le défenseur le plus proche du shooter récupère directement (= possession défensive)."
+                  style={{
+                    flex: 1,
+                    fontSize: 10,
+                    padding: '4px 6px',
+                    borderRadius: 4,
+                    border: `1.5px solid ${outcome === 'blocked' ? '#a855f7' : 'rgba(196, 181, 253, 0.35)'}`,
+                    background: outcome === 'blocked' ? '#a855f7' : '#262a32',
+                    color: outcome === 'blocked' ? '#fff' : '#c4b5fd',
+                    cursor: 'pointer',
+                    fontWeight: outcome === 'blocked' ? 700 : 500,
+                  }}
+                >
+                  🛑 {outcome === 'blocked' ? 'CONTRÉ' : 'contré'}
                 </button>
               </div>
               {outcome && (
@@ -451,15 +472,18 @@ export function StepsPanel(props: StepsPanelProps) {
                   Cliquer à nouveau pour annuler.
                 </div>
               )}
-              {outcome === 'missed' && props.onAddShotReboundStep && (
+              {(outcome === 'missed' || outcome === 'blocked') && props.onAddShotReboundStep && (
                 <button
                   type="button"
                   onClick={() => {
-                    if (confirm('Générer une étape de rebond automatique ? Box-out défensif + rebondeur identifié par modèle probabiliste.')) {
+                    const msg = outcome === 'blocked'
+                      ? 'Générer une étape post-contre ? Le défenseur le plus proche du shooter récupère directement.'
+                      : 'Générer une étape de rebond automatique ? Box-out défensif + rebondeur identifié par modèle probabiliste.';
+                    if (confirm(msg)) {
                       props.onAddShotReboundStep!();
                     }
                   }}
-                  title="A11 — Ajoute une étape post-tir : défenseurs en box-out (entre matched et panier), rebondeur identifié via computeRebound, label auto."
+                  title="A11 V1+V2 — Ajoute une étape post-tir : défenseurs en box-out, rebondeur identifié (computeRebound si manqué, contreur proche si bloqué)."
                   style={{
                     width: '100%',
                     fontSize: 10,
@@ -473,7 +497,7 @@ export function StepsPanel(props: StepsPanelProps) {
                     marginTop: 4,
                   }}
                 >
-                  🏀 étape rebond auto (A11)
+                  🏀 étape {outcome === 'blocked' ? 'post-contre' : 'rebond'} auto (A11)
                 </button>
               )}
             </div>

@@ -29,7 +29,7 @@ function isReboundPhase(
     steps: Array<{
       context?: string;
       label?: string;
-      shotOutcome?: 'made' | 'missed';
+      shotOutcome?: 'made' | 'missed' | 'blocked';
       reboundType?: 'offensive' | 'defensive' | 'team-out';
     }>;
   },
@@ -37,9 +37,9 @@ function isReboundPhase(
 ): boolean {
   const cur = state.steps[stepIdx];
   const prev = state.steps[stepIdx - 1];
-  // A11 V1 — détection robuste via champs structurés.
+  // A11 V1+V2 — détection robuste via champs structurés.
   if (cur?.reboundType) return true;
-  if (prev?.shotOutcome === 'missed') return true;
+  if (prev?.shotOutcome === 'missed' || prev?.shotOutcome === 'blocked') return true;
   // F.2 — détection robuste via context.
   if (prev?.context === 'free-throw') return true;
   // Legacy heuristique sur label (fallback pour scénarios pre-A11).

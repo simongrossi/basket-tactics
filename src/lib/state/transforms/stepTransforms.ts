@@ -277,10 +277,13 @@ export function addShotReboundStep(
   const sourceStepIdx = options.sourceStepIdx ?? s.activeStep;
   const sourceStep = s.steps[sourceStepIdx];
   if (!sourceStep) return s;
-  if (sourceStep.shotOutcome !== 'missed') return s;
+  // V2 — accepte aussi 'blocked'. 'made' reste no-op (le coach gère
+  // manuellement la transition adverse).
+  if (sourceStep.shotOutcome !== 'missed' && sourceStep.shotOutcome !== 'blocked') return s;
 
   const setup = buildShotReboundSetup(s, sourceStepIdx, { seed: options.seed });
-  const label = reboundStepLabel(setup);
+  const isBlocked = sourceStep.shotOutcome === 'blocked';
+  const label = reboundStepLabel(setup, isBlocked);
 
   const newStep: Step = {
     label,
