@@ -539,7 +539,7 @@ export type DropDepth = 'shallow' | 'medium' | 'deep';
 
 // --- Défense de zone (Palier 3-C) ---
 
-export type DefenseSystem = 'man' | 'zone' | 'junk';
+export type DefenseSystem = 'man' | 'zone' | 'junk' | 'press';
 
 /** F.1 — Junk defense : couvertures hybrides homme + zone.
  *  - V1 box-and-1     : 4 zone (rectangle) + 1 chasseur strict
@@ -557,6 +557,14 @@ export interface JunkConfig {
   /** F.1 V2 — Second chasseur, requis uniquement pour 'triangle-and-2'.
    *  Ignoré pour box-and-1 et diamond-and-1. */
   chaser2?: AttackerId;
+}
+
+/** F.2 V1 — Presse half-court (V1 statique sans trap dynamique).
+ *  V2 ajoutera full-court + trap auto au franchissement de la médiane. */
+export type PressType = 'half-court' | '2-2-1';
+
+export interface PressConfig {
+  type: PressType;
 }
 export type ZoneType = 'zone-2-3' | 'zone-1-3-1' | 'zone-3-2' | 'zone-2-1-2' | 'zone-matchup';
 
@@ -936,6 +944,9 @@ export interface AppState {
   /** F.1 — Configuration junk defense, lu si defenseSystem === 'junk'.
    *  Undefined si jamais activé (default UI bascule en homme). */
   junkConfig?: JunkConfig;
+  /** F.2 — Configuration press defense, lu si defenseSystem === 'press'.
+   *  V1 = '2-2-1' half-court statique. Pas de trap dynamique en V1. */
+  pressConfig?: PressConfig;
   offBallScreenRule: OffBallScreenRule;
   fullCourt: boolean;
   showPassLanes: boolean;

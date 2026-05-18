@@ -7,6 +7,7 @@ import type {
 } from '../types';
 import { computeZoneDefenseTargets } from './defense/zoneTargets';
 import { computeJunkDefenseTargets } from './defense/junkLayer';
+import { computePressDefenseTargets } from './defense/pressLayer';
 import { HOOP, HOOP_OPPOSITE } from '../data/court';
 import type { Point } from '../types';
 import {
@@ -83,6 +84,11 @@ export function computeDefenseTargets(
     // Court-circuit du pipeline man comme la zone. Les overrides utilisateur
     // (defenseOverrides) restent appliqués en aval par effectiveDefensePositions.
     return computeJunkDefenseTargets(state, stepIdx);
+  }
+  if (state.defenseSystem === 'press') {
+    // F.2 V1 — Half-court press (2-2-1) : 5 défenseurs en pression demi-terrain.
+    // Statique en V1 (pas de trap dynamique). Court-circuit comme zone/junk.
+    return computePressDefenseTargets(state, stepIdx);
   }
 
   const { ctx, matchups } = buildDefenseFrameContext(state, stepIdx);

@@ -19,7 +19,8 @@ import { COLORS } from '../ui';
 export type SystemChoice =
   | { kind: 'man' }
   | { kind: 'zone'; zoneType: ZoneType }
-  | { kind: 'junk'; junkType: 'box-and-1' | 'triangle-and-2' | 'diamond-and-1' };
+  | { kind: 'junk'; junkType: 'box-and-1' | 'triangle-and-2' | 'diamond-and-1' }
+  | { kind: 'press'; pressType: 'half-court' };
 
 interface SystemDef {
   id: string;
@@ -107,14 +108,14 @@ const FAMILIES: { title: string; systems: SystemDef[] }[] = [
       {
         id: 'half-court-press',
         label: 'Half-court',
-        description: 'Pression mi-terrain.',
-        pending: 'F.2',
+        description: 'Pression mi-terrain 2-2-1.',
+        choice: { kind: 'press', pressType: 'half-court' },
       },
       {
         id: 'full-court-press',
         label: 'Full-court',
         description: 'Pression tout terrain.',
-        pending: 'F.2',
+        pending: 'F.2 V2',
       },
     ],
   },
@@ -125,14 +126,17 @@ interface SystemSelectorProps {
   zoneType: ZoneType;
   /** F.1 — Type junk actif si defenseSystem === 'junk'. */
   junkType?: 'box-and-1' | 'triangle-and-2' | 'diamond-and-1';
+  /** F.2 — Type press actif si defenseSystem === 'press'. */
+  pressType?: 'half-court';
   onChange: (choice: SystemChoice) => void;
 }
 
-export function SystemSelector({ defenseSystem, zoneType, junkType, onChange }: SystemSelectorProps) {
+export function SystemSelector({ defenseSystem, zoneType, junkType, pressType, onChange }: SystemSelectorProps) {
   const c = COLORS.defense;
   const currentId =
     defenseSystem === 'man' ? 'man'
     : defenseSystem === 'junk' ? (junkType ?? 'box-and-1')
+    : defenseSystem === 'press' ? (pressType === 'half-court' ? 'half-court-press' : 'half-court-press')
     : zoneType;
 
   return (

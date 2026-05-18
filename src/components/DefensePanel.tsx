@@ -91,6 +91,14 @@ export function DefensePanel(props: DefensePanelProps) {
       } else if (state.junkConfig.type !== choice.junkType) {
         props.onPatch({ junkConfig: { ...state.junkConfig, type: choice.junkType } });
       }
+    } else if (choice.kind === 'press') {
+      // F.2 — bascule en press : init pressConfig si pas défini.
+      props.onSetDefenseSystem('press');
+      if (!state.pressConfig) {
+        props.onPatch({ pressConfig: { type: choice.pressType } });
+      } else if (state.pressConfig.type !== choice.pressType) {
+        props.onPatch({ pressConfig: { ...state.pressConfig, type: choice.pressType } });
+      }
     }
   };
 
@@ -193,6 +201,7 @@ export function DefensePanel(props: DefensePanelProps) {
           defenseSystem={state.defenseSystem}
           zoneType={state.zoneConfig.type}
           junkType={state.junkConfig?.type}
+          pressType={state.pressConfig?.type === 'half-court' ? 'half-court' : undefined}
           onChange={handleSystemChange}
         />
 
@@ -279,6 +288,30 @@ export function DefensePanel(props: DefensePanelProps) {
             </div>
           );
         })()}
+
+        {/* F.2 — Sub-config press : info statique + note V1 statique */}
+        {state.defenseSystem === 'press' && (
+          <div
+            style={{
+              marginTop: 10,
+              padding: '8px 10px',
+              borderRadius: 6,
+              background: 'rgba(220, 38, 38, 0.10)',
+              border: '1px solid rgba(252, 165, 165, 0.28)',
+            }}
+          >
+            <div style={{ fontSize: 11, color: '#fca5a5', fontWeight: 600, marginBottom: 6 }}>
+              Half-court press (2-2-1)
+            </div>
+            <div style={{ fontSize: 9.5, color: '#94a3b8', lineHeight: 1.4 }}>
+              5 défenseurs positionnés sur le terrain offensif : 2 sur la
+              ligne médiane, 2 zone de relais, 1 sweeper centre.
+              <br />
+              <strong>V1 statique</strong> : pas de trap dynamique au franchissement
+              de la médiane ni de retreat (reporté V1.5). Pas de full-court (V2).
+            </div>
+          </div>
+        )}
 
         {/* Sub-config visible uniquement en zone (Q6 fusion) */}
         {!isMan && (
