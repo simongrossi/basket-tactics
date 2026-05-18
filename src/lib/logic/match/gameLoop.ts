@@ -370,7 +370,14 @@ export function tickMatch(
   };
 
   // Timer 5s de remise expiré → violation, turnover.
-  if (matchState.inboundTimerMs !== null && next.inboundTimerMs === 0) {
+  // Phase 1.1 — En possession away, l'inbound est purement cosmétique
+  // (stub) : pas de violation possible. Le timer est désarmé par
+  // advanceAwayPossession après ~3s pour basculer sur l'animation stub.
+  if (
+    matchState.inboundTimerMs !== null &&
+    next.inboundTimerMs === 0 &&
+    next.attackingTeam !== 'away'
+  ) {
     next.outcome = 'turnover-pass';
     next.eventLog.push({
       possession: next.possession,
@@ -851,11 +858,31 @@ function startAwayPossession(
   ];
   // Phase 1.1 — Si home vient de marquer un panier, on enclenche un
   // timer de remise en jeu 5s (FIBA). Pendant ce timer, l'away est
-  // visuellement en position de remise au top du terrain.
+  // visuellement en position de remise au top du terrain :
+  // - 5 away players en BLOB box-set derrière la baseline home
+  //   (y entre 8 et 170, BLOB classique)
+  // - awayBallPos sur l'inbounder (y ≈ 8)
   // Sur défensif rebound ou turnover, pas d'inbound baseline.
   const isMadeShot =
     state.outcome === 'shot-made' || state.outcome === 'forced-shot-made';
   const inboundTimerMs = isMadeShot ? INBOUND_TIMER_MS : null;
+
+  let awayPlayerPositions: Record<DefenderId, Point> | null = null;
+  let awayBallPos: Point | null = null;
+  if (isMadeShot) {
+    const setup = buildInboundSetup('inbound-baseline');
+    // Re-key off (O1..O5) → defender ids (D1..D5) puisque
+    // awayPlayerPositions est indexé par DefenderId. Mapping nominal
+    // (O1→D1, etc.) — pas de matchup réel en Phase 1.
+    awayPlayerPositions = {
+      D1: setup.off.O1,
+      D2: setup.off.O2,
+      D3: setup.off.O3,
+      D4: setup.off.O4,
+      D5: setup.off.O5,
+    };
+    awayBallPos = { ...setup.off[setup.inbounder] };
+  }
 
   return {
     ...state,
@@ -870,6 +897,8 @@ function startAwayPossession(
     attackingTeam: 'away',
     transitionStartedAtMs: null,
     inboundTimerMs,
+    awayPlayerPositions,
+    awayBallPos,
     // Shot clock visible côté adverse : on initialise à la durée de la
     // possession adverse pour que le countdown soit lisible.
     shotClockMs: AWAY_POSSESSION_DURATION_MS,
@@ -892,6 +921,30 @@ function advanceAwayPossession(
   if (state.intent.kind !== 'away-possession') return state;
   const remaining = state.intent.remainingMs - dtMs;
   if (remaining > 0) {
+    // Phase 1.1 — Pendant la phase d'inbound visible (inboundTimerMs !== null),
+    // on fige les positions BLOB posées par startAwayPossession. Le shot
+    // clock continue de tourner mais les sprites restent en place.
+    // Le timer d'inbound est décrémenté par tickMatch en amont, donc ici
+    // on lit l'état post-décrément.
+    //
+    // Au bout de ~3s (= timer < 2000), on désarme l'inbound : la passe
+    // rentrante virtuelle est "faite", le stub animation prend le relais.
+    if (state.inboundTimerMs !== null && state.inboundTimerMs > 0) {
+      if (state.inboundTimerMs <= 2_000) {
+        // Désarme le timer → tick suivant utilise le stub animation
+        return {
+          ...state,
+          intent: { kind: 'away-possession', remainingMs: remaining },
+          shotClockMs: Math.max(0, remaining),
+          inboundTimerMs: null,
+        };
+      }
+      return {
+        ...state,
+        intent: { kind: 'away-possession', remainingMs: remaining },
+        shotClockMs: Math.max(0, remaining),
+      };
+    }
     // E.1 V2 stage 1 + 2a — anime le ballon adverse ET les 5 positions
     // des joueurs adverses pendant la possession stubbée.
     const totalDuration = AWAY_POSSESSION_DURATION_MS;

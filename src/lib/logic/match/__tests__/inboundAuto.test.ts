@@ -57,6 +57,68 @@ describe('Phase 1.1 — Auto-inbound après panier marqué', () => {
     expect(state.inboundTimerMs).toBe(5_000);
   });
 
+  it('panier home marqué → 5 away players en BLOB au top (y < 75) pendant inbound visible', () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, { seed: 1, maxPossessions: 3 });
+    state = { ...state, outcome: 'shot-made', score: 2, attackingTeam: 'home' };
+    // Bascule en possession away
+    state = tickUntil(state, baseState, (s) => s.attackingTeam === 'away');
+
+    expect(state.awayPlayerPositions).not.toBeNull();
+    // Les 5 positions sont en BLOB box-set au top du terrain :
+    // - 1 passer derrière la ligne (y < 20)
+    // - 2 short corners (y ≈ 95)
+    // - 2 wings (y ≈ 170)
+    const positions = Object.values(state.awayPlayerPositions!);
+    expect(positions.length).toBe(5);
+    positions.forEach((p) => {
+      expect(p.y).toBeLessThan(200);
+    });
+    // L'inbounder (1 des 5) est derrière la ligne (y < 20)
+    const inbounder = positions.find((p) => p.y < 20);
+    expect(inbounder).toBeDefined();
+    // Et awayBallPos est sur l'inbounder
+    expect(state.awayBallPos).not.toBeNull();
+    expect(state.awayBallPos!.y).toBeLessThan(20);
+  });
+
+  it('inbound away se termine sans violation au bout de 3s (transition vers stub)', () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, { seed: 1, maxPossessions: 3 });
+    state = { ...state, outcome: 'shot-made', score: 2, attackingTeam: 'home' };
+    state = tickUntil(state, baseState, (s) => s.attackingTeam === 'away');
+
+    // Ticker > 5s (= 150 ticks à 33ms) → si on ne désarme pas, l'inbound
+    // violation se déclencherait à inboundTimerMs === 0
+    for (let i = 0; i < 200; i++) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+    }
+
+    // Pas de turnover-pass déclenché par la violation
+    expect(state.outcome).not.toBe('turnover-pass');
+    // L'inbound a été désarmé (pass virtuelle vers le stub)
+    expect(state.inboundTimerMs).toBeNull();
+  });
+
+  it('inbound away visible : positions BLOB persistent ~3s avant que le stub anime', () => {
+    const baseState = buildState('pnr-central');
+    let state = createInitialMatchState(baseState, { seed: 1, maxPossessions: 3 });
+    state = { ...state, outcome: 'shot-made', score: 2, attackingTeam: 'home' };
+    state = tickUntil(state, baseState, (s) => s.attackingTeam === 'away');
+
+    // Ticker 30 frames (= ~1s à 33ms/tick) — encore dans la phase inbound (< 5s)
+    for (let i = 0; i < 30; i++) {
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
+    }
+
+    // Pendant le timer d'inbound, les 5 positions restent en BLOB top
+    expect(state.awayPlayerPositions).not.toBeNull();
+    const positions = Object.values(state.awayPlayerPositions!);
+    positions.forEach((p) => {
+      expect(p.y).toBeLessThan(200);
+    });
+  });
+
   it('turnover home → bascule away SANS inbound (inboundTimerMs reste null)', () => {
     const baseState = buildState('pnr-central');
     let state = createInitialMatchState(baseState, { seed: 2, maxPossessions: 3 });
