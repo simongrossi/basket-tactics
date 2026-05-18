@@ -9,7 +9,7 @@ import {
   type PlayerTrack,
   type TrackSegment,
 } from '@/lib/logic/playerTracks';
-import { realStepToSeconds } from '@/lib/logic/timecode';
+import { realStepToSeconds, getStepDurationSeconds } from '@/lib/logic/timecode';
 
 const TRACK_UI = {
   bg: '#171b22',
@@ -49,6 +49,9 @@ interface MultiTrackTimelineProps {
   onTogglePhase?: (stepFullIdx: number, annoIdx: number, newPhase: 'start' | 'end') => void;
   /** Édite les bornes temporelles d'une annotation (drag des poignées). */
   onTrimTiming?: (stepFullIdx: number, annoIdx: number, tStart: number, tEnd: number) => void;
+  /** B.4 — Édite tStartAbs/tEndAbs en secondes absolues (déclenché par
+   *  shift+click sur le segment). undefined pour effacer une borne. */
+  onSetTimingAbs?: (stepFullIdx: number, annoIdx: number, tStartAbs: number | undefined, tEndAbs: number | undefined) => void;
   /** Édite la qualité (0-100) d'une annotation 'screen'. */
   onSetQuality?: (stepFullIdx: number, annoIdx: number, quality: number) => void;
 }
@@ -68,8 +71,10 @@ export function MultiTrackTimeline({
   onJumpToRealStep,
   onTogglePhase,
   onTrimTiming,
+  onSetTimingAbs,
   onSetQuality,
 }: MultiTrackTimelineProps) {
+  const getStepDurationSec = (idx: number): number => getStepDurationSeconds(state, idx);
   const tracks = useMemo(() => computePlayerTracks(state), [state]);
   const realStepsCount = useMemo(() => countRealSteps(state), [state]);
 
@@ -164,7 +169,9 @@ export function MultiTrackTimeline({
             onJumpToRealStep={onJumpToRealStep}
             onTogglePhase={onTogglePhase}
             onTrimTiming={onTrimTiming}
+            onSetTimingAbs={onSetTimingAbs}
             onSetQuality={onSetQuality}
+            getStepDurationSec={getStepDurationSec}
           />
         ))}
         <div style={{ height: 6, borderTop: `1px dashed ${TRACK_UI.divider}`, margin: '3px 0' }} />
@@ -176,7 +183,9 @@ export function MultiTrackTimeline({
             onJumpToRealStep={onJumpToRealStep}
             onTogglePhase={onTogglePhase}
             onTrimTiming={onTrimTiming}
+            onSetTimingAbs={onSetTimingAbs}
             onSetQuality={onSetQuality}
+            getStepDurationSec={getStepDurationSec}
           />
         ))}
       </div>
@@ -190,13 +199,17 @@ function TrackRow({
   onJumpToRealStep,
   onTogglePhase,
   onTrimTiming,
+  onSetTimingAbs,
   onSetQuality,
+  getStepDurationSec,
 }: {
   track: PlayerTrack;
   transitionCount: number;
   onJumpToRealStep?: (idx: number) => void;
   onTogglePhase?: (stepFullIdx: number, annoIdx: number, newPhase: 'start' | 'end') => void;
   onTrimTiming?: (stepFullIdx: number, annoIdx: number, tStart: number, tEnd: number) => void;
+  onSetTimingAbs?: (stepFullIdx: number, annoIdx: number, tStartAbs: number | undefined, tEndAbs: number | undefined) => void;
+  getStepDurationSec: (idx: number) => number;
   onSetQuality?: (stepFullIdx: number, annoIdx: number, quality: number) => void;
 }) {
   return (
@@ -228,7 +241,9 @@ function TrackRow({
           onClick={() => onJumpToRealStep?.(i + 1)}
           onTogglePhase={onTogglePhase}
           onTrimTiming={onTrimTiming}
+          onSetTimingAbs={onSetTimingAbs}
           onSetQuality={onSetQuality}
+          getStepDurationSec={getStepDurationSec}
         />
       ))}
     </div>
@@ -240,13 +255,17 @@ function SegmentCell({
   onClick,
   onTogglePhase,
   onTrimTiming,
+  onSetTimingAbs,
   onSetQuality,
+  getStepDurationSec,
 }: {
   segment: TrackSegment;
   onClick?: () => void;
   onTogglePhase?: (stepFullIdx: number, annoIdx: number, newPhase: 'start' | 'end') => void;
   onTrimTiming?: (stepFullIdx: number, annoIdx: number, tStart: number, tEnd: number) => void;
+  onSetTimingAbs?: (stepFullIdx: number, annoIdx: number, tStartAbs: number | undefined, tEndAbs: number | undefined) => void;
   onSetQuality?: (stepFullIdx: number, annoIdx: number, quality: number) => void;
+  getStepDurationSec: (idx: number) => number;
 }) {
   const color = DARK_ACTIVITY_COLORS[segment.activity];
   const isMovementWithAnno =
@@ -316,15 +335,51 @@ function SegmentCell({
     return 'lock';
   };
 
+  // B.4 — Tooltip enrichi : affiche AUSSI les bornes en secondes absolues.
+  // Lecture seule (le drag reste en fraction).
+  const stepDurSec = isMovementWithAnno && segment.annoStepFullIdx !== undefined
+    ? getStepDurationSec(segment.annoStepFullIdx)
+    : 0;
+  const timingStr = isMovementWithAnno
+    ? ` · phase=${phase} · t=[${tStart.toFixed(2)}, ${tEnd.toFixed(2)}]` +
+      (stepDurSec > 0
+        ? ` · [${(tStart * stepDurSec).toFixed(2)}s, ${(tEnd * stepDurSec).toFixed(2)}s] sur ${stepDurSec.toFixed(1)}s`
+        : '')
+    : '';
   const tooltip = `${color.label}${segment.detail ? ' ' + segment.detail : ''}${
     segment.movePx > 0 ? ` · ${Math.round(segment.movePx)}px` : ''
-  }${
-    isMovementWithAnno
-      ? ` · phase=${phase} · t=[${tStart.toFixed(2)}, ${tEnd.toFixed(2)}]`
-      : ''
-  }${
+  }${timingStr}${
     isScreenWithAnno ? ` · qualité=${screenQuality} (${qualityLabel(screenQuality)})` : ''
-  }`;
+  }${isMovementWithAnno && onSetTimingAbs ? ' · shift+click pour éditer en secondes (B.4)' : ''}`;
+
+  // B.4 — shift+click ouvre un prompt pour saisir tStartAbs/tEndAbs en secondes.
+  const handleSegmentClick = (e: React.MouseEvent) => {
+    if (e.shiftKey && isMovementWithAnno && onSetTimingAbs && segment.annoStepFullIdx !== undefined && segment.annoIdx !== undefined) {
+      e.stopPropagation();
+      const curStart = (tStart * stepDurSec).toFixed(2);
+      const curEnd = (tEnd * stepDurSec).toFixed(2);
+      const ansStart = window.prompt(
+        `tStartAbs (s) — vide pour effacer.\nStep durée : ${stepDurSec.toFixed(2)}s. ` +
+        `Actuel : ${curStart}s (= fraction ${tStart.toFixed(2)})`,
+        curStart,
+      );
+      if (ansStart === null) return; // annulé
+      const ansEnd = window.prompt(
+        `tEndAbs (s) — vide pour effacer.\nActuel : ${curEnd}s (= fraction ${tEnd.toFixed(2)})`,
+        curEnd,
+      );
+      if (ansEnd === null) return;
+      const parseAbs = (s: string): number | undefined => {
+        const t = s.trim();
+        if (!t) return undefined;
+        const n = parseFloat(t);
+        return isFinite(n) && n >= 0 ? n : undefined;
+      };
+      onSetTimingAbs(segment.annoStepFullIdx, segment.annoIdx, parseAbs(ansStart), parseAbs(ansEnd));
+      return;
+    }
+    onClick?.();
+  };
 
   return (
     <div
@@ -344,9 +399,10 @@ function SegmentCell({
       }}
     >
       {/* Segment visible positionné selon tStart/tEnd. z-index élevé pour
-          passer au-dessus des cellules adjacentes quand tStart<0 ou tEnd>1. */}
+          passer au-dessus des cellules adjacentes quand tStart<0 ou tEnd>1.
+          B.4 — shift+click ouvre un prompt pour éditer tStartAbs/tEndAbs. */}
       <div
-        onClick={onClick}
+        onClick={handleSegmentClick}
         title={tooltip}
         style={{
           position: 'absolute',

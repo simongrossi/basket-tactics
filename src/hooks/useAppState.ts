@@ -357,6 +357,15 @@ export function useAppState() {
     [setStateWithHistory]
   );
 
+  const setAnnotationTimingAbs = useCallback(
+    (stepIdx: number, annoIdx: number, tStartAbs: number | undefined, tEndAbs: number | undefined) => {
+      setStateWithHistory((s) =>
+        annotationTx.setAnnotationTimingAbs(s, stepIdx, annoIdx, tStartAbs, tEndAbs)
+      );
+    },
+    [setStateWithHistory]
+  );
+
   const setAnnotationQuality = useCallback(
     (stepIdx: number, annoIdx: number, quality: number) => {
       setStateWithHistory((s) =>
@@ -621,6 +630,7 @@ export function useAppState() {
     deleteAnnotation,
     setAnnotationPhase,
     setAnnotationTiming,
+    setAnnotationTimingAbs,
     setAnnotationQuality,
     setAnnotationFrom,
     setAnnotationTo,

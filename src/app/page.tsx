@@ -522,6 +522,7 @@ export default function Page() {
               }}
               onTogglePhase={app.setAnnotationPhase}
               onTrimTiming={app.setAnnotationTiming}
+              onSetTimingAbs={app.setAnnotationTimingAbs}
               onSetQuality={app.setAnnotationQuality}
             />
           )}

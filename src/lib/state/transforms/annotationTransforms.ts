@@ -115,6 +115,37 @@ export function setAnnotationTiming(
   return { ...s, steps };
 }
 
+/** B.4 — Définit `tStartAbs` / `tEndAbs` (secondes absolues) sur une annotation
+ *  de mouvement. Si une borne vaut `undefined`, le champ correspondant est
+ *  effacé (retour au comportement fraction tStart/tEnd legacy).
+ *  Pas de validation de cohérence avec stepDuration ici — c'est l'UI qui
+ *  doit présenter une saisie raisonnable. */
+export function setAnnotationTimingAbs(
+  s: AppState,
+  stepIdx: number,
+  annoIdx: number,
+  tStartAbs: number | undefined,
+  tEndAbs: number | undefined,
+): AppState {
+  const step = s.steps[stepIdx];
+  if (!step) return s;
+  const anno = step.annotations[annoIdx];
+  if (!anno) return s;
+  if (!MOVEMENT_TYPES.includes(anno.type)) return s;
+
+  const steps = s.steps.map((st, i) =>
+    i === stepIdx
+      ? {
+          ...st,
+          annotations: st.annotations.map((a, j) =>
+            j === annoIdx ? { ...a, tStartAbs, tEndAbs } : a
+          ),
+        }
+      : st
+  );
+  return { ...s, steps };
+}
+
 /** Définit la qualité d'un écran (annotation type='screen'), entre 0 et 100. */
 export function setAnnotationQuality(
   s: AppState,
