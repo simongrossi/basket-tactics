@@ -405,8 +405,8 @@ sous flag `useSteeringEngine`, tests verts à chaque commit) :
    bit-équivalent legacy.
 2. ✅ **Livré (1.1b)** : `arrive` (rampe `slowingRadius=12 px`)
    au lieu de `seek` → anti-oscillation près de la cible.
-3. Migrer `help.ts` (forces `arrive` vers la posture d'aide +
-   futurs `interpose` du Chantier 2).
+3. ✅ **Livré (1.2)** : `help.ts` câblé via `computeHelpForces`.
+   Bit-équivalent loin, amorti proche, métadonnée préservée.
 4. Migrer `defense/pnrLayer.ts` et la gestion des écrans
    (`repel` autour des poseurs remplace le push-out brutal de
    `defense/screenAvoidance` — premier gain visuel majeur).

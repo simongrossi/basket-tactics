@@ -6,6 +6,26 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### CVT Chantier 1.2 — `help.ts` câblé en double-sortie sous `useSteeringEngine`
+
+Migration de la couche d'aide. `computeHelpForces` ajouté à
+[`help.ts`](src/lib/logic/help.ts) : wrappe `computeHelpTarget` et
+émet un `arrive` vers la cible d'aide legacy (sag-weakside,
+denial-strongside, active-help). Bit-équivalent en zone loin, amorti
+en zone proche (anti-oscillation autour de l'aide ou du denial).
+
+- `HelpForcesResult` étend `HelpResult` avec `forces: SteeringForce[]`.
+  Toute la métadonnée legacy (helpFactor, denying, triggered, aim,
+  priority, kind) est préservée — seule la position est routée
+  par les forces.
+- `defense/baseTargets.ts` : branche `useSteeringEngine` ajoutée au
+  bloc help (stance === 'sag' && att && carrierPos). Quand off,
+  appel direct à `computeHelpTarget` (inchangé).
+- **4 nouveaux tests** dans `help.test.ts` : bit-équivalence loin,
+  préservation métadonnée, helpMode disabled, amortissement zone
+  proche (3 px à 6 px de la cible).
+- 1588 → **1592 tests verts**. Pipeline legacy strictement inchangé.
+
 ### CVT Chantier 1.1b — Amortissement `arrive` près de la cible (anti-oscillation)
 
 Premier vrai gain comportemental du moteur de forces. Les variantes

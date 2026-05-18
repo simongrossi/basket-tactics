@@ -17,7 +17,7 @@ import type {
   Point,
 } from '../../types';
 import { DEFAULT_DENY_AGGRESSIVENESS } from '../../data/physics';
-import { computeHelpTarget, leaveAttackerCostMultiplier } from '../help';
+import { computeHelpForces, computeHelpTarget, leaveAttackerCostMultiplier } from '../help';
 import { applyScreenAdjustment, detectImminentScreen } from '../screens';
 import { computeDefenderOrientation } from '../orientation';
 import {
@@ -129,17 +129,34 @@ export function applyBaseTargetsLayer(
         // Coût tactique de quitter cet attaquant : on aide moins fort si on
         // marque un shooter, plus fort si on marque un non-shooter.
         const leaveMult = leaveAttackerCostMultiplier(state.attackerProfiles?.[oId]);
-        const help = computeHelpTarget(
-          stancePos, rule, triggers, carrierPos, att, side, off, hoop,
-          denyAggressiveness, leaveMult
-        );
-        target = help.target;
-        helpFactor = help.helpFactor;
-        denying = !!help.denying;
-        helpTriggered = !!help.triggered;
-        helpAim = help.aim;
-        helpPriority = help.priority;
-        helpKind = help.kind;
+        if (useForces) {
+          // CVT 1.2 — forces vectorielles avec arrive amorti vers le target d'aide.
+          const helpRes = computeHelpForces(
+            defenderRef, stancePos, rule, triggers, carrierPos, att, side, off, hoop,
+            denyAggressiveness, leaveMult,
+          );
+          target = helpRes.forces.length > 0
+            ? composeTarget(defenderRef, helpRes.forces)
+            : helpRes.target;
+          helpFactor = helpRes.helpFactor;
+          denying = !!helpRes.denying;
+          helpTriggered = !!helpRes.triggered;
+          helpAim = helpRes.aim;
+          helpPriority = helpRes.priority;
+          helpKind = helpRes.kind;
+        } else {
+          const help = computeHelpTarget(
+            stancePos, rule, triggers, carrierPos, att, side, off, hoop,
+            denyAggressiveness, leaveMult
+          );
+          target = help.target;
+          helpFactor = help.helpFactor;
+          denying = !!help.denying;
+          helpTriggered = !!help.triggered;
+          helpAim = help.aim;
+          helpPriority = help.priority;
+          helpKind = help.kind;
+        }
       }
     }
 

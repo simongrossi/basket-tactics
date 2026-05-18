@@ -234,3 +234,80 @@ describe('computeHelpTarget — paint helper pondéré par proximité', () => {
     expect(r.helpFactor).toBeGreaterThanOrEqual(0.95);
   });
 });
+
+// ============================================================================
+// CVT 1.2 — computeHelpForces (forces vectorielles avec arrive amorti)
+// ============================================================================
+
+import { computeHelpForces } from '../help';
+import { composeTarget } from '../steeringEngine';
+
+describe('computeHelpForces — bit-équivalence en zone loin', () => {
+  it('produit un target ≈ legacy.target via composeTarget (defenderRef loin)', () => {
+    const carrier = { x: 400, y: 470 };
+    const att = { x: 200, y: 380 };
+    const manPos = { x: 200, y: 300 };
+    const defenderRef = { x: 100, y: 100 }; // loin de manPos et de l'aim
+    const legacy = computeHelpTarget(manPos, ruleSag(50), noTriggers, carrier, att, 1);
+    const fres = computeHelpForces(defenderRef, manPos, ruleSag(50), noTriggers, carrier, att, 1, undefined);
+    const composed = fres.forces.length > 0
+      ? composeTarget(defenderRef, fres.forces)
+      : fres.target;
+    expect(Math.hypot(composed.x - legacy.target.x, composed.y - legacy.target.y)).toBeLessThan(1e-6);
+  });
+
+  it("préserve toute la métadonnée legacy (factor/denying/triggered/aim/kind/priority)", () => {
+    const carrier = { x: 400, y: 470 };
+    const att = { x: 350, y: 400 }; // strong-side (att.x > hoop.x, ballSide=+1)
+    const manPos = { x: 350, y: 400 };
+    const defenderRef = { x: 0, y: 0 };
+    const legacy = computeHelpTarget(manPos, ruleSag(50), noTriggers, carrier, att, 1);
+    const fres = computeHelpForces(defenderRef, manPos, ruleSag(50), noTriggers, carrier, att, 1, undefined);
+    expect(fres.helpFactor).toBe(legacy.helpFactor);
+    expect(fres.denying).toBe(legacy.denying);
+    expect(fres.triggered).toBe(legacy.triggered);
+    expect(fres.priority).toBe(legacy.priority);
+    expect(fres.kind).toBe(legacy.kind);
+    if (legacy.aim) {
+      expect(fres.aim).toEqual(legacy.aim);
+    }
+  });
+
+  it('helpMode disabled → target = manPos, forces vides ou seek 0 vers manPos', () => {
+    const carrier = { x: 400, y: 470 };
+    const att = { x: 200, y: 380 };
+    const manPos = { x: 250, y: 350 };
+    const defenderRef = manPos; // pile sur manPos → forces vides
+    const rule: DefenderRule = { helpPct: 50, priority: 'man', vsCarrier: 'coller', helpMode: 'disabled' };
+    const fres = computeHelpForces(defenderRef, manPos, rule, noTriggers, carrier, att, 1, undefined);
+    expect(fres.helpFactor).toBe(0);
+    expect(fres.kind).toBe('none');
+    expect(fres.forces).toEqual([]);
+  });
+});
+
+describe('computeHelpForces — amortissement zone proche (1.1b appliqué à help)', () => {
+  it('defenderRef à 6 px du legacy target → composé à 3 px de defenderRef (dampening)', () => {
+    const carrier = { x: 400, y: 470 };
+    const att = { x: 350, y: 400 };
+    const manPos = { x: 350, y: 400 };
+    const legacy = computeHelpTarget(manPos, ruleSag(50), noTriggers, carrier, att, 1);
+    // Place defenderRef à 6 px du target, dans la direction de manPos
+    const dxToTarget = legacy.target.x - manPos.x;
+    const dyToTarget = legacy.target.y - manPos.y;
+    const lenT = Math.hypot(dxToTarget, dyToTarget) || 1;
+    const dirX = dxToTarget / lenT;
+    const dirY = dyToTarget / lenT;
+    const defenderRef = { x: legacy.target.x - dirX * 6, y: legacy.target.y - dirY * 6 };
+    const fres = computeHelpForces(defenderRef, manPos, ruleSag(50), noTriggers, carrier, att, 1, undefined);
+    const composed = fres.forces.length > 0
+      ? composeTarget(defenderRef, fres.forces)
+      : fres.target;
+    const dDefToComposed = Math.hypot(composed.x - defenderRef.x, composed.y - defenderRef.y);
+    // Si le legacy a effectivement écarté le target de manPos (helpFactor > 0),
+    // la cible legacy est distincte de manPos et l'amortissement fire.
+    if (lenT > 1e-3 && Math.abs(legacy.helpFactor) > 1e-9) {
+      expect(dDefToComposed).toBeCloseTo(3, 4); // d²/radius = 36/12 = 3 px
+    }
+  });
+});

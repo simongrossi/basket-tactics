@@ -1516,8 +1516,12 @@ défenseur) à un paradigme **émergeant** de forces vectorielles pondérées
   théorique = `slowingRadius/4 = 3 px`, zone loin bit-équivalente).
   **4 nouveaux tests** dampening + tolérance intégration ajustée à
   5 px. **1588 tests verts**. Détail : CHANGELOG § Unreleased.
-- ⚪ **Sous-étape 1.2** : migrer `help.ts` (forces `seek` vers posture
-  d'aide, prépare l'`interpose` du Chantier 2).
+- 🟢 **Sous-étape 1.2** (livré 2026-05-19) : `help.ts` migré.
+  `computeHelpForces` wrappe les 3 branches (sag-weakside,
+  denial-strongside, active-help) en `arrive` vers la cible legacy.
+  Toute la métadonnée préservée (factor/denying/triggered/aim/kind).
+  4 tests : bit-équiv loin, métadonnée, helpMode disabled, amorti
+  zone proche. **1592 tests verts**.
 - ⚪ **Sous-étape 1.3** : migrer `defense/pnrLayer.ts` et la gestion
   des écrans — `repel` autour des poseurs remplace le push-out brutal
   de `screenAvoidance`. **Premier gain visuel majeur attendu** ici.

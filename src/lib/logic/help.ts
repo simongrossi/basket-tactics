@@ -7,8 +7,12 @@ import type {
   OffensiveProfile,
 } from '../types';
 import { HOOP } from '../data/court';
-import { RIM_PROTECTION_DROP_ZONE_PX } from '../data/physics';
+import {
+  RIM_PROTECTION_DROP_ZONE_PX,
+  STEERING_MAN_SLOWING_RADIUS_PX,
+} from '../data/physics';
 import { distance } from './geometry';
+import { arrive, type SteeringForce } from './steeringEngine';
 
 /**
  * Coefficient appliqué au helpFactor selon le profil de l'attaquant que le
@@ -278,4 +282,50 @@ export function computeHelpTarget(
     priority: rule.priority,
     kind: 'active-help',
   };
+}
+
+// ============================================================================
+// CVT Chantier 1.2 — Wrapper forces vectorielles autour de computeHelpTarget
+// ============================================================================
+//
+// Émet un `arrive(defenderRef, legacyTarget, STEERING_MAN_SLOWING_RADIUS_PX,
+// dist, label)` vers la cible d'aide legacy. Bit-équivalent en zone loin,
+// amorti en zone proche (anti-oscillation). Préserve TOUTE la métadonnée
+// du legacy (helpFactor, denying, triggered, aim, priority, kind) — seule
+// la position est routée par les forces.
+//
+// Sous-étapes suivantes (Chantier 2) : remplacer le wrapper par une vraie
+// composition multi-forces : `seek` vers manPos + `interpose` sur la ligne
+// de passe selon `kind` (strong-side denial → interpose vs ballon ;
+// active-help → seek vers aim raquette).
+
+export interface HelpForcesResult extends HelpResult {
+  /** Forces vectorielles équivalentes au `target` legacy. Consommer via
+   *  `composeTarget(defenderRef, forces)` pour obtenir la position dampée. */
+  forces: SteeringForce[];
+}
+
+/** Variante forces de `computeHelpTarget`. Cf. {@link HelpForcesResult}. */
+export function computeHelpForces(
+  defenderRef: Point,
+  manPos: Point,
+  rule: DefenderRule,
+  triggers: DetectedTriggers,
+  carrierPos: Point,
+  attPos: Point,
+  ballSide: -1 | 0 | 1,
+  allOff: AttackerPositions | undefined,
+  hoop: Point = HOOP,
+  denyAggressiveness: number = 0.45,
+  leaveMultiplier: number = 1,
+): HelpForcesResult {
+  const legacy = computeHelpTarget(
+    manPos, rule, triggers, carrierPos, attPos, ballSide,
+    allOff, hoop, denyAggressiveness, leaveMultiplier,
+  );
+  const d = distance(defenderRef, legacy.target);
+  const forces: SteeringForce[] = d < 1e-6
+    ? []
+    : [arrive(defenderRef, legacy.target, STEERING_MAN_SLOWING_RADIUS_PX, d, `arrive-help-${legacy.kind ?? 'none'}`)];
+  return { ...legacy, forces };
 }
