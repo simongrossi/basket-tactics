@@ -563,10 +563,22 @@ V1 livré 2026-05-18 en 3 phases + 1 docs. **3 commits + 25 tests** :
 parce que beaucoup d'infra existait déjà (computeRebound, boxOutCheckRule,
 pattern F.2, useAppState.patchStep).
 
-**V2 reportée** : `shotOutcome: 'blocked'`, reset shot clock à 14s sur
-rebond offensif, outlet pass auto sur rebond défensif (génère un step
-transition / inbound), couche `boxOutLayer` dynamique vs setter statique,
-unification mode édition ↔ game loop. Plan complet dans
+**V2 livré 2026-05-18** (commits `dac7fb0` + ce commit, +12 tests
+cumulés) :
+- **`shotOutcome: 'blocked'`** : 3e outcome de tir = contre clean.
+  Helper `blockedReboundResult` déterministe (défenseur le plus
+  proche du shotPos, limite 110 px ~3 m). UI 3e bouton 🛑 contré (violet).
+- **Reset shot clock 14s** sur rebond offensif : `addShotReboundStep`
+  pose `Step.shotClockRemaining = 14` sur les rebonds off (règle FIBA/NBA,
+  exploité par lateShotClockLayer F.5 si activé).
+- **Outlet pass marker** : `Step.outletPassPending = true` posé
+  automatiquement sur rebond défensif. Nouvelle règle coach
+  `outletPassRule` émet un diag 'info' suggérant la passe outlet
+  pour enclencher la transition adverse.
+
+**V3 reportée** : couche `boxOutLayer` dynamique vs setter statique,
+unification mode édition ↔ game loop, outlet pass setter auto qui
+génère un step inbound après. Plan complet dans
 [docs/a11-plan.md](docs/a11-plan.md).
 
 ⚪ Plan d'origine :

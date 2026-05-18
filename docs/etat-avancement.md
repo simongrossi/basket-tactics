@@ -2,7 +2,7 @@
 
 > Vue consolidée de **ce qui est fait**, **ce qui est en cours**, et **ce qui reste à faire**, pour ne rien oublier entre deux sessions de travail.
 >
-> Mise à jour : **2026-05-18 (A11)** — post-session B.3 / B.4 / D.1 / D.3 / D.5 / F.1 V1+V2 / G.1-4 / J.1 / J.5 / J.6 / J.7 / **A11 V1**.
+> Mise à jour : **2026-05-18 (A11 V2)** — post-session B.3 / B.4 / D.1 / D.3 / D.5 / F.1 V1+V2 / G.1-4 / J.1 / J.5 / J.6 / J.7 / **A11 V1 + V2**.
 >
 > Pour le détail commit-par-commit, voir [`CHANGELOG.md`](../CHANGELOG.md).
 > Pour la roadmap basket exhaustive, voir [`../ROADMAP.md`](../ROADMAP.md).
@@ -76,6 +76,16 @@ verrouillage croisé). 21 tests cumulés.
 `useCourtFrame` + nouveau composant `<PlayerDebugTable>` (overlay
 haut-droite, tableau 5 défenseurs × 5 colonnes). Toggle dans
 ParametresPanel.
+
+### A11 V2 — Extensions (2 commits, ~1h)
+
+- ext1 (`dac7fb0`) : `shotOutcome: 'blocked'` 3e outcome de tir +
+  helper `blockedReboundResult` déterministe + UI 3e bouton violet.
+- ext2 : reset shot clock 14s sur rebond offensif.
+- ext3 : `outletPassPending` marker + nouvelle règle coach `outletPassRule`.
+
+12 nouveaux tests cumulés. V3 reportée (couche dynamique, unification
+mode édition ↔ game loop).
 
 ### A11 V1 — Box-out / rebond demi-jeu (4 commits, mode édition)
 

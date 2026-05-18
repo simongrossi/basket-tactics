@@ -285,6 +285,16 @@ export function addShotReboundStep(
   const isBlocked = sourceStep.shotOutcome === 'blocked';
   const label = reboundStepLabel(setup, isBlocked);
 
+  // V2 ext 2 — Reset shot clock à 14s sur rebond offensif (règle FIBA/NBA :
+  // 14s reset après rebond off, vs 24s reset après possession adverse).
+  // Posé sur Step.shotClockRemaining (F.5) → exploité par lateShotClockLayer.
+  const shotClockRemaining = setup.reboundType === 'offensive' ? 14 : undefined;
+
+  // V2 ext 3 — Outlet pass marker : sur rebond défensif, la possession
+  // bascule, la défense doit jouer une passe outlet pour enclencher la
+  // transition. Marqueur informatif (diags coach).
+  const outletPassPending = setup.reboundType === 'defensive' ? true : undefined;
+
   const newStep: Step = {
     label,
     off: setup.off,
@@ -295,6 +305,8 @@ export function addShotReboundStep(
     defenseOverrides: setup.def,
     ...(setup.rebounder ? { rebounder: setup.rebounder } : {}),
     reboundType: setup.reboundType,
+    ...(shotClockRemaining !== undefined ? { shotClockRemaining } : {}),
+    ...(outletPassPending !== undefined ? { outletPassPending } : {}),
   };
 
   const steps = [...s.steps];

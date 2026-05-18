@@ -34,6 +34,11 @@ CHANGELOG [0.12.0]. Faits marquants :
   Coût réel ~3h vs 5-8j estimé : énormément d'infra existait déjà
   (`computeRebound`, `boxOutCheckRule`, pattern F.2 free-throw). 25
   tests. Plan complet dans [docs/a11-plan.md](docs/a11-plan.md).
+- **A11 V2** Extensions — `shotOutcome: 'blocked'` (contre déterministe,
+  défenseur le plus proche du shooter récupère) + reset shot clock à
+  14s sur rebond offensif (règle FIBA/NBA) + `outletPassPending` marker
+  sur rebond défensif + nouvelle règle coach `outletPassRule` qui
+  suggère la passe outlet pour la transition. 12 tests. ~1h.
 
 **Le moteur tactique est désormais complet.** Tous les gros chantiers
 basket sont livrés. Reportés sans impact bloquant :

@@ -177,6 +177,12 @@ export interface Step {
   /** A11 V1 — Type du rebond posé sur le step de rebond généré.
    *  'team-out' rare = aucun joueur dans le rayon d'éligibilité. */
   reboundType?: 'offensive' | 'defensive' | 'team-out';
+  /** A11 V2 — Marqueur "outlet pass nécessaire". Posé automatiquement
+   *  sur le step de rebond quand `reboundType === 'defensive'` : la
+   *  possession bascule, la défense doit faire une passe outlet pour
+   *  enclencher la transition. Lu par les diagnostics coach pour
+   *  suggérer un step inbound suivant. */
+  outletPassPending?: boolean;
   /** B.1 — Durée individuelle de la transition step → step+1, en secondes.
    *  Indéfini = fallback sur `state.secondsPerStep` (default 4s). Permet de
    *  moduler la durée narrative de chaque étape indépendamment (un dribble

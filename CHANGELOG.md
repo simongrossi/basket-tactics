@@ -6,6 +6,84 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-05-18 (A11 V2 — extensions)
+
+Trois extensions naturelles à A11 V1 (livré ce matin). 2 commits, 5
+fichiers, 1404 → 1416 tests verts (+12). Estimation initiale ~3-4h →
+réel ~1h grâce à l'infra V1 solide.
+
+### A11 V2 ext1 — `shotOutcome: 'blocked'` (commit `dac7fb0`, +5 tests)
+
+3e outcome de tir = contre clean. Différence avec 'missed' : pas de
+tirage probabiliste, c'est le défenseur le plus proche du shooter qui
+récupère directement (= possession défensive clean).
+
+- Type `Step.shotOutcome` étendu à `'made' | 'missed' | 'blocked'`.
+- Helper `blockedReboundResult` déterministe (closestDef au shotPos,
+  limite 110 px ~3 m sinon team-out).
+- `buildShotReboundSetup` dispatch : blocked → blockedReboundResult,
+  missed → computeRebound probabiliste.
+- `reboundStepLabel` : "Tir contré par D5" au lieu de "Rebond défensif D5".
+- UI : 3e bouton 🛑 contré (violet) dans StepsPanel. Le bouton "étape
+  rebond auto" devient "étape post-contre auto" sur blocked.
+- `boxOutCheckRule` détecte aussi `shotOutcome === 'blocked'`.
+
+### A11 V2 ext2 — Reset shot clock 14s sur rebond offensif (+3 tests)
+
+Règle FIBA/NBA : après un rebond offensif, le shot clock se reset à 14s
+(vs 24s après possession adverse). `addShotReboundStep` pose
+`Step.shotClockRemaining = 14` automatiquement quand
+`reboundType === 'offensive'`. Champ exploité par `lateShotClockLayer`
+(F.5) si activé → no-help défensif sous 5s du shot clock.
+
+### A11 V2 ext3 — Outlet pass marker + diag (+4 tests)
+
+Sur rebond défensif, possession bascule : la défense doit jouer une
+passe outlet pour enclencher la transition adverse.
+
+- Type `Step.outletPassPending?: boolean` posé automatiquement sur les
+  steps de rebond défensif générés par `addShotReboundStep`.
+- Nouvelle règle coach `outletPassRule` (`coachDiagnostics/rules/`)
+  émet un diag 'info' tag `outlet-pass-pending` quand le marqueur est
+  présent : "Rebond défensif Dx : possession bascule. Ajouter une
+  passe outlet vers un guard pour enclencher la transition."
+- Registry étendu dans `coachDiagnostics/index.ts`.
+
+### Architecture A11 finale (V1 + V2)
+
+```
+Coach pose shotOutcome ∈ {made, missed, blocked}
+       ↓
+'made' = transition manuelle ; 'missed' / 'blocked' :
+       ↓
+Clic "étape rebond/contre auto"
+       ↓
+addShotReboundStep(seed?) → buildShotReboundSetup
+       ├─ box-out défenseurs (BOXOUT_OFFSET_PX = 18)
+       ├─ rebondeur :
+       │   ├─ 'missed' → computeRebound() probabiliste (V1)
+       │   └─ 'blocked' → blockedReboundResult() déterministe (V2)
+       └─ rebondeur pull cercle (offensif 25 px / défensif 20 px)
+       ↓
+Step inséré avec :
+   - off, ballCarrier
+   - defenseOverrides (box-out figés)
+   - rebounder, reboundType (informatifs)
+   - shotClockRemaining = 14 si offensif (V2 ext2)
+   - outletPassPending = true si défensif (V2 ext3)
+   - label adapté ("Rebond offensif/défensif Dx" ou "Tir contré par Dx")
+       ↓
+Diagnostics coach :
+   - boxOutCheckRule (V1) : OK / raté selon positions
+   - outletPassRule (V2) : info "ajouter outlet pass" si applicable
+```
+
+### V3 reportée
+
+Couche `boxOutLayer` dynamique vs setter statique, unification mode
+édition ↔ game loop, outlet pass setter auto qui génère un step inbound
+après. Plan complet dans [docs/a11-plan.md](docs/a11-plan.md).
+
 ## [0.13.0] — 2026-05-18 (A11 — demi-jeu rebond)
 
 Session dédiée à A11 (Box-out / rebond après tir, V1). **Le seul vrai

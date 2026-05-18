@@ -238,3 +238,77 @@ describe('A11 V2 — shotOutcome blocked', () => {
     expect(hasShotOutcome({ ...dummyStep, shotOutcome: 'blocked' })).toBe(true);
   });
 });
+
+describe('A11 V2 ext2 — reset shot clock 14s sur rebond offensif', () => {
+  it("rebond offensif pose Step.shotClockRemaining = 14", () => {
+    const state = makeShotState();
+    // Cherche un seed produisant rebond offensif.
+    for (let s = 1; s <= 50; s++) {
+      const next = addShotReboundStep(state, { seed: s });
+      const newStep = next.steps[2];
+      if (newStep.reboundType === 'offensive') {
+        expect(newStep.shotClockRemaining).toBe(14);
+        return;
+      }
+    }
+  });
+
+  it("rebond défensif NE pose PAS shotClockRemaining (transition adverse)", () => {
+    const state = makeShotState();
+    for (let s = 1; s <= 50; s++) {
+      const next = addShotReboundStep(state, { seed: s });
+      const newStep = next.steps[2];
+      if (newStep.reboundType === 'defensive') {
+        expect(newStep.shotClockRemaining).toBeUndefined();
+        return;
+      }
+    }
+  });
+
+  it("blocked (defensif déterministe) NE pose PAS shotClockRemaining", () => {
+    const state = makeShotState();
+    state.steps[1] = { ...state.steps[1], shotOutcome: 'blocked' };
+    const next = addShotReboundStep(state, { seed: 1 });
+    expect(next.steps[2].shotClockRemaining).toBeUndefined();
+  });
+});
+
+describe('A11 V2 ext3 — outlet pass marker + diag', () => {
+  it("rebond défensif pose Step.outletPassPending = true", async () => {
+    const state = makeShotState();
+    state.steps[1] = { ...state.steps[1], shotOutcome: 'blocked' };
+    const next = addShotReboundStep(state, { seed: 1 });
+    // 'blocked' donne toujours rebond défensif.
+    expect(next.steps[2].outletPassPending).toBe(true);
+  });
+
+  it("rebond offensif NE pose PAS outletPassPending", () => {
+    const state = makeShotState();
+    for (let s = 1; s <= 50; s++) {
+      const next = addShotReboundStep(state, { seed: s });
+      const newStep = next.steps[2];
+      if (newStep.reboundType === 'offensive') {
+        expect(newStep.outletPassPending).toBeUndefined();
+        return;
+      }
+    }
+  });
+
+  it("outletPassRule émet un diag info quand outletPassPending = true", async () => {
+    const state = makeShotState();
+    state.steps[1] = { ...state.steps[1], shotOutcome: 'blocked' };
+    const next = addShotReboundStep(state, { seed: 1 });
+    const { computeCoachDiagnostics } = await import('@/lib/logic/coachDiagnostics');
+    const diags = computeCoachDiagnostics(next, 2);
+    const outlet = diags.find((d) => d.tag === 'outlet-pass-pending');
+    expect(outlet).toBeDefined();
+    expect(outlet?.severity).toBe('info');
+  });
+
+  it("outletPassRule N'émet PAS de diag sur step sans outletPassPending", async () => {
+    const state = makeShotState();
+    const { computeCoachDiagnostics } = await import('@/lib/logic/coachDiagnostics');
+    const diags = computeCoachDiagnostics(state, 1); // step source, pas le rebond
+    expect(diags.find((d) => d.tag === 'outlet-pass-pending')).toBeUndefined();
+  });
+});

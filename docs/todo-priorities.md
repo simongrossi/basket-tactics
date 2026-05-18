@@ -27,9 +27,10 @@
 
 | Item | Statut | Description | Effort | Priorité |
 |---|---|---|---|---|
-| ~~**A11**~~ | 🟢 V1 livré 2026-05-18 (`b797c1d` + `76bb002` + `3c05e02`) | Mode édition statique : Step.shotOutcome + addShotReboundStep + boxOutCheckRule robuste. 25 tests. Coût réel ~3h (vs 5-8j estimé). | — | — |
-| **E.1 V2 stage 2b** — refacto 2-way | ⚪ | Refacto AppState avec `currentlyAttackingTeam` natif, matchups inversés en mémoire, engine défensif côté home pendant phase away, diagnostic coach spécifique. | 2-4 j | 🏀 **P3** (futur) |
-| **A11 V2** | ⚪ reporté | 'blocked', reset shot clock 14s, outlet pass auto, couche dynamique, unification édition↔match. Plan dans [a11-plan.md](a11-plan.md). | — | — |
+| ~~**A11 V1**~~ | 🟢 livré 2026-05-18 | Mode édition statique : Step.shotOutcome + addShotReboundStep + boxOutCheckRule robuste. 25 tests. | — | — |
+| ~~**A11 V2**~~ | 🟢 livré 2026-05-18 (`dac7fb0` + ext2+ext3) | 'blocked' déterministe + reset shot clock 14s + outletPassPending + outletPassRule diag. 12 tests. | — | — |
+| **E.1 V2 stage 2b** — refacto 2-way | ⚪ | Refacto AppState avec `currentlyAttackingTeam` natif, matchups inversés en mémoire, engine défensif côté home pendant phase away. | 2-4 j | 🏀 **P3** (futur) |
+| **A11 V3** | ⚪ reporté | Couche `boxOutLayer` dynamique vs setter statique, unification mode édition ↔ game loop, outlet pass setter auto (génère step inbound après). Plan dans [a11-plan.md](a11-plan.md). | — | — |
 
 ### Phase F — Situations FIBA / haute compétition ✅ 5/5 livrés (F.2 reporté)
 
