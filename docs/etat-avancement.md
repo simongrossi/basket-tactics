@@ -2,7 +2,7 @@
 
 > Vue consolidée de **ce qui est fait**, **ce qui est en cours**, et **ce qui reste à faire**, pour ne rien oublier entre deux sessions de travail.
 >
-> Mise à jour : **2026-05-18** (post-session B.1 / B.2 / C.2 V2 / F.4 / F.5).
+> Mise à jour : **2026-05-18 (soir)** — post-session B.3 / B.4 / D.1 / D.3 / D.5 / F.1 V1+V2 / G.1 / G.2 / G.3 / G.4 / J.7.
 >
 > Pour le détail commit-par-commit, voir [`CHANGELOG.md`](../CHANGELOG.md).
 > Pour la roadmap basket exhaustive, voir [`../ROADMAP.md`](../ROADMAP.md).
@@ -10,7 +10,76 @@
 
 ---
 
-## 🆕 Travail récent (2026-05-17/18) — Temps réel + défense fin de possession
+## 🆕 Travail récent (2026-05-18 soir) — Phases B, F, G complétées + D 4/5
+
+Session du soir. **16 commits** sur `main`, 1279 → **1353 tests verts** (+74).
+Phases **B (4/4)**, **C (7/7)**, **F (5/5)**, **G (4/4)** désormais
+complètes. Phase D 4/5 (D.4 reportée par choix après audit risque).
+
+### B.3 V1 — End-of-quarter contest awareness (`c51160e`)
+
+Cas miroir de F.4 quand l'équipe est en bonus. Détection cumulée
+`clockSeconds < 5` + `defenseTeamFouls ≥ 5` → diag coach 'warning' +
+badge SVG `🚫 NO FOUL` sur le défenseur du porteur. **Mutuellement
+exclusif avec F.4** sur l'axe `defenseTeamFouls` (invariant testé).
+7 tests.
+
+### B.4 V1 + UI — Synchro cross-actor (`5ad5508` + `634071e`)
+
+Nouveaux champs `Annotation.tStartAbs?` / `tEndAbs?` (secondes ABSOLUES)
+priment sur `tStart/tEnd` legacy. Helper `resolveAnnotationTiming`
+centralise la priorité. Migration des 3 consommateurs (playbackTrajectory,
+pdfRecap, playerTracks). UI : tooltip enrichi en secondes + shift+click
+ouvre 2 prompts pour saisir les bornes en secondes. Le drag des poignées
+reste en fraction. 14 tests cumulés.
+
+### Phase D — D.1 + D.3 + D.5 + désync D.2 + audit D.4
+
+- **D.1** easing cross-step (`9f15c9e`) : `state.movementEasing` linear /
+  ease-in-out / ease-out. Invariants `e(0)=0` / `e(1)=1` → snapshots
+  step exacts inchangés.
+- **D.2** déjà livré depuis 2026-05-15 (motionMemory + applyDefenderMotionInertia
+  dans frameResolver) — ROADMAP désynchronisé, alignement effectué.
+- **D.3** trajectoires de passes (`6ea917d`) : `Annotation.passKind`
+  `direct / lob / bounce / skip` étend `computeBallFrame`.
+- **D.4** plan d'audit risque écrit ([docs/d4-pathfinding-plan.md](d4-pathfinding-plan.md))
+  mais V1 **non lancée** (ratio risque/valeur défavorable).
+- **D.5** test d'invariant clearance cross-frame (`ef2cfba`) : 40 frames
+  × N transitions × 4 scénarios, clearance ≥ `PLAYER_MIN_CLEARANCE_PX`
+  préservée.
+
+### F.1 V1 + V2 — Junk defenses complètes (`49be60b` + `fa6e1e2`)
+
+`DefenseSystem` étendu à `'junk'` avec 3 formations :
+- **Box-and-1** : 4 corners + 1 chaser.
+- **Triangle-and-2** : 1 pointe haute + 2 blocks + 2 chasers.
+- **Diamond-and-1** : losange 1-2-1 NCAA + 1 chaser.
+
+Couche `defense/junkLayer.ts` court-circuit comme la zone. `helpFactor=0`
+partout, chasers en `deny-3q` + `gazeLock: 'opponent'`. UI complète :
+SystemSelector + sub-config dynamique (1 ou 2 pickers selon type avec
+verrouillage croisé). 21 tests cumulés.
+
+### Phase G — Calibration vitesse complète (4/4)
+
+- **G.1** doc calibration vitesse ([docs/physics-calibration.md](physics-calibration.md))
+  — scope tactique vs sprint réel (~22 % NBA).
+- **G.2** sprint boost contextuel (`c4ae2da`) — `Step.sprintBoost ×1.8`.
+- **G.3** modèle d'accélération (`84467e1`) — clamp linéaire depuis le
+  repos via `state.accelerationModelEnabled` + `state.defenderAcceleration`.
+- **G.4** profil athlétique (`86b13d7`) — `state.defenderSpeedProfiles`
+  ×1.3 / ×1.0 / ×0.7 par défenseur.
+
+### J.7 V1 — Panneau debug joueur (`b5aced8`)
+
+`state.showPlayerDebug?: boolean` active `collectDecisions` dans
+`useCourtFrame` + nouveau composant `<PlayerDebugTable>` (overlay
+haut-droite, tableau 5 défenseurs × 5 colonnes). Toggle dans
+ParametresPanel.
+
+---
+
+## 🆕 Travail récent (2026-05-17/18 matin) — Temps réel + défense fin de possession
 
 Triple session axée sur la **modélisation fine du temps** et son
 exploitation par la défense. **1279/1279 tests verts**, 7 commits sur `main`.

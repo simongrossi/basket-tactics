@@ -4,7 +4,32 @@ Notes de développement au fil de l'eau. Les items en haut sont les plus récent
 
 ---
 
-## Session 2026-05-17/18 — Temps réel + défense fin de possession (FAIT)
+## Session 2026-05-18 soir — Phases B/C/F/G complètes + D 4/5 (FAIT)
+
+16 commits sur `main`, 1279 → **1353 tests verts** (+74). Détail dans
+CHANGELOG [0.12.0]. Faits marquants :
+
+- **B.3** end-of-quarter contest (badge `🚫 NO FOUL`, miroir de F.4).
+- **B.4** synchro cross-actor : `Annotation.tStartAbs/tEndAbs` en
+  secondes + UI shift+click dans MultiTrackTimeline.
+- **D.1** easing cross-step, **D.3** trajectoires passes lob/bounce/skip,
+  **D.5** invariant collision validé. D.2 marqué livré (désync ROADMAP).
+- **D.4** plan d'audit risque écrit ([docs/d4-pathfinding-plan.md](docs/d4-pathfinding-plan.md))
+  mais V1 **non lancée** par choix.
+- **F.1 V1 + V2** junk defenses (Box-and-1, Triangle-and-2, Diamond-and-1)
+  avec 3 formations + 1 ou 2 chasseurs + UI complète.
+- **G.1** doc calibration vitesse ([docs/physics-calibration.md](docs/physics-calibration.md)),
+  **G.2** sprint boost contextuel, **G.3** modèle d'accélération, **G.4**
+  profil athlétique défenseurs. Phase G complète 4/4.
+- **J.7** panneau debug joueur (overlay tableau 5 défenseurs).
+
+Le moteur tactique est désormais dans un état très complet : seul
+chantier basket restant = A11 (box-out / rebond demi-jeu, 5-8j).
+F.2 press et Phase J fines reportées par choix.
+
+---
+
+## Session 2026-05-17/18 (matin) — Temps réel + défense fin de possession (FAIT)
 
 - **B.1** : champ `Step.duration?` + accumulation cumulative dans
   timecode. Timeline / MultiTrack / Playbook recap migrés. 17 tests.

@@ -6,6 +6,112 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-05-18 (soir)
+
+Suite de la session avec une **Salve 1 quick wins**, puis 6 quick wins
+prioritaires, puis 3 chantiers basket de fond. **16 commits** sur `main`,
+1279 → **1353 tests verts** (+74). Phase B/C/F/G **complètes**, Phase D 4/5.
+
+### Phase B — Notion du temps 🟢 complète (4/4)
+
+- **B.3 V1** — End-of-quarter contest awareness (commit `c51160e`, +7 tests).
+  Helper `defense/detectEndOfClockContest.ts` + règle coach 'warning'
+  tag `end-of-clock-contest`. Badge SVG ambre `🚫 NO FOUL` posé sur
+  le défenseur du porteur. Conditions cumulées : `clockSeconds < 5`
+  + `defenseTeamFouls ≥ 5`. **Mutuellement exclusif avec F.4** sur
+  l'axe `defenseTeamFouls` (invariant testé).
+- **B.4 V1** — Synchro cross-actor (commit `5ad5508`, +10 tests).
+  Nouveaux champs `Annotation.tStartAbs?` / `tEndAbs?` (secondes ABSOLUES
+  depuis début transition) priment sur `tStart/tEnd` legacy. Helper
+  `resolveAnnotationTiming(ann, stepDurSec)` centralise la priorité.
+  Migration : `playbackTrajectory.attackerTrajectoryAt` accepte un
+  `getStepDurationSec`, `pdfRecap`, `playerTracks`.
+- **B.4 UI** — Édition par shift+click (commit `634071e`, +4 tests).
+  Tooltip MultiTrackTimeline enrichi avec bornes en secondes. Shift+click
+  sur un segment → 2 prompts pour saisir `tStartAbs` / `tEndAbs`. Le
+  drag des poignées reste en fraction (legacy). Transform
+  `setAnnotationTimingAbs` exposée via `app.setAnnotationTimingAbs`.
+
+### Phase D — Trajectoires raffinées 🟡 4/5 (D.4 reportée par choix)
+
+- **D.1 V1** — Easing cross-step (commit `9f15c9e`, +8 tests).
+  `state.movementEasing?: 'linear' | 'ease-in-out' | 'ease-out'` appliqué
+  sur `localT` du frameResolver. Default `'linear'` = identité (zéro
+  régression). Invariants `e(0)=0` et `e(1)=1` garantissent que les
+  snapshots aux step exacts restent IDENTIQUES.
+- **D.2 V1 + V2** — Inertie / momentum (commit `db7ea06` docs-only).
+  Déjà livré 2026-05-15 dans `frameResolver.applyDefenderMotionInertia`
+  (`motionMemory` + `defenderPlaybackMobility`). Le ROADMAP était
+  désynchronisé, alignement effectué.
+- **D.3 V1** — Trajectoires de passes (commit `6ea917d`, +7 tests).
+  `Annotation.passKind?: 'direct' | 'lob' | 'bounce' | 'skip'` étend
+  `computeBallFrame` : lob ×0.65 lift (plafond 130 px), skip ×0.12
+  (plafond 40 px), bounce 2 paraboles (touche sol à mi-trajet).
+- **D.4** — Pathfinding défensif. Plan d'audit risque écrit
+  ([docs/d4-pathfinding-plan.md](docs/d4-pathfinding-plan.md), commit
+  `db13dfa`) mais V1 **non lancée** : ratio risque (Règle 1bis, 13
+  tests screen sensibles) / valeur (purement visuel) défavorable.
+- **D.5** — Anti-collision pendant interpolation (commit `ef2cfba`,
+  +4 tests). Invariant confirmé via test bout-en-bout : 40 frames ×
+  N transitions × 4 scénarios, clearance ≥ `PLAYER_MIN_CLEARANCE_PX`
+  préservée. ROADMAP désynchronisé, alignement.
+
+### Phase F — Situations spécialisées 🟢 complète (5/5)
+
+- **F.1 V1** — Box-and-1 (commit `49be60b`, +8 tests).
+  `DefenseSystem` étendu à `'junk'`. Couche
+  `defense/junkLayer.ts::computeJunkDefenseTargets` court-circuit comme
+  la zone : 4 défenseurs sur slots fixes (±80, ±60 px du panier),
+  chaser collé à son homme via `deny-3q` + `gazeLock: 'opponent'`,
+  `helpFactor=0` partout. UI complète dans SystemSelector + DefensePanel.
+- **F.1 V2** — Triangle-and-2 + Diamond-and-1 (commit `fa6e1e2`, +13 tests).
+  3 formations zone (box / triangle / diamond), 1 ou 2 chasseurs selon
+  le type. UI dynamique avec verrouillage croisé sur les pickers.
+- **F.3** — FT rebound positioning (commit `bc44ec0` docs-only).
+  V1 entièrement livrée 2026-05-13 (`buildFreeThrowSetup` + 11 tests).
+
+### Phase G — Calibration vitesse 🟢 complète (4/4)
+
+- **G.1** — Doc calibration vitesse (commit `a360b6b`). Nouveau
+  [docs/physics-calibration.md](docs/physics-calibration.md) : scope
+  tactique vs sprint réel (~22 % du sprint NBA), recette pour passer
+  en sprint réel, cas où le mode tactique gêne.
+- **G.2 V1** — Sprint boost contextuel (commit `c4ae2da`, +4 tests).
+  `Step.sprintBoost?: boolean` ×1.8 sur la vitesse max effective défense.
+  UI : toggle dans StepsPanel.
+- **G.3 V1** — Modèle d'accélération (commit `84467e1`, +4 tests).
+  `state.accelerationModelEnabled` + `state.defenderAcceleration`. Modèle
+  linéaire `effectiveMaxSpeed = min(maxSpeed, accel × stepIdx)`. UI :
+  toggle + slider 20-200 px/step². Limitation V1 documentée.
+- **G.4 V1** — Profil athlétique défenseurs (commit `86b13d7`, +5 tests).
+  `state.defenderSpeedProfiles?: Partial<Record<DefenderId, 'elite' |
+  'standard' | 'lent'>>` ×1.3 / ×1.0 / ×0.7. Cumulable avec G.2 et
+  closeoutBoost.
+
+### J.7 — Panneau debug joueur V1 (commit `b5aced8`)
+
+Nouveau `state.showPlayerDebug?: boolean` qui active `collectDecisions`
+dans `useCourtFrame`. Composant `<PlayerDebugTable>` en overlay
+haut-droite : tableau compact 5 défenseurs × 5 colonnes (id, matched,
+screen state, route, helpKind/factor). Toggle "debug joueur" dans
+ParametresPanel, indépendant du toggle "debug écran" existant.
+
+### Refacto interne
+
+- **`stepTransforms.patchStep`** ajouté (commit `fac20b2` matin) :
+  transform générique pour écrire n'importe quel champ optionnel sur
+  un step. Consommé par les inputs B.1 / F.4 / F.5 / G.2.
+- **`annotationTransforms.setAnnotationTimingAbs`** ajouté (B.4 UI) :
+  écrit ou efface `tStartAbs/tEndAbs` sans toucher au legacy tStart/tEnd.
+
+### Notes de session
+
+D.2 et F.3 étaient en réalité livrés depuis 2026-05-15 et 2026-05-13
+respectivement (désynchronisations ROADMAP, alignement effectué).
+D.4 V1 a fait l'objet d'un plan d'audit risque détaillé mais l'utilisateur
+a choisi de **ne pas le lancer** vu le ratio risque (Règle 1bis
+CLAUDE.md, 13 tests screen sensibles) / valeur (purement visuel).
+
 ## [0.11.0] — 2026-05-18
 
 Session triple : **temps réel** (B.1 + B.2), **défense de fin de
