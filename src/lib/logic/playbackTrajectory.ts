@@ -4,6 +4,21 @@ import { resolveAnnotationTiming } from './annotationTiming';
 
 const SCREEN_SET_FRACTION = 0.35;
 
+/**
+ * Tolérance pour détecter une annotation de mouvement « périmée » placée sur
+ * le step de DESTINATION du déplacement. Certains générateurs
+ * (genZoomAction, genRipDho, etc.) appellent
+ * `annot(type, fromId, prev.off, off1)` puis attachent l'annotation au step
+ * dont `off = off1`. L'annotation décrit donc un déplacement déjà effectué :
+ * `ann.from = step précédent`, `ann.to = step actuel`, et le joueur EST déjà
+ * à `ann.to` au début du segment courant. Sans filtre, la couche playback
+ * re-joue ce déplacement et fait reculer le joueur vers `ann.from` (effet
+ * rubber-band masqué par le rate-limiter en deçà de 18 px/frame, visible
+ * au-delà). On détecte ce cas par `|cur.off - ann.to| ≤ tolérance` et on
+ * ignore l'annotation.
+ */
+const ANNOTATION_STALE_TO_TOLERANCE_PX = 2;
+
 function annotationPolyline(ann: Annotation): Point[] {
   return ann.waypoints && ann.waypoints.length > 0
     ? [ann.from, ...ann.waypoints, ann.to]
@@ -88,6 +103,7 @@ export function attackerTrajectoryAt(
   const globalT = stepIdx + Math.max(0, Math.min(1, localT));
   type Candidate = { ann: Annotation; absStart: number; absEnd: number };
   const candidates: Candidate[] = [];
+  const segmentStart = cur.off[playerId];
   for (const checkIdx of [stepIdx, stepIdx + 1]) {
     if (checkIdx < 0 || checkIdx >= steps.length) continue;
     for (const a of findMovementAnnotations(steps[checkIdx], playerId)) {
@@ -99,6 +115,20 @@ export function attackerTrajectoryAt(
       const absEnd = checkIdx + tEraw;
       // Ne garder que si la fenêtre chevauche la transition courante [stepIdx, stepIdx+1]
       if (absEnd <= stepIdx || absStart >= stepIdx + 1) continue;
+      // Filtre cohérence : annotation périmée placée sur le step de
+      // destination du déplacement (convention de plusieurs générateurs).
+      // Si le joueur est déjà à `ann.to` ET que `ann.from` est ailleurs,
+      // l'annotation décrit un mouvement déjà effectué — la re-jouer
+      // produirait un rubber-band. Voir `ANNOTATION_STALE_TO_TOLERANCE_PX`.
+      if (segmentStart) {
+        const dToX = a.to.x - segmentStart.x;
+        const dToY = a.to.y - segmentStart.y;
+        const dFromX = a.from.x - segmentStart.x;
+        const dFromY = a.from.y - segmentStart.y;
+        const atTo = Math.hypot(dToX, dToY) <= ANNOTATION_STALE_TO_TOLERANCE_PX;
+        const fromMatch = Math.hypot(dFromX, dFromY) <= ANNOTATION_STALE_TO_TOLERANCE_PX;
+        if (atTo && !fromMatch) continue;
+      }
       candidates.push({ ann: a, absStart, absEnd });
     }
   }

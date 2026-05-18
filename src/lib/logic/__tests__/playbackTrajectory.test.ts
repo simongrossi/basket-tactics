@@ -100,6 +100,26 @@ describe('attackerTrajectoryAt', () => {
     expect(r.movementType).toBe('idle');
   });
 
+  it('annotation périmée (joueur déjà à ann.to) : ignorée, pas de rubber-band', () => {
+    // Reproduit le bug que les générateurs (zoom-action, rip-dho, drag-screen)
+    // déclenchaient en plaçant l'annotation d'écran sur le step de DESTINATION
+    // au lieu du step source. Sans le filtre, O5 reculerait de (100,0) vers
+    // (0,0) pendant le segment 0→1 avant de revenir.
+    const screen = {
+      type: 'screen' as const,
+      fromId: 'O5' as AttackerId,
+      from: { x: 0, y: 0 },
+      to: { x: 100, y: 0 },
+    };
+    const steps = [
+      step({ O5: { x: 100, y: 0 } } as Partial<AttackerPositions>, [screen] as any),
+      step({ O5: { x: 100, y: 0 } } as Partial<AttackerPositions>),
+    ];
+    const r = attackerTrajectoryAt(steps, 0, 'O5', 0.1);
+    expect(r.position).toEqual({ x: 100, y: 0 });
+    expect(r.movementType).toBe('idle');
+  });
+
   describe('édition continue (tStart/tEnd)', () => {
     it('cut avec tStart=0.5 : avant t=0.5 joueur reste à anno.from', () => {
       const ann = {
@@ -140,7 +160,12 @@ describe('attackerTrajectoryAt', () => {
         from: { x: 0, y: 0 }, to: { x: 100, y: 0 },
         tStart: 0.2, tEnd: 0.6,
       };
-      const steps = [step({}, [ann] as any), step({ O2: { x: 100, y: 0 } } as Partial<AttackerPositions>)];
+      // Contrat : `step[0].off[O2]` doit correspondre à `ann.from` pour que
+      // l'annotation soit jouée — sinon elle est filtrée comme périmée.
+      const steps = [
+        step({ O2: { x: 0, y: 0 } } as Partial<AttackerPositions>, [ann] as any),
+        step({ O2: { x: 100, y: 0 } } as Partial<AttackerPositions>),
+      ];
       expect(attackerTrajectoryAt(steps, 0, 'O2', 0.1).position).toEqual({ x: 0, y: 0 });
       // t=0.4 = milieu de [0.2, 0.6] = actionT=0.5 = 50%
       expect(attackerTrajectoryAt(steps, 0, 'O2', 0.4).position.x).toBeCloseTo(50, 5);
@@ -190,7 +215,10 @@ describe('attackerTrajectoryAt', () => {
         type: 'cut' as const, fromId: 'O2' as AttackerId,
         from: { x: 0, y: 0 }, to: { x: 100, y: 0 },
       };
-      const steps = [step({}, [ann] as any), step({ O2: { x: 100, y: 0 } } as Partial<AttackerPositions>)];
+      const steps = [
+        step({ O2: { x: 0, y: 0 } } as Partial<AttackerPositions>, [ann] as any),
+        step({ O2: { x: 100, y: 0 } } as Partial<AttackerPositions>),
+      ];
       expect(attackerTrajectoryAt(steps, 0, 'O2', 0.5).position.x).toBeCloseTo(50, 5);
     });
   });

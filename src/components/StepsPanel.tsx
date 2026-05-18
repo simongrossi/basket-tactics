@@ -61,6 +61,58 @@ const ANNOTATION_LABELS: Record<'pass' | 'dribble' | 'cut' | 'screen', { label: 
   screen: { label: 'écran', symbol: '⊥' },
 };
 
+function hasEntries(value: object | undefined): boolean {
+  return !!value && Object.keys(value).length > 0;
+}
+
+function isBlankStepEntry(step: AppState['steps'][number]): boolean {
+  return (
+    step.annotations.length === 0 &&
+    !step.label &&
+    !step.context &&
+    !hasEntries(step.defenseOverrides) &&
+    !step.forcedScreener &&
+    !step.manualOverride &&
+    !step.generatedBy &&
+    !step.shotOutcome &&
+    !step.shotPos &&
+    !step.rebounder &&
+    !step.reboundType &&
+    !step.outletPassPending &&
+    !step.viewSide &&
+    step.duration == null &&
+    step.clockSeconds == null &&
+    step.shotClockRemaining == null &&
+    !step.sprintBoost
+  );
+}
+
+export function getVisibleStepRows(state: AppState): { step: AppState['steps'][number]; index: number; number: number }[] {
+  const realSteps = state.steps
+    .map((step, index) => ({ step, index }))
+    .filter(({ step }) => !step.isInterpolated);
+
+  const rows: { step: AppState['steps'][number]; index: number; number: number }[] = [];
+  realSteps.forEach(({ step, index }, realIdx) => {
+    const blank = isBlankStepEntry(step);
+    if (realSteps.length === 1 && blank) return;
+
+    const previous = realSteps[realIdx - 1]?.step;
+    const isInitialSetup = realIdx === 0 && blank;
+    const isTrailingActionResult =
+      realIdx === realSteps.length - 1 && blank && !!previous && previous.annotations.length > 0;
+
+    if (isInitialSetup || isTrailingActionResult) return;
+    rows.push({ step, index, number: rows.length + 1 });
+  });
+
+  return rows;
+}
+
+export function isPristineInitialStepList(state: AppState): boolean {
+  return getVisibleStepRows(state).length === 0;
+}
+
 /**
  * Refonte UI Livraison 1 — panneau droite workspace :
  * liste des étapes du playbook + actions CRUD + 🏀 LF.
@@ -71,13 +123,29 @@ export function StepsPanel(props: StepsPanelProps) {
   const { state } = props;
   const c = COLORS.offense;
   const attackerIds = getActiveAttackerIds(state.playerCount);
+  const visibleStepRows = getVisibleStepRows(state);
+  const showEmptyStepList = visibleStepRows.length === 0;
 
   return (
     <Panel theme="offense" title="📖 Étapes">
       <Section theme="offense" label="Liste" open>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 320, overflow: 'auto' }}>
-          {state.steps.map((s, i) => {
-            if (s.isInterpolated) return null;
+          {showEmptyStepList ? (
+            <div
+              style={{
+                padding: '12px 8px',
+                borderRadius: 5,
+                border: `1px dashed ${c.border}`,
+                background: '#fff',
+                color: '#94a3b8',
+                fontSize: 11,
+                textAlign: 'center',
+                fontStyle: 'italic',
+              }}
+            >
+              Aucune étape
+            </div>
+          ) : visibleStepRows.map(({ step: s, index: i, number }) => {
             const isActive = i === state.activeStep;
             const carrier = activeBallCarrier(s, state.playerCount);
             const visibleAnnotations = s.annotations
@@ -103,7 +171,7 @@ export function StepsPanel(props: StepsPanelProps) {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ fontWeight: 600, color: c.accentText }}>#{i + 1}</span>
+                  <span style={{ fontWeight: 600, color: c.accentText }}>#{number}</span>
                   {isActive ? (
                     <input
                       type="text"

@@ -136,10 +136,11 @@ export interface Step {
    *  Posé par compileScenario quand un `pre-switch` swappe deux défenseurs ;
    *  propagé sur tous les steps suivants du parent. */
   assignmentOverrides?: Partial<Record<DefenderId, AttackerId>>;
-  /** Step inséré par breakUpTeleports() pour lisser un mouvement trop grand
-   *  entre deux steps "réels". L'UI peut les masquer ou les afficher en grisé,
-   *  ne pas les considérer pour le matching manualOverride, etc. Les positions
-   *  sont interpolées linéairement. */
+  /** Step inséré par les stabilisateurs de trajectoire (breakUpTeleports,
+   *  smoothMovementFlickers) pour lisser un mouvement trop grand ou une
+   *  inversion immédiate entre deux steps "réels". L'UI peut les masquer ou
+   *  les afficher en grisé, ne pas les considérer pour le matching
+   *  manualOverride, etc. */
   isInterpolated?: boolean;
   /** F.4 — Secondes restantes au CHRONO DE QUART à ce step (pas le shot
    *  clock). Utilisé par `detectFoulToGiveOpportunity` : la fin de quart
@@ -871,7 +872,8 @@ export interface AppState {
    *  dans le pipeline. Default false. */
   showPlayerDebug?: boolean;
   /** K.6 — Active la couche de détection d'anomalies (K.1 téléportation,
-   *  K.2 vitesse aberrante, K.3 défenseur décroché). Quand true, la règle
+   *  K.2 vitesse aberrante, K.3 défenseur décroché, K.4 flicker/aller-retour).
+   *  Quand true, la règle
    *  coach `playerAnomalyRule` émet un diag par anomalie détectée sur le
    *  step courant. Default false (opt-in). */
   anomalyDetectionEnabled?: boolean;

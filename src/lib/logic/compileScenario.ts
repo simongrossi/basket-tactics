@@ -9,6 +9,7 @@ import { SCRIPTED_GENERATORS } from './scriptedGenerators';
 import { applyDefensivePass, type ParentRangeMap } from './defensiveCompilation';
 import { ensureAnnotationsForMovement } from './migrateAnnotations';
 import { breakUpTeleports } from './breakUpTeleports';
+import { smoothMovementFlickers } from './smoothMovementFlickers';
 
 export interface CompileInput {
   initialOff: AttackerPositions;
@@ -116,7 +117,8 @@ export function compileScenario(input: CompileInput): Step[] {
   // mouvements générés par les actions FIBA qui placent les joueurs en un coup
   // (back-screen, cut profond, plonge).
   const smoothed = breakUpTeleports(result);
-  return ensureAnnotationsForMovement(smoothed, input.playerCount ?? 5);
+  const stabilized = smoothMovementFlickers(smoothed);
+  return ensureAnnotationsForMovement(stabilized, input.playerCount ?? 5);
 }
 
 /** Convertit `crypto.randomUUID()` ou un fallback simple. */

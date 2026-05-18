@@ -551,8 +551,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pindown-
         "D2": {
           "matchedTo": "O2",
           "screenPhase": "stuck",
-          "x": 480.3,
-          "y": 351.9,
+          "x": 480.5,
+          "y": 352.3,
         },
         "D3": {
           "helpFactor": 0.14,
@@ -579,7 +579,7 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pindown-
         },
         "O2": {
           "x": 470,
-          "y": 470,
+          "y": 320,
         },
         "O3": {
           "x": 130,
@@ -599,8 +599,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pindown-
     {
       "ball": {
         "inFlight": true,
-        "x": 405.4,
-        "y": 352.8,
+        "x": 401,
+        "y": 308.8,
       },
       "def": {
         "D1": {
@@ -611,8 +611,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pindown-
         "D2": {
           "matchedTo": "O2",
           "screenPhase": "stuck",
-          "x": 477.5,
-          "y": 346,
+          "x": 480,
+          "y": 352.5,
         },
         "D3": {
           "helpFactor": 0.14,
@@ -638,8 +638,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pindown-
           "y": 380,
         },
         "O2": {
-          "x": 478.9,
-          "y": 408.3,
+          "x": 470,
+          "y": 320,
         },
         "O3": {
           "x": 130,
@@ -978,8 +978,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pnr-cent
     {
       "ball": {
         "inFlight": false,
-        "x": 316,
-        "y": 364,
+        "x": 396,
+        "y": 294,
       },
       "def": {
         "D1": {
@@ -1013,8 +1013,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pnr-cent
       },
       "off": {
         "O1": {
-          "x": 300,
-          "y": 380,
+          "x": 380,
+          "y": 310,
         },
         "O2": {
           "x": 130,
@@ -1038,8 +1038,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pnr-cent
     {
       "ball": {
         "inFlight": false,
-        "x": 356,
-        "y": 329,
+        "x": 396,
+        "y": 294,
       },
       "def": {
         "D1": {
@@ -1073,8 +1073,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pnr-cent
       },
       "off": {
         "O1": {
-          "x": 340,
-          "y": 345,
+          "x": 380,
+          "y": 310,
         },
         "O2": {
           "x": 130,

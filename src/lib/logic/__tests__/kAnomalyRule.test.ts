@@ -116,4 +116,26 @@ describe('K.6 — playerAnomalyRule (intégration coach)', () => {
     const teleport = diags.find((d) => d.tag === 'anomaly-teleport');
     expect(teleport?.severity).toBe('critical'); // 100 px > 60 px critical
   });
+
+  it('flag flicker quand un attaquant fait un aller-retour violent sur 3 steps', () => {
+    const base = makeStaticState();
+    const off0 = base.steps[0].off;
+    const off1 = { ...off0, O2: { x: 320, y: 500 } };
+    const off2 = { ...off0, O2: { x: 200, y: 500 } };
+    const state: AppState = {
+      ...base,
+      anomalyDetectionEnabled: true,
+      steps: [
+        { ...base.steps[0], off: off0 },
+        { ...base.steps[1], off: off1 },
+        { ...base.steps[2], off: off2 },
+      ],
+      activeStep: 2,
+    };
+
+    const diags = computeCoachDiagnostics(state, 2);
+    const flicker = diags.find((d) => d.tag === 'anomaly-flicker');
+    expect(flicker).toBeDefined();
+    expect(flicker?.attackers).toContain('O2');
+  });
 });

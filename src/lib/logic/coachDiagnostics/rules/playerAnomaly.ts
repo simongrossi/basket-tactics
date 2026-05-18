@@ -4,15 +4,14 @@
 // Active seulement si `state.anomalyDetectionEnabled === true` (opt-in
 // strict pour éviter de polluer le panneau coach des scénarios standard).
 //
-// K.4 (flicker) et K.5 (gaze) ne sont pas branchées ici : K.4 nécessite
-// 3 frames consécutives (incompatible avec l'API "step-by-step" du
-// pipeline coach), K.5 nécessite les visuels orientés (calculés au render,
-// pas dans coachDiagnostics).
+// K.5 (gaze) n'est pas branché ici : il nécessite les visuels orientés
+// calculés au render, pas dans coachDiagnostics.
 
 import {
   detectTeleport,
   detectAberrantSpeed,
   detectDetachedDefenders,
+  detectFlicker,
   flattenDefPos,
   type FrameSnapshot,
 } from '../../anomaly/anomalyDetector';
@@ -68,6 +67,32 @@ export const playerAnomalyRule: Rule = (ctx) => {
       };
       reports.push(...detectTeleport(prev, cur));
       reports.push(...detectAberrantSpeed(prev, cur, state.defenseMaxSpeed, state.rules));
+    }
+  }
+
+  // K.4 — flicker / aller-retour violent sur 3 steps consécutifs.
+  if (stepIdx >= 2) {
+    const prevPrevStep = state.steps[stepIdx - 2];
+    const prevStep = state.steps[stepIdx - 1];
+    if (prevPrevStep && prevStep) {
+      const prevPrevDef = effectiveDefensePositions(state, stepIdx - 2);
+      const prevDef = effectiveDefensePositions(state, stepIdx - 1);
+      const prevPrev: FrameSnapshot = {
+        off: activeOffense(prevPrevStep.off, state.playerCount),
+        defPos: flattenDefPos(prevPrevDef),
+        stepIdx: stepIdx - 2,
+      };
+      const prev: FrameSnapshot = {
+        off: activeOffense(prevStep.off, state.playerCount),
+        defPos: flattenDefPos(prevDef),
+        stepIdx: stepIdx - 1,
+      };
+      const cur: FrameSnapshot = {
+        off,
+        defPos: flattenDefPos(defPos),
+        stepIdx,
+      };
+      reports.push(...detectFlicker(prevPrev, prev, cur));
     }
   }
 
