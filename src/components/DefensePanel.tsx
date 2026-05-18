@@ -79,9 +79,17 @@ export function DefensePanel(props: DefensePanelProps) {
   const handleSystemChange = (choice: SystemChoice) => {
     if (choice.kind === 'man') {
       props.onSetDefenseSystem('man');
-    } else {
+    } else if (choice.kind === 'zone') {
       props.onSetDefenseSystem('zone');
       props.onUpdateZoneConfig({ type: choice.zoneType });
+    } else if (choice.kind === 'junk') {
+      props.onSetDefenseSystem('junk');
+      // F.1 — bascule en junk : si junkConfig pas défini, init avec O1 par défaut.
+      if (!state.junkConfig) {
+        props.onPatch({ junkConfig: { type: choice.junkType, chaser: 'O1' } });
+      } else if (state.junkConfig.type !== choice.junkType) {
+        props.onPatch({ junkConfig: { ...state.junkConfig, type: choice.junkType } });
+      }
     }
   };
 
@@ -183,8 +191,56 @@ export function DefensePanel(props: DefensePanelProps) {
         <SystemSelector
           defenseSystem={state.defenseSystem}
           zoneType={state.zoneConfig.type}
+          junkType={state.junkConfig?.type}
           onChange={handleSystemChange}
         />
+
+        {/* F.1 — Sub-config junk : sélecteur de chaser (attaquant ciblé). */}
+        {state.defenseSystem === 'junk' && (
+          <div
+            style={{
+              marginTop: 10,
+              padding: '8px 10px',
+              borderRadius: 6,
+              background: 'rgba(216, 90, 48, 0.10)',
+              border: '1px solid rgba(253, 186, 116, 0.28)',
+            }}
+          >
+            <div style={{ fontSize: 11, color: '#fdba74', fontWeight: 600, marginBottom: 6 }}>
+              Box-and-1 — chasseur
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {(['O1', 'O2', 'O3', 'O4', 'O5'] as const).map((oId) => {
+                const active = state.junkConfig?.chaser === oId;
+                return (
+                  <button
+                    key={oId}
+                    type="button"
+                    onClick={() => props.onPatch({
+                      junkConfig: { type: 'box-and-1', chaser: oId },
+                    })}
+                    style={{
+                      fontSize: 11,
+                      padding: '4px 10px',
+                      borderRadius: 4,
+                      border: `1.5px solid ${active ? '#d85a30' : 'rgba(253, 186, 116, 0.4)'}`,
+                      background: active ? '#d85a30' : 'rgba(216, 90, 48, 0.05)',
+                      color: active ? '#fff' : '#fdba74',
+                      cursor: 'pointer',
+                      fontWeight: active ? 700 : 500,
+                    }}
+                  >
+                    {oId}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: 9.5, color: '#94a3b8', marginTop: 6, lineHeight: 1.35 }}>
+              4 défenseurs en zone autour de la raquette, le défenseur naturel
+              du chasseur le colle en strict (helpMode désactivé).
+            </div>
+          </div>
+        )}
 
         {/* Sub-config visible uniquement en zone (Q6 fusion) */}
         {!isMan && (

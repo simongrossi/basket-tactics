@@ -6,6 +6,7 @@ import type {
   Step,
 } from '../types';
 import { computeZoneDefenseTargets } from './defense/zoneTargets';
+import { computeJunkDefenseTargets } from './defense/junkLayer';
 import { HOOP, HOOP_OPPOSITE } from '../data/court';
 import type { Point } from '../types';
 import {
@@ -77,6 +78,12 @@ export function computeDefenseTargets(
   if (state.defenseSystem === 'zone') {
     return computeZoneDefenseTargets(state, stepIdx);
   }
+  if (state.defenseSystem === 'junk') {
+    // F.1 — Junk defense (box-and-1) : 4 défenseurs en zone, 1 chaser strict.
+    // Court-circuit du pipeline man comme la zone. Les overrides utilisateur
+    // (defenseOverrides) restent appliqués en aval par effectiveDefensePositions.
+    return computeJunkDefenseTargets(state, stepIdx);
+  }
 
   const { ctx, matchups } = buildDefenseFrameContext(state, stepIdx);
   const positions = {} as Record<DefenderId, DefenderTarget>;
@@ -124,7 +131,9 @@ export function computeDefenseTargets(
 
 export function persistDetectedSwitchForStep(state: AppState, stepIdx: number): AppState {
   const step = state.steps[stepIdx];
-  if (!step || state.defenseSystem === 'zone' || step.switches) return state;
+  // Junk defense : pas de switches détectés (le chaser ne switch jamais
+  // par définition, les 4 zone defenders ne sont pas en homme).
+  if (!step || state.defenseSystem !== 'man' || step.switches) return state;
   const detected = computeDefenseTargets(state, stepIdx).detectedSwitch;
   if (!detected) return state;
   const steps = [...state.steps];

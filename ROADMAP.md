@@ -760,13 +760,27 @@ de possession. Reset shot clock à 14 s (rebond offensif) ou switch possession.
 
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
-| F.1 | **Junk defenses** (box-and-1, triangle-and-2, diamond-and-1) | 6h V1 / 2j V2 | 🟡 | Moyen-haut |
+| ~~F.1~~ | ~~**Junk defenses V1 (Box-and-1)** : `DefenseSystem` étendu à `'junk'` + `state.junkConfig: {type, chaser}`. Couche `computeJunkDefenseTargets` court-circuit (comme zone) : 4 défenseurs sur slots box (±80 ±60 px du panier), chaser collé à son homme via deny-3q + gazeLock 'opponent'. helpFactor=0 partout. UI activée dans SystemSelector + sub-config chaser picker (O1-O5).~~ | — | — | — | 🟢 V1 livré 2026-05-18 (8 tests, 1332 verts). V2 triangle-and-2 + diamond-and-1 reportée. |
 | F.2 | **Press full/half-court** : pression tout terrain | 10-12h V1 | 🔴 | Moyen |
 | ~~F.3~~ | ~~**Free throw rebound positioning** : 10 positions canoniques + transform + badge UI~~ | — | — | — | 🟢 livré 2026-05-13 (11 tests, 899 verts) |
 | ~~F.4~~ | ~~**End-of-quarter foul to give** : helper + diag critical + badge SVG `🟥 FOUL TO GIVE` + UI globale (defenseTeamFouls) + per-step (clockSeconds)~~ | — | — | — | 🟢 V1 livré 2026-05-18 (9 tests, 1279 verts) |
 | ~~F.5~~ | ~~**Late shot clock defense** : `lateShotClockLayer` (couche 1.7, opt-in via lateShotClockDefenseEnabled + step.shotClockRemaining<5). carrierDef contest accru, autres défenseurs no-help.~~ | — | — | — | 🟢 V1 livré 2026-05-18 (5 tests, 1279 verts) |
 
-#### ⚪ F.1 — Junk defenses — détail du plan
+#### 🟢 F.1 V1 — Junk defenses — livré (Box-and-1)
+
+V1 livré 2026-05-18 :
+- `DefenseSystem` étendu à `'junk'`. `state.junkConfig?: { type: 'box-and-1'; chaser: AttackerId }`.
+- `defense/junkLayer.ts::computeJunkDefenseTargets` : court-circuit du pipeline man (comme `computeZoneDefenseTargets`).
+  - 4 défenseurs non-chasers placés sur 4 slots fixes (±80, ±60 px du panier).
+  - Chaser placé entre panier et son homme (recul 18 px), stance `deny-3q` + `gazeLock: 'opponent'`. Si le chaser EST le carrierDef, stance neutre + contest classique.
+  - helpFactor=0 / helpTriggered=false partout : aucune aide en junk.
+- `engine.ts` : `persistDetectedSwitchForStep` skip aussi le mode junk (le chaser ne switch jamais).
+- UI : SystemSelector active le bouton Box-and-1 (existant 🚧). Sub-config dans DefensePanel : picker chaser parmi O1-O5 (boutons orange, style cohérent avec le thème offense).
+- Tests : 8 (positions box, slots distincts, chaser collé, matchedTo, helpFactor=0, INVARIANT clearance, isCarrierDefender quand shooter porteur, chaser variable).
+
+V2 reportée : `triangle-and-2` (3 zone + 2 chasseurs), `diamond-and-1` (losange 1-2-1 + 1 chaser). Plan d'origine ci-dessous.
+
+⚪ Plan d'origine :
 
 **Concept.** Défense hybride : 3-4 joueurs en zone autour de la raquette,
 1-2 chasseurs en homme strict sur les shooters adverses. Utilisé en

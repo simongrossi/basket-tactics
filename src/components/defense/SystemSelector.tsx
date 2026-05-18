@@ -18,7 +18,8 @@ import { COLORS } from '../ui';
 
 export type SystemChoice =
   | { kind: 'man' }
-  | { kind: 'zone'; zoneType: ZoneType };
+  | { kind: 'zone'; zoneType: ZoneType }
+  | { kind: 'junk'; junkType: 'box-and-1' };
 
 interface SystemDef {
   id: string;
@@ -84,7 +85,7 @@ const FAMILIES: { title: string; systems: SystemDef[] }[] = [
         id: 'box-and-1',
         label: 'Box-and-1',
         description: 'Box + 1 chasseur.',
-        pending: 'F.1',
+        choice: { kind: 'junk', junkType: 'box-and-1' },
       },
       {
         id: 'triangle-and-2',
@@ -122,12 +123,17 @@ const FAMILIES: { title: string; systems: SystemDef[] }[] = [
 interface SystemSelectorProps {
   defenseSystem: DefenseSystem;
   zoneType: ZoneType;
+  /** F.1 — Type junk actif si defenseSystem === 'junk'. */
+  junkType?: 'box-and-1';
   onChange: (choice: SystemChoice) => void;
 }
 
-export function SystemSelector({ defenseSystem, zoneType, onChange }: SystemSelectorProps) {
+export function SystemSelector({ defenseSystem, zoneType, junkType, onChange }: SystemSelectorProps) {
   const c = COLORS.defense;
-  const currentId = defenseSystem === 'man' ? 'man' : zoneType;
+  const currentId =
+    defenseSystem === 'man' ? 'man'
+    : defenseSystem === 'junk' ? (junkType ?? 'box-and-1')
+    : zoneType;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

@@ -503,7 +503,18 @@ export type DropDepth = 'shallow' | 'medium' | 'deep';
 
 // --- Défense de zone (Palier 3-C) ---
 
-export type DefenseSystem = 'man' | 'zone';
+export type DefenseSystem = 'man' | 'zone' | 'junk';
+
+/** F.1 — Junk defense V1 = box-and-1 : 4 défenseurs en zone autour de
+ *  la raquette + 1 chasseur en marquage strict sur un shooter cible.
+ *  Réutilise les briques offBallStance/vsCarrier sans refonte des
+ *  matchups (le chaser garde son matchup naturel, juste collé). */
+export interface JunkConfig {
+  type: 'box-and-1';
+  /** Attaquant ciblé par le chaser (typiquement le shooter dangereux).
+   *  Son défenseur naturel (via baseMatchups) devient le chaser. */
+  chaser: AttackerId;
+}
 export type ZoneType = 'zone-2-3' | 'zone-1-3-1' | 'zone-3-2' | 'zone-2-1-2' | 'zone-matchup';
 
 export type ZoneRegionMode = 'auto' | 'agressif' | 'passif' | 'trap';
@@ -861,6 +872,9 @@ export interface AppState {
   tool: Tool;
   defenseSystem: DefenseSystem;
   zoneConfig: ZoneConfig;
+  /** F.1 — Configuration junk defense, lu si defenseSystem === 'junk'.
+   *  Undefined si jamais activé (default UI bascule en homme). */
+  junkConfig?: JunkConfig;
   offBallScreenRule: OffBallScreenRule;
   fullCourt: boolean;
   showPassLanes: boolean;
