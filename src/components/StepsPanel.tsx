@@ -386,6 +386,71 @@ export function StepsPanel(props: StepsPanelProps) {
             <Trash2 size={13} strokeWidth={2} /> suppr.
           </button>
         </div>
+        {/* A11 V1 — Saisie tir : 3 boutons (made / missed / annuler) sur step actif.
+            Phase 1 = juste les inputs. Phase 2 ajoutera le bouton "étape rebond auto"
+            quand shotOutcome === 'missed'. */}
+        {props.onPatchStep && (() => {
+          const activeStep = props.state.steps[props.state.activeStep];
+          if (!activeStep || activeStep.isInterpolated) return null;
+          const outcome = activeStep.shotOutcome;
+          return (
+            <div style={{ marginTop: 4 }}>
+              <div style={{ fontSize: 9, color: '#94a3b8', marginBottom: 3, letterSpacing: 0.3 }}>
+                TIR (A11)
+              </div>
+              <div style={{ display: 'flex', gap: 3 }}>
+                <button
+                  type="button"
+                  onClick={() => props.onPatchStep!(props.state.activeStep, {
+                    shotOutcome: outcome === 'made' ? undefined : 'made',
+                    shotPos: outcome === 'made' ? undefined : (activeStep.shotPos ?? activeStep.off[activeStep.ballCarrier]),
+                  })}
+                  title="Marque ce step comme tir réussi. Cliquer à nouveau pour annuler."
+                  style={{
+                    flex: 1,
+                    fontSize: 10,
+                    padding: '4px 6px',
+                    borderRadius: 4,
+                    border: `1.5px solid ${outcome === 'made' ? '#22c55e' : 'rgba(34, 197, 94, 0.35)'}`,
+                    background: outcome === 'made' ? '#22c55e' : '#262a32',
+                    color: outcome === 'made' ? '#fff' : '#86efac',
+                    cursor: 'pointer',
+                    fontWeight: outcome === 'made' ? 700 : 500,
+                  }}
+                >
+                  ✅ {outcome === 'made' ? 'TIR RÉUSSI' : 'tir réussi'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => props.onPatchStep!(props.state.activeStep, {
+                    shotOutcome: outcome === 'missed' ? undefined : 'missed',
+                    shotPos: outcome === 'missed' ? undefined : (activeStep.shotPos ?? activeStep.off[activeStep.ballCarrier]),
+                  })}
+                  title="Marque ce step comme tir manqué. En Phase 2, débloquera le bouton 'étape rebond auto'."
+                  style={{
+                    flex: 1,
+                    fontSize: 10,
+                    padding: '4px 6px',
+                    borderRadius: 4,
+                    border: `1.5px solid ${outcome === 'missed' ? '#dc2626' : 'rgba(252, 165, 165, 0.35)'}`,
+                    background: outcome === 'missed' ? '#dc2626' : '#262a32',
+                    color: outcome === 'missed' ? '#fff' : '#fca5a5',
+                    cursor: 'pointer',
+                    fontWeight: outcome === 'missed' ? 700 : 500,
+                  }}
+                >
+                  ❌ {outcome === 'missed' ? 'TIR MANQUÉ' : 'tir manqué'}
+                </button>
+              </div>
+              {outcome && (
+                <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 3, fontStyle: 'italic' }}>
+                  Step marqué comme tir {outcome === 'made' ? 'réussi' : 'manqué'}.
+                  Cliquer à nouveau pour annuler.
+                </div>
+              )}
+            </div>
+          );
+        })()}
         {props.onConvertToFreeThrow && (
           <div style={{ marginTop: 4 }}>
             <button

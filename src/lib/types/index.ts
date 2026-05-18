@@ -154,6 +154,17 @@ export interface Step {
    *  transition, run-out post-rebond). Default false = no-op. Cumulable
    *  avec defenderSpeedProfiles (G.4) et rule.closeoutBoost. */
   sprintBoost?: boolean;
+  /** A11 V1 — Issue du tir pris sur ce step. Default = pas de tir.
+   *  - `'made'`    : tir réussi. Le step suivant peut être une transition
+   *    (BLOB / SLOB) gérée manuellement par le coach.
+   *  - `'missed'`  : tir manqué. Débloque le bouton "étape rebond auto"
+   *    dans StepsPanel qui appelle `addShotReboundStep`.
+   *  V2 ajoutera 'blocked' (geste défensif spécifique). */
+  shotOutcome?: 'made' | 'missed';
+  /** A11 V1 — Position où le tir a été pris. Default = position du
+   *  porteur au moment du step. Permet de calculer le rebond et de
+   *  visualiser la trajectoire ballon dans une UI future. */
+  shotPos?: Point;
   /** B.1 — Durée individuelle de la transition step → step+1, en secondes.
    *  Indéfini = fallback sur `state.secondsPerStep` (default 4s). Permet de
    *  moduler la durée narrative de chaque étape indépendamment (un dribble
