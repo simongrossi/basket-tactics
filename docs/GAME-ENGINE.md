@@ -360,6 +360,54 @@ changer leur position absolue.
 
 ---
 
+## Moteur de forces vectorielles (CVT) — chantier en cours
+
+**Statut au 2026-05-19** : infrastructure pure livrée, **non câblée** au
+pipeline défensif. Aucun impact runtime à ce stade.
+
+Vision long-terme (cf. [ROADMAP § "Hors roadmap court terme"](../ROADMAP.md#hors-roadmap-court-terme))
+de passer du paradigme actuel "cibles absolues" (chaque couche défensive
+retourne un `Point(x,y)` consommé par `effectiveDefensePositions`) à un
+paradigme émergeant **"forces vectorielles pondérées"** (chaque couche
+émet un `SteeringForce[]` accumulés par `Σ(W_i · F_i)`).
+
+Module : [`src/lib/logic/steeringEngine.ts`](../src/lib/logic/steeringEngine.ts).
+
+- **Type pivot** : `SteeringForce { direction: Point; weight: number; label: string }`.
+  `direction` normalisé (ou `{0,0}` = force morte), `weight ≥ 0`,
+  `label` pour debug/diagnostic.
+- **Primitives** :
+  - `seek(from, target, w, label)` — attraction unitaire vers cible.
+  - `repel(from, obstacle, radius, w, label)` — répulsion radiale à
+    falloff linéaire `(1 − d/r)`, force morte hors rayon (**glissement
+    fluide, jamais de mur**). Cas dégénéré `from === obstacle` →
+    force morte (le `constraintSolver.ts` reste filet de sécurité dur
+    pour la Règle 1 clearance).
+  - `arrive(from, target, slowingRadius, w, label)` — `seek` avec
+    rampe de décélération à l'approche → **tue les oscillations**
+    autour de la cible (anti-bug marquage strict).
+- **Accumulateur** : `accumulateForces(forces) → Point` somme additive
+  Reynolds, commutative, ignore les poids ≤ 0.
+- **Intégration** : `integrateForce(current, force, maxStep) → Point`
+  clampe la magnitude (anti-téléportation). Le `defense/speedConstraint.ts`
+  et le `constraintSolver.ts` prendront ensuite le relais quand on
+  branchera ce moteur.
+
+**Sous-étapes restantes du Chantier 1** (incrémentales, double-sortie
+sous flag `useSteeringEngine`, tests verts à chaque commit) :
+
+1. Migrer `manDefense.ts` en émetteur `SteeringForce[]` (seek vers
+   l'homme + arrive proche, équivalence numérique avec l'ancien `manTarget`).
+2. Migrer `help.ts` (forces `seek` vers la posture d'aide +
+   futurs `interpose` du Chantier 2).
+3. Migrer `defense/pnrLayer.ts` et la gestion des écrans
+   (`repel` autour des poseurs remplace le push-out brutal de
+   `defense/screenAvoidance` — premier gain visuel majeur).
+
+**Chantiers 2 et 3** (lignes de passe + triangle vectoriel + profils
+offensifs) viendront après stabilisation du Chantier 1. Détails complets
+dans le ROADMAP.
+
 ## Pour étendre
 
 - **Ajouter un comportement individuel** : nouveau cas dans `manDefense.ts` (stance) ou `help.ts` (régime), nouveau test ciblé, mise à jour du `ContextMenu` si visible côté UI.

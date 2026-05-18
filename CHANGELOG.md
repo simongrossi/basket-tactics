@@ -6,6 +6,36 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### CVT Chantier 1 — `steeringEngine.ts` (infra pure, non câblée)
+
+Première brique de la **Refonte cinématique vectorielle tactique** (cf.
+ROADMAP § "Hors roadmap court terme"). Pose les fondations du paradigme
+émergeant "forces vectorielles pondérées" qui remplacera à terme
+l'approche par "cibles absolues" (Target-Seeking).
+
+- Nouveau module [`src/lib/logic/steeringEngine.ts`](src/lib/logic/steeringEngine.ts) :
+  type `SteeringForce` + 3 primitives `seek` / `repel` / `arrive` +
+  accumulateur additif Reynolds `Σ(W_i · F_i)` + `integrateForce` (clamp
+  magnitude → anti-téléportation).
+- Math pur déterministe, aucune mutation, aucun état caché. Réutilise
+  `distance` / `normalize` / `clamp` de `geometry.ts`.
+- `repel` à falloff linéaire (pas de `1/d²`) + force morte hors rayon →
+  glissement fluide, jamais de mur. Cas dégénéré `from === obstacle`
+  retourne force morte (le solveur `constraintSolver.ts` reste filet
+  de sécurité dur pour la Règle 1).
+- `arrive` avec rampe `min(1, dist/slowingRadius)` → tue les
+  oscillations autour des cibles.
+- **24 nouveaux tests** dans `steeringEngine.test.ts` : primitives,
+  composition additive, commutativité, cas dégénérés, clamp
+  d'intégration, composition réaliste seek+repel.
+- **Zéro consommateur** à cette étape : `defense/*`, `engine.ts` et
+  `constraintSolver.ts` non modifiés. Zéro impact runtime, zéro
+  risque de régression. Suite complète : **1545 → 1569 tests verts**.
+- Sous-étapes suivantes du Chantier 1 (à venir) : migration progressive
+  `manDefense` → `helpLayer` → `pnrRotations` en double-sortie sous
+  flag `useSteeringEngine`, en préservant `ComputedDefense` /
+  `ComputedDefender` et le passage par `constraintSolver.ts`.
+
 ## [0.18.0] — 2026-05-18 (Phase K — Behavior Anomaly Detection V1 + V2)
 
 Nouveau pilier "observabilité du comportement joueur". 7 sous-chantiers

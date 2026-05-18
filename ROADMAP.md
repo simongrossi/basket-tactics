@@ -1490,16 +1490,24 @@ défenseur) à un paradigme **émergeant** de forces vectorielles pondérées
   superposition de poids au lieu de cascades de couches `if/else`.
 
 **Chantier 1 — Steering Behaviors (forces vectorielles)**
-- Nouveau module `src/lib/logic/steeringEngine.ts` exposant
-  `interface SteeringForce { direction: Point; weight: number; label: string; }`.
-- Forces primitives : `seek` (attraction entité/ligne), `repel`
-  (répulsion locale screen/clearance), `arrive` (décélération
-  proportionnelle, anti-oscillation).
-- Accumulation par défenseur :
-  `F_final = Σ (W_i · F_i)`, intégrée par tick avec vitesse max et
-  friction existantes (`defense/speedConstraint.ts`).
-- Sous-modules `manDefense` / `help` / `pnrRotations` refactorés pour
-  retourner `SteeringForce[]` au lieu d'un `Point` cible absolu.
+- 🟢 **Sous-étape 1.0 — Infra pure** (livré 2026-05-19) : nouveau module
+  [`src/lib/logic/steeringEngine.ts`](src/lib/logic/steeringEngine.ts)
+  exposant `interface SteeringForce { direction: Point; weight: number; label: string; }`,
+  primitives `seek` / `repel` / `arrive`, accumulateur additif
+  `accumulateForces` et intégrateur clampé `integrateForce`. 24 tests
+  unitaires, 1545 → **1569 tests verts**. Aucun consommateur câblé,
+  zéro impact runtime. Détail : CHANGELOG § Unreleased.
+- ⚪ **Sous-étape 1.1** : migrer `manDefense.ts` en émetteur
+  `SteeringForce[]` (seek vers l'homme + arrive proche). Double-sortie
+  sous flag `useSteeringEngine`, équivalence numérique avec l'ancien
+  `manTarget` (tests d'équivalence).
+- ⚪ **Sous-étape 1.2** : migrer `help.ts` (forces `seek` vers posture
+  d'aide, prépare l'`interpose` du Chantier 2).
+- ⚪ **Sous-étape 1.3** : migrer `defense/pnrLayer.ts` et la gestion
+  des écrans — `repel` autour des poseurs remplace le push-out brutal
+  de `screenAvoidance`. **Premier gain visuel majeur attendu** ici.
+- ⚪ **Sous-étape 1.4** : activation par défaut du flag, suppression
+  des sorties anciennes (`Point` cible), nettoyage de la double-sortie.
 
 **Chantier 2 — Influence Map & trajectoires invisibles**
 - Génération temps-réel des segments **porteur ↔ non-porteurs** (lignes

@@ -4,6 +4,42 @@ Notes de développement au fil de l'eau. Les items en haut sont les plus récent
 
 ---
 
+## Session 2026-05-19 — CVT Chantier 1 sous-étape 1.0 (infra steering)
+
+Première brique livrée de la refonte cinématique vectorielle tactique.
+`steeringEngine.ts` posé en math pur, 24 tests, **1569 verts**.
+
+**À faire (sous-étapes restantes du Chantier 1)** :
+- 1.1 — Migrer `manDefense.ts` en émetteur de `SteeringForce[]`.
+  Construire un harness d'équivalence : pour chaque step de chaque
+  scénario `userJson*`, comparer la cible produite par
+  `manTarget` (ancien) avec `integrateForce(current, accumulateForces([seek + arrive]), maxStep)`
+  (nouveau). Tolérance numérique à déterminer (qq px max).
+- 1.2 — Choisir le bon `slowingRadius` pour `arrive` : trop petit =
+  pas d'effet anti-oscillation, trop grand = défenseur traînard.
+  Probablement à corréler avec `PROXIMITY_FRICTION_RADIUS` existant.
+- 1.3 — Pour `repel` autour des poseurs d'écran : `radius` candidat =
+  `PLAYER_MIN_CLEARANCE_PX + buffer`. À mesurer en regardant les
+  trajectoires actuelles côté `screenAvoidance` pour ne pas faire
+  pire.
+- 1.4 — Tuner les `weight` relatifs : par défaut `W_seek_man = 1`,
+  `W_repel_screen = ?`, `W_arrive_stance = ?`. Probablement à
+  exposer dans `data/physics.ts` à la fin du Chantier 1 pour permettre
+  tuning fin.
+- Diagnostic / debug : envisager un overlay debug "force vectors"
+  (sous toggle) qui dessine les forces accumulées de chaque défenseur.
+  Très utile pour comprendre les comportements émergents.
+
+**Pièges à éviter (notés à l'avance)** :
+- Ne JAMAIS retirer le passage final par `constraintSolver.ts` —
+  Règle 1 inviolable. Les forces sont "soft", le solveur est "hard".
+- Garder `defenseOverrides` strictement prioritaire : court-circuiter
+  toute la pipeline de forces quand un override est actif.
+- Tester systématiquement `screens*` + `overlap*` + `userJson*` +
+  `screenLab*` avant chaque commit qui touche `defense/*`.
+
+---
+
 ## Session 2026-05-18 soir — Phases B/C/F/G complètes + D 4/5 (FAIT)
 
 16 commits sur `main`, 1279 → **1353 tests verts** (+74). Détail dans
