@@ -1,4 +1,4 @@
-// K.0 → K.5 — Détecteur d'anomalies de comportement joueur (couche pure).
+// K.0 → K.7 — Détecteur + correcteur d'anomalies de comportement joueur.
 //
 // Aucun side effect, aucune mutation. Prend des snapshots minimaux et
 // retourne un tableau d'AnomalyReport. Branché sur le pipeline depuis
@@ -288,8 +288,83 @@ export function detectFlicker(
 /** Renvoie le plus petit delta angulaire signé entre deux angles 0–360°.
  *  Résultat dans [-180, 180]. */
 export function circularDeltaDeg(a: number, b: number): number {
-  let d = ((a - b) % 360 + 540) % 360 - 180;
+  const d = ((a - b) % 360 + 540) % 360 - 180;
   return d;
+}
+
+/**
+ * K.7 V2 — Clampe les téléportations dans un snapshot.
+ *
+ * Pour chaque joueur dont la distance prev→cur dépasse `maxStep`, ramène
+ * la position à `prev + dir × maxStep`. Pur, retourne un NOUVEAU snapshot
+ * (immutable, aucune mutation de `cur`). Préserve les joueurs non clampés.
+ *
+ * **N'est pas wiré dans le pipeline** par construction (Règle 1bis du
+ * projet — toute modif du frameResolver est risquée). À appeler côté UI
+ * ou côté script post-hoc sur des snapshots déjà calculés.
+ */
+export function clampTeleports(
+  prev: FrameSnapshot,
+  cur: FrameSnapshot,
+  maxStep: number = TELEPORT_THRESHOLD_PX,
+): FrameSnapshot {
+  const off = { ...cur.off };
+  const defPos = { ...cur.defPos };
+
+  function clamp(a: Point, b: Point): Point {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d <= maxStep || d === 0) return b;
+    const k = maxStep / d;
+    return { x: a.x + dx * k, y: a.y + dy * k };
+  }
+
+  (Object.keys(off) as Array<keyof typeof off>).forEach((id) => {
+    const a = prev.off[id];
+    const b = off[id];
+    if (a && b) off[id] = clamp(a, b);
+  });
+  (Object.keys(defPos) as DefenderId[]).forEach((id) => {
+    const a = prev.defPos[id];
+    const b = defPos[id];
+    if (a && b) defPos[id] = clamp(a, b);
+  });
+
+  return { off, defPos, stepIdx: cur.stepIdx };
+}
+
+/**
+ * K.7 V2 — Clampe les déplacements à `rule.maxSpeed × (1 + tolerance)`
+ * pour les défenseurs (compagnon de detectAberrantSpeed). Même contrat
+ * d'immutabilité que `clampTeleports`. N'est pas wiré dans le pipeline.
+ */
+export function clampAberrantSpeed(
+  prev: FrameSnapshot,
+  cur: FrameSnapshot,
+  globalMaxSpeed: number,
+  rules: DefenderRules,
+  tolerance: number = ABERRANT_SPEED_TOLERANCE,
+): FrameSnapshot {
+  const defPos = { ...cur.defPos };
+
+  (Object.keys(defPos) as DefenderId[]).forEach((id) => {
+    const a = prev.defPos[id];
+    const b = defPos[id];
+    if (!a || !b) return;
+    const indivMax = rules[id]?.maxSpeed ?? globalMaxSpeed;
+    if (indivMax <= 0) return;
+
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    const limit = indivMax * (1 + tolerance);
+    if (d <= limit) return;
+    const k = limit / d;
+    defPos[id] = { x: a.x + dx * k, y: a.y + dy * k };
+  });
+
+  return { off: cur.off, defPos, stepIdx: cur.stepIdx };
 }
 
 /**

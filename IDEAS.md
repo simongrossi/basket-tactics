@@ -49,6 +49,17 @@ CHANGELOG [0.12.0]. Faits marquants :
 - **A11 V3 outlet setter** `addOutletPassStep` chaîne en 1 clic le
   flux "rebond défensif → transition adverse" (clear outletPassPending
   + insère step adverse). UX 1 clic au lieu de 2. 4 tests.
+- **Phase K behavior anomaly detection** (7/7) — nouveau pilier
+  observabilité demandé par user "suivre comportements anormaux et
+  anomalies de déplacement". 7 commits, 56 tests, 1450 → 1506 verts.
+  Zéro impact moteur (Règle 1bis safe).
+  - **K.1** téléport (>24 px) / **K.2** vitesse aberrante (×1.95 maxSpeed)
+  - **K.3** décroché (>250 px du matchedTo, hors aide/screen)
+  - **K.4** flicker (cos < -0.707 sur 3 frames)
+  - **K.5** regard anormal (>90° du corps, Règle 3 CLAUDE.md)
+  - **K.6** règle coach `playerAnomalyRule` + toggle `anomalyDetectionEnabled`
+  - **K.7 V2** correcteurs purs `clampTeleports` / `clampAberrantSpeed`
+    (non wirés au resolver, opt-in via call site).
 - **F.2 V1 + V2 press defenses** Dernier chantier basket de la roadmap.
   `DefenseSystem 'press'` + couche `pressLayer.ts` court-circuit
   (pattern F.1 junk). PAS de refonte de `getDefenseHoop` préconisée par

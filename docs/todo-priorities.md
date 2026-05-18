@@ -70,6 +70,19 @@ les détails.
 | **J.2** — Cache segmentaire du resolver | ⚪ reporté | Mémoïse les segments inchangés entre frames. | ~6-8h |
 | **J.3** — Solver de contraintes unifié | ⚪ reporté | Reformule le pipeline en problème d'optimisation. | ~2-3j |
 
+### Phase K — Behavior Anomaly Detection ✅ COMPLÈTE (7/7)
+
+| Item | Statut | Description |
+|---|---|---|
+| ~~**K.0**~~ | 🟢 livré 2026-05-18 | Types `AnomalyKind` / `AnomalyReport` + module pur `anomalyDetector.ts`. |
+| ~~**K.1 V1**~~ | 🟢 livré 2026-05-18 | `detectTeleport` (saut > 24 px), 8 tests. |
+| ~~**K.2 V1**~~ | 🟢 livré 2026-05-18 | `detectAberrantSpeed` (> maxSpeed × 1.95), 6 tests. |
+| ~~**K.3 V1**~~ | 🟢 livré 2026-05-18 | `detectDetachedDefenders` (> 250 px de son homme, hors aide/screen), 7 tests. |
+| ~~**K.4 V1**~~ | 🟢 livré 2026-05-18 | `detectFlicker` (oscillation 3 frames, cos < -0.707), 8 tests. |
+| ~~**K.5 V1**~~ | 🟢 livré 2026-05-18 | `detectAnomalousGaze` (regard > 90° du corps, CLAUDE.md Règle 3), 10 tests. |
+| ~~**K.6**~~ | 🟢 livré 2026-05-18 | Règle coach `playerAnomalyRule` (K.1/K.2/K.3) + toggle ParametresPanel `anomalyDetectionEnabled`. 6 tests intégration. |
+| ~~**K.7 V2**~~ | 🟢 livré 2026-05-18 | `clampTeleports` + `clampAberrantSpeed` (helpers purs opt-in, non wirés au resolver). 11 tests. |
+
 ### Phase G — Calibration vitesse ✅ COMPLÈTE (4/4)
 
 | Item | Statut | Description |

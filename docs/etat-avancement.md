@@ -2,7 +2,7 @@
 
 > Vue consolidée de **ce qui est fait**, **ce qui est en cours**, et **ce qui reste à faire**, pour ne rien oublier entre deux sessions de travail.
 >
-> Mise à jour : **2026-05-18 (F.2 V2)** — post-session B.3 / B.4 / D.1 / D.3 / D.5 / F.1 V1+V2 / G.1-4 / J.1 / J.5 / J.6 / J.7 / A11 V1+V2+V3 / E.1 stage 2b V1 / **F.2 V1 + V2**.
+> Mise à jour : **2026-05-18 (Phase K)** — post-session B.3 / B.4 / D.1 / D.3 / D.5 / F.1 V1+V2 / F.2 V1+V2 / G.1-4 / J.1 / J.5 / J.6 / J.7 / A11 V1+V2+V3 / E.1 stage 2b V1 / **K.0→K.7 anomaly detection**.
 >
 > Pour le détail commit-par-commit, voir [`CHANGELOG.md`](../CHANGELOG.md).
 > Pour la roadmap basket exhaustive, voir [`../ROADMAP.md`](../ROADMAP.md).
@@ -76,6 +76,30 @@ verrouillage croisé). 21 tests cumulés.
 `useCourtFrame` + nouveau composant `<PlayerDebugTable>` (overlay
 haut-droite, tableau 5 défenseurs × 5 colonnes). Toggle dans
 ParametresPanel.
+
+### Phase K — Behavior Anomaly Detection (7 sous-chantiers, 7 commits, 56 tests)
+
+Nouveau pilier "observabilité du comportement joueur" demandé par
+l'utilisateur pour suivre et améliorer les comportements anormaux et
+anomalies de déplacement. Architecture pure / opt-in / zéro risque
+Règle 1bis.
+
+- **K.0** Infra : `src/lib/logic/anomaly/{types,anomalyDetector}.ts`.
+- **K.1 V1** `detectTeleport` (saut > 24 px, 60 critical) — 8 tests.
+- **K.2 V1** `detectAberrantSpeed` (déf > maxSpeed × 1.95) — 6 tests.
+- **K.3 V1** `detectDetachedDefenders` (>250 px du matchedTo, hors
+  aide/screen) — 7 tests.
+- **K.4 V1** `detectFlicker` (cos < -0.707 sur fenêtre 3 frames, m > 5 px)
+  — 8 tests.
+- **K.5 V1** `detectAnomalousGaze` (|gaze - body| > 90°, Règle 3 CLAUDE.md)
+  + `circularDeltaDeg` — 10 tests.
+- **K.6** Règle coach `playerAnomalyRule` (K.1/K.2/K.3 wirées) + toggle
+  ParametresPanel `anomalyDetectionEnabled` (opt-in strict) — 6 tests.
+- **K.7 V2** `clampTeleports` + `clampAberrantSpeed` (correction pure,
+  non wirée au resolver pour préserver Règle 1bis) — 11 tests.
+
+1450 → **1506 verts**. Le moteur tactique reste intact ; seule une
+règle coach opt-in et un toggle UI sont visibles côté utilisateur.
 
 ### F.2 V1 + V2 — Press defenses complètes (`ed76448` + V2 ce commit, 15 tests)
 

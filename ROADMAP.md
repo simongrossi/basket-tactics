@@ -1124,6 +1124,28 @@ Phase complète documentée séparément :
 
 ---
 
+### Phase K — Behavior Anomaly Detection (livrée 2026-05-18)
+
+Nouveau pilier observabilité demandé par l'utilisateur pour "suivre et
+améliorer les comportements anormaux et anomalies de déplacement".
+Architecture pure / opt-in / zéro risque Règle 1bis. **7 commits, 56
+tests, 1450 → 1506 verts.**
+
+| # | Chantier | Effort | Risque | Valeur | Statut |
+|---|---|---|---|---|---|
+| ~~K.0~~ | ~~Types + module pur `anomaly/`~~ | — | — | — | 🟢 livré 2026-05-18 |
+| ~~K.1 V1~~ | ~~`detectTeleport` (saut > 24 px, > 60 critical)~~ | — | — | — | 🟢 livré 2026-05-18 (8 tests) |
+| ~~K.2 V1~~ | ~~`detectAberrantSpeed` (déf > maxSpeed × 1.95)~~ | — | — | — | 🟢 livré 2026-05-18 (6 tests) |
+| ~~K.3 V1~~ | ~~`detectDetachedDefenders` (>250 px du matchedTo, hors aide/screen)~~ | — | — | — | 🟢 livré 2026-05-18 (7 tests) |
+| ~~K.4 V1~~ | ~~`detectFlicker` (cos < -0.707 sur 3 frames, m > 5 px)~~ | — | — | — | 🟢 livré 2026-05-18 (8 tests) |
+| ~~K.5 V1~~ | ~~`detectAnomalousGaze` (>90° corps↔regard, Règle 3 CLAUDE.md)~~ | — | — | — | 🟢 livré 2026-05-18 (10 tests) |
+| ~~K.6~~ | ~~Règle coach `playerAnomalyRule` (K.1/K.2/K.3) + toggle ParametresPanel~~ | — | — | — | 🟢 livré 2026-05-18 (6 tests) |
+| ~~K.7 V2~~ | ~~`clampTeleports` + `clampAberrantSpeed` (correction pure, opt-in via call site)~~ | — | — | — | 🟢 livré 2026-05-18 (11 tests) |
+
+**Reportés** : K.4/K.5 brancher sur coachDiagnostics (nécessite 3-frame
+window + snapshot des visuels orientés). K.7 wirer dans le pipeline live
+(à n'envisager que si une régression visible justifie le risque Règle 1bis).
+
 ### Phase J — Moteur d'écran / playback : qualité & outillage (mai 2026)
 
 Suite de la session debug UCLA cut (saut D1 de 52 px entre f113-f114).

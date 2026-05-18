@@ -6,6 +6,84 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+## [0.18.0] — 2026-05-18 (Phase K — Behavior Anomaly Detection V1 + V2)
+
+Nouveau pilier "observabilité du comportement joueur". 7 sous-chantiers
+(K.0 → K.7), 7 commits, **56 nouveaux tests**, 1450 → **1506 verts**.
+Zéro modification du moteur (resolver, screens, defense/*) — toutes les
+helpers sont purs et opt-in. **Zéro risque Règle 1bis** : 155 tests
+screen-sensibles toujours verts.
+
+### K.0 — Infra
+
+- `src/lib/logic/anomaly/types.ts` : `AnomalyKind`, `AnomalyReport`,
+  `AnomalySeverity`, `PlayerId`.
+- `src/lib/logic/anomaly/anomalyDetector.ts` : module pur centralisé.
+
+### K.1 V1 — Détection téléportation (8 tests)
+
+`detectTeleport(prev, cur, threshold?, criticalThreshold?)` flag toute
+position prev→cur dont la distance dépasse `TELEPORT_THRESHOLD_PX=24`
+(> clamp visuel 18 px/frame). `TELEPORT_CRITICAL_PX=60` → severity
+critical. Couvre attaquants + défenseurs.
+
+### K.2 V1 — Détection vitesse aberrante (6 tests)
+
+`detectAberrantSpeed(prev, cur, globalMaxSpeed, rules, tolerance?, criticalMult?)`
+flag tout défenseur dépassant `rule.maxSpeed × (1 + 0.95)`. La tolérance
+0.95 couvre `sprintBoost × 1.8` + bruit. Severity critical au-delà du
+ratio ×3.
+
+### K.3 V1 — Détection défenseur décroché (7 tests)
+
+`detectDetachedDefenders(off, defPos, stepIdx, threshold?, criticalThreshold?)`
+flag un défenseur > 250 px de son `matchedTo` (`DETACHED_DEFENDER_PX`).
+Exclusions automatiques : `helpFactor ≥ 0.1` (aide légitime),
+`screenPhase ∈ {approach...released}` (contact écran). Critical à 450 px.
+
+### K.4 V1 — Détection flicker / oscillation (8 tests)
+
+`detectFlicker(prevPrev, prev, cur, minVelocity?, cosThreshold?)`
+flag les virages > 135° entre 2 transitions consécutives quand les
+deux magnitudes sont ≥ 5 px (filtre bruit statique).
+`FLICKER_COS_THRESHOLD = -0.707` (cos(135°)). Cos ≤ -0.95 = critical
+(180° flip parfait).
+
+### K.5 V1 — Détection regard anormal (10 tests)
+
+`detectAnomalousGaze(players, stepIdx, maxDeltaDeg?)` filet de sécurité
+CLAUDE.md Règle 3 (regard ±90° du corps inviolable). Helper exporté
+`circularDeltaDeg(a, b)` pour les deltas signés sur 360°. Critical au-delà
+de 135°.
+
+### K.6 — Intégration coach + UI toggle (6 tests)
+
+- `src/lib/logic/coachDiagnostics/rules/playerAnomaly.ts` : branche K.1
+  + K.2 + K.3 sur le pipeline coach. K.4/K.5 restent en helpers non
+  branchés (incompatibles avec l'API step-by-step).
+- `AppState.anomalyDetectionEnabled?: boolean` opt-in strict (default off).
+- ParametresPanel : ToggleCard "anomalies (K)" rouge.
+- REGISTRY étendu (`playerAnomaly` en fin de chaîne).
+- Diags tagués `anomaly-teleport` / `anomaly-aberrant-speed` /
+  `anomaly-detached`. Severity warning/critical conservée.
+
+### K.7 V2 — Correction opt-in (11 tests)
+
+- `clampTeleports(prev, cur, maxStep?)` retourne un nouveau snapshot
+  avec positions ramenées à `prev + dir × maxStep`. Immutable.
+- `clampAberrantSpeed(prev, cur, globalMaxSpeed, rules, tolerance?)`
+  clampe les défenseurs trop rapides à `maxSpeed × (1 + tolerance)`.
+- **Volontairement non wiré dans le frameResolver** (Règle 1bis).
+  Disponibles comme API pure pour callers externes (tests, scripts
+  post-hoc, futur UI debug).
+
+### Reportés
+
+K.4 / K.5 brancher sur coachDiagnostics (nécessite 3-frame window et
+snapshot des visuels orientés). Auto-correction K.7 wirée dans le
+pipeline live (à n'envisager que si une régression visible justifie
+le risque Règle 1bis).
+
 ## [0.17.0] — 2026-05-18 (F.2 V2 — full-court 1-2-1-1 + trap dynamique)
 
 Extension naturelle de F.2 V1. 1 commit, 6 nouveaux tests, 1444 → 1450
