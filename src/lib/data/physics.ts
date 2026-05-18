@@ -100,6 +100,20 @@ export const STEERING_SCREEN_REPEL_BUFFER_PX = 12;
 export const STEERING_SCREEN_REPEL_WEIGHT = 20;
 
 /**
+ * CVT Chantier 3 — tolérance pour qualifier un défenseur de
+ * "shadowing" une ligne de passe. Si la distance perpendiculaire
+ * signée du défenseur au segment porteur↔attaquant est en valeur
+ * absolue inférieure à cette tolérance ET que le défenseur projette
+ * dans le segment, on considère la passe "occultée" → propagation
+ * du flag `isPassShadowed` pour permettre aux défenseurs adjacents
+ * de flotter en aide.
+ *
+ * 16 px ≈ rayon visuel du défenseur — un défenseur "sur la ligne"
+ * occulte effectivement la passe au sens géométrique.
+ */
+export const PASS_SHADOW_TOLERANCE_PX = 16;
+
+/**
  * Multiplicateur de vitesse appliqué au défenseur du nouveau porteur lors
  * d'une transition de balle (closeout). 1.4 = +40 % sur l'étape de
  * transition uniquement, pour matérialiser l'accélération de fermeture.

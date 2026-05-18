@@ -6,6 +6,41 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### CVT Chantier 3 — Triangle défensif vectoriel (infra, non câblée)
+
+Nouveau module
+[`src/lib/logic/defenseTriangle.ts`](src/lib/logic/defenseTriangle.ts).
+Formalisation math du repère **Ballon – Défenseur – Attaquant – Panier**.
+**Non câblée** au pipeline — sous-étape 3b séparée.
+
+- `triangleAngleDeg(ball, defender, attacker)` → angle θ au sommet
+  défenseur (0..180°). 90° = posture *open stance* idéale (vision
+  triangulaire). Cas dégénérés (def === ball ou def === att) → 0.
+  Clamp anti-NaN sur `acos(cos)`.
+- `profileWeightMultipliers(profile)` → `{ manWeight, basketWeight }`
+  pour pondération du Chantier 3. Calibration basket :
+  - `shooter` / `stretch-big` : `manWeight > 1`, `basketWeight < 1`
+    (deny dominant).
+  - `slasher` / `rim-roller` : `basketWeight > 1`, `manWeight < 1`
+    (sag dominant).
+  - `creator` : équilibré (~1, ~1).
+  - `non-shooter` : laisser flotter, `basketWeight > 1`.
+- `isPassShadowed(defenderPos, carrierPos, attackerPos, tolerance?)` :
+  vrai si défenseur occulte la ligne de passe (proj dans le segment
+  ET `|perpDist| < tolerance`). Tolérance par défaut =
+  `PASS_SHADOW_TOLERANCE_PX = 16 px` ≈ rayon visuel défenseur.
+- `passShadowsByDefender(defenders, carrierId, carrierPos, off)` →
+  map `{ DefenderId → boolean }`. Destiné à alimenter
+  `ComputedDefender.isPassShadowed` quand câblé.
+- Nouvelle constante `PASS_SHADOW_TOLERANCE_PX` dans
+  [`data/physics.ts`](src/lib/data/physics.ts).
+- **21 nouveaux tests** : angle triangle (alignement / perpendiculaire
+  / oblique / dégénéré / borné), multiplicateurs profils (calibration
+  shooter / slasher / undefined / signe cohérent), pass shadow
+  (sur ligne / tolérance / hors segment / dégénéré / custom tolerance),
+  batch defenders (5 défenseurs × 4 lignes + edge cases).
+- 1621 → **1642 tests verts**. Zéro impact runtime.
+
 ### CVT Chantier 2 — Influence Map & lignes invisibles (infra, non câblée)
 
 Nouveau module

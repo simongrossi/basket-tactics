@@ -4,26 +4,73 @@ Notes de développement au fil de l'eau. Les items en haut sont les plus récent
 
 ---
 
-## Session 2026-05-19 — CVT Chantier 1 sous-étapes 1.0 + 1.1 (infra + manDefense)
+## Session 2026-05-19 — CVT : Chantier 1 (1.0/1.1/1.1b/1.2) + Chantier 1.3 infra + Chantier 2 infra + Chantier 3 infra
 
-Refonte cinématique vectorielle tactique : 2 sous-étapes livrées en
-une session. `steeringEngine.ts` (math pur, 24 tests) + `manDefense.ts`
-câblé en double-sortie derrière flag `useSteeringEngine` (15 tests
-supplémentaires dont équivalence stricte sur grille + intégration
-pipeline complet). **1569 → 1584 verts**.
+Grosse session refonte cinématique vectorielle tactique. **8 commits**
+sur `main`, **1545 → 1642 tests verts (+97)**. Tout en opt-in via
+`state.useSteeringEngine`, zéro régression pipeline legacy.
 
-**À faire (sous-étapes restantes du Chantier 1)** :
-- 1.2 — Migrer `help.ts` (forces `arrive` vers posture d'aide,
-  prépare l'`interpose` du Chantier 2).
-- 1.3 — Migrer `defense/pnrLayer.ts` : `repel` autour des poseurs
-  remplace le push-out brutal. Premier gain visuel majeur. À mesurer
-  finement (radius candidat = `PLAYER_MIN_CLEARANCE_PX + buffer`).
-- 1.4 — Activation par défaut + nettoyage de la double-sortie.
+**Livré câblé (flag on → comportement modifié)** :
+- 1.0 — `steeringEngine.ts` : `SteeringForce`, primitives `seek` /
+  `repel` / `arrive`, accumulateur additif Reynolds, `composeTarget`
+  + `integrateForce`. 24 tests.
+- 1.1 — `manDefense.ts` : variantes forces (`manTargetForces` etc.),
+  flag `useSteeringEngine`, branche `defense/baseTargets.ts`.
+  Bit-équivalent legacy. 15 tests.
+- 1.1b — `arrive` (rampe `slowingRadius=12 px`) au lieu de `seek`.
+  Anti-oscillation près de la cible (déviation max théorique 3 px).
+  `defenderRef` passe à `prevDefenderPositions[dId]`. 4 tests
+  dampening.
+- 1.2 — `help.ts` : `computeHelpForces` wrappe `computeHelpTarget` en
+  `arrive` amorti, préserve toute la métadonnée. 4 tests.
 
-**Notes 1.1b** : `STEERING_MAN_SLOWING_RADIUS_PX = 12` ; déviation
-max théorique = `radius/4 = 3 px` à `dist = radius/2`. Pourrait être
-exposé via `state.steeringTuning` pour faciliter le retuning à la
-fin du Chantier 1.
+**Livré non câblé (infra prête, comportement inchangé)** :
+- 1.3 — `screens/repelForces.ts` : `screenerRepelForce` /
+  `screenersRepelForces` (falloff linéaire dans
+  `SCREEN_REPEL_RADIUS_PX = 46 px`). 9 tests.
+- Chantier 2 — `influenceMap.ts` : `InfluenceLane`, segments
+  passe + drive, `signedPerpDistance`, `projectOnSegment`,
+  `interposeForce`. 20 tests.
+- Chantier 3 — `defenseTriangle.ts` : `triangleAngleDeg`,
+  `profileWeightMultipliers` (calibration shooter/slasher),
+  `isPassShadowed`, `passShadowsByDefender`. 21 tests.
+
+**Reste à faire (sous-étapes câblage)** :
+- 1.3b — Câbler `repelForces` dans `applyScreenAdjustment` ou en
+  couche additive après `baseTargets`. **Le seul chantier risqué** :
+  interaction avec `pushOutOfScreener` legacy + tests `screens*` /
+  `overlap*` / `userJson*` / `screenLab*`. Approche prudente :
+  ajouter une **couche additive** (ne touche pas le legacy push-out
+  interne), garder le flag `useSteeringEngine` pour activer/désactiver,
+  vérifier qu'aucun test screen ne régresse.
+- 2b — Câbler `interposeForcesAgainstLanes` (nouvelle couche
+  `influenceLayer` probable, ou injection dans `helpLayer`).
+  Modulation strong-side / weak-side via `state.ballSide`.
+- 3b — Câbler `profileWeightMultipliers` dans `manDefense` /
+  `help.ts` (composition `seek-man * manWeight` +
+  `seek-basket * basketWeight`). Propager `isPassShadowed` dans
+  `ComputedDefender`.
+- 1.4 — Activation par défaut + nettoyage de la double-sortie
+  legacy. **À ne lancer qu'après validation visuelle complète** des
+  câblages ci-dessus.
+
+**Constantes de tuning ajoutées** dans `data/physics.ts` :
+- `STEERING_MAN_SLOWING_RADIUS_PX = 12`
+- `STEERING_SCREEN_REPEL_BUFFER_PX = 12`, `STEERING_SCREEN_REPEL_WEIGHT = 20`
+- `PASS_SHADOW_TOLERANCE_PX = 16`
+
+**Pièges identifiés (ne pas refaire)** :
+- Ne JAMAIS retirer le passage final par `constraintSolver.ts` —
+  Règle 1 inviolable. Les forces sont "soft", le solveur est "hard".
+- Garder `defenseOverrides` strictement prioritaire — court-circuiter
+  toute la pipeline de forces quand un override est actif.
+- Le wrapping "forces qui produisent un target absolu via
+  `composeTarget`" est un **pont transitoire**. Quand 1.4 sera
+  livré, on passera à une vraie intégration temps-réel dans
+  `speedConstraint.ts`.
+- Toujours `prevDefenderPositions[dId]` (pas `defenseInitial[dId]`)
+  comme `defenderRef` quand `arrive` est appliqué : sinon
+  l'amortissement fire vs un point statique sans effet.
 - 1.2 — Choisir le bon `slowingRadius` pour `arrive` : trop petit =
   pas d'effet anti-oscillation, trop grand = défenseur traînard.
   Probablement à corréler avec `PROXIMITY_FRICTION_RADIUS` existant.

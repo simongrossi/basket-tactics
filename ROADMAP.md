@@ -1546,14 +1546,15 @@ défenseur) à un paradigme **émergeant** de forces vectorielles pondérées
   Modulation strong-side / weak-side via `state.ballSide`.
 
 **Chantier 3 — Triangle défensif vectoriel dynamique**
-- Repère **Ballon – Défenseur – Attaquant – Panier** : angle θ continu
-  pour maintien de la *open stance* (vision triangulaire).
-- Pondération par `OffensiveProfile` du marqué :
-  - `shooter` → `W_homme` dominant (deny prioritaire).
-  - `slasher` → `W_basket` renforcé (protection raquette / anti-drive).
-- Flag dérivé `isPassShadowed: true` propagé sur `ComputedDefender`
-  quand le défenseur occulte parfaitement la ligne de passe d'un
-  attaquant → autorise les défenseurs adjacents à flotter en aide.
+- 🟡 **Infra livrée (2026-05-19)** : module
+  [`src/lib/logic/defenseTriangle.ts`](src/lib/logic/defenseTriangle.ts) —
+  `triangleAngleDeg`, `profileWeightMultipliers`, `isPassShadowed`,
+  `passShadowsByDefender`. 21 tests. **Non câblée**.
+- ⚪ **Sous-étape 3b** : câbler les multiplicateurs profil dans
+  les forces de `manDefense` / `help` (composition `seek-man *
+  manWeight` + `seek-basket * basketWeight`). Propager
+  `isPassShadowed` dans `ComputedDefender` pour autoriser le float
+  des défenseurs adjacents.
 
 **Contraintes d'implémentation**
 - TypeScript pur, déterministe, sans dépendance React, isolé dans
