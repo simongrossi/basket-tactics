@@ -201,7 +201,13 @@ export function DefensePanel(props: DefensePanelProps) {
           defenseSystem={state.defenseSystem}
           zoneType={state.zoneConfig.type}
           junkType={state.junkConfig?.type}
-          pressType={state.pressConfig?.type === 'half-court' ? 'half-court' : undefined}
+          pressType={
+            state.pressConfig?.type === 'full-court' || state.pressConfig?.type === '1-2-1-1'
+              ? 'full-court'
+              : state.pressConfig?.type === 'half-court' || state.pressConfig?.type === '2-2-1'
+                ? 'half-court'
+                : undefined
+          }
           onChange={handleSystemChange}
         />
 
@@ -289,29 +295,50 @@ export function DefensePanel(props: DefensePanelProps) {
           );
         })()}
 
-        {/* F.2 — Sub-config press : info statique + note V1 statique */}
-        {state.defenseSystem === 'press' && (
-          <div
-            style={{
-              marginTop: 10,
-              padding: '8px 10px',
-              borderRadius: 6,
-              background: 'rgba(220, 38, 38, 0.10)',
-              border: '1px solid rgba(252, 165, 165, 0.28)',
-            }}
-          >
-            <div style={{ fontSize: 11, color: '#fca5a5', fontWeight: 600, marginBottom: 6 }}>
-              Half-court press (2-2-1)
+        {/* F.2 — Sub-config press : adapté selon V1 (half-court 2-2-1)
+            ou V2 (full-court 1-2-1-1 + trap). */}
+        {state.defenseSystem === 'press' && (() => {
+          const pType = state.pressConfig?.type ?? 'half-court';
+          const isFull = pType === 'full-court' || pType === '1-2-1-1';
+          return (
+            <div
+              style={{
+                marginTop: 10,
+                padding: '8px 10px',
+                borderRadius: 6,
+                background: 'rgba(220, 38, 38, 0.10)',
+                border: '1px solid rgba(252, 165, 165, 0.28)',
+              }}
+            >
+              <div style={{ fontSize: 11, color: '#fca5a5', fontWeight: 600, marginBottom: 6 }}>
+                {isFull ? 'Full-court press (1-2-1-1)' : 'Half-court press (2-2-1)'}
+              </div>
+              <div style={{ fontSize: 9.5, color: '#94a3b8', lineHeight: 1.4 }}>
+                {isFull ? (
+                  <>
+                    5 défenseurs en pression tout terrain : 1 chaser sur la
+                    remise adverse, 2 wings backcourt, 1 protecteur médiane,
+                    1 sweeper sous notre panier.
+                    <br />
+                    <strong>V2 trap dynamique</strong> : quand le porteur franchit la
+                    médiane (côté offense), les 2 défenseurs les plus proches
+                    sautent dessus (+35 px vers le porteur).
+                    <br />
+                    Retreat progressive si press cassée : reportée V2.5.
+                  </>
+                ) : (
+                  <>
+                    5 défenseurs positionnés sur le terrain offensif : 2 sur la
+                    ligne médiane, 2 zone de relais, 1 sweeper centre.
+                    <br />
+                    <strong>V1 statique</strong> : pas de trap dynamique. Pour le trap
+                    + full-court, choisir le mode "Full-court" ci-dessus.
+                  </>
+                )}
+              </div>
             </div>
-            <div style={{ fontSize: 9.5, color: '#94a3b8', lineHeight: 1.4 }}>
-              5 défenseurs positionnés sur le terrain offensif : 2 sur la
-              ligne médiane, 2 zone de relais, 1 sweeper centre.
-              <br />
-              <strong>V1 statique</strong> : pas de trap dynamique au franchissement
-              de la médiane ni de retreat (reporté V1.5). Pas de full-court (V2).
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Sub-config visible uniquement en zone (Q6 fusion) */}
         {!isMan && (

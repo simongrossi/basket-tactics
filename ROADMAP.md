@@ -821,7 +821,7 @@ de possession. Reset shot clock à 14 s (rebond offensif) ou switch possession.
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
 | ~~F.1~~ | ~~**Junk defenses V1 + V2 (Box-and-1, Triangle-and-2, Diamond-and-1)** : `DefenseSystem` étendu à `'junk'` + `state.junkConfig: {type, chaser, chaser2?}`. Couche `computeJunkDefenseTargets` court-circuit (comme zone). 3 formations : box (4 corners), triangle (1 haut + 2 blocks), diamond (losange 1-2-1). 1 ou 2 chasseurs selon type. helpFactor=0 partout. UI complète dans SystemSelector + sub-config chaser picker (1 ou 2 selon type).~~ | — | — | — | 🟢 V1+V2 livrés 2026-05-18 (8+13 tests, 1349 verts) |
-| ~~F.2~~ | ~~**Press half-court V1 (2-2-1)** : `DefenseSystem 'press'` + `state.pressConfig: { type }`. Couche `computePressDefenseTargets` court-circuit (comme zone/junk). 5 défenseurs sur positions presse statiques (2 médiane + 2 relais + 1 sweeper). Aucune modification de `getDefenseHoop` (pattern junk éprouvé, zéro risque Règle 1bis).~~ | — | — | — | 🟢 V1 livré 2026-05-18 (9 tests, 1444 verts) |
+| ~~F.2~~ | ~~**Press V1+V2** : DefenseSystem 'press'. V1 half-court (2-2-1 statique). V2 full-court (1-2-1-1) + trap dynamique au franchissement de la médiane (TRAP_PULL_PX=35, 2 défenseurs proches sautent sur le porteur). Court-circuit comme zone/junk, zéro risque Règle 1bis.~~ | — | — | — | 🟢 V1+V2 livrés 2026-05-18 (9+6 tests, 1450 verts) |
 | ~~F.3~~ | ~~**Free throw rebound positioning** : 10 positions canoniques + transform + badge UI~~ | — | — | — | 🟢 livré 2026-05-13 (11 tests, 899 verts) |
 | ~~F.4~~ | ~~**End-of-quarter foul to give** : helper + diag critical + badge SVG `🟥 FOUL TO GIVE` + UI globale (defenseTeamFouls) + per-step (clockSeconds)~~ | — | — | — | 🟢 V1 livré 2026-05-18 (9 tests, 1279 verts) |
 | ~~F.5~~ | ~~**Late shot clock defense** : `lateShotClockLayer` (couche 1.7, opt-in via lateShotClockDefenseEnabled + step.shotClockRemaining<5). carrierDef contest accru, autres défenseurs no-help.~~ | — | — | — | 🟢 V1 livré 2026-05-18 (5 tests, 1279 verts) |
@@ -883,10 +883,14 @@ d'écran.
 - helpFactor=0 partout, matchups préservés.
 - UI : bouton "Half-court" activé dans SystemSelector + sub-config rouge.
 
-**V2 reportée** :
-- Full-court press (positions encore plus hautes côté inbound).
-- Trap dynamique au franchissement de la médiane (réutilise `applyTrap`).
-- Retreat progressive si press cassée.
+**V2 livré 2026-05-18** (6 nouveaux tests) :
+- `PressType` étendu à `'half-court' | '2-2-1' | 'full-court' | '1-2-1-1'`.
+- Formation 1-2-1-1 : 1 chaser (dy -720), 2 wings backcourt (dy -580), 1 mid (dy -460), 1 sweeper (dy -50).
+- Trap dynamique : `trapOnHalfCourtCross?: boolean` (default `true` sur full-court). Quand `carrierPos.y < TRAP_CROSS_THRESHOLD_Y (540)` (côté offense), les 2 défenseurs les plus proches sautent vers le porteur (+`TRAP_PULL_PX = 35` px).
+- UI : bouton "Full-court" activé + sub-config différencie V1/V2 dans DefensePanel.
+
+**V2.5 reportée** :
+- Retreat progressive si press cassée (60% du chemin médiane → panier déclenche retour homme-à-homme).
 
 ⚪ Plan d'origine ROADMAP (suggérait refonte `getDefenseHoop` — non retenue) :
 

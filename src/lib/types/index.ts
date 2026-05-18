@@ -559,12 +559,18 @@ export interface JunkConfig {
   chaser2?: AttackerId;
 }
 
-/** F.2 V1 — Presse half-court (V1 statique sans trap dynamique).
- *  V2 ajoutera full-court + trap auto au franchissement de la médiane. */
-export type PressType = 'half-court' | '2-2-1';
+/** F.2 V1+V2 — Types de presse défensive.
+ *  V1 : 'half-court' / '2-2-1' — formation statique demi-terrain.
+ *  V2 : 'full-court' / '1-2-1-1' — formation tout terrain + trap au
+ *  franchissement de la médiane. */
+export type PressType = 'half-court' | '2-2-1' | 'full-court' | '1-2-1-1';
 
 export interface PressConfig {
   type: PressType;
+  /** F.2 V2 — Active le trap dynamique au franchissement de la
+   *  ligne médiane par le porteur. Default false en V1, true en V2
+   *  full-court. */
+  trapOnHalfCourtCross?: boolean;
 }
 export type ZoneType = 'zone-2-3' | 'zone-1-3-1' | 'zone-3-2' | 'zone-2-1-2' | 'zone-matchup';
 

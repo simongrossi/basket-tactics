@@ -49,18 +49,22 @@ CHANGELOG [0.12.0]. Faits marquants :
 - **A11 V3 outlet setter** `addOutletPassStep` chaîne en 1 clic le
   flux "rebond défensif → transition adverse" (clear outletPassPending
   + insère step adverse). UX 1 clic au lieu de 2. 4 tests.
-- **F.2 V1 half-court press 2-2-1** DernierR chantier basket de la
-  roadmap. `DefenseSystem 'press'` + couche `pressLayer.ts`
-  court-circuit (pattern F.1 junk). PAS de refonte de `getDefenseHoop`
-  préconisée par le ROADMAP — approche pragmatique zéro risque
-  Règle 1bis. Formation 2-2-1 : 2 médiane + 2 relais + 1 sweeper.
-  9 tests. V2 full-court + trap dynamique reportée.
+- **F.2 V1 + V2 press defenses** Dernier chantier basket de la roadmap.
+  `DefenseSystem 'press'` + couche `pressLayer.ts` court-circuit
+  (pattern F.1 junk). PAS de refonte de `getDefenseHoop` préconisée par
+  le ROADMAP — approche pragmatique zéro risque Règle 1bis.
+  - **V1 half-court 2-2-1** : 2 médiane + 2 relais + 1 sweeper. 9 tests.
+  - **V2 full-court 1-2-1-1 + trap dynamique** : chaser haut, 2 ailes
+    back-court, médian, sweeper. Au franchissement de la médiane
+    (`HALF_COURT_Y=540`, direction-aware), les 2 défenseurs les plus
+    proches tirés de 35 px vers le porteur en préservant la clearance.
+    `pressConfig.trapOnHalfCourtCross` (défaut true). 6 tests.
+  - V2.5 retreat progressive reportée.
 
 **Le moteur tactique est désormais complet.** Tous les gros chantiers
 basket sont livrés. Reportés sans impact bloquant :
-- A11 V2 (blocked, reset shot clock, outlet pass auto)
-- E.1 V2 stage 2b (refacto 2-way home/away)
-- F.2 press full/half-court
+- E.1 V2 stage 2b (refacto 2-way home/away, Options B/C)
+- F.2 V2.5 retreat progressive
 - J.2/J.3 qualité moteur (perf cache, solver unifié)
 
 Le projet est livrable pour démos coachs réels.

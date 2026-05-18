@@ -109,6 +109,123 @@ describe('F.2 V1 — Half-court press', () => {
   });
 });
 
+describe('F.2 V2 — Full-court press 1-2-1-1', () => {
+  function makeFullCourtPressState(carrierY = 480): AppState {
+    const base = makeInitialState();
+    const off: AttackerPositions = {
+      O1: { x: 300, y: carrierY }, // porteur, position variable
+      O2: { x: 100, y: 380 }, O3: { x: 500, y: 380 },
+      O4: { x: 200, y: 200 }, O5: { x: 400, y: 200 },
+    };
+    return {
+      ...base,
+      steps: [{ off, ballCarrier: 'O1', annotations: [] }],
+      activeStep: 0,
+      defenseSystem: 'press',
+      pressConfig: { type: 'full-court' },
+    };
+  }
+
+  it("full-court : chaser le PLUS éloigné du panier defense (sous panier offense)", () => {
+    const state = makeFullCourtPressState();
+    const def = effectiveDefensePositions(state, 0);
+    // chaser = D1 (premier slot). dy=-720, donc y = 75 + 720 = 795 (avec attackingDirection up).
+    const distFromHoop = (['D1', 'D2', 'D3', 'D4', 'D5'] as const).map((d) => ({
+      id: d,
+      dist: Math.hypot(def[d].x - HOOP.x, def[d].y - HOOP.y),
+    }));
+    distFromHoop.sort((a, b) => b.dist - a.dist);
+    // Le défenseur le plus loin du panier defense doit être le chaser.
+    expect(distFromHoop[0].id).toBe('D1');
+  });
+
+  it("full-court positions distinctes de half-court", () => {
+    const half = makePressState(); // half-court
+    const full = makeFullCourtPressState();
+    const defHalf = effectiveDefensePositions(half, 0);
+    const defFull = effectiveDefensePositions(full, 0);
+    let maxDelta = 0;
+    (['D1', 'D2', 'D3', 'D4', 'D5'] as const).forEach((dId) => {
+      const d = Math.hypot(defHalf[dId].x - defFull[dId].x, defHalf[dId].y - defFull[dId].y);
+      if (d > maxDelta) maxDelta = d;
+    });
+    expect(maxDelta).toBeGreaterThan(200);
+  });
+
+  it("TRAP dynamique : porteur côté offense (y < 540) → 2 défenseurs proches modifiés", () => {
+    // Compare avec trap désactivé vs activé.
+    const stateNoTrap: AppState = {
+      ...makeFullCourtPressState(400),
+      pressConfig: { type: 'full-court', trapOnHalfCourtCross: false },
+    };
+    const stateWithTrap = makeFullCourtPressState(400); // y=400 < 540, dans offense
+    const defNoTrap = effectiveDefensePositions(stateNoTrap, 0);
+    const defTrap = effectiveDefensePositions(stateWithTrap, 0);
+    // Au moins 2 défenseurs doivent avoir bougé (les trappers).
+    let movedCount = 0;
+    (['D1', 'D2', 'D3', 'D4', 'D5'] as const).forEach((dId) => {
+      const d = Math.hypot(defNoTrap[dId].x - defTrap[dId].x, defNoTrap[dId].y - defTrap[dId].y);
+      if (d > 5) movedCount++;
+    });
+    expect(movedCount).toBeGreaterThanOrEqual(2);
+  });
+
+  it("TRAP : pas de trap si porteur côté défense (y > 540)", () => {
+    const stateWithTrap = makeFullCourtPressState(680); // y > 540, dans backcourt défense
+    const stateNoTrap: AppState = {
+      ...stateWithTrap,
+      pressConfig: { type: 'full-court', trapOnHalfCourtCross: false },
+    };
+    const defTrap = effectiveDefensePositions(stateWithTrap, 0);
+    const defNoTrap = effectiveDefensePositions(stateNoTrap, 0);
+    // Pas de trap : positions identiques.
+    (['D1', 'D2', 'D3', 'D4', 'D5'] as const).forEach((dId) => {
+      const d = Math.hypot(defTrap[dId].x - defNoTrap[dId].x, defTrap[dId].y - defNoTrap[dId].y);
+      expect(d, `${dId} doit être identique sans trap`).toBeLessThan(2);
+    });
+  });
+
+  it("INVARIANT clearance avec trap actif", () => {
+    const state = makeFullCourtPressState(400); // trap actif
+    const def = effectiveDefensePositions(state, 0);
+    const off = state.steps[0].off;
+    const DEFS = ['D1', 'D2', 'D3', 'D4', 'D5'] as const;
+    const ATTS = ['O1', 'O2', 'O3', 'O4', 'O5'] as const;
+    DEFS.forEach((dId) => {
+      ATTS.forEach((oId) => {
+        if (def[dId].matchedTo === oId) return;
+        const d = Math.hypot(def[dId].x - off[oId].x, def[dId].y - off[oId].y);
+        expect(d, `${dId} ↔ ${oId}`).toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.5);
+      });
+    });
+  });
+
+  it("trapOnHalfCourtCross override fonctionne (true sur half-court active le trap)", () => {
+    // Cas exotique : on force trap=true même sur half-court.
+    const stateHalfTrap: AppState = {
+      ...makePressState(),
+      pressConfig: { type: 'half-court', trapOnHalfCourtCross: true },
+    };
+    stateHalfTrap.steps[0] = { ...stateHalfTrap.steps[0], off: {
+      ...stateHalfTrap.steps[0].off,
+      O1: { x: 300, y: 400 }, // porteur côté offense pour déclencher trap
+    } };
+    const defHalfTrap = effectiveDefensePositions(stateHalfTrap, 0);
+    const defHalfNoTrap: AppState = {
+      ...stateHalfTrap,
+      pressConfig: { type: 'half-court', trapOnHalfCourtCross: false },
+    };
+    const def2 = effectiveDefensePositions(defHalfNoTrap, 0);
+    // Le trap force la modif même en half-court.
+    let movedCount = 0;
+    (['D1', 'D2', 'D3', 'D4', 'D5'] as const).forEach((dId) => {
+      const d = Math.hypot(defHalfTrap[dId].x - def2[dId].x, defHalfTrap[dId].y - def2[dId].y);
+      if (d > 5) movedCount++;
+    });
+    expect(movedCount).toBeGreaterThanOrEqual(2);
+  });
+});
+
 describe('F.2 V1 — comparaison vs autres systèmes', () => {
   it('press positions ≠ man positions (signature distincte)', () => {
     const stateMan = makePressState();

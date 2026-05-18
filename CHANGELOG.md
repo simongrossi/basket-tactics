@@ -6,6 +6,48 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+## [0.17.0] — 2026-05-18 (F.2 V2 — full-court 1-2-1-1 + trap dynamique)
+
+Extension naturelle de F.2 V1. 1 commit, 6 nouveaux tests, 1444 → 1450
+verts. Coût ~30 min grâce à V1 solide.
+
+- Types : `PressType` étendu à `'half-court' | '2-2-1' | 'full-court' |
+  '1-2-1-1'`. `PressConfig.trapOnHalfCourtCross?: boolean` (default
+  true sur full-court).
+- `pressLayer.ts` :
+  - `PRESS_1_2_1_1_OFFSETS` : 1 chaser (sous panier offense), 2 wings
+    backcourt, 1 mid (ligne médiane), 1 sweeper (sous notre panier).
+  - `offsetsForType(type)` dispatch selon V1/V2.
+  - **Trap dynamique** : si `trapOnHalfCourtCross` actif ET porteur
+    franchit la médiane (`carrier.y < 540` côté offense), les 2
+    défenseurs les plus proches du porteur sont tirés de +35 px vers
+    lui (TRAP_PULL_PX). Clearance min préservée via clamp.
+  - Helper `hasCrossedHalfCourt(carrierPos, hoop)` adapté selon
+    attackingDirection.
+- UI : bouton "Full-court" activé dans SystemSelector. Sub-config
+  DefensePanel différencie V1 (half-court 2-2-1) et V2 (full-court
+  1-2-1-1 avec trap) avec descriptions adaptées.
+
+### Tests V2 (6 nouveaux)
+
+- Chaser le plus éloigné du panier défense.
+- Positions full-court distinctes de half-court (delta > 200 px).
+- Trap modifie ≥2 défenseurs quand porteur côté offense.
+- Pas de trap si porteur côté défense.
+- INVARIANT clearance avec trap actif (≥ PLAYER_MIN_CLEARANCE_PX).
+- Override `trapOnHalfCourtCross: true` fonctionne aussi sur half-court.
+
+### Reportés V2.5
+
+Retreat progressive si press cassée (60% du chemin médiane → panier
+déclenche retour homme-à-homme). Pas critique en V2.
+
+### Checklist Règle 1bis
+
+155 tests `screens*`/`overlap*`/`userJson*`/`screenLab*` tous verts.
+Aucune modification de `frameResolver`, `screens/`, `defense/*` autre
+que pressLayer.
+
 ## [0.16.0] — 2026-05-18 (A11 V3 outlet + F.2 V1 half-court press)
 
 Session **bonus** complétant le moteur tactique. 2 commits, 1435 → 1444

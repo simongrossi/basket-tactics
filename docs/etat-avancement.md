@@ -2,7 +2,7 @@
 
 > Vue consolidée de **ce qui est fait**, **ce qui est en cours**, et **ce qui reste à faire**, pour ne rien oublier entre deux sessions de travail.
 >
-> Mise à jour : **2026-05-18 (F.2)** — post-session B.3 / B.4 / D.1 / D.3 / D.5 / F.1 V1+V2 / G.1-4 / J.1 / J.5 / J.6 / J.7 / A11 V1+V2+V3 / E.1 stage 2b V1 / **F.2 V1**.
+> Mise à jour : **2026-05-18 (F.2 V2)** — post-session B.3 / B.4 / D.1 / D.3 / D.5 / F.1 V1+V2 / G.1-4 / J.1 / J.5 / J.6 / J.7 / A11 V1+V2+V3 / E.1 stage 2b V1 / **F.2 V1 + V2**.
 >
 > Pour le détail commit-par-commit, voir [`CHANGELOG.md`](../CHANGELOG.md).
 > Pour la roadmap basket exhaustive, voir [`../ROADMAP.md`](../ROADMAP.md).
@@ -77,20 +77,27 @@ verrouillage croisé). 21 tests cumulés.
 haut-droite, tableau 5 défenseurs × 5 colonnes). Toggle dans
 ParametresPanel.
 
-### F.2 V1 — Half-court press 2-2-1 (1 commit, `ed76448`, 9 tests)
+### F.2 V1 + V2 — Press defenses complètes (`ed76448` + V2 ce commit, 15 tests)
 
-Le DERNIER chantier basket de la roadmap. Approche pragmatique
-différente : au lieu de refonte risquée de `getDefenseHoop` préconisée,
+Approche pragmatique : au lieu de refonte risquée de `getDefenseHoop`,
 court-circuit du pipeline (pattern F.1 junk éprouvé).
 
-- `DefenseSystem 'press'` + `pressConfig: { type: 'half-court' | '2-2-1' }`.
-- Formation 2-2-1 : 2 défenseurs ligne médiane, 2 zone de relais, 1
-  sweeper centre.
-- UI : bouton "Half-court" activé dans SystemSelector + sub-config
-  rouge dans DefensePanel.
-- Checklist Règle 1bis : 155 tests screen verts.
+- `DefenseSystem 'press'` + `pressConfig: { type, trapOnHalfCourtCross? }`.
+- **V1 half-court 2-2-1** : 2 défenseurs ligne médiane, 2 zone de relais,
+  1 sweeper centre. 9 tests.
+- **V2 full-court 1-2-1-1 + trap dynamique** (`PRESS_1_2_1_1_OFFSETS`) :
+  chaser haut au-dessus de la ligne de fond adverse, 2 ailes à mi-back-court,
+  1 défenseur médian, 1 sweeper protégeant le panier. Quand le porteur
+  franchit la médiane (`HALF_COURT_Y=540`, direction-aware), les **2
+  défenseurs les plus proches** sont tirés de `TRAP_PULL_PX=35` vers le
+  porteur en préservant `PLAYER_MIN_CLEARANCE_PX`. Activable via
+  `trapOnHalfCourtCross` (défaut true). 6 tests.
+- UI : boutons "Half-court" et "Full-court" activés dans SystemSelector
+  + sub-config rouge dans DefensePanel différenciant V1/V2.
+- Checklist Règle 1bis : 155 tests screen verts. 1450/1450 verts.
 
-V2 reportée : full-court, trap dynamique, retreat.
+V2.5 reportée : retreat progressive (interpolation press → man-to-man
+arrière quand la presse est cassée).
 
 ### A11 V3 — Outlet setter combiné (1 commit, `82add8e`, 4 tests)
 

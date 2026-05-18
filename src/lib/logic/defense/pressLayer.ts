@@ -1,25 +1,25 @@
-// F.2 V1 — Press defense (half-court 2-2-1).
+// F.2 V1+V2 — Press defense.
 //
-// Couvre la pression demi-terrain : la défense se positionne haut sur
-// le terrain offensif (côté de la moitié où l'attaque arrive) pour
-// harceler la montée de balle et la remise en jeu.
-//
-// V1 = statique : positions fixes selon attackingDirection. Pas de
-// trap dynamique au franchissement de la médiane (V2). Pas de
-// full-court (V2). Pas de retreat (V2).
+// V1 (half-court 2-2-1) : pression demi-terrain statique.
+// V2 (full-court 1-2-1-1) : pression tout terrain + trap dynamique
+// quand le porteur franchit la ligne médiane.
 //
 // Pattern identique à F.1 junk : court-circuit du pipeline man comme
 // la zone. Aucune modification de getDefenseHoop, screens/, defense/*.
 // → Zéro risque Règle 1bis CLAUDE.md.
+//
+// V2 reportés volontairement : retreat progressive si press cassée
+// (60% du chemin → retour homme-à-homme). Trop complexe pour valeur
+// marginale en V2 minimal.
 
-import type { AppState, DefenderId, Matchups, Point } from '../../types';
+import type { AppState, DefenderId, Matchups, Point, PressType } from '../../types';
 import { baseMatchups } from '../../data/initial';
 import { activeBallCarrier, activeOffense, getActiveDefenderIds } from '../players';
 import { getDefenseHoop } from '../engine';
 import { computeDefenderOrientation } from '../orientation';
 import type { DefenderTarget } from './types';
 
-/** Formation 2-2-1 half-court (5 défenseurs) :
+/** Formation 2-2-1 half-court (V1, 5 défenseurs) :
  *  - 2 sur la ligne médiane (= entrée du terrain offensif)
  *  - 2 sur la zone de relais (= 1/3 supérieur, vers le panier offense)
  *  - 1 protecteur arrière au centre (= sweeper sous le panier defense)
@@ -41,6 +41,48 @@ const PRESS_2_2_1_OFFSETS: Array<{ dx: number; dy: number; role: string }> = [
   { dx: 0,    dy: -50,  role: 'sweeper' },      // D5 typique
 ];
 
+/** Formation 1-2-1-1 full-court (V2, 5 défenseurs) :
+ *  - 1 chaser tout en haut sur le porteur (= pression remise en jeu côté
+ *    panier adverse, dy ≈ -720 = quasi sous le panier offense)
+ *  - 2 wings en seconde ligne (zone backcourt adverse)
+ *  - 1 protecteur ligne médiane (= centre, dy ≈ -460)
+ *  - 1 sweeper sous panier défense
+ *
+ *  Géométrie typique 1-2-1-1 NCAA / NBA. Plus agressive que 2-2-1. */
+const PRESS_1_2_1_1_OFFSETS: Array<{ dx: number; dy: number; role: string }> = [
+  // Chaser — sous panier offense (= remise en jeu adverse)
+  { dx: 0,    dy: -720, role: 'chaser' },        // D1 typique
+  // Wings — seconde ligne backcourt adverse
+  { dx: -130, dy: -580, role: 'wing-left' },     // D2 typique
+  { dx: +130, dy: -580, role: 'wing-right' },    // D3 typique
+  // Mid — protecteur ligne médiane
+  { dx: 0,    dy: -460, role: 'mid' },           // D4 typique
+  // Sweeper — sous notre panier
+  { dx: 0,    dy: -50,  role: 'sweeper' },       // D5 typique
+];
+
+/** Retourne les offsets selon le type de press. */
+function offsetsForType(type: PressType): Array<{ dx: number; dy: number; role: string }> {
+  if (type === 'full-court' || type === '1-2-1-1') return PRESS_1_2_1_1_OFFSETS;
+  return PRESS_2_2_1_OFFSETS; // half-court / 2-2-1
+}
+
+/** True si le type de press est full-court (= concerne le V2). */
+export function isFullCourtPress(type: PressType): boolean {
+  return type === 'full-court' || type === '1-2-1-1';
+}
+
+/** F.2 V2 — Décalage en px appliqué aux 2 défenseurs les plus proches du
+ *  porteur quand celui-ci franchit la ligne médiane (= trap dynamique).
+ *  Plus c'est élevé, plus le trap est visible. */
+const TRAP_PULL_PX = 35;
+
+/** F.2 V2 — Marge de tolérance autour de la médiane pour décider qu'un
+ *  porteur "a franchi". HALF_COURT_Y = 540 ; on déclenche le trap quand
+ *  le porteur est dans la moitié offensive (= y < 540 si attaque vers
+ *  le haut). */
+const TRAP_CROSS_THRESHOLD_Y = 540;
+
 export function computePressDefenseTargets(
   state: AppState,
   stepIdx: number,
@@ -51,6 +93,10 @@ export function computePressDefenseTargets(
   const defenderIds = getActiveDefenderIds(state.playerCount);
   const hoop = getDefenseHoop(state);
 
+  // Type de press : V1 'half-court' / '2-2-1' ou V2 'full-court' / '1-2-1-1'.
+  const pressType: PressType = state.pressConfig?.type ?? 'half-court';
+  const offsets = offsetsForType(pressType);
+
   // Sens "vers le panier offense" : si hoop.y < 300 (attackingDirection='up',
   // panier defense en haut), alors le panier offense est en bas (y > hoop.y).
   // dy < 0 dans nos offsets = direction "vers offense", donc on flip si
@@ -60,9 +106,9 @@ export function computePressDefenseTargets(
   const positions = {} as Record<DefenderId, DefenderTarget>;
   const matchupsApplied: Matchups = { ...baseMatchups };
 
-  // Assigne dans l'ordre des défenseurs actifs aux 5 slots presse.
+  // Assigne dans l'ordre des défenseurs actifs aux slots presse du type.
   defenderIds.forEach((dId, i) => {
-    const slot = PRESS_2_2_1_OFFSETS[i % PRESS_2_2_1_OFFSETS.length];
+    const slot = offsets[i % offsets.length];
     const x = hoop.x + slot.dx;
     const y = hoop.y + slot.dy * dySign;
     const matched = baseMatchups[dId];
@@ -91,8 +137,61 @@ export function computePressDefenseTargets(
     };
   });
 
+  // F.2 V2 — Trap dynamique : si le type est full-court (trap activé
+  // par défaut) ET le porteur a franchi la ligne médiane (= côté
+  // offense), les 2 défenseurs les plus proches du porteur sautent
+  // dessus pour piège.
+  const trapEnabled =
+    state.pressConfig?.trapOnHalfCourtCross ?? isFullCourtPress(pressType);
+  const carrierPos = off[carrier];
+  if (trapEnabled && carrierPos && hasCrossedHalfCourt(carrierPos, hoop)) {
+    applyTrapPull(positions, defenderIds, carrierPos);
+  }
+
   return { positions, matchupsApplied };
 }
 
+/** Détermine si le porteur est dans la moitié offense (= a franchi la
+ *  médiane).
+ *  - attackingDirection='up' (hoop.y < 300) : porteur côté offense si y < 540.
+ *  - attackingDirection='down' (hoop.y > 600) : porteur côté offense si y > 540.
+ */
+function hasCrossedHalfCourt(carrierPos: Point, hoop: Point): boolean {
+  if (hoop.y < 300) {
+    // attaque vers le haut, offense est y < 540 (= terrain offensif)
+    return carrierPos.y < TRAP_CROSS_THRESHOLD_Y;
+  }
+  // attaque vers le bas, offense est y > 540
+  return carrierPos.y > TRAP_CROSS_THRESHOLD_Y;
+}
+
+/** Tire les 2 défenseurs les plus proches du porteur vers lui de
+ *  TRAP_PULL_PX (en plus de leur position presse calculée). */
+function applyTrapPull(
+  positions: Record<DefenderId, DefenderTarget>,
+  defenderIds: DefenderId[],
+  carrierPos: Point,
+): void {
+  // Calcule distance de chaque défenseur au porteur (post-press placement).
+  const dists = defenderIds.map((dId) => ({
+    dId,
+    dist: Math.hypot(positions[dId].x - carrierPos.x, positions[dId].y - carrierPos.y),
+  }));
+  dists.sort((a, b) => a.dist - b.dist);
+  // Top 2 = trappers.
+  const trappers = dists.slice(0, 2);
+  trappers.forEach(({ dId }) => {
+    const t = positions[dId];
+    const dx = carrierPos.x - t.x;
+    const dy = carrierPos.y - t.y;
+    const d = Math.hypot(dx, dy);
+    if (d < 0.01) return;
+    const pull = Math.min(TRAP_PULL_PX, d - 30); // garde > clearance min
+    if (pull <= 0) return;
+    positions[dId].x = t.x + (dx / d) * pull;
+    positions[dId].y = t.y + (dy / d) * pull;
+  });
+}
+
 /** Export pour les tests. */
-export { PRESS_2_2_1_OFFSETS };
+export { PRESS_2_2_1_OFFSETS, PRESS_1_2_1_1_OFFSETS, TRAP_PULL_PX, TRAP_CROSS_THRESHOLD_Y };

@@ -20,7 +20,7 @@ export type SystemChoice =
   | { kind: 'man' }
   | { kind: 'zone'; zoneType: ZoneType }
   | { kind: 'junk'; junkType: 'box-and-1' | 'triangle-and-2' | 'diamond-and-1' }
-  | { kind: 'press'; pressType: 'half-court' };
+  | { kind: 'press'; pressType: 'half-court' | 'full-court' };
 
 interface SystemDef {
   id: string;
@@ -114,8 +114,8 @@ const FAMILIES: { title: string; systems: SystemDef[] }[] = [
       {
         id: 'full-court-press',
         label: 'Full-court',
-        description: 'Pression tout terrain.',
-        pending: 'F.2 V2',
+        description: 'Pression tout terrain 1-2-1-1 + trap.',
+        choice: { kind: 'press', pressType: 'full-court' },
       },
     ],
   },
@@ -127,7 +127,7 @@ interface SystemSelectorProps {
   /** F.1 — Type junk actif si defenseSystem === 'junk'. */
   junkType?: 'box-and-1' | 'triangle-and-2' | 'diamond-and-1';
   /** F.2 — Type press actif si defenseSystem === 'press'. */
-  pressType?: 'half-court';
+  pressType?: 'half-court' | 'full-court';
   onChange: (choice: SystemChoice) => void;
 }
 
@@ -136,7 +136,7 @@ export function SystemSelector({ defenseSystem, zoneType, junkType, pressType, o
   const currentId =
     defenseSystem === 'man' ? 'man'
     : defenseSystem === 'junk' ? (junkType ?? 'box-and-1')
-    : defenseSystem === 'press' ? (pressType === 'half-court' ? 'half-court-press' : 'half-court-press')
+    : defenseSystem === 'press' ? (pressType === 'full-court' ? 'full-court-press' : 'half-court-press')
     : zoneType;
 
   return (

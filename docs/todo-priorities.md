@@ -32,15 +32,15 @@
 | ~~**E.1 V2 stage 2b**~~ | 🟢 V1 livré 2026-05-18 (Option A ultra-mini, 3 commits, 15 tests) | `Step.viewSide?` + setter `convertStepToAwayPossession` (mirror y=540) + UI + diag coach. Options B/C reportées. | — | — |
 | **A11 V3** | ⚪ reporté | Couche `boxOutLayer` dynamique vs setter statique, unification mode édition ↔ game loop, outlet pass setter auto (génère step inbound après). Plan dans [a11-plan.md](a11-plan.md). | — | — |
 
-### Phase F — Situations FIBA / haute compétition ✅ 5/5 livrés (F.2 reporté)
+### Phase F — Situations FIBA / haute compétition ✅ 5/5 livrés
 
 | Item | Statut | Description |
 |---|---|---|
 | ~~**F.1 V1 + V2**~~ | 🟢 livré 2026-05-18 (`49be60b` + `fa6e1e2`) | Junk defenses : Box-and-1, Triangle-and-2, Diamond-and-1. 3 formations + 1 ou 2 chasseurs (21 tests). |
+| ~~**F.2 V1 + V2**~~ | 🟢 livrés 2026-05-18 (V1 `ed76448` 9 tests + V2 6 tests) | Press defenses : half-court 2-2-1 + full-court 1-2-1-1 + trap dynamique (mi-terrain). Court-circuit pattern (F.1 junk), pas de refonte `getDefenseHoop`. V2.5 retreat progressive reportée. |
 | ~~**F.3**~~ | 🟢 V1 livré 2026-05-13 | `buildFreeThrowSetup` (11 tests). |
 | ~~**F.4**~~ | 🟢 V1 livré 2026-05-18 | Helper + diag critical + badge `🟥 FOUL TO GIVE` (9 tests). |
 | ~~**F.5**~~ | 🟢 V1 livré 2026-05-18 | `lateShotClockLayer` couche 1.7 (5 tests). |
-| ~~**F.2 V1**~~ | 🟢 livré 2026-05-18 (`ed76448`, 9 tests) | Half-court press 2-2-1 via court-circuit (pattern F.1 junk), pas de refonte getDefenseHoop. V2 full-court + trap dynamique reportée. |
 
 ### Phase C — Réalisme physique modéré ✅ COMPLÈTE (7/7)
 
@@ -133,7 +133,7 @@ A11 V1 (le dernier gros chantier basket) livré 2026-05-18 en ~3h
 Le projet est livrable pour démos coachs réels.
 
 ### À reporter sauf demande explicite
-- **F.2 V2** Full-court press + trap dynamique + retreat (~2j).
+- **F.2 V2.5** Retreat progressive (interpolation press → man-to-man arrière) (~1j).
 - **A11 V3 unification** mode édition ↔ game loop (1-2j).
 - **E.1 stage 2b Options B/C** team-aware soft / refacto complet.
 - **D.4** Pathfinding défensif (plan d'audit écrit, gain visuel modéré
