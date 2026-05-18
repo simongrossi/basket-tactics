@@ -6,6 +6,32 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### CVT Chantier 1.3 — Infra `repel` autour des poseurs d'écran (non câblée)
+
+Nouveau module
+[`src/lib/logic/screens/repelForces.ts`](src/lib/logic/screens/repelForces.ts)
+posant l'infrastructure pour la répulsion fluide autour des poseurs.
+**Statut : non câblée** — aucun consommateur dans `defense/*` ni
+dans `applyScreenAdjustment`. Le câblage attend une sous-étape 1.3b
+dédiée pour valider l'interaction avec les tests `screens*` /
+`overlap*` sans surprise.
+
+- `screenerRepelForce(defenderRef, screenerPos, weight?, label?, radius?)`
+  → émet une force `repel` à falloff linéaire dans
+  `SCREEN_REPEL_RADIUS_PX = MIN_PLAYER_CLEARANCE_PX + 12 = 46 px`.
+  Hors rayon = force morte (glissement fluide, jamais de mur).
+- `screenersRepelForces(defenderRef, screeners[], weight?)` → batch
+  indexé pour stagger/elevator/double screen.
+- 2 nouvelles constantes dans
+  [`data/physics.ts`](src/lib/data/physics.ts) :
+  `STEERING_SCREEN_REPEL_BUFFER_PX = 12`,
+  `STEERING_SCREEN_REPEL_WEIGHT = 20`.
+- **9 nouveaux tests** :
+  constante calculée, direction radiale, falloff linéaire,
+  force morte hors rayon, cas dégénéré (overlap → solveur dur),
+  label custom, batch indexé, filtrage forces mortes, liste vide.
+- 1592 → **1601 tests verts**.
+
 ### CVT Chantier 1.2 — `help.ts` câblé en double-sortie sous `useSteeringEngine`
 
 Migration de la couche d'aide. `computeHelpForces` ajouté à

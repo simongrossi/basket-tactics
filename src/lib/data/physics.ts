@@ -81,6 +81,25 @@ export const DEFAULT_DEFENSE_DISTANCE_PX = 40;
 export const STEERING_MAN_SLOWING_RADIUS_PX = 12;
 
 /**
+ * CVT Chantier 1.3 — rayon de répulsion `repel` autour des poseurs
+ * d'écran. Définit la zone où la force de glissement fluide remplace
+ * progressivement le push-out binaire. = `MIN_PLAYER_CLEARANCE_PX +
+ * STEERING_SCREEN_REPEL_BUFFER_PX`.
+ *
+ * Buffer 12 px : juste assez pour que la force pré-positionne le
+ * défenseur AVANT qu'il touche le cercle de clearance dur.
+ */
+export const STEERING_SCREEN_REPEL_BUFFER_PX = 12;
+
+/**
+ * CVT Chantier 1.3 — poids par défaut de la force `repel` autour
+ * d'un poseur d'écran. Calibré pour que la trajectoire dévie de
+ * quelques pixels au passage d'un écran sans masquer le seek vers
+ * la cible principale.
+ */
+export const STEERING_SCREEN_REPEL_WEIGHT = 20;
+
+/**
  * Multiplicateur de vitesse appliqué au défenseur du nouveau porteur lors
  * d'une transition de balle (closeout). 1.4 = +40 % sur l'étape de
  * transition uniquement, pour matérialiser l'accélération de fermeture.

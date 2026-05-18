@@ -1522,9 +1522,16 @@ défenseur) à un paradigme **émergeant** de forces vectorielles pondérées
   Toute la métadonnée préservée (factor/denying/triggered/aim/kind).
   4 tests : bit-équiv loin, métadonnée, helpMode disabled, amorti
   zone proche. **1592 tests verts**.
-- ⚪ **Sous-étape 1.3** : migrer `defense/pnrLayer.ts` et la gestion
-  des écrans — `repel` autour des poseurs remplace le push-out brutal
-  de `screenAvoidance`. **Premier gain visuel majeur attendu** ici.
+- 🟡 **Sous-étape 1.3 — infra livrée (2026-05-19)** : module
+  [`screens/repelForces.ts`](src/lib/logic/screens/repelForces.ts)
+  avec `screenerRepelForce` + `screenersRepelForces`. Falloff
+  linéaire dans `SCREEN_REPEL_RADIUS_PX = MIN_PLAYER_CLEARANCE_PX
+  + 12`. 9 tests verts. **Non câblée**.
+- ⚪ **Sous-étape 1.3b** : câbler `repelForces` dans
+  `applyScreenAdjustment` (ou en couche additive après
+  `baseTargets`). Validation prudente avec les tests `screens*` /
+  `overlap*` / `userJson*` / `screenLab*`. **Premier gain visuel
+  majeur attendu** ici.
 - ⚪ **Sous-étape 1.4** : activation par défaut du flag, suppression
   des sorties anciennes (`Point` cible), nettoyage de la double-sortie.
 

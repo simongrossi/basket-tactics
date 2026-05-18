@@ -407,9 +407,10 @@ sous flag `useSteeringEngine`, tests verts à chaque commit) :
    au lieu de `seek` → anti-oscillation près de la cible.
 3. ✅ **Livré (1.2)** : `help.ts` câblé via `computeHelpForces`.
    Bit-équivalent loin, amorti proche, métadonnée préservée.
-4. Migrer `defense/pnrLayer.ts` et la gestion des écrans
-   (`repel` autour des poseurs remplace le push-out brutal de
-   `defense/screenAvoidance` — premier gain visuel majeur).
+4. 🟡 **Infra livrée (1.3)** : module
+   [`screens/repelForces.ts`](../src/lib/logic/screens/repelForces.ts)
+   exposant `screenerRepelForce` + `screenersRepelForces`.
+   **Non câblé** — câblage dans `applyScreenAdjustment` = sous-étape 1.3b.
 
 **Chantiers 2 et 3** (lignes de passe + triangle vectoriel + profils
 offensifs) viendront après stabilisation du Chantier 1. Détails complets
