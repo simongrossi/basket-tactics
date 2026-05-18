@@ -53,6 +53,7 @@ import {
 import { computeRebound, type ReboundResult } from './rebound';
 import { buildInboundSetup } from '../inboundSetup';
 import { HALF_COURT_Y } from '../awayPossessionSetup';
+import { advanceBallAdvance } from './ballAdvance';
 
 // ============================================================
 // Constantes
@@ -149,7 +150,11 @@ export type CarrierIntent =
   | { kind: 'drive'; target: Point; expectedAction: OffensiveAction }
   | { kind: 'pass'; receiver: AttackerId; progress: number; expectedAction: OffensiveAction }
   | { kind: 'shoot'; action: OffensiveAction; forced: boolean }
-  | { kind: 'away-possession'; remainingMs: number };
+  | { kind: 'away-possession'; remainingMs: number }
+  // Phase 1.2 — Montée de balle après remise en jeu en backcourt.
+  // Le porteur drive vers la ligne médiane à vitesse réduite.
+  // advanceTimerMs : timer FIBA 8s pour franchir la médiane (sinon violation).
+  | { kind: 'advance'; targetY: number; advanceTimerMs: number };
 
 /** État live d'une possession simulée par la game loop.
  *  Mutable (par tick) — pas dans `AppState` (transient UI). */
@@ -438,6 +443,30 @@ export function tickMatch(
   // 'shoot' tomberait dans decideNextAction et perdrait l'action stockée.
   if (next.intent.kind === 'shoot') {
     return resolveShot(next, next.intent.action, rng, next.intent.forced, baseAppState);
+  }
+
+  // Phase 1.2 — Montée de balle en cours : drive vers la médiane.
+  if (next.intent.kind === 'advance') {
+    return advanceBallAdvance(next, dtMs, baseAppState);
+  }
+
+  // Phase 1.2 — Si le porteur home est en backcourt sans intent et que
+  // l'inbound est déjà fait (passe rentrante effectuée), démarrer la
+  // montée de balle (intent advance, timer 8s FIBA).
+  const carrierPos = next.off[next.carrier];
+  if (
+    next.attackingTeam === 'home' &&
+    next.intent.kind === 'idle' &&
+    next.inboundTimerMs === null &&
+    carrierPos &&
+    carrierPos.y > HALF_COURT_Y
+  ) {
+    next.intent = {
+      kind: 'advance',
+      targetY: HALF_COURT_Y - 20, // léger buffer pour bien franchir
+      advanceTimerMs: 8_000,
+    };
+    return advanceBallAdvance(next, dtMs, baseAppState);
   }
 
   // Pas d'intent : décider la prochaine action.
