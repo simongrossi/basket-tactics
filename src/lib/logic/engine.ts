@@ -31,9 +31,18 @@ import { applyPostPassOrientationLayer } from './defense/postPassOrientation';
 
 export type DetectedSwitchPair = [DefenderId, DefenderId];
 
-/** Panier de référence côté défense pour cet AppState (selon attackingDirection). */
-export function getDefenseHoop(state: AppState): Point {
-  return state.attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP;
+/** Panier de référence côté défense pour cet AppState (selon attackingDirection).
+ *
+ *  Phase 2 — `attackingTeam` permet d'inverser le panier pour la phase
+ *  adverse : quand l'away attaque, son panier cible est l'opposé de celui
+ *  que home attaque. Tous les callers de gameLoop.ts qui ont accès au
+ *  MatchState doivent passer `matchState.attackingTeam`. Les callers du
+ *  mode éditeur/playback (sans MatchState) restent en 'home' (defaut). */
+export function getDefenseHoop(state: AppState, attackingTeam: 'home' | 'away' = 'home'): Point {
+  const homeHoop = state.attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP;
+  if (attackingTeam === 'home') return homeHoop;
+  // Away attaque l'opposé
+  return homeHoop === HOOP ? HOOP_OPPOSITE : HOOP;
 }
 
 /**

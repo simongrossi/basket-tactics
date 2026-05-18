@@ -441,7 +441,7 @@ export function tickMatch(
       off: next.off,
       defPos: next.defPos,
       carrier: next.carrier,
-      hoop: getDefenseHoop(baseAppState),
+      hoop: getDefenseHoop(baseAppState, next.attackingTeam),
       rng,
       currentIntents: next.offBallIntents,
       attackerProfiles: baseAppState.attackerProfiles,
@@ -452,7 +452,7 @@ export function tickMatch(
   const advanced = advanceOffBallIntents({
     off: next.off,
     intents: next.offBallIntents,
-    hoop: getDefenseHoop(baseAppState),
+    hoop: getDefenseHoop(baseAppState, next.attackingTeam),
   });
   next.off = advanced.off;
   next.offBallIntents = advanced.intents;
@@ -585,7 +585,7 @@ function handleTransitionPause(
   // Sur tir réussi (pas de pendingRebound), le ballon descend au cercle
   // puis reste. Sur tir manqué, il rebondit vers la position du rebondeur.
   if (next.shotBallStartPos && next.transitionStartedAtMs !== null) {
-    const hoop = getDefenseHoop(baseAppState);
+    const hoop = getDefenseHoop(baseAppState, next.attackingTeam);
     const elapsed = next.possessionTimeMs - next.transitionStartedAtMs;
     const totalDuration = TRANSITION_PAUSE_MS;
     const progress = Math.min(1, elapsed / totalDuration);
@@ -696,7 +696,7 @@ function executeTransition(
       rebound = state.pendingRebound;
       offensiveReboundDecided = rebound.type === 'offensive';
     } else {
-      const hoop = getDefenseHoop(baseAppState);
+      const hoop = getDefenseHoop(baseAppState, state.attackingTeam);
       const shotEvent = [...state.eventLog].reverse().find(
         (e) => e.type === 'shot' || e.type === 'forced-shot'
       );
@@ -808,7 +808,7 @@ function continueWithOffensiveRebound(
   awayScore: number = state.awayScore,
   rebound?: ReboundResult | null
 ): MatchState {
-  const hoop = getDefenseHoop(baseAppState);
+  const hoop = getDefenseHoop(baseAppState, state.attackingTeam);
   // E.1 V1 — si rebond fourni et qu'il pointe vers un attaquant, on
   // l'utilise. Sinon (B3b legacy) : fallback heuristique = off-ball
   // le plus proche du panier.
@@ -1266,7 +1266,7 @@ function decideNextAction(
   rng: () => number,
   creativity: number
 ): OffensiveAction | null {
-  const hoop = getDefenseHoop(baseAppState);
+  const hoop = getDefenseHoop(baseAppState, state.attackingTeam);
   const defAsPoints: Record<DefenderId, Point> = {} as Record<DefenderId, Point>;
   (Object.keys(state.defPos) as DefenderId[]).forEach((id) => {
     defAsPoints[id] = { x: state.defPos[id].x, y: state.defPos[id].y };
@@ -1300,7 +1300,7 @@ function pickActionByEv(
 }
 
 function pickForcedShot(state: MatchState, baseAppState: AppState): OffensiveAction {
-  const hoop = getDefenseHoop(baseAppState);
+  const hoop = getDefenseHoop(baseAppState, state.attackingTeam);
   const actions = evaluateOffensiveOptions(
     state.off,
     state.defPos,
@@ -1414,7 +1414,7 @@ function advancePass(
       previousCarrier,
       newCarrier,
       off: state.off,
-      hoop: getDefenseHoop(baseAppState),
+      hoop: getDefenseHoop(baseAppState, state.attackingTeam),
       attackerProfiles: baseAppState.attackerProfiles,
     });
     if (relocate) {
@@ -1471,7 +1471,7 @@ function resolveShot(
   // B3a — métadonnées de tir enrichies : zone, contestation, position.
   // On reprend les mêmes helpers que `evaluateOffensiveOptions` pour
   // garantir la cohérence avec le `scoreProbability` déjà calculé.
-  const hoop = getDefenseHoop(baseAppState);
+  const hoop = getDefenseHoop(baseAppState, state.attackingTeam);
   const distFromHoop = distance(action.shotPos, hoop);
   const shotZone = shotZoneFor(distFromHoop);
   const contestDistance = nearestDefenderDistance(action.shotPos, state.defPos);
