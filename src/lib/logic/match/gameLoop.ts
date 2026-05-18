@@ -51,6 +51,8 @@ import {
   type OffBallIntents,
 } from './decisions/offBallMover';
 import { computeRebound, type ReboundResult } from './rebound';
+import { buildInboundSetup } from '../inboundSetup';
+import { HALF_COURT_Y } from '../awayPossessionSetup';
 
 // ============================================================
 // Constantes
@@ -255,6 +257,10 @@ export interface TickMatchOptions {
   /** B3b — probabilité de rebond offensif sur tir manqué. Default 28 %.
    *  Surchargeable pour tests / scénarios où on veut forcer l'un ou l'autre. */
   offensiveReboundRate?: number;
+  /** Phase 1.1 — Force le résultat (panier marqué ou non) du stub
+   *  away-possession à sa fin. Permet de tester déterministiquement
+   *  les transitions away→home avec/sans inbound. */
+  awayScoreOverride?: boolean;
 }
 
 // ============================================================
@@ -411,7 +417,7 @@ export function tickMatch(
   // E.1 V1 — possession adverse stubbée : on décrémente le clock,
   // pas de décision côté maison, outcome au bout du timer.
   if (next.intent.kind === 'away-possession') {
-    return advanceAwayPossession(next, dtMs, baseAppState, rng);
+    return advanceAwayPossession(next, dtMs, baseAppState, rng, options.awayScoreOverride);
   }
   // Si intent en cours, le faire avancer.
   if (next.intent.kind === 'drive') {
@@ -843,6 +849,14 @@ function startAwayPossession(
       label: reboundLabel,
     },
   ];
+  // Phase 1.1 — Si home vient de marquer un panier, on enclenche un
+  // timer de remise en jeu 5s (FIBA). Pendant ce timer, l'away est
+  // visuellement en position de remise au top du terrain.
+  // Sur défensif rebound ou turnover, pas d'inbound baseline.
+  const isMadeShot =
+    state.outcome === 'shot-made' || state.outcome === 'forced-shot-made';
+  const inboundTimerMs = isMadeShot ? INBOUND_TIMER_MS : null;
+
   return {
     ...state,
     score: 0,
@@ -855,6 +869,7 @@ function startAwayPossession(
     awayScore,
     attackingTeam: 'away',
     transitionStartedAtMs: null,
+    inboundTimerMs,
     // Shot clock visible côté adverse : on initialise à la durée de la
     // possession adverse pour que le countdown soit lisible.
     shotClockMs: AWAY_POSSESSION_DURATION_MS,
@@ -871,7 +886,8 @@ function advanceAwayPossession(
   state: MatchState,
   dtMs: number,
   baseAppState: AppState,
-  rng: () => number
+  rng: () => number,
+  awayScoreOverride?: boolean
 ): MatchState {
   if (state.intent.kind !== 'away-possession') return state;
   const remaining = state.intent.remainingMs - dtMs;
@@ -896,7 +912,7 @@ function advanceAwayPossession(
     };
   }
   // Possession adverse terminée : outcome.
-  const made = rng() < AWAY_SCORE_PROBABILITY;
+  const made = awayScoreOverride ?? (rng() < AWAY_SCORE_PROBABILITY);
   const pts = made ? 2 : 0;
   const newAwayScore = state.awayScore + pts;
   const eventLog = [
@@ -921,8 +937,23 @@ function advanceAwayPossession(
       eventLog,
     };
   }
-  const off = activeOffense(step.off, baseAppState.playerCount);
-  const carrier = activeBallCarrier(step, baseAppState.playerCount);
+  // Phase 1.1 — Si l'away vient de marquer, home récupère le ballon
+  // pour une remise en jeu : BLOB box-set mirroré derrière la baseline
+  // away (y > 1060 en full court). Sinon (tir adverse manqué = rebond
+  // live), reprise depuis l'étape de base.
+  const inboundSetup = made ? buildInboundSetup('inbound-baseline') : null;
+  const baseOff = activeOffense(step.off, baseAppState.playerCount);
+  const off: AttackerPositions = inboundSetup
+    ? (Object.fromEntries(
+        Object.entries(inboundSetup.off).map(([id, p]) => [
+          id,
+          { x: p.x, y: 2 * HALF_COURT_Y - p.y },
+        ])
+      ) as AttackerPositions)
+    : baseOff;
+  const carrier: AttackerId = inboundSetup
+    ? inboundSetup.inbounder
+    : activeBallCarrier(step, baseAppState.playerCount);
   const defPos = effectiveDefensePositions(baseAppState, baseAppState.activeStep);
   const carrierPos = off[carrier] ?? { x: 0, y: 0 };
   const newPossession = state.possession + 1;
@@ -947,6 +978,9 @@ function advanceAwayPossession(
     transitionStartedAtMs: null,
     awayBallPos: null, // désarme l'animation
     awayPlayerPositions: null,
+    // Phase 1.1 — Si away vient de marquer, home a 5s pour rentrer la balle.
+    // Sinon (tir manqué adverse = rebond live), pas d'inbound.
+    inboundTimerMs: made ? INBOUND_TIMER_MS : null,
   };
 }
 
