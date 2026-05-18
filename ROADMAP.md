@@ -1471,3 +1471,82 @@ V1, refonte `getDefenseHoop`).
 ---
 
 ## Hors roadmap court terme
+
+### ⚪ Refonte cinématique vectorielle tactique (CVT) — moteur défensif AAA-style
+
+**Statut** : vision long-terme, non priorisée. À déclencher après stabilisation
+des chantiers A* et avant Play IA v2. Refonte profonde, non-régression
+exigée sur diagnostics + `defenseOverrides`.
+
+**Motivation** — passer du paradigme "cibles rigides" (Target-Seeking via
+`effectiveDefensePositions(state, stepIdx)` qui retourne un `Point(x,y)` par
+défenseur) à un paradigme **émergeant** de forces vectorielles pondérées
+(type Reynolds steering / NBA 2K). Bénéfices attendus :
+- Disparition des oscillations / téléportations résiduelles autour des
+  écrans et changements de cible.
+- Glissement fluide autour du cercle de clearance au lieu du push-out
+  binaire actuel ([docs/PLAYER-CLEARANCE.md](docs/PLAYER-CLEARANCE.md)).
+- Comportements émergeants (help, deny, shadow) lisibles par
+  superposition de poids au lieu de cascades de couches `if/else`.
+
+**Chantier 1 — Steering Behaviors (forces vectorielles)**
+- Nouveau module `src/lib/logic/steeringEngine.ts` exposant
+  `interface SteeringForce { direction: Point; weight: number; label: string; }`.
+- Forces primitives : `seek` (attraction entité/ligne), `repel`
+  (répulsion locale screen/clearance), `arrive` (décélération
+  proportionnelle, anti-oscillation).
+- Accumulation par défenseur :
+  `F_final = Σ (W_i · F_i)`, intégrée par tick avec vitesse max et
+  friction existantes (`defense/speedConstraint.ts`).
+- Sous-modules `manDefense` / `help` / `pnrRotations` refactorés pour
+  retourner `SteeringForce[]` au lieu d'un `Point` cible absolu.
+
+**Chantier 2 — Influence Map & trajectoires invisibles**
+- Génération temps-réel des segments **porteur ↔ non-porteurs** (lignes
+  de passe) et **porteur ↔ hoop** (couloir de pénétration).
+- Distance perpendiculaire signée défenseur ↔ segment, injectée comme
+  force d'alignement `interpose` (aide / deny), modulée par
+  strong-side / weak-side ([docs/logique-defensive.md](docs/logique-defensive.md)).
+
+**Chantier 3 — Triangle défensif vectoriel dynamique**
+- Repère **Ballon – Défenseur – Attaquant – Panier** : angle θ continu
+  pour maintien de la *open stance* (vision triangulaire).
+- Pondération par `OffensiveProfile` du marqué :
+  - `shooter` → `W_homme` dominant (deny prioritaire).
+  - `slasher` → `W_basket` renforcé (protection raquette / anti-drive).
+- Flag dérivé `isPassShadowed: true` propagé sur `ComputedDefender`
+  quand le défenseur occulte parfaitement la ligne de passe d'un
+  attaquant → autorise les défenseurs adjacents à flotter en aide.
+
+**Contraintes d'implémentation**
+- TypeScript pur, déterministe, sans dépendance React, isolé dans
+  `src/lib/logic/`. Aucune mutation des états d'entrée.
+- **Rétrocompat** : la sortie du pipeline doit continuer d'alimenter
+  `ComputedDefense` / `ComputedDefender` (anneaux `pnrRole`, `late`,
+  `closingOut` préservés).
+- La position finale issue de l'intégration des forces doit passer
+  par le **solveur unifié `constraintSolver.ts`** pour la passe de
+  clearance anti-overlap (Règle 1, [docs/PLAYER-CLEARANCE.md](docs/PLAYER-CLEARANCE.md)).
+- Les `defenseOverrides` (placements manuels utilisateur) restent
+  prioritaires et court-circuitent le pipeline de forces.
+- Tests garde-fous : tous les `screens*` + `overlap*` + `userJson*` +
+  `screenLab*` doivent rester verts à chaque sous-étape.
+
+**Plan de fichiers prévisionnel**
+- `src/lib/logic/steeringEngine.ts` — primitives `seek` / `repel` / `arrive`,
+  accumulateur `accumulateForces(forces) → Point`.
+- `src/lib/logic/influenceMap.ts` — segments passe + pénétration,
+  distance perpendiculaire signée.
+- `src/lib/logic/defenseTriangle.ts` — angle θ, pondération
+  profil-dépendante, détection `isPassShadowed`.
+- Refacto incrémentale des couches existantes
+  (`defense/baseTargets.ts`, `defense/pnrLayer.ts`, `defense/helpLayer.ts`)
+  pour émettre des `SteeringForce[]` consommés par
+  `defense/speedConstraint.ts` → `constraintSolver.ts`.
+
+**Pré-requis** : relire impérativement
+[docs/SCREEN-ENGINE.md](docs/SCREEN-ENGINE.md) (règles impératives écran),
+[docs/logique-defensive.md](docs/logique-defensive.md) (pipeline actuel) et
+[docs/GAME-ENGINE.md](docs/GAME-ENGINE.md) (cartographie moteur) avant
+toute ouverture de PR sur ce chantier.
+
