@@ -6,6 +6,38 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### CVT Chantier 1.3b — Couche screen repel (raffinement trajectoires périphériques)
+
+Nouvelle couche
+[`defense/screenRepelLayer.ts`](src/lib/logic/defense/screenRepelLayer.ts)
+branchée après `applyPnRRotationsLayer` (couche 2.1). **Conservatrice
+par design** — ne remplace PAS le push-out binaire existant, vient
+l'affiner pour les défenseurs périphériques.
+
+Pour chaque défenseur **non impliqué directement** dans l'action écran
+(non `carrierDef`, non `screenerDef`, non `pnrRole`), proche d'un
+poseur d'écran détecté, applique un shift `repel` fluide (rampe
+linéaire dans `SCREEN_REPEL_RADIUS_PX = 46 px`). Cap dur
+`SCREEN_REPEL_LAYER_MAX_SHIFT_PX = 3 px` — encore plus serré que
+l'interpose layer pour limiter le risque sur les tests
+`screens*` / `overlap*`.
+
+- Filtres conservateurs : `dId === screen.carrierDef` /
+  `screen.screenerDef` / `pos.pnrRole` → skip.
+- No-op quand aucun écran détecté (`ctx.screen === null`).
+- Opt-in via `state.useSteeringEngine`.
+- 3 tests dédiés : cap exporté, flag off legacy strict, no-op sans
+  écran.
+- 1650 → **1653 tests verts**.
+
+**Limitation documentée** : la couche affine la trajectoire des
+défenseurs périphériques mais ne remplace PAS le push-out binaire
+de `screens/helpers.ts` (`pushOutOfScreener`/`pushOutOfCarrier`).
+Le remplacement complet (vraie "glisse fluide" autour du clearance
+au lieu du snap) demanderait de refactorer `applyScreenAdjustment`
+en profondeur et de revalider toute la suite `screens*` —
+sous-étape future (1.3c).
+
 ### CVT Chantier 2b — Couche d'influence : interpose vers les lignes de passe
 
 Nouvelle couche

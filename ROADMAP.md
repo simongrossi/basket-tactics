@@ -1527,11 +1527,17 @@ défenseur) à un paradigme **émergeant** de forces vectorielles pondérées
   avec `screenerRepelForce` + `screenersRepelForces`. Falloff
   linéaire dans `SCREEN_REPEL_RADIUS_PX = MIN_PLAYER_CLEARANCE_PX
   + 12`. 9 tests verts. **Non câblée**.
-- ⚪ **Sous-étape 1.3b** : câbler `repelForces` dans
-  `applyScreenAdjustment` (ou en couche additive après
-  `baseTargets`). Validation prudente avec les tests `screens*` /
-  `overlap*` / `userJson*` / `screenLab*`. **Premier gain visuel
-  majeur attendu** ici.
+- 🟢 **Sous-étape 1.3b** (livré 2026-05-19, version conservatrice) :
+  nouvelle couche
+  [`defense/screenRepelLayer.ts`](src/lib/logic/defense/screenRepelLayer.ts)
+  branchée 2.1 du pipeline. Affine la trajectoire des défenseurs
+  **périphériques** (non carrier/screener/pnrRole) proches d'un
+  poseur. Cap 3 px. **Ne remplace pas** le push-out binaire — voir 1.3c.
+- ⚪ **Sous-étape 1.3c** : remplacer `pushOutOfScreener` /
+  `pushOutOfCarrier` par un système entièrement basé sur `repel`
+  (vraie "glisse fluide" autour du clearance au lieu du snap).
+  Requiert refacto de `applyScreenAdjustment` + revalidation
+  exhaustive des tests `screens*` / `overlap*`.
 - ⚪ **Sous-étape 1.4** : activation par défaut du flag, suppression
   des sorties anciennes (`Point` cible), nettoyage de la double-sortie.
 

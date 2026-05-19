@@ -18,6 +18,7 @@ import type { DefenderTarget } from './defense/types';
 import { buildDefenseFrameContext } from './defense/context';
 import { applyBaseTargetsLayer } from './defense/baseTargets';
 import { applyInfluenceLayer } from './defense/influenceLayer';
+import { applyScreenRepelLayer } from './defense/screenRepelLayer';
 import { applyRimProtectionLayer } from './defense/rimProtectionLayer';
 import { applyHelpStickyLayer } from './defense/helpStickyLayer';
 import { applyLateShotClockLayer } from './defense/lateShotClockLayer';
@@ -126,6 +127,12 @@ export function computeDefenseTargets(
   applyLateShotClockLayer(positions, matchups, ctx);
   // Couche 2 — Rotations PnR (low-man tag + X-out + nail stunt).
   applyPnRRotationsLayer(positions, matchups, ctx);
+  // Couche 2.1 (CVT 1.3b) — Screen repel : raffine la trajectoire
+  // des défenseurs périphériques (non carrier, non screener, non
+  // pnrRole) proches d'un poseur d'écran. Cap dur 3 px. Opt-in via
+  // useSteeringEngine. N'altère pas le push-out binaire des couches
+  // amont — purement additif.
+  applyScreenRepelLayer(positions, matchups, ctx);
   // Couche 2.5 — C.7 V2 réaction défensive aux chaînes d'écrans (re-screen
   // / stagger / flare-fade). Opt-in via `state.readScreenChainsEnabled`.
   // Modulations modestes (≤ 6 px / flags d'orientation) qui passent ensuite

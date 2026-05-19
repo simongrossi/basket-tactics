@@ -407,10 +407,12 @@ sous flag `useSteeringEngine`, tests verts à chaque commit) :
    au lieu de `seek` → anti-oscillation près de la cible.
 3. ✅ **Livré (1.2)** : `help.ts` câblé via `computeHelpForces`.
    Bit-équivalent loin, amorti proche, métadonnée préservée.
-4. 🟡 **Infra livrée (1.3)** : module
-   [`screens/repelForces.ts`](../src/lib/logic/screens/repelForces.ts)
-   exposant `screenerRepelForce` + `screenersRepelForces`.
-   **Non câblé** — câblage dans `applyScreenAdjustment` = sous-étape 1.3b.
+4. ✅ **Livré (1.3 + 1.3b)** : infra
+   [`screens/repelForces.ts`](../src/lib/logic/screens/repelForces.ts) +
+   couche
+   [`defense/screenRepelLayer.ts`](../src/lib/logic/defense/screenRepelLayer.ts)
+   (raffinement périphérique, cap 3 px). Sous-étape 1.3c restante
+   pour remplacer le push-out binaire.
 
 **Chantiers 2 et 3** (lignes de passe + triangle vectoriel + profils
 offensifs) viendront après stabilisation du Chantier 1. Détails complets
