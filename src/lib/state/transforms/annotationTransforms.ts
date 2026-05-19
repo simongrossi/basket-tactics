@@ -40,13 +40,45 @@ function withDrawTiming(
   options?: AddAnnotationOptions,
 ): { stepIdx: number; annotation: Annotation } {
   const fallbackStepIdx = s.activeStep;
-  if (!MOVEMENT_TYPE_SET.has(annotation.type)) {
-    return { stepIdx: fallbackStepIdx, annotation };
-  }
-
   const timingAnchor = options?.timingAnchor ?? s.actionTimingAnchor ?? 'start';
   const rawFullT = options?.fullT;
   const hasFullT = typeof rawFullT === 'number' && isFinite(rawFullT);
+  const fullT = hasFullT ? clampFullT(rawFullT, s.steps) : null;
+  const segmentIdx = fullT == null
+    ? fallbackStepIdx
+    : Math.min(Math.floor(fullT), Math.max(0, s.steps.length - 1));
+  const localT = fullT == null ? 0 : fullT - segmentIdx;
+
+  if (annotation.type === 'pass') {
+    if (fullT == null || segmentIdx + 1 >= s.steps.length) {
+      return { stepIdx: fallbackStepIdx, annotation };
+    }
+    if (timingAnchor === 'end') {
+      if (fullT > TIMING_EPSILON && localT <= TIMING_EPSILON) {
+        return { stepIdx: segmentIdx, annotation };
+      }
+      return {
+        stepIdx: segmentIdx + 1,
+        annotation: {
+          ...annotation,
+          tStart: 0,
+          tEnd: Math.max(TIMING_EPSILON, localT),
+        },
+      };
+    }
+    return {
+      stepIdx: segmentIdx + 1,
+      annotation: {
+        ...annotation,
+        tStart: localT > TIMING_EPSILON ? localT : undefined,
+        tEnd: localT > TIMING_EPSILON ? 1 : undefined,
+      },
+    };
+  }
+
+  if (!MOVEMENT_TYPE_SET.has(annotation.type)) {
+    return { stepIdx: fallbackStepIdx, annotation };
+  }
 
   if (!hasFullT) {
     return {
@@ -58,18 +90,14 @@ function withDrawTiming(
     };
   }
 
-  const fullT = clampFullT(rawFullT, s.steps);
-  const segmentIdx = Math.min(Math.floor(fullT), Math.max(0, s.steps.length - 1));
-  const localT = fullT - segmentIdx;
-
   if (timingAnchor === 'end') {
-    if (fullT <= TIMING_EPSILON) {
+    if (fullT !== null && fullT <= TIMING_EPSILON) {
       return {
         stepIdx: segmentIdx,
         annotation: { ...annotation, phase: 'end' },
       };
     }
-    if (fullT > TIMING_EPSILON && localT <= TIMING_EPSILON) {
+    if (fullT !== null && fullT > TIMING_EPSILON && localT <= TIMING_EPSILON) {
       return {
         stepIdx: segmentIdx,
         annotation: { ...annotation, phase: 'start' },

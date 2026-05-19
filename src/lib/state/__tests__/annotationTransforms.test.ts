@@ -42,6 +42,35 @@ describe('annotationTransforms', () => {
       expect(s1.steps[s1.activeStep].ballCarrier).toBe('O3');
     });
 
+    it("mode début sur une passe scrubée : la passe part au moment courant et arrive au step suivant", () => {
+      const s0 = stateWithTwoSteps();
+      const pass: Annotation = {
+        type: 'pass',
+        fromId: 'O1',
+        toId: 'O3',
+        from: s0.steps[0].off.O1,
+        to: s0.steps[0].off.O3,
+      };
+      const s1 = annoTx.addAnnotation(s0, pass, { fullT: 0.4, timingAnchor: 'start' });
+      expect(s1.steps[0].annotations).toHaveLength(0);
+      expect(s1.steps[1].annotations[0]).toMatchObject({ type: 'pass', tStart: 0.4, tEnd: 1 });
+      expect(s1.steps[1].ballCarrier).toBe('O3');
+    });
+
+    it("mode fin sur une passe scrubée : la passe arrive au moment courant", () => {
+      const s0 = stateWithTwoSteps();
+      const pass: Annotation = {
+        type: 'pass',
+        fromId: 'O1',
+        toId: 'O3',
+        from: s0.steps[0].off.O1,
+        to: s0.steps[0].off.O3,
+      };
+      const s1 = annoTx.addAnnotation(s0, pass, { fullT: 0.4, timingAnchor: 'end' });
+      expect(s1.steps[1].annotations[0]).toMatchObject({ type: 'pass', tStart: 0, tEnd: 0.4 });
+      expect(s1.steps[1].ballCarrier).toBe('O3');
+    });
+
     it("mode début : cale le démarrage au moment scrub courant", () => {
       const s0 = stateWithTwoSteps();
       const s1 = annoTx.addAnnotation(

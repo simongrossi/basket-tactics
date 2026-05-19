@@ -41,6 +41,7 @@ import { solveEntityCollisions } from '../constraintSolver';
 import { applyEasing } from './easing';
 import { applyPathAwareInterpolation } from './pathAwareInterpolation';
 import { getStepDurationSeconds } from '../timecode';
+import { resolveAnnotationTiming } from '../annotationTiming';
 import { activeBallCarrier, activeOffense } from '../players';
 import { attackerTrajectoryAt, type MovementType } from '../playbackTrajectory';
 import { lerpAngleDeg } from '../angles';
@@ -1088,17 +1089,34 @@ export function resolveFrameAt(
   // une annotation 'pass' sur le step destination (b) qui matche le couple
   // carrierA → carrierB. Si trouvée et passKind défini, on l'utilise.
   let passKind: 'direct' | 'lob' | 'bounce' | 'skip' | undefined;
+  let passLocalT = localT;
+  let passIsActive = carrierA !== carrierB;
   if (carrierA !== carrierB) {
     const passAnn = b.annotations.find(
       (a) => a.type === 'pass' && a.fromId === carrierA && a.toId === carrierB
     );
     passKind = passAnn?.passKind;
+    if (passAnn) {
+      const timing = resolveAnnotationTiming(passAnn, getStepDurationSeconds(state, idxA));
+      const tStart = timing.tStart;
+      const tEnd = Math.max(tStart + 0.001, timing.tEnd);
+      if (localT <= tStart) {
+        passLocalT = 0;
+        passIsActive = false;
+      } else if (localT >= tEnd) {
+        passLocalT = 1;
+        passIsActive = false;
+      } else {
+        passLocalT = (localT - tStart) / (tEnd - tStart);
+        passIsActive = true;
+      }
+    }
   }
   const ball = computeBallFrame(
-    off[carrierA] ?? offA[carrierA],
-    off[carrierB] ?? offB[carrierB],
-    carrierA !== carrierB,
-    localT,
+    passLocalT >= 1 ? (off[carrierB] ?? offB[carrierB]) : (off[carrierA] ?? offA[carrierA]),
+    passLocalT <= 0 ? (off[carrierA] ?? offA[carrierA]) : (off[carrierB] ?? offB[carrierB]),
+    passIsActive,
+    passLocalT,
     passKind
   );
   profiler?.lap('ball');
