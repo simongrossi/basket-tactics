@@ -6,6 +6,42 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Fix écran — Recovery snap supprimé (`screenContactAdhesion`)
+
+**Bug diagnostiqué** sur PNR central (transition step 1 → step 2) :
+D1 restait plaqué sur O5 jusque ~85 % du segment, puis faisait un
+sprint de ~70 px en 15 % du temps → sensation de "rubber-band" /
+téléportation à la fin du drive. Δ frame jusqu'à **24 px** (vs cap
+acceptable 18 px à 60 fps).
+
+**Cause** : `screenContactAdhesion` en mode `'leaving'` dans
+[`screenPhysics.ts`](src/lib/logic/screenPhysics.ts) utilisait
+`holdEnd = 0.76 + q × 0.12` puis `smoothstep(holdEnd, 0.98, localT)`.
+À quality 1.0, fenêtre de release = `[0.88, 0.98]` (10 % du segment
+pour libérer D1).
+
+**Fix** : élargissement de la fenêtre à `[0.55 + q × 0.15, 0.95]`.
+- Quality 1.0 → window `[0.70, 0.95]` (25 % du segment).
+- Quality 0.5 → window `[0.625, 0.95]` (32 % du segment).
+- Quality 0.05 → window `[0.5575, 0.95]` (39 % du segment).
+- Continuité aux boundaries préservée (adhesion=max à `localT=0`,
+  adhesion=0 à `localT=0.95-1.0`).
+
+**Résultat mesuré** (script `scripts/diag-pnr-frames.ts`) sur PNR
+central transition step 1→2 :
+- Avant : Δ max = 24 px à t=1.95 (rubber-band visible).
+- Après : Δ max = 15 px à t=1.85 (mouvement réparti).
+
+- 3 tests garde-fou ajoutés dans
+  [`screenRecoverySnap.test.ts`](src/lib/logic/__tests__/screenRecoverySnap.test.ts) :
+  pour chaque transition de PNR central, Δ frame D1 ≤ 18 px.
+- Aucune régression sur les 1655 tests préexistants (golden snapshots
+  J.6 inclus). 1655 → **1658 tests verts**.
+- Diagnostic script standalone :
+  [`scripts/diag-pnr-frames.ts`](scripts/diag-pnr-frames.ts) +
+  [`scripts/diag-pnr-central.ts`](scripts/diag-pnr-central.ts) —
+  réutilisables pour profiler d'autres templates problématiques.
+
 ### CVT Chantier 1.4 — Toggle UI pour comparaison A/B (sans bascule par défaut)
 
 Ajout d'une case à cocher **"moteur de forces CVT (expérimental)"** dans

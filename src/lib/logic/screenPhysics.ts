@@ -159,8 +159,22 @@ export function screenContactAdhesion(
     return max * smoothstep(settleStart, settleEnd, localT);
   }
   if (mode === 'leaving') {
-    const holdEnd = 0.76 + q * 0.12;
-    return max * (1 - smoothstep(holdEnd, 0.98, localT));
+    // Recovery snap fix (2026-05-19) : élargir la fenêtre de release
+    // pour répartir le mouvement de recovery sur une plus grande
+    // portion du segment et éviter le snap brutal en fin de transition.
+    //
+    // Avant (OLD) : holdEnd 0.88 → 0.98 à quality 1.0 (10% du segment
+    // pour libérer D1) → Δ frame jusqu'à 24 px sur PNR central.
+    // Maintenant (NEW) : holdEnd 0.70 → 0.95 à quality 1.0 (25% du
+    // segment) → Δ frame ≤ 18 px sur PNR central (test garde-fou
+    // `screenRecoverySnap.test.ts`).
+    //
+    // À quality plus faible, la fenêtre est encore plus large (écran
+    // ghost → recovery quasi instantanée). Continuité aux boundaries
+    // préservée : adhesion=max à localT=0 (match stuck précédent),
+    // adhesion=0 à localT=0.95-1.0 (match mode null suivant).
+    const holdEnd = 0.55 + q * 0.15;
+    return max * (1 - smoothstep(holdEnd, 0.95, localT));
   }
   // stuck : plaqué tout au long.
   return max;

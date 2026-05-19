@@ -697,6 +697,24 @@ Un cut basket réel à 7 m/s ≈ 4.4 px/frame, largement sous le seuil.
   de sens, pas de prev. `useCourtFrame::handleTick` gère déjà ça
   implicitement (prev=null à isPlaying=false).
 
+### Recovery snap résolu (2026-05-19)
+
+**Avant** : `screenContactAdhesion` en mode `'leaving'` libérait
+D1 sur 10 % du segment (window `[0.88, 0.98]` à quality 1.0).
+Conséquence : D1 stuck à 85 % puis sprint brutal de ~70 px en
+fin de transition. Δ frame jusqu'à 24 px sur PNR central.
+
+**Fix** : window élargie à `[0.55 + q × 0.15, 0.95]`. Quality
+1.0 → 25 % du segment, ghost screen → 39 %. Continuité aux
+boundaries préservée. Δ frame max 15 px sur PNR central.
+
+Test garde-fou : [`screenRecoverySnap.test.ts`](../src/lib/logic/__tests__/screenRecoverySnap.test.ts).
+Scripts de diagnostic réutilisables :
+[`scripts/diag-pnr-frames.ts`](../scripts/diag-pnr-frames.ts)
+(frame par frame) et
+[`scripts/diag-pnr-central.ts`](../scripts/diag-pnr-central.ts)
+(step par step).
+
 ### Bugs résolus mai 2026 (NE JAMAIS REGRESSER)
 
 | Bug | Symptôme | Fix |
