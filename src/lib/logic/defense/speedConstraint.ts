@@ -322,6 +322,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         helpAim: targets[dId].helpAim,
         helpPriority: targets[dId].helpPriority,
         helpKind: targets[dId].helpKind,
+        isPassShadowed: targets[dId].isPassShadowed,
       };
       return;
     }
@@ -482,6 +483,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         helpAim: targets[dId].helpAim,
         helpPriority: targets[dId].helpPriority,
         helpKind: targets[dId].helpKind,
+        isPassShadowed: targets[dId].isPassShadowed,
       };
     } else {
       const r = effectiveMaxSpeed / pathLen;
@@ -513,6 +515,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         helpAim: targets[dId].helpAim,
         helpPriority: targets[dId].helpPriority,
         helpKind: targets[dId].helpKind,
+        isPassShadowed: targets[dId].isPassShadowed,
       };
     }
   });

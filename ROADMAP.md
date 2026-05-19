@@ -1550,11 +1550,15 @@ défenseur) à un paradigme **émergeant** de forces vectorielles pondérées
   [`src/lib/logic/defenseTriangle.ts`](src/lib/logic/defenseTriangle.ts) —
   `triangleAngleDeg`, `profileWeightMultipliers`, `isPassShadowed`,
   `passShadowsByDefender`. 21 tests. **Non câblée**.
-- ⚪ **Sous-étape 3b** : câbler les multiplicateurs profil dans
-  les forces de `manDefense` / `help` (composition `seek-man *
-  manWeight` + `seek-basket * basketWeight`). Propager
-  `isPassShadowed` dans `ComputedDefender` pour autoriser le float
-  des défenseurs adjacents.
+- 🟢 **Sous-étape 3b** (livré 2026-05-19) : `isPassShadowed`
+  propagé dans `DefenderTarget` + `ComputedDefender`. Calcul via
+  `passShadowsByDefender` en fin de `baseTargets` quand flag on.
+  Plumbed dans les 3 sites de mapping de `speedConstraint`. Aucun
+  effet sur les positions — purement additif.
+- 🟢 **Sous-étape 3c** (livré 2026-05-19) : pondération distance
+  par profil offensif. `dist = baseDist / profileWeightMultipliers(profile).manWeight`.
+  Shooter → close out tighter, slasher → sag franc. Bit-équivalent
+  quand profil undefined ou flag off.
 
 **Contraintes d'implémentation**
 - TypeScript pur, déterministe, sans dépendance React, isolé dans

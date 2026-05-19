@@ -30,6 +30,7 @@ import {
   orientationLateralOffset,
 } from '../manDefense';
 import { composeTarget } from '../steeringEngine';
+import { passShadowsByDefender, profileWeightMultipliers } from '../defenseTriangle';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
 import { mismatchSeverity } from './mismatchTracking';
@@ -91,7 +92,20 @@ export function applyBaseTargetsLayer(
     let helpKind: 'sag-weakside' | 'denial-strongside' | 'active-help' | 'none' | undefined;
 
     // Override de distance individuel (rule.distance) > global
-    const dist = rule.distance ?? state.defenseDistance;
+    let dist = rule.distance ?? state.defenseDistance;
+    // CVT Chantier 3c — pondération par profil offensif du marqué.
+    // Module la distance effective vs son homme : shooter → tighter
+    // close out (manWeight > 1 → dist plus petit) ; slasher → bigger
+    // gap pour anticiper drive (manWeight < 1 → dist plus grand).
+    // Profil undefined → multipliers (1,1) → comportement legacy
+    // strictement préservé (bit-équivalent).
+    if (state.useSteeringEngine) {
+      const profile = state.attackerProfiles?.[oId as AttackerId];
+      const mults = profileWeightMultipliers(profile);
+      if (mults.manWeight !== 1) {
+        dist = dist / mults.manWeight;
+      }
+    }
     // CVT 1.1b — defenderPos référence = position précédente effective
     // du défenseur (fallback : layout initial). Indispensable pour que
     // l'`arrive` dampe réellement les micro-oscillations entre frames :
@@ -244,4 +258,28 @@ export function applyBaseTargetsLayer(
       helpKind,
     };
   });
+
+  // CVT Chantier 3b — pass shadow flag (opt-in via useSteeringEngine).
+  // Calculé en fin de couche sur les positions IDÉALES des défenseurs
+  // (avant contraintes de vitesse + couches PnR / écrans). Suffit pour
+  // la métadonnée tactique ; un recalcul après speedConstraint serait
+  // plus précis mais plus coûteux et redondant pour ce flag d'aide.
+  if (state.useSteeringEngine && ballCarrier && carrierPos) {
+    const defenderPositions: Record<string, Point> = {};
+    defenderIds.forEach((dId) => {
+      const pos = positions[dId];
+      if (pos) defenderPositions[dId] = { x: pos.x, y: pos.y };
+    });
+    const shadows = passShadowsByDefender(
+      defenderPositions as Record<import('../../types').DefenderId, Point>,
+      ballCarrier,
+      carrierPos,
+      off,
+    );
+    defenderIds.forEach((dId) => {
+      const pos = positions[dId];
+      if (!pos) return;
+      if (shadows[dId]) pos.isPassShadowed = true;
+    });
+  }
 }

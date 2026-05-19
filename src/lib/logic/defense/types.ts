@@ -32,4 +32,10 @@ export interface DefenderTarget {
   helpAim?: Point;
   helpPriority?: HelpPriority;
   helpKind?: 'sag-weakside' | 'denial-strongside' | 'active-help' | 'none';
+  /** CVT Chantier 3b — vrai si CE défenseur occulte une ligne de passe
+   *  vers un attaquant non-porteur (proj dans le segment ET |perpDist| <
+   *  `PASS_SHADOW_TOLERANCE_PX`). Calculé seulement quand
+   *  `state.useSteeringEngine` est on. Undefined = non calculé.
+   *  Permet aux défenseurs adjacents de flotter en aide. */
+  isPassShadowed?: boolean;
 }

@@ -754,6 +754,12 @@ export interface ComputedDefender {
   helpPriority?: HelpPriority;
   /** Catégorie de la branche d'aide qui a produit le résultat (debug). */
   helpKind?: 'sag-weakside' | 'denial-strongside' | 'active-help' | 'none';
+  /** CVT Chantier 3b — vrai si ce défenseur occulte une ligne de passe
+   *  (proj dans le segment ET `|perpDist| < PASS_SHADOW_TOLERANCE_PX`).
+   *  Métadonnée tactique consommable par les couches de help futures et
+   *  par l'UI (badge "shadowing" optionnel). Calculé seulement quand
+   *  `state.useSteeringEngine` est on ; undefined sinon. */
+  isPassShadowed?: boolean;
 }
 
 /** Visuels d'attaquants calculés par étape (convention B + invariants anatomiques). */

@@ -6,6 +6,33 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### CVT Chantier 3b + 3c — Triangle défensif câblé (pass shadow + pondération profil)
+
+Premier câblage du Chantier 3. Opt-in via `state.useSteeringEngine`.
+
+**3b — isPassShadowed**
+- `DefenderTarget` + `ComputedDefender` gagnent `isPassShadowed?: boolean`.
+- `defense/baseTargets.ts` : appelle `passShadowsByDefender` en fin
+  de couche (quand flag on + porteur défini). Plumbed à travers les
+  3 sites de mapping de `defense/speedConstraint.ts`.
+- Métadonnée tactique consommable par futures couches de help et UI
+  (badge "shadowing" optionnel). Zéro effet sur les positions
+  défensives — purement additif.
+
+**3c — pondération distance par profil offensif**
+- `defense/baseTargets.ts` : `dist = (rule.distance ?? state.defenseDistance) / profileWeightMultipliers(profile).manWeight`.
+  Effet :
+  - `shooter` / `stretch-big` (manWeight > 1) → distance plus petite,
+    close out plus serré, deny renforcé.
+  - `slasher` / `rim-roller` / `non-shooter` (manWeight < 1) → distance
+    plus grande, sag franc pour anticiper drive / float.
+  - `creator` / undefined (manWeight ≈ 1) → comportement legacy.
+- Bit-équivalence préservée quand profil undefined ou flag off.
+- 4 nouveaux tests : isPassShadowed propagé / undefined sans flag,
+  effet 3c shooter vs non-shooter vs neutre, légère insensitivité
+  flag off.
+- 1642 → **1646 tests verts**.
+
 ### CVT Chantier 3 — Triangle défensif vectoriel (infra, non câblée)
 
 Nouveau module
