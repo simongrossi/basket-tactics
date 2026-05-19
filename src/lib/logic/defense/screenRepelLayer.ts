@@ -1,22 +1,35 @@
-// CVT Chantier 1.3b — Couche repel autour des poseurs d'écran.
+// CVT Chantiers 1.3b + 1.3c — Couche repel autour des poseurs d'écran.
 //
-// **Conservatrice par design** : ne REMPLACE PAS le push-out binaire
-// existant dans `screens/helpers.ts` et `applyScreenAdjustment`. Vient
-// l'AFFINER en aval pour les défenseurs qui se trouvent proches d'un
-// poseur SANS être directement impliqués dans l'action écran (carrier
-// defender en hedge/blitz et screener's defender restent traités par
-// les couches spécialisées).
+// **Conservatrice par design** — ne REMPLACE PAS le push-out binaire
+// existant dans `screens/helpers.ts` et `applyScreenAdjustment`. Le
+// remplacement complet (`pushOutOfScreener` / `pushOutOfCarrier`) est
+// **incompatible avec la Règle 1bis** (`docs/SCREEN-ENGINE.md`) qui
+// exige D1 strictement plaqué au poseur à quality 100 (distance ≤
+// `MIN_PLAYER_CLEARANCE_PX + 1`). On garde donc le push-out dur en
+// fin de chaîne, et on ajoute ici un raffinement périphérique soft.
 //
-// Effet : un défenseur "périphérique" (rotation tag, X-out, help)
-// qui traverse l'orbite du poseur reçoit un shift fluide via `repel`
-// (rampe linéaire) au lieu de claquer sur le cercle de clearance.
+// **Sous-étape 1.3b** : raffine la trajectoire des défenseurs
+// périphériques proches du poseur d'un écran **porteur** détecté.
 //
-// Cap dur 3 px (encore plus serré que `INTERPOSE_MAX_SHIFT_PX=5`)
-// pour limiter le risque sur les tests `screens*` / `overlap*`.
-// Opt-in via `state.useSteeringEngine`.
+// **Sous-étape 1.3c** : étend la couche aux écrans **hors-ballon**
+// (détectés via `detectOffBallScreens`) — typiquement les défenseurs
+// non-engagés dans la lecture pin-down / flare / stagger / back qui
+// passent à proximité d'un poseur reçoivent eux aussi le glide soft.
+//
+// Filtres conservateurs (skip) :
+// - `screen.carrierDef` / `screen.screenerDef` (écran porteur).
+// - `obs.screenerDef` / `obs.cutterDef` (écran off-ball) — gérés par
+//   `applyOffBallScreenLayer`.
+// - `pos.pnrRole` (rotation PnR — `applyPnRRotationsLayer` a déjà
+//   placé le défenseur dans une zone "intentionnellement proche" du
+//   poseur, ex: low-man tag du roller).
+//
+// Cap dur `SCREEN_REPEL_LAYER_MAX_SHIFT_PX = 3 px` — sous le bruit
+// visuel. Opt-in via `state.useSteeringEngine`.
 
-import type { DefenderId, Matchups } from '../../types';
+import type { DefenderId, Matchups, Point } from '../../types';
 import { screenerRepelForce } from '../screens/repelForces';
+import { detectOffBallScreens } from '../screens';
 import { accumulateForces } from '../steeringEngine';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
@@ -24,42 +37,79 @@ import type { DefenderTarget } from './types';
 /** Cap dur du shift produit par cette couche (px). Très conservateur. */
 export const SCREEN_REPEL_LAYER_MAX_SHIFT_PX = 3;
 
+/** Liste les poseurs d'écran (porteur + off-ball) à éviter, avec
+ *  les défenseurs directement engagés à exclure (carrierDef /
+ *  screenerDef / cutterDef). */
+function collectScreenerObstacles(
+  ctx: DefenseFrameContext,
+  matchups: Matchups,
+): { screenerPos: Point; engaged: Set<DefenderId> }[] {
+  const { state, off, ballCarrier, prevDefenderPositions, prevOff, screen } = ctx;
+  const obstacles: { screenerPos: Point; engaged: Set<DefenderId> }[] = [];
+
+  // Écran porteur
+  if (screen) {
+    const sPos = off[screen.screener];
+    if (sPos) {
+      obstacles.push({
+        screenerPos: sPos,
+        engaged: new Set<DefenderId>([screen.carrierDef, screen.screenerDef]),
+      });
+    }
+  }
+
+  // Écrans off-ball (CVT 1.3c)
+  const offBallScreens = detectOffBallScreens(
+    off, ballCarrier, matchups, prevDefenderPositions, state.screenRadius, prevOff ?? undefined,
+  );
+  for (const obs of offBallScreens) {
+    const engaged = new Set<DefenderId>([obs.screenerDef, obs.cutterDef]);
+    if (obs.secondScreenerDef) engaged.add(obs.secondScreenerDef);
+    obstacles.push({ screenerPos: obs.screenerPos, engaged });
+    if (obs.secondScreenerPos) {
+      obstacles.push({ screenerPos: obs.secondScreenerPos, engaged });
+    }
+  }
+
+  return obstacles;
+}
+
 export function applyScreenRepelLayer(
   positions: Record<DefenderId, DefenderTarget>,
   matchups: Matchups,
   ctx: DefenseFrameContext,
 ): void {
-  const { state, off, defenderIds, screen } = ctx;
+  const { state, defenderIds } = ctx;
   if (!state.useSteeringEngine) return;
-  if (!screen) return; // pas d'écran détecté → rien à affiner
 
-  const screenerPos = off[screen.screener];
-  if (!screenerPos) return;
+  const obstacles = collectScreenerObstacles(ctx, matchups);
+  if (obstacles.length === 0) return;
 
   defenderIds.forEach((dId) => {
     const pos = positions[dId];
     if (!pos) return;
-    // Skip les défenseurs directement impliqués dans l'action écran :
-    // ils sont gérés par applyScreenAdjustment + push-out binaire.
-    if (dId === screen.carrierDef) return;
-    if (dId === screen.screenerDef) return;
-    // Skip également les défenseurs en rôle PnR (tag/x-out/stunt) :
-    // applyPnRRotationsLayer a déjà fait son job.
+    // Skip les défenseurs en rôle PnR : applyPnRRotationsLayer les
+    // place intentionnellement proches du poseur (tag du roller, etc.).
     if (pos.pnrRole) return;
 
-    // Force repel autour du poseur depuis la position courante.
-    // Si le défenseur est hors du rayon `SCREEN_REPEL_RADIUS_PX = 46`,
-    // la force est morte → no-op.
-    const f = screenerRepelForce({ x: pos.x, y: pos.y }, screenerPos);
-    if (f.weight <= 0) return;
-
-    const accum = accumulateForces([f]);
-    const mag = Math.hypot(accum.x, accum.y);
+    // Accumuler les forces repel de tous les screeners pertinents
+    // (skip ceux où ce défenseur est directement engagé).
+    let shiftX = 0;
+    let shiftY = 0;
+    for (const { screenerPos, engaged } of obstacles) {
+      if (engaged.has(dId)) continue;
+      const f = screenerRepelForce({ x: pos.x, y: pos.y }, screenerPos);
+      if (f.weight <= 0) continue;
+      const accum = accumulateForces([f]);
+      shiftX += accum.x;
+      shiftY += accum.y;
+    }
+    const mag = Math.hypot(shiftX, shiftY);
     if (mag < 1e-3) return;
 
-    // Cap dur du shift à SCREEN_REPEL_LAYER_MAX_SHIFT_PX.
+    // Cap dur du shift cumulé à SCREEN_REPEL_LAYER_MAX_SHIFT_PX.
     const shift = Math.min(mag, SCREEN_REPEL_LAYER_MAX_SHIFT_PX);
-    pos.x += (accum.x / mag) * shift;
-    pos.y += (accum.y / mag) * shift;
+    pos.x += (shiftX / mag) * shift;
+    pos.y += (shiftY / mag) * shift;
   });
 }

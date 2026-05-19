@@ -1533,11 +1533,13 @@ défenseur) à un paradigme **émergeant** de forces vectorielles pondérées
   branchée 2.1 du pipeline. Affine la trajectoire des défenseurs
   **périphériques** (non carrier/screener/pnrRole) proches d'un
   poseur. Cap 3 px. **Ne remplace pas** le push-out binaire — voir 1.3c.
-- ⚪ **Sous-étape 1.3c** : remplacer `pushOutOfScreener` /
-  `pushOutOfCarrier` par un système entièrement basé sur `repel`
-  (vraie "glisse fluide" autour du clearance au lieu du snap).
-  Requiert refacto de `applyScreenAdjustment` + revalidation
-  exhaustive des tests `screens*` / `overlap*`.
+- 🟢 **Sous-étape 1.3c** (livré 2026-05-19, version compatible) :
+  extension de `screenRepelLayer` aux écrans **hors-ballon** (via
+  `detectOffBallScreens`). Forces `repel` cumulées des poseurs porteur
+  + off-ball, shift borné à 3 px. **Le remplacement complet du
+  push-out binaire** par repel est **INCOMPATIBLE** avec la Règle 1bis
+  (D1 stuck à quality 100, cf. `docs/SCREEN-ENGINE.md` § Limites
+  acceptées). Test garde-fou Règle 1bis ajouté.
 - ⚪ **Sous-étape 1.4** : activation par défaut du flag, suppression
   des sorties anciennes (`Point` cible), nettoyage de la double-sortie.
 

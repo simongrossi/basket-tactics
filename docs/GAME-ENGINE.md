@@ -407,12 +407,13 @@ sous flag `useSteeringEngine`, tests verts à chaque commit) :
    au lieu de `seek` → anti-oscillation près de la cible.
 3. ✅ **Livré (1.2)** : `help.ts` câblé via `computeHelpForces`.
    Bit-équivalent loin, amorti proche, métadonnée préservée.
-4. ✅ **Livré (1.3 + 1.3b)** : infra
+4. ✅ **Livré (1.3 + 1.3b + 1.3c)** : infra
    [`screens/repelForces.ts`](../src/lib/logic/screens/repelForces.ts) +
    couche
    [`defense/screenRepelLayer.ts`](../src/lib/logic/defense/screenRepelLayer.ts)
-   (raffinement périphérique, cap 3 px). Sous-étape 1.3c restante
-   pour remplacer le push-out binaire.
+   couvrant écrans porteur ET off-ball (cap 3 px cumulé).
+   **Remplacement complet du push-out binaire** = incompatible avec
+   Règle 1bis ([SCREEN-ENGINE.md § Limites acceptées](SCREEN-ENGINE.md#limites-acceptées)).
 
 **Chantiers 2 et 3** (lignes de passe + triangle vectoriel + profils
 offensifs) viendront après stabilisation du Chantier 1. Détails complets

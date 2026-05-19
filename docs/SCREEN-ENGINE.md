@@ -560,6 +560,21 @@ sans action). Démarrer directement à la position d'action.
 - **`systeme_basket-8` scenario extrême** : ~13 px de secousse
   côté D1 quand le poseur se déplace de 138 px entre 2 steps.
   Bornée par le rate limiter (cf. ci-dessous).
+- **CVT 1.3 : remplacement complet de `pushOutOfScreener`/`pushOutOfCarrier`
+  par `repel` pur est INCOMPATIBLE avec ce moteur** — la Règle 1bis
+  exige D1 strictement plaqué au poseur à quality 100
+  (`dist ≤ MIN_PLAYER_CLEARANCE_PX + 1`). Un repel à falloff linéaire
+  produit `dist = clearance + δ` avec `δ > 0`, ce qui casse
+  l'invariant. Le moteur d'écran garde donc le push-out binaire.
+  Ce qui est livré dans CVT 1.3 :
+  - `screens/repelForces.ts` (infra) + couche
+    `defense/screenRepelLayer.ts` (additive, cap 3 px) qui raffine
+    la trajectoire des défenseurs **périphériques** (non
+    carrier/screener/cutter/pnrRole) proches d'un poseur (écran
+    porteur OU off-ball).
+  - Test garde-fou
+    `defense/__tests__/screenRepelLayer.test.ts` qui valide
+    l'invariant Règle 1bis sur écran q=100 même flag on.
 
 ### C.7 — Action chains V1 (diagnostic + badge, livré 2026-05-13)
 

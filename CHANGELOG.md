@@ -6,6 +6,36 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### CVT Chantier 1.3c — Écrans off-ball couverts + invariant Règle 1bis validé
+
+Extension de `defense/screenRepelLayer.ts` aux écrans **hors-ballon**
+(pin-down, flare, stagger, etc.) détectés via `detectOffBallScreens`.
+La couche 2.1 du pipeline parcourt désormais tous les poseurs (porteur
++ off-ball), additionne les forces `repel` et applique un shift
+cumulé borné à `SCREEN_REPEL_LAYER_MAX_SHIFT_PX = 3 px`.
+
+**Décision architecturale documentée** : remplacer
+`pushOutOfScreener` / `pushOutOfCarrier` par un système `repel` pur
+est **INCOMPATIBLE** avec la Règle 1bis du moteur d'écran
+([docs/SCREEN-ENGINE.md](docs/SCREEN-ENGINE.md)) qui exige `dist(D1,
+screener) ≤ MIN_PLAYER_CLEARANCE_PX + 1` à quality 100. Un repel
+linéaire produit toujours `dist > clearance`, ce qui violerait
+l'invariant "D1 stuck au poseur à quality 100". Le push-out binaire
+reste donc en place ; CVT 1.3 livre uniquement le raffinement
+périphérique soft.
+
+- `defense/screenRepelLayer.ts` : helper `collectScreenerObstacles`
+  qui agrège poseurs porteur + off-ball avec leur set `engaged`
+  (carrierDef/screenerDef pour porteur, screenerDef/cutterDef +
+  secondScreenerDef pour off-ball). Le défenseur skip un poseur où
+  il est engagé.
+- Forces cumulées (somme additive) puis shift clampé au cap global.
+- **2 nouveaux tests** : Règle 1bis préservée (q=100 → D1 ≤
+  clearance+2 même flag on), écart cumulatif off-ball ≤ 12 px.
+- `docs/SCREEN-ENGINE.md` : section "Limites acceptées" documente
+  l'incompatibilité repel-pur ↔ Règle 1bis.
+- 1653 → **1655 tests verts**.
+
 ### CVT Chantier 1.3b — Couche screen repel (raffinement trajectoires périphériques)
 
 Nouvelle couche
