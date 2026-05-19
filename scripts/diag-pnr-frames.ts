@@ -13,7 +13,8 @@ const pnrSetup: AttackerPositions = {
   O1: { x: 300, y: 380 }, O2: { x: 130, y: 320 }, O3: { x: 470, y: 320 },
   O4: { x: 215, y: 200 }, O5: { x: 310, y: 230 },
 };
-const pnrScreen: AttackerPositions = { ...pnrSetup, O5: { x: 290, y: 340 } };
+// Fix 2026-05-19 — repositionnement pour vrai écran (vs (290,340) avant)
+const pnrScreen: AttackerPositions = { ...pnrSetup, O5: { x: 340, y: 320 } };
 const pnrUse: AttackerPositions = { ...pnrScreen, O1: { x: 380, y: 310 } };
 const pnrRoll: AttackerPositions = { ...pnrUse, O5: { x: 300, y: 180 } };
 
@@ -98,3 +99,83 @@ function profile(label: string, useSteeringEngine: boolean) {
 
 profile('PNR central — LEGACY (flag off)', false);
 profile('PNR central — CVT (flag on)', true);
+
+// =========================================================================
+// Diagnostic ciblé O1 (porteur) sur TOUT le playback
+// Le user signale qu'O1 "revient en arrière" à partir de f119.
+// f119 à 60fps × 2s/step = step 0→1 boundary, à 30fps = step 2→3.
+// On scrute tout le playback pour identifier le frame de reverse.
+// =========================================================================
+console.log('\n' + '='.repeat(80));
+console.log('DIAGNOSTIC O1 — recherche de reverse (tout le playback)');
+console.log('='.repeat(80));
+{
+  const state = buildState(true);
+  console.log('\n  t (step)  O1.x    O1.y     Δx       Δy     Δ(O1)   note');
+  console.log('  --------  -----   -----   -----   ------   -----   ----');
+  let prevO1: { x: number; y: number } | null = null;
+  // Tout le playback t=0 → t=3, échantillonné à 40 points par step.
+  const total = 3 * 40;
+  for (let i = 0; i <= total; i++) {
+    const t = (i / 40);
+    const frame = resolveFrameAt(state, t);
+    if (!frame) continue;
+    const O1 = frame.off.O1;
+    const dx = prevO1 ? O1.x - prevO1.x : 0;
+    const dy = prevO1 ? O1.y - prevO1.y : 0;
+    const dTotal = Math.hypot(dx, dy);
+    // Notes : on cherche tout RETOUR en arrière (x diminue après avoir augmenté,
+    // ou y augmente après avoir diminué).
+    const note = prevO1 && dx < -0.5 ? `⬅️ x recule de ${dx.toFixed(1)}`
+      : prevO1 && dy > 0.5 ? `⬇️ y avance vers le fond (+${dy.toFixed(1)})`
+      : prevO1 && dTotal > 4 ? `⚠️ jump ${dTotal.toFixed(1)} px`
+      : '';
+    // Print uniquement si mouvement OU si transition importante (boundary)
+    if (dTotal > 0.1 || (i % 5 === 0)) {
+      console.log(`  ${t.toFixed(3)}   ${O1.x.toFixed(1).padStart(5)}  ${O1.y.toFixed(1).padStart(5)}   ${dx >= 0 ? '+' : ''}${dx.toFixed(1).padStart(5)}   ${dy >= 0 ? '+' : ''}${dy.toFixed(1).padStart(5)}   ${dTotal.toFixed(1).padStart(5)}   ${note}`);
+    }
+    prevO1 = O1;
+  }
+}
+
+// =========================================================================
+// Qualité de l'écran O5 au step 1 — où est précisément O5 par rapport à D1
+// et à la trajectoire d'O1 ? L'écran est-il "sur le chemin" du drive ?
+// =========================================================================
+console.log('\n' + '='.repeat(80));
+console.log('QUALITÉ DE L\'ÉCRAN — positions clés step 1 (pose)');
+console.log('='.repeat(80));
+{
+  const state = buildState(true);
+  // Frame juste après que l'écran soit "posé" (step 1)
+  const frame = resolveFrameAt(state, 1.0);
+  if (frame) {
+    const O1 = frame.off.O1;
+    const O5 = frame.off.O5;
+    const D1 = frame.defPos.D1!;
+    const D5 = frame.defPos.D5!;
+    console.log(`\n  À t=1.0 (step 1 — O5 a posé l'écran) :`);
+    console.log(`    O1 (porteur)         : (${O1.x.toFixed(0)}, ${O1.y.toFixed(0)})`);
+    console.log(`    O5 (poseur)          : (${O5.x.toFixed(0)}, ${O5.y.toFixed(0)})`);
+    console.log(`    D1 (def porteur)     : (${D1.x.toFixed(0)}, ${D1.y.toFixed(0)})`);
+    console.log(`    D5 (def poseur)      : (${D5.x.toFixed(0)}, ${D5.y.toFixed(0)})`);
+    console.log(`    dist(O1, O5)         : ${dist(O1, O5).toFixed(1)} px (faible = écran proche du porteur)`);
+    console.log(`    dist(D1, O5)         : ${dist(D1, O5).toFixed(1)} px`);
+    console.log(`    O5 est entre O1 et D1 ? écart latéral O5↔ligne(O1,D1) : ${perpDistToLine(O5, O1, D1).toFixed(1)} px`);
+    // O1 drive de step 1 (380,310 ... non wait, step 1 O1 reste à 300,380.
+    // O1 drive au step 2 vers 380,310. Donc trajectoire drive: (300,380)→(380,310).
+    const driveStart = { x: 300, y: 380 };
+    const driveEnd = { x: 380, y: 310 };
+    console.log(`    Trajectoire drive prévue : (300,380) → (380,310)`);
+    console.log(`    O5 est à ${perpDistToLine(O5, driveStart, driveEnd).toFixed(1)} px de cette ligne`);
+    console.log(`    → l'écran "couvre" la trajectoire de drive si cette distance < ~30 px`);
+  }
+}
+
+function perpDistToLine(p: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 1e-6) return dist(p, a);
+  return Math.abs(dx * (p.y - a.y) - dy * (p.x - a.x)) / len;
+}

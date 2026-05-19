@@ -43,9 +43,18 @@ const pnrSetup: AttackerPositions = {
   O5: { x: 310, y: 230 },
 };
 
+// Fix 2026-05-19 — O5 pose un VRAI écran : 3 critères conjoints :
+//   (a) DÉTECTABLE par le moteur : dist(D1, O5) < screenRadius=35 px.
+//   (b) SUR LE CHEMIN du drive : dist(O5, traj O1→drive) < ~10 px.
+//   (c) PROCHE du porteur (~30 px) pour matérialiser un contact.
+// Position retenue O5=(320, 355) :
+//   - dist(O1=(300,380), O5) ≈ 32 px         (c) ✓
+//   - dist(D1=(300,346), O5) ≈ 22 px < 35    (a) ✓
+//   - dist perpend. à drive line (300,380)→(380,310) ≈ 5.6 px (b) ✓
+// Avant : O5=(290,340) — 36.7 px hors trajectoire, mauvais côté de D1.
 const pnrScreen: AttackerPositions = {
   ...pnrSetup,
-  O5: { x: 290, y: 340 },
+  O5: { x: 320, y: 355 },
 };
 
 const pnrUse: AttackerPositions = {
