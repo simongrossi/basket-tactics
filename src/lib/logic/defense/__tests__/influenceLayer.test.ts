@@ -9,7 +9,7 @@
 //   active (helpFactor ≥ 0.5) → pas de shift.
 
 import { describe, expect, it } from 'vitest';
-import type { AppState, AttackerPositions, DefenderPositions } from '@/lib/types';
+import type { AppState, AttackerPositions, AttackerProfiles, DefenderPositions } from '@/lib/types';
 import { makeInitialState } from '@/lib/data/initial';
 import { effectiveDefensePositions } from '@/lib/logic/engine';
 import { INTERPOSE_MAX_SHIFT_PX } from '@/lib/logic/defense/influenceLayer';
@@ -33,7 +33,7 @@ function makeState(useSteeringEngine: boolean): AppState {
   const base = makeInitialState();
   return {
     ...base,
-    attackerProfiles: {}, // CVT 3c neutralisé
+    attackerProfiles: {} as AttackerProfiles, // CVT 3c neutralisé
     steps: [{ off: OFF, ballCarrier: 'O1', annotations: [] }],
     activeStep: 0,
     defenseInitial: DEF,

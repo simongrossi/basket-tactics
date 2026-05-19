@@ -865,6 +865,12 @@ export function DefensePanel(props: DefensePanelProps) {
                 onChange={(v) => props.onPatch({ readScreenChainsEnabled: v })}
                 title="Active la réaction défensive aux re-screens / staggers / flares"
               />
+              <CheckboxLine
+                checked={!!state.useSteeringEngine}
+                label="moteur de forces CVT (expérimental)"
+                onChange={(v) => props.onPatch({ useSteeringEngine: v })}
+                title="Active le moteur de forces vectorielles : arrive dampening, interpose vers lignes de passe, pondération par profil offensif, screen repel périphérique. Effet visuel subtil (≤ 12 px cumulés). À comparer A/B."
+              />
               {/* C.2 V2 — Help-and-recover timing (millisecondes) */}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 80 }} title="C.2 V2 — durée d'aide après disparition du trigger (ms). 1200 ms ≈ standard NBA.">

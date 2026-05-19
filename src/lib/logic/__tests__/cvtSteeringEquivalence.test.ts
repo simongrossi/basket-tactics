@@ -18,6 +18,7 @@ import { describe, expect, it } from 'vitest';
 import type {
   AppState,
   AttackerPositions,
+  AttackerProfiles,
   DefenderId,
   DefenderPositions,
 } from '@/lib/types';
@@ -52,7 +53,7 @@ function makeScenario(overrides: Partial<AppState> = {}): AppState {
     // Pour les tests d'équivalence on neutralise tous les profils
     // (undefined → multipliers (1,1) → comportement legacy strict).
     // Tests dédiés au gain 3c plus bas.
-    attackerProfiles: {},
+    attackerProfiles: {} as AttackerProfiles,
     steps: [
       { off: DEFAULT_OFF, ballCarrier: 'O1', annotations: [] },
       { off: off1, ballCarrier: 'O1', annotations: [] },
@@ -192,7 +193,7 @@ describe('CVT 1.1 — équivalence pipeline complet (flag off vs on)', () => {
     const base = makeInitialState();
     const legacy: AppState = {
       ...base,
-      attackerProfiles: {}, // CVT 3c — neutralisé pour l'équivalence
+      attackerProfiles: {} as AttackerProfiles, // CVT 3c — neutralisé pour l'équivalence
       steps: [{ off: offMissing, ballCarrier: 'O1', annotations: [] }],
       activeStep: 0,
       defenseInitial: DEFAULT_DEF,
@@ -228,7 +229,7 @@ describe('CVT 3c — pondération distance par profil offensif', () => {
     const base = makeInitialState();
     const buildState = (profile: 'shooter' | 'non-shooter' | undefined): AppState => ({
       ...base,
-      attackerProfiles: profile ? { O2: profile } : {},
+      attackerProfiles: (profile ? { O2: profile } : {}) as AttackerProfiles,
       steps: [{ off, ballCarrier: 'O1', annotations: [] }],
       activeStep: 0,
       defenseInitial: def,
@@ -263,7 +264,7 @@ describe('CVT 3c — pondération distance par profil offensif', () => {
     const base = makeInitialState();
     const buildLegacy = (profile: 'shooter' | undefined): AppState => ({
       ...base,
-      attackerProfiles: profile ? { O2: profile } : {},
+      attackerProfiles: (profile ? { O2: profile } : {}) as AttackerProfiles,
       steps: [{ off, ballCarrier: 'O1', annotations: [] }],
       activeStep: 0,
       defenseInitial: def,

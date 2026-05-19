@@ -6,6 +6,38 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### CVT Chantier 1.4 — Toggle UI pour comparaison A/B (sans bascule par défaut)
+
+Ajout d'une case à cocher **"moteur de forces CVT (expérimental)"** dans
+[`DefensePanel`](src/components/DefensePanel.tsx), groupée avec les
+autres toggles défensifs opt-in (snake keep coverage, pre-rotation,
+tag-then-switch, etc.). L'utilisateur peut maintenant activer/désactiver
+le pipeline CVT dans `npm run dev` et comparer visuellement A/B.
+
+**Tentative d'activation par défaut abandonnée** : un essai a montré
+13 fails sur 1655 tests (golden snapshots J.6, tests de positions
+exactes b4V2/cutterScreenChain/symmetricEngine/defenderMotionInertia/
+playbackGoldenMetrics/topLockChainIntegration + tests CVT internes qui
+dépendaient du défaut). La bascule par défaut demande :
+1. Validation visuelle complète dans l'app avec scénarios réels.
+2. Régénération supervisée des golden snapshots J.6.
+3. Mise à jour ciblée des tests qui dépendent des positions exactes
+   (déviation acceptable confirmée scénario par scénario).
+
+Cette activation par défaut devient sous-étape **1.4b** future, à
+lancer après que tu aies validé visuellement le rendu CVT dans
+l'éditeur.
+
+- Toggle UI : `state.useSteeringEngine: boolean` exposé via
+  `props.onPatch` (pattern standard des opt-in DefensePanel).
+- Tooltip explicite des effets : "arrive dampening, interpose vers
+  lignes de passe, pondération par profil offensif, screen repel
+  périphérique. Effet visuel subtil (≤ 12 px cumulés). À comparer A/B."
+- Imports `AttackerProfiles` ajoutés dans 3 fichiers de tests
+  (typage strict `Record<AttackerId, OffensiveProfile>` n'accepte
+  pas `{}` — cast explicite `as AttackerProfiles`).
+- 1655 tests verts, zéro régression.
+
 ### CVT Chantier 1.3c — Écrans off-ball couverts + invariant Règle 1bis validé
 
 Extension de `defense/screenRepelLayer.ts` aux écrans **hors-ballon**

@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { SCREEN_REPEL_LAYER_MAX_SHIFT_PX } from '@/lib/logic/defense/screenRepelLayer';
-import type { AppState, AttackerPositions, DefenderPositions } from '@/lib/types';
+import type { AppState, AttackerPositions, AttackerProfiles, DefenderPositions } from '@/lib/types';
 import { makeInitialState } from '@/lib/data/initial';
 import { effectiveDefensePositions } from '@/lib/logic/engine';
 
@@ -30,7 +30,7 @@ describe('applyScreenRepelLayer — cap et filtres', () => {
     };
     const stateA: AppState = {
       ...base,
-      attackerProfiles: {},
+      attackerProfiles: {} as AttackerProfiles,
       steps: [{ off, ballCarrier: 'O1', annotations: [] }],
       activeStep: 0,
       defenseInitial: def,
@@ -65,7 +65,7 @@ describe('applyScreenRepelLayer — cap et filtres', () => {
     };
     const buildState = (useSteeringEngine: boolean): AppState => ({
       ...base,
-      attackerProfiles: {},
+      attackerProfiles: {} as AttackerProfiles,
       steps: [{
         off,
         ballCarrier: 'O1',
@@ -118,7 +118,7 @@ describe('applyScreenRepelLayer — cap et filtres', () => {
     };
     const buildState = (useSteeringEngine: boolean): AppState => ({
       ...base,
-      attackerProfiles: {},
+      attackerProfiles: {} as AttackerProfiles,
       steps: [{ off, ballCarrier: 'O1', annotations: [] }],
       activeStep: 0,
       defenseInitial: def,
@@ -154,7 +154,7 @@ describe('applyScreenRepelLayer — cap et filtres', () => {
     };
     const legacy: AppState = {
       ...base,
-      attackerProfiles: {},
+      attackerProfiles: {} as AttackerProfiles,
       steps: [{ off, ballCarrier: 'O1', annotations: [] }],
       activeStep: 0,
       defenseInitial: def,
