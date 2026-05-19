@@ -35,24 +35,37 @@ sur `main`, **1545 → 1642 tests verts (+97)**. Tout en opt-in via
   `profileWeightMultipliers` (calibration shooter/slasher),
   `isPassShadowed`, `passShadowsByDefender`. 21 tests.
 
-**Reste à faire (sous-étapes câblage)** :
-- 1.3b — Câbler `repelForces` dans `applyScreenAdjustment` ou en
-  couche additive après `baseTargets`. **Le seul chantier risqué** :
-  interaction avec `pushOutOfScreener` legacy + tests `screens*` /
-  `overlap*` / `userJson*` / `screenLab*`. Approche prudente :
-  ajouter une **couche additive** (ne touche pas le legacy push-out
-  interne), garder le flag `useSteeringEngine` pour activer/désactiver,
-  vérifier qu'aucun test screen ne régresse.
-- 2b — Câbler `interposeForcesAgainstLanes` (nouvelle couche
-  `influenceLayer` probable, ou injection dans `helpLayer`).
-  Modulation strong-side / weak-side via `state.ballSide`.
-- 3b — Câbler `profileWeightMultipliers` dans `manDefense` /
-  `help.ts` (composition `seek-man * manWeight` +
-  `seek-basket * basketWeight`). Propager `isPassShadowed` dans
-  `ComputedDefender`.
-- 1.4 — Activation par défaut + nettoyage de la double-sortie
-  legacy. **À ne lancer qu'après validation visuelle complète** des
-  câblages ci-dessus.
+**Câblages livrés en 2ᵉ vague (2026-05-19 nuit/matin)** :
+- 2b — `defense/influenceLayer.ts` (couche 1.3 du pipeline). Shift
+  soft 5 px max vers la projection sur la ligne porteur↔homme pour
+  défenseurs "libres". 4 tests.
+- 3b — `isPassShadowed` propagé dans `DefenderTarget` +
+  `ComputedDefender` via `passShadowsByDefender`. 2 tests.
+- 3c — pondération distance par profil offensif dans `baseTargets`
+  (`dist = baseDist / profileWeightMultipliers(profile).manWeight`).
+  Shooter close out tighter, slasher sag franc. 2 tests.
+- 1.3b — `defense/screenRepelLayer.ts` (couche 2.1) — version
+  **conservatrice** : raffine la trajectoire des défenseurs
+  périphériques (non carrier/screener/pnrRole), cap 3 px. 3 tests.
+  **Limitation** : ne remplace pas le push-out binaire de
+  `screens/helpers.ts`.
+
+**Reste à faire (sous-étapes restantes)** :
+- 1.3c — Refactorer `applyScreenAdjustment` pour remplacer
+  `pushOutOfScreener` / `pushOutOfCarrier` par un système `repel`
+  pur. Requiert revalidation exhaustive `screens*` / `overlap*` /
+  `userJson*` / `screenLab*`. **Le chantier le plus risqué** du
+  CVT — à attaquer après validation visuelle complète des câblages
+  actuels.
+- 1.4 — Activation par défaut + nettoyage de la double-sortie legacy.
+  À ne lancer qu'après stabilisation 1.3c et validation visuelle.
+
+**Tolérance tests d'équivalence intégrés** : 12 px (était 5 px en
+1.1b). Borne cumulative documentée :
+- ≤ 3 px de l'`arrive` dampening en zone proche (1.1b).
+- ≤ 5 px de l'interpose layer (2b).
+- ≤ 3 px du screen repel layer (1.3b).
+- + arrondis du pipeline complet (speedConstraint, closeout, etc.).
 
 **Constantes de tuning ajoutées** dans `data/physics.ts` :
 - `STEERING_MAN_SLOWING_RADIUS_PX = 12`
