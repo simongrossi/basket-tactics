@@ -1,12 +1,23 @@
 // Tests des transformations sur les annotations.
 
 import { describe, expect, it } from 'vitest';
-import type { Annotation } from '@/lib/types';
-import { makeInitialState } from '@/lib/data/initial';
+import type { Annotation, AppState } from '@/lib/types';
+import { makeInitialState, makeStep } from '@/lib/data/initial';
 import * as annoTx from '../transforms/annotationTransforms';
 
 function cutAnno(fromId: 'O1' | 'O2' | 'O3', to: { x: number; y: number }): Annotation {
   return { type: 'cut', fromId, toId: null, from: { x: 0, y: 0 }, to };
+}
+
+function stateWithTwoSteps(): AppState {
+  const s0 = makeInitialState();
+  return {
+    ...s0,
+    steps: [
+      s0.steps[0],
+      makeStep({ ...s0.steps[0].off }, s0.steps[0].ballCarrier, []),
+    ],
+  };
 }
 
 describe('annotationTransforms', () => {
@@ -29,6 +40,44 @@ describe('annotationTransforms', () => {
       };
       const s1 = annoTx.addAnnotation(s0, pass);
       expect(s1.steps[s1.activeStep].ballCarrier).toBe('O3');
+    });
+
+    it("mode début : cale le démarrage au moment scrub courant", () => {
+      const s0 = stateWithTwoSteps();
+      const s1 = annoTx.addAnnotation(
+        s0,
+        cutAnno('O2', { x: 180, y: 420 }),
+        { fullT: 0.35, timingAnchor: 'start' },
+      );
+      const anno = s1.steps[0].annotations[0];
+      expect(anno.phase).toBe('end');
+      expect(anno.tStart).toBe(0.35);
+      expect(anno.tEnd).toBe(1);
+    });
+
+    it("mode fin : cale l'arrivée au moment scrub courant", () => {
+      const s0 = stateWithTwoSteps();
+      const s1 = annoTx.addAnnotation(
+        s0,
+        cutAnno('O2', { x: 180, y: 420 }),
+        { fullT: 0.35, timingAnchor: 'end' },
+      );
+      const anno = s1.steps[0].annotations[0];
+      expect(anno.phase).toBe('end');
+      expect(anno.tStart).toBe(0);
+      expect(anno.tEnd).toBe(0.35);
+    });
+
+    it("mode fin sur une étape entière crée une action active dès cette étape", () => {
+      const s0 = { ...stateWithTwoSteps(), activeStep: 1 };
+      const s1 = annoTx.addAnnotation(
+        s0,
+        { type: 'screen', fromId: 'O5', from: s0.steps[1].off.O5, to: { x: 340, y: 270 } },
+        { timingAnchor: 'end' },
+      );
+      const anno = s1.steps[1].annotations[0];
+      expect(anno.phase).toBe('start');
+      expect(s1.steps[1].off.O5).toEqual({ x: 340, y: 270 });
     });
   });
 

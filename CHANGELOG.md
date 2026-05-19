@@ -6,6 +6,40 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Path-Aware Interpolation (PAI) V1 — Évitement entre frames
+
+Nouveau module
+[`src/lib/logic/playback/pathAwareInterpolation.ts`](src/lib/logic/playback/pathAwareInterpolation.ts).
+Détecte les joueurs qui s'effleurent (< `MIN_PLAYER_CLEARANCE_PX + 8 px`
+= 42 px) pendant l'interpolation entre 2 steps et applique une
+déviation tangentielle cappée à 4 px par frame. Vient en complément
+du `curveAroundObstacle` (Bezier attaquants cut/idle/dribble) et de
+`pushOutOfScreenContact` (défenseurs stuck d'écran) : **couvre le trou
+des autres joueurs** (défenseurs hors-écran, attaquants en pass/screen).
+
+- Branché dans `playback/frameResolver.ts` couche 5.0 (après
+  `followDefendersAtFrame`, avant `resolvePlayerCollisions`).
+- Opt-in via `state.pathAwareInterpolation` (default false).
+- Skip rules conformes Règle 1bis :
+  - `attackerIsScreening[id]` → poseur planté.
+  - `screenLockedDefenders.has(id)` → défenseur stuck à l'écran.
+- Constantes exportées :
+  `PAI_NEAR_MISS_BUFFER_PX = 8`, `PAI_MAX_DEVIATION_PER_FRAME_PX = 4`.
+- Solveur final `resolvePlayerCollisions` reste filet dur en aval :
+  PAI agit en amont pour adoucir visuellement, ne remplace pas la
+  garantie de clearance.
+- Toggle UI dans
+  [`DefensePanel.tsx`](src/components/DefensePanel.tsx) (à côté du
+  toggle CVT) pour comparaison A/B dans `npm run dev`.
+- **11 tests dédiés** dans
+  [`pathAwareInterpolation.test.ts`](src/lib/logic/playback/__tests__/pathAwareInterpolation.test.ts) :
+  constantes, no-op si loin, déviation symétrique near-miss, intensité
+  proportionnelle, cap dur, skip rules (poseur pinné / stuck / double
+  pinned / overlap dégénéré).
+- Timeout du test `deterministicScrub` étendu à 15 s (charge système).
+- 1660 → **1674 tests verts** (+ 14 : 11 PAI + 3 deterministicScrub
+  réintégré).
+
 ### Fix diag — Defensive 3-sec ne flag plus le help actif
 
 Le badge `⚠️ 3 SEC` (règle B7) s'affichait sur D4 en low-man tag du

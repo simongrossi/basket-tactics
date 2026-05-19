@@ -11,6 +11,7 @@
 import type {
   Annotation,
   AppState,
+  ActionTimingAnchor,
   AttackerId,
   DefenderId,
   OffensiveProfile,
@@ -36,6 +37,7 @@ interface CourtMenusProps {
   ctxMenu: CtxMenuState | null;
   zoneRegionMenu: ZoneRegionMenuState | null;
   onSetTool: (t: Tool) => void;
+  onSetActionTimingAnchor?: (mode: ActionTimingAnchor) => void;
   onCloseCtxMenu: () => void;
   onCloseZoneRegionMenu: () => void;
   // Defender ctx menu
@@ -65,6 +67,7 @@ export function CourtMenus(props: CourtMenusProps) {
     ctxMenu,
     zoneRegionMenu,
     onSetTool,
+    onSetActionTimingAnchor,
     onCloseCtxMenu,
     onCloseZoneRegionMenu,
     onUpdateRule,
@@ -94,6 +97,8 @@ export function CourtMenus(props: CourtMenusProps) {
           isCarrierDefender={frame.defPos[ctxMenu.dId]?.isCarrierDefender}
           tool={state.tool}
           onSetTool={onSetTool}
+          actionTimingAnchor={state.actionTimingAnchor ?? 'start'}
+          onSetActionTimingAnchor={onSetActionTimingAnchor}
           onUpdate={(p) => onUpdateRule(ctxMenu.dId, p)}
           onApplyProfile={(profile) => onApplyDefenderProfile(ctxMenu.dId, profile)}
           onClearOverride={() => onClearDefenseOverride(ctxMenu.dId)}
@@ -116,6 +121,8 @@ export function CourtMenus(props: CourtMenusProps) {
             offensiveProfile={state.attackerProfiles?.[oId] ?? 'creator'}
             tool={state.tool}
             onSetTool={onSetTool}
+            actionTimingAnchor={state.actionTimingAnchor ?? 'start'}
+            onSetActionTimingAnchor={onSetActionTimingAnchor}
             onMakeCarrier={() => onSetBallCarrier(oId)}
             onForceScreener={() => onSetForcedScreener(oId)}
             onClearForcedScreener={() => onSetForcedScreener(null)}

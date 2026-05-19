@@ -3,7 +3,15 @@
 // corps + regard).
 
 import { useEffect, useRef } from 'react';
-import type { Annotation, AppState, AttackerId, DominantHand, OffensiveProfile, Tool } from '@/lib/types';
+import type {
+  ActionTimingAnchor,
+  Annotation,
+  AppState,
+  AttackerId,
+  DominantHand,
+  OffensiveProfile,
+  Tool,
+} from '@/lib/types';
 import { useClampedPosition } from './popupHooks';
 import { ToolBar } from './ToolBar';
 import { AutoActionSubmenu } from './AutoActionSubmenu';
@@ -33,12 +41,14 @@ export interface AttackerMenuProps {
   dominantHand: DominantHand;
   offensiveProfile: OffensiveProfile;
   tool: Tool;
+  actionTimingAnchor?: ActionTimingAnchor;
   bodyOrientation?: number;
   gazeOrientation?: number;
   /** State complet (lecture seule) — nécessaire pour calculer les positions et
    *  l'orientation au moment de générer une action auto. */
   state: AppState;
   onSetTool: (t: Tool) => void;
+  onSetActionTimingAnchor?: (mode: ActionTimingAnchor) => void;
   onMakeCarrier: () => void;
   onForceScreener: () => void;
   onClearForcedScreener: () => void;
@@ -54,7 +64,7 @@ export interface AttackerMenuProps {
 
 export function AttackerMenu({
   oId, x, y, isCarrier, isForcedScreener, hasAnnotations, dominantHand, offensiveProfile,
-  tool, onSetTool, bodyOrientation, gazeOrientation,
+  tool, onSetTool, actionTimingAnchor, onSetActionTimingAnchor, bodyOrientation, gazeOrientation,
   state, onCreateAutoAnnotation,
   onMakeCarrier, onForceScreener, onClearForcedScreener, onClearAnnotations,
   onSetDominantHand, onSetOffensiveProfile, onSetBodyOrientation, onSetGazeOrientation, onClose,
@@ -121,7 +131,12 @@ export function AttackerMenu({
           ×
         </span>
       </div>
-      <ToolBar tool={tool} onSetTool={onSetTool} />
+      <ToolBar
+        tool={tool}
+        onSetTool={onSetTool}
+        actionTimingAnchor={actionTimingAnchor}
+        onSetActionTimingAnchor={onSetActionTimingAnchor}
+      />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <Item
           label={isCarrier ? '✓ porteur (étape active)' : 'marquer comme porteur'}

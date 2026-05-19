@@ -18,6 +18,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import type {
   AppState,
+  ActionTimingAnchor,
+  AddAnnotationOptions,
   AttackerId,
   DefenderId,
   Annotation,
@@ -82,7 +84,7 @@ interface CourtViewProps {
   onMoveAttackerDuringDrag?: (id: AttackerId, x: number, y: number) => void;
   onMoveDefenderDuringDrag?: (id: DefenderId, x: number, y: number) => void;
   onCommitPlayerDrag?: () => void;
-  onAddAnnotation: (a: Annotation) => void;
+  onAddAnnotation: (a: Annotation, options?: AddAnnotationOptions) => void;
   onUpdateRule: (dId: DefenderId, patch: Partial<AppState['rules'][DefenderId]>) => void;
   onApplyDefenderProfile: (dId: DefenderId, profile: import('@/lib/data/defenderProfiles').DefenderProfile) => void;
   onClearDefenseOverride: (dId: DefenderId) => void;
@@ -99,6 +101,7 @@ interface CourtViewProps {
   onSetAnnotationTo: (stepIdx: number, annoIdx: number, point: { x: number; y: number }) => void;
   onSetAnnotationWaypoint: (stepIdx: number, annoIdx: number, wpIdx: number, point: { x: number; y: number }) => void;
   onSetTool: (t: Tool) => void;
+  onSetActionTimingAnchor?: (mode: ActionTimingAnchor) => void;
   isPlaying: boolean;
   playbackSpeed: number;
   onPlaybackEnd?: () => void;
@@ -178,6 +181,9 @@ export function CourtView(props: CourtViewProps) {
       onMoveAttackerDuringDrag: props.onMoveAttackerDuringDrag,
       onMoveDefenderDuringDrag: props.onMoveDefenderDuringDrag,
       onAddAnnotation: props.onAddAnnotation,
+      annotationFullT: props.scrubT ?? null,
+      frameOff: frame.off,
+      frameDefPos: frame.defPos,
       onClearContextMenu: closeCtxMenu,
       selectedDefenders,
       onToggleDefenderSelection: toggleDefenderSelection,
@@ -901,6 +907,7 @@ export function CourtView(props: CourtViewProps) {
         ctxMenu={ctxMenu}
         zoneRegionMenu={zoneRegionMenu}
         onSetTool={props.onSetTool}
+        onSetActionTimingAnchor={props.onSetActionTimingAnchor}
         onCloseCtxMenu={closeCtxMenu}
         onCloseZoneRegionMenu={closeZoneRegionMenu}
         onUpdateRule={props.onUpdateRule}

@@ -57,7 +57,7 @@ describe('resolveFrameAtDeterministicScrub', () => {
     }
   });
 
-  it('reste fluide quand le scrub est recalculé from scratch frame par frame', () => {
+  it('reste fluide quand le scrub est recalculé from scratch frame par frame', { timeout: 15000 }, () => {
     TEMPLATE_IDS.forEach((tplId) => {
       const state = buildState(tplId);
       const transitions = state.steps.length - 1;

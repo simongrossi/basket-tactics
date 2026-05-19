@@ -871,6 +871,12 @@ export function DefensePanel(props: DefensePanelProps) {
                 onChange={(v) => props.onPatch({ useSteeringEngine: v })}
                 title="Active le moteur de forces vectorielles : arrive dampening, interpose vers lignes de passe, pondération par profil offensif, screen repel périphérique. Effet visuel subtil (≤ 12 px cumulés). À comparer A/B."
               />
+              <CheckboxLine
+                checked={!!state.pathAwareInterpolation}
+                label="évitement entre frames PAI (expérimental)"
+                onChange={(v) => props.onPatch({ pathAwareInterpolation: v })}
+                title="Path-Aware Interpolation : déviation tangentielle des joueurs qui s'effleurent à <42 px pendant l'interpolation entre 2 steps. Cap 4 px par frame. Préserve poseurs pinnés et défenseurs stuck d'écran (Règle 1bis). À comparer A/B."
+              />
               {/* C.2 V2 — Help-and-recover timing (millisecondes) */}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 80 }} title="C.2 V2 — durée d'aide après disparition du trigger (ms). 1200 ms ≈ standard NBA.">

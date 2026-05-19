@@ -1,12 +1,14 @@
 'use client';
 
-import type { Tool } from '@/lib/types';
+import type { ActionTimingAnchor, Tool } from '@/lib/types';
 import { Panel, Section, COLORS } from './ui';
 import { useSidebarTheme, DARK_PANEL } from './sidebar/SidebarThemeContext';
 
 interface OffenseToolsPanelProps {
   tool: Tool;
   onSetTool: (t: Tool) => void;
+  actionTimingAnchor?: ActionTimingAnchor;
+  onSetActionTimingAnchor?: (mode: ActionTimingAnchor) => void;
 }
 
 const TOOLS: { value: Tool; label: string }[] = [
@@ -68,6 +70,7 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
   const idleBg = dark ? DARK_PANEL.bgSubtle : '#fff';
   const idleBorder = dark ? DARK_PANEL.border : c.border;
   const idleText = dark ? DARK_PANEL.text : c.accentText;
+  const actionTimingAnchor = props.actionTimingAnchor ?? 'start';
   return (
     <Panel theme="offense" title="⚪ Attaque">
       <Section theme="offense" label="Actions" open>
@@ -100,6 +103,36 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
             );
           })}
         </div>
+        {props.onSetActionTimingAnchor && (
+          <label
+            title="Coché : le tracé arrive au moment courant de la timeline. Décoché : il démarre au moment courant."
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              marginTop: 8,
+              padding: '6px 8px',
+              borderRadius: 6,
+              border: `1px solid ${actionTimingAnchor === 'end' ? c.accent : idleBorder}`,
+              background: actionTimingAnchor === 'end'
+                ? (dark ? 'rgba(216, 90, 48, 0.18)' : '#fff7ed')
+                : idleBg,
+              color: actionTimingAnchor === 'end' ? c.accentText : idleText,
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: 'pointer',
+              userSelect: 'none',
+            }}
+          >
+            <span>fin d'action</span>
+            <input
+              type="checkbox"
+              checked={actionTimingAnchor === 'end'}
+              onChange={(e) => props.onSetActionTimingAnchor?.(e.target.checked ? 'end' : 'start')}
+            />
+          </label>
+        )}
       </Section>
     </Panel>
   );

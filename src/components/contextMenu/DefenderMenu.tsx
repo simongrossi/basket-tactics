@@ -22,7 +22,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import type { DefenderId, DefenderRule, Tool } from '@/lib/types';
+import type { ActionTimingAnchor, DefenderId, DefenderRule, Tool } from '@/lib/types';
 import { DEFENDER_PROFILES, type DefenderProfile } from '@/lib/data/defenderProfiles';
 import { useClampedPosition, useDraggablePopup } from './popupHooks';
 import { ToolBar } from './ToolBar';
@@ -202,7 +202,9 @@ export interface DefenderMenuProps {
    *  gazeLock="opponent" est masquée car identique à "ball-carrier". */
   isCarrierDefender?: boolean;
   tool: Tool;
+  actionTimingAnchor?: ActionTimingAnchor;
   onSetTool: (t: Tool) => void;
+  onSetActionTimingAnchor?: (mode: ActionTimingAnchor) => void;
   onUpdate: (patch: Partial<DefenderRule>) => void;
   onApplyProfile: (profile: DefenderProfile) => void;
   onClearOverride: () => void;
@@ -217,7 +219,9 @@ export function DefenderMenu({
   hasOverride,
   isCarrierDefender,
   tool,
+  actionTimingAnchor,
   onSetTool,
+  onSetActionTimingAnchor,
   onUpdate,
   onApplyProfile,
   onClearOverride,
@@ -321,7 +325,13 @@ export function DefenderMenu({
         </button>
       </div>
 
-      <ToolBar tool={tool} onSetTool={onSetTool} defenderContext />
+      <ToolBar
+        tool={tool}
+        onSetTool={onSetTool}
+        actionTimingAnchor={actionTimingAnchor}
+        onSetActionTimingAnchor={onSetActionTimingAnchor}
+        defenderContext
+      />
 
       <MenuSection title="Placement" icon={Target} meta={placementMeta} metaTone={placementTone} first>
         <div

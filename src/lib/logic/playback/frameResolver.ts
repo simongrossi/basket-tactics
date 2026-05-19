@@ -39,6 +39,7 @@ import {
 import { pushOutOfScreenContact } from '../screenCollision';
 import { solveEntityCollisions } from '../constraintSolver';
 import { applyEasing } from './easing';
+import { applyPathAwareInterpolation } from './pathAwareInterpolation';
 import { getStepDurationSeconds } from '../timecode';
 import { activeBallCarrier, activeOffense } from '../players';
 import { attackerTrajectoryAt, type MovementType } from '../playbackTrajectory';
@@ -953,6 +954,36 @@ export function resolveFrameAt(
   //    collisions strictes + ré-orientation finale.
   // ---------------------------------------------------------------------
   followDefendersAtFrame(defPos, off, carrier, state, idxA, idxB, screenLockedDefenders);
+  // 5.0 — PAI V1 (opt-in) : Path-Aware Interpolation. Détecte les paires
+  // de joueurs qui s'effleurent (< MIN_CLEARANCE + 8 px) à la frame
+  // courante et applique une déviation tangentielle cappée à 4 px/frame.
+  // Skip les poseurs pinnés (attackerIsScreening) et les défenseurs stuck
+  // (screenLockedDefenders) — Règle 1bis préservée.
+  // Le solveur final (resolvePlayerCollisions) reste filet dur en aval.
+  if (state.pathAwareInterpolation) {
+    const defPositions: Record<string, Point> = {};
+    defenderIds.forEach((id) => {
+      defPositions[id] = { x: defPos[id].x, y: defPos[id].y };
+    });
+    const pai = applyPathAwareInterpolation(
+      off,
+      defPositions as Record<DefenderId, Point>,
+      attackerIsScreening,
+      screenLockedDefenders,
+    );
+    // Réinjection des positions ajustées
+    (Object.keys(pai.attackers) as AttackerId[]).forEach((id) => {
+      const p = pai.attackers[id];
+      if (p) off[id] = p;
+    });
+    defenderIds.forEach((id) => {
+      const p = pai.defenders[id];
+      if (p) {
+        defPos[id].x = p.x;
+        defPos[id].y = p.y;
+      }
+    });
+  }
   // Anti-superposition pendant l'interpolation. Les défenseurs "stuck" sur
   // un écran (`screenLockedDefenders`) sont SKIP : leurs positions endpoints
   // (engine) sont déjà à ≥ MIN_CLEARANCE de tous les joueurs ; les pousser

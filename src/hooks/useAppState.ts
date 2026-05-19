@@ -12,6 +12,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type {
   AppState,
+  AddAnnotationOptions,
   Annotation,
   AttackerId,
   DefenderId,
@@ -349,8 +350,8 @@ export function useAppState() {
   }, [setStateWithHistory]);
 
   // -- Annotations --
-  const addAnnotation = useCallback((annotation: Annotation) => {
-    setStateWithHistory((s) => annotationTx.addAnnotation(s, annotation));
+  const addAnnotation = useCallback((annotation: Annotation, options?: AddAnnotationOptions) => {
+    setStateWithHistory((s) => annotationTx.addAnnotation(s, annotation, options));
   }, [setStateWithHistory]);
 
   const setForcedScreener = useCallback((oId: AttackerId | null) => {

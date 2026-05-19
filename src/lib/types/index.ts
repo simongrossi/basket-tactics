@@ -775,6 +775,17 @@ export type ComputedAttackerVisuals = Record<AttackerId, ComputedAttacker>;
 export type ComputedDefense = Record<DefenderId, ComputedDefender>;
 
 export type Tool = 'move' | 'pass' | 'dribble' | 'cut' | 'screen';
+export type ActionTimingAnchor = 'start' | 'end';
+
+export interface AddAnnotationOptions {
+  /** Instant courant de lecture/scrub, en unités d'étapes fractionnaires.
+   *  Undefined = utiliser l'étape active comme avant. */
+  fullT?: number | null;
+  /** Point d'ancrage du dessin :
+   *  - 'start' : l'action dessinée démarre à l'instant courant.
+   *  - 'end'   : l'action dessinée arrive/se termine à l'instant courant. */
+  timingAnchor?: ActionTimingAnchor;
+}
 
 export interface AppState {
   steps: Step[];
@@ -842,6 +853,12 @@ export interface AppState {
    *  toute sécurité et préparera les optimisations 1.1b (arrive),
    *  1.3 (repel autour des écrans) et chantiers 2/3. Default false. */
   useSteeringEngine?: boolean;
+  /** Path-Aware Interpolation (PAI) V1 — Évite les traversées visuelles
+   *  entre frames : si deux joueurs interpolés sont à moins de
+   *  `MIN_PLAYER_CLEARANCE_PX + 8 px`, une déviation tangentielle cappée
+   *  à 4 px/frame est appliquée AVANT le solveur final. Skip les poseurs
+   *  pinnés et les défenseurs stuck d'écran (Règle 1bis). Default false. */
+  pathAwareInterpolation?: boolean;
   /** A.4 — Affiche les badges visuels SVG sur le terrain pour les patterns
    *  détectés (reject screen, snake dribble, empty side PnR, defensive 3 sec).
    *  Lit les diagnostics coach déjà calculés. Default true. Désactiver pour
@@ -964,6 +981,11 @@ export interface AppState {
   showHelpLines: boolean;
   showMatchups: boolean;
   tool: Tool;
+  /** Mode de timing appliqué aux nouvelles annotations dessinées depuis le
+   *  terrain. Default 'start' : le dessin démarre au moment courant. En
+   *  'end', le dessin est interprété comme l'arrivée/la fin de l'action, pour
+   *  caler plus vite un écran, une course ou un dribble sur la timeline. */
+  actionTimingAnchor?: ActionTimingAnchor;
   defenseSystem: DefenseSystem;
   zoneConfig: ZoneConfig;
   /** F.1 — Configuration junk defense, lu si defenseSystem === 'junk'.

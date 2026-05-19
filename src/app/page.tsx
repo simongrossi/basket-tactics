@@ -33,7 +33,7 @@ import { computeMetrics } from '@/lib/logic/metrics';
 import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offense';
 import { computeCoachDiagnostics } from '@/lib/logic/coachDiagnostics';
 import { activeBallCarrier, activeOffense } from '@/lib/logic/players';
-import type { AppState, Step } from '@/lib/types';
+import type { ActionTimingAnchor, AddAnnotationOptions, Annotation, AppState, Step } from '@/lib/types';
 
 export default function Page() {
   const app = useAppState();
@@ -119,6 +119,24 @@ export default function Page() {
     const detected = detectStepScreenAction(app.state, app.state.activeStep);
     return detected?.action ?? null;
   }, [app.state]);
+
+  const actionTimingAnchor = app.state.actionTimingAnchor ?? 'start';
+  const annotationFullT = scrubT ?? playbackT ?? null;
+
+  const handleSetActionTimingAnchor = useCallback((mode: ActionTimingAnchor) => {
+    app.patch({ actionTimingAnchor: mode });
+  }, [app]);
+
+  const handleAddAnnotation = useCallback(
+    (annotation: Annotation, options?: AddAnnotationOptions) => {
+      app.addAnnotation(annotation, {
+        ...options,
+        fullT: options?.fullT ?? annotationFullT,
+        timingAnchor: options?.timingAnchor ?? actionTimingAnchor,
+      });
+    },
+    [actionTimingAnchor, annotationFullT, app],
+  );
 
   const handlePlayToggle = useCallback(() => {
     if (isPlaying) {
@@ -253,7 +271,12 @@ export default function Page() {
                 accent: '#f97316',
                 defaultOpen: true,
                 content: (
-                  <OffenseToolsPanel tool={app.state.tool} onSetTool={app.setTool} />
+                  <OffenseToolsPanel
+                    tool={app.state.tool}
+                    onSetTool={app.setTool}
+                    actionTimingAnchor={actionTimingAnchor}
+                    onSetActionTimingAnchor={handleSetActionTimingAnchor}
+                  />
                 ),
               },
               {
@@ -444,7 +467,7 @@ export default function Page() {
               onMoveAttackerDuringDrag={app.moveAttackerDuringDrag}
               onMoveDefenderDuringDrag={app.moveDefenderDuringDrag}
               onCommitPlayerDrag={app.commitPlayerDrag}
-              onAddAnnotation={app.addAnnotation}
+              onAddAnnotation={handleAddAnnotation}
               onUpdateRule={app.updateRule}
               onClearDefenseOverride={app.clearDefenseOverride}
               onApplyDefenderProfile={app.applyDefenderProfile}
@@ -461,6 +484,7 @@ export default function Page() {
               onSetAnnotationTo={app.setAnnotationTo}
               onSetAnnotationWaypoint={app.setAnnotationWaypoint}
               onSetTool={app.setTool}
+              onSetActionTimingAnchor={handleSetActionTimingAnchor}
               isPlaying={isPlaying}
               playbackSpeed={playbackSpeed}
               scrubT={scrubT}

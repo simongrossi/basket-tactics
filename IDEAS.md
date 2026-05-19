@@ -42,13 +42,16 @@ Pour chacun, suivre la méthode validée sur PNR central :
 4. Régénérer le snapshot J.6 si nécessaire.
 
 #### C. Path-Aware Interpolation (chantier indépendant)
-Hors CVT. Modifier le **lerp linéaire** dans `playback/frameResolver.ts`
-entre 2 step targets pour courber la trajectoire quand le segment traverse
-un obstacle. Premier gain visuel majeur sur tous les templates.
+🟡 **V1 livrée (2026-05-19)** — module
+`playback/pathAwareInterpolation.ts` branché couche 5.0 dans
+`frameResolver`. Opt-in via `state.pathAwareInterpolation`. Toggle UI
+ajouté dans `DefensePanel`. 11 tests dédiés. Skip Règle 1bis préservé
+(poseurs + défenseurs stuck d'écran).
 
-État : pas démarré. Demande un design dédié (Bezier avec waypoint
-dynamique selon la position interpolée des obstacles à chaque frame).
-Risque : interactions complexes avec `curveAroundObstacle` existant.
+**À venir (V2)** : remplacer `curveAroundObstacle` + `pushOutOfScreenContact`
+par un système PAI unifié ? Demande validation visuelle approfondie de
+V1 d'abord. Si V1 améliore réellement les sorties d'écran, on peut
+envisager V2.
 
 #### D. Bug user non reproduit
 "O1 revient en arrière à partir de f119" sur PNR central. Non reproduit

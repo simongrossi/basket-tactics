@@ -11,7 +11,14 @@ export {
   setAnnotationWaypoint,
 } from './annotationEndpointTransforms';
 
-import type { AppState, Annotation, AnnotationType, AttackerId, Step } from '@/lib/types';
+import type {
+  AddAnnotationOptions,
+  AppState,
+  Annotation,
+  AnnotationType,
+  AttackerId,
+  Step,
+} from '@/lib/types';
 import {
   upsertMovementAnnotation,
   upsertPassAnnotation,
@@ -19,22 +26,97 @@ import {
 } from '@/lib/logic/stepMutations';
 
 const MOVEMENT_TYPES: AnnotationType[] = ['cut', 'dribble', 'screen'];
+const MOVEMENT_TYPE_SET = new Set<AnnotationType>(MOVEMENT_TYPES);
+const TIMING_EPSILON = 0.001;
 
-export function addAnnotation(s: AppState, annotation: Annotation): AppState {
+function clampFullT(fullT: number, steps: Step[]): number {
+  const maxT = Math.max(0, steps.length - 1);
+  return Math.max(0, Math.min(maxT, fullT));
+}
+
+function withDrawTiming(
+  s: AppState,
+  annotation: Annotation,
+  options?: AddAnnotationOptions,
+): { stepIdx: number; annotation: Annotation } {
+  const fallbackStepIdx = s.activeStep;
+  if (!MOVEMENT_TYPE_SET.has(annotation.type)) {
+    return { stepIdx: fallbackStepIdx, annotation };
+  }
+
+  const timingAnchor = options?.timingAnchor ?? s.actionTimingAnchor ?? 'start';
+  const rawFullT = options?.fullT;
+  const hasFullT = typeof rawFullT === 'number' && isFinite(rawFullT);
+
+  if (!hasFullT) {
+    return {
+      stepIdx: fallbackStepIdx,
+      annotation: {
+        ...annotation,
+        phase: timingAnchor === 'end' ? 'start' : 'end',
+      },
+    };
+  }
+
+  const fullT = clampFullT(rawFullT, s.steps);
+  const segmentIdx = Math.min(Math.floor(fullT), Math.max(0, s.steps.length - 1));
+  const localT = fullT - segmentIdx;
+
+  if (timingAnchor === 'end') {
+    if (fullT <= TIMING_EPSILON) {
+      return {
+        stepIdx: segmentIdx,
+        annotation: { ...annotation, phase: 'end' },
+      };
+    }
+    if (fullT > TIMING_EPSILON && localT <= TIMING_EPSILON) {
+      return {
+        stepIdx: segmentIdx,
+        annotation: { ...annotation, phase: 'start' },
+      };
+    }
+    return {
+      stepIdx: segmentIdx,
+      annotation: {
+        ...annotation,
+        phase: 'end',
+        tStart: 0,
+        tEnd: Math.max(TIMING_EPSILON, localT),
+      },
+    };
+  }
+
+  return {
+    stepIdx: segmentIdx,
+    annotation: {
+      ...annotation,
+      phase: 'end',
+      tStart: localT > TIMING_EPSILON ? localT : undefined,
+      tEnd: localT > TIMING_EPSILON ? 1 : undefined,
+    },
+  };
+}
+
+export function addAnnotation(
+  s: AppState,
+  annotation: Annotation,
+  options?: AddAnnotationOptions,
+): AppState {
+  const placement = withDrawTiming(s, annotation, options);
   let steps: Step[];
-  if (annotation.type === 'pass') {
-    steps = upsertPassAnnotation(s.steps, s.activeStep, annotation);
-    if (annotation.toId) {
+  if (placement.annotation.type === 'pass') {
+    steps = upsertPassAnnotation(s.steps, placement.stepIdx, placement.annotation);
+    if (placement.annotation.toId) {
       steps = steps.map((st, i) =>
-        i === s.activeStep ? { ...st, ballCarrier: annotation.toId! } : st
+        i === placement.stepIdx ? { ...st, ballCarrier: placement.annotation.toId! } : st
       );
     }
   } else {
-    steps = upsertMovementAnnotation(s.steps, s.activeStep, annotation);
+    steps = upsertMovementAnnotation(s.steps, placement.stepIdx, placement.annotation);
   }
-  if (s.activeStep > 0 && steps[s.activeStep].generatedBy) {
+  if (placement.stepIdx > 0 && steps[placement.stepIdx].generatedBy) {
     const next = [...steps];
-    next[s.activeStep] = { ...next[s.activeStep], manualOverride: true };
+    next[placement.stepIdx] = { ...next[placement.stepIdx], manualOverride: true };
     return { ...s, steps: next };
   }
   return { ...s, steps };

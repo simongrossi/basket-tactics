@@ -78,6 +78,7 @@ export function makeInitialState(): AppState {
     showHelpLines: true,
     showMatchups: true,
     tool: 'move',
+    actionTimingAnchor: 'start',
     defenseSystem: 'man',
     zoneConfig: {
       type: 'zone-2-3',

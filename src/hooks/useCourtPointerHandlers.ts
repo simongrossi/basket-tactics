@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
+  AddAnnotationOptions,
   AppState,
   Annotation,
   AttackerId,
@@ -49,7 +50,10 @@ interface UseCourtPointerHandlersOptions {
   onMoveDefender: (id: DefenderId, x: number, y: number) => void;
   onMoveAttackerDuringDrag?: (id: AttackerId, x: number, y: number) => void;
   onMoveDefenderDuringDrag?: (id: DefenderId, x: number, y: number) => void;
-  onAddAnnotation: (a: Annotation) => void;
+  onAddAnnotation: (a: Annotation, options?: AddAnnotationOptions) => void;
+  annotationFullT?: number | null;
+  frameOff?: Partial<Record<AttackerId, Point>>;
+  frameDefPos?: Partial<Record<DefenderId, Point>>;
   /** Fermeture du context menu sur n'importe quel pointerDown gauche. */
   onClearContextMenu: () => void;
   // ----- #4 Sélection multiple -----
@@ -108,6 +112,9 @@ export function useCourtPointerHandlers(
     onMoveAttackerDuringDrag,
     onMoveDefenderDuringDrag,
     onAddAnnotation,
+    annotationFullT,
+    frameOff,
+    frameDefPos,
     onClearContextMenu,
     selectedDefenders,
     onToggleDefenderSelection,
@@ -172,19 +179,22 @@ export function useCourtPointerHandlers(
   const findPlayerAt = useCallback(
     (pt: Point): PlayerId | null => {
       const cur = state.steps[state.activeStep];
-      const off = activeOffense(cur.off, state.playerCount);
+      const off = frameOff ?? activeOffense(cur.off, state.playerCount);
       for (const id in off) {
-        if (distance(off[id as AttackerId], pt) < PLAYER_PICK_RADIUS_PX) return id as AttackerId;
+        const pos = off[id as AttackerId];
+        if (pos && distance(pos, pt) < PLAYER_PICK_RADIUS_PX) return id as AttackerId;
       }
       const activeDefenders = new Set(getActiveDefenderIds(state.playerCount));
-      for (const id in state.defenseInitial) {
+      const defPositions = frameDefPos ?? state.defenseInitial;
+      for (const id in defPositions) {
         if (!activeDefenders.has(id as DefenderId)) continue;
-        if (distance(state.defenseInitial[id as DefenderId], pt) < PLAYER_PICK_RADIUS_PX)
+        const pos = defPositions[id as DefenderId];
+        if (pos && distance(pos, pt) < PLAYER_PICK_RADIUS_PX)
           return id as DefenderId;
       }
       return null;
     },
-    [state]
+    [frameDefPos, frameOff, state]
   );
 
   /** rAF-coalesce : on enregistre la dernière position du drag dans
@@ -341,7 +351,10 @@ export function useCourtPointerHandlers(
         return;
       }
 
-      const from = { ...state.steps[state.activeStep].off[fromId as AttackerId] };
+      const frameFrom = frameOff?.[fromId as AttackerId];
+      const from = frameFrom
+        ? { ...frameFrom }
+        : { ...state.steps[state.activeStep].off[fromId as AttackerId] };
       // Shift+drag = tracé freehand : on enregistre la trajectoire de la souris
       // pour produire une annotation avec waypoints (V-cut, L-cut, courbe libre).
       // Pas applicable à `pass` (la passe reste rectiligne par convention).
@@ -355,7 +368,7 @@ export function useCourtPointerHandlers(
       });
       svgRef.current?.setPointerCapture(e.pointerId);
     },
-    [findPlayerAt, isPlaying, onAddAnnotation, onBeginPlayerDrag, onClearContextMenu, onClearDefenderSelection, onToggleDefenderSelection, pendingAutoSourceId, selectedDefenders, state, svgPoint, svgRef]
+    [findPlayerAt, frameOff, isPlaying, onAddAnnotation, onBeginPlayerDrag, onClearContextMenu, onClearDefenderSelection, onToggleDefenderSelection, pendingAutoSourceId, selectedDefenders, state, svgPoint, svgRef]
   );
 
   const onPointerMove = useCallback(
@@ -528,7 +541,7 @@ export function useCourtPointerHandlers(
           from: pending.from,
           to: pending.to,
           ...(waypoints ? { waypoints } : {}),
-        });
+        }, { fullT: annotationFullT });
         setPending(null);
       }
     },
@@ -536,6 +549,7 @@ export function useCourtPointerHandlers(
       dragging,
       flushDragMove,
       marquee,
+      annotationFullT,
       onAddAnnotation,
       onCommitPlayerDrag,
       onMoveDefender,
