@@ -1,7 +1,7 @@
 import { makeInitialState } from '../src/lib/data/initial';
 import { resolveFrameAt } from '../src/lib/logic/playback/frameResolver';
 import { TEMPLATES } from '../src/lib/data/templates';
-import type { AppState, PlaybackFrame } from '../src/lib/types';
+import type { AppState } from '../src/lib/types';
 
 const tpl = TEMPLATES.find((t) => t.id === 'horns-flare')!;
 const state: AppState = {
