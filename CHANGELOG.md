@@ -6,6 +6,32 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### CVT Chantier 2b — Couche d'influence : interpose vers les lignes de passe
+
+Nouvelle couche
+[`defense/influenceLayer.ts`](src/lib/logic/defense/influenceLayer.ts)
+branchée après `baseTargets` (couche 1.3 du pipeline). Pour chaque
+défenseur "libre" (non carrier, non denying, non onScreen, non
+pnrRole, helpFactor < 0.5), applique un shift soft vers la projection
+sur la ligne `porteur ↔ son homme`. Effet basket : les défenseurs
+occupent activement les lignes de passe au lieu de simplement marquer.
+
+- `INTERPOSE_MAX_SHIFT_PX = 5` — cap dur du shift. Reste sous le bruit
+  visuel mais oriente le placement.
+- Filtres conservateurs : carrier defender / denying / onScreen /
+  pnrRole / helpFactor ≥ 0.5 → pas de shift (priorité aux couches
+  spécialisées en aval).
+- Opt-in via `state.useSteeringEngine` (zéro impact flag off).
+- Tolérance des tests d'équivalence intégrés : 5 → **12 px**.
+  Documentée comme borne cumulative (3 px dampening 1.1b + 5 px
+  interpose 2b + arrondis pipeline). Bit-équivalence stricte (1e-9)
+  toujours valide au niveau unitaire (`manDefense.test.ts`).
+- 4 tests dédiés dans
+  [`defense/__tests__/influenceLayer.test.ts`](src/lib/logic/defense/__tests__/influenceLayer.test.ts) :
+  flag off legacy strict, shift borné, constante exportée, filtre
+  carrier defender.
+- 1646 → **1650 tests verts**.
+
 ### CVT Chantier 3b + 3c — Triangle défensif câblé (pass shadow + pondération profil)
 
 Premier câblage du Chantier 3. Opt-in via `state.useSteeringEngine`.

@@ -17,6 +17,7 @@ import {
 import type { DefenderTarget } from './defense/types';
 import { buildDefenseFrameContext } from './defense/context';
 import { applyBaseTargetsLayer } from './defense/baseTargets';
+import { applyInfluenceLayer } from './defense/influenceLayer';
 import { applyRimProtectionLayer } from './defense/rimProtectionLayer';
 import { applyHelpStickyLayer } from './defense/helpStickyLayer';
 import { applyLateShotClockLayer } from './defense/lateShotClockLayer';
@@ -105,6 +106,11 @@ export function computeDefenseTargets(
 
   // Couche 1 — base man-to-man + help + screen-on-target + orientation initiale.
   applyBaseTargetsLayer(positions, matchups, ctx);
+  // Couche 1.3 (CVT 2b) — Influence layer : interpose bias vers les
+  // lignes de passe. Subtil (≤ 5 px) et opt-in via useSteeringEngine.
+  // Skip carrier/denying/onScreen/pnrRole/helpFactor≥0.5 — ne touche
+  // que les défenseurs "libres".
+  applyInfluenceLayer(positions, matchups, ctx);
   // Couche 1.5 — Rim protection : "pas d'easy basket". Détecte les couloirs
   // libres vers le panier et désigne un défenseur (autre que carrierDef) pour
   // les fermer, peu importe le matchup.

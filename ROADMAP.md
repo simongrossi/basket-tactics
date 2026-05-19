@@ -1541,9 +1541,11 @@ défenseur) à un paradigme **émergeant** de forces vectorielles pondérées
   `InfluenceLane`, `buildPassingLanes`, `buildDrivingLane`,
   `signedPerpDistance`, `projectOnSegment`, `interposeForce`,
   `interposeForcesAgainstLanes`. 20 tests. **Non câblée**.
-- ⚪ **Sous-étape 2b** : câbler `interposeForcesAgainstLanes` au
-  pipeline défensif (probablement nouvelle couche `influenceLayer`).
-  Modulation strong-side / weak-side via `state.ballSide`.
+- 🟢 **Sous-étape 2b** (livré 2026-05-19) : nouvelle couche
+  [`defense/influenceLayer.ts`](src/lib/logic/defense/influenceLayer.ts)
+  branchée 1.3 du pipeline. Shift soft (cap 5 px) vers projection
+  porteur↔homme pour les défenseurs "libres". Filtres conservateurs.
+  Tolérance équivalence intégrée passée à 12 px. 4 tests dédiés.
 
 **Chantier 3 — Triangle défensif vectoriel dynamique**
 - 🟡 **Infra livrée (2026-05-19)** : module

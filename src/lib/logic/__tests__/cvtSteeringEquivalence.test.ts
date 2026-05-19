@@ -1,16 +1,18 @@
-// CVT Chantier 1.1 + 1.1b — Tests d'équivalence intégrés.
+// CVT — Tests d'équivalence intégrés (1.1 → 3c).
 //
-// Vérifie que le flag `state.useSteeringEngine = true` produit des
-// positions défensives ≈ identiques au pipeline legacy :
-// - En **zone loin** (défenseur à ≥ `STEERING_MAN_SLOWING_RADIUS_PX`
-//   de sa cible legacy) : bit-équivalent (arrive = seek dans cette zone).
-// - En **zone proche** (< slowingRadius) : target amorti, déviation
-//   bornée à `slowingRadius/4 ≈ 3 px`. C'est l'effet voulu (1.1b :
-//   anti-oscillation), pas une régression.
+// Vérifie que `state.useSteeringEngine = true` produit des positions
+// défensives ≈ identiques au pipeline legacy QUAND tous les effets
+// CVT sont neutralisés (profils undefined notamment).
 //
-// Tolérance retenue : `STEERING_TOLERANCE_PX = 5` — couvre l'écart
-// math max (3 px) avec une marge pour les arrondis du pipeline complet
-// (speedConstraint + closeout + friction).
+// Sources de déviation cumulables avec flag on :
+// - 1.1b `arrive` dampening en zone proche : ≤ 3 px (slowingRadius/4).
+// - 2b interpose layer : ≤ 5 px (`INTERPOSE_MAX_SHIFT_PX`).
+// - 3c pondération profil : 0 quand profil undefined (neutralisé ici).
+//
+// Tolérance retenue : `STEERING_TOLERANCE_PX = 12` — borne cumulative
+// (3 + 5 + arrondis pipeline). Documenté comme gain CVT, pas régression.
+// Bit-équivalence stricte (1e-9) testée au niveau unitaire dans
+// `manDefense.test.ts`.
 
 import { describe, expect, it } from 'vitest';
 import type {
@@ -22,8 +24,8 @@ import type {
 import { makeInitialState } from '@/lib/data/initial';
 import { effectiveDefensePositions } from '@/lib/logic/engine';
 
-const STEERING_TOLERANCE_PX = 5; // borne supérieure de la déviation
-                                  // anti-oscillation (slowingRadius/4 + marge)
+const STEERING_TOLERANCE_PX = 12; // borne cumulative CVT (1.1b dampening +
+                                   // 2b interpose + arrondis pipeline)
 
 const DEFAULT_OFF: AttackerPositions = {
   O1: { x: 300, y: 480 },
