@@ -6,6 +6,61 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Fix diag — Defensive 3-sec ne flag plus le help actif
+
+Le badge `⚠️ 3 SEC` (règle B7) s'affichait sur D4 en low-man tag du
+roller pendant un PnR — faux positif (le défenseur n'est pas en
+"stationnement passif", il aide activement).
+
+[`defensiveThreeSeconds.ts`](src/lib/logic/coachDiagnostics/rules/defensiveThreeSeconds.ts)
+gagne 2 exceptions conformes esprit FIBA :
+
+1. **`pnrRole` défini** (tag / x-out / stunt) — rotation tactique active.
+2. **Au moins un attaquant occupe la raquette** aux 3 steps — zone
+   "protégée" même sans contact direct < 50 px.
+
+Helper `anyAttackerInPaint(off, hoop)` ajouté. 2 tests existants
+préservés + 1 nouveau test sur l'exception "paint occupée".
+1659 → **1660 tests verts**.
+
+Diagnostic script : [`scripts/check-3sec.ts`](scripts/check-3sec.ts).
+
+### Fix template — PnR central : O5 pose un VRAI écran
+
+Le template `pnr-central` avait O5 placé à `(290, 340)` —
+**à 36.7 px de la trajectoire de drive d'O1** et **du mauvais côté
+de D1**. Visuellement, écran fantôme qui ne couvrait rien.
+
+Itération en deux temps :
+1. **Tentative `(320, 355)`** : sur la ligne de drive, mais O1 et O5
+   se touchaient à clearance pile pendant le drive (contact visuel
+   gênant signalé par le user).
+2. **Final `(340, 290)` + `forcedScreener: 'O5'`** au step 1 :
+   - O5 sur le chemin de D1 (qui pursuit O1).
+   - Au-dessus de la trajectoire d'O1 (pas de collision visuelle
+     au démarrage du drive — dist à t=1.0 = 85 px).
+   - `forcedScreener` au step 1 uniquement (sinon D1+D5 convergent
+     sur O5 et se superposent à 17 px frame-level).
+
+Timing screenPhase validé (`scripts/check-phase.ts`) :
+  - `t=0.0-0.3` : approach/impact (O5 monte)
+  - `t=0.3-0.8` : stuck (D1 plaqué pendant la pose)
+  - `t=0.9-1.2` : navigate/impact (drive commence)
+  - `t=1.3-1.7` : stuck (D1 plaqué pendant que O1 dépasse)
+  - `t=1.8+`    : navigate / recover
+
+J.6 golden snapshot pnr-central régénéré. playbackGoldenMetrics OK
+(minPlayerClearancePx = 24 ≥ 20). screenContactFrame OK (D1 stuck
+à t=1.5).
+
+3 scripts diagnostic réutilisables ajoutés :
+[`scripts/diag-pnr-frames.ts`](scripts/diag-pnr-frames.ts),
+[`scripts/diag-pnr-central.ts`](scripts/diag-pnr-central.ts),
+[`scripts/check-phase.ts`](scripts/check-phase.ts),
+[`scripts/check-collision.ts`](scripts/check-collision.ts),
+[`scripts/check-min-clearance.ts`](scripts/check-min-clearance.ts),
+[`scripts/check-screen-pos.ts`](scripts/check-screen-pos.ts).
+
 ### Fix écran — Recovery snap supprimé (`screenContactAdhesion`)
 
 **Bug diagnostiqué** sur PNR central (transition step 1 → step 2) :

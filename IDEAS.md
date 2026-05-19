@@ -4,6 +4,62 @@ Notes de développement au fil de l'eau. Les items en haut sont les plus récent
 
 ---
 
+## Session 2026-05-19 (matinée + soir) — Chantiers en cours, état au commit f761626
+
+### Livré (5 fixes session post-CVT)
+- **Recovery snap** : `screenContactAdhesion` window 10% → 25-39% (anti-rubber-band).
+- **Template PNR central v1** : O5 (290,340) → (340,290) + `forcedScreener`.
+- **Defensive 3-sec exception** : help actif (pnrRole + paint occupée) plus flaggé.
+- **Toggle UI CVT** dans DefensePanel.
+- **6 scripts de diagnostic** standalone réutilisables pour profiler templates.
+
+### Chantiers ouverts
+
+#### A. CVT — sous-étape 1.4b restante
+Activation par défaut du flag `useSteeringEngine`. Tentative faite → 13 tests
+cassent (golden snapshots J.6 inclus). À faire :
+1. Validation visuelle scénarios réels avec flag on.
+2. Régénération supervisée des snapshots J.6 (`vitest -u` après inspection).
+3. Mise à jour ciblée des tests de positions exactes (déviation acceptable
+   confirmée scénario par scénario).
+Ne pas lancer avant que le user ait validé visuellement quelques templates clés.
+
+#### B. Chantier écrans / templates (en cours)
+Le user veut continuer sur les écrans après PnR central. Templates à profiler :
+- **UCLA cut** : écran back-screen O5 sur O3 hors-ballon.
+- **Spain PnR** : double écran enchaîné (back + roll).
+- **Pindown coin** : écran descendant côté coin pour cutter.
+- **Floppy** : double écran staggered en bas de la raquette.
+- **Hammer** : back-screen + skip pass coin.
+- **Horns flare** : flare screen post-pass.
+
+Pour chacun, suivre la méthode validée sur PNR central :
+1. `scripts/diag-pnr-frames.ts` adapté → identifier les anomalies (snap,
+   collision, screenPhase incorrect).
+2. `scripts/check-phase.ts` adapté → vérifier le timing de la phase écran.
+3. Reposer le poseur si placement incorrect + `forcedScreener` si détection
+   géométrique loupée.
+4. Régénérer le snapshot J.6 si nécessaire.
+
+#### C. Path-Aware Interpolation (chantier indépendant)
+Hors CVT. Modifier le **lerp linéaire** dans `playback/frameResolver.ts`
+entre 2 step targets pour courber la trajectoire quand le segment traverse
+un obstacle. Premier gain visuel majeur sur tous les templates.
+
+État : pas démarré. Demande un design dédié (Bezier avec waypoint
+dynamique selon la position interpolée des obstacles à chaque frame).
+Risque : interactions complexes avec `curveAroundObstacle` existant.
+
+#### D. Bug user non reproduit
+"O1 revient en arrière à partir de f119" sur PNR central. Non reproduit
+dans `scripts/diag-pnr-frames.ts` (O1 a une trajectoire monotone). Si le
+symptôme persiste, demander capture d'écran + version exacte de l'état
+au moment du bug (steps + annotations).
+
+
+
+---
+
 ## Session 2026-05-19 — CVT : Chantier 1 (1.0/1.1/1.1b/1.2) + Chantier 1.3 infra + Chantier 2 infra + Chantier 3 infra
 
 Grosse session refonte cinématique vectorielle tactique. **8 commits**
