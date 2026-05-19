@@ -43,18 +43,18 @@ const pnrSetup: AttackerPositions = {
   O5: { x: 310, y: 230 },
 };
 
-// Fix 2026-05-19 — O5 pose un VRAI écran : 3 critères conjoints :
-//   (a) DÉTECTABLE par le moteur : dist(D1, O5) < screenRadius=35 px.
-//   (b) SUR LE CHEMIN du drive : dist(O5, traj O1→drive) < ~10 px.
-//   (c) PROCHE du porteur (~30 px) pour matérialiser un contact.
-// Position retenue O5=(320, 355) :
-//   - dist(O1=(300,380), O5) ≈ 32 px         (c) ✓
-//   - dist(D1=(300,346), O5) ≈ 22 px < 35    (a) ✓
-//   - dist perpend. à drive line (300,380)→(380,310) ≈ 5.6 px (b) ✓
-// Avant : O5=(290,340) — 36.7 px hors trajectoire, mauvais côté de D1.
+// Fix 2026-05-19 v2 — O5 placé sur le CHEMIN DU DÉFENSEUR (D1), pas sur
+// celui d'O1, pour éviter la collision visuelle pendant le drive.
+//
+// O1 drive (300,380)→(380,310), midpath ≈ (340, 345).
+// D1 pursuit follows ~34 px above O1, midpath D1 ≈ (340, 305).
+// O5 = (340, 305) : pile sur le chemin de D1, à 40 px AU-DESSUS de la
+// trajectoire d'O1 (pas de collision visuelle). dist(D1, O5) au step 1
+// ≈ 35.2 px — juste au-dessus de screenRadius=35 → on utilise
+// `forcedScreener: 'O5'` au step 1 pour garantir la détection.
 const pnrScreen: AttackerPositions = {
   ...pnrSetup,
-  O5: { x: 320, y: 355 },
+  O5: { x: 340, y: 290 },
 };
 
 const pnrUse: AttackerPositions = {
@@ -83,6 +83,10 @@ const PNR_CENTRAL: Template = {
       label: "O5 monte l'écran",
       off: pnrScreen,
       ballCarrier: 'O1',
+      // Force la détection d'écran même si O5 est légèrement hors
+      // screenRadius (~35 px). Permet de placer le poseur sur le chemin
+      // du défenseur D1 sans collision visuelle avec le porteur O1.
+      forcedScreener: 'O5',
       annotations: [
         {
           type: 'cut',
@@ -104,6 +108,9 @@ const PNR_CENTRAL: Template = {
       label: "O1 utilise l'écran",
       off: pnrUse,
       ballCarrier: 'O1',
+      // Pas de forcedScreener ici — D5 doit pouvoir se détacher d'O5 pour
+      // hedger/drop pendant le drive. Sinon D1 et D5 convergent sur O5 et
+      // se superposent (collision défenseur↔défenseur < clearance).
       annotations: [
         {
           type: 'dribble',
