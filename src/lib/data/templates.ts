@@ -154,10 +154,22 @@ const hornsPass: AttackerPositions = {
   O1: { x: 220, y: 380 },
 };
 
+// Fix 2026-05-19 — O1 commence son flare cut au step 2 (vers le coin
+// opposé), simultanément à la pose d'O5.
+//
+// Avant : O1 restait à (220,380) au step 2 et le cut commençait
+// step 2→3, ce qui plaçait D1 à 152 px d'O5 au moment de la pose →
+// écran jamais détecté.
+//
+// O5 à (280, 305) — placé AU-DESSUS du chemin de recovery de D1
+// (qui suit O1 horizontalement vers (380, 360) au step 3). Évite
+// l'overlap visuel à t=2.8 quand D1 sortait de l'écran.
+// O1 à (280, 365) — clearance 60 px d'O5 + amorce du flare cut.
+// dist(D1@step2, O5) ≈ 14 px < 35 → écran détecté + stuck.
 const hornsScreen: AttackerPositions = {
   ...hornsPass,
-  O1: { x: 220, y: 380 },
-  O5: { x: 280, y: 340 },
+  O1: { x: 280, y: 365 },
+  O5: { x: 280, y: 305 },
 };
 
 const hornsCatch: AttackerPositions = {

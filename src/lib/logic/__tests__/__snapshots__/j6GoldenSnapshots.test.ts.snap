@@ -121,7 +121,7 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template floppy 1
     },
     {
       "ball": {
-        "inFlight": true,
+        "inFlight": false,
         "x": 316,
         "y": 364,
       },
@@ -538,7 +538,7 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pindown-
     },
     {
       "ball": {
-        "inFlight": true,
+        "inFlight": false,
         "x": 316,
         "y": 364,
       },
@@ -1169,7 +1169,7 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template ucla-cut
   "frames": [
     {
       "ball": {
-        "inFlight": true,
+        "inFlight": false,
         "x": 316,
         "y": 364,
       },

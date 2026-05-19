@@ -6,6 +6,55 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Fix template — Horns flare : écran qui fonctionne enfin
+
+Le template `horns-flare` avait l'annotation `screen` posée au step 2
+(O5 vient flare pour O1) mais le cut d'O1 ne commençait qu'au step 3.
+Conséquence : à la pose, O1 était à 220,380 (loin) et D1 à 152 px d'O5
+→ **écran jamais détecté** par le moteur géométrique (carrier screen
+et off-ball screen). L'audit `scripts/profile-all-templates.ts` flag
+"écran détecté ✗" sur ce template.
+
+Fix template (sans toucher le moteur) :
+- `hornsScreen.O1` (220,380) → **(280, 365)** : O1 amorce son flare
+  cut au step 2 (simultané à la pose d'O5).
+- `hornsScreen.O5` (280,340) → **(280, 305)** : remonté pour éviter
+  l'overlap visuel pendant le recovery step 2→3 (D1 suit O1 vers
+  (380, 360) — si O5 reste à 340, D1 le percute à 7 px en pleine
+  course).
+
+Résultat (validé par `scripts/diag-horns.ts`) :
+- step 1 → D1 phase = `approach` (anticipe).
+- step 2 → D1 phase = `stuck`, écran détecté (carrier screen O5/D1).
+- step 3 → recovery propre, dist(D1,O5) reste ≥ 34 px.
+
+J.6 golden snapshot horns-flare régénéré (template modifié). 1676
+tests verts.
+
+### Audit & analyse — `scripts/profile-all-templates.ts`
+
+Nouveau script qui profile en lot tous les templates écran principaux
+(pnr-central, horns-flare, pindown-corner, spain-pnr, ucla-cut, floppy,
+hammer). Mesure pour chaque template :
+- Min clearance frame-by-frame (paire la plus proche).
+- Max Δ par frame (snap detection).
+- Détection d'écran (carrier OR off-ball) + présence de phase stuck.
+- Comparaison sans/avec PAI (gain clearance).
+
+Conclusions premier audit :
+- **pnr-central** : D1↔D5 à 24 px (déjà corrigé en amont).
+- **horns-flare** : écran jamais détecté → **corrigé** (ce commit).
+- **pindown-corner, ucla-cut, hammer, spain-pnr, floppy** : clearance
+  ≥ 24 px mais au-dessus du seuil "vraie traversée" 28 — basket-
+  réaliste OK (rate limiter d'interpolation entre frames).
+- **PAI V1 conservative** : gain +0.0 à +0.2 px sur clearance.
+  Trop conservatif face aux vraies traversées (8-10 px sous clearance)
+  causées par les step targets eux-mêmes. Le bon levier reste de
+  fixer les step targets (méthode PnR central + horns-flare).
+
+Seuils du script ajustés : "TRAVERSÉE" = clearance < 28 px (au-dessus,
+c'est de la clearance pile basket-réaliste, OK).
+
 ### Path-Aware Interpolation (PAI) V1 — Évitement entre frames
 
 Nouveau module

@@ -102,16 +102,17 @@ function auditTemplate(tplId: string, withPAI = false): TemplateAudit {
         hasStuckPhase = true;
       }
     }
-    if (frame.screen) hasScreenDetected = true;
+    if (frame.screen || frame.offBallScreens.length > 0) hasScreenDetected = true;
 
     prevFrame = frame;
   }
 
-  // Génère warnings
-  if (minClearance.value < MIN_PLAYER_CLEARANCE_PX) {
+  // Génère warnings — seuils corrigés :
+  // - < 28 : VRAIE traversée (visuellement gênant).
+  // - 28-34 : near-miss (clearance pile ou rate limiter), basket-réaliste OK.
+  // - 34+ : tout va bien.
+  if (minClearance.value < 28) {
     warnings.push(`❌ TRAVERSÉE : clearance ${minClearance.value.toFixed(1)} px à t=${minClearance.t.toFixed(2)} (${minClearance.pair})`);
-  } else if (minClearance.value < 20) {
-    warnings.push(`⚠️ Clearance basse : ${minClearance.value.toFixed(1)} px à t=${minClearance.t.toFixed(2)} (${minClearance.pair})`);
   }
   if (maxFrameDelta.value > 18) {
     warnings.push(`⚠️ Snap : Δ ${maxFrameDelta.value.toFixed(1)} px à t=${maxFrameDelta.t.toFixed(2)} (${maxFrameDelta.player})`);
