@@ -888,8 +888,19 @@ export function DefensePanel(props: DefensePanelProps) {
                 checked={!!state.pathAwareInterpolation}
                 label="évitement entre frames PAI (expérimental)"
                 onChange={(v) => props.onPatch({ pathAwareInterpolation: v })}
-                title="Path-Aware Interpolation : déviation tangentielle des joueurs qui s'effleurent à <42 px pendant l'interpolation entre 2 steps. Cap 4 px par frame. Préserve poseurs pinnés et défenseurs stuck d'écran (Règle 1bis). À comparer A/B."
+                title="Path-Aware Interpolation : déviation tangentielle des joueurs qui s'effleurent à <42 px pendant l'interpolation entre 2 steps. Multi-passes, cap total tunable. Préserve poseurs pinnés et défenseurs stuck d'écran (Règle 1bis). À comparer A/B."
               />
+              {state.pathAwareInterpolation && (
+                <Slider
+                  label="PAI déviation px"
+                  min={0}
+                  max={16}
+                  step={1}
+                  value={state.paiMaxDeviation ?? 6}
+                  onChange={(v) => props.onPatch({ paiMaxDeviation: v })}
+                  title="Cap dur de la déviation totale par joueur et par frame. Plus grand = évitement plus marqué entre frames ; 0 neutralise PAI. Défaut 6."
+                />
+              )}
               {/* C.2 V2 — Help-and-recover timing (millisecondes) */}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 80 }} title="C.2 V2 — durée d'aide après disparition du trigger (ms). 1200 ms ≈ standard NBA.">

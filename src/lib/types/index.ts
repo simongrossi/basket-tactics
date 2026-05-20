@@ -853,6 +853,11 @@ export interface AppState {
    *  à 4 px/frame est appliquée AVANT le solveur final. Skip les poseurs
    *  pinnés et les défenseurs stuck d'écran (Règle 1bis). Default false. */
   pathAwareInterpolation?: boolean;
+  /** PAI tuning — cap dur de la déviation totale par joueur et par frame
+   *  (toutes passes confondues). Défaut conceptuel
+   *  `PAI_MAX_DEVIATION_PER_FRAME_PX = 6`. Range UI 0–16 px. 0 neutralise
+   *  PAI même si `pathAwareInterpolation` est on. */
+  paiMaxDeviation?: number;
   /** CVT tuning — rayon de décélération `arrive` du moteur de forces
    *  (anti-oscillation près de la cible de marquage). Défaut conceptuel
    *  `STEERING_MAN_SLOWING_RADIUS_PX = 12`. Range UI 4–30 px. Plus grand

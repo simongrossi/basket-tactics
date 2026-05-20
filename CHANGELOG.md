@@ -6,6 +6,34 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Raffinement CVT — hystérésis détection + poids tunables + PAI V1.5
+
+Trois points de raffinement du moteur physique CVT.
+
+**1. Hystérésis de détection d'écran hors-ballon** — corrige
+l'instabilité (écran clignote quand le défenseur du cutter navigue
+autour). Constante `OFFBALL_SCREEN_HYSTERESIS_PX = 14` : une paire
+(cutter, screener) détectée voit son rayon de maintien élargi de
+14 px au step suivant. Param `prevScreenPairs` ajouté à
+`detectOffBallScreens`, helpers `offBallScreenPairKey(s)`. Câblé dans
+`cutterScreenChain`. 7 tests dédiés.
+
+**2. Poids du moteur de forces tunables** — `steeringSlowingRadius`
+(rayon `arrive`, défaut 12) et `steeringScreenRepelWeight` (poids
+repel écran, défaut 20) ajoutés à `AppState`, threadés jusqu'aux
+émetteurs de forces, 2 sliders dans `DefensePanel`. Le coach calibre
+le moteur à l'œil sans recompiler.
+
+**3. PAI V1.5** — `applyPathAwareInterpolation` gagne le multi-passes
+(résout les chaînes de near-miss A-B-C) et un cap total tunable
+(`paiMaxDeviation`, défaut 6 px, slider). Clamp final qui borne le
+déplacement total par joueur. La V2 "refonte unifiée" de
+`curveAroundObstacle` + `pushOutOfScreenContact` est **écartée** :
+le diagnostic a prouvé que les traversées viennent des step targets,
+pas de l'interpolation — PAI ne peut pas les compenser.
+
+1664 → **1673 tests verts**, build OK.
+
 ### CVT Chantier 1.4b — Moteur de forces activé par défaut (flag supprimé)
 
 Le moteur de forces vectorielles CVT devient le **pipeline défensif

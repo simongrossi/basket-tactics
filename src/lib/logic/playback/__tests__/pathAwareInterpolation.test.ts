@@ -34,9 +34,9 @@ function makeDefenders(overrides: Partial<Record<DefenderId, Point>> = {}): Reco
 }
 
 describe('PAI — constantes calibrées', () => {
-  it('buffer = 8 px et max deviation = 4 px', () => {
+  it('buffer = 8 px et max deviation = 6 px', () => {
     expect(PAI_NEAR_MISS_BUFFER_PX).toBe(8);
-    expect(PAI_MAX_DEVIATION_PER_FRAME_PX).toBe(4);
+    expect(PAI_MAX_DEVIATION_PER_FRAME_PX).toBe(6);
   });
 
   it('threshold détection = MIN_PLAYER_CLEARANCE_PX + buffer = 42 px', () => {
@@ -98,13 +98,34 @@ describe('PAI — near-miss détectée et déviée', () => {
     expect(dev2).toBeGreaterThan(dev1);
   });
 
-  it('cap dur à PAI_MAX_DEVIATION_PER_FRAME_PX (par joueur, symétrique = 2 px chacun)', () => {
-    // Distance minimale possible (joueurs collés à 1 px de distance pour éviter le seuil 1e-6).
+  it('cap dur total : chaque joueur bouge ≤ PAI_MAX_DEVIATION_PER_FRAME_PX', () => {
+    // Joueurs collés (1 px) → multi-passes les sépare, clamp final cappe
+    // le déplacement TOTAL de chaque joueur au cap dur.
     const att = makeAttackers({ O1: P(0, 0) });
     const def = makeDefenders({ D1: P(1, 0) });
     const out = applyPathAwareInterpolation(att, def, {}, new Set());
-    // Split symétrique : chaque joueur bouge de cap/2 = 2 px max.
-    expect(Math.abs(out.attackers.O1!.x)).toBeLessThanOrEqual(PAI_MAX_DEVIATION_PER_FRAME_PX / 2 + 0.01);
+    const movedO1 = Math.hypot(out.attackers.O1!.x - 0, out.attackers.O1!.y - 0);
+    const movedD1 = Math.hypot(out.defenders.D1!.x - 1, out.defenders.D1!.y - 0);
+    expect(movedO1).toBeLessThanOrEqual(PAI_MAX_DEVIATION_PER_FRAME_PX + 0.01);
+    expect(movedD1).toBeLessThanOrEqual(PAI_MAX_DEVIATION_PER_FRAME_PX + 0.01);
+  });
+
+  it('option maxDeviation custom respectée', () => {
+    const att = makeAttackers({ O1: P(0, 0) });
+    const def = makeDefenders({ D1: P(1, 0) });
+    const out = applyPathAwareInterpolation(att, def, {}, new Set(), { maxDeviation: 2 });
+    const movedO1 = Math.hypot(out.attackers.O1!.x, out.attackers.O1!.y);
+    expect(movedO1).toBeLessThanOrEqual(2.01);
+  });
+
+  it('multi-passes résout une chaîne de near-miss (A-B-C alignés serrés)', () => {
+    // 3 joueurs alignés à 20 px → chaîne. Le multi-passes les écarte.
+    const att = makeAttackers({ O1: P(0, 0), O2: P(20, 0), O3: P(40, 0) });
+    const def = makeDefenders();
+    const out = applyPathAwareInterpolation(att, def, {}, new Set(), { passes: 3 });
+    // Après résolution, O1 et O3 (les extrêmes) se sont écartés.
+    expect(out.attackers.O1!.x).toBeLessThan(0);
+    expect(out.attackers.O3!.x).toBeGreaterThan(40);
   });
 });
 

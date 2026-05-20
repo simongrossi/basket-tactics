@@ -59,10 +59,20 @@ Pour chacun, suivre la méthode validée sur PNR central :
 ajouté dans `DefensePanel`. 11 tests dédiés. Skip Règle 1bis préservé
 (poseurs + défenseurs stuck d'écran).
 
-**À venir (V2)** : remplacer `curveAroundObstacle` + `pushOutOfScreenContact`
-par un système PAI unifié ? Demande validation visuelle approfondie de
-V1 d'abord. Si V1 améliore réellement les sorties d'écran, on peut
-envisager V2.
+🟡 **V1.5 livrée (2026-05-19)** : multi-passes (résout les chaînes de
+near-miss A-B-C) + cap total tunable (`state.paiMaxDeviation`, slider
+DefensePanel, défaut 6 px). Le clamp final borne le déplacement total
+par joueur quel que soit le nombre de passes.
+
+**V2 "refonte unifiée" — ÉCARTÉE** : remplacer `curveAroundObstacle` +
+`pushOutOfScreenContact` par un PAI unique est risqué (Règle 1bis) et
+le bénéfice est incertain. Le diagnostic `profile-all-templates.ts` a
+prouvé que les vraies traversées viennent des **step targets** (le
+moteur défensif place 2 joueurs trop proches), pas de l'interpolation.
+PAI agit entre frames — il ne peut pas compenser un step target
+fautif. Le bon levier reste de **fixer les step targets** (méthode
+appliquée à pnr-central et horns-flare). PAI V1.5 reste utile comme
+filet de lissage, mais n'est pas le chantier prioritaire.
 
 #### D. Bug user non reproduit
 "O1 revient en arrière à partir de f119" sur PNR central. Non reproduit

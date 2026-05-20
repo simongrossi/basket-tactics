@@ -971,6 +971,7 @@ export function resolveFrameAt(
       defPositions as Record<DefenderId, Point>,
       attackerIsScreening,
       screenLockedDefenders,
+      { maxDeviation: state.paiMaxDeviation },
     );
     // Réinjection des positions ajustées
     (Object.keys(pai.attackers) as AttackerId[]).forEach((id) => {
