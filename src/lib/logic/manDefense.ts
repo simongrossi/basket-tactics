@@ -175,12 +175,13 @@ export function manTargetForces(
   att: Point | undefined,
   defenseDistance: number,
   hoop: Point = HOOP,
+  slowingRadius: number = STEERING_MAN_SLOWING_RADIUS_PX,
 ): SteeringForce[] {
   const target = manTarget(att, defenseDistance, hoop);
   if (!target) return [];
   const w = distance(defenderPos, target);
   if (w < 1e-6) return [];
-  return [arrive(defenderPos, target, STEERING_MAN_SLOWING_RADIUS_PX, w, 'arrive-man')];
+  return [arrive(defenderPos, target, slowingRadius, w, 'arrive-man')];
 }
 
 /** Forces équivalentes à `carrierDefenderTarget(...)`. Cf. `manTargetForces`. */
@@ -190,12 +191,13 @@ export function carrierDefenderTargetForces(
   att: Point | undefined,
   defenseDistance: number,
   hoop: Point = HOOP,
+  slowingRadius: number = STEERING_MAN_SLOWING_RADIUS_PX,
 ): SteeringForce[] {
   const target = carrierDefenderTarget(vsCarrier, att, defenseDistance, hoop);
   if (!target) return [];
   const w = distance(defenderPos, target);
   if (w < 1e-6) return [];
-  return [arrive(defenderPos, target, STEERING_MAN_SLOWING_RADIUS_PX, w, `arrive-carrier-${vsCarrier}`)];
+  return [arrive(defenderPos, target, slowingRadius, w, `arrive-carrier-${vsCarrier}`)];
 }
 
 /** Forces équivalentes à `offBallStanceTarget(...)`. Cf. `manTargetForces`. */
@@ -206,10 +208,11 @@ export function offBallStanceTargetForces(
   defenseDistance: number,
   stance: OffBallStance,
   hoop: Point = HOOP,
+  slowingRadius: number = STEERING_MAN_SLOWING_RADIUS_PX,
 ): SteeringForce[] {
   const target = offBallStanceTarget(att, ball, defenseDistance, stance, hoop);
   if (!target) return [];
   const w = distance(defenderPos, target);
   if (w < 1e-6) return [];
-  return [arrive(defenderPos, target, STEERING_MAN_SLOWING_RADIUS_PX, w, `arrive-offball-${stance}`)];
+  return [arrive(defenderPos, target, slowingRadius, w, `arrive-offball-${stance}`)];
 }

@@ -28,6 +28,7 @@
 // visuel. Opt-in via `state.useSteeringEngine`.
 
 import type { DefenderId, Matchups, Point } from '../../types';
+import { STEERING_SCREEN_REPEL_WEIGHT } from '../../data/physics';
 import { screenerRepelForce } from '../screens/repelForces';
 import { detectOffBallScreens } from '../screens';
 import { accumulateForces } from '../steeringEngine';
@@ -79,10 +80,14 @@ export function applyScreenRepelLayer(
   matchups: Matchups,
   ctx: DefenseFrameContext,
 ): void {
-  const { defenderIds } = ctx;
+  const { defenderIds, state } = ctx;
 
   const obstacles = collectScreenerObstacles(ctx, matchups);
   if (obstacles.length === 0) return;
+
+  // CVT tuning — poids du repel d'écran. 0 désactive la couche.
+  const repelWeight = state.steeringScreenRepelWeight ?? STEERING_SCREEN_REPEL_WEIGHT;
+  if (repelWeight <= 0) return;
 
   defenderIds.forEach((dId) => {
     const pos = positions[dId];
@@ -97,7 +102,7 @@ export function applyScreenRepelLayer(
     let shiftY = 0;
     for (const { screenerPos, engaged } of obstacles) {
       if (engaged.has(dId)) continue;
-      const f = screenerRepelForce({ x: pos.x, y: pos.y }, screenerPos);
+      const f = screenerRepelForce({ x: pos.x, y: pos.y }, screenerPos, repelWeight);
       if (f.weight <= 0) continue;
       const accum = accumulateForces([f]);
       shiftX += accum.x;

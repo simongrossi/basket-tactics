@@ -318,6 +318,7 @@ export function computeHelpForces(
   hoop: Point = HOOP,
   denyAggressiveness: number = 0.45,
   leaveMultiplier: number = 1,
+  slowingRadius: number = STEERING_MAN_SLOWING_RADIUS_PX,
 ): HelpForcesResult {
   const legacy = computeHelpTarget(
     manPos, rule, triggers, carrierPos, attPos, ballSide,
@@ -326,6 +327,6 @@ export function computeHelpForces(
   const d = distance(defenderRef, legacy.target);
   const forces: SteeringForce[] = d < 1e-6
     ? []
-    : [arrive(defenderRef, legacy.target, STEERING_MAN_SLOWING_RADIUS_PX, d, `arrive-help-${legacy.kind ?? 'none'}`)];
+    : [arrive(defenderRef, legacy.target, slowingRadius, d, `arrive-help-${legacy.kind ?? 'none'}`)];
   return { ...legacy, forces };
 }

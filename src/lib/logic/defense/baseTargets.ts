@@ -16,7 +16,7 @@ import type {
   Matchups,
   Point,
 } from '../../types';
-import { DEFAULT_DENY_AGGRESSIVENESS } from '../../data/physics';
+import { DEFAULT_DENY_AGGRESSIVENESS, STEERING_MAN_SLOWING_RADIUS_PX } from '../../data/physics';
 import { computeHelpForces, computeHelpTarget, leaveAttackerCostMultiplier } from '../help';
 import { applyScreenAdjustment, detectImminentScreen } from '../screens';
 import { computeDefenderOrientation } from '../orientation';
@@ -76,6 +76,9 @@ export function applyBaseTargetsLayer(
     screenQuality = Math.max(screenQuality, 90);
   }
 
+  // CVT tuning — rayon de décélération `arrive`, lu une fois par couche.
+  const slowingRadius = state.steeringSlowingRadius ?? STEERING_MAN_SLOWING_RADIUS_PX;
+
   defenderIds.forEach((dId) => {
     const oId = matchups[dId];
     const att = off[oId];
@@ -111,13 +114,13 @@ export function applyBaseTargetsLayer(
     // (bit-équivalent legacy) ou "proche" (target amorti).
     const defenderRef = prevDefenderPositions[dId] ?? state.defenseInitial[dId];
     if (isCarrierDefender) {
-      const forces = carrierDefenderTargetForces(defenderRef, rule.vsCarrier, att, dist, hoop);
+      const forces = carrierDefenderTargetForces(defenderRef, rule.vsCarrier, att, dist, hoop, slowingRadius);
       target = forces.length > 0 ? composeTarget(defenderRef, forces) : defenderRef;
     } else {
       const stance = rule.offBallStance ?? 'sag';
       const forces = stance !== 'sag'
-        ? offBallStanceTargetForces(defenderRef, att, carrierPos, dist, stance, hoop)
-        : manTargetForces(defenderRef, att, dist, hoop);
+        ? offBallStanceTargetForces(defenderRef, att, carrierPos, dist, stance, hoop, slowingRadius)
+        : manTargetForces(defenderRef, att, dist, hoop, slowingRadius);
       const stancePos = forces.length > 0 ? composeTarget(defenderRef, forces) : defenderRef;
       target = stancePos;
       // Le help bias n'est appliqué qu'avec la stance "sag" — les stances
@@ -131,7 +134,7 @@ export function applyBaseTargetsLayer(
         // CVT 1.2 — forces vectorielles avec arrive amorti vers le target d'aide.
         const helpRes = computeHelpForces(
           defenderRef, stancePos, rule, triggers, carrierPos, att, side, off, hoop,
-          denyAggressiveness, leaveMult,
+          denyAggressiveness, leaveMult, slowingRadius,
         );
         target = helpRes.forces.length > 0
           ? composeTarget(defenderRef, helpRes.forces)

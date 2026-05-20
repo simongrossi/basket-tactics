@@ -637,6 +637,24 @@ export function DefensePanel(props: DefensePanelProps) {
             onChange={(v) => props.onPatch({ denyAggressiveness: v })}
             title="Force globale du marquage en avant côté ballon."
           />
+          <Slider
+            label="CVT amorti px"
+            min={4}
+            max={30}
+            step={1}
+            value={state.steeringSlowingRadius ?? 12}
+            onChange={(v) => props.onPatch({ steeringSlowingRadius: v })}
+            title="Moteur de forces — rayon de décélération arrive. Plus grand = défenseur plus amorti près de sa cible (anti-oscillation) mais plus traînard ; plus petit = suivi nerveux. Défaut 12."
+          />
+          <Slider
+            label="CVT repel écran"
+            min={0}
+            max={60}
+            step={2}
+            value={state.steeringScreenRepelWeight ?? 20}
+            onChange={(v) => props.onPatch({ steeringScreenRepelWeight: v })}
+            title="Moteur de forces — poids du glissement soft autour des poseurs d'écran pour les défenseurs périphériques. 0 désactive. Défaut 20."
+          />
 
           {/* Écran porteur — réglages fins */}
           <details

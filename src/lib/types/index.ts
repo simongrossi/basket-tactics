@@ -853,6 +853,17 @@ export interface AppState {
    *  à 4 px/frame est appliquée AVANT le solveur final. Skip les poseurs
    *  pinnés et les défenseurs stuck d'écran (Règle 1bis). Default false. */
   pathAwareInterpolation?: boolean;
+  /** CVT tuning — rayon de décélération `arrive` du moteur de forces
+   *  (anti-oscillation près de la cible de marquage). Défaut conceptuel
+   *  `STEERING_MAN_SLOWING_RADIUS_PX = 12`. Range UI 4–30 px. Plus grand
+   *  = défenseur plus "amorti" / traînard ; plus petit = suivi plus
+   *  nerveux mais risque de micro-oscillation. */
+  steeringSlowingRadius?: number;
+  /** CVT tuning — poids de la force `repel` autour des poseurs d'écran
+   *  (couche `screenRepelLayer`). Défaut conceptuel
+   *  `STEERING_SCREEN_REPEL_WEIGHT = 20`. Range UI 0–60. 0 désactive le
+   *  glissement périphérique soft autour des écrans. */
+  steeringScreenRepelWeight?: number;
   /** A.4 — Affiche les badges visuels SVG sur le terrain pour les patterns
    *  détectés (reject screen, snake dribble, empty side PnR, defensive 3 sec).
    *  Lit les diagnostics coach déjà calculés. Default true. Désactiver pour
