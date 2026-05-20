@@ -15,14 +15,25 @@ Notes de développement au fil de l'eau. Les items en haut sont les plus récent
 
 ### Chantiers ouverts
 
-#### A. CVT — sous-étape 1.4b restante
-Activation par défaut du flag `useSteeringEngine`. Tentative faite → 13 tests
-cassent (golden snapshots J.6 inclus). À faire :
-1. Validation visuelle scénarios réels avec flag on.
-2. Régénération supervisée des snapshots J.6 (`vitest -u` après inspection).
-3. Mise à jour ciblée des tests de positions exactes (déviation acceptable
-   confirmée scénario par scénario).
-Ne pas lancer avant que le user ait validé visuellement quelques templates clés.
+#### A. CVT — sous-étape 1.4b ✅ LIVRÉE (2026-05-19)
+Flag `useSteeringEngine` supprimé, moteur de forces = pipeline unique.
+Double-sortie legacy retirée. 4 snapshots J.6 régénérés, tests de
+positions exactes mis à jour, 1664 tests verts.
+
+**Bug séparé à investiguer — instabilité de détection d'écran** :
+sur une offense STATIQUE (steps identiques), un défenseur de cutter
+peut osciller step à step. Mécanisme : écran détecté au step N →
+`applyOffBallScreenLayer` route le défenseur en couverture `over`
+(autour de l'écran) → il sort du `screenRadius=35` → step N+1 l'écran
+n'est plus détecté → le défenseur revient en marquage → step N+2
+re-détection... Boucle.
+Préexistant mais amplifié par le CVT (`arrive` utilise
+`prevDefenderPositions` comme référence, propage le déplacement).
+Révélé par `cutterScreenChain.test.ts` (scénario durci en contournement).
+Piste de fix : hystérésis sur la détection d'écran off-ball (une fois
+un écran détecté, élargir le rayon de "maintien" vs le rayon
+"d'entrée", comme `SCREEN_CONTACT_ENTER/EXIT_QUALITY` le fait pour la
+qualité). Cf. `screenPhysics.ts`.
 
 #### B. Chantier écrans / templates (en cours)
 Le user veut continuer sur les écrans après PnR central. Templates à profiler :

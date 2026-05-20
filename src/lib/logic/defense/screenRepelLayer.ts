@@ -79,8 +79,7 @@ export function applyScreenRepelLayer(
   matchups: Matchups,
   ctx: DefenseFrameContext,
 ): void {
-  const { state, defenderIds } = ctx;
-  if (!state.useSteeringEngine) return;
+  const { defenderIds } = ctx;
 
   const obstacles = collectScreenerObstacles(ctx, matchups);
   if (obstacles.length === 0) return;

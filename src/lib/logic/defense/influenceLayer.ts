@@ -33,8 +33,7 @@ export function applyInfluenceLayer(
   matchups: Matchups,
   ctx: DefenseFrameContext,
 ): void {
-  const { state, off, ballCarrier, carrierPos, defenderIds } = ctx;
-  if (!state.useSteeringEngine) return;
+  const { off, ballCarrier, carrierPos, defenderIds } = ctx;
   if (!ballCarrier || !carrierPos) return;
 
   defenderIds.forEach((dId) => {

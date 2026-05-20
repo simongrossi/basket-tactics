@@ -6,6 +6,41 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### CVT Chantier 1.4b — Moteur de forces activé par défaut (flag supprimé)
+
+Le moteur de forces vectorielles CVT devient le **pipeline défensif
+unique**. Le flag `state.useSteeringEngine` est **supprimé** : plus de
+double-sortie, plus de branche legacy.
+
+- `AppState.useSteeringEngine` retiré du type.
+- `defense/baseTargets.ts` : suppression des branches `if (useForces)`.
+  Les variantes forces (`carrierDefenderTargetForces`,
+  `manTargetForces`, `offBallStanceTargetForces`, `computeHelpForces`)
+  sont le seul chemin. Pondération profil + `isPassShadowed` toujours
+  calculés (plus de gate).
+- `defense/influenceLayer.ts` + `defense/screenRepelLayer.ts` :
+  suppression du early-return `if (!state.useSteeringEngine)`.
+- Toggle UI CVT retiré de `DefensePanel` (le moteur est permanent ;
+  le toggle PAI reste).
+- `cvtSteeringEquivalence.test.ts` supprimé (test d'équivalence
+  flag off/on sans objet). Tests `influenceLayer` / `screenRepelLayer`
+  simplifiés.
+- Tests de positions exactes mis à jour (`b4V2SnakeKeepCoverage`,
+  `defenderMotionInertia`, `playbackGoldenMetrics`,
+  `topLockChainIntegration`, `symmetricEngine`).
+- `cutterScreenChain` : scénario de test `makeChainState` durci —
+  O5 rapproché du cutter (~33 px) + `defenseInitial.D3` placé sur
+  l'écran. Sans ça le pipeline CVT fait naviguer D3 autour de l'écran
+  (couverture `over`) et le sort du `screenRadius` dès le step 1.
+- 4 golden snapshots J.6 régénérés (pipeline unique = positions
+  défensives définitives).
+- Build Vercel OK, 1664 tests verts.
+
+**Instabilité de détection connue** (IDEAS.md) : sur une offense
+statique, un défenseur de cutter peut osciller step à step (écran
+détecté → couverture `over` le déplace → écran perdu → retour).
+Préexistant, amplifié par le CVT. Sujet séparé non bloquant.
+
 ### Fix template — Horns flare : écran qui fonctionne enfin
 
 Le template `horns-flare` avait l'annotation `screen` posée au step 2

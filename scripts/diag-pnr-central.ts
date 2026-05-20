@@ -39,7 +39,7 @@ const defenseInitial: DefenderPositions = {
   D5: { x: pnrSetup.O5.x, y: pnrSetup.O5.y + 40 },
 };
 
-function buildState(useSteeringEngine: boolean): AppState {
+function buildState(): AppState {
   const base = makeInitialState();
   return {
     ...base,
@@ -73,7 +73,6 @@ function buildState(useSteeringEngine: boolean): AppState {
       },
     ],
     activeStep: 0,
-    useSteeringEngine,
   };
 }
 
@@ -95,11 +94,11 @@ function segmentToPointDist(p1: { x: number; y: number }, p2: { x: number; y: nu
   return dist({ x: p1.x + t * dx, y: p1.y + t * dy }, c);
 }
 
-function profile(label: string, useSteeringEngine: boolean) {
-  const state = buildState(useSteeringEngine);
+function profile(label: string) {
+  const state = buildState();
   const offs = [pnrSetup, pnrScreen, pnrUse, pnrRoll];
   console.log('\n' + '='.repeat(72));
-  console.log(`PROFILE: ${label} (useSteeringEngine=${useSteeringEngine})`);
+  console.log(`PROFILE: ${label}`);
   console.log('='.repeat(72));
 
   const positionsByStep: DefenderPositions[] = [];
@@ -153,5 +152,4 @@ function profile(label: string, useSteeringEngine: boolean) {
   }
 }
 
-profile('PNR central — LEGACY', false);
-profile('PNR central — CVT', true);
+profile('PNR central — CVT');

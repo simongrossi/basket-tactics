@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AppState, AttackerPositions } from '@/lib/types';
 import { makeInitialState, makeStep } from '@/lib/data/initial';
-import { effectiveDefensePositions } from '@/lib/logic/engine';
+import { effectiveDefensePositions, computeDefenseTargets } from '@/lib/logic/engine';
 
 function makeScenario(numSteps: number, rule: AppState['offBallScreenRule']): AppState {
   const s0 = makeInitialState();
@@ -42,22 +42,20 @@ describe("B9 — top-lock bascule en chase si cutter dans une chaîne ≥ 2", ()
     // les 3 derniers steps) → bascule top-lock → chase. La position
     // résultante doit être différente du step 0 (top-lock pur).
     const state = makeScenario(3, 'top-lock');
-    const def0 = effectiveDefensePositions(state, 0);
-    const def2 = effectiveDefensePositions(state, 2);
-    // Au moins une différence > 5px attendue (la rule change).
-    const dx = def2.D3.x - def0.D3.x;
-    const dy = def2.D3.y - def0.D3.y;
+    const target0 = computeDefenseTargets(state, 0, false).positions.D3;
+    const target2 = computeDefenseTargets(state, 2, false).positions.D3;
+    // La cible doit changer.
+    const dx = target2.x - target0.x;
+    const dy = target2.y - target0.y;
     expect(Math.hypot(dx, dy)).toBeGreaterThan(2);
   });
 
   it("autre rule (e.g. 'over') ne déclenche PAS la bascule (chain inactive)", () => {
-    const state = makeScenario(3, 'over');
-    // Le helper ne calcule la chaîne que pour top-lock → comportement
-    // identique step 0 vs step 2 (mêmes positions).
-    const def0 = effectiveDefensePositions(state, 0);
-    const def2 = effectiveDefensePositions(state, 2);
-    // Pas de bascule = positions D3 quasi identiques.
-    expect(Math.abs(def2.D3.x - def0.D3.x)).toBeLessThan(20);
-    expect(Math.abs(def2.D3.y - def0.D3.y)).toBeLessThan(20);
+    const state = makeScenario(6, 'over');
+    const def4 = effectiveDefensePositions(state, 4);
+    const def5 = effectiveDefensePositions(state, 5);
+    // Pas de bascule = positions D3 stables après convergence.
+    expect(Math.abs(def5.D3.x - def4.D3.x)).toBeLessThan(1);
+    expect(Math.abs(def5.D3.y - def4.D3.y)).toBeLessThan(1);
   });
 });

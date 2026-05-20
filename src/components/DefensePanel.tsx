@@ -865,12 +865,7 @@ export function DefensePanel(props: DefensePanelProps) {
                 onChange={(v) => props.onPatch({ readScreenChainsEnabled: v })}
                 title="Active la réaction défensive aux re-screens / staggers / flares"
               />
-              <CheckboxLine
-                checked={!!state.useSteeringEngine}
-                label="moteur de forces CVT (expérimental)"
-                onChange={(v) => props.onPatch({ useSteeringEngine: v })}
-                title="Active le moteur de forces vectorielles : arrive dampening, interpose vers lignes de passe, pondération par profil offensif, screen repel périphérique. Effet visuel subtil (≤ 12 px cumulés). À comparer A/B."
-              />
+
               <CheckboxLine
                 checked={!!state.pathAwareInterpolation}
                 label="évitement entre frames PAI (expérimental)"

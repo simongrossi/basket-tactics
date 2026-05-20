@@ -99,12 +99,10 @@ export function applyBaseTargetsLayer(
     // gap pour anticiper drive (manWeight < 1 → dist plus grand).
     // Profil undefined → multipliers (1,1) → comportement legacy
     // strictement préservé (bit-équivalent).
-    if (state.useSteeringEngine) {
-      const profile = state.attackerProfiles?.[oId as AttackerId];
-      const mults = profileWeightMultipliers(profile);
-      if (mults.manWeight !== 1) {
-        dist = dist / mults.manWeight;
-      }
+    const profile = state.attackerProfiles?.[oId as AttackerId];
+    const mults = profileWeightMultipliers(profile);
+    if (mults.manWeight !== 1) {
+      dist = dist / mults.manWeight;
     }
     // CVT 1.1b — defenderPos référence = position précédente effective
     // du défenseur (fallback : layout initial). Indispensable pour que
@@ -112,28 +110,15 @@ export function applyBaseTargetsLayer(
     // c'est dist(prev, target) qui détermine si on est en zone "loin"
     // (bit-équivalent legacy) ou "proche" (target amorti).
     const defenderRef = prevDefenderPositions[dId] ?? state.defenseInitial[dId];
-    const useForces = !!state.useSteeringEngine;
     if (isCarrierDefender) {
-      if (useForces) {
-        const forces = carrierDefenderTargetForces(defenderRef, rule.vsCarrier, att, dist, hoop);
-        target = forces.length > 0 ? composeTarget(defenderRef, forces) : defenderRef;
-      } else {
-        target = carrierDefenderTarget(rule.vsCarrier, att, dist, hoop) || defenderRef;
-      }
+      const forces = carrierDefenderTargetForces(defenderRef, rule.vsCarrier, att, dist, hoop);
+      target = forces.length > 0 ? composeTarget(defenderRef, forces) : defenderRef;
     } else {
       const stance = rule.offBallStance ?? 'sag';
-      let stancePos: Point;
-      if (useForces) {
-        const forces = stance !== 'sag'
-          ? offBallStanceTargetForces(defenderRef, att, carrierPos, dist, stance, hoop)
-          : manTargetForces(defenderRef, att, dist, hoop);
-        stancePos = forces.length > 0 ? composeTarget(defenderRef, forces) : defenderRef;
-      } else {
-        stancePos =
-          stance !== 'sag'
-            ? offBallStanceTarget(att, carrierPos, dist, stance, hoop) || defenderRef
-            : manTarget(att, dist, hoop) || defenderRef;
-      }
+      const forces = stance !== 'sag'
+        ? offBallStanceTargetForces(defenderRef, att, carrierPos, dist, stance, hoop)
+        : manTargetForces(defenderRef, att, dist, hoop);
+      const stancePos = forces.length > 0 ? composeTarget(defenderRef, forces) : defenderRef;
       target = stancePos;
       // Le help bias n'est appliqué qu'avec la stance "sag" — les stances
       // dirigées (deny-3q, fronting, behind) sont des positions absolues.
@@ -143,34 +128,20 @@ export function applyBaseTargetsLayer(
         // Coût tactique de quitter cet attaquant : on aide moins fort si on
         // marque un shooter, plus fort si on marque un non-shooter.
         const leaveMult = leaveAttackerCostMultiplier(state.attackerProfiles?.[oId]);
-        if (useForces) {
-          // CVT 1.2 — forces vectorielles avec arrive amorti vers le target d'aide.
-          const helpRes = computeHelpForces(
-            defenderRef, stancePos, rule, triggers, carrierPos, att, side, off, hoop,
-            denyAggressiveness, leaveMult,
-          );
-          target = helpRes.forces.length > 0
-            ? composeTarget(defenderRef, helpRes.forces)
-            : helpRes.target;
-          helpFactor = helpRes.helpFactor;
-          denying = !!helpRes.denying;
-          helpTriggered = !!helpRes.triggered;
-          helpAim = helpRes.aim;
-          helpPriority = helpRes.priority;
-          helpKind = helpRes.kind;
-        } else {
-          const help = computeHelpTarget(
-            stancePos, rule, triggers, carrierPos, att, side, off, hoop,
-            denyAggressiveness, leaveMult
-          );
-          target = help.target;
-          helpFactor = help.helpFactor;
-          denying = !!help.denying;
-          helpTriggered = !!help.triggered;
-          helpAim = help.aim;
-          helpPriority = help.priority;
-          helpKind = help.kind;
-        }
+        // CVT 1.2 — forces vectorielles avec arrive amorti vers le target d'aide.
+        const helpRes = computeHelpForces(
+          defenderRef, stancePos, rule, triggers, carrierPos, att, side, off, hoop,
+          denyAggressiveness, leaveMult,
+        );
+        target = helpRes.forces.length > 0
+          ? composeTarget(defenderRef, helpRes.forces)
+          : helpRes.target;
+        helpFactor = helpRes.helpFactor;
+        denying = !!helpRes.denying;
+        helpTriggered = !!helpRes.triggered;
+        helpAim = helpRes.aim;
+        helpPriority = helpRes.priority;
+        helpKind = helpRes.kind;
       }
     }
 
@@ -259,12 +230,12 @@ export function applyBaseTargetsLayer(
     };
   });
 
-  // CVT Chantier 3b — pass shadow flag (opt-in via useSteeringEngine).
+  // CVT Chantier 3b — pass shadow flag.
   // Calculé en fin de couche sur les positions IDÉALES des défenseurs
   // (avant contraintes de vitesse + couches PnR / écrans). Suffit pour
   // la métadonnée tactique ; un recalcul après speedConstraint serait
   // plus précis mais plus coûteux et redondant pour ce flag d'aide.
-  if (state.useSteeringEngine && ballCarrier && carrierPos) {
+  if (ballCarrier && carrierPos) {
     const defenderPositions: Record<string, Point> = {};
     defenderIds.forEach((dId) => {
       const pos = positions[dId];

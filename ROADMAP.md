@@ -1540,16 +1540,13 @@ défenseur) à un paradigme **émergeant** de forces vectorielles pondérées
   push-out binaire** par repel est **INCOMPATIBLE** avec la Règle 1bis
   (D1 stuck à quality 100, cf. `docs/SCREEN-ENGINE.md` § Limites
   acceptées). Test garde-fou Règle 1bis ajouté.
-- 🟡 **Sous-étape 1.4 — toggle UI livré (2026-05-19)** : case à
-  cocher dans `DefensePanel` permettant l'activation/désactivation
-  visuelle dans `npm run dev`. **Bascule par défaut abandonnée** —
-  13 tests cassent (golden snapshots J.6 + tests de positions
-  exactes). Sous-étape 1.4b nécessaire pour activer par défaut
-  après validation visuelle + régénération supervisée des snapshots.
-- ⚪ **Sous-étape 1.4b** : activation par défaut + suppression
-  double-sortie legacy. Demande : (1) validation visuelle complète
-  scénarios réels, (2) régénération golden snapshots J.6,
-  (3) mise à jour ciblée tests de positions exactes.
+- 🟢 **Sous-étape 1.4** (toggle UI livré 2026-05-19) : case à cocher
+  dans `DefensePanel` pour comparaison A/B. Remplacée par 1.4b.
+- 🟢 **Sous-étape 1.4b** (livré 2026-05-19) : flag `useSteeringEngine`
+  **supprimé**, moteur de forces = pipeline défensif unique. Plus de
+  double-sortie ni de branche legacy. 4 snapshots J.6 régénérés,
+  tests de positions exactes mis à jour, toggle UI retiré. 1664 tests
+  verts. **Le Chantier 1 (Steering Behaviors) est complet.**
 
 **Chantier 2 — Influence Map & trajectoires invisibles**
 - 🟡 **Infra livrée (2026-05-19)** : module

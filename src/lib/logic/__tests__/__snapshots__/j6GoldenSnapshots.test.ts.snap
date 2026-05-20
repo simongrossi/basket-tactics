@@ -76,8 +76,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template floppy 1
         "D2": {
           "matchedTo": "O2",
           "screenPhase": "stuck",
-          "x": 270.3,
-          "y": 145.9,
+          "x": 274.2,
+          "y": 146.3,
         },
         "D3": {
           "matchedTo": "O3",
@@ -86,8 +86,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template floppy 1
         },
         "D4": {
           "matchedTo": "O4",
-          "x": 239.3,
-          "y": 131.8,
+          "x": 242.7,
+          "y": 133.5,
         },
         "D5": {
           "matchedTo": "O5",
@@ -101,8 +101,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template floppy 1
           "y": 380,
         },
         "O2": {
-          "x": 269.2,
-          "y": 179.8,
+          "x": 269.4,
+          "y": 180,
         },
         "O3": {
           "x": 480,
@@ -134,8 +134,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template floppy 1
         "D2": {
           "matchedTo": "O2",
           "screenPhase": "stuck",
-          "x": 252.2,
-          "y": 177.8,
+          "x": 248.2,
+          "y": 185.2,
         },
         "D3": {
           "helpFactor": 0.14,
@@ -182,8 +182,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template floppy 1
     {
       "ball": {
         "inFlight": true,
-        "x": 255.8,
-        "y": 296.5,
+        "x": 256.2,
+        "y": 297.1,
       },
       "def": {
         "D1": {
@@ -194,8 +194,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template floppy 1
         "D2": {
           "matchedTo": "O2",
           "screenPhase": "stuck",
-          "x": 242.3,
-          "y": 189,
+          "x": 238.6,
+          "y": 195.6,
         },
         "D3": {
           "helpFactor": 0.14,
@@ -221,8 +221,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template floppy 1
           "y": 380,
         },
         "O2": {
-          "x": 179.5,
-          "y": 287.5,
+          "x": 180.4,
+          "y": 288.4,
         },
         "O3": {
           "x": 480,
@@ -410,7 +410,7 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pindown-
           "y": 320,
         },
         "O4": {
-          "x": 437.1,
+          "x": 437.2,
           "y": 282.4,
         },
         "O5": {
@@ -435,8 +435,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pindown-
         "D2": {
           "matchedTo": "O2",
           "screenPhase": "approach",
-          "x": 454.2,
-          "y": 433.3,
+          "x": 447.7,
+          "y": 444.3,
         },
         "D3": {
           "matchedTo": "O3",
@@ -493,8 +493,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pindown-
         "D2": {
           "matchedTo": "O2",
           "screenPhase": "stuck",
-          "x": 472.2,
-          "y": 361.5,
+          "x": 470.7,
+          "y": 362.5,
         },
         "D3": {
           "matchedTo": "O3",
@@ -503,8 +503,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pindown-
         },
         "D4": {
           "matchedTo": "O4",
-          "x": 438.2,
-          "y": 362.3,
+          "x": 436.7,
+          "y": 362.1,
         },
         "D5": {
           "matchedTo": "O5",
@@ -518,7 +518,7 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pindown-
           "y": 380,
         },
         "O2": {
-          "x": 494.9,
+          "x": 495.2,
           "y": 395,
         },
         "O3": {
@@ -551,8 +551,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pindown-
         "D2": {
           "matchedTo": "O2",
           "screenPhase": "stuck",
-          "x": 480.5,
-          "y": 352.3,
+          "x": 480.3,
+          "y": 352.4,
         },
         "D3": {
           "helpFactor": 0.14,
@@ -815,8 +815,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pnr-cent
         "D5": {
           "matchedTo": "O5",
           "onScreen": true,
-          "x": 319.6,
-          "y": 220.4,
+          "x": 334.8,
+          "y": 211.4,
         },
       },
       "off": {
@@ -837,8 +837,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pnr-cent
           "y": 200,
         },
         "O5": {
-          "x": 325,
-          "y": 260,
+          "x": 344.8,
+          "y": 250.1,
         },
       },
       "t": 0.5,
@@ -855,7 +855,7 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pnr-cent
           "onScreen": true,
           "screenPhase": "impact",
           "x": 308.8,
-          "y": 276.5,
+          "y": 276.4,
         },
         "D2": {
           "helpFactor": 0.6,
@@ -922,8 +922,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pnr-cent
           "matchedTo": "O1",
           "onScreen": true,
           "screenPhase": "stuck",
-          "x": 312.2,
-          "y": 267.4,
+          "x": 312.7,
+          "y": 267.5,
         },
         "D2": {
           "helpFactor": 0.6,
@@ -951,7 +951,7 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pnr-cent
           "helpTriggered": true,
           "matchedTo": "O5",
           "onScreen": true,
-          "x": 346.2,
+          "x": 346.6,
           "y": 269.3,
         },
       },
@@ -1012,7 +1012,7 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pnr-cent
         "D5": {
           "matchedTo": "O5",
           "x": 315.4,
-          "y": 248.7,
+          "y": 248.8,
         },
       },
       "off": {
@@ -1050,7 +1050,7 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template pnr-cent
           "matchedTo": "O1",
           "screenPhase": "impact",
           "x": 358.3,
-          "y": 262.8,
+          "y": 262.7,
         },
         "D2": {
           "helpFactor": 0.14,
@@ -1298,8 +1298,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template ucla-cut
           "matchedTo": "O1",
           "onScreen": true,
           "screenPhase": "approach",
-          "x": 286.4,
-          "y": 317.5,
+          "x": 287.2,
+          "y": 325.8,
         },
         "D2": {
           "helpFactor": 0.14,
@@ -1309,8 +1309,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template ucla-cut
         },
         "D3": {
           "matchedTo": "O3",
-          "x": 450.6,
-          "y": 292.1,
+          "x": 450.3,
+          "y": 292.3,
         },
         "D4": {
           "helpFactor": 0.36,
@@ -1323,7 +1323,7 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template ucla-cut
           "onScreen": true,
           "screenPhase": "impact",
           "x": 300,
-          "y": 200,
+          "y": 206,
         },
       },
       "off": {
@@ -1361,8 +1361,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template ucla-cut
           "matchedTo": "O1",
           "onScreen": true,
           "screenPhase": "stuck",
-          "x": 273.9,
-          "y": 218.2,
+          "x": 272.6,
+          "y": 219.8,
         },
         "D2": {
           "helpFactor": 0.14,
@@ -1372,8 +1372,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template ucla-cut
         },
         "D3": {
           "matchedTo": "O3",
-          "x": 450.6,
-          "y": 292.1,
+          "x": 450.3,
+          "y": 292.3,
         },
         "D4": {
           "helpFactor": 0.36,
@@ -1386,13 +1386,13 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template ucla-cut
           "onScreen": true,
           "screenPhase": "impact",
           "x": 300,
-          "y": 171.5,
+          "y": 174.5,
         },
       },
       "off": {
         "O1": {
-          "x": 253,
-          "y": 265.9,
+          "x": 251.3,
+          "y": 265.7,
         },
         "O2": {
           "x": 130,
@@ -1424,8 +1424,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template ucla-cut
           "matchedTo": "O1",
           "onScreen": true,
           "screenPhase": "impact",
-          "x": 283.7,
-          "y": 209.9,
+          "x": 283.2,
+          "y": 209.7,
         },
         "D2": {
           "helpFactor": 0.14,
@@ -1435,8 +1435,8 @@ exports[`J.6 — golden scene snapshots > snapshot stable pour template ucla-cut
         },
         "D3": {
           "matchedTo": "O3",
-          "x": 450.6,
-          "y": 292.1,
+          "x": 450.4,
+          "y": 292.2,
         },
         "D4": {
           "helpFactor": 0.36,

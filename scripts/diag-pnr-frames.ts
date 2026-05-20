@@ -26,7 +26,7 @@ const defenseInitial: DefenderPositions = {
   D5: { x: pnrSetup.O5.x, y: pnrSetup.O5.y + 40 },
 };
 
-function buildState(useSteeringEngine: boolean): AppState {
+function buildState(): AppState {
   return {
     ...makeInitialState(),
     defenseInitial,
@@ -49,7 +49,6 @@ function buildState(useSteeringEngine: boolean): AppState {
       },
     ],
     activeStep: 0,
-    useSteeringEngine,
   };
 }
 
@@ -86,8 +85,8 @@ function profileTransition(state: AppState, tStart: number, tEnd: number, label:
   console.log(`  → Min dist(D1,O5) = ${minDistO5.toFixed(1)} px à t=${minTO5.toFixed(2)}`);
 }
 
-function profile(label: string, useSteeringEngine: boolean) {
-  const state = buildState(useSteeringEngine);
+function profile(label: string) {
+  const state = buildState();
   console.log('\n' + '='.repeat(80));
   console.log(`FRAME PROFILE: ${label}`);
   console.log('='.repeat(80));
@@ -97,8 +96,7 @@ function profile(label: string, useSteeringEngine: boolean) {
   profileTransition(state, 2, 3, 'step 2 → step 3 (Roll : O5 plonge vers panier)');
 }
 
-profile('PNR central — LEGACY (flag off)', false);
-profile('PNR central — CVT (flag on)', true);
+profile('PNR central — CVT');
 
 // =========================================================================
 // Diagnostic ciblé O1 (porteur) sur TOUT le playback
@@ -110,7 +108,7 @@ console.log('\n' + '='.repeat(80));
 console.log('DIAGNOSTIC O1 — recherche de reverse (tout le playback)');
 console.log('='.repeat(80));
 {
-  const state = buildState(true);
+  const state = buildState();
   console.log('\n  t (step)  O1.x    O1.y     Δx       Δy     Δ(O1)   note');
   console.log('  --------  -----   -----   -----   ------   -----   ----');
   let prevO1: { x: number; y: number } | null = null;
@@ -146,7 +144,7 @@ console.log('\n' + '='.repeat(80));
 console.log('QUALITÉ DE L\'ÉCRAN — positions clés step 1 (pose)');
 console.log('='.repeat(80));
 {
-  const state = buildState(true);
+  const state = buildState();
   // Frame juste après que l'écran soit "posé" (step 1)
   const frame = resolveFrameAt(state, 1.0);
   if (frame) {

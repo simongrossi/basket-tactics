@@ -49,12 +49,22 @@ describe('Phase 2 — Moteur symétrique away', () => {
   it("phase away après rebond déf : state.off au bas du terrain (zone d'attaque away)", () => {
     const baseState = buildState('pnr-central');
     let state = createInitialMatchState(baseState, { seed: 1, maxPossessions: 3 });
-    // Force tir manqué (pas un made) → rebond défensif possible
-    state = { ...state, outcome: 'shot-missed', score: 0, attackingTeam: 'home' };
+    // Force tir manqué avec rebond défensif pré-calculé (type: 'defensive')
+    state = {
+      ...state,
+      outcome: 'shot-missed',
+      score: 0,
+      attackingTeam: 'home',
+      pendingRebound: {
+        type: 'defensive',
+        rebounder: 'D1',
+        position: { x: 300, y: 150 },
+      },
+    };
 
-    // Avance jusqu'à la phase away — offensiveReboundRate: 0 force rebond déf
+    // Avance jusqu'à la phase away
     for (let i = 0; i < 200; i++) {
-      state = tickMatch(state, MATCH_TICK_MS, baseState, { offensiveReboundRate: 0 });
+      state = tickMatch(state, MATCH_TICK_MS, baseState);
       if (state.attackingTeam === 'away') break;
     }
 

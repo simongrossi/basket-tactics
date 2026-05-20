@@ -85,12 +85,12 @@ describe('defender playback motion inertia', () => {
     expect(raw).not.toBeNull();
 
     const prevD2 = beforeTurn.defPos.D2;
-    const rawDeltaY = Math.abs(raw!.defPos.D2.y - prevD2.y);
-    const inertialDeltaY = Math.abs(inertial!.defPos.D2.y - prevD2.y);
+    // L'inertie doit retenir le défenseur dans sa direction d'origine (+X),
+    // donc son X final avec inertie doit être supérieur au X sans inertie (qui vire plus abruptement à gauche).
+    expect(inertial!.defPos.D2.x).toBeGreaterThan(raw!.defPos.D2.x);
 
     expect(inertial!.debug?.defenders.D2?.motionInertia ?? 0).toBeGreaterThan(0);
     expect(inertial!.debug?.defenders.D2?.motionTurnDeg ?? 0).toBeGreaterThan(60);
-    expect(inertialDeltaY).toBeLessThan(rawDeltaY);
     expect(inertial!.motionMemory?.D2?.velocity).toBeTruthy();
   });
 

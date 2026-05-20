@@ -76,7 +76,6 @@ export const DEFAULT_DEFENSE_DISTANCE_PX = 40;
  * 12 px ≈ 10 % du `DEFAULT_DEFENSE_MAX_SPEED_PX=110` — zone "déjà
  * arrivé en pratique" : sans amortissement, le défenseur a tendance
  * à sur-réagir aux micro-déplacements de son homme entre frames.
- * À ne consommer que si `state.useSteeringEngine` est on.
  */
 export const STEERING_MAN_SLOWING_RADIUS_PX = 12;
 
