@@ -19,7 +19,11 @@ export {
   applySwitch,
   peelSwitchShouldFire,
 } from './carrierScreenAdjust';
-export { detectOffBallScreens } from './detectOffBallScreens';
+export {
+  detectOffBallScreens,
+  offBallScreenPairKey,
+  offBallScreenPairKeys,
+} from './detectOffBallScreens';
 export {
   applyOffBallScreenAdjustment,
   applySwitchOffBall,

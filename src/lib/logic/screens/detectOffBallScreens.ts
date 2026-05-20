@@ -22,8 +22,31 @@ import type {
   Point,
 } from '../../types';
 import { HOOP } from '../../data/court';
+import { OFFBALL_SCREEN_HYSTERESIS_PX } from '../../data/physics';
 import { distance } from '../geometry';
 import { hasScreenIntent } from './helpers';
+
+/** Clé canonique d'une paire (cutter, screener) pour l'hystérésis. */
+export function offBallScreenPairKey(cutter: AttackerId, screener: AttackerId): string {
+  return `${cutter}:${screener}`;
+}
+
+/** Extrait l'ensemble des paires (cutter, screener) actives d'une liste
+ *  d'écrans détectés — à fournir comme `prevScreenPairs` au step suivant
+ *  pour activer l'hystérésis de maintien. Inclut le second screener des
+ *  enchaînements stagger/elevator. */
+export function offBallScreenPairKeys(
+  screens: ReadonlyArray<DetectedOffBallScreen>,
+): Set<string> {
+  const keys = new Set<string>();
+  for (const s of screens) {
+    keys.add(offBallScreenPairKey(s.cutter, s.screener));
+    if (s.secondScreener) {
+      keys.add(offBallScreenPairKey(s.cutter, s.secondScreener));
+    }
+  }
+  return keys;
+}
 
 export function detectOffBallScreens(
   off: AttackerPositions,
@@ -32,7 +55,11 @@ export function detectOffBallScreens(
   defenderPositions: Record<DefenderId, Point>,
   screenRadius: number,
   /** Positions à l'étape précédente — active le filtre d'intention. */
-  prevOff?: AttackerPositions
+  prevOff?: AttackerPositions,
+  /** Paires (cutter:screener) détectées au step précédent. Si une paire
+   *  y figure, son rayon de détection est élargi de
+   *  `OFFBALL_SCREEN_HYSTERESIS_PX` (hystérésis anti-clignotement). */
+  prevScreenPairs?: ReadonlySet<string>
 ): DetectedOffBallScreen[] {
   const results: DetectedOffBallScreen[] = [];
   const nonCarriers = (Object.keys(off) as AttackerId[]).filter((id) => id !== ballCarrier);
@@ -51,7 +78,14 @@ export function detectOffBallScreens(
       if (screener === cutter) continue;
       const screenerPos = off[screener];
 
-      if (distance(screenerPos, cutterDefPos) > screenRadius) continue;
+      // Hystérésis : si cette paire était détectée au step précédent,
+      // on élargit le rayon de maintien pour éviter le clignotement
+      // quand le défenseur du cutter navigue autour de l'écran.
+      const wasActive = prevScreenPairs?.has(offBallScreenPairKey(cutter, screener)) ?? false;
+      const effectiveRadius = wasActive
+        ? screenRadius + OFFBALL_SCREEN_HYSTERESIS_PX
+        : screenRadius;
+      if (distance(screenerPos, cutterDefPos) > effectiveRadius) continue;
       if (distance(screenerPos, cutterPos) > 80) continue;
       if (!hasScreenIntent(screener, screenerPos, cutterDefPos, prevOff)) continue;
 

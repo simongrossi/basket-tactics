@@ -23,7 +23,7 @@ import {
   extractDefenderPositions,
   getMatchupsAt,
 } from '../engine';
-import { detectOffBallScreens } from './detectOffBallScreens';
+import { detectOffBallScreens, offBallScreenPairKeys } from './detectOffBallScreens';
 import { initialDef } from '../../data/initial';
 
 const DEFAULT_DEPTH = 3;
@@ -44,6 +44,10 @@ export function countCutterScreenChain(
 ): number {
   let count = 0;
   const startIdx = Math.max(0, stepIdx - depth + 1);
+  // Hystérésis : on propage les paires (cutter:screener) du step
+  // précédent pour élargir leur rayon de maintien — sinon un écran
+  // détecté clignote dès que le défenseur du cutter navigue autour.
+  let prevScreenPairs: Set<string> | undefined;
   for (let i = startIdx; i <= stepIdx; i++) {
     const step = state.steps[i];
     if (!step) continue;
@@ -61,11 +65,13 @@ export function countCutterScreenChain(
       matchups,
       defPos,
       state.screenRadius,
-      prevOff
+      prevOff,
+      prevScreenPairs
     );
     if (screens.some((s) => s.cutter === cutter)) {
       count++;
     }
+    prevScreenPairs = offBallScreenPairKeys(screens);
   }
   return count;
 }

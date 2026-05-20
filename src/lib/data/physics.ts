@@ -164,6 +164,20 @@ export const MAX_SPEED_BY_POSITION_PX = {
  */
 export const DEFAULT_SCREEN_RADIUS_PX = 35;
 
+/**
+ * Hystérésis de détection d'écran hors-ballon. Une fois une paire
+ * (cutter, screener) détectée à un step, le rayon de détection est
+ * élargi de `OFFBALL_SCREEN_HYSTERESIS_PX` au step suivant pour cette
+ * paire. Évite le clignotement : un défenseur de cutter qui navigue
+ * autour de l'écran (couverture `over`) sort du `screenRadius` et
+ * ferait disparaître l'écran sans cette marge de maintien.
+ *
+ * Même principe que `SCREEN_CONTACT_ENTER/EXIT_QUALITY` pour la
+ * qualité d'écran : entrer dans un contact exige un signal plus fort
+ * que rester en contact.
+ */
+export const OFFBALL_SCREEN_HYSTERESIS_PX = 14;
+
 // =============================================================
 // Aide défensive
 // =============================================================

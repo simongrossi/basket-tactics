@@ -8,12 +8,12 @@ import { countCutterScreenChain, cuttersInScreenChain } from '../screens';
 /** Helper : construit un AppState avec N steps consécutifs où O3 (cutter)
  *  utilise un pindown posé par O5.
  *
- *  `defenseInitial` est fourni avec D3 placé pile sur l'écran, et O5 est
- *  positionné TRÈS près du cutter O3 lui-même (~30 px), pour que la
- *  détection d'écran hors-ballon reste franche même si le pipeline CVT
- *  fait naviguer D3 autour de l'écran (couverture `over`) entre les
- *  steps. Sans ça, D3 sort du `screenRadius` dès le step 1 et la chaîne
- *  n'est plus comptée. */
+ *  O5 est dans le rayon de détection de la position d'auto-couverture
+ *  de D3 au step 0. Aux steps suivants le pipeline CVT fait naviguer D3
+ *  autour de l'écran (couverture `over`), ce qui le sortirait du
+ *  `screenRadius=35` sans l'hystérésis de détection
+ *  (`OFFBALL_SCREEN_HYSTERESIS_PX`) : une fois la paire détectée, son
+ *  rayon de maintien est élargi → la chaîne reste comptée. */
 function makeChainState(numSteps: number): AppState {
   const s0 = makeInitialState();
   const steps = [];
@@ -23,7 +23,7 @@ function makeChainState(numSteps: number): AppState {
       O2: { x: 130, y: 380 },
       O3: { x: 470, y: 380 }, // cutter
       O4: { x: 220, y: 230 },
-      O5: { x: 458, y: 352 }, // poseur ~33 px du cutter O3 → écran franc
+      O5: { x: 440, y: 320 }, // poseur ≤ 35px de D3 au step 0
     };
     steps.push(makeStep(off, 'O1', []));
   }
@@ -31,10 +31,6 @@ function makeChainState(numSteps: number): AppState {
     ...s0,
     steps,
     activeStep: numSteps - 1,
-    defenseInitial: {
-      ...s0.defenseInitial,
-      D3: { x: 455, y: 348 }, // pile sur l'écran O5 (step 0 garanti détecté)
-    },
   };
 }
 
