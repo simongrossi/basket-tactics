@@ -1472,10 +1472,18 @@ V1, refonte `getDefenseHoop`).
 
 ## Hors roadmap court terme
 
-### ⚪ Refonte cinématique vectorielle tactique (CVT) — moteur défensif AAA-style
+### 🟢 Refonte cinématique vectorielle tactique (CVT) — moteur défensif AAA-style
 
-**Statut** : vision long-terme, non priorisée. À déclencher après stabilisation
-des chantiers A* et avant Play IA v2. Refonte profonde, non-régression
+**Statut au 2026-05-22 : LIVRÉE ET ACTIVE.** Les 3 chantiers (Steering
+Behaviors, Influence Map, Triangle défensif) sont complets et le moteur
+de forces est le pipeline défensif unique (flag legacy supprimé,
+sous-étape 1.4b). Raffinements livrés : hystérésis de détection
+d'écran off-ball, PAI V1.5 (multi-passes), 4 sliders de tuning
+(`steeringSlowingRadius`, `steeringScreenRepelWeight`,
+`profileWeightingIntensity`, `paiMaxDeviation`). 1678 tests verts,
+`tsc` 0 erreur. Reste : calibrage visuel des sliders par le coach.
+
+**Historique du chantier ci-dessous** (vision initiale, non-régression
 exigée sur diagnostics + `defenseOverrides`.
 
 **Motivation** — passer du paradigme "cibles rigides" (Target-Seeking via

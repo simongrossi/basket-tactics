@@ -6,6 +6,19 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Qualité — typecheck propre + 4e levier de tuning CVT
+
+- **`tsc --noEmit` désormais 0 erreur** : nettoyage de 40+ erreurs de
+  typage préexistantes dans 7 fichiers de tests (kAnomaly*,
+  allGeneratorsAntiFlicker, pnrDwellAntiFlicker, symmetricEngine).
+  Corrections conservatrices (typage seul, valeurs de test inchangées).
+  Le build Next.js / Vercel ne remonte plus ces erreurs.
+- **Slider "CVT profil"** — `scaledProfileMultipliers(profile,
+  intensity)` interpole entre neutre (1,1) et multiplicateur plein du
+  profil. `state.profileWeightingIntensity` ∈ [0,1] (défaut 1).
+  Le coach dispose désormais de **4 sliders CVT** : amorti px, repel
+  écran, profil, PAI déviation px — calibrage complet à l'œil.
+
 ### Raffinement CVT — hystérésis détection + poids tunables + PAI V1.5
 
 Trois points de raffinement du moteur physique CVT.
