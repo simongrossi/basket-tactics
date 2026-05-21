@@ -30,7 +30,7 @@ import {
   orientationLateralOffset,
 } from '../manDefense';
 import { composeTarget } from '../steeringEngine';
-import { passShadowsByDefender, profileWeightMultipliers } from '../defenseTriangle';
+import { passShadowsByDefender, scaledProfileMultipliers } from '../defenseTriangle';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
 import { mismatchSeverity } from './mismatchTracking';
@@ -103,7 +103,7 @@ export function applyBaseTargetsLayer(
     // Profil undefined → multipliers (1,1) → comportement legacy
     // strictement préservé (bit-équivalent).
     const profile = state.attackerProfiles?.[oId as AttackerId];
-    const mults = profileWeightMultipliers(profile);
+    const mults = scaledProfileMultipliers(profile, state.profileWeightingIntensity ?? 1);
     if (mults.manWeight !== 1) {
       dist = dist / mults.manWeight;
     }

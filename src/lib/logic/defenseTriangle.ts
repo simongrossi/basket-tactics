@@ -88,6 +88,31 @@ export function profileWeightMultipliers(profile?: OffensiveProfile): ProfileWei
 }
 
 /**
+ * Multiplicateurs de profil atténués par un facteur d'intensité globale
+ * `intensity` ∈ [0, 1] : interpolation linéaire entre le neutre (1, 1)
+ * et le multiplicateur plein du profil.
+ *
+ * - `intensity = 1` → effet plein (= `profileWeightMultipliers`).
+ * - `intensity = 0` → neutre (1, 1), la pondération profil est désactivée.
+ * - `intensity = 0.5` → effet à mi-chemin.
+ *
+ * Permet au coach de calibrer (ou neutraliser) globalement à quel point
+ * la défense réagit aux profils offensifs, sans toucher 6 profils ×
+ * 2 valeurs individuellement.
+ */
+export function scaledProfileMultipliers(
+  profile: OffensiveProfile | undefined,
+  intensity: number,
+): ProfileWeightMultipliers {
+  const base = profileWeightMultipliers(profile);
+  const k = Math.max(0, Math.min(1, intensity));
+  return {
+    manWeight: 1 + (base.manWeight - 1) * k,
+    basketWeight: 1 + (base.basketWeight - 1) * k,
+  };
+}
+
+/**
  * Vrai si `defenderPos` occulte la ligne de passe `carrier ↔ attacker` :
  * - distance perpendiculaire à la droite < tolérance (en valeur absolue),
  * - ET projection orthogonale dans le segment (entre carrier et attacker).

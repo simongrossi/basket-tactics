@@ -655,6 +655,15 @@ export function DefensePanel(props: DefensePanelProps) {
             onChange={(v) => props.onPatch({ steeringScreenRepelWeight: v })}
             title="Moteur de forces — poids du glissement soft autour des poseurs d'écran pour les défenseurs périphériques. 0 désactive. Défaut 20."
           />
+          <Slider
+            label="CVT profil"
+            min={0}
+            max={1}
+            step={0.1}
+            value={state.profileWeightingIntensity ?? 1}
+            onChange={(v) => props.onPatch({ profileWeightingIntensity: v })}
+            title="Moteur de forces — intensité de la pondération par profil offensif (shooter = close out serré, slasher = sag franc). 1 = effet plein, 0 = marquage uniforme quel que soit le profil. Défaut 1."
+          />
 
           {/* Écran porteur — réglages fins */}
           <details

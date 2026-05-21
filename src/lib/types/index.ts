@@ -869,6 +869,11 @@ export interface AppState {
    *  `STEERING_SCREEN_REPEL_WEIGHT = 20`. Range UI 0–60. 0 désactive le
    *  glissement périphérique soft autour des écrans. */
   steeringScreenRepelWeight?: number;
+  /** CVT tuning — intensité globale de la pondération par profil
+   *  offensif (shooter → close out serré, slasher → sag franc). ∈ [0,1].
+   *  Défaut 1 (effet plein). 0 neutralise complètement la pondération
+   *  profil (la distance de marquage redevient uniforme). */
+  profileWeightingIntensity?: number;
   /** A.4 — Affiche les badges visuels SVG sur le terrain pour les patterns
    *  détectés (reject screen, snake dribble, empty side PnR, defensive 3 sec).
    *  Lit les diagnostics coach déjà calculés. Default true. Désactiver pour

@@ -5,6 +5,7 @@ import {
   isPassShadowed,
   passShadowsByDefender,
   profileWeightMultipliers,
+  scaledProfileMultipliers,
   triangleAngleDeg,
 } from '@/lib/logic/defenseTriangle';
 import type { AttackerPositions, DefenderId, OffensiveProfile, Point } from '@/lib/types';
@@ -86,6 +87,35 @@ describe('profileWeightMultipliers', () => {
     const b = profileWeightMultipliers('stretch-big');
     expect(Math.sign(a.manWeight - 1)).toBe(Math.sign(b.manWeight - 1));
     expect(Math.sign(a.basketWeight - 1)).toBe(Math.sign(b.basketWeight - 1));
+  });
+});
+
+describe('scaledProfileMultipliers', () => {
+  it('intensity = 1 → effet plein (= profileWeightMultipliers)', () => {
+    expect(scaledProfileMultipliers('shooter', 1)).toEqual(profileWeightMultipliers('shooter'));
+    expect(scaledProfileMultipliers('slasher', 1)).toEqual(profileWeightMultipliers('slasher'));
+  });
+
+  it('intensity = 0 → neutre (1, 1) quel que soit le profil', () => {
+    expect(scaledProfileMultipliers('shooter', 0)).toEqual({ manWeight: 1, basketWeight: 1 });
+    expect(scaledProfileMultipliers('slasher', 0)).toEqual({ manWeight: 1, basketWeight: 1 });
+  });
+
+  it('intensity = 0.5 → interpolation à mi-chemin', () => {
+    // shooter plein = manWeight 1.4 → à 0.5 : 1 + (1.4-1)*0.5 = 1.2
+    const w = scaledProfileMultipliers('shooter', 0.5);
+    expect(w.manWeight).toBeCloseTo(1.2, 6);
+    expect(w.basketWeight).toBeCloseTo(0.85, 6); // 1 + (0.7-1)*0.5
+  });
+
+  it('intensity clampée à [0, 1]', () => {
+    expect(scaledProfileMultipliers('shooter', 2)).toEqual(profileWeightMultipliers('shooter'));
+    expect(scaledProfileMultipliers('shooter', -1)).toEqual({ manWeight: 1, basketWeight: 1 });
+  });
+
+  it('profil undefined → neutre quelle que soit l\'intensité', () => {
+    expect(scaledProfileMultipliers(undefined, 1)).toEqual({ manWeight: 1, basketWeight: 1 });
+    expect(scaledProfileMultipliers(undefined, 0.5)).toEqual({ manWeight: 1, basketWeight: 1 });
   });
 });
 
