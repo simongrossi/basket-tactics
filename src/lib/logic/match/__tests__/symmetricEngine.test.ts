@@ -59,6 +59,7 @@ describe('Phase 2 — Moteur symétrique away', () => {
         type: 'defensive',
         rebounder: 'D1',
         position: { x: 300, y: 150 },
+        weights: {},
       },
     };
 

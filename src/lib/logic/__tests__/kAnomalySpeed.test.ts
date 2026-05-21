@@ -9,7 +9,7 @@ import {
 import type { DefenderRules } from '@/lib/types';
 
 const EMPTY_RULES: DefenderRules = {
-  D1: {}, D2: {}, D3: {}, D4: {}, D5: {},
+  D1: { helpPct: 0, priority: 'man', vsCarrier: 'coller' }, D2: { helpPct: 0, priority: 'man', vsCarrier: 'coller' }, D3: { helpPct: 0, priority: 'man', vsCarrier: 'coller' }, D4: { helpPct: 0, priority: 'man', vsCarrier: 'coller' }, D5: { helpPct: 0, priority: 'man', vsCarrier: 'coller' },
 };
 
 function snap(stepIdx: number, def: Record<string, [number, number]>): FrameSnapshot {
@@ -43,7 +43,7 @@ describe('K.2 — détection vitesse aberrante', () => {
   });
 
   it('respecte rule.maxSpeed individuel (override global)', () => {
-    const rules: DefenderRules = { ...EMPTY_RULES, D1: { maxSpeed: 50 } };
+    const rules: DefenderRules = { ...EMPTY_RULES, D1: { helpPct: 0, priority: 'man', vsCarrier: 'coller', maxSpeed: 50 } };
     const a = snap(0, BASE);
     // D1 (maxSpeed=50, limite ~97.5) saute de 110 → flag
     const b = snap(1, { ...BASE, D1: [210, 200] });
@@ -70,7 +70,7 @@ describe('K.2 — détection vitesse aberrante', () => {
   });
 
   it('ignore les défenseurs avec maxSpeed ≤ 0 (skip silencieux)', () => {
-    const rules: DefenderRules = { ...EMPTY_RULES, D1: { maxSpeed: 0 } };
+    const rules: DefenderRules = { ...EMPTY_RULES, D1: { helpPct: 0, priority: 'man', vsCarrier: 'coller', maxSpeed: 0 } };
     const a = snap(0, BASE);
     const b = snap(1, { ...BASE, D1: [9999, 200] });
     const reports = detectAberrantSpeed(a, b, GLOBAL_MAX, rules);

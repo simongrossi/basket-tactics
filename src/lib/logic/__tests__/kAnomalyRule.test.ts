@@ -89,7 +89,6 @@ describe('K.6 — playerAnomalyRule (intégration coach)', () => {
       ...base,
       anomalyDetectionEnabled: true,
       defenseSystem: 'zone',
-      zoneType: 'zone-2-3',
       steps: [
         { ...base.steps[0], defenseOverrides: { D1: { x: 100, y: 100 } } },
         base.steps[1],

@@ -19,7 +19,7 @@ import {
   detectFlicker,
   type FrameSnapshot,
 } from '../anomaly/anomalyDetector';
-import type { AttackerPositions, ScriptedAction } from '../../types';
+import type { AttackerPositions, ScriptedAction, ScriptedActionType } from '../../types';
 
 const initialOff: AttackerPositions = {
   O1: { x: 300, y: 470 },
@@ -108,7 +108,7 @@ const DEFAULT_PARAMS: Record<string, Record<string, unknown>> = {
 function runFlickerScanForType(type: string): { criticals: string[]; stepCount: number } {
   const params = DEFAULT_PARAMS[type] ?? {};
   const actions: ScriptedAction[] = [
-    { kind: 'offensive', id: `test-${type}`, type, params },
+    { kind: 'offensive', id: `test-${type}`, type: type as ScriptedActionType, params },
   ];
   const compiled = compileScenario({
     initialOff,

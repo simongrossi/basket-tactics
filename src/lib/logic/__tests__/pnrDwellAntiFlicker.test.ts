@@ -10,12 +10,12 @@ import { describe, it, expect } from 'vitest';
 import { SCRIPTED_GENERATORS } from '../scriptedGenerators';
 import { compileScenario } from '../compileScenario';
 import { detectFlicker, flattenDefPos, type FrameSnapshot } from '../anomaly/anomalyDetector';
-import type { Step } from '../../types';
+import type { OffensiveScriptedAction, Step } from '../../types';
 
 describe('PnR dwell anti-flicker (régression user JSON systeme_basket-11)', () => {
   it("Pose écran + Tenue écran : O5 ne bouge pas pendant le step de tenue", () => {
-    const action = {
-      kind: 'offensive' as const,
+    const action: OffensiveScriptedAction = {
+      kind: 'offensive',
       id: 'pnr',
       type: 'pick-and-roll',
       params: { screener: 'O5', ballHandler: 'O1', side: 'fort' },

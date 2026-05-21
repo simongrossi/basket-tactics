@@ -21,7 +21,7 @@ function snap(stepIdx: number, off: Record<string, [number, number]>, def: Recor
 
 const BASE_OFF = { O1: [100, 100], O2: [200, 100], O3: [300, 100], O4: [400, 100], O5: [500, 100] } as Record<string, [number, number]>;
 const BASE_DEF = { D1: [100, 200], D2: [200, 200], D3: [300, 200], D4: [400, 200], D5: [500, 200] } as Record<string, [number, number]>;
-const EMPTY_RULES: DefenderRules = { D1: {}, D2: {}, D3: {}, D4: {}, D5: {} };
+const EMPTY_RULES: DefenderRules = { D1: { helpPct: 0, priority: 'man', vsCarrier: 'coller' }, D2: { helpPct: 0, priority: 'man', vsCarrier: 'coller' }, D3: { helpPct: 0, priority: 'man', vsCarrier: 'coller' }, D4: { helpPct: 0, priority: 'man', vsCarrier: 'coller' }, D5: { helpPct: 0, priority: 'man', vsCarrier: 'coller' } };
 
 describe('K.7 V2 — clampTeleports', () => {
   it('aucun changement si aucune position ne saute', () => {
@@ -94,7 +94,7 @@ describe('K.7 V2 — clampAberrantSpeed', () => {
   });
 
   it('respecte rule.maxSpeed individuel', () => {
-    const rules: DefenderRules = { ...EMPTY_RULES, D1: { maxSpeed: 50 } };
+    const rules: DefenderRules = { ...EMPTY_RULES, D1: { helpPct: 0, priority: 'man', vsCarrier: 'coller', maxSpeed: 50 } };
     const a = snap(0, BASE_OFF, BASE_DEF);
     const b = snap(1, BASE_OFF, { ...BASE_DEF, D1: [400, 200] }); // 300 px
     // limite = 50 × 1.95 = 97.5
