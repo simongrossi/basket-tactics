@@ -910,6 +910,12 @@ export function DefensePanel(props: DefensePanelProps) {
                   title="Cap dur de la déviation totale par joueur et par frame. Plus grand = évitement plus marqué entre frames ; 0 neutralise PAI. Défaut 6."
                 />
               )}
+              <CheckboxLine
+                checked={!!state.defensiveRouting}
+                label="routage défensif anticipé (D.4)"
+                onChange={(v) => props.onPatch({ defensiveRouting: v })}
+                title="Les défenseurs hors contact d'écran contournent les autres joueurs pendant la lecture, au lieu d'aller en ligne droite + correction a posteriori. Opt-in, à comparer A/B."
+              />
               {/* C.2 V2 — Help-and-recover timing (millisecondes) */}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 80 }} title="C.2 V2 — durée d'aide après disparition du trigger (ms). 1200 ms ≈ standard NBA.">
