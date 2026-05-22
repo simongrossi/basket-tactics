@@ -56,6 +56,12 @@ import {
   screenQualityByDef,
   type ScreenObstacle,
 } from '../screenContext';
+import {
+  computeDefensiveRoute,
+  sampleRoute,
+  type RouteObstacle,
+  type DefensiveRoute,
+} from '../defensiveRoute';
 
 export { screenPenaltyFromQuality } from '../screenPhysics';
 
@@ -382,7 +388,52 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
     // d'écran, on calcule la longueur de la trajectoire courbe Bezier (celle
     // que CourtView trace pendant le scrub). Le défenseur "paie" le détour.
     const candidates = screenerObstacles.filter((o) => dId !== o.defenderToSkip);
-    const pathLen = pathAroundScreensLength(from, to, candidates);
+    let pathLen = pathAroundScreensLength(from, to, candidates);
+
+    // D.4 V2 — Routage des cibles de step. Pour un défenseur éligible (défense
+    // individuelle, hors contact d'écran, hors rotation PnR, hors closeout,
+    // hors override — l'override est déjà traité en amont par un return), on
+    // calcule un trajet qui contourne les obstacles NON-écran. La longueur de
+    // route allonge `pathLen` (le défenseur paie le détour → devient `late`
+    // plus tôt). S'il finit `late`, sa position de step suit la route (cf.
+    // plus bas). Complémentaire du Lever A : Lever A route les écrans, V2 les
+    // obstacles non-écran. Le filet dur `resolvePlayerCollisions` reste en aval.
+    let routeForLate: DefensiveRoute | null = null;
+    if (
+      state.defensiveRouting &&
+      state.defenseSystem === 'man' &&
+      stepIdx > 0 &&
+      !targets[dId].onScreen &&
+      targets[dId].screenPhase !== 'impact' &&
+      !targets[dId].pnrRole &&
+      !(isCloseoutTransition && targets[dId].isCarrierDefender)
+    ) {
+      const routeObstacles: RouteObstacle[] = [];
+      defenderIds.forEach((other) => {
+        if (other !== dId) {
+          routeObstacles.push({
+            center: prevPositions[other],
+            radius: MIN_PLAYER_CLEARANCE_PX,
+          });
+        }
+      });
+      nonMatchedAttackerPositions.forEach((pos) => {
+        // Exclure les attaquants situés DANS un cluster d'écran (poseurs) :
+        // les écrans sont gérés par le Lever A, V2 ne les route pas.
+        const inScreenCluster = screenerObstacles.some(
+          (o) => Math.hypot(o.center.x - pos.x, o.center.y - pos.y) < o.radius,
+        );
+        if (!inScreenCluster) {
+          routeObstacles.push({ center: pos, radius: MIN_PLAYER_CLEARANCE_PX });
+        }
+      });
+      const route = computeDefensiveRoute(from, to, routeObstacles);
+      if (route.waypoints.length > 2) {
+        routeForLate = route;
+        // `pathLen` = le plus long des deux détours (écran vs non-écran).
+        pathLen = Math.max(pathLen, route.length);
+      }
+    }
 
     // Lever B — Friction de proximité : si le trajet frôle un joueur non-
     // matché (attaquant non visé OU autre défenseur), on baisse la vitesse
@@ -487,12 +538,18 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
       };
     } else {
       const r = effectiveMaxSpeed / pathLen;
+      // D.4 V2 — si une route de contournement existe, la position `late`
+      // suit la route échantillonnée à la fraction d'arc `r` ; sinon
+      // scaling rectiligne legacy.
+      const latePos = routeForLate
+        ? sampleRoute(routeForLate, r)
+        : { x: from.x + (to.x - from.x) * r, y: from.y + (to.y - from.y) * r };
       out[dId] = {
         // Pas d'arrondi : la position est consommée par interpolation
         // de frame qui dégrade la précision si on round ici. Conserver
         // les flottants pour une trajectoire continue.
-        x: from.x + (to.x - from.x) * r,
-        y: from.y + (to.y - from.y) * r,
+        x: latePos.x,
+        y: latePos.y,
         late: true,
         helpFactor: targets[dId].helpFactor,
         isCarrierDefender: targets[dId].isCarrierDefender,
