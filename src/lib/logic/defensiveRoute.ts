@@ -5,6 +5,7 @@
 
 import type { Point } from '../types';
 import { distance, pickBlockingCluster, pointToSegmentDistance } from './geometry';
+import { samplePolyline } from './polyline';
 
 /** Obstacle ponctuel : centre + rayon d'exclusion (clearance). */
 export interface RouteObstacle {
@@ -121,4 +122,13 @@ export function computeDefensiveRoute(
     chosen = left.penetration <= right.penetration ? left : right;
   }
   return { waypoints: chosen.waypoints, length: chosen.length };
+}
+
+/**
+ * Échantillonne la route à `t ∈ [0, 1]`. Délègue à `samplePolyline` :
+ * lissage Catmull-Rom + reparamétrage en longueur d'arc (vitesse perçue
+ * constante quelle que soit la courbure).
+ */
+export function sampleRoute(route: DefensiveRoute, t: number): Point {
+  return samplePolyline(route.waypoints, t);
 }

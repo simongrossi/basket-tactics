@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeDefensiveRoute } from '../defensiveRoute';
+import { computeDefensiveRoute, sampleRoute } from '../defensiveRoute';
 
 describe('defensiveRoute — computeDefensiveRoute', () => {
   it('retourne le trajet droit sans obstacle', () => {
@@ -71,5 +71,21 @@ describe('defensiveRoute — computeDefensiveRoute', () => {
     const r = computeDefensiveRoute({ x: 0, y: 0 }, { x: 100, y: 0 }, obs);
     expect(r.waypoints).toHaveLength(3);
     expect(Number.isFinite(r.length)).toBe(true);
+  });
+});
+
+describe('defensiveRoute — sampleRoute', () => {
+  it('renvoie from à t=0 et to à t=1', () => {
+    const r = computeDefensiveRoute({ x: 0, y: 0 }, { x: 100, y: 0 }, []);
+    expect(sampleRoute(r, 0)).toEqual({ x: 0, y: 0 });
+    expect(sampleRoute(r, 1)).toEqual({ x: 100, y: 0 });
+  });
+
+  it('suit le détour à mi-parcours', () => {
+    const obs = { center: { x: 50, y: 0 }, radius: 34 };
+    const r = computeDefensiveRoute({ x: 0, y: 0 }, { x: 100, y: 0 }, [obs]);
+    const mid = sampleRoute(r, 0.5);
+    // à mi-parcours la position est écartée de l'axe direct y=0
+    expect(Math.abs(mid.y)).toBeGreaterThan(10);
   });
 });
