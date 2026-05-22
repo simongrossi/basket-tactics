@@ -38,6 +38,8 @@ import {
 } from '../geometry';
 import { pushOutOfScreenContact } from '../screenCollision';
 import { solveEntityCollisions } from '../constraintSolver';
+import { computeDefensiveRoute, sampleRoute, type RouteObstacle } from '../defensiveRoute';
+import { MIN_PLAYER_CLEARANCE_PX } from '../../data/physics';
 import { applyEasing } from './easing';
 import { applyPathAwareInterpolation } from './pathAwareInterpolation';
 import { getStepDurationSeconds } from '../timecode';
@@ -673,6 +675,44 @@ export function resolveFrameAt(
     }
 
     let p = lerpPoint(defA[id], defB[id], effT);
+
+    // D.4 — Routage défensif anticipé. Pour les défenseurs hors contact
+    // d'écran, hors rotation PnR et hors override manuel, on remplace le
+    // lerp droit par une route qui contourne les autres joueurs. Les
+    // endpoints (defA/defB) sont inchangés — seule la trajectoire entre
+    // eux courbe. Obstacles échantillonnés au milieu de segment (t=0.5),
+    // ce qui rend la route déterministe et calculable une fois par
+    // segment. PAI et resolvePlayerCollisions restent les filets en aval.
+    if (
+      state.defensiveRouting &&
+      !screenLockedDefenders.has(id) &&
+      !defB[id].pnrRole &&
+      !state.steps[idxB]?.defenseOverrides?.[id]
+    ) {
+      const routeObstacles: RouteObstacle[] = [];
+      defenderIds.forEach((other) => {
+        if (other === id) return;
+        routeObstacles.push({
+          center: lerpPoint(defA[other], defB[other], 0.5),
+          radius: MIN_PLAYER_CLEARANCE_PX,
+        });
+      });
+      const matchedAtt = defB[id].matchedTo;
+      (Object.keys(offA) as AttackerId[]).forEach((oId) => {
+        if (oId === matchedAtt || attackerIsScreening[oId]) return;
+        const oa = offA[oId];
+        const ob = offB[oId];
+        if (!oa || !ob) return;
+        routeObstacles.push({
+          center: lerpPoint(oa, ob, 0.5),
+          radius: MIN_PLAYER_CLEARANCE_PX,
+        });
+      });
+      const route = computeDefensiveRoute(defA[id], defB[id], routeObstacles);
+      if (route.waypoints.length > 2) {
+        p = sampleRoute(route, effT);
+      }
+    }
 
     // Le défenseur du porteur qui prend l'écran subit un easing FORT au
     // sommet du contournement quand sa ligne croise un cluster, modulé par
