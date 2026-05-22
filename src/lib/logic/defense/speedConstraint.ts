@@ -88,6 +88,7 @@ interface EffectiveDefenseCacheDeps {
   denyAggressiveness: AppState['denyAggressiveness'];
   attackingDirection: AppState['attackingDirection'];
   defenseScriptedDirectivesEnabled: AppState['defenseScriptedDirectivesEnabled'];
+  defensiveRouting: AppState['defensiveRouting'];
 }
 
 interface EffectiveDefenseCacheEntry {
@@ -121,6 +122,7 @@ function effectiveDefenseDeps(state: AppState, stepIdx: number): EffectiveDefens
     denyAggressiveness: state.denyAggressiveness,
     attackingDirection: state.attackingDirection,
     defenseScriptedDirectivesEnabled: state.defenseScriptedDirectivesEnabled,
+    defensiveRouting: state.defensiveRouting,
   };
 }
 
@@ -539,8 +541,13 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
     } else {
       const r = effectiveMaxSpeed / pathLen;
       // D.4 V2 — si une route de contournement existe, la position `late`
-      // suit la route échantillonnée à la fraction d'arc `r` ; sinon
-      // scaling rectiligne legacy.
+      // suit la route échantillonnée à `r`. NB : `r` est dérivé de `pathLen`
+      // = max(arc d'écran, longueur de route). Quand l'arc d'écran domine,
+      // `r` est plus petit que la fraction d'arc réelle de la route → le
+      // défenseur est échantillonné EN-DEÇÀ de sa portée réelle sur la
+      // route. C'est une approximation CONSERVATRICE assumée (le défenseur
+      // ralenti par un écran tiers traîne), cohérente avec le scaling
+      // rectiligne legacy qui dérive lui aussi son ratio de `pathLen`.
       const latePos = routeForLate
         ? sampleRoute(routeForLate, r)
         : { x: from.x + (to.x - from.x) * r, y: from.y + (to.y - from.y) * r };
