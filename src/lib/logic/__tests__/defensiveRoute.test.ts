@@ -72,6 +72,57 @@ describe('defensiveRoute — computeDefensiveRoute', () => {
     expect(r.waypoints).toHaveLength(3);
     expect(Number.isFinite(r.length)).toBe(true);
   });
+
+  it('dégradation gracieuse asymétrique → choisit le côté le moins pénétré', () => {
+    // Scénario asymétrique qui force le fallback `else` (aucune route à 1
+    // waypoint n'est dégagée). Un obstacle sur le segment forme le cluster
+    // (r=34). Deux obstacles flanquent chaque côté du détour, hors du segment
+    // direct (donc PAS dans le cluster) et assez près pour qu'AUCUN offset de
+    // waypoint (du minimum 38 px au plafond r*3+4 = 106 px) ne les dégage :
+    //   - côté +y : obstacle géant (centre y=200, r=180) → pénétration ~18.
+    //   - côté -y : obstacle plus modeste (centre y=-120, r=90) → pénétration ~8.
+    // Les deux côtés pénètrent, mais différemment → le fallback DOIT renvoyer
+    // le côté -y (moindre pénétration).
+    const from = { x: 0, y: 0 };
+    const to = { x: 200, y: 0 };
+    const obs = [
+      { center: { x: 100, y: 0 }, radius: 34 },    // cluster sur le segment
+      { center: { x: 100, y: 200 }, radius: 180 }, // flanc +y, très pénétrant
+      { center: { x: 100, y: -120 }, radius: 90 }, // flanc -y, peu pénétrant
+    ];
+    const r = computeDefensiveRoute(from, to, obs);
+    expect(r.waypoints).toHaveLength(3);
+
+    // Le waypoint de détour doit être du côté -y (le moins encombré).
+    const mid = r.waypoints[1];
+    expect(mid.y).toBeLessThan(0);
+
+    // Vérification indépendante du choix : recalcul de la pénétration max de
+    // la route renvoyée vs une route miroir côté +y. La route renvoyée doit
+    // être strictement moins pénétrante.
+    const ptToSeg = (p: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) => {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const lenSq = dx * dx + dy * dy;
+      const t = lenSq < 1e-9 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq));
+      return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+    };
+    const routePenetration = (wps: { x: number; y: number }[]) => {
+      let worst = 0;
+      for (let i = 0; i < wps.length - 1; i++) {
+        for (const o of obs) {
+          const pen = o.radius - ptToSeg(o.center, wps[i], wps[i + 1]);
+          if (pen > worst) worst = pen;
+        }
+      }
+      return worst;
+    };
+    const chosenPen = routePenetration(r.waypoints);
+    const mirrored = [r.waypoints[0], { x: mid.x, y: -mid.y }, r.waypoints[2]];
+    const mirroredPen = routePenetration(mirrored);
+    // L'assertion échoue si le module a choisi le mauvais côté (+y).
+    expect(chosenPen).toBeLessThan(mirroredPen);
+  });
 });
 
 describe('defensiveRoute — sampleRoute', () => {

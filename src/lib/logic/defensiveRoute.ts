@@ -36,6 +36,9 @@ function routeLength(waypoints: Point[]): number {
 /** Pas d'escalade de l'offset du waypoint quand la route raze l'obstacle. */
 export const DEFENSIVE_ROUTE_OFFSET_STEP_PX = 8;
 
+/** En-deçà de cette pénétration (px), une route est considérée dégagée. */
+export const ROUTE_CLEAR_EPSILON_PX = 0.01;
+
 /** Pénétration max d'une route candidate dans les obstacles (0 = dégagée). */
 function maxPenetration(waypoints: Point[], obstacles: RouteObstacle[]): number {
   let worst = 0;
@@ -82,7 +85,7 @@ function buildSideRoute(
       bestPen = pen;
       best = route;
     }
-    if (pen <= 0.01) break;
+    if (pen <= ROUTE_CLEAR_EPSILON_PX) break;
   }
   const waypoints = best as Point[];
   return { waypoints, length: routeLength(waypoints), penetration: bestPen };
@@ -113,7 +116,7 @@ export function computeDefensiveRoute(
 
   // Préférer une route dégagée ; parmi les dégagées, la plus courte.
   // Tie-break déterministe : gauche calculée en premier, `<` strict.
-  const clean = [left, right].filter((r) => r.penetration <= 0.01);
+  const clean = [left, right].filter((r) => r.penetration <= ROUTE_CLEAR_EPSILON_PX);
   let chosen: { waypoints: Point[]; length: number };
   if (clean.length > 0) {
     chosen = clean.reduce((a, b) => (b.length < a.length ? b : a));
