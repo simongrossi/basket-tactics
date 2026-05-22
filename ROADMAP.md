@@ -354,7 +354,12 @@ groupée des `DefenderRule` (helpPct, priority…), pas couverte en V1.
 #### 🟢 Mode présentation (v1)
 Implémenté : bouton **"🎬 plein écran"** dans le header. Toggle local `presentMode`. Quand activé : panneaux Attack et Defense masqués (rendu conditionnel `{!presentMode && <Panel>}`), `layout-grid` passe en 1-colonne (`grid-template-columns: 1fr`), le terrain occupe toute la largeur. Sortie via le même bouton (devient "✕ quitter") ou touche `Échap`.
 
-⚪ **À venir v2** : plein écran navigateur natif via `document.documentElement.requestFullscreen()` pour cacher la barre d'onglets aussi (utile sur tablette pour vraiment tout libérer).
+🟢 **v2 livré (2026-05-22)** : le toggle "plein écran" du menu déclenche
+aussi `document.documentElement.requestFullscreen()` pour cacher la barre
+d'onglets (utile sur tablette). Helpers `requestNativeFullscreen` /
+`exitNativeFullscreen` mutualisés avec le mode match plein écran. Sync
+`fullscreenchange` : quitter le plein écran natif (Échap navigateur, F11)
+sort aussi du mode présentation.
 
 ---
 
@@ -407,7 +412,7 @@ travail" est rempli.
 
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
-| 5 | Mode présentation v2 (fullscreen navigateur natif) | <30min | 🟢 | Moyen |
+| ~~5~~ | ~~Mode présentation v2 (fullscreen navigateur natif)~~ — 🟢 livré 2026-05-22 | — | — | — |
 | 6 | Export GIF/vidéo | 3-4h | 🟡 | **Très haut** (partage) |
 | 8 | Annotations texte libres | 2h | 🟡 | Haut |
 
@@ -672,7 +677,7 @@ hautement valorisantes.
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
 | ~~A.1~~ | ~~Visu nouvelles features défensives dans `DefensePanel`~~ — 🟢 livré 2026-05-12 | — | — | — |
-| A.2 | Mode présentation v2 — fullscreen navigateur natif (`document.documentElement.requestFullscreen()`) | <30min | 🟢 | Moyen |
+| ~~A.2~~ | ~~Mode présentation v2 — fullscreen navigateur natif (`document.documentElement.requestFullscreen()`)~~ — 🟢 livré 2026-05-22 | — | — | — |
 | A.3 | Annotations texte libres (outil `T`, dépôt + édition d'une note sur le terrain) | 2h | 🟡 | Haut |
 | ~~A.4~~ | ~~V3 visu sur détections : badges/overlays~~ — 🟢 livré 2026-05-12 | — | — | — |
 

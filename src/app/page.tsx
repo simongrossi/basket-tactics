@@ -56,6 +56,30 @@ export default function Page() {
   const [matchSpeed, setMatchSpeed] = useState(1);
   const matchLoop = useMatchLoop({ baseState: app.state, speed: matchSpeed });
 
+  // A.2 — helpers plein écran navigateur natif. Best-effort : peut échouer
+  // si appelé hors d'un geste utilisateur ou si bloqué par le navigateur.
+  const requestNativeFullscreen = useCallback(() => {
+    if (typeof document !== 'undefined' && !document.fullscreenElement) {
+      void document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+  }, []);
+  const exitNativeFullscreen = useCallback(() => {
+    if (typeof document !== 'undefined' && document.fullscreenElement) {
+      void document.exitFullscreen?.().catch(() => {});
+    }
+  }, []);
+
+  // A.2 — Mode présentation v2 : le toggle "plein écran" demande aussi le
+  // plein écran navigateur natif, pour cacher la barre d'onglets (utile sur
+  // tablette pour vraiment tout libérer).
+  const handleTogglePresentMode = useCallback(() => {
+    setPresentMode((p) => {
+      if (p) exitNativeFullscreen();
+      else requestNativeFullscreen();
+      return !p;
+    });
+  }, [requestNativeFullscreen, exitNativeFullscreen]);
+
   // E.1 V1 + A.2 — mode "match plein écran" : active fullCourt +
   // presentMode + browser fullscreen en une seule action.
   const handleEnterFullscreenMatch = useCallback(() => {
@@ -63,18 +87,12 @@ export default function Page() {
       app.patch({ fullCourt: true });
     }
     setPresentMode(true);
-    // Best-effort native fullscreen (peut échouer si l'utilisateur n'a
-    // pas interagi avec un geste utilisateur ou si bloqué par le navigateur).
-    if (typeof document !== 'undefined' && !document.fullscreenElement) {
-      void document.documentElement.requestFullscreen?.().catch(() => {});
-    }
-  }, [app]);
+    requestNativeFullscreen();
+  }, [app, requestNativeFullscreen]);
   const handleExitFullscreenMatch = useCallback(() => {
     setPresentMode(false);
-    if (typeof document !== 'undefined' && document.fullscreenElement) {
-      void document.exitFullscreen?.().catch(() => {});
-    }
-  }, []);
+    exitNativeFullscreen();
+  }, [exitNativeFullscreen]);
 
   // Phase 1.3 — Mode démo : 10 possessions, full court, ×2 speed, en 1 clic.
   // Réutilise handleEnterFullscreenMatch pour fullCourt + presentMode.
@@ -157,15 +175,31 @@ export default function Page() {
     }
   }, [isPlaying, playbackT, scrubT]);
 
-  // Échap quitte le mode présentation
+  // Échap quitte le mode présentation (cas où le plein écran natif n'a pas
+  // été accordé : le fullscreenchange ci-dessous ne se déclenche alors pas).
   useEffect(() => {
     if (!presentMode) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setPresentMode(false);
+      if (e.key === 'Escape') {
+        setPresentMode(false);
+        exitNativeFullscreen();
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [presentMode]);
+  }, [presentMode, exitNativeFullscreen]);
+
+  // A.2 — si l'utilisateur quitte le plein écran natif (Échap navigateur,
+  // F11, geste système), on sort aussi du mode présentation pour rester
+  // cohérent avec l'état affiché.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const handler = () => {
+      if (!document.fullscreenElement) setPresentMode(false);
+    };
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
 
   useKeyboardShortcuts({
     onPlayPause: handlePlayToggle,
@@ -255,7 +289,7 @@ export default function Page() {
             overflowMenu={
               <SidebarOverflowMenu
                 presentMode={presentMode}
-                onTogglePresentMode={() => setPresentMode((p) => !p)}
+                onTogglePresentMode={handleTogglePresentMode}
                 onOpenPlayerTimeline={() => setShowPlayerTimeline(true)}
                 onExport={handleExport}
                 onImport={handleImport}
