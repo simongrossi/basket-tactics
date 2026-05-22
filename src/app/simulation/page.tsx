@@ -157,6 +157,9 @@ export default function SimulationPage() {
             onMoveAttacker={noopWithArgs}
             onMoveDefender={noopWithArgs}
             onAddAnnotation={noopWithArgs}
+            onAddTextNote={noopWithArgs}
+            onUpdateTextNote={noopWithArgs}
+            onRemoveTextNote={noopWithArgs}
             onUpdateRule={noopWithArgs}
             onApplyDefenderProfile={noopWithArgs}
             onClearDefenseOverride={noopWithArgs}

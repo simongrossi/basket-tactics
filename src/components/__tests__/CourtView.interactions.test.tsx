@@ -67,6 +67,9 @@ function renderCourt(overrides: Partial<ComponentProps<typeof CourtView>> = {}) 
     onSetAnnotationTo: vi.fn(),
     onSetAnnotationWaypoint: vi.fn(),
     onSetTool: vi.fn(),
+    onAddTextNote: vi.fn(),
+    onUpdateTextNote: vi.fn(),
+    onRemoveTextNote: vi.fn(),
     isPlaying: false,
     playbackSpeed: 1,
     ...overrides,
@@ -110,6 +113,38 @@ describe('CourtView interactions', () => {
     expect(onMoveAttackerDuringDrag).toHaveBeenCalledTimes(1);
     expect(onMoveAttackerDuringDrag).toHaveBeenCalledWith('O1' as AttackerId, 340, 440);
     expect(onCommitPlayerDrag).toHaveBeenCalledTimes(1);
+  });
+
+  // A.3 — Smoke: outil 'text' ouvre un popup et Enter appelle onAddTextNote.
+  // Sanity check minimal du câblage CourtView → useAppState (substitut au
+  // smoke test manuel qui n'est pas exécutable en environnement non-interactif).
+  it("outil 'text' ouvre un popup et soumet via onAddTextNote", () => {
+    const onAddTextNote = vi.fn();
+    const state: AppState = { ...makeInitialState(), tool: 'text' as Tool };
+    const { container } = renderCourt({ state, onAddTextNote });
+    const svg = container.querySelector('svg');
+    expect(svg).not.toBeNull();
+
+    // Clic sur une zone vide du terrain.
+    fireEvent.pointerDown(svg!, {
+      button: 0,
+      pointerId: 7,
+      clientX: 200,
+      clientY: 300,
+    });
+
+    // Popup HTML attendu (input visible).
+    const input = document.querySelector('input[placeholder="note…"]') as HTMLInputElement | null;
+    expect(input).not.toBeNull();
+
+    fireEvent.change(input!, { target: { value: 'trap si le 5 monte' } });
+    fireEvent.keyDown(input!, { key: 'Enter' });
+
+    expect(onAddTextNote).toHaveBeenCalledTimes(1);
+    expect(onAddTextNote).toHaveBeenCalledWith(
+      0,
+      expect.objectContaining({ text: 'trap si le 5 monte' }),
+    );
   });
 
   it('pointercancel route aussi les défenseurs vers le handler draft défense', () => {

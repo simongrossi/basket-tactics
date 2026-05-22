@@ -26,6 +26,7 @@ import type {
   Tool,
   Point,
   ComputedDefense,
+  TextNote,
 } from '@/lib/types';
 import { CourtBackground, ArrowMarkers } from './Court';
 import { Ball } from './Player';
@@ -70,6 +71,8 @@ import { CourtPlayersLayer } from './court/CourtPlayersLayer';
 import { CourtMenus, type CtxMenuState, type ZoneRegionMenuState } from './court/CourtMenus';
 import { SnapGuideOverlay } from './court/SnapGuideOverlay';
 import { DetectionBadgesOverlay } from './court/DetectionBadgesOverlay';
+import { TextNotesLayer } from './court/TextNotesLayer';
+import { TextNotePopup } from './court/TextNotePopup';
 import type { CoachDiagnostic } from '@/lib/logic/coachDiagnostics';
 
 interface CourtViewProps {
@@ -102,6 +105,10 @@ interface CourtViewProps {
   onSetAnnotationWaypoint: (stepIdx: number, annoIdx: number, wpIdx: number, point: { x: number; y: number }) => void;
   onSetTool: (t: Tool) => void;
   onSetActionTimingAnchor?: (mode: ActionTimingAnchor) => void;
+  /** A.3 — Notes texte libres : création, édition, suppression. */
+  onAddTextNote: (stepIdx: number, note: TextNote) => void;
+  onUpdateTextNote: (stepIdx: number, noteIdx: number, text: string) => void;
+  onRemoveTextNote: (stepIdx: number, noteIdx: number) => void;
   isPlaying: boolean;
   playbackSpeed: number;
   onPlaybackEnd?: () => void;
@@ -142,6 +149,21 @@ export function CourtView(props: CourtViewProps) {
     setSelectedDefenders(new Set(ids));
   }, []);
   const clearDefenderSelection = useCallback(() => setSelectedDefenders(new Set()), []);
+
+  // A.3 — État du popup d'édition de note. null = fermé.
+  const [textPopup, setTextPopup] = useState<{
+    mode: 'create' | 'edit';
+    courtPos: Point;
+    screenPos: { x: number; y: number };
+    noteIdx: number | null;
+    initialText: string;
+  } | null>(null);
+
+  // Fermer le popup quand l'utilisateur change d'outil.
+  useEffect(() => {
+    if (state.tool !== 'text') setTextPopup(null);
+  }, [state.tool]);
+
   // Esc clear la sélection.
   useEffect(() => {
     if (selectedDefenders.size === 0) return;
@@ -168,6 +190,10 @@ export function CourtView(props: CourtViewProps) {
   const closeCtxMenu = useCallback(() => setCtxMenu(null), []);
   const closeZoneRegionMenu = useCallback(() => setZoneRegionMenu(null), []);
 
+  // A.3 — Notes texte de l'étape active (couche additive, hors moteurs).
+  const currentTextNotes: TextNote[] =
+    state.steps[state.activeStep]?.textNotes ?? [];
+
   // Pointer/drag + tracé d'annotation + marquee.
   const { pending, snapTarget, marquee, pendingAutoSourceId, svgPoint, onPointerDown, onPointerMove, onPointerUp } =
     useCourtPointerHandlers({
@@ -189,6 +215,27 @@ export function CourtView(props: CourtViewProps) {
       onToggleDefenderSelection: toggleDefenderSelection,
       onSetDefenderSelection: setDefenderSelection,
       onClearDefenderSelection: clearDefenderSelection,
+      textNotes: currentTextNotes,
+      onTextToolClick: ({ courtPos, screenPos, noteIdx }) => {
+        if (noteIdx === null) {
+          setTextPopup({
+            mode: 'create',
+            courtPos,
+            screenPos,
+            noteIdx: null,
+            initialText: '',
+          });
+        } else {
+          const note = currentTextNotes[noteIdx];
+          setTextPopup({
+            mode: 'edit',
+            courtPos: note.pos,
+            screenPos,
+            noteIdx,
+            initialText: note.text,
+          });
+        }
+      },
     });
 
   // Clic-droit : suppression directe sur une annotation, sinon ouverture
@@ -784,6 +831,11 @@ export function CourtView(props: CourtViewProps) {
           />
         )}
 
+        {/* A.3 — Couche des notes texte. Rendue tard pour passer au-dessus
+            des joueurs ; pointerEvents="none" → le hit-test est géré par le
+            pointer handler (source de vérité unique). */}
+        <TextNotesLayer notes={currentTextNotes} />
+
         {/* Halo "passe auto en attente cible" — affiché autour du joueur source
             tant que le user n'a pas cliqué sur la cible (Escape pour annuler). */}
         {pendingAutoSourceId && frame.off[pendingAutoSourceId] && (
@@ -801,6 +853,30 @@ export function CourtView(props: CourtViewProps) {
           </circle>
         )}
       </svg>
+
+      {/* A.3 — Popup d'édition de note (HTML position:fixed, hors SVG). */}
+      {textPopup && (
+        <TextNotePopup
+          screen={textPopup.screenPos}
+          initialText={textPopup.initialText}
+          isEditing={textPopup.mode === 'edit'}
+          onSubmit={(text) => {
+            if (textPopup.mode === 'create') {
+              props.onAddTextNote(state.activeStep, { pos: textPopup.courtPos, text });
+            } else if (textPopup.noteIdx !== null) {
+              props.onUpdateTextNote(state.activeStep, textPopup.noteIdx, text);
+            }
+            setTextPopup(null);
+          }}
+          onDelete={() => {
+            if (textPopup.mode === 'edit' && textPopup.noteIdx !== null) {
+              props.onRemoveTextNote(state.activeStep, textPopup.noteIdx);
+            }
+            setTextPopup(null);
+          }}
+          onCancel={() => setTextPopup(null)}
+        />
+      )}
 
       {pendingAutoSourceId && !props.isPlaying && (
         <div

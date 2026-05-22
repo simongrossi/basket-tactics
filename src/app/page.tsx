@@ -502,6 +502,9 @@ export default function Page() {
               onMoveDefenderDuringDrag={app.moveDefenderDuringDrag}
               onCommitPlayerDrag={app.commitPlayerDrag}
               onAddAnnotation={handleAddAnnotation}
+              onAddTextNote={app.addTextNote}
+              onUpdateTextNote={app.updateTextNote}
+              onRemoveTextNote={app.removeTextNote}
               onUpdateRule={app.updateRule}
               onClearDefenseOverride={app.clearDefenseOverride}
               onApplyDefenderProfile={app.applyDefenderProfile}

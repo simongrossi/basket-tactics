@@ -25,6 +25,7 @@ import { simplifyPolyline } from '@/lib/logic/polyline';
 import { snapToGrid, type SnapTarget } from '@/lib/logic/snapToGrid';
 import { HOOP, HOOP_OPPOSITE } from '@/lib/data/court';
 import { generateAutoAnnotation } from '@/lib/logic/autoActions/generateAutoAnnotation';
+import { hitTestTextNote } from '@/components/court/textNoteGeometry';
 
 export interface PendingAnnotation {
   type: Tool;
@@ -65,6 +66,16 @@ interface UseCourtPointerHandlersOptions {
   onSetDefenderSelection?: (ids: DefenderId[]) => void;
   /** Clear total de la sélection (clic dans le vide sans modifier). */
   onClearDefenderSelection?: () => void;
+  /** A.3 — Notes texte de l'étape courante (pour hit-test au clic). */
+  textNotes?: import('@/lib/types').TextNote[];
+  /** A.3 — Appelé quand l'utilisateur clique sur le terrain avec l'outil
+   *  `text` actif. `noteIdx === null` → création ; sinon édition de la
+   *  note d'index donné. */
+  onTextToolClick?: (payload: {
+    courtPos: { x: number; y: number };
+    screenPos: { x: number; y: number };
+    noteIdx: number | null;
+  }) => void;
 }
 
 export interface MarqueeRect {
@@ -120,6 +131,8 @@ export function useCourtPointerHandlers(
     onToggleDefenderSelection,
     onSetDefenderSelection,
     onClearDefenderSelection,
+    textNotes,
+    onTextToolClick,
   } = opts;
 
   const [dragging, setDragging] = useState<{ id: PlayerId; isDef: boolean } | null>(null);
@@ -257,6 +270,19 @@ export function useCourtPointerHandlers(
       const target = (e.target as Element).closest('g[data-id]');
       const pt = svgPoint(e);
 
+      // A.3 — Outil 'note' : tout clic ouvre le popup (création si zone vide,
+      // édition si on tape sur une note existante). Court-circuite les autres
+      // chemins (drag joueur, tracé d'annotation).
+      if (state.tool === 'text' && onTextToolClick) {
+        const noteIdx = textNotes ? hitTestTextNote(pt, textNotes) : null;
+        onTextToolClick({
+          courtPos: pt,
+          screenPos: { x: e.clientX, y: e.clientY },
+          noteIdx,
+        });
+        return;
+      }
+
       if (state.tool === 'move') {
         const id = target?.getAttribute('data-id') as PlayerId | null;
 
@@ -368,7 +394,7 @@ export function useCourtPointerHandlers(
       });
       svgRef.current?.setPointerCapture(e.pointerId);
     },
-    [findPlayerAt, frameOff, isPlaying, onAddAnnotation, onBeginPlayerDrag, onClearContextMenu, onClearDefenderSelection, onToggleDefenderSelection, pendingAutoSourceId, selectedDefenders, state, svgPoint, svgRef]
+    [findPlayerAt, frameOff, isPlaying, onAddAnnotation, onBeginPlayerDrag, onClearContextMenu, onClearDefenderSelection, onTextToolClick, onToggleDefenderSelection, pendingAutoSourceId, selectedDefenders, state, svgPoint, svgRef, textNotes]
   );
 
   const onPointerMove = useCallback(
