@@ -4,7 +4,7 @@
 // déterministe, ne mute jamais ses entrées.
 
 import type { Point } from '../types';
-import { distance, pickBlockingCluster } from './geometry';
+import { distance, pickBlockingCluster, pointToSegmentDistance } from './geometry';
 
 /** Obstacle ponctuel : centre + rayon d'exclusion (clearance). */
 export interface RouteObstacle {
@@ -32,6 +32,61 @@ function routeLength(waypoints: Point[]): number {
   return len;
 }
 
+/** Pas d'escalade de l'offset du waypoint quand la route raze l'obstacle. */
+export const DEFENSIVE_ROUTE_OFFSET_STEP_PX = 8;
+
+/** Pénétration max d'une route candidate dans les obstacles (0 = dégagée). */
+function maxPenetration(waypoints: Point[], obstacles: RouteObstacle[]): number {
+  let worst = 0;
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    for (const o of obstacles) {
+      const d = pointToSegmentDistance(o.center, waypoints[i], waypoints[i + 1]);
+      const pen = o.radius - d;
+      if (pen > worst) worst = pen;
+    }
+  }
+  return worst;
+}
+
+/**
+ * Construit la meilleure route d'un côté donné du cluster (`sign` = +1
+ * gauche, -1 droite). Escalade l'offset du waypoint depuis
+ * `cluster.radius + buffer` : un waypoint trop proche laisse les segments
+ * de la polyligne razer l'obstacle. On éloigne le waypoint par pas jusqu'à
+ * une route dégagée, ou jusqu'au plafond `cluster.radius * 3 + buffer`.
+ */
+function buildSideRoute(
+  from: Point,
+  to: Point,
+  cluster: { center: Point; radius: number },
+  perp: Point,
+  sign: number,
+  obstacles: RouteObstacle[],
+): { waypoints: Point[]; length: number; penetration: number } {
+  const maxOffset = cluster.radius * 3 + DEFENSIVE_ROUTE_BUFFER_PX;
+  let best: Point[] | null = null;
+  let bestPen = Infinity;
+  for (
+    let offset = cluster.radius + DEFENSIVE_ROUTE_BUFFER_PX;
+    offset <= maxOffset;
+    offset += DEFENSIVE_ROUTE_OFFSET_STEP_PX
+  ) {
+    const wp: Point = {
+      x: cluster.center.x + perp.x * sign * offset,
+      y: cluster.center.y + perp.y * sign * offset,
+    };
+    const route: Point[] = [{ ...from }, wp, { ...to }];
+    const pen = maxPenetration(route, obstacles);
+    if (pen < bestPen) {
+      bestPen = pen;
+      best = route;
+    }
+    if (pen <= 0.01) break;
+  }
+  const waypoints = best as Point[];
+  return { waypoints, length: routeLength(waypoints), penetration: bestPen };
+}
+
 export function computeDefensiveRoute(
   from: Point,
   to: Point,
@@ -44,5 +99,14 @@ export function computeDefensiveRoute(
   if (!cluster) {
     return { waypoints: [{ ...from }, { ...to }], length: distance(from, to) };
   }
-  return { waypoints: [{ ...from }, { ...to }], length: distance(from, to) };
+
+  // Perpendiculaire unitaire au segment from→to.
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.hypot(dx, dy);
+  const perp: Point = { x: -dy / len, y: dx / len };
+
+  // Détour côté gauche (sign +1), avec escalade de l'offset.
+  const left = buildSideRoute(from, to, cluster, perp, 1, obstacles);
+  return { waypoints: left.waypoints, length: left.length };
 }

@@ -16,4 +16,18 @@ describe('defensiveRoute — computeDefensiveRoute', () => {
     );
     expect(r.waypoints).toHaveLength(2);
   });
+
+  it('contourne un obstacle posé sur le segment', () => {
+    const from = { x: 0, y: 0 };
+    const to = { x: 100, y: 0 };
+    const obs = { center: { x: 50, y: 0 }, radius: 34 };
+    const r = computeDefensiveRoute(from, to, [obs]);
+    expect(r.waypoints).toHaveLength(3);
+    const mid = r.waypoints[1];
+    // le waypoint de détour est au moins à `radius` du centre de l'obstacle
+    expect(Math.hypot(mid.x - obs.center.x, mid.y - obs.center.y))
+      .toBeGreaterThanOrEqual(34);
+    // la route détournée est plus longue que le trajet droit
+    expect(r.length).toBeGreaterThan(100);
+  });
 });
