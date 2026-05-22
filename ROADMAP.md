@@ -414,7 +414,7 @@ travail" est rempli.
 |---|---|---|---|---|
 | ~~5~~ | ~~Mode présentation v2 (fullscreen navigateur natif)~~ — 🟢 livré 2026-05-22 | — | — | — |
 | 6 | Export GIF/vidéo | 3-4h | 🟡 | **Très haut** (partage) |
-| 8 | Annotations texte libres | 2h | 🟡 | Haut |
+| ~~8~~ | ~~Annotations texte libres~~ — 🟢 livré 2026-05-23 | — | — | — |
 
 ✅ **Livré 2026-05-12** : 1 (saisie num sliders), 2 (snap-to-grid),
 3 (graphique métriques), 4 (sélection multiple V1), 7 (templates user).
@@ -678,7 +678,7 @@ hautement valorisantes.
 |---|---|---|---|---|
 | ~~A.1~~ | ~~Visu nouvelles features défensives dans `DefensePanel`~~ — 🟢 livré 2026-05-12 | — | — | — |
 | ~~A.2~~ | ~~Mode présentation v2 — fullscreen navigateur natif (`document.documentElement.requestFullscreen()`)~~ — 🟢 livré 2026-05-22 | — | — | — |
-| A.3 | Annotations texte libres (outil `T`, dépôt + édition d'une note sur le terrain) | 2h | 🟡 | Haut |
+| ~~A.3~~ | ~~**Annotations texte libres**~~ : nouvelle entité `TextNote` (séparée d'`Annotation`), outil `note` + raccourci `T`, popup HTML d'édition au clic, suppression au `×`. Stocké dans `step.textNotes`, undo/persistance gratuits. | — | — | 🟢 livré 2026-05-23 |
 | ~~A.4~~ | ~~V3 visu sur détections : badges/overlays~~ — 🟢 livré 2026-05-12 | — | — | — |
 
 ---
