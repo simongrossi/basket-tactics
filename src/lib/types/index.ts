@@ -853,6 +853,11 @@ export interface AppState {
    *  à 4 px/frame est appliquée AVANT le solveur final. Skip les poseurs
    *  pinnés et les défenseurs stuck d'écran (Règle 1bis). Default false. */
   pathAwareInterpolation?: boolean;
+  /** D.4 — Routage défensif anticipé. Quand true, la trajectoire playback
+   *  d'un défenseur (hors contact d'écran / PnR / override) contourne les
+   *  autres joueurs au lieu d'aller en ligne droite. Opt-in : default
+   *  false = comportement legacy strictement inchangé. */
+  defensiveRouting?: boolean;
   /** PAI tuning — cap dur de la déviation totale par joueur et par frame
    *  (toutes passes confondues). Défaut conceptuel
    *  `PAI_MAX_DEVIATION_PER_FRAME_PX = 6`. Range UI 0–16 px. 0 neutralise
