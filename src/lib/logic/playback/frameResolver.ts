@@ -39,7 +39,6 @@ import {
 import { pushOutOfScreenContact } from '../screenCollision';
 import { solveEntityCollisions } from '../constraintSolver';
 import { computeDefensiveRoute, sampleRoute, type RouteObstacle } from '../defensiveRoute';
-import { MIN_PLAYER_CLEARANCE_PX } from '../../data/physics';
 import { applyEasing } from './easing';
 import { applyPathAwareInterpolation } from './pathAwareInterpolation';
 import { getStepDurationSeconds } from '../timecode';
@@ -676,44 +675,6 @@ export function resolveFrameAt(
 
     let p = lerpPoint(defA[id], defB[id], effT);
 
-    // D.4 — Routage défensif anticipé. Pour les défenseurs hors contact
-    // d'écran, hors rotation PnR et hors override manuel, on remplace le
-    // lerp droit par une route qui contourne les autres joueurs. Les
-    // endpoints (defA/defB) sont inchangés — seule la trajectoire entre
-    // eux courbe. Obstacles échantillonnés au milieu de segment (t=0.5),
-    // ce qui rend la route déterministe et calculable une fois par
-    // segment. PAI et resolvePlayerCollisions restent les filets en aval.
-    if (
-      state.defensiveRouting &&
-      !screenLockedDefenders.has(id) &&
-      !defB[id].pnrRole &&
-      !state.steps[idxB]?.defenseOverrides?.[id]
-    ) {
-      const routeObstacles: RouteObstacle[] = [];
-      defenderIds.forEach((other) => {
-        if (other === id) return;
-        routeObstacles.push({
-          center: lerpPoint(defA[other], defB[other], 0.5),
-          radius: MIN_PLAYER_CLEARANCE_PX,
-        });
-      });
-      const matchedAtt = defB[id].matchedTo;
-      (Object.keys(offA) as AttackerId[]).forEach((oId) => {
-        if (oId === matchedAtt || attackerIsScreening[oId]) return;
-        const oa = offA[oId];
-        const ob = offB[oId];
-        if (!oa || !ob) return;
-        routeObstacles.push({
-          center: lerpPoint(oa, ob, 0.5),
-          radius: MIN_PLAYER_CLEARANCE_PX,
-        });
-      });
-      const route = computeDefensiveRoute(defA[id], defB[id], routeObstacles);
-      if (route.waypoints.length > 2) {
-        p = sampleRoute(route, effT);
-      }
-    }
-
     // Le défenseur du porteur qui prend l'écran subit un easing FORT au
     // sommet du contournement quand sa ligne croise un cluster, modulé par
     // la qualité de l'écran. Cumulé avec le freeze ci-dessus pour des
@@ -1060,6 +1021,56 @@ export function resolveFrameAt(
     );
   }
   profiler?.lap('collisions');
+
+  // 5.c — D.4 — Routage défensif anticipé (opt-in). Pour les défenseurs hors
+  // contact d'écran, hors rotation PnR et hors override manuel, on remplace
+  // la position interpolée droite par une route qui contourne les autres
+  // joueurs. Les endpoints (defA/defB) sont inchangés — seule la trajectoire
+  // entre eux courbe. Injecté ICI, APRÈS `followDefendersAtFrame` et
+  // `applyDefenderMotionInertia`, et AVANT le rate limiter + la passe finale
+  // de collisions (cf. docs/d4-pathfinding-plan.md « Injection »). Placé plus
+  // haut dans la boucle de lerp, `followDefendersAtFrame` écraserait la
+  // position routée. Obstacles échantillonnés au milieu de segment (t=0.5),
+  // ce qui rend la route déterministe et calculable une fois par segment.
+  if (state.defensiveRouting) {
+    defenderIds.forEach((id) => {
+      if (
+        screenLockedDefenders.has(id) ||
+        defB[id].pnrRole ||
+        state.steps[idxB]?.defenseOverrides?.[id]
+      ) {
+        return;
+      }
+      const routeObstacles: RouteObstacle[] = [];
+      // Les autres défenseurs sont ajoutés comme obstacles. Un défenseur
+      // verrouillé sur un écran est un obstacle physique réel : on le garde
+      // — c'est VOULU, un futur lecteur ne doit pas le « corriger ».
+      defenderIds.forEach((other) => {
+        if (other === id) return;
+        routeObstacles.push({
+          center: lerpPoint(defA[other], defB[other], 0.5),
+          radius: PLAYER_MIN_CLEARANCE_PX,
+        });
+      });
+      const matchedAtt = defB[id].matchedTo;
+      (Object.keys(offA) as AttackerId[]).forEach((oId) => {
+        if (oId === matchedAtt || attackerIsScreening[oId]) return;
+        const oa = offA[oId];
+        const ob = offB[oId];
+        if (!oa || !ob) return;
+        routeObstacles.push({
+          center: lerpPoint(oa, ob, 0.5),
+          radius: PLAYER_MIN_CLEARANCE_PX,
+        });
+      });
+      const route = computeDefensiveRoute(defA[id], defB[id], routeObstacles);
+      if (route.waypoints.length > 2) {
+        const routed = sampleRoute(route, localT);
+        defPos[id].x = routed.x;
+        defPos[id].y = routed.y;
+      }
+    });
+  }
 
   // 5.b — Rate limiter sur défenseurs : si `options.prevFrame` est fourni
   // (= playback en cours), on clamp le saut max par défenseur à

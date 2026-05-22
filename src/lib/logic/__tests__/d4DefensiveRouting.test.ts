@@ -59,4 +59,59 @@ describe('D.4 — routage défensif (intégration playback)', () => {
     const state = routingState();
     expect(() => minClearance(state)).not.toThrow();
   });
+
+  // Garde-fou anti-régression : les 3 tests ci-dessus (clearance, déterminisme,
+  // no-throw) resteraient VERTS même si le bloc de routage était mort (jamais
+  // déclenché) — ils valideraient juste le lerp droit. Ce test prouve que le
+  // routage modifie RÉELLEMENT une trajectoire : on plante un obstacle pile
+  // sur la ligne droite d'un défenseur, et on vérifie que flag on ≠ flag off.
+  it('détourne réellement un défenseur quand un joueur barre sa ligne droite', () => {
+    const base = makeInitialState();
+    const step0 = base.steps[0];
+    // O1 (porteur, marqué par D1) traverse vers l'aile gauche : D1 doit
+    // suivre, son segment defA→defB va donc de bas-droite vers haut-gauche.
+    const step1 = {
+      ...step0,
+      off: {
+        O1: { x: 120, y: 250 },
+        O2: { x: 130, y: 380 },
+        O3: { x: 470, y: 380 },
+        O4: { x: 220, y: 230 },
+        O5: { x: 380, y: 230 },
+      },
+      ballCarrier: 'O1' as const,
+      annotations: [],
+      // D2 est figé (override) pile au milieu de la ligne droite de D1.
+      // Override → D2 n'est pas lui-même routé, mais reste un obstacle.
+      defenseOverrides: { D2: { x: 222, y: 331 } },
+    };
+    const step0WithObstacle = {
+      ...step0,
+      defenseOverrides: { D2: { x: 222, y: 331 } },
+    };
+    const base2: AppState = { ...base, steps: [step0WithObstacle, step1] };
+
+    const off = resolveFrameAt({ ...base2, defensiveRouting: false }, 0.5);
+    const on = resolveFrameAt({ ...base2, defensiveRouting: true }, 0.5);
+    expect(off).not.toBeNull();
+    expect(on).not.toBeNull();
+
+    // Au moins un défenseur dévie de façon significative (> 2 px) à mi-segment.
+    let maxDiff = 0;
+    for (const id of Object.keys(off!.defPos) as (keyof NonNullable<typeof off>['defPos'])[]) {
+      const o = off!.defPos[id];
+      const n = on!.defPos[id];
+      maxDiff = Math.max(maxDiff, Math.hypot(n.x - o.x, n.y - o.y));
+    }
+    expect(maxDiff).toBeGreaterThan(2);
+
+    // Les snapshots aux step exacts restent identiques (le routage ne touche
+    // que la position INTERPOLÉE — cf. docs/d4-pathfinding-plan.md).
+    const endA = resolveFrameAt({ ...base2, defensiveRouting: true }, 0);
+    const endAoff = resolveFrameAt({ ...base2, defensiveRouting: false }, 0);
+    const endB = resolveFrameAt({ ...base2, defensiveRouting: true }, 1);
+    const endBoff = resolveFrameAt({ ...base2, defensiveRouting: false }, 1);
+    expect(endA?.defPos).toEqual(endAoff?.defPos);
+    expect(endB?.defPos).toEqual(endBoff?.defPos);
+  });
 });
