@@ -111,12 +111,24 @@ export interface Annotation {
   quality?: number;
 }
 
+/** A.3 — Note texte libre déposée sur le terrain. Purement visuelle :
+ *  ne traverse aucun moteur (trajectoire, défense, playback). */
+export interface TextNote {
+  /** Ancrage sur le terrain (coordonnées court). */
+  pos: Point;
+  /** Contenu de la note. */
+  text: string;
+}
+
 export interface Step {
   off: AttackerPositions;
   ballCarrier: AttackerId;
   annotations: Annotation[];
   switches?: [DefenderId, DefenderId][];
   label?: string;
+  /** A.3 — Notes texte libres déposées sur le terrain. Optionnel :
+   *  absent = aucune note (rétrocompat). */
+  textNotes?: TextNote[];
   /** Positions imposées par l'utilisateur (drag manuel). Surchargent les
    *  positions calculées par le moteur pour cette étape. */
   defenseOverrides?: Partial<Record<DefenderId, Point>>;
@@ -773,7 +785,7 @@ export type ComputedAttackerVisuals = Record<AttackerId, ComputedAttacker>;
 
 export type ComputedDefense = Record<DefenderId, ComputedDefender>;
 
-export type Tool = 'move' | 'pass' | 'dribble' | 'cut' | 'screen';
+export type Tool = 'move' | 'pass' | 'dribble' | 'cut' | 'screen' | 'text';
 export type ActionTimingAnchor = 'start' | 'end';
 
 export interface AddAnnotationOptions {
