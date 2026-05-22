@@ -1023,20 +1023,25 @@ export function resolveFrameAt(
   profiler?.lap('collisions');
 
   // 5.c — D.4 — Routage défensif anticipé (opt-in). Pour les défenseurs hors
-  // contact d'écran, hors rotation PnR et hors override manuel, on remplace
-  // la position interpolée droite par une route qui contourne les autres
-  // joueurs. Les endpoints (defA/defB) sont inchangés — seule la trajectoire
-  // entre eux courbe. Injecté ICI, APRÈS `followDefendersAtFrame` et
-  // `applyDefenderMotionInertia`, et AVANT le rate limiter + la passe finale
-  // de collisions (cf. docs/d4-pathfinding-plan.md « Injection »). Placé plus
-  // haut dans la boucle de lerp, `followDefendersAtFrame` écraserait la
-  // position routée. Obstacles échantillonnés au milieu de segment (t=0.5),
-  // ce qui rend la route déterministe et calculable une fois par segment.
+  // contact d'écran, hors rotation PnR, hors closeout et hors override
+  // manuel, on remplace la position interpolée droite par une route qui
+  // contourne les autres joueurs. Les endpoints (defA/defB) sont inchangés —
+  // seule la trajectoire entre eux courbe. Injecté ICI, APRÈS
+  // `followDefendersAtFrame` et `applyDefenderMotionInertia`, et AVANT le
+  // rate limiter + la passe finale de collisions (cf.
+  // docs/d4-pathfinding-plan.md « Injection »). Placé plus haut dans la
+  // boucle de lerp, `followDefendersAtFrame` écraserait la position routée.
+  // Le closeout est exclu : c'est un sprint direct sur le porteur, dont le
+  // timing (easing sprint/freinage `effT`) ne doit pas être réécrit par un
+  // ré-échantillonnage de route en `localT`. Obstacles échantillonnés au
+  // milieu de segment (t=0.5) → route déterministe, calculable une fois
+  // par segment.
   if (state.defensiveRouting) {
     defenderIds.forEach((id) => {
       if (
         screenLockedDefenders.has(id) ||
         defB[id].pnrRole ||
+        defB[id].closingOut ||
         state.steps[idxB]?.defenseOverrides?.[id]
       ) {
         return;

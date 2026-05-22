@@ -460,6 +460,15 @@ git commit -m "feat(types): D.4 — champ defensiveRouting (opt-in)"
 
 ### Task 7: Câblage dans `frameResolver`
 
+> **Note post-livraison (2026-05-22).** Le point d'injection ci-dessous
+> (juste après le `lerpPoint` dans la boucle de lerp) s'est révélé **mort**
+> à l'exécution : `followDefendersAtFrame`, qui tourne ensuite, réécrit la
+> position de tout défenseur en marquage. Le bloc a donc été déplacé en
+> **couche 5.c**, après `followDefendersAtFrame` / `applyDefenderMotionInertia`
+> et avant la passe finale de collisions (cf. `docs/d4-pathfinding-plan.md`
+> « Injection »). Le closeout a aussi été ajouté à la liste d'exclusion.
+> Se référer au code livré dans `frameResolver.ts`, pas au snippet ci-dessous.
+
 **Files:**
 - Modify: `src/lib/logic/playback/frameResolver.ts`
 
