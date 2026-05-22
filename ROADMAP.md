@@ -686,7 +686,7 @@ Cette phase pose les fondations pour la suite (closeout réaliste, end-of-clock 
 | # | Chantier | Effort | Risque | Valeur | Statut |
 |---|---|---|---|---|---|
 | ~~B.1~~ | ~~**Durée individuelle par step** : nouveau champ `step.duration?: number` (s, default `state.secondsPerStep`). Timeline + MultiTrack + Playbook recap utilisent `realStepToSeconds` cumulé.~~ | — | — | — | 🟢 livré 2026-05-17 (17 tests, 1262 verts) |
-| B.2 | **Shot clock display** (24 s NBA / 14 s reset) : décrémente au fil des steps (basé sur leur durée cumulée). Couleurs vert/jaune/rouge selon temps restant. | 1-2h | 🟢 | Moyen-haut | ⚪ |
+| ~~B.2~~ | ~~**Shot clock display** (24 s NBA / 14 s reset) : décrémente au fil des steps (durée cumulée). `shotClockAt`/`rawShotClockAt`/`isShotClockViolationAt` honorent les resets `step.shotClockRemaining`. Timeline câblée. Couleurs vert/jaune/rouge.~~ | — | — | — | 🟢 livré 2026-05-22 (8 tests) |
 | ~~B.3~~ | ~~**End-of-clock defense awareness** : helper + règle coach 'warning' + badge SVG `🚫 NO FOUL` quand clockSeconds<5 ET fautes≥5 (équipe en bonus). Exclusif de F.4 sur l'axe defenseTeamFouls.~~ | — | — | — | 🟢 V1 livré 2026-05-18 (7 tests, 1286 verts) |
 | ~~B.4~~ | ~~**Synchronisation cross-actor** : nouveaux champs `Annotation.tStartAbs?` / `tEndAbs?` (secondes absolues depuis début transition) priment sur tStart/tEnd legacy. Helper `resolveAnnotationTiming`. Migration moteur (playbackTrajectory, pdfRecap, playerTracks). UI d'édition reportée en V2 (édition via JSON ou /loop futur).~~ | — | — | — | 🟢 V1 livré 2026-05-18 (10 tests, 1324 verts) |
 

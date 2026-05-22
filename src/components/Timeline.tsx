@@ -5,8 +5,9 @@ import type { AppState } from '@/lib/types';
 import {
   formatClock,
   formatShotClock,
-  getPossessionSeconds,
+  isShotClockViolationAt,
   realStepToSeconds,
+  shotClockAt,
   shotClockBand,
   totalDurationSeconds,
 } from '@/lib/logic/timecode';
@@ -157,10 +158,11 @@ export function Timeline({
   // B.1 — accumule les durations individuelles de chaque step au lieu d'une
   // simple multiplication globale, pour respecter Step.duration quand défini.
   const elapsedSec = realStepToSeconds(state, realT);
-  const possSec = getPossessionSeconds(state);
-  const shotLeft = Math.max(0, possSec - elapsedSec);
+  // B.2 — shot clock honore les resets `step.shotClockRemaining` (14s sur
+  // rebond offensif), pas un simple décompte global de la possession.
+  const shotLeft = shotClockAt(state, realT);
   const totalSec = totalDurationSeconds(state);
-  const violation = elapsedSec > possSec;
+  const violation = isShotClockViolationAt(state, realT);
 
   const hasControls = onPlayToggle && onStop && onSetPlaybackSpeed && playbackSpeed != null;
 
@@ -418,7 +420,7 @@ export function Timeline({
             {formatClock(elapsedSec)} / {formatClock(totalSec)}
           </span>
           <span
-            title="Shot clock (24s par défaut). Vert > 8s · jaune 5-8s · rouge ≤ 4s · VIOL. au-delà."
+            title="Shot clock (24s par défaut, reset 14s sur rebond offensif). Vert > 8s · jaune 5-8s · rouge ≤ 4s · VIOL. au-delà."
             style={(() => {
               if (violation) {
                 return {

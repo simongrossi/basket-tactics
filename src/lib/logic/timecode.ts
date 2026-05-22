@@ -119,13 +119,55 @@ export function shotClockBand(secondsLeft: number): ShotClockBand {
 }
 
 /**
- * Renvoie le shot clock restant à un index d'étape réel donné.
- * Si la possession est plus courte que le total d'étapes réelles,
- * peut renvoyer 0 (violation des 24s).
+ * B.2 — Trouve l'ancre de shot clock active pour un index d'étape réel.
+ * L'ancre est le step réel le plus récent (≤ `wholeRealIdx`) portant un
+ * `shotClockRemaining` explicite : c'est un point de RESET (24s → 14s sur
+ * rebond offensif, cf. `addShotReboundStep`). Sans reset, l'ancre est le
+ * step 0 avec la valeur `possessionSeconds`.
+ */
+function shotClockAnchor(
+  state: AppState,
+  wholeRealIdx: number,
+): { real: number; value: number } {
+  const realIndices: number[] = [];
+  for (let idx = 0; idx < state.steps.length; idx++) {
+    if (!state.steps[idx].isInterpolated) realIndices.push(idx);
+  }
+  let anchor = { real: 0, value: getPossessionSeconds(state) };
+  for (let k = 0; k <= wholeRealIdx && k < realIndices.length; k++) {
+    const scr = state.steps[realIndices[k]]?.shotClockRemaining;
+    if (typeof scr === 'number' && isFinite(scr) && scr >= 0) {
+      anchor = { real: k, value: scr };
+    }
+  }
+  return anchor;
+}
+
+/**
+ * B.2 — Shot clock BRUT à un index d'étape réel : peut devenir négatif
+ * quand la possession est dépassée (violation des 24s). Honore les resets
+ * `step.shotClockRemaining`.
+ */
+export function rawShotClockAt(state: AppState, realStepIdx: number): number {
+  const i = Math.max(0, realStepIdx);
+  const anchor = shotClockAnchor(state, Math.floor(i));
+  const elapsedSinceAnchor =
+    realStepToSeconds(state, i) - realStepToSeconds(state, anchor.real);
+  return anchor.value - elapsedSinceAnchor;
+}
+
+/**
+ * Renvoie le shot clock restant (clampé à 0) à un index d'étape réel donné.
+ * Décroît au fil des durées cumulées et se réinitialise sur les steps
+ * portant `shotClockRemaining` (reset 14s NBA).
  */
 export function shotClockAt(state: AppState, realStepIdx: number): number {
-  const elapsed = realStepToSeconds(state, realStepIdx);
-  return Math.max(0, getPossessionSeconds(state) - elapsed);
+  return Math.max(0, rawShotClockAt(state, realStepIdx));
+}
+
+/** B.2 — Vrai quand le shot clock est dépassé (brut < 0) à cet index. */
+export function isShotClockViolationAt(state: AppState, realStepIdx: number): boolean {
+  return rawShotClockAt(state, realStepIdx) < 0;
 }
 
 /**

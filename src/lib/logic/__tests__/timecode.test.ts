@@ -6,6 +6,8 @@ import {
   getPossessionSeconds,
   realStepToSeconds,
   shotClockAt,
+  rawShotClockAt,
+  isShotClockViolationAt,
   totalDurationSeconds,
   DEFAULT_SECONDS_PER_STEP,
   DEFAULT_POSSESSION_SECONDS,
@@ -86,6 +88,46 @@ describe('timecode — Étape 13', () => {
     it('clamp à 0 quand la possession est dépassée', () => {
       const s = mkState({ secondsPerStep: 4, possessionSeconds: 24 });
       expect(shotClockAt(s, 10)).toBe(0);
+    });
+    it('B.2 — reset sur un step portant shotClockRemaining (14s rebond off)', () => {
+      const s = mkState({ secondsPerStep: 4, possessionSeconds: 24 });
+      s.steps[1] = { ...s.steps[1], shotClockRemaining: 14 };
+      // Step 0 : compte depuis 24. Step 1 : reset à 14. Step 2 : 14 - 4.
+      expect(shotClockAt(s, 0)).toBe(24);
+      expect(shotClockAt(s, 1)).toBe(14);
+      expect(shotClockAt(s, 2)).toBe(10);
+    });
+    it('B.2 — un reset plus récent prime sur un reset antérieur', () => {
+      const s = mkState({ secondsPerStep: 4, possessionSeconds: 24 });
+      s.steps[1] = { ...s.steps[1], shotClockRemaining: 14 };
+      s.steps[2] = { ...s.steps[2], shotClockRemaining: 24 };
+      expect(shotClockAt(s, 2)).toBe(24);
+    });
+    it('B.2 — interpolation fractionnaire après un reset', () => {
+      const s = mkState({ secondsPerStep: 4, possessionSeconds: 24 });
+      s.steps[1] = { ...s.steps[1], shotClockRemaining: 14 };
+      expect(shotClockAt(s, 1.5)).toBe(12);
+    });
+  });
+
+  describe('rawShotClockAt / isShotClockViolationAt', () => {
+    it('rawShotClockAt devient négatif au-delà de la possession', () => {
+      const s = mkState({ secondsPerStep: 4, possessionSeconds: 24 });
+      expect(rawShotClockAt(s, 7)).toBe(-4);
+      expect(shotClockAt(s, 7)).toBe(0);
+    });
+    it('isShotClockViolationAt vrai seulement après dépassement', () => {
+      const s = mkState({ secondsPerStep: 4, possessionSeconds: 24 });
+      expect(isShotClockViolationAt(s, 6)).toBe(false);
+      expect(isShotClockViolationAt(s, 7)).toBe(true);
+    });
+    it('B.2 — un reset repousse la violation', () => {
+      const s = mkState({ secondsPerStep: 4, possessionSeconds: 24 });
+      s.steps[1] = { ...s.steps[1], shotClockRemaining: 14 };
+      // Sans reset : violation dès step 7. Avec reset à 14 au step 1,
+      // il reste 14s depuis step 1 → violation seulement après ~3.5 steps.
+      expect(isShotClockViolationAt(s, 4)).toBe(false);
+      expect(isShotClockViolationAt(s, 5)).toBe(true);
     });
   });
 
