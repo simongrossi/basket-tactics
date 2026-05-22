@@ -39,4 +39,37 @@ describe('defensiveRoute — computeDefensiveRoute', () => {
     expect(r.waypoints).toHaveLength(3);
     expect(r.waypoints[1].y).toBeLessThan(0);
   });
+
+  it('from == to → route dégénérée de longueur 0', () => {
+    const r = computeDefensiveRoute(
+      { x: 10, y: 10 },
+      { x: 10, y: 10 },
+      [{ center: { x: 10, y: 10 }, radius: 34 }],
+    );
+    expect(r.length).toBe(0);
+    expect(r.waypoints).toEqual([{ x: 10, y: 10 }, { x: 10, y: 10 }]);
+  });
+
+  it('est déterministe (2 appels successifs = résultat identique)', () => {
+    const obs = [
+      { center: { x: 50, y: 0 }, radius: 34 },
+      { center: { x: 60, y: 10 }, radius: 30 },
+    ];
+    const a = computeDefensiveRoute({ x: 0, y: 0 }, { x: 100, y: 0 }, obs);
+    const b = computeDefensiveRoute({ x: 0, y: 0 }, { x: 100, y: 0 }, obs);
+    expect(a).toEqual(b);
+  });
+
+  it('dégrade gracieusement quand aucune route candidate n\'est dégagée', () => {
+    // Obstacles serrés des deux côtés du détour → aucune route à 1 waypoint
+    // n'est totalement dégagée. Le module renvoie quand même une route.
+    const obs = [
+      { center: { x: 50, y: 0 }, radius: 34 },
+      { center: { x: 50, y: 80 }, radius: 60 },
+      { center: { x: 50, y: -80 }, radius: 60 },
+    ];
+    const r = computeDefensiveRoute({ x: 0, y: 0 }, { x: 100, y: 0 }, obs);
+    expect(r.waypoints).toHaveLength(3);
+    expect(Number.isFinite(r.length)).toBe(true);
+  });
 });
