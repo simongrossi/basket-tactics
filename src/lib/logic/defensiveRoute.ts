@@ -106,7 +106,19 @@ export function computeDefensiveRoute(
   const len = Math.hypot(dx, dy);
   const perp: Point = { x: -dy / len, y: dx / len };
 
-  // Détour côté gauche (sign +1), avec escalade de l'offset.
+  // 2 routes candidates : détour à gauche (sign +1) et à droite (sign -1).
   const left = buildSideRoute(from, to, cluster, perp, 1, obstacles);
-  return { waypoints: left.waypoints, length: left.length };
+  const right = buildSideRoute(from, to, cluster, perp, -1, obstacles);
+
+  // Préférer une route dégagée ; parmi les dégagées, la plus courte.
+  // Tie-break déterministe : gauche calculée en premier, `<` strict.
+  const clean = [left, right].filter((r) => r.penetration <= 0.01);
+  let chosen: { waypoints: Point[]; length: number };
+  if (clean.length > 0) {
+    chosen = clean.reduce((a, b) => (b.length < a.length ? b : a));
+  } else {
+    // Dégradation gracieuse : aucune route dégagée → moindre pénétration.
+    chosen = left.penetration <= right.penetration ? left : right;
+  }
+  return { waypoints: chosen.waypoints, length: chosen.length };
 }

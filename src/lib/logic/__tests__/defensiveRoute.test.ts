@@ -30,4 +30,13 @@ describe('defensiveRoute — computeDefensiveRoute', () => {
     // la route détournée est plus longue que le trajet droit
     expect(r.length).toBeGreaterThan(100);
   });
+
+  it('choisit le côté de détour le plus court', () => {
+    // obstacle légèrement décalé vers +y → le détour le plus court passe
+    // du côté -y (opposé au décalage).
+    const obs = { center: { x: 50, y: 5 }, radius: 34 };
+    const r = computeDefensiveRoute({ x: 0, y: 0 }, { x: 100, y: 0 }, [obs]);
+    expect(r.waypoints).toHaveLength(3);
+    expect(r.waypoints[1].y).toBeLessThan(0);
+  });
 });
