@@ -17,6 +17,7 @@ const TOOL_KEYS: Record<string, Tool> = {
   d: 'dribble',
   r: 'cut',
   e: 'screen',
+  t: 'text',
 };
 
 function isTypingTarget(target: EventTarget | null): boolean {

@@ -27,6 +27,7 @@ import type {
   ScenarioBranch,
   ScreenRule,
   ScriptedAction,
+  TextNote,
   Tool,
   ZoneConfig,
   ZoneRegionOverride,
@@ -63,6 +64,7 @@ import {
   defensiveTx,
   coreTx,
 } from '@/lib/state/transforms';
+import * as textNoteTx from '@/lib/state/transforms/textNoteTransforms';
 
 const STORAGE_KEY = 'basket-tactics-state-v1';
 
@@ -352,6 +354,21 @@ export function useAppState() {
   // -- Annotations --
   const addAnnotation = useCallback((annotation: Annotation, options?: AddAnnotationOptions) => {
     setStateWithHistory((s) => annotationTx.addAnnotation(s, annotation, options));
+  }, [setStateWithHistory]);
+
+  const addTextNote = useCallback((stepIdx: number, note: TextNote) => {
+    setStateWithHistory((s) => textNoteTx.addTextNote(s, stepIdx, note));
+  }, [setStateWithHistory]);
+
+  const updateTextNote = useCallback(
+    (stepIdx: number, noteIdx: number, text: string) => {
+      setStateWithHistory((s) => textNoteTx.updateTextNote(s, stepIdx, noteIdx, text));
+    },
+    [setStateWithHistory],
+  );
+
+  const removeTextNote = useCallback((stepIdx: number, noteIdx: number) => {
+    setStateWithHistory((s) => textNoteTx.removeTextNote(s, stepIdx, noteIdx));
   }, [setStateWithHistory]);
 
   const setForcedScreener = useCallback((oId: AttackerId | null) => {
@@ -648,6 +665,9 @@ export function useAppState() {
     moveAttackerDuringDrag,
     moveDefenderDuringDrag,
     addAnnotation,
+    addTextNote,
+    updateTextNote,
+    removeTextNote,
     deleteLastAnnotation,
     deleteAnnotation,
     setAnnotationPhase,

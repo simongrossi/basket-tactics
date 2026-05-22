@@ -17,6 +17,7 @@ const TOOLS: { value: Tool; label: string }[] = [
   { value: 'dribble', label: 'dribble' },
   { value: 'cut', label: 'course' },
   { value: 'screen', label: 'écran' },
+  { value: 'text', label: 'note' },
 ];
 
 function ToolIcon({ tool, color }: { tool: Tool; color: string }) {
@@ -46,6 +47,15 @@ function ToolIcon({ tool, color }: { tool: Tool; color: string }) {
         <svg width="22" height="10" viewBox="0 0 22 10" fill="none">
           <line x1="1" y1="5" x2="16" y2="5" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
           <path d="M15 1 L20 5 L15 9" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        </svg>
+      );
+    case 'text':
+      return (
+        <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden>
+          <rect x={1} y={2} width={14} height={12} rx={2}
+                fill="none" stroke={color} strokeWidth={1.5}/>
+          <text x={8} y={11} textAnchor="middle"
+                fontSize={9} fontWeight={700} fill={color}>T</text>
         </svg>
       );
     case 'screen':
