@@ -322,3 +322,63 @@ export function setAnnotationPhase(
 
   return { ...s, steps };
 }
+
+/** Phy.O V4 — Helper interne : mute les feintes de l'annotation `annIdx`
+ *  du step `stepIdx`. La mutation passe par `mut` qui reçoit le tableau
+ *  courant (ou [] si absent) et renvoie le nouveau. Inputs non mutés. */
+function setAnnotationFeintes(
+  state: AppState,
+  stepIdx: number,
+  annIdx: number,
+  mut: (feintes: number[]) => number[],
+): AppState {
+  const step = state.steps[stepIdx];
+  if (!step) return state;
+  const ann = step.annotations[annIdx];
+  if (!ann) return state;
+  const current = ann.feintes ?? [];
+  const next = mut(current);
+  const newAnn = { ...ann, feintes: next };
+  const newAnns = step.annotations.map((a, i) => (i === annIdx ? newAnn : a));
+  const steps = state.steps.map((s, i) =>
+    i === stepIdx ? { ...s, annotations: newAnns } : s,
+  );
+  return { ...state, steps };
+}
+
+/** Phy.O V4 — Ajoute une feinte à l'annotation. t clampé à [0, 1]. */
+export function addFeinte(
+  state: AppState,
+  stepIdx: number,
+  annIdx: number,
+  t: number,
+): AppState {
+  const tClamped = Math.max(0, Math.min(1, t));
+  return setAnnotationFeintes(state, stepIdx, annIdx, (fs) => [...fs, tClamped]);
+}
+
+/** Phy.O V4 — Met à jour la position d'une feinte. t clampé à [0, 1]. */
+export function updateFeinte(
+  state: AppState,
+  stepIdx: number,
+  annIdx: number,
+  feinteIdx: number,
+  t: number,
+): AppState {
+  const tClamped = Math.max(0, Math.min(1, t));
+  return setAnnotationFeintes(state, stepIdx, annIdx, (fs) =>
+    fs.map((v, i) => (i === feinteIdx ? tClamped : v)),
+  );
+}
+
+/** Phy.O V4 — Retire la feinte d'index donné. */
+export function removeFeinte(
+  state: AppState,
+  stepIdx: number,
+  annIdx: number,
+  feinteIdx: number,
+): AppState {
+  return setAnnotationFeintes(state, stepIdx, annIdx, (fs) =>
+    fs.filter((_, i) => i !== feinteIdx),
+  );
+}
