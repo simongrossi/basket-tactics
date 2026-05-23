@@ -43,6 +43,9 @@ interface UseCourtFrameOptions {
   playbackSpeed: number;
   playbackStartT: number;
   scrubT: number | null | undefined;
+  /** E.2 — Instant d'export (espace step). Quand défini, prime sur scrub
+   *  et playback : c'est la frame que l'utilisateur capture. */
+  exportT?: number | null;
   onPlaybackTick?: (t: number) => void;
   onPlaybackEnd?: () => void;
   /** Animation transitoire "Tout en auto réel". Hors playback/scrub, les
@@ -69,7 +72,7 @@ function extractDefPositions(defPos: ComputedDefense): Record<DefenderId, Point>
 }
 
 export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
-  const { state, isPlaying, playbackSpeed, playbackStartT, scrubT, onPlaybackTick, onPlaybackEnd, defenseReleaseTransition, liveMatchState } = opts;
+  const { state, isPlaying, playbackSpeed, playbackStartT, scrubT, exportT, onPlaybackTick, onPlaybackEnd, defenseReleaseTransition, liveMatchState } = opts;
 
   const [playFrame, setPlayFrame] = useState<PlaybackFrame | null>(null);
   const stateRef = useRef(state);
@@ -250,10 +253,21 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     };
   }, [liveMatchState, state]);
 
-  // Priorité : matchLive > playback > scrub > release animation > static.
-  // Le matchLive prime sur tout : c'est ce que l'utilisateur regarde quand
-  // un match IA tourne. Playback/scrub n'ont pas de sens pendant un live.
-  const frame = liveMatchFrame ?? playFrame ?? scrubFrame ?? releaseFrame ?? staticFrame;
+  // E.2 — Frame d'export : mémoïsée sur exportT + state, sans mémoire de
+  // playback (déterministe par t). Prime sur toutes les autres sources.
+  const exportFrame = useMemo(() => {
+    if (exportT == null) return null;
+    const totalSteps = state.steps.length - 1;
+    if (totalSteps <= 0) return null;
+    const t = Math.max(0, Math.min(totalSteps, exportT));
+    return resolveFrameAt(state, t);
+  }, [exportT, state]);
+
+  // Priorité : export > matchLive > playback > scrub > release animation > static.
+  // L'export prime sur tout : c'est la frame que le capture loop veut.
+  // Hors export (exportT == null → exportFrame == null), la chaîne retombe
+  // sur le comportement existant à l'identique.
+  const frame = exportFrame ?? liveMatchFrame ?? playFrame ?? scrubFrame ?? releaseFrame ?? staticFrame;
   const threatData = state.showThreats
     ? computeAttackerThreats(
         frame.off,

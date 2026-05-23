@@ -48,6 +48,11 @@ export default function Page() {
   const [playbackStartT, setPlaybackStartT] = useState(0);
   const [presentMode, setPresentMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // E.2 — État d'export : `exportT` (instant à capturer) primera dans
+  // useCourtFrame sur scrub/playback ; `courtSvgRef` permet au capture
+  // loop de lire le SVG live. Par défaut null → comportement inchangé.
+  const [exportT, setExportT] = useState<number | null>(null);
+  const courtSvgRef = useRef<SVGSVGElement | null>(null);
 
   // B4 — Game loop "▶ Play IA (live)" : hook unique remonté au niveau page
   // pour partager le matchState live entre CourtView (rendu terrain) et
@@ -535,6 +540,8 @@ export default function Page() {
               }}
               defenseReleaseTransition={app.defenseReleaseTransition}
               liveMatchState={matchLoop.matchState}
+              exportT={exportT}
+              externalSvgRef={courtSvgRef}
             />
           </div>
           {(app.state.scriptedActions?.length ?? 0) > 0 && (

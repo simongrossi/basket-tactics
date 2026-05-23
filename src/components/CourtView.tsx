@@ -126,6 +126,12 @@ interface CourtViewProps {
    *  rendu du terrain utilise ces positions au lieu du staticFrame.
    *  Priorité maximale dans la frame chain (au-dessus de playback et scrub). */
   liveMatchState?: import('@/lib/logic/match/gameLoop').MatchState | null;
+  /** E.2 — Instant d'export. Quand défini, prime sur le scrub et le
+   *  playback (cf. useCourtFrame). */
+  exportT?: number | null;
+  /** E.2 — Ref externe sur le `<svg>` du terrain. Permet à `Page` de lire
+   *  le SVG live pendant l'export. */
+  externalSvgRef?: React.MutableRefObject<SVGSVGElement | null>;
 }
 
 export function CourtView(props: CourtViewProps) {
@@ -181,6 +187,7 @@ export function CourtView(props: CourtViewProps) {
     playbackSpeed: props.playbackSpeed,
     playbackStartT: props.playbackStartT ?? 0,
     scrubT: props.scrubT,
+    exportT: props.exportT,
     onPlaybackTick: props.onPlaybackTick,
     onPlaybackEnd: props.onPlaybackEnd,
     defenseReleaseTransition: props.defenseReleaseTransition,
@@ -309,7 +316,10 @@ export function CourtView(props: CourtViewProps) {
       }}
     >
       <svg
-        ref={svgRef}
+        ref={(el) => {
+          (svgRef as React.MutableRefObject<SVGSVGElement | null>).current = el;
+          if (props.externalSvgRef) props.externalSvgRef.current = el;
+        }}
         viewBox={`0 0 ${COURT.width} ${state.fullCourt ? FULL_COURT_HEIGHT : COURT.height}`}
         preserveAspectRatio="xMidYMid meet"
         style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none', userSelect: 'none' }}
