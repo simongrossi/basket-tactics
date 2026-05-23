@@ -1,6 +1,11 @@
 import type { Annotation, AnnotationType, AttackerId, Point, Step } from '@/lib/types';
 import { samplePolyline } from './polyline';
 import { resolveAnnotationTiming } from './annotationTiming';
+import {
+  buildVelocityProfile,
+  type AttackerSpeedTier,
+  type VelocityProfile,
+} from './velocityProfile';
 
 const SCREEN_SET_FRACTION = 0.35;
 
@@ -71,6 +76,37 @@ function lerp(a: Point, b: Point, t: number): Point {
  * NB : aucune logique d'évitement d'obstacles ici. CourtView l'applique en
  * couche pour `cut` uniquement.
  */
+/** Phy.O — Options pour le remap par profil de vitesse. Construites par
+ *  le caller à partir de `state` ; absent ou `enabled: false` → legacy. */
+export interface PlaybackVelocityProfileOptions {
+  enabled: boolean;
+  /** Renvoie le tier d'un attaquant (ou undefined = standard). */
+  tierFor?: (id: AttackerId) => AttackerSpeedTier | undefined;
+}
+
+/** Cache de profils par annotation × tier. Évite de re-construire le profil
+ *  à chaque frame (le path et le tier ne changent pas). */
+const profileCache = new WeakMap<Annotation, Map<string, VelocityProfile>>();
+
+function getOrBuildProfile(
+  ann: Annotation,
+  path: Point[],
+  tier: AttackerSpeedTier | undefined,
+): VelocityProfile {
+  let perAnn = profileCache.get(ann);
+  if (!perAnn) {
+    perAnn = new Map();
+    profileCache.set(ann, perAnn);
+  }
+  const key = tier ?? 'standard';
+  let profile = perAnn.get(key);
+  if (!profile) {
+    profile = buildVelocityProfile(path, { tier });
+    perAnn.set(key, profile);
+  }
+  return profile;
+}
+
 export function attackerTrajectoryAt(
   steps: Step[],
   stepIdx: number,
@@ -81,6 +117,11 @@ export function attackerTrajectoryAt(
    *  `tStartAbs/tEndAbs` (secondes) sur `tStart/tEnd` (fractions). Sans
    *  cette fonction, comportement legacy (fractions uniquement). */
   getStepDurationSec?: (idx: number) => number,
+  /** Phy.O — Optionnel. Si fourni avec `enabled: true`, le sampling des
+   *  paths `cut` / `dribble` avec waypoints passe par un remap basé sur
+   *  la courbure (ralentit dans les virages serrés). Absent ou
+   *  `enabled: false` → sampling linéaire legacy strict. */
+  velocityProfileOptions?: PlaybackVelocityProfileOptions,
 ): PlaybackTrajectory {
   const cur = steps[stepIdx];
   const next = steps[stepIdx + 1];
@@ -164,15 +205,33 @@ export function attackerTrajectoryAt(
 
   const hasWaypoints = !!ann.waypoints && ann.waypoints.length > 0;
   if (ann.type === 'cut') {
-    const position = hasWaypoints
-      ? samplePolyline(annotationPolyline(ann), actionT)
-      : lerp(ann.from, ann.to, actionT);
+    let position: Point;
+    if (hasWaypoints) {
+      const path = annotationPolyline(ann);
+      let s = actionT;
+      if (velocityProfileOptions?.enabled) {
+        const tier = velocityProfileOptions.tierFor?.(playerId);
+        s = getOrBuildProfile(ann, path, tier).remap(actionT);
+      }
+      position = samplePolyline(path, s);
+    } else {
+      position = lerp(ann.from, ann.to, actionT);
+    }
     return { position, movementType: 'cut', isScreening: false };
   }
   if (ann.type === 'dribble') {
-    const position = hasWaypoints
-      ? samplePolyline(annotationPolyline(ann), actionT)
-      : lerp(ann.from, ann.to, actionT);
+    let position: Point;
+    if (hasWaypoints) {
+      const path = annotationPolyline(ann);
+      let s = actionT;
+      if (velocityProfileOptions?.enabled) {
+        const tier = velocityProfileOptions.tierFor?.(playerId);
+        s = getOrBuildProfile(ann, path, tier).remap(actionT);
+      }
+      position = samplePolyline(path, s);
+    } else {
+      position = lerp(ann.from, ann.to, actionT);
+    }
     return { position, movementType: 'dribble', isScreening: false };
   }
   if (ann.type === 'screen') {

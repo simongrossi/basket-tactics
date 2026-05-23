@@ -401,6 +401,11 @@ export function resolveFrameAt(
       // B.4 — fournir la durée per-step pour que resolveAnnotationTiming
       // puisse traiter tStartAbs/tEndAbs en secondes absolues.
       (idx) => getStepDurationSeconds(state, idx),
+      // Phy.O — profil de vitesse offensif (opt-in).
+      {
+        enabled: !!state.attackerVelocityProfileEnabled,
+        tierFor: (attId) => state.attackerSpeedProfiles?.[attId],
+      },
     );
     attackerMovementType[id] = traj.movementType;
     attackerIsScreening[id] = traj.isScreening;
