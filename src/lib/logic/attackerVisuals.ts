@@ -99,6 +99,26 @@ export function computeAttackerVisuals(
     }
 
     const manualOverride = state.attackerOrientations?.[id];
+    // Bug fix orientation porteur : la détection delta-based "dribble"
+    // (orientation.ts:detectDribbleTarget) confond un déplacement manuel
+    // par drag avec un dribble narratif. On gate `prevPos` côté porteur
+    // par l'existence d'une annotation `dribble` réelle (step courant OU
+    // précédent, selon la convention timing). Sans annotation = manuel
+    // = porteur face au panier (règle par défaut). Pour les non-porteurs,
+    // prevPos n'est de toute façon pas utilisé par orientation.ts.
+    let effectivePrevPos: Point | undefined;
+    if (prev) {
+      if (id === carrier) {
+        const hasDribbleAnn =
+          cur.annotations.some((a) => a.type === 'dribble' && a.fromId === id) ||
+          prev.annotations.some((a) => a.type === 'dribble' && a.fromId === id);
+        if (hasDribbleAnn) {
+          effectivePrevPos = activeOffense(prev.off, state.playerCount)[id];
+        }
+      } else {
+        effectivePrevPos = activeOffense(prev.off, state.playerCount)[id];
+      }
+    }
     const r = computeAttackerOrientation({
       attackerPos,
       role,
@@ -107,9 +127,7 @@ export function computeAttackerVisuals(
       receiverPos,
       nextPos,
       screenTargetDefPos,
-      // Détection dribble pour le porteur (cf. règle métier dans
-      // orientation.ts : porteur statique → panier ; en dribble → mouvement).
-      prevPos: prev ? activeOffense(prev.off, state.playerCount)[id] : undefined,
+      prevPos: effectivePrevPos,
       manualBody: manualOverride?.body,
       manualGaze: manualOverride?.gaze,
     });
