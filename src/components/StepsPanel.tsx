@@ -29,6 +29,9 @@ interface StepsPanelProps {
   onAddOutletPassStep?: (options?: { sourceStepIdx?: number }) => void;
   onSetBallCarrier: (carrier: AttackerId) => void;
   onDeleteAnnotation: (idx: number) => void;
+  onAddFeinte: (stepIdx: number, annIdx: number, t: number) => void;
+  onUpdateFeinte: (stepIdx: number, annIdx: number, feinteIdx: number, t: number) => void;
+  onRemoveFeinte: (stepIdx: number, annIdx: number, feinteIdx: number) => void;
   /** F.3 — Convertit le step actif en setup de lancer franc. */
   onConvertToFreeThrow?: () => void;
   /** Convertit le step actif en setup de remise en jeu (BLOB ou SLOB). */
@@ -333,8 +336,8 @@ export function StepsPanel(props: StepsPanelProps) {
                     {visibleAnnotations.map(({ annotation: a, index }, ai) => {
                       const meta = ANNOTATION_LABELS[a.type];
                       return (
+                        <div key={ai} style={{ display: 'flex', flexDirection: 'column' }}>
                         <div
-                          key={ai}
                           onClick={(e) => e.stopPropagation()}
                           style={{
                             display: 'flex',
@@ -381,9 +384,78 @@ export function StepsPanel(props: StepsPanelProps) {
                           >
                             ×
                           </button>
+                          </div>
+                          {(a.type === 'cut' || a.type === 'dribble') && (
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 3,
+                                marginLeft: 18,
+                                marginBottom: 3,
+                                fontSize: 10,
+                                color: '#9ca3af',
+                              }}
+                            >
+                              {(a.feintes ?? []).map((tF, fi) => (
+                                <div
+                                  key={fi}
+                                  style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                                >
+                                  <span style={{ minWidth: 40 }}>feinte {fi + 1}</span>
+                                  <input
+                                    type="range"
+                                    min={0}
+                                    max={1}
+                                    step={0.05}
+                                    value={tF}
+                                    onChange={(e) =>
+                                      props.onUpdateFeinte(i, index, fi, parseFloat(e.target.value))
+                                    }
+                                    style={{ flex: 1 }}
+                                    title={`Position de la feinte : ${(tF * 100).toFixed(0)}% de l'arc`}
+                                  />
+                                  <span style={{ minWidth: 30, textAlign: 'right' }}>
+                                    {(tF * 100).toFixed(0)}%
+                                  </span>
+                                  <button
+                                    onClick={() => props.onRemoveFeinte(i, index, fi)}
+                                    title="Supprimer cette feinte"
+                                    style={{
+                                      border: 'none',
+                                      background: 'transparent',
+                                      color: '#dc2626',
+                                      cursor: 'pointer',
+                                      fontSize: 11,
+                                      padding: '0 2px',
+                                      lineHeight: 1,
+                                    }}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                onClick={() => props.onAddFeinte(i, index, 0.5)}
+                                title="Ajouter une feinte à la moitié de l'arc"
+                                style={{
+                                  alignSelf: 'flex-start',
+                                  padding: '2px 6px',
+                                  fontSize: 10,
+                                  background: 'transparent',
+                                  border: '1px solid #94a3b8',
+                                  borderRadius: 3,
+                                  color: '#cbd5e1',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                + feinte
+                              </button>
+                            </div>
+                          )}
                         </div>
                       );
-                    })}
+                    })}{/* /visibleAnnotations.map */}
                   </div>
                 )}
               </div>

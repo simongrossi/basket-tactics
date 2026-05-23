@@ -25,6 +25,9 @@ function renderStepsPanel(state: AppState) {
     onPatchStep: vi.fn(),
     onSetBallCarrier: vi.fn(),
     onDeleteAnnotation: vi.fn(),
+    onAddFeinte: vi.fn(),
+    onUpdateFeinte: vi.fn(),
+    onRemoveFeinte: vi.fn(),
   };
   return render(createElement(StepsPanel, props));
 }

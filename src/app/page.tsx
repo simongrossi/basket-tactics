@@ -382,6 +382,9 @@ export default function Page() {
                     onAddOutletPassStep={app.addOutletPassStep}
                     onSetBallCarrier={app.setBallCarrier}
                     onDeleteAnnotation={app.deleteAnnotation}
+                    onAddFeinte={app.addFeinte}
+                    onUpdateFeinte={app.updateFeinte}
+                    onRemoveFeinte={app.removeFeinte}
                     onConvertToFreeThrow={app.convertStepToFreeThrow}
                     onConvertToInbound={app.convertStepToInbound}
                     onSetInboundDefenseMode={app.setInboundDefenseMode}
