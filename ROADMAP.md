@@ -1038,7 +1038,7 @@ attaque, en plusieurs vagues.
 | ~~Phy.O V2~~ | ~~**Friction de proximité offensive**~~ : per-sample factor `friction(s) ∈ [0.6, 1]` dans `v(s) = friction(s) / (1 + α κ(s))`. Obstacles = autres joueurs au mid-segment, snapshot construit par `frameResolver`. Cache `WeakMap` indexé par `tier|obstaclesHash`. | — | — | — | 🟢 V2 livré 2026-05-23 (4 tests, ~1728 verts) |
 | Phy.O V3 | **Démarquage actif** : l'attaquant *réagit* à la position du défenseur (mirror de l'anticipation défensive G.3). Demande un modèle de décision offensif. | 1-2j | 🔴 | Haut | ⚪ |
 | ~~Phy.O V4 V1~~ | ~~**Feintes / jab steps / hesitation dribbles (backend)**~~ : champ `Annotation.feintes?: number[]` (positions arc-length), creux gaussien par feinte sur v(s) (`depth=0.5`, `width=0.08`), `max` (pas somme) entre feintes. Combiné multiplicativement avec friction et courbure. Pas d'UI V1 (set via JSON ou attendre V2). | — | — | — | 🟢 V1 backend livré 2026-05-23 (4 tests) |
-| Phy.O V4 V2 | **UI feintes** : slider/bouton dans StepsPanel annotation list pour ajouter/retirer/positionner les feintes, marker visuel sur le path. | 3-4h | 🟢 | Moyen | ⚪ |
+| ~~Phy.O V4 V2~~ | ~~**UI feintes**~~ : sliders par feinte dans StepsPanel (position 0..100% par tranche de 5%), bouton `+ feinte`, bouton `×` par feinte, marker SVG jaune-orangé sur le path. Transforms purs add/update/remove. | — | — | — | 🟢 V2 livré 2026-05-23 (5 tests) |
 | ~~Phy.O UI tier~~ | ~~**UI per-attaquant pour le tier athlétique**~~ : select dans `AttackerMenu` (auto/elite/standard/lent), transform `setAttackerSpeedTier`, propagation Page → CourtView → CourtMenus → AttackerMenu. | — | — | — | 🟢 livré 2026-05-23 (4 tests transform) |
 
 ---
