@@ -798,6 +798,12 @@ export interface AddAnnotationOptions {
   timingAnchor?: ActionTimingAnchor;
 }
 
+/** Phy.O — Tier athlétique d'un attaquant (mirror de
+ *  `defenderSpeedProfiles` G.4). Module la sensibilité à la courbure :
+ *  un elite garde plus de vitesse en virage, un lent ralentit plus. Tous
+ *  les attaquants arrivent à `ann.to` au boundary (invariant). */
+export type AttackerSpeedTier = 'elite' | 'standard' | 'lent';
+
 export interface AppState {
   steps: Step[];
   activeStep: number;
@@ -966,6 +972,13 @@ export interface AppState {
    *  MAX_SPEED_BY_POSITION) et "ce JOUEUR est lent/rapide pour son poste".
    *  Indéfini ou 'standard' → no-op. */
   defenderSpeedProfiles?: Partial<Record<DefenderId, 'elite' | 'standard' | 'lent'>>;
+  /** Phy.O — Tier athlétique par attaquant. Module `α` du profil de vitesse
+   *  offensif (cf. velocityProfile.ts). Tier absent = `'standard'`. */
+  attackerSpeedProfiles?: Partial<Record<AttackerId, AttackerSpeedTier>>;
+
+  /** Phy.O — Active le profil de vitesse offensif (courbure + tier). Opt-in :
+   *  default `undefined` → comportement legacy strict (sampling linéaire). */
+  attackerVelocityProfileEnabled?: boolean;
   /** F.4 — Fautes équipe défense pour le quart en cours (0-5). À ≥ 5,
    *  l'équipe est en BONUS : "foul to give" devient interdit (donne LF).
    *  Default 0 (rentrée fraîche dans le quart). */

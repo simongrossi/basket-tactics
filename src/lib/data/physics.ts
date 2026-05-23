@@ -206,3 +206,23 @@ export const RIM_PROTECTION_DROP_ZONE_PX = 75;
  * conversion px/étape → m/s dans la JSDoc de la constante).
  */
 export const PLAYBACK_STEP_DURATION_MS = 2000;
+
+/** Phy.O — Sensibilité de base à la courbure pour le profil de vitesse
+ *  offensif. Plus haut = ralentissement plus marqué dans les virages.
+ *  Tunable. */
+export const OFFENSIVE_CURVATURE_SENSITIVITY = 120;
+
+/** Phy.O — Nombre de points d'échantillonnage du profil le long de la
+ *  longueur d'arc. Compromis précision vs coût (one-shot par annotation,
+ *  donc tolérable). */
+export const OFFENSIVE_PROFILE_SAMPLES = 64;
+
+/** Phy.O — Multiplicateurs `α` par tier athlétique attaquant.
+ *  - elite : ×0.7 (garde plus de vitesse en virage)
+ *  - standard : ×1.0
+ *  - lent : ×1.4 (ralentit plus dans les virages) */
+export const OFFENSIVE_TIER_MULTIPLIER = {
+  elite: 0.7,
+  standard: 1.0,
+  lent: 1.4,
+} as const;
