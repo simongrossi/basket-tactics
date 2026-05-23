@@ -1,6 +1,6 @@
 import type { Annotation, Point } from '@/lib/types';
 import { dribbleWavePath } from '@/lib/logic/dribbleWave';
-import { polylinePath } from '@/lib/logic/polyline';
+import { polylinePath, samplePolyline } from '@/lib/logic/polyline';
 import { PLAYER_PICK_RADIUS_PX } from '@/lib/data/court';
 
 interface AnnotationProps {
@@ -93,14 +93,33 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
       ? polylinePath(visualPoints)
       : dribbleWavePath(from, visualTo);
     return (
-      <path
-        d={d}
-        fill="none"
-        stroke="#D85A30"
-        strokeWidth={2.5}
-        markerEnd="url(#arrow-orange)"
-        opacity={preview ? 0.5 : 1}
-      />
+      <>
+        <path
+          d={d}
+          fill="none"
+          stroke="#D85A30"
+          strokeWidth={2.5}
+          markerEnd="url(#arrow-orange)"
+          opacity={preview ? 0.5 : 1}
+        />
+        {(annotation.feintes ?? []).map((tF, fi) => {
+          const pts = annotationPoints(annotation);
+          const pos = samplePolyline(pts, tF);
+          return (
+            <circle
+              key={`feinte-${fi}`}
+              cx={pos.x}
+              cy={pos.y}
+              r={4}
+              fill="#fbbf24"
+              stroke="#92400e"
+              strokeWidth={1}
+              opacity={preview ? 0.5 : 0.95}
+              pointerEvents="none"
+            />
+          );
+        })}
+      </>
     );
   }
 
@@ -121,28 +140,51 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
   }
 
   // cut (et fallback)
+  const feinteMarkers = (annotation.feintes ?? []).map((tF, fi) => {
+    const pts = annotationPoints(annotation);
+    const pos = samplePolyline(pts, tF);
+    return (
+      <circle
+        key={`feinte-${fi}`}
+        cx={pos.x}
+        cy={pos.y}
+        r={4}
+        fill="#fbbf24"
+        stroke="#92400e"
+        strokeWidth={1}
+        opacity={preview ? 0.5 : 0.95}
+        pointerEvents="none"
+      />
+    );
+  });
   if (hasWaypoints && visualPoints) {
     return (
-      <path
-        d={polylinePath(visualPoints)}
-        fill="none"
+      <>
+        <path
+          d={polylinePath(visualPoints)}
+          fill="none"
+          stroke="#5F5E5A"
+          strokeWidth={2.5}
+          markerEnd="url(#arrow-gray)"
+          opacity={preview ? 0.5 : 1}
+        />
+        {feinteMarkers}
+      </>
+    );
+  }
+  return (
+    <>
+      <line
+        x1={from.x}
+        y1={from.y}
+        x2={visualTo.x}
+        y2={visualTo.y}
         stroke="#5F5E5A"
         strokeWidth={2.5}
         markerEnd="url(#arrow-gray)"
         opacity={preview ? 0.5 : 1}
       />
-    );
-  }
-  return (
-    <line
-      x1={from.x}
-      y1={from.y}
-      x2={visualTo.x}
-      y2={visualTo.y}
-      stroke="#5F5E5A"
-      strokeWidth={2.5}
-      markerEnd="url(#arrow-gray)"
-      opacity={preview ? 0.5 : 1}
-    />
+      {feinteMarkers}
+    </>
   );
 }
