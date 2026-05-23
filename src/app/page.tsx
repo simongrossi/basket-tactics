@@ -28,6 +28,7 @@ import { MultiTrackTimeline } from '@/components/MultiTrackTimeline';
 import { MetricsBar } from '@/components/MetricsBar';
 import { MetricsChart } from '@/components/MetricsChart';
 import { CoachDiagnosticsOverlay } from '@/components/CoachDiagnosticsOverlay';
+import { ExportModal } from '@/components/ExportModal';
 import { effectiveDefensePositions, getDefenseHoop, detectStepScreenAction } from '@/lib/logic/engine';
 import { computeMetrics } from '@/lib/logic/metrics';
 import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offense';
@@ -53,6 +54,9 @@ export default function Page() {
   // loop de lire le SVG live. Par défaut null → comportement inchangé.
   const [exportT, setExportT] = useState<number | null>(null);
   const courtSvgRef = useRef<SVGSVGElement | null>(null);
+  // E.2 — Ouverture de la modal d'export. La modal elle-même drive
+  // `setExportT` quand l'utilisateur clique "Démarrer".
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // B4 — Game loop "▶ Play IA (live)" : hook unique remonté au niveau page
   // pour partager le matchState live entre CourtView (rendu terrain) et
@@ -296,6 +300,7 @@ export default function Page() {
                 presentMode={presentMode}
                 onTogglePresentMode={handleTogglePresentMode}
                 onOpenPlayerTimeline={() => setShowPlayerTimeline(true)}
+                onOpenExport={() => setShowExportModal(true)}
                 onExport={handleExport}
                 onImport={handleImport}
                 onReset={app.resetAll}
@@ -649,6 +654,14 @@ export default function Page() {
               }
             }
           }}
+        />
+      )}
+      {showExportModal && (
+        <ExportModal
+          state={app.state}
+          svgRef={courtSvgRef}
+          setExportT={setExportT}
+          onClose={() => setShowExportModal(false)}
         />
       )}
 

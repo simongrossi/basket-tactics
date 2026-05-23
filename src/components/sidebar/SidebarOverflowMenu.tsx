@@ -9,6 +9,8 @@ type Props = {
   presentMode: boolean;
   onTogglePresentMode: () => void;
   onOpenPlayerTimeline: () => void;
+  /** E.2 — Ouvre la modal d'export GIF / WebM. */
+  onOpenExport: () => void;
   onExport: () => void;
   onImport: () => void;
   onReset: () => void;
@@ -19,6 +21,7 @@ export function SidebarOverflowMenu({
   presentMode,
   onTogglePresentMode,
   onOpenPlayerTimeline,
+  onOpenExport,
   onExport,
   onImport,
   onReset,
@@ -102,6 +105,7 @@ export function SidebarOverflowMenu({
         label={presentMode ? 'Quitter plein écran' : 'Plein écran'}
       />
       <Item onClick={run(onOpenPlayerTimeline)} label="Timeline par joueur" />
+      <Item onClick={run(onOpenExport)} label="🎥 Exporter (GIF / WebM)" />
       <Divider />
       <Item
         onClick={run(() => {
