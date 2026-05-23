@@ -20,6 +20,8 @@ import {
   OFFENSIVE_FEINTE_WIDTH,
   OFFENSIVE_FRICTION_FLOOR,
   OFFENSIVE_FRICTION_THRESHOLD_PX,
+  OFFENSIVE_POST_FEINTE_BOOST_AMPLITUDE,
+  OFFENSIVE_POST_FEINTE_BOOST_OFFSET,
   OFFENSIVE_PROFILE_SAMPLES,
   OFFENSIVE_TIER_MULTIPLIER,
 } from '../data/physics';
@@ -61,6 +63,16 @@ export interface VelocityProfileOptions {
   defenseReadingThreshold?: number;
   /** Phy.O V3 V1 — Facteur minimum au contact. Défaut : OFFENSIVE_DEFENSE_READING_FLOOR. */
   defenseReadingFloor?: number;
+  /** Phy.O V3 V4 — Active le boost post-feinte (accélération brève
+   *  juste après chaque feinte, simulant le défenseur ayant mordu).
+   *  Sans effet si `feintes` est vide. */
+  postFeinteBoost?: boolean;
+  /** Phy.O V3 V4 — Amplitude du boost. Défaut :
+   *  OFFENSIVE_POST_FEINTE_BOOST_AMPLITUDE (0.4 → pic v=1.4). */
+  postFeinteBoostAmplitude?: number;
+  /** Phy.O V3 V4 — Offset du pic après le centre de la feinte (fraction
+   *  d'arc). Défaut : OFFENSIVE_POST_FEINTE_BOOST_OFFSET (0.10). */
+  postFeinteBoostOffset?: number;
 }
 
 export interface VelocityProfile {
@@ -165,6 +177,7 @@ function computeFeinteFactors(
   feintes: number[],
   depth: number,
   width: number,
+  boost: { amplitude: number; offset: number } | undefined,
 ): number[] {
   const out = new Array<number>(sampleCount).fill(1);
   if (feintes.length === 0 || width <= 0 || sampleCount < 2) return out;
@@ -172,12 +185,20 @@ function computeFeinteFactors(
   for (let i = 0; i < sampleCount; i++) {
     const sNorm = i / (sampleCount - 1); // ∈ [0, 1]
     let maxDip = 0;
+    let maxBoost = 0;
     for (const tF of feintes) {
-      const u = (sNorm - tF) / width;
-      const dip = depthFactor * Math.exp(-(u * u) / 2);
+      // Dip centré sur la feinte.
+      const uDip = (sNorm - tF) / width;
+      const dip = depthFactor * Math.exp(-(uDip * uDip) / 2);
       if (dip > maxDip) maxDip = dip;
+      // Phy.O V3 V4 — boost centré APRÈS la feinte.
+      if (boost) {
+        const uBoost = (sNorm - tF - boost.offset) / width;
+        const b = boost.amplitude * Math.exp(-(uBoost * uBoost) / 2);
+        if (b > maxBoost) maxBoost = b;
+      }
     }
-    out[i] = 1 - maxDip;
+    out[i] = 1 - maxDip + maxBoost;
   }
   return out;
 }
@@ -227,6 +248,12 @@ export function buildVelocityProfile(
     options.feintes ?? [],
     feinteDepth,
     feinteWidth,
+    options.postFeinteBoost
+      ? {
+          amplitude: options.postFeinteBoostAmplitude ?? OFFENSIVE_POST_FEINTE_BOOST_AMPLITUDE,
+          offset: options.postFeinteBoostOffset ?? OFFENSIVE_POST_FEINTE_BOOST_OFFSET,
+        }
+      : undefined,
   );
   // Phy.O V3 V1 — lecture défensive (matched defender uniquement).
   const drThreshold = options.defenseReadingThreshold ?? OFFENSIVE_DEFENSE_READING_THRESHOLD_PX;

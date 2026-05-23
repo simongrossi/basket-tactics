@@ -254,3 +254,11 @@ export const OFFENSIVE_DEFENSE_READING_THRESHOLD_PX = 50;
  *  agressif que la friction de contact : la lecture est délibérée, pas
  *  un freinage forcé. */
 export const OFFENSIVE_DEFENSE_READING_FLOOR = 0.7;
+
+/** Phy.O V3 V4 — Amplitude du boost post-feinte. Au pic, v atteint
+ *  `1 + AMPLITUDE` (1.4 par défaut = 40% au-dessus de v normal). */
+export const OFFENSIVE_POST_FEINTE_BOOST_AMPLITUDE = 0.4;
+
+/** Phy.O V3 V4 — Offset du pic de boost après le centre de la feinte,
+ *  en fraction d'arc. 0.10 = boost peak ~10% d'arc après la feinte. */
+export const OFFENSIVE_POST_FEINTE_BOOST_OFFSET = 0.10;

@@ -206,4 +206,31 @@ describe('buildVelocityProfile', () => {
     const p2 = buildVelocityProfile(path, { matchedDefenderPos: undefined });
     expect(p2.remap(0.5)).toBeCloseTo(p1.remap(0.5), 6);
   });
+
+  it('Phy.O V3 V4 — boost post-feinte (postFeinteBoost on) → asymétrie temps/arc visible', () => {
+    // Feinte symétrique au milieu, boost POST-feinte centré à sNorm≈0.6.
+    // Sans boost (V4 V1) remap(0.5)=0.5 par symétrie. Avec boost ON :
+    // la 2e moitié devient rapide (v>1 dans le boost) → moins de temps
+    // consommé en 2e moitié → à mi-temps, le joueur est encore dans la
+    // 1ère moitié (zone lente) → remap(0.5) < 0.5. C'est le profil
+    // tactique souhaité : freinage sur la feinte puis sprint après.
+    const p = buildVelocityProfile(
+      [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+      { feintes: [0.5], postFeinteBoost: true },
+    );
+    expect(p.remap(0.5)).toBeLessThan(0.5 - 0.02);
+  });
+
+  it('Phy.O V3 V4 — postFeinteBoost off → V4 V1 inchangé', () => {
+    const path = [{ x: 0, y: 0 }, { x: 100, y: 0 }];
+    const noBoost = buildVelocityProfile(path, { feintes: [0.5] });
+    const explicit = buildVelocityProfile(path, { feintes: [0.5], postFeinteBoost: false });
+    expect(explicit.remap(0.5)).toBeCloseTo(noBoost.remap(0.5), 6);
+  });
+
+  it('Phy.O V3 V4 — postFeinteBoost on mais aucune feinte → identité', () => {
+    const path = [{ x: 0, y: 0 }, { x: 100, y: 0 }];
+    const p = buildVelocityProfile(path, { feintes: [], postFeinteBoost: true });
+    expect(p.remap(0.5)).toBeCloseTo(0.5, 3);
+  });
 });
