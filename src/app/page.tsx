@@ -450,6 +450,8 @@ export default function Page() {
                 onDeleteSystem={lib.deleteSystem}
                 onMoveSystem={lib.moveSystem}
                 onCreateFolder={lib.createFolder}
+                onSetFolderType={lib.setFolderType}
+                onCreateStandardFolders={lib.createStandardFolders}
                 onRenameFolder={lib.renameFolder}
                 onDeleteFolder={lib.deleteFolder}
                 onExportFolder={lib.exportFolder}

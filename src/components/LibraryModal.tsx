@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { CLASSIC_TEMPLATES, LAB_TEMPLATES, type Template } from '@/lib/data/templates';
-import type { UserLibrary, SavedSystem, SavedFolder } from '@/lib/data/library';
+import type { UserLibrary, SavedSystem, SavedFolder, FolderType } from '@/lib/data/library';
+import {
+  FOLDER_TYPE_LABELS,
+  FOLDER_TYPE_ORDER,
+  groupFoldersByType,
+} from '@/lib/data/library';
 import { COLORS } from './ui';
 
 /** Identifiant abstrait pour le dossier "Systèmes classiques" (read-only). */
@@ -22,7 +27,9 @@ interface LibraryModalProps {
   onRenameSystem: (systemId: string, newName: string) => void;
   onDeleteSystem: (systemId: string) => void;
   onMoveSystem: (systemId: string, targetFolderId: string) => void;
-  onCreateFolder: (name: string) => void;
+  onCreateFolder: (name: string, type?: FolderType) => void;
+  onSetFolderType: (folderId: string, type: FolderType | undefined) => void;
+  onCreateStandardFolders: () => void;
   onRenameFolder: (folderId: string, newName: string) => void;
   onDeleteFolder: (folderId: string) => void;
   onExportFolder: (folderId: string) => string | null;
@@ -40,7 +47,7 @@ export function LibraryModal(props: LibraryModalProps) {
   const c = COLORS.offense;
   const {
     library, hasWorkInProgress, onLoadSavedSystem, onLoadTemplate, onSaveCurrent,
-    onRenameSystem, onDeleteSystem, onMoveSystem, onCreateFolder, onRenameFolder,
+    onRenameSystem, onDeleteSystem, onMoveSystem, onCreateFolder, onSetFolderType, onCreateStandardFolders, onRenameFolder,
     onDeleteFolder, onExportFolder, onImportFolder, onClose,
     mode = 'modal',
   } = props;
@@ -210,52 +217,95 @@ export function LibraryModal(props: LibraryModalProps) {
             <div style={{ fontSize: 9, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 8, marginBottom: 2, paddingLeft: 4 }}>
               Mes dossiers
             </div>
-            {library.folders.map((f) => (
-              <FolderRow
-                key={f.id}
-                label={`📁 ${f.name}`}
-                count={f.systems.length}
-                active={selectedFolderId === f.id}
-                onClick={() => setSelectedFolderId(f.id)}
-                onRename={() => setRenameTarget({ kind: 'folder', id: f.id, current: f.name })}
-                onDelete={
-                  library.folders.length > 1
-                    ? () => {
-                        if (confirm(`Supprimer le dossier "${f.name}" et ses ${f.systems.length} systèmes ?`)) {
-                          onDeleteFolder(f.id);
-                          if (selectedFolderId === f.id) {
-                            const remaining = library.folders.filter((g) => g.id !== f.id);
-                            setSelectedFolderId(remaining[0]?.id ?? CLASSIC_FOLDER_ID);
+            {(() => {
+              const groups = groupFoldersByType(library.folders);
+              const hasAnyTypedFolder = library.folders.some((f) => !!f.type);
+              return (
+                <>
+                  {groups.map((grp) => (
+                    <div key={grp.type} style={{ marginTop: 4 }}>
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: '#94a3b8',
+                          padding: '2px 6px',
+                          marginBottom: 2,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {grp.label}
+                      </div>
+                      {grp.folders.map((f) => (
+                        <FolderRow
+                          key={f.id}
+                          label={`📁 ${f.name}`}
+                          count={f.systems.length}
+                          active={selectedFolderId === f.id}
+                          onClick={() => setSelectedFolderId(f.id)}
+                          onRename={() => setRenameTarget({ kind: 'folder', id: f.id, current: f.name })}
+                          onDelete={
+                            library.folders.length > 1
+                              ? () => {
+                                  if (confirm(`Supprimer le dossier "${f.name}" et ses ${f.systems.length} systèmes ?`)) {
+                                    onDeleteFolder(f.id);
+                                    if (selectedFolderId === f.id) {
+                                      const remaining = library.folders.filter((g) => g.id !== f.id);
+                                      setSelectedFolderId(remaining[0]?.id ?? CLASSIC_FOLDER_ID);
+                                    }
+                                  }
+                                }
+                              : undefined
                           }
-                        }
-                      }
-                    : undefined
-                }
-              />
-            ))}
-            <button
-              onClick={() => {
-                const name = prompt('Nom du nouveau dossier :');
-                if (name && name.trim()) onCreateFolder(name.trim());
-              }}
-              style={
-                inline
-                  ? {
-                      marginTop: 6, padding: '8px 10px', fontSize: 12,
-                      border: '1px dashed #2a2d35', borderRadius: 6,
-                      background: 'transparent', color: '#cbd5e1', cursor: 'pointer',
-                      textAlign: 'left',
-                    }
-                  : {
-                      marginTop: 6, padding: '6px 8px', fontSize: 11,
-                      border: `1px dashed ${c.border}`, borderRadius: 6,
-                      background: 'transparent', color: c.accentText, cursor: 'pointer',
-                      textAlign: 'left',
-                    }
-              }
-            >
-              + nouveau dossier
-            </button>
+                          typeSlot={
+                            <select
+                              value={f.type ?? ''}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                onSetFolderType(f.id, v === '' ? undefined : (v as FolderType));
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              title="Catégorie du dossier"
+                              style={{
+                                fontSize: 10,
+                                background: 'transparent',
+                                color: '#94a3b8',
+                                border: '1px solid #2a2d35',
+                                borderRadius: 3,
+                                padding: '1px 2px',
+                                marginLeft: 2,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <option value="">(autre)</option>
+                              {FOLDER_TYPE_ORDER.filter((t) => t !== 'autre').map((t) => (
+                                <option key={t} value={t}>
+                                  {FOLDER_TYPE_LABELS[t]}
+                                </option>
+                              ))}
+                            </select>
+                          }
+                        />
+                      ))}
+                    </div>
+                  ))}
+                  <NewFolderForm onCreate={onCreateFolder} inline={inline} accent={c.accentText} border={c.border} />
+                  {!hasAnyTypedFolder && (
+                    <button
+                      onClick={onCreateStandardFolders}
+                      title="Crée 5 dossiers standards vides (touches, indiv, zone, press, transition)"
+                      style={{
+                        marginTop: 4, padding: '6px 8px', fontSize: 11,
+                        border: '1px dashed #94a3b8', borderRadius: 6,
+                        background: 'transparent', color: '#cbd5e1', cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                    >
+                      📁 Créer les dossiers standards
+                    </button>
+                  )}
+                </>
+              );
+            })()}
           </aside>
 
           {/* Pane systèmes */}
@@ -473,10 +523,12 @@ function darkSecondaryBtn(): React.CSSProperties {
 }
 
 function FolderRow({
-  label, count, active, onClick, onRename, onDelete,
+  label, count, active, onClick, onRename, onDelete, typeSlot,
 }: {
   label: string; count: number; active: boolean;
   onClick: () => void; onRename?: () => void; onDelete?: () => void;
+  /** Slot optionnel rendu à droite du nom (ex : select de catégorie). */
+  typeSlot?: React.ReactNode;
 }) {
   // Aligné sur le style des items de la sidebar gauche (Terrain, Playbook…) :
   // ligne 34px, fond dark hover/active, accent violet, texte clair.
@@ -539,6 +591,129 @@ function FolderRow({
           )}
         </span>
       )}
+      {typeSlot}
+    </div>
+  );
+}
+
+function NewFolderForm({
+  onCreate, inline, accent, border,
+}: {
+  onCreate: (name: string, type?: FolderType) => void;
+  inline: boolean;
+  accent: string;
+  border: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [type, setType] = useState<FolderType | ''>('');
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        style={
+          inline
+            ? {
+                marginTop: 6, padding: '8px 10px', fontSize: 12,
+                border: '1px dashed #2a2d35', borderRadius: 6,
+                background: 'transparent', color: '#cbd5e1', cursor: 'pointer',
+                textAlign: 'left',
+              }
+            : {
+                marginTop: 6, padding: '6px 8px', fontSize: 11,
+                border: `1px dashed ${border}`, borderRadius: 6,
+                background: 'transparent', color: accent, cursor: 'pointer',
+                textAlign: 'left',
+              }
+        }
+      >
+        + nouveau dossier
+      </button>
+    );
+  }
+
+  const submit = () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    onCreate(trimmed, type === '' ? undefined : type);
+    setName('');
+    setType('');
+    setOpen(false);
+  };
+  const cancel = () => {
+    setName('');
+    setType('');
+    setOpen(false);
+  };
+
+  return (
+    <div
+      style={{
+        marginTop: 6, padding: 8, borderRadius: 6,
+        border: `1px solid #2a2d35`, background: '#181a20',
+        display: 'flex', flexDirection: 'column', gap: 6,
+      }}
+    >
+      <select
+        value={type}
+        onChange={(e) => {
+          const v = e.target.value as FolderType | '';
+          setType(v);
+          if (v !== '' && !name.trim()) {
+            // Pré-remplit le nom avec le label de type (sans l'emoji).
+            setName(FOLDER_TYPE_LABELS[v].replace(/^[^\s]+\s/, ''));
+          }
+        }}
+        style={{
+          fontSize: 12, padding: '4px 6px', borderRadius: 4,
+          background: '#0f1117', color: '#cbd5e1', border: '1px solid #2a2d35',
+        }}
+      >
+        <option value="">— Type (autre par défaut) —</option>
+        {FOLDER_TYPE_ORDER.filter((t) => t !== 'autre').map((t) => (
+          <option key={t} value={t}>{FOLDER_TYPE_LABELS[t]}</option>
+        ))}
+      </select>
+      <input
+        type="text"
+        value={name}
+        autoFocus
+        placeholder="Nom du dossier"
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') submit();
+          if (e.key === 'Escape') cancel();
+        }}
+        style={{
+          fontSize: 12, padding: '4px 6px', borderRadius: 4,
+          background: '#0f1117', color: '#f3f4f6', border: '1px solid #2a2d35',
+        }}
+      />
+      <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+        <button
+          onClick={cancel}
+          style={{
+            fontSize: 11, padding: '3px 8px', borderRadius: 4,
+            background: 'transparent', color: '#94a3b8',
+            border: '1px solid #2a2d35', cursor: 'pointer',
+          }}
+        >
+          Annuler
+        </button>
+        <button
+          onClick={submit}
+          disabled={!name.trim()}
+          style={{
+            fontSize: 11, padding: '3px 8px', borderRadius: 4,
+            background: name.trim() ? accent : '#374151',
+            color: '#fff',
+            border: 'none', cursor: name.trim() ? 'pointer' : 'not-allowed',
+          }}
+        >
+          Créer
+        </button>
+      </div>
     </div>
   );
 }

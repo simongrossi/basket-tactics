@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { AppState } from '@/lib/types';
 import { CLASSIC_TEMPLATES, LAB_TEMPLATES, type Template } from '@/lib/data/templates';
-import type { UserLibrary, SavedSystem } from '@/lib/data/library';
+import type { UserLibrary, SavedSystem, FolderType } from '@/lib/data/library';
 import { Panel, COLORS } from './ui';
 import { LibraryModal } from './LibraryModal';
 
@@ -16,7 +16,9 @@ interface LibraryPanelProps {
   onRenameSystem: (systemId: string, newName: string) => void;
   onDeleteSystem: (systemId: string) => void;
   onMoveSystem: (systemId: string, targetFolderId: string) => void;
-  onCreateFolder: (name: string) => void;
+  onCreateFolder: (name: string, type?: FolderType) => void;
+  onSetFolderType: (folderId: string, type: FolderType | undefined) => void;
+  onCreateStandardFolders: () => void;
   onRenameFolder: (folderId: string, newName: string) => void;
   onDeleteFolder: (folderId: string) => void;
   onExportFolder: (folderId: string) => string | null;
@@ -76,6 +78,8 @@ export function LibraryPanel(props: LibraryPanelProps) {
           onDeleteSystem={props.onDeleteSystem}
           onMoveSystem={props.onMoveSystem}
           onCreateFolder={props.onCreateFolder}
+          onSetFolderType={props.onSetFolderType}
+          onCreateStandardFolders={props.onCreateStandardFolders}
           onRenameFolder={props.onRenameFolder}
           onDeleteFolder={props.onDeleteFolder}
           onExportFolder={props.onExportFolder}

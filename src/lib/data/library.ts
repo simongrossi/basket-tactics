@@ -38,12 +38,47 @@ export interface SavedSystem {
   updatedAt: number;
 }
 
+/** Catégorie d'un dossier — sert au regroupement visuel dans la bibliothèque.
+ *  Optionnel : un dossier sans type est rendu dans la section "autre". */
+export type FolderType =
+  | 'touche'
+  | 'indiv'
+  | 'zone'
+  | 'press'
+  | 'transition'
+  | 'fin-de-match'
+  | 'autre';
+
+/** Ordre d'affichage des sections par type. */
+export const FOLDER_TYPE_ORDER: FolderType[] = [
+  'touche',
+  'indiv',
+  'zone',
+  'press',
+  'transition',
+  'fin-de-match',
+  'autre',
+];
+
+/** Libellés FR pour les sections + le select de création. */
+export const FOLDER_TYPE_LABELS: Record<FolderType, string> = {
+  touche: '📥 Touches',
+  indiv: '🛡 Système indiv',
+  zone: '🛡 Système zone',
+  press: '🛡 Press',
+  transition: '🏃 Transition',
+  'fin-de-match': '⏱ Fin de match',
+  autre: '📁 Autre',
+};
+
 /** Dossier personnel contenant des systèmes. */
 export interface SavedFolder {
   id: string;
   name: string;
   systems: SavedSystem[];
   createdAt: number;
+  /** Catégorie pour le regroupement (optionnel : legacy → 'autre'). */
+  type?: FolderType;
 }
 
 /**
@@ -253,14 +288,93 @@ export function moveSystem(
   };
 }
 
-export function createFolder(lib: UserLibrary, name: string): UserLibrary {
+export function createFolder(
+  lib: UserLibrary,
+  name: string,
+  type?: FolderType,
+): UserLibrary {
   return {
     ...lib,
     folders: [
       ...lib.folders,
-      { id: uid('folder'), name, systems: [], createdAt: Date.now() },
+      {
+        id: uid('folder'),
+        name,
+        systems: [],
+        createdAt: Date.now(),
+        ...(type ? { type } : {}),
+      },
     ],
   };
+}
+
+/** Reclasse un dossier existant (change son type sans toucher au reste). */
+export function setFolderType(
+  lib: UserLibrary,
+  folderId: string,
+  type: FolderType | undefined,
+): UserLibrary {
+  return {
+    ...lib,
+    folders: lib.folders.map((f) => {
+      if (f.id !== folderId) return f;
+      if (type === undefined) {
+        const { type: _t, ...rest } = f;
+        return rest;
+      }
+      return { ...f, type };
+    }),
+  };
+}
+
+/** Crée les 5 dossiers standards (touche/indiv/zone/press/transition) en
+ *  un clic, en sautant ceux dont le type est déjà présent. Sert au
+ *  bootstrap d'une bibliothèque vide. */
+export function createStandardFolders(lib: UserLibrary): UserLibrary {
+  const existingTypes = new Set(
+    lib.folders.map((f) => f.type).filter((t): t is FolderType => !!t),
+  );
+  const toCreate: FolderType[] = [
+    'touche',
+    'indiv',
+    'zone',
+    'press',
+    'transition',
+  ];
+  const now = Date.now();
+  const newFolders: SavedFolder[] = toCreate
+    .filter((t) => !existingTypes.has(t))
+    .map((t) => ({
+      id: uid('folder'),
+      name: FOLDER_TYPE_LABELS[t].replace(/^[^\s]+\s/, ''), // sans l'emoji
+      systems: [],
+      createdAt: now,
+      type: t,
+    }));
+  return { ...lib, folders: [...lib.folders, ...newFolders] };
+}
+
+/** Regroupe les dossiers par type pour l'affichage. Renvoie les sections
+ *  dans l'ordre canonique (`FOLDER_TYPE_ORDER`). Une section vide n'est
+ *  pas incluse dans le retour. Folders sans `type` → section "autre". */
+export function groupFoldersByType(
+  folders: SavedFolder[],
+): Array<{ type: FolderType; label: string; folders: SavedFolder[] }> {
+  const buckets = new Map<FolderType, SavedFolder[]>();
+  for (const f of folders) {
+    const t: FolderType = f.type ?? 'autre';
+    const arr = buckets.get(t) ?? [];
+    arr.push(f);
+    buckets.set(t, arr);
+  }
+  const out: Array<{ type: FolderType; label: string; folders: SavedFolder[] }> = [];
+  for (const t of FOLDER_TYPE_ORDER) {
+    const arr = buckets.get(t);
+    if (arr && arr.length > 0) {
+      out.push({ type: t, label: FOLDER_TYPE_LABELS[t], folders: arr });
+    }
+  }
+  return out;
 }
 
 export function renameFolder(
