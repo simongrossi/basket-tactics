@@ -440,6 +440,8 @@ export function resolveFrameAt(
               return { x: (dA.x + dB.x) * 0.5, y: (dA.y + dB.y) * 0.5 };
             }
           : undefined,
+        // Phy.O V3 V4 — boost post-feinte activé par le même flag V3 V1.
+        postFeinteBoost: !!state.attackerActiveDemarquage,
       },
     );
     attackerMovementType[id] = traj.movementType;

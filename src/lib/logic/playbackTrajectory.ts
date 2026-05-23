@@ -88,6 +88,8 @@ export interface PlaybackVelocityProfileOptions {
   /** Phy.O V3 V1 — Position mid-segment du matched defender. Sans
    *  callback ou retour undefined, la lecture défensive est inactive. */
   matchedDefenderFor?: (id: AttackerId) => Point | undefined;
+  /** Phy.O V3 V4 — Active le boost post-feinte (lecture proactive). */
+  postFeinteBoost?: boolean;
 }
 
 /** Cache de profils par annotation × tier. Évite de re-construire le profil
@@ -100,6 +102,7 @@ function getOrBuildProfile(
   tier: AttackerSpeedTier | undefined,
   obstacles: Point[],
   matchedDefenderPos: Point | undefined,
+  postFeinteBoost: boolean,
 ): VelocityProfile {
   let perAnn = profileCache.get(ann);
   if (!perAnn) {
@@ -121,7 +124,9 @@ function getOrBuildProfile(
   const mdpHash = matchedDefenderPos
     ? `${matchedDefenderPos.x | 0},${matchedDefenderPos.y | 0}`
     : '0';
-  const key = `${tierKey}|${obstaclesHash}|${feintesHash}|${mdpHash}`;
+  // Phy.O V3 V4 — flag boost inclus dans la clé.
+  const boostKey = postFeinteBoost ? '1' : '0';
+  const key = `${tierKey}|${obstaclesHash}|${feintesHash}|${mdpHash}|${boostKey}`;
   let profile = perAnn.get(key);
   if (!profile) {
     profile = buildVelocityProfile(path, {
@@ -129,6 +134,7 @@ function getOrBuildProfile(
       obstacles,
       feintes,
       matchedDefenderPos,
+      postFeinteBoost,
     });
     perAnn.set(key, profile);
   }
@@ -241,7 +247,10 @@ export function attackerTrajectoryAt(
         const tier = velocityProfileOptions.tierFor?.(playerId);
         const obstacles = velocityProfileOptions.obstaclesFor?.(playerId) ?? [];
         const matchedDefenderPos = velocityProfileOptions.matchedDefenderFor?.(playerId);
-        s = getOrBuildProfile(ann, path, tier, obstacles, matchedDefenderPos).remap(actionT);
+        const postFeinteBoost = !!velocityProfileOptions.postFeinteBoost;
+        s = getOrBuildProfile(
+          ann, path, tier, obstacles, matchedDefenderPos, postFeinteBoost,
+        ).remap(actionT);
       }
       position = samplePolyline(path, s);
     } else {
@@ -258,7 +267,10 @@ export function attackerTrajectoryAt(
         const tier = velocityProfileOptions.tierFor?.(playerId);
         const obstacles = velocityProfileOptions.obstaclesFor?.(playerId) ?? [];
         const matchedDefenderPos = velocityProfileOptions.matchedDefenderFor?.(playerId);
-        s = getOrBuildProfile(ann, path, tier, obstacles, matchedDefenderPos).remap(actionT);
+        const postFeinteBoost = !!velocityProfileOptions.postFeinteBoost;
+        s = getOrBuildProfile(
+          ann, path, tier, obstacles, matchedDefenderPos, postFeinteBoost,
+        ).remap(actionT);
       }
       position = samplePolyline(path, s);
     } else {
