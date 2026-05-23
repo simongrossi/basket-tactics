@@ -14,6 +14,8 @@
 import type { AttackerSpeedTier, Point } from '../types';
 import {
   OFFENSIVE_CURVATURE_SENSITIVITY,
+  OFFENSIVE_FEINTE_DEPTH,
+  OFFENSIVE_FEINTE_WIDTH,
   OFFENSIVE_FRICTION_FLOOR,
   OFFENSIVE_FRICTION_THRESHOLD_PX,
   OFFENSIVE_PROFILE_SAMPLES,
@@ -41,6 +43,14 @@ export interface VelocityProfileOptions {
   /** Phy.O V2 — Facteur minimum (au contact). Défaut :
    *  `OFFENSIVE_FRICTION_FLOOR` (0.6). */
   frictionFloor?: number;
+  /** Phy.O V4 — Positions des feintes en fraction d'arc (∈ [0, 1]).
+   *  Chaque feinte applique un creux gaussien sur v(s). */
+  feintes?: number[];
+  /** Phy.O V4 — Profondeur du creux. Défaut : OFFENSIVE_FEINTE_DEPTH. */
+  feinteDepth?: number;
+  /** Phy.O V4 — Largeur σ du creux (fraction d'arc). Défaut :
+   *  OFFENSIVE_FEINTE_WIDTH. */
+  feinteWidth?: number;
 }
 
 export interface VelocityProfile {
@@ -110,6 +120,32 @@ function computeFrictions(
   return out;
 }
 
+/** Pour chaque sample i, multiplicateur de vitesse dû aux feintes.
+ *  feinteFactor(s_norm) = 1 - (1 - depth) × max_f exp(-((s_norm - t_f) / width)² / 2)
+ *  On prend le `max` des creux (pas la somme) pour éviter qu'une
+ *  superposition de feintes proches descende v sous depth. */
+function computeFeinteFactors(
+  sampleCount: number,
+  feintes: number[],
+  depth: number,
+  width: number,
+): number[] {
+  const out = new Array<number>(sampleCount).fill(1);
+  if (feintes.length === 0 || width <= 0 || sampleCount < 2) return out;
+  const depthFactor = 1 - depth; // ex : depth=0.5 → depthFactor=0.5
+  for (let i = 0; i < sampleCount; i++) {
+    const sNorm = i / (sampleCount - 1); // ∈ [0, 1]
+    let maxDip = 0;
+    for (const tF of feintes) {
+      const u = (sNorm - tF) / width;
+      const dip = depthFactor * Math.exp(-(u * u) / 2);
+      if (dip > maxDip) maxDip = dip;
+    }
+    out[i] = 1 - maxDip;
+  }
+  return out;
+}
+
 export function buildVelocityProfile(
   path: Point[],
   options: VelocityProfileOptions = {},
@@ -147,10 +183,17 @@ export function buildVelocityProfile(
     frictionThreshold,
     frictionFloor,
   );
-  // v(s) = friction(s) / (1 + α κ(s)). Friction <= 1, donc v plus petit
-  // aux points proches d'un obstacle → temps physique avance plus vite
-  // → après inversion, le joueur a moins parcouru à un actionT donné.
-  const vs = curvs.map((k, i) => frictions[i] / (1 + alpha * k));
+  // Phy.O V4 — feintes : creux de vitesse localisés.
+  const feinteDepth = options.feinteDepth ?? OFFENSIVE_FEINTE_DEPTH;
+  const feinteWidth = options.feinteWidth ?? OFFENSIVE_FEINTE_WIDTH;
+  const feinteFactors = computeFeinteFactors(
+    pts.length,
+    options.feintes ?? [],
+    feinteDepth,
+    feinteWidth,
+  );
+  // v(s) = (feinte × friction) / (1 + α κ). Tous multiplicatifs.
+  const vs = curvs.map((k, i) => (feinteFactors[i] * frictions[i]) / (1 + alpha * k));
 
   // Temps cumulé : t_phys(i) = Σ Δs / avg(v_{j-1}, v_j).
   const dsUniform = total / samples;

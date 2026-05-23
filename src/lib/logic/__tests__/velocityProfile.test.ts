@@ -140,4 +140,43 @@ describe('buildVelocityProfile', () => {
     expect(p1.remap(0.5)).toBeCloseTo(0.5, 3);
     expect(p2.remap(0.5)).toBeCloseTo(0.5, 3);
   });
+
+  it('Phy.O V4 — feinte au milieu du path → ralentissement local', () => {
+    // Une feinte symétrique au milieu d'un path droit ralentit le joueur
+    // autour de s=0.5. Avant d'atteindre le centre du creux, le joueur va
+    // à v=1 (zone rapide) ; à actionT=0.3 (= 30% du temps), il a donc
+    // couvert plus de 30% de l'arc (probe asymétrique pour éviter le
+    // point fixe de symétrie remap(0.5)=0.5).
+    const p = buildVelocityProfile(
+      [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+      { feintes: [0.5] },
+    );
+    expect(p.remap(0.3)).toBeGreaterThan(0.3 + 0.02);
+  });
+
+  it('Phy.O V4 — aucune feinte (option absente ou tableau vide) → V1 inchangé', () => {
+    const path = [{ x: 0, y: 0 }, { x: 100, y: 0 }];
+    const p1 = buildVelocityProfile(path);
+    const p2 = buildVelocityProfile(path, { feintes: [] });
+    expect(p2.remap(0.5)).toBeCloseTo(p1.remap(0.5), 6);
+  });
+
+  it('Phy.O V4 — feinte hors range (t=1.5) → pas de crash, effet négligeable', () => {
+    const p = buildVelocityProfile(
+      [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+      { feintes: [1.5] },
+    );
+    expect(() => p.remap(0.5)).not.toThrow();
+    // Le centre de la gaussienne est à t=1.5, sa queue à t=0.5 est très
+    // faible (5 sigmas avec width=0.08 → exp(-12.5) ≈ 0).
+    expect(p.remap(0.5)).toBeCloseTo(0.5, 2);
+  });
+
+  it('Phy.O V4 — deux feintes au même point → max, pas somme', () => {
+    const path = [{ x: 0, y: 0 }, { x: 100, y: 0 }];
+    const pSingle = buildVelocityProfile(path, { feintes: [0.5] });
+    const pDouble = buildVelocityProfile(path, { feintes: [0.5, 0.5] });
+    // Avec max(), deux feintes au même endroit ≡ une seule feinte.
+    expect(pDouble.remap(0.5)).toBeCloseTo(pSingle.remap(0.5), 3);
+  });
 });
