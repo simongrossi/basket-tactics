@@ -14,6 +14,8 @@
 import type { AttackerSpeedTier, Point } from '../types';
 import {
   OFFENSIVE_CURVATURE_SENSITIVITY,
+  OFFENSIVE_DEFENSE_READING_FLOOR,
+  OFFENSIVE_DEFENSE_READING_THRESHOLD_PX,
   OFFENSIVE_FEINTE_DEPTH,
   OFFENSIVE_FEINTE_WIDTH,
   OFFENSIVE_FRICTION_FLOOR,
@@ -51,6 +53,14 @@ export interface VelocityProfileOptions {
   /** Phy.O V4 — Largeur σ du creux (fraction d'arc). Défaut :
    *  OFFENSIVE_FEINTE_WIDTH. */
   feinteWidth?: number;
+  /** Phy.O V3 V1 — Position du matched defender (snapshot mid-segment).
+   *  Si fourni, l'attaquant ralentit autour des points proches de cette
+   *  position (lecture défensive). */
+  matchedDefenderPos?: Point;
+  /** Phy.O V3 V1 — Distance threshold. Défaut : OFFENSIVE_DEFENSE_READING_THRESHOLD_PX. */
+  defenseReadingThreshold?: number;
+  /** Phy.O V3 V1 — Facteur minimum au contact. Défaut : OFFENSIVE_DEFENSE_READING_FLOOR. */
+  defenseReadingFloor?: number;
 }
 
 export interface VelocityProfile {
@@ -115,6 +125,32 @@ function computeFrictions(
     } else {
       const tFr = Math.max(0, minDist) / threshold;
       out[i] = floor + (1 - floor) * tFr;
+    }
+  }
+  return out;
+}
+
+/** Phy.O V3 V1 — Facteur de lecture défensive par sample. Mirror de
+ *  `computeFrictions` mais avec un seul obstacle (le matched defender)
+ *  et des défauts plus généreux (threshold plus large, floor plus haut). */
+function computeDefenseReadings(
+  samples: Point[],
+  matchedDefenderPos: Point | undefined,
+  threshold: number,
+  floor: number,
+): number[] {
+  const out = new Array<number>(samples.length).fill(1);
+  if (!matchedDefenderPos) return out;
+  for (let i = 0; i < samples.length; i++) {
+    const d = Math.hypot(
+      matchedDefenderPos.x - samples[i].x,
+      matchedDefenderPos.y - samples[i].y,
+    );
+    if (d >= threshold) {
+      out[i] = 1;
+    } else {
+      const tR = Math.max(0, d) / threshold;
+      out[i] = floor + (1 - floor) * tR;
     }
   }
   return out;
@@ -192,8 +228,19 @@ export function buildVelocityProfile(
     feinteDepth,
     feinteWidth,
   );
-  // v(s) = (feinte × friction) / (1 + α κ). Tous multiplicatifs.
-  const vs = curvs.map((k, i) => (feinteFactors[i] * frictions[i]) / (1 + alpha * k));
+  // Phy.O V3 V1 — lecture défensive (matched defender uniquement).
+  const drThreshold = options.defenseReadingThreshold ?? OFFENSIVE_DEFENSE_READING_THRESHOLD_PX;
+  const drFloor = options.defenseReadingFloor ?? OFFENSIVE_DEFENSE_READING_FLOOR;
+  const defenseReadings = computeDefenseReadings(
+    pts,
+    options.matchedDefenderPos,
+    drThreshold,
+    drFloor,
+  );
+  // v(s) = (feinte × friction × defenseReading) / (1 + α κ).
+  const vs = curvs.map(
+    (k, i) => (feinteFactors[i] * frictions[i] * defenseReadings[i]) / (1 + alpha * k),
+  );
 
   // Temps cumulé : t_phys(i) = Σ Δs / avg(v_{j-1}, v_j).
   const dsUniform = total / samples;

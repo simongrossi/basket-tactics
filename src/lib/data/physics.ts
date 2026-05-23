@@ -243,3 +243,14 @@ export const OFFENSIVE_FEINTE_DEPTH = 0.5;
 /** Phy.O V4 — Largeur (σ gaussienne) du creux, en fraction d'arc.
  *  0.08 = la feinte couvre ~16 % du path autour de son centre. */
 export const OFFENSIVE_FEINTE_WIDTH = 0.08;
+
+/** Phy.O V3 — Distance en deçà de laquelle le matched defender impose
+ *  une lecture défensive (ralentissement intentionnel pour le laisser
+ *  réagir). Plus généreux que la friction de contact (V2) car la lecture
+ *  arrive avant le contact réel. */
+export const OFFENSIVE_DEFENSE_READING_THRESHOLD_PX = 50;
+
+/** Phy.O V3 — Facteur minimum au plus proche de la lecture. Moins
+ *  agressif que la friction de contact : la lecture est délibérée, pas
+ *  un freinage forcé. */
+export const OFFENSIVE_DEFENSE_READING_FLOOR = 0.7;

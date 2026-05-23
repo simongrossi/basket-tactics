@@ -986,6 +986,11 @@ export interface AppState {
   /** Phy.O — Active le profil de vitesse offensif (courbure + tier). Opt-in :
    *  default `undefined` → comportement legacy strict (sampling linéaire). */
   attackerVelocityProfileEnabled?: boolean;
+  /** Phy.O V3 — Active la lecture défensive : l'attaquant ralentit
+   *  autour des points de son path où son défenseur matché est proche
+   *  (≤ 50 px). Sous le même profil de vitesse que V1/V2/V4 — n'a
+   *  d'effet que si `attackerVelocityProfileEnabled` est aussi on. */
+  attackerActiveDemarquage?: boolean;
   /** F.4 — Fautes équipe défense pour le quart en cours (0-5). À ≥ 5,
    *  l'équipe est en BONUS : "foul to give" devient interdit (donne LF).
    *  Default 0 (rentrée fraîche dans le quart). */

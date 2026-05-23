@@ -179,4 +179,31 @@ describe('buildVelocityProfile', () => {
     // Avec max(), deux feintes au même endroit ≡ une seule feinte.
     expect(pDouble.remap(0.5)).toBeCloseTo(pSingle.remap(0.5), 3);
   });
+
+  it('Phy.O V3 V1 — matched defender proche au quart → ralentissement asymétrique', () => {
+    // Matched defender placé asymétriquement (à x=25) → ralentissement
+    // concentré dans la 1ère moitié → à mi-temps le joueur n'a pas encore
+    // atteint le milieu. Pattern identique aux tests V2 friction.
+    const p = buildVelocityProfile(
+      [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+      { matchedDefenderPos: { x: 25, y: 20 } },
+    );
+    expect(p.remap(0.5)).toBeLessThan(0.5 - 0.02);
+  });
+
+  it('Phy.O V3 V1 — matched defender hors threshold (>50 px) → identité', () => {
+    const p = buildVelocityProfile(
+      [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+      { matchedDefenderPos: { x: 50, y: 100 } },
+    );
+    expect(p.remap(0.25)).toBeCloseTo(0.25, 2);
+    expect(p.remap(0.75)).toBeCloseTo(0.75, 2);
+  });
+
+  it('Phy.O V3 V1 — matchedDefenderPos absent → V2 inchangé', () => {
+    const path = [{ x: 0, y: 0 }, { x: 100, y: 0 }];
+    const p1 = buildVelocityProfile(path);
+    const p2 = buildVelocityProfile(path, { matchedDefenderPos: undefined });
+    expect(p2.remap(0.5)).toBeCloseTo(p1.remap(0.5), 6);
+  });
 });
