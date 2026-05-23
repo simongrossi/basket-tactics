@@ -413,7 +413,7 @@ travail" est rempli.
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
 | ~~5~~ | ~~Mode présentation v2 (fullscreen navigateur natif)~~ — 🟢 livré 2026-05-22 | — | — | — |
-| 6 | Export GIF/vidéo | 3-4h | 🟡 | **Très haut** (partage) |
+| ~~6~~ | ~~Export GIF/vidéo~~ — 🟢 livré 2026-05-23 | — | — | — |
 | ~~8~~ | ~~Annotations texte libres~~ — 🟢 livré 2026-05-23 | — | — | — |
 
 ✅ **Livré 2026-05-12** : 1 (saisie num sliders), 2 (snap-to-grid),
@@ -813,7 +813,7 @@ et un A* naïf risquerait de les contredire. Chemin sûr recommandé :
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|
 | E.1 | **A11 — Box-out / rebond après tir** | 5-8j | 🟡 | **Très haut** — demi-jeu manquant |
-| E.2 | Export GIF / vidéo | 3-4h | 🟡 | **Très haut** — diffusion |
+| ~~E.2~~ | ~~**Export GIF / WebM**~~ : modal d'export du terrain animé (GIF universel + WebM léger). Pilote le renderer live via `exportT` qui prime sur scrub/playback. Encodage `gif.js` (Web Worker) ou `MediaRecorder` natif. Téléchargement direct via Blob URL. Item dans le menu overflow `⋯`. | — | — | 🟢 V1 livré 2026-05-23 |
 
 Détail A11 (cf. section 4 plus haut) : enrichir `annotation.shoot` avec
 `shotOutcome`, nouvelle couche `boxOutLayer`, modèle de rebond, transition
