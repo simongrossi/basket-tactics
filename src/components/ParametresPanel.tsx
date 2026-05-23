@@ -3,7 +3,7 @@
 import { useId, type CSSProperties, type ReactNode } from 'react';
 import type { AppState, PlayerCount, PlayerId } from '@/lib/types';
 import { PLAYER_COUNT_OPTIONS } from '@/lib/logic/players';
-import { Panel } from './ui';
+import { Panel, CheckboxLine } from './ui';
 
 interface ParametresPanelProps {
   state: AppState;
@@ -452,6 +452,17 @@ export function ParametresPanel({
               onChange={(v) => onPatch({ showZoneTracking: v })}
             />
           </ToggleGroup>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection title="Physique offensive">
+        <div style={{ display: 'grid', gap: 8 }}>
+          <CheckboxLine
+            checked={!!state.attackerVelocityProfileEnabled}
+            label="profil de vitesse offensif (Phy.O — courbure)"
+            onChange={(v) => onPatch({ attackerVelocityProfileEnabled: v })}
+            title="Les attaquants ralentissent dans les virages serrés (V-cuts) et ré-accélèrent en sortie. Vitesse constante sur les drives droits. Modulé par tier athlétique si défini. Opt-in, A/B comparable."
+          />
         </div>
       </SettingsSection>
     </Panel>
