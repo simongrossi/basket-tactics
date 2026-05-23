@@ -235,3 +235,11 @@ export const OFFENSIVE_FRICTION_THRESHOLD_PX = 30;
 /** Phy.O V2 — Facteur minimum de vitesse au contact. Mirror du `floor`
  *  de `proximityFriction` (Lever B défensif). */
 export const OFFENSIVE_FRICTION_FLOOR = 0.6;
+
+/** Phy.O V4 — Profondeur du creux de vitesse au centre d'une feinte.
+ *  0.5 = 50 % de vitesse au pic (le joueur ralentit de moitié à ce point). */
+export const OFFENSIVE_FEINTE_DEPTH = 0.5;
+
+/** Phy.O V4 — Largeur (σ gaussienne) du creux, en fraction d'arc.
+ *  0.08 = la feinte couvre ~16 % du path autour de son centre. */
+export const OFFENSIVE_FEINTE_WIDTH = 0.08;

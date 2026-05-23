@@ -109,6 +109,13 @@ export interface Annotation {
    *  - 100 (lockdown) : D1 quasi-stoppé (~1.2s)
    *  Indéfini = 50. */
   quality?: number;
+  /** Phy.O V4 — Feintes / hesitations explicites le long du path.
+   *  Chaque valeur ∈ [0, 1] est une position en fraction d'arc (pas en
+   *  temps) où le joueur marque une pause/slowdown intentionnel(le)
+   *  (jab step, hesitation dribble, fake-and-go). Plusieurs feintes
+   *  possibles. N'affecte que `cut` et `dribble`. Aucun effet sans
+   *  `attackerVelocityProfileEnabled` actif. */
+  feintes?: number[];
 }
 
 /** A.3 — Note texte libre déposée sur le terrain. Purement visuelle :
