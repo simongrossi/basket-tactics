@@ -1035,10 +1035,10 @@ attaque, en plusieurs vagues.
 | # | Chantier | Effort | Risque | Valeur | Statut |
 |---|---|---|---|---|---|
 | ~~Phy.O V1~~ | ~~**Profil de vitesse offensif (courbure + tier athlétique)**~~ : module pur `velocityProfile.ts` calcule la courbure le long de la courbe Catmull-Rom lissée et en déduit un remap `actionT_linéaire → s/L`. Un V-cut ralentit à l'apex et ré-accélère en sortie, un drive droit garde la vitesse max. Tier athlétique `attackerSpeedProfiles` (elite ×0.7 / standard / lent ×1.4 sur α). Câblé dans `playbackTrajectory` derrière le flag opt-in `state.attackerVelocityProfileEnabled`. Toggle dans `ParametresPanel`. Endpoints `ann.from`/`ann.to` strictement préservés. | — | — | — | 🟢 V1 livré 2026-05-23 (9 tests, 1720 verts) |
-| Phy.O V2 | **Friction de proximité offensive** : mirror de Lever B côté attaque — encore ralentir v(s) aux points du path proches d'un autre joueur. Plan séparé. | 3-4h | 🟡 | Moyen | ⚪ |
+| ~~Phy.O V2~~ | ~~**Friction de proximité offensive**~~ : per-sample factor `friction(s) ∈ [0.6, 1]` dans `v(s) = friction(s) / (1 + α κ(s))`. Obstacles = autres joueurs au mid-segment, snapshot construit par `frameResolver`. Cache `WeakMap` indexé par `tier|obstaclesHash`. | — | — | — | 🟢 V2 livré 2026-05-23 (4 tests, ~1728 verts) |
 | Phy.O V3 | **Démarquage actif** : l'attaquant *réagit* à la position du défenseur (mirror de l'anticipation défensive G.3). Demande un modèle de décision offensif. | 1-2j | 🔴 | Haut | ⚪ |
 | Phy.O V4 | **Feintes / jab steps / hesitation dribbles** : transitions de vitesse non-linéaires modélisées explicitement (pas seulement émergentes de la courbure). | 4-6h | 🟡 | Haut | ⚪ |
-| Phy.O Vn | **UI per-attaquant pour le tier athlétique** : picker dans le menu contextuel attaquant ou panneau dédié. | 2h | 🟢 | Moyen | ⚪ |
+| ~~Phy.O UI tier~~ | ~~**UI per-attaquant pour le tier athlétique**~~ : select dans `AttackerMenu` (auto/elite/standard/lent), transform `setAttackerSpeedTier`, propagation Page → CourtView → CourtMenus → AttackerMenu. | — | — | — | 🟢 livré 2026-05-23 (4 tests transform) |
 
 ---
 
