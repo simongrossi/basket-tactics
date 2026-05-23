@@ -226,3 +226,12 @@ export const OFFENSIVE_TIER_MULTIPLIER = {
   standard: 1.0,
   lent: 1.4,
 } as const;
+
+/** Phy.O V2 — Distance en deçà de laquelle un obstacle ralentit
+ *  l'attaquant. Mirror du `threshold` de `proximityFriction` (Lever B
+ *  défensif) pour cohérence. */
+export const OFFENSIVE_FRICTION_THRESHOLD_PX = 30;
+
+/** Phy.O V2 — Facteur minimum de vitesse au contact. Mirror du `floor`
+ *  de `proximityFriction` (Lever B défensif). */
+export const OFFENSIVE_FRICTION_FLOOR = 0.6;

@@ -4,6 +4,7 @@ import type {
   AppState,
   AttackerId,
   AttackerProfiles,
+  AttackerSpeedTier,
   OffensiveProfile,
 } from '@/lib/types';
 
@@ -63,4 +64,21 @@ export function setAttackerProfile(
     ...s,
     attackerProfiles: { ...(s.attackerProfiles ?? DEFAULT_PROFILES), [oId]: profile },
   };
+}
+
+/** Phy.O — Définit ou efface le tier athlétique d'un attaquant.
+ *  `undefined` supprime la clé du map (= 'standard' effectif). Inputs
+ *  non mutés. */
+export function setAttackerSpeedTier(
+  state: AppState,
+  id: AttackerId,
+  tier: AttackerSpeedTier | undefined,
+): AppState {
+  const current = { ...(state.attackerSpeedProfiles ?? {}) };
+  if (tier === undefined) {
+    delete current[id];
+  } else {
+    current[id] = tier;
+  }
+  return { ...state, attackerSpeedProfiles: current };
 }
