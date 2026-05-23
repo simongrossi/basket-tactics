@@ -168,6 +168,7 @@ export default function SimulationPage() {
             onClearAnnotationsFor={noopWithArgs}
             onSetAttackerHand={noopWithArgs}
             onSetAttackerProfile={noopWithArgs}
+            onSetAttackerSpeedTier={noopWithArgs}
             onSetAttackerOrientation={noopWithArgs}
             onSetZoneOverride={noopWithArgs}
             onClearZoneOverride={noopWithArgs}

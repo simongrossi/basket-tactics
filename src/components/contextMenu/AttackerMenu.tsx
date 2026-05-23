@@ -8,6 +8,7 @@ import type {
   Annotation,
   AppState,
   AttackerId,
+  AttackerSpeedTier,
   DominantHand,
   OffensiveProfile,
   Tool,
@@ -55,6 +56,8 @@ export interface AttackerMenuProps {
   onClearAnnotations: () => void;
   onSetDominantHand: (h: DominantHand) => void;
   onSetOffensiveProfile: (p: OffensiveProfile) => void;
+  attackerSpeedTier?: AttackerSpeedTier | undefined;
+  onSetAttackerSpeedTier: (tier: AttackerSpeedTier | undefined) => void;
   onSetBodyOrientation: (v: number | undefined) => void;
   onSetGazeOrientation: (v: number | undefined) => void;
   /** Création d'une annotation auto (passe / écran) depuis le sous-menu. */
@@ -67,7 +70,9 @@ export function AttackerMenu({
   tool, onSetTool, actionTimingAnchor, onSetActionTimingAnchor, bodyOrientation, gazeOrientation,
   state, onCreateAutoAnnotation,
   onMakeCarrier, onForceScreener, onClearForcedScreener, onClearAnnotations,
-  onSetDominantHand, onSetOffensiveProfile, onSetBodyOrientation, onSetGazeOrientation, onClose,
+  onSetDominantHand, onSetOffensiveProfile,
+  attackerSpeedTier, onSetAttackerSpeedTier,
+  onSetBodyOrientation, onSetGazeOrientation, onClose,
 }: AttackerMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
   const pos = useClampedPosition(x, y, ref);
@@ -186,6 +191,39 @@ export function AttackerMenu({
           {(Object.keys(PROFILE_LABELS) as OffensiveProfile[]).map((p) => (
             <option key={p} value={p}>{PROFILE_LABELS[p]}</option>
           ))}
+        </select>
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          marginTop: 6,
+          padding: '5px 6px',
+          borderRadius: 4,
+          background: ORANGE_TINT_BG,
+          border: `1px solid ${ORANGE_TINT_BORDER}`,
+        }}
+        title="Phy.O — Tier athlétique. Module la sensibilité aux virages (elite ralentit moins dans les courbes, lent ralentit plus). Effet visible quand le profil de vitesse offensif est activé dans Paramètres."
+      >
+        <span style={{ fontSize: 11, color: ORANGE_ACCENT, width: 88, fontWeight: 500 }}>
+          tier athl.
+        </span>
+        <select
+          value={attackerSpeedTier ?? 'auto'}
+          onChange={(e) => {
+            const v = e.target.value;
+            onSetAttackerSpeedTier(
+              v === 'auto' ? undefined : (v as AttackerSpeedTier),
+            );
+          }}
+          style={{ flex: 1, fontSize: 11 }}
+        >
+          <option value="auto">auto (standard)</option>
+          <option value="elite">elite</option>
+          <option value="standard">standard</option>
+          <option value="lent">lent</option>
         </select>
       </div>
 

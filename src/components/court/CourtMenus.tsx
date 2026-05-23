@@ -13,6 +13,7 @@ import type {
   AppState,
   ActionTimingAnchor,
   AttackerId,
+  AttackerSpeedTier,
   DefenderId,
   OffensiveProfile,
   Tool,
@@ -50,6 +51,7 @@ interface CourtMenusProps {
   onClearAnnotationsFor: (oId: AttackerId) => void;
   onSetAttackerHand: (oId: AttackerId, hand: 'right' | 'left') => void;
   onSetAttackerProfile: (oId: AttackerId, profile: OffensiveProfile) => void;
+  onSetAttackerSpeedTier: (oId: AttackerId, tier: AttackerSpeedTier | undefined) => void;
   onSetAttackerOrientation: (
     oId: AttackerId,
     patch: { body?: number | undefined; gaze?: number | undefined }
@@ -78,6 +80,7 @@ export function CourtMenus(props: CourtMenusProps) {
     onClearAnnotationsFor,
     onSetAttackerHand,
     onSetAttackerProfile,
+    onSetAttackerSpeedTier,
     onSetAttackerOrientation,
     onAddAnnotation,
     onSetZoneOverride,
@@ -129,6 +132,8 @@ export function CourtMenus(props: CourtMenusProps) {
             onClearAnnotations={() => onClearAnnotationsFor(oId)}
             onSetDominantHand={(h) => onSetAttackerHand(oId, h)}
             onSetOffensiveProfile={(p) => onSetAttackerProfile(oId, p)}
+            attackerSpeedTier={state.attackerSpeedProfiles?.[oId]}
+            onSetAttackerSpeedTier={(t) => onSetAttackerSpeedTier(oId, t)}
             bodyOrientation={state.attackerOrientations?.[oId]?.body}
             gazeOrientation={state.attackerOrientations?.[oId]?.gaze}
             onSetBodyOrientation={(v) => onSetAttackerOrientation(oId, { body: v })}

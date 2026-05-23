@@ -96,6 +96,7 @@ interface CourtViewProps {
   onClearAnnotationsFor: (oId: AttackerId) => void;
   onSetAttackerHand: (oId: AttackerId, hand: 'right' | 'left') => void;
   onSetAttackerProfile: (oId: AttackerId, profile: import('@/lib/types').OffensiveProfile) => void;
+  onSetAttackerSpeedTier: (oId: AttackerId, tier: import('@/lib/types').AttackerSpeedTier | undefined) => void;
   onSetAttackerOrientation: (oId: AttackerId, patch: { body?: number | undefined; gaze?: number | undefined }) => void;
   onSetZoneOverride: (regionId: string, override: Partial<import('@/lib/types').ZoneRegionOverride>) => void;
   onClearZoneOverride: (regionId: string) => void;
@@ -1004,6 +1005,7 @@ export function CourtView(props: CourtViewProps) {
         onClearAnnotationsFor={props.onClearAnnotationsFor}
         onSetAttackerHand={props.onSetAttackerHand}
         onSetAttackerProfile={props.onSetAttackerProfile}
+        onSetAttackerSpeedTier={props.onSetAttackerSpeedTier}
         onSetAttackerOrientation={props.onSetAttackerOrientation}
         onAddAnnotation={props.onAddAnnotation}
         onSetZoneOverride={props.onSetZoneOverride}

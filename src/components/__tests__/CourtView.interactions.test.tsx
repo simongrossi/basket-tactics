@@ -59,6 +59,7 @@ function renderCourt(overrides: Partial<ComponentProps<typeof CourtView>> = {}) 
     onClearAnnotationsFor: vi.fn(),
     onSetAttackerHand: vi.fn(),
     onSetAttackerProfile: vi.fn(),
+    onSetAttackerSpeedTier: vi.fn(),
     onSetAttackerOrientation: vi.fn(),
     onSetZoneOverride: vi.fn(),
     onClearZoneOverride: vi.fn(),

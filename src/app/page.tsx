@@ -523,6 +523,7 @@ export default function Page() {
               onClearAnnotationsFor={app.clearAnnotationsFor}
               onSetAttackerHand={app.setAttackerHand}
               onSetAttackerProfile={app.setAttackerProfile}
+              onSetAttackerSpeedTier={app.setAttackerSpeedTier}
               onSetAttackerOrientation={app.setAttackerOrientation}
               onSetZoneOverride={app.setZoneOverride}
               onClearZoneOverride={app.clearZoneOverride}

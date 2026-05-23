@@ -15,6 +15,7 @@ import type {
   AddAnnotationOptions,
   Annotation,
   AttackerId,
+  AttackerSpeedTier,
   DefenderId,
   DefenderRule,
   DefenseSystem,
@@ -538,6 +539,13 @@ export function useAppState() {
     [setStateWithHistory]
   );
 
+  const setAttackerSpeedTier = useCallback(
+    (id: AttackerId, tier: AttackerSpeedTier | undefined) => {
+      setStateWithHistory((s) => attackerTx.setAttackerSpeedTier(s, id, tier));
+    },
+    [setStateWithHistory],
+  );
+
   // -- Reset / template / import / patch / playerCount --
   const resetAll = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -687,6 +695,7 @@ export function useAppState() {
     setAttackerHand,
     setAttackerOrientation,
     setAttackerProfile,
+    setAttackerSpeedTier,
     setScreenRule,
     resetSwitches,
     resetAll,
