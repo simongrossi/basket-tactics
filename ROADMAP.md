@@ -1025,6 +1025,23 @@ ou affiner.
 
 ---
 
+### Phase Phy.O — Physique offensive (mirror du moteur défensif côté attaque)
+
+Le moteur physique était asymétrique : défense saturée (D.2 inertie, G.3 accel,
+G.4 profils, Lever B friction, D.4 pathfinding…), attaque vide (sampling
+linéaire en arc-length, aucune physique). Phy.O comble ce trou côté
+attaque, en plusieurs vagues.
+
+| # | Chantier | Effort | Risque | Valeur | Statut |
+|---|---|---|---|---|---|
+| ~~Phy.O V1~~ | ~~**Profil de vitesse offensif (courbure + tier athlétique)**~~ : module pur `velocityProfile.ts` calcule la courbure le long de la courbe Catmull-Rom lissée et en déduit un remap `actionT_linéaire → s/L`. Un V-cut ralentit à l'apex et ré-accélère en sortie, un drive droit garde la vitesse max. Tier athlétique `attackerSpeedProfiles` (elite ×0.7 / standard / lent ×1.4 sur α). Câblé dans `playbackTrajectory` derrière le flag opt-in `state.attackerVelocityProfileEnabled`. Toggle dans `ParametresPanel`. Endpoints `ann.from`/`ann.to` strictement préservés. | — | — | — | 🟢 V1 livré 2026-05-23 (9 tests, 1720 verts) |
+| Phy.O V2 | **Friction de proximité offensive** : mirror de Lever B côté attaque — encore ralentir v(s) aux points du path proches d'un autre joueur. Plan séparé. | 3-4h | 🟡 | Moyen | ⚪ |
+| Phy.O V3 | **Démarquage actif** : l'attaquant *réagit* à la position du défenseur (mirror de l'anticipation défensive G.3). Demande un modèle de décision offensif. | 1-2j | 🔴 | Haut | ⚪ |
+| Phy.O V4 | **Feintes / jab steps / hesitation dribbles** : transitions de vitesse non-linéaires modélisées explicitement (pas seulement émergentes de la courbure). | 4-6h | 🟡 | Haut | ⚪ |
+| Phy.O Vn | **UI per-attaquant pour le tier athlétique** : picker dans le menu contextuel attaquant ou panneau dédié. | 2h | 🟢 | Moyen | ⚪ |
+
+---
+
 ### Phase H — Tests composants React (~3-4 jours)
 
 Aujourd'hui : zéro test sur `src/components/`. Convention du projet, OK
