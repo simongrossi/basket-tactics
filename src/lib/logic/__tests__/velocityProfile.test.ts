@@ -99,4 +99,45 @@ describe('buildVelocityProfile', () => {
     expect(p0.length).toBe(0);
     expect(p0.remap(0.3)).toBeCloseTo(0.3, 6);
   });
+
+  it('Phy.O V2 — obstacle proche dans le premier quart → remap(0.5) < 0.5 (ralentissement)', () => {
+    // Path droit horizontal, obstacle proche du premier quart (asymétrique).
+    // Le joueur ralentit AVANT d'atteindre le milieu → à mi-temps il n'a
+    // pas encore franchi 0.5 du path.
+    const p = buildVelocityProfile(
+      [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+      { obstacles: [{ x: 25, y: 5 }] },
+    );
+    expect(p.remap(0.5)).toBeLessThan(0.5 - 0.02);
+  });
+
+  it('Phy.O V2 — obstacle hors threshold → remap identité (pas d\'effet)', () => {
+    // Obstacle à 100 px du path → bien au-delà des 30 px threshold.
+    const p = buildVelocityProfile(
+      [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+      { obstacles: [{ x: 50, y: 100 }] },
+    );
+    expect(p.remap(0.25)).toBeCloseTo(0.25, 2);
+    expect(p.remap(0.5)).toBeCloseTo(0.5, 2);
+    expect(p.remap(0.75)).toBeCloseTo(0.75, 2);
+  });
+
+  it('Phy.O V2 — deux obstacles asymétriques → deux zones de ralentissement', () => {
+    const p = buildVelocityProfile(
+      [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+      { obstacles: [{ x: 20, y: 5 }, { x: 60, y: 5 }] },
+    );
+    // À chaque obstacle, le joueur ralentit → s/L < temps relatif.
+    expect(p.remap(0.25)).toBeLessThan(0.25 - 0.01);
+    expect(p.remap(0.75)).toBeLessThan(0.75 - 0.01);
+  });
+
+  it('Phy.O V2 — obstacles vides ou absents → comportement V1 inchangé', () => {
+    const path = [{ x: 0, y: 0 }, { x: 100, y: 0 }];
+    const p1 = buildVelocityProfile(path);
+    const p2 = buildVelocityProfile(path, { obstacles: [] });
+    // Les deux sont identité (path droit).
+    expect(p1.remap(0.5)).toBeCloseTo(0.5, 3);
+    expect(p2.remap(0.5)).toBeCloseTo(0.5, 3);
+  });
 });

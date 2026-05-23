@@ -14,6 +14,8 @@
 import type { AttackerSpeedTier, Point } from '../types';
 import {
   OFFENSIVE_CURVATURE_SENSITIVITY,
+  OFFENSIVE_FRICTION_FLOOR,
+  OFFENSIVE_FRICTION_THRESHOLD_PX,
   OFFENSIVE_PROFILE_SAMPLES,
   OFFENSIVE_TIER_MULTIPLIER,
 } from '../data/physics';
@@ -30,6 +32,15 @@ export interface VelocityProfileOptions {
   tier?: AttackerSpeedTier;
   /** Nombre de points d'échantillonnage. Défaut : OFFENSIVE_PROFILE_SAMPLES. */
   samples?: number;
+  /** Phy.O V2 — Positions des autres joueurs (snapshot mid-segment).
+   *  Si fourni et non vide, applique un facteur friction par sample. */
+  obstacles?: Point[];
+  /** Phy.O V2 — Distance en deçà de laquelle un obstacle ralentit.
+   *  Défaut : `OFFENSIVE_FRICTION_THRESHOLD_PX` (30 px). */
+  frictionThreshold?: number;
+  /** Phy.O V2 — Facteur minimum (au contact). Défaut :
+   *  `OFFENSIVE_FRICTION_FLOOR` (0.6). */
+  frictionFloor?: number;
 }
 
 export interface VelocityProfile {
@@ -72,6 +83,33 @@ function identityRemap(t: number): number {
   return Math.max(0, Math.min(1, t));
 }
 
+/** Friction par sample : 1 si tous les obstacles sont à >= threshold ;
+ *  sinon interpole entre `floor` (au contact) et 1 (au threshold).
+ *  Mirror per-point de `proximityFriction` (Lever B défensif). */
+function computeFrictions(
+  samples: Point[],
+  obstacles: Point[],
+  threshold: number,
+  floor: number,
+): number[] {
+  const out = new Array<number>(samples.length).fill(1);
+  if (obstacles.length === 0) return out;
+  for (let i = 0; i < samples.length; i++) {
+    let minDist = Infinity;
+    for (const o of obstacles) {
+      const d = Math.hypot(o.x - samples[i].x, o.y - samples[i].y);
+      if (d < minDist) minDist = d;
+    }
+    if (minDist >= threshold) {
+      out[i] = 1;
+    } else {
+      const tFr = Math.max(0, minDist) / threshold;
+      out[i] = floor + (1 - floor) * tFr;
+    }
+  }
+  return out;
+}
+
 export function buildVelocityProfile(
   path: Point[],
   options: VelocityProfileOptions = {},
@@ -100,8 +138,19 @@ export function buildVelocityProfile(
   }
 
   const curvs = computeCurvatures(pts);
-  // Vitesse à chaque point : v = 1 / (1 + α κ). v ∈ (0, 1].
-  const vs = curvs.map((k) => 1 / (1 + alpha * k));
+  // Phy.O V2 — friction de proximité : factor ∈ [floor, 1] par sample.
+  const frictionThreshold = options.frictionThreshold ?? OFFENSIVE_FRICTION_THRESHOLD_PX;
+  const frictionFloor = options.frictionFloor ?? OFFENSIVE_FRICTION_FLOOR;
+  const frictions = computeFrictions(
+    pts,
+    options.obstacles ?? [],
+    frictionThreshold,
+    frictionFloor,
+  );
+  // v(s) = friction(s) / (1 + α κ(s)). Friction <= 1, donc v plus petit
+  // aux points proches d'un obstacle → temps physique avance plus vite
+  // → après inversion, le joueur a moins parcouru à un actionT donné.
+  const vs = curvs.map((k, i) => frictions[i] / (1 + alpha * k));
 
   // Temps cumulé : t_phys(i) = Σ Δs / avg(v_{j-1}, v_j).
   const dsUniform = total / samples;
