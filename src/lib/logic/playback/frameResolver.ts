@@ -425,6 +425,21 @@ export function resolveFrameAt(
           });
           return obs;
         },
+        // Phy.O V3 V1 — matched defender mid-segment, seulement si le
+        // flag dédié est activé (A/B séparé du flag profil de vitesse).
+        matchedDefenderFor: state.attackerActiveDemarquage
+          ? (attId) => {
+              const matchups = getMatchupsAt(state.steps, idxA, state.playerCount);
+              const dId = (Object.keys(matchups) as DefenderId[]).find(
+                (d) => matchups[d] === attId,
+              );
+              if (!dId) return undefined;
+              const dA = defA[dId];
+              const dB = defB[dId];
+              if (!dA || !dB) return undefined;
+              return { x: (dA.x + dB.x) * 0.5, y: (dA.y + dB.y) * 0.5 };
+            }
+          : undefined,
       },
     );
     attackerMovementType[id] = traj.movementType;
