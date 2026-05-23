@@ -17,9 +17,6 @@ import {
   createFolder as createFolderFn,
   renameFolder as renameFolderFn,
   deleteFolder as deleteFolderFn,
-  setFolderType as setFolderTypeFn,
-  createStandardFolders as createStandardFoldersFn,
-  type FolderType,
   exportFolderJSON,
   importFolderJSON,
   snapshotDefensePreset,
@@ -87,19 +84,8 @@ export function useLibrary() {
     setLibrary((lib) => moveSystemFn(lib, systemId, targetFolderId));
   }, []);
 
-  const createFolder = useCallback((name: string, type?: FolderType) => {
-    setLibrary((lib) => createFolderFn(lib, name, type));
-  }, []);
-
-  const setFolderType = useCallback(
-    (folderId: string, type: FolderType | undefined) => {
-      setLibrary((lib) => setFolderTypeFn(lib, folderId, type));
-    },
-    [],
-  );
-
-  const createStandardFolders = useCallback(() => {
-    setLibrary((lib) => createStandardFoldersFn(lib));
+  const createFolder = useCallback((name: string) => {
+    setLibrary((lib) => createFolderFn(lib, name));
   }, []);
 
   const renameFolder = useCallback((folderId: string, newName: string) => {
@@ -156,8 +142,6 @@ export function useLibrary() {
     renameSystem,
     moveSystem,
     createFolder,
-    setFolderType,
-    createStandardFolders,
     renameFolder,
     deleteFolder,
     exportFolder,

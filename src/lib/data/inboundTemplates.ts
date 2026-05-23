@@ -65,6 +65,7 @@ const blobBoxCurl: AttackerPositions = {
 const BLOB_BOX_CURL: Template = {
   id: 'blob-box-curl',
   name: 'BLOB · Box curl',
+  tags: ['touche', 'blob'],
   description: 'Remise ligne de fond. Box set, O3 curl autour du double pin-down (O4+O5) pour 3-pt ouvert wing droite.',
   defenseInitial: defaultDef(blobBoxSetup),
   steps: [
@@ -126,6 +127,7 @@ const blobStackSplit: AttackerPositions = {
 const BLOB_STACK_CROSS: Template = {
   id: 'blob-stack-cross',
   name: 'BLOB · Stack cross',
+  tags: ['touche', 'blob'],
   description: 'Remise ligne de fond. Pile de 4 au FT line, split + back-cut de O2 vers panier pour layup ou kick-out.',
   defenseInitial: defaultDef(blobStackSetup),
   steps: [
@@ -183,6 +185,7 @@ const slobStaggerCut: AttackerPositions = {
 const SLOB_STAGGER: Template = {
   id: 'slob-stagger',
   name: 'SLOB · Stagger ball-side',
+  tags: ['touche', 'slob', 'stagger'],
   description: 'Remise touche bas. O4 + O5 stagger pour libérer O3 (shooter) qui curl ball-side. Passe pour mid-range ou drive.',
   defenseInitial: defaultDef(slobStaggerSetup),
   steps: [
@@ -245,6 +248,7 @@ const slobHammerCorner: AttackerPositions = {
 const SLOB_HAMMER: Template = {
   id: 'slob-hammer',
   name: 'SLOB · Hammer',
+  tags: ['touche', 'slob', 'hammer'],
   description: 'Remise touche. Back screen weak-side de O4 sur D3, O3 cut baseline vers corner faible, skip pass de O2.',
   defenseInitial: defaultDef(slobHammerSetup),
   steps: [
@@ -307,6 +311,7 @@ const blobTriangleCurl: AttackerPositions = {
 const BLOB_TRIANGLE: Template = {
   id: 'blob-triangle',
   name: 'BLOB · Triangle',
+  tags: ['touche', 'blob'],
   description: 'Remise ligne de fond. Triangle 2-1-2, O4 pin-down pour O2 qui curl wing gauche, O3 fill wing droite (spacing).',
   defenseInitial: defaultDef(blobTriangleSetup),
   steps: [
@@ -363,6 +368,7 @@ const blobZipperCut: AttackerPositions = {
 const BLOB_ZIPPER: Template = {
   id: 'blob-zipper',
   name: 'BLOB · Zipper',
+  tags: ['touche', 'blob'],
   description: 'Remise ligne de fond. Zipper cut : O3 remonte la ligne médiane via écran de O4 au coude, reçoit en haut du cercle.',
   defenseInitial: defaultDef(blobZipperSetup),
   steps: [
@@ -415,6 +421,7 @@ const slobIversonEmerge: AttackerPositions = {
 const SLOB_IVERSON: Template = {
   id: 'slob-iverson',
   name: 'SLOB · Iverson cut',
+  tags: ['touche', 'slob', 'cut'],
   description: 'Remise touche. Iverson cut classique : O3 traverse à hauteur des coudes via les 2 écrans (O4, O5) pour ressortir ball-side au mid-range.',
   defenseInitial: defaultDef(slobIversonSetup),
   steps: [
@@ -476,6 +483,7 @@ const slobHighFinish: AttackerPositions = {
 const SLOB_HIGH_OUTLET: Template = {
   id: 'slob-high-outlet',
   name: 'SLOB haut · Outlet transition',
+  tags: ['touche', 'slob', 'transition'],
   description: 'Remise touche haute (transition). Passe outlet à O2 qui advance, puis seconde passe à O5 en course intérieure pour layup.',
   defenseInitial: defaultDef(slobHighSetup),
   steps: [
@@ -534,6 +542,7 @@ const blobElevatorClose: AttackerPositions = {
 const BLOB_ELEVATOR: Template = {
   id: 'blob-elevator',
   name: 'BLOB · Elevator',
+  tags: ['touche', 'blob', 'elevator'],
   description: 'Remise ligne de fond. Action Spurs : 2 portes (O4, O5) au coude, O3 cut entre, les portes se ferment. Réception top du cercle.',
   defenseInitial: defaultDef(blobElevatorSetup),
   steps: [
@@ -587,6 +596,7 @@ const slobFloppyEmerge: AttackerPositions = {
 const SLOB_FLOPPY: Template = {
   id: 'slob-floppy',
   name: 'SLOB · Floppy gauche',
+  tags: ['touche', 'slob', 'floppy'],
   description: 'Remise touche. Floppy classique. O2 sous le panier choisit le côté gauche (curl autour de O4) pour 3-pt wing gauche.',
   defenseInitial: defaultDef(slobFloppySetup),
   steps: [
@@ -649,6 +659,7 @@ const blobHawkSlip: AttackerPositions = {
 const BLOB_HAWK: Template = {
   id: 'blob-hawk',
   name: 'BLOB · Hawk',
+  tags: ['touche', 'blob'],
   description: 'Remise ligne de fond. Action Atlanta : O5 down-screen pour O2 wing gauche, puis slip vers panier pour passe arrière.',
   defenseInitial: defaultDef(blobHawkSetup),
   steps: [
@@ -712,6 +723,7 @@ const slobHighDragRoll: AttackerPositions = {
 const SLOB_HIGH_DRAG: Template = {
   id: 'slob-high-drag',
   name: 'SLOB haut · Drag screen',
+  tags: ['touche', 'slob', 'pnr'],
   description: 'Transition rapide. Outlet à O2, advance dribble, drag screen de O5 mi-terrain pour mid-range / roll dunk.',
   defenseInitial: defaultDef(slobHighDragSetup),
   steps: [
@@ -770,6 +782,7 @@ const slobHighQuickFinish: AttackerPositions = {
 const SLOB_HIGH_QUICK: Template = {
   id: 'slob-high-quick',
   name: 'SLOB haut · Quick advance',
+  tags: ['touche', 'slob', 'transition'],
   description: 'Transition express. O1 passe directement à O5 déjà parti vers le panier. Pas de dribble intermédiaire.',
   defenseInitial: defaultDef(slobHighQuickSetup),
   steps: [
@@ -822,6 +835,7 @@ const slobHighTrapAdvance: AttackerPositions = {
 const SLOB_HIGH_TRAP_BREAK: Template = {
   id: 'slob-high-trap-break',
   name: 'SLOB haut · Bypass trappe',
+  tags: ['touche', 'slob', 'press'],
   description: 'Anti-presse. O4 monte ball-side recevoir, O2 cut derrière, passe vers le haut du cercle pour briser le trap sideline.',
   defenseInitial: defaultDef(slobHighTrapSetup),
   steps: [
@@ -884,6 +898,7 @@ const blobBoxFaceGuardDef = {
 const BLOB_BOX_VS_FACE_GUARD: Template = {
   id: 'blob-box-vs-face-guard',
   name: 'BLOB Box vs Face-guard',
+  tags: ['touche', 'blob'],
   description: 'Étude défensive. Box offense + face-guard sur O3 (receveur principal). Comment le curl essaie de battre le deny ?',
   defenseInitial: blobBoxFaceGuardDef,
   steps: [
@@ -939,6 +954,7 @@ const blobStackZone23Def = {
 const BLOB_STACK_VS_ZONE_23: Template = {
   id: 'blob-stack-vs-zone-23',
   name: 'BLOB Stack vs Zone 2-3',
+  tags: ['touche', 'blob', 'zone'],
   description: 'Étude défensive. Stack offense + zone 2-3 (2 top, 3 back). Comment le split + back-cut O2 casse la zone ?',
   defenseInitial: blobStackZone23Def,
   steps: [
@@ -987,6 +1003,7 @@ const slobHammerPressDef = {
 const SLOB_HAMMER_VS_PRESS: Template = {
   id: 'slob-hammer-vs-press',
   name: 'SLOB Hammer vs Zone-press',
+  tags: ['touche', 'slob', 'hammer', 'press'],
   description: 'Étude défensive. Hammer offense + zone-press (trap passeur + denials + sweeper). Comment le back screen + skip pass casse la presse ?',
   defenseInitial: slobHammerPressDef,
   steps: [

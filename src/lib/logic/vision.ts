@@ -3,7 +3,7 @@ import { angleDiff, normalizeAngle } from './angles';
 
 export type GazeLock = 'opponent' | 'ball-carrier' | 'both';
 
-export const HEAD_TURN_LIMIT_DEG = 60;
+export const HEAD_TURN_LIMIT_DEG = 75;
 export const FIELD_OF_VIEW_HALF_ANGLE_DEG = 60;
 
 interface Interval {
@@ -23,8 +23,9 @@ export interface DefenderGazeInput {
 }
 
 /**
- * Clamp anatomique : la tête ne peut pas viser au-delà du cône frontal du
- * corps. Le cône rendu dans FieldOfViewOverlay partage cette même demi-angle.
+ * Clamp anatomique : la tête ne peut pas pivoter au-delà de la limite
+ * corps/regard. Le cône rendu dans FieldOfViewOverlay reste centré sur ce
+ * regard et conserve sa propre ouverture.
  */
 export function clampGazeToFrontal(gaze: number, body: number): number {
   const diff = angleDiff(gaze, body);
@@ -42,10 +43,10 @@ export function resolveDefenderGaze(input: DefenderGazeInput): number {
   const { defenderPos, manPos, ballPos, bodyOrientation, isCarrierDefender, stance, pnrRole, gazeLock } = input;
 
   if (gazeLock === 'opponent') {
-    return resolvePrimaryGaze(defenderPos, bodyOrientation, manPos, ballPos);
+    return resolvePrimaryGaze(defenderPos, bodyOrientation, manPos);
   }
   if (gazeLock === 'ball-carrier') {
-    return resolvePrimaryGaze(defenderPos, bodyOrientation, ballPos, manPos);
+    return resolvePrimaryGaze(defenderPos, bodyOrientation, ballPos);
   }
   if (gazeLock === 'both') {
     return resolveSharedGaze(defenderPos, bodyOrientation, manPos, ballPos);

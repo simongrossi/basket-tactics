@@ -16,14 +16,12 @@ interface PlayerProps {
   overClosed?: boolean;
   isForcedScreener?: boolean;
   denying?: boolean;
-  /** Angle horaire du corps depuis le NORD (0–360°) — calculé en open stance
-   *  par convention B. Stocké pour usage futur (overlay debug, slider manuel)
-   *  mais non rendu directement sur les bras. */
+  /** Angle horaire du corps depuis le NORD (0–360°). Pilote les bras :
+   *  ils matérialisent la posture/stance du corps, indépendamment du regard. */
   orientation?: number;
-  /** Angle horaire du REGARD depuis le NORD. Pilote la rotation des bras :
-   *  les bras s'ouvrent dans la direction où le joueur regarde, partant des
-   *  épaules vers l'avant. Toujours clampé à ±60° du body (orientation.ts),
-   *  donc jamais derrière la tête. */
+  /** Angle horaire du REGARD depuis le NORD. Pilote uniquement la flèche de
+   *  regard. Toujours clampé à ±75° du body (orientation.ts), donc jamais
+   *  derrière la tête. */
   gazeOrientation?: number;
   /** Convention B asymétrique : cibles géométriques des 2 mains. Stockées
    *  dans le data model pour usage futur (overlay debug). Pas rendues. */
@@ -80,7 +78,7 @@ export function Player({
   overClosed,
   isForcedScreener,
   denying,
-  orientation = 0,
+  orientation,
   gazeOrientation,
   armBallSide,
   armManSide,
@@ -121,6 +119,7 @@ export function Player({
   const showHelpRing = showStateRings && !isAttacker && !isCarrierDefender && helpFactor && helpFactor > 0.05;
 
   const r = PLAYER_RADIUS;
+  const bodyOrientation = orientation ?? gazeOrientation ?? 0;
 
   return (
     <g data-id={id} style={{ cursor: 'grab' }}>
@@ -143,20 +142,15 @@ export function Player({
         {/* Pictogramme stylisé FIBA : 2 arcs symétriques courbés.
          *
          * Les arcs sont dessinés "au-dessus" en posture neutre (à
-         * gazeOrientation=0°), puis le wrapper rotate les amène dans la
-         * direction du REGARD du joueur. Conséquence visuelle :
-         *  - regard nord → bras au-dessus, courbure vers le nord (= devant)
-         *  - regard est → bras à droite, courbure vers l'est (= devant)
-         *  - regard sud → bras en bas, courbure vers le sud (= devant)
+         * orientation=0°), puis le wrapper rotate les amène dans la
+         * direction du CORPS du joueur. Conséquence visuelle :
+         *  - corps nord → bras au-dessus, courbure vers le nord (= devant)
+         *  - corps est → bras à droite, courbure vers l'est (= devant)
+         *  - corps sud → bras en bas, courbure vers le sud (= devant)
          *
-         * Les bras s'ouvrent toujours DANS LA DIRECTION du regard (= vers
-         * l'avant), partant des épaules. Le `gazeOrientation` est clampé
-         * ±60° du `bodyOrientation` en amont (orientation.ts), donc les
-         * bras ne peuvent JAMAIS pointer dans le dos du joueur.
-         *
-         * Si `gazeOrientation` n'est pas fourni (legacy), fallback sur
-         * `orientation` (rétrocompat ancien API). */}
-        <g transform={`rotate(${gazeOrientation ?? orientation ?? 0}, ${pos.x}, ${pos.y})`}>
+         * La flèche de regard est rendue séparément depuis `gazeOrientation`,
+         * ce qui permet une stance à plat avec tête tournée vers ballon/action. */}
+        <g transform={`rotate(${bodyOrientation}, ${pos.x}, ${pos.y})`}>
           {/* === DESIGN F — FIGÉ ===
            * Tracé Bezier des bras choisi par l'utilisateur via la page de
            * démo /demo-arms. NE PAS MODIFIER sans une demande explicite —
@@ -168,9 +162,9 @@ export function Player({
            *  - Control point : ±2.0r en x, -0.5r en y → courbure largement
            *    ouverte vers l'extérieur, "bras grands ouverts".
            *
-           * Le wrapper rotate(gazeOrientation) pivote l'ensemble en bloc selon
-           * le regard du joueur. Le clamp anatomique (±60° du body) reste
-           * appliqué en amont par orientation.ts.
+           * Le wrapper rotate(bodyOrientation) pivote l'ensemble en bloc selon
+           * le corps du joueur. Le regard peut diverger et reste indiqué par
+           * le triangle pointeur.
            */}
           <path
             d={`M ${pos.x - r * 0.7} ${pos.y} Q ${pos.x - r * 2.0} ${pos.y - r * 0.5} ${pos.x - r * 1.8} ${pos.y - r * 1.4}`}
@@ -191,9 +185,8 @@ export function Player({
         </g>
         {(gazeOrientation !== undefined || facing) && (() => {
           // Pointeur de "facing" : un petit triangle posé sur le bord du
-          // cercle, dans la direction regardée. Indique l'orientation
-          // sans toucher aux bras (ex. on-ball regarde le porteur, off-ball
-          // sag = midpoint man-ballon, fronting = ballon).
+          // cercle, dans la direction regardée. Indique le regard
+          // sans toucher aux bras (ex. corps à plat, tête vers ballon/action).
           //
           // On dérive la direction du triangle depuis `gazeOrientation`
           // (l'angle) plutôt que depuis `facing` (le point) quand les
@@ -201,9 +194,8 @@ export function Player({
           // `gazeOrientation` est lerpé angulairement (chemin court
           // autour du cercle) tandis que `facing` est lerpé linéairement
           // en (x, y) — ce qui peut faire passer le point facing PAR le
-          // joueur et sortir du côté opposé, désynchronisant le triangle
-          // des bras (qui suivent gazeOrientation). Garantit l'invariant
-          // "regard et bras dans la même direction" à toute frame.
+          // joueur et sortir du côté opposé. La flèche reste donc cohérente
+          // avec le regard, même quand les bras gardent l'orientation du corps.
           let ux: number;
           let uy: number;
           if (gazeOrientation !== undefined) {

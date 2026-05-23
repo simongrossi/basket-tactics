@@ -2,12 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { CLASSIC_TEMPLATES, LAB_TEMPLATES, type Template } from '@/lib/data/templates';
-import type { UserLibrary, SavedSystem, SavedFolder, FolderType } from '@/lib/data/library';
-import {
-  FOLDER_TYPE_LABELS,
-  FOLDER_TYPE_ORDER,
-  groupFoldersByType,
-} from '@/lib/data/library';
+import type { UserLibrary, SavedSystem, SavedFolder } from '@/lib/data/library';
+import { collectTagCounts } from '@/lib/data/library';
 import { COLORS } from './ui';
 
 /** Identifiant abstrait pour le dossier "Systèmes classiques" (read-only). */
@@ -27,9 +23,7 @@ interface LibraryModalProps {
   onRenameSystem: (systemId: string, newName: string) => void;
   onDeleteSystem: (systemId: string) => void;
   onMoveSystem: (systemId: string, targetFolderId: string) => void;
-  onCreateFolder: (name: string, type?: FolderType) => void;
-  onSetFolderType: (folderId: string, type: FolderType | undefined) => void;
-  onCreateStandardFolders: () => void;
+  onCreateFolder: (name: string) => void;
   onRenameFolder: (folderId: string, newName: string) => void;
   onDeleteFolder: (folderId: string) => void;
   onExportFolder: (folderId: string) => string | null;
@@ -47,7 +41,7 @@ export function LibraryModal(props: LibraryModalProps) {
   const c = COLORS.offense;
   const {
     library, hasWorkInProgress, onLoadSavedSystem, onLoadTemplate, onSaveCurrent,
-    onRenameSystem, onDeleteSystem, onMoveSystem, onCreateFolder, onSetFolderType, onCreateStandardFolders, onRenameFolder,
+    onRenameSystem, onDeleteSystem, onMoveSystem, onCreateFolder, onRenameFolder,
     onDeleteFolder, onExportFolder, onImportFolder, onClose,
     mode = 'modal',
   } = props;
@@ -56,6 +50,10 @@ export function LibraryModal(props: LibraryModalProps) {
   const [selectedFolderId, setSelectedFolderId] = useState<string>(
     library.folders[0]?.id ?? CLASSIC_FOLDER_ID
   );
+  /** Filtre transverse par tag — quand non-null, prime sur `selectedFolderId`
+   *  pour le rendu du pane de droite (affiche tous les systèmes matchant
+   *  ce tag, toutes sources confondues : classiques + lab + user). */
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [renameTarget, setRenameTarget] = useState<
     | { kind: 'system'; id: string; current: string }
     | { kind: 'folder'; id: string; current: string }
@@ -205,104 +203,88 @@ export function LibraryModal(props: LibraryModalProps) {
             <FolderRow
               label={`📦 Systèmes classiques`}
               count={CLASSIC_TEMPLATES.length}
-              active={selectedFolderId === CLASSIC_FOLDER_ID}
-              onClick={() => setSelectedFolderId(CLASSIC_FOLDER_ID)}
+              active={selectedTag === null && selectedFolderId === CLASSIC_FOLDER_ID}
+              onClick={() => { setSelectedTag(null); setSelectedFolderId(CLASSIC_FOLDER_ID); }}
             />
             <FolderRow
               label={`🧪 Lab dev`}
               count={LAB_TEMPLATES.length}
-              active={selectedFolderId === LAB_FOLDER_ID}
-              onClick={() => setSelectedFolderId(LAB_FOLDER_ID)}
+              active={selectedTag === null && selectedFolderId === LAB_FOLDER_ID}
+              onClick={() => { setSelectedTag(null); setSelectedFolderId(LAB_FOLDER_ID); }}
             />
             <div style={{ fontSize: 9, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 8, marginBottom: 2, paddingLeft: 4 }}>
               Mes dossiers
             </div>
+            {library.folders.map((f) => (
+              <FolderRow
+                key={f.id}
+                label={`📁 ${f.name}`}
+                count={f.systems.length}
+                active={selectedTag === null && selectedFolderId === f.id}
+                onClick={() => { setSelectedTag(null); setSelectedFolderId(f.id); }}
+                onRename={() => setRenameTarget({ kind: 'folder', id: f.id, current: f.name })}
+                onDelete={
+                  library.folders.length > 1
+                    ? () => {
+                        if (confirm(`Supprimer le dossier "${f.name}" et ses ${f.systems.length} systèmes ?`)) {
+                          onDeleteFolder(f.id);
+                          if (selectedFolderId === f.id) {
+                            const remaining = library.folders.filter((g) => g.id !== f.id);
+                            setSelectedFolderId(remaining[0]?.id ?? CLASSIC_FOLDER_ID);
+                          }
+                        }
+                      }
+                    : undefined
+                }
+              />
+            ))}
+            <NewFolderForm onCreate={onCreateFolder} inline={inline} accent={c.accentText} border={c.border} />
+
+            {/* 🏷 Catégories — tags collectés sur classiques + lab + user.
+                Click = filtre transverse (override la sélection de dossier). */}
             {(() => {
-              const groups = groupFoldersByType(library.folders);
-              const hasAnyTypedFolder = library.folders.some((f) => !!f.type);
+              const allSystems = [
+                ...CLASSIC_TEMPLATES,
+                ...LAB_TEMPLATES,
+                ...library.folders.flatMap((f) => f.systems),
+              ];
+              const tags = collectTagCounts(allSystems);
+              if (tags.length === 0) return null;
               return (
                 <>
-                  {groups.map((grp) => (
-                    <div key={grp.type} style={{ marginTop: 4 }}>
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: '#94a3b8',
-                          padding: '2px 6px',
-                          marginBottom: 2,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {grp.label}
-                      </div>
-                      {grp.folders.map((f) => (
-                        <FolderRow
-                          key={f.id}
-                          label={`📁 ${f.name}`}
-                          count={f.systems.length}
-                          active={selectedFolderId === f.id}
-                          onClick={() => setSelectedFolderId(f.id)}
-                          onRename={() => setRenameTarget({ kind: 'folder', id: f.id, current: f.name })}
-                          onDelete={
-                            library.folders.length > 1
-                              ? () => {
-                                  if (confirm(`Supprimer le dossier "${f.name}" et ses ${f.systems.length} systèmes ?`)) {
-                                    onDeleteFolder(f.id);
-                                    if (selectedFolderId === f.id) {
-                                      const remaining = library.folders.filter((g) => g.id !== f.id);
-                                      setSelectedFolderId(remaining[0]?.id ?? CLASSIC_FOLDER_ID);
-                                    }
-                                  }
-                                }
-                              : undefined
-                          }
-                          typeSlot={
-                            <select
-                              value={f.type ?? ''}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                onSetFolderType(f.id, v === '' ? undefined : (v as FolderType));
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                              title="Catégorie du dossier"
-                              style={{
-                                fontSize: 10,
-                                background: 'transparent',
-                                color: '#94a3b8',
-                                border: '1px solid #2a2d35',
-                                borderRadius: 3,
-                                padding: '1px 2px',
-                                marginLeft: 2,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              <option value="">(autre)</option>
-                              {FOLDER_TYPE_ORDER.filter((t) => t !== 'autre').map((t) => (
-                                <option key={t} value={t}>
-                                  {FOLDER_TYPE_LABELS[t]}
-                                </option>
-                              ))}
-                            </select>
-                          }
-                        />
-                      ))}
-                    </div>
-                  ))}
-                  <NewFolderForm onCreate={onCreateFolder} inline={inline} accent={c.accentText} border={c.border} />
-                  {!hasAnyTypedFolder && (
-                    <button
-                      onClick={onCreateStandardFolders}
-                      title="Crée 5 dossiers standards vides (touches, indiv, zone, press, transition)"
-                      style={{
-                        marginTop: 4, padding: '6px 8px', fontSize: 11,
-                        border: '1px dashed #94a3b8', borderRadius: 6,
-                        background: 'transparent', color: '#cbd5e1', cursor: 'pointer',
-                        textAlign: 'left',
-                      }}
-                    >
-                      📁 Créer les dossiers standards
-                    </button>
-                  )}
+                  <div style={{ fontSize: 9, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 10, marginBottom: 2, paddingLeft: 4 }}>
+                    🏷 Catégories
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '2px 4px' }}>
+                    {tags.map(({ tag, count }) => {
+                      const active = selectedTag === tag;
+                      return (
+                        <button
+                          key={tag}
+                          onClick={() => {
+                            if (active) {
+                              // Toggle off → retombe sur la sélection de dossier active.
+                              setSelectedTag(null);
+                            } else {
+                              setSelectedTag(tag);
+                            }
+                          }}
+                          title={`Filtrer par #${tag} (${count} systèmes)`}
+                          style={{
+                            fontSize: 11,
+                            padding: '2px 6px',
+                            borderRadius: 999,
+                            border: active ? '1px solid #a78bfa' : '1px solid #2a2d35',
+                            background: active ? 'rgba(167, 139, 250, 0.22)' : 'transparent',
+                            color: active ? '#f3f4f6' : '#cbd5e1',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          #{tag} <span style={{ opacity: 0.6 }}>{count}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </>
               );
             })()}
@@ -310,7 +292,102 @@ export function LibraryModal(props: LibraryModalProps) {
 
           {/* Pane systèmes */}
           <div style={{ flex: 1, padding: 16, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {isReadOnlyFolder ? (
+            {selectedTag ? (
+              (() => {
+                // Mode filtre par tag — mélange templates + user systems.
+                const matchingTemplates = [...CLASSIC_TEMPLATES, ...LAB_TEMPLATES].filter(
+                  (t) => t.tags?.includes(selectedTag),
+                );
+                const matchingUserSystems = library.folders.flatMap((f) =>
+                  f.systems
+                    .filter((s) => s.tags?.includes(selectedTag))
+                    .map((s) => ({ sys: s, folder: f })),
+                );
+                const total = matchingTemplates.length + matchingUserSystems.length;
+                return (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: inline ? '#f3f4f6' : c.accentText }}>
+                        🏷 #{selectedTag} · {total} système{total > 1 ? 's' : ''}
+                      </div>
+                      <button
+                        onClick={() => setSelectedTag(null)}
+                        title="Retirer le filtre"
+                        style={{
+                          fontSize: 11, padding: '2px 8px',
+                          border: '1px solid #94a3b8', borderRadius: 4,
+                          background: 'transparent', color: '#cbd5e1', cursor: 'pointer',
+                        }}
+                      >
+                        × retirer le filtre
+                      </button>
+                    </div>
+                    {total === 0 ? (
+                      <div style={{ fontSize: 12, color: '#a8a29e', padding: 24, textAlign: 'center', fontStyle: 'italic' }}>
+                        Aucun système avec ce tag.
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                          gap: 10,
+                        }}
+                      >
+                        {matchingTemplates.map((t) => (
+                          <button
+                            key={`tpl-${t.id}`}
+                            onClick={() => handleLoadTemplate(t)}
+                            title={`Charger ${t.name}`}
+                            style={{
+                              textAlign: 'left', padding: 12, borderRadius: 8,
+                              border: `1px solid ${c.border}`, background: '#fff',
+                              cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6,
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{
+                                width: 26, height: 26, borderRadius: 6, background: c.accent,
+                                color: '#fff', display: 'flex', alignItems: 'center',
+                                justifyContent: 'center', fontSize: 11, fontWeight: 700,
+                              }}>
+                                {t.steps.length}
+                              </div>
+                              <div style={{ fontWeight: 700, color: c.accentText, fontSize: 13 }}>
+                                {t.name}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: 11, color: '#57534e', lineHeight: 1.4 }}>
+                              {t.description}
+                            </div>
+                            <div style={{ fontSize: 10, color: '#94a3b8' }}>
+                              {(t.tags ?? []).map((tg) => `#${tg}`).join(' ')}
+                            </div>
+                          </button>
+                        ))}
+                        {matchingUserSystems.map(({ sys: s, folder }) => (
+                          <SystemCard
+                            key={`usr-${s.id}`}
+                            system={s}
+                            accent={c.accent}
+                            accentText={c.accentText}
+                            border={c.border}
+                            bg={c.bg}
+                            onLoad={() => handleLoadSaved(s)}
+                            onRename={() => setRenameTarget({ kind: 'system', id: s.id, current: s.name })}
+                            onDelete={() => {
+                              if (confirm(`Supprimer le système "${s.name}" ?`)) onDeleteSystem(s.id);
+                            }}
+                            otherFolders={library.folders.filter((f) => f.id !== folder.id)}
+                            onMove={(target) => onMoveSystem(s.id, target)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              })()
+            ) : isReadOnlyFolder ? (
               <>
                 <div style={{ fontSize: 11, color: '#78716c' }}>
                   {isClassic
@@ -523,12 +600,10 @@ function darkSecondaryBtn(): React.CSSProperties {
 }
 
 function FolderRow({
-  label, count, active, onClick, onRename, onDelete, typeSlot,
+  label, count, active, onClick, onRename, onDelete,
 }: {
   label: string; count: number; active: boolean;
   onClick: () => void; onRename?: () => void; onDelete?: () => void;
-  /** Slot optionnel rendu à droite du nom (ex : select de catégorie). */
-  typeSlot?: React.ReactNode;
 }) {
   // Aligné sur le style des items de la sidebar gauche (Terrain, Playbook…) :
   // ligne 34px, fond dark hover/active, accent violet, texte clair.
@@ -591,7 +666,6 @@ function FolderRow({
           )}
         </span>
       )}
-      {typeSlot}
     </div>
   );
 }
@@ -599,14 +673,13 @@ function FolderRow({
 function NewFolderForm({
   onCreate, inline, accent, border,
 }: {
-  onCreate: (name: string, type?: FolderType) => void;
+  onCreate: (name: string) => void;
   inline: boolean;
   accent: string;
   border: string;
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
-  const [type, setType] = useState<FolderType | ''>('');
 
   if (!open) {
     return (
@@ -636,14 +709,12 @@ function NewFolderForm({
   const submit = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    onCreate(trimmed, type === '' ? undefined : type);
+    onCreate(trimmed);
     setName('');
-    setType('');
     setOpen(false);
   };
   const cancel = () => {
     setName('');
-    setType('');
     setOpen(false);
   };
 
@@ -655,26 +726,6 @@ function NewFolderForm({
         display: 'flex', flexDirection: 'column', gap: 6,
       }}
     >
-      <select
-        value={type}
-        onChange={(e) => {
-          const v = e.target.value as FolderType | '';
-          setType(v);
-          if (v !== '' && !name.trim()) {
-            // Pré-remplit le nom avec le label de type (sans l'emoji).
-            setName(FOLDER_TYPE_LABELS[v].replace(/^[^\s]+\s/, ''));
-          }
-        }}
-        style={{
-          fontSize: 12, padding: '4px 6px', borderRadius: 4,
-          background: '#0f1117', color: '#cbd5e1', border: '1px solid #2a2d35',
-        }}
-      >
-        <option value="">— Type (autre par défaut) —</option>
-        {FOLDER_TYPE_ORDER.filter((t) => t !== 'autre').map((t) => (
-          <option key={t} value={t}>{FOLDER_TYPE_LABELS[t]}</option>
-        ))}
-      </select>
       <input
         type="text"
         value={name}

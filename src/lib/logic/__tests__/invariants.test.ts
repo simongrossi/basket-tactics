@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { TEMPLATES } from '../../data/templates';
 import { effectiveDefensePositions, computeAttackerVisuals } from '../engine';
+import { HEAD_TURN_LIMIT_DEG } from '../vision';
 import { makeInitialState } from '../../data/initial';
 import { PLAYER_RADIUS, PX_PER_M } from '../../data/court';
 import type { AppState, AttackerId, DefenderId } from '../../types';
@@ -157,7 +158,7 @@ describe('Invariants sur les playbooks de la bibliothèque', () => {
         }
       });
 
-      it("INVARIANT anatomique : gaze ∈ ±60° du body pour tous les défenseurs et attaquants", () => {
+      it('INVARIANT anatomique : gaze reste dans la limite tête/corps', () => {
         const angleDiff = (a: number, b: number) =>
           Math.abs(((a - b) % 360 + 540) % 360 - 180);
         for (let stepIdx = 0; stepIdx < state.steps.length; stepIdx++) {
@@ -166,12 +167,12 @@ describe('Invariants sur les playbooks de la bibliothèque', () => {
           DEF_IDS.forEach((dId) => {
             const diff = angleDiff(def[dId].gazeOrientation, def[dId].orientation);
             expect(diff, `${dId} étape ${stepIdx}: gaze ${def[dId].gazeOrientation}, body ${def[dId].orientation}`)
-              .toBeLessThanOrEqual(60 + 0.01);
+              .toBeLessThanOrEqual(HEAD_TURN_LIMIT_DEG + 0.01);
           });
           ATT_IDS.forEach((id) => {
             const diff = angleDiff(v[id].gazeOrientation, v[id].orientation);
             expect(diff, `${id} étape ${stepIdx}: gaze ${v[id].gazeOrientation}, body ${v[id].orientation}`)
-              .toBeLessThanOrEqual(60 + 0.01);
+              .toBeLessThanOrEqual(HEAD_TURN_LIMIT_DEG + 0.01);
           });
         }
       });

@@ -7,6 +7,11 @@ export interface Template {
   description: string;
   defenseInitial: DefenderPositions;
   steps: Step[];
+  /** Tags / hashtags pour la catégorisation transverse dans la bibliothèque
+   *  (filtre par click sur un tag). Plusieurs tags possibles par système.
+   *  Exemples : `['pnr', 'porteur']`, `['off-ball', 'pindown']`,
+   *  `['touche', 'blob']`, `['lab']`. */
+  tags?: string[];
 }
 
 /**
@@ -70,6 +75,7 @@ const pnrRoll: AttackerPositions = {
 const PNR_CENTRAL: Template = {
   id: 'pnr-central',
   name: 'PNR central',
+  tags: ['pnr', 'porteur'],
   description: "Pick & roll au centre. O5 monte poser l'écran, O1 attaque, O5 plonge.",
   defenseInitial: defaultDef(pnrSetup),
   steps: [
@@ -180,6 +186,7 @@ const hornsCatch: AttackerPositions = {
 const HORNS_FLARE: Template = {
   id: 'horns-flare',
   name: 'Horns flare',
+  tags: ['set', 'horns', 'off-ball'],
   description: "Alignement Horns. O1 passe à O2 puis utilise un flare screen de O5 côté faible pour un tir extérieur.",
   defenseInitial: defaultDef(hornsSetup),
   steps: [
@@ -283,6 +290,7 @@ const pinCatch: AttackerPositions = {
 const PINDOWN_CORNER: Template = {
   id: 'pindown-corner',
   name: 'Pindown coin',
+  tags: ['off-ball', 'pindown'],
   description: "O4 descend poser un pindown pour O2 au coin. O2 sort vers l'aile et reçoit la passe pour un tir.",
   defenseInitial: defaultDef(pinSetup),
   steps: [
@@ -370,6 +378,7 @@ const spainAttack: AttackerPositions = {
 const SPAIN_PNR: Template = {
   id: 'spain-pnr',
   name: 'Spain PNR',
+  tags: ['pnr', 'spain', 'porteur'],
   description: "PNR central + back-screen de O4 sur D5 pour libérer O5 dans la raquette.",
   defenseInitial: defaultDef(spainSetup),
   steps: [
@@ -425,6 +434,7 @@ const uclaCut: AttackerPositions = {
 const UCLA_CUT: Template = {
   id: 'ucla-cut',
   name: 'UCLA cut',
+  tags: ['off-ball', 'cut', 'ucla'],
   description: "Passe latérale + back-screen high post pour cut basket de O1.",
   defenseInitial: defaultDef(uclaSetup),
   steps: [
@@ -471,6 +481,7 @@ const floppyCatch: AttackerPositions = {
 const FLOPPY: Template = {
   id: 'floppy',
   name: 'Floppy',
+  tags: ['set', 'floppy', 'off-ball'],
   description: "O2 sous le panier choisit son écran (gauche O4 ou droite O5) pour ressortir.",
   defenseInitial: defaultDef(floppySetup),
   steps: [
@@ -521,6 +532,7 @@ const hammerCatch: AttackerPositions = {
 const HAMMER: Template = {
   id: 'hammer',
   name: 'Hammer',
+  tags: ['off-ball', 'hammer', 'sideline'],
   description: "Drive baseline d'O1, O5 vient poser un backscreen baseline sur le défenseur de O3 → skip pass corner faible pour tir 3.",
   defenseInitial: defaultDef(hammerSetup),
   steps: [
@@ -646,6 +658,7 @@ const labOff_overlap: AttackerPositions = {
 const SCREEN_LAB_PNR: Template = {
   id: 'screen-lab-pnr',
   name: '🧪 Lab PnR Roll (dev)',
+  tags: ['lab', 'pnr'],
   description:
     "Banc de test écran porteur classique : approche → contact → dribble → roll. 5 steps continus (= 8s, réaliste). O1 porteur + O5 poseur.",
   defenseInitial: defaultDef(labOff_neutral),
@@ -670,6 +683,7 @@ const SCREEN_LAB_PNR: Template = {
 const SCREEN_LAB_SNAKE: Template = {
   id: 'screen-lab-snake',
   name: '🧪 Lab Snake dribble (dev)',
+  tags: ['lab', 'pnr', 'snake'],
   description:
     "Banc de test snake dribble : O1 engage l'écran, recule, ré-attaque le MÊME poseur. 4 steps continus (= 6s). Active `snakeKeepCoverage` pour valider la V2.",
   defenseInitial: defaultDef(labOff_pnrContact),
@@ -685,6 +699,7 @@ const SCREEN_LAB_SNAKE: Template = {
 const SCREEN_LAB_REJECT: Template = {
   id: 'screen-lab-reject',
   name: '🧪 Lab Reject screen (dev)',
+  tags: ['lab', 'reject', 'pnr'],
   description:
     "Banc de test reject screen : O1 fait un fake d'usage puis vire SEC côté opposé au poseur. 3 steps continus (= 4s). Active `unwindRejectedScreens` pour valider la V2.",
   defenseInitial: defaultDef(labOff_pnrApproach),
@@ -699,6 +714,7 @@ const SCREEN_LAB_REJECT: Template = {
 const SCREEN_LAB_PINDOWN: Template = {
   id: 'screen-lab-pindown',
   name: '🧪 Lab Pindown (dev)',
+  tags: ['lab', 'off-ball', 'pindown'],
   description:
     "Banc de test écran hors-ballon down : O3 descend, écran sur D2, O2 monte recevoir. 3 steps continus.",
   defenseInitial: defaultDef(labOff_pindownSetup),
@@ -724,6 +740,7 @@ const SCREEN_LAB_PINDOWN: Template = {
 const SCREEN_LAB_OFFBALL: Template = {
   id: 'screen-lab-offball',
   name: '🧪 Lab Flare (dev)',
+  tags: ['lab', 'off-ball', 'flare'],
   description:
     "Banc de test écran hors-ballon flare : O3 monte poser un away screen, O2 fade vers le coin. 2 steps continus.",
   defenseInitial: defaultDef(labOff_flareSetup),
@@ -746,6 +763,7 @@ const SCREEN_LAB_OFFBALL: Template = {
 const SCREEN_LAB_STRESS: Template = {
   id: 'screen-lab-stress',
   name: '🧪 Lab Cross trajectory (dev)',
+  tags: ['lab'],
   description:
     "Banc de test cas pathologique : trajectoires d'attaquants qui se croisent géométriquement. Reproduit le scénario systeme_basket-10.json — O1 dribble vers la droite + O5 vient au milieu poser un écran. Vérifier l'invariant anti-superposition pendant l'interpolation. 2 steps continus.",
   defenseInitial: defaultDef(labOff_crossA),
@@ -795,6 +813,7 @@ const labOff_rescreenGap: AttackerPositions = {
 const SCREEN_LAB_CHAIN_RESCREEN: Template = {
   id: 'screen-lab-chain-rescreen',
   name: '🧪 Lab Chain re-screen (dev)',
+  tags: ['lab', 'chain'],
   description:
     "Banc de test C.7 — re-screen : O5 pose écran sur O1 → s'écarte → revient poser le MÊME écran. Le coach diag doit afficher 'Re-screen' au step 3 et le badge 🔗 RE-SCREEN sur O1. 3 steps = 4s.",
   defenseInitial: defaultDef(labOff_rescreenWith),
@@ -826,6 +845,7 @@ const labOff_staggerC7Pose2: AttackerPositions = {
 const SCREEN_LAB_CHAIN_STAGGER: Template = {
   id: 'screen-lab-chain-stagger',
   name: '🧪 Lab Chain stagger (dev)',
+  tags: ['lab', 'chain', 'stagger'],
   description:
     "Banc de test C.7 — stagger : O3 puis O4 posent successivement sur D2 pour libérer O2. Le coach diag doit afficher 'Stagger' au step 3 et le badge 🔗 STAGGER sur O2. 3 steps = 4s.",
   defenseInitial: defaultDef(labOff_staggerC7Setup),
@@ -839,6 +859,7 @@ const SCREEN_LAB_CHAIN_STAGGER: Template = {
 const SCREEN_LAB_HELP_RECOVER: Template = {
   id: 'screen-lab-help-recover',
   name: '🧪 Lab Help-recover (dev)',
+  tags: ['lab', 'help-recover'],
   description:
     "Banc de test C.2 help-and-recover timing : O1 drive raquette → kick out → reset. Activer `helpStickiness` (Couvertures avancées → durée d'aide) pour voir D3 glisser progressivement au lieu de snap-back instantanément. 4 steps = 6s.",
   defenseInitial: defaultDef(labOff_helpStart),

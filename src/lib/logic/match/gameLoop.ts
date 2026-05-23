@@ -981,8 +981,8 @@ function buildMinimalDefense(
     const p = positions[dId] ?? { x: 300, y: 540 };
     const matched = attackerIds[i] ?? attackerIds[0];
     // Defaults visuels neutres (orientation = sud / vers le panier opposé,
-    // bras + regard pointent vers le porteur — calculé en V3 via le pipeline
-    // visuel adapté. Pour V2 V0, placeholders cohérents).
+    // regard vers le porteur — calculé en V3 via le pipeline visuel adapté.
+    // Pour V2 V0, placeholders cohérents).
     const facingPoint: Point = { x: p.x, y: p.y - 30 };
     result[dId] = {
       x: p.x,

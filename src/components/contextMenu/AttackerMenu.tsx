@@ -273,7 +273,7 @@ export function AttackerMenu({
           background: ORANGE_TINT_BG,
           border: `1px solid ${ORANGE_TINT_BORDER}`,
         }}
-        title="Override absolu de l'orientation du regard en degrés (0–360°). Sera CLAMPÉ à ±60° du corps effectif (= cône de champ de vision)."
+        title="Override absolu de l'orientation du regard en degrés (0–360°). Sera CLAMPÉ à ±75° du corps effectif."
       >
         <span style={{ fontSize: 11, color: ORANGE_ACCENT, width: 88, fontWeight: 500 }}>orient. regard</span>
         <input

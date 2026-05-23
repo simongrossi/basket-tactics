@@ -175,7 +175,7 @@ export function applyBaseTargetsLayer(
     }
 
     // Calcul orientation Convention B (corps + regard + 2 cibles bras
-    // asymétriques) avec invariants anatomiques : regard ∈ ±60° du corps,
+    // asymétriques) avec invariants anatomiques : regard ∈ ±75° du corps,
     // bras jamais dans le dos. Le delta manuel (rule.orientation, ±45°) reste
     // pris en compte. Les overrides absolus (bodyOrientation/gazeOrientation)
     // priment quand définis.

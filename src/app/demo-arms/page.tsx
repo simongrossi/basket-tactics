@@ -109,7 +109,7 @@ export default function DemoArmsPage() {
       <p style={{ color: '#475569', maxWidth: 900 }}>
         Chaque design est rendu à 4 orientations (0°, 90°, 180°, 270°). Le{' '}
         <strong style={{ color: '#dc2626' }}>triangle rouge</strong> indique le regard. N = panier
-        (référence), les bras suivent le regard via une rotation du pictogramme.
+        (référence), les bras suivent l'orientation du corps via une rotation du pictogramme.
       </p>
       <p style={{ color: '#475569', maxWidth: 900, fontSize: 13 }}>
         Si aucun ne convient, dis-moi par exemple <em>&quot;comme E mais avec les mains de B&quot;</em>{' '}

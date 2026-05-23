@@ -651,7 +651,7 @@ export function DefenderMenu({
         </Row>
         <Row
           label="regard"
-          title="Verrouille le regard sur une cible dynamique. Le clamp anatomique ±60° du corps reste prioritaire."
+          title="Verrouille le regard sur une cible dynamique. Le clamp anatomique ±75° du corps reste prioritaire."
         >
           <div style={{ display: 'flex', flex: 1, gap: 5, flexWrap: 'wrap' }}>
             <GazeLockButton label="auto" active={rule.gazeLock === undefined} onClick={() => onUpdate({ gazeLock: undefined })} />

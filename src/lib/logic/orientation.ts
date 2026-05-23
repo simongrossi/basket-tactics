@@ -9,12 +9,10 @@ import { DRIBBLE_THRESHOLD_PX } from '../constants/gameplay';
 // Les fonctions de ce module retournent body + gaze + 2 cibles d'armes.
 // Toute modification doit respecter ces 3 règles métier :
 //
-//   1. **Le regard NE PEUT JAMAIS sortir du CHAMP DE VISION.** Le cône de
-//      vision frontal a 120° d'ouverture (60° de chaque côté). Le `gaze` est
-//      donc contraint à `|gaze - body| ≤ 60°` (modulo 360°). Si l'auto-calcul
-//      produit un gaze hors de ce cône, il est CLAMPÉ à l'angle limite. Le
-//      triangle pointeur (visible dans Player.tsx) reste ainsi forcément à
-//      l'intérieur du cône de champ de vision rendu par FieldOfViewOverlay.
+//   1. **Le regard NE PEUT JAMAIS partir derrière la tête.** La tête peut
+//      pivoter jusqu'à 75° à droite/gauche du corps (`HEAD_TURN_LIMIT_DEG`).
+//      Si l'auto-calcul produit un gaze au-delà, il est CLAMPÉ à cette limite.
+//      Le cône de champ de vision reste, lui, centré sur `gazeOrientation`.
 //
 //   2. **Aucun bras ne peut pointer dans le dos.** Pareil : si une cible
 //      d'arme tombe derrière le joueur (angle > 90° du corps), on la ramène
@@ -35,7 +33,7 @@ import { DRIBBLE_THRESHOLD_PX } from '../constants/gameplay';
  *    Plage 0–360° libre (rotation possible dans tout sens).
  *
  *  - `gazeOrientation` : angle horaire du regard depuis le NORD. CONTRAINT à
- *    ±60° de `bodyOrientation` (cf. invariant #1). C'est l'angle utilisé
+ *    ±75° de `bodyOrientation` (cf. invariant #1). C'est l'angle utilisé
  *    pour positionner le triangle pointeur facing.
  *
  *  - `facing` : point géométrique que le joueur regarde (cohérent avec
@@ -76,7 +74,7 @@ export interface DefenderOrientationInput {
   /** Consigne tactique de corps. Écrasée par manualBody si défini. */
   bodyMode?: BodyOrientationMode;
   /** Verrouillage du regard sur une cible dynamique. Prioritaire sur la
-   *  logique stance. Le clamp anatomique ±60° reste appliqué après. */
+   *  logique stance. Le clamp anatomique ±75° reste appliqué après. */
   gazeLock?: 'opponent' | 'ball-carrier' | 'both';
   /** Delta legacy du curseur orientation (±45°), ajouté au body auto. */
   manualDelta?: number;
@@ -201,7 +199,7 @@ export interface AttackerOrientationInput {
   prevPos?: Point;
   /** Override manuel — corps en absolu (0–360°). Si défini, écrase l'auto. */
   manualBody?: number;
-  /** Override manuel — regard. Sera clampé à ±60° du body effectif. */
+  /** Override manuel — regard. Sera clampé à ±75° du body effectif. */
   manualGaze?: number;
 }
 

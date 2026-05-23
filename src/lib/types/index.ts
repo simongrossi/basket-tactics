@@ -522,7 +522,7 @@ export interface DefenderRule {
    *   - 'ball-carrier' : regard sur le porteur de balle
    *   - 'both'         : regard sur le midpoint des deux (head-on-swivel)
    *  Si non défini : comportement auto selon la stance.
-   *  Le clamp anatomique ±60° du corps reste prioritaire. */
+   *  Le clamp anatomique ±75° du corps reste prioritaire. */
   gazeLock?: 'opponent' | 'ball-carrier' | 'both';
   /** Affiche un cône de champ de vision autour de ce défenseur (heatmap
    *  semi-transparente, ouverture 120° centrée sur le `gazeOrientation`).
@@ -754,7 +754,7 @@ export interface ComputedDefender {
    *  par `computeDefenderOrientation` à partir de la stance, du ballon, de
    *  la position de l'homme. Override possible via `rule.bodyOrientation`. */
   orientation: number;
-  /** Angle horaire du REGARD depuis le nord. Contraint à ±60° du `orientation`
+  /** Angle horaire du REGARD depuis le nord. Contraint à ±75° du `orientation`
    *  (corps) — règle anatomique inviolable : on ne peut pas regarder derrière
    *  sa tête. */
   gazeOrientation: number;
@@ -783,7 +783,7 @@ export interface ComputedDefender {
 /** Visuels d'attaquants calculés par étape (convention B + invariants anatomiques). */
 export interface ComputedAttacker {
   orientation: number;       // body, 0–360°
-  gazeOrientation: number;   // regard, clampé ±60° du corps
+  gazeOrientation: number;   // regard, clampé ±75° du corps
   facing: Point;
   armBallSide: Point;
   armManSide: Point;
@@ -1097,7 +1097,7 @@ export interface AppState {
   /** Overrides manuels d'orientation par attaquant (clic-droit → sliders).
    *  Si défini, écrase le calcul auto de `computeAttackerOrientation`
    *  (porteur → panier, idle → ballon, etc.). Le `gaze` reste clampé à
-   *  ±60° du `body` effectif (règle anatomique cône de vision). */
+   *  ±75° du `body` effectif (règle anatomique tête/corps). */
   attackerOrientations?: Partial<Record<AttackerId, { body?: number; gaze?: number }>>;
   /** Vue debug d'aide défensive : pour chaque défenseur dont helpFactor>0.10,
    *  une flèche depuis sa position vers son `helpAim` avec un badge `xx%`
