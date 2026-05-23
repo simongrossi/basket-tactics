@@ -108,10 +108,15 @@ function getOrBuildProfile(
   const obstaclesHash = obstacles.length === 0
     ? '0'
     : obstacles.map((o) => `${o.x | 0},${o.y | 0}`).join(';');
-  const key = `${tierKey}|${obstaclesHash}`;
+  // Phy.O V4 — feintes incluses dans la clé : positions arrondies à 0.01.
+  const feintes = ann.feintes ?? [];
+  const feintesHash = feintes.length === 0
+    ? '0'
+    : feintes.map((t) => Math.round(t * 100)).join(',');
+  const key = `${tierKey}|${obstaclesHash}|${feintesHash}`;
   let profile = perAnn.get(key);
   if (!profile) {
-    profile = buildVelocityProfile(path, { tier, obstacles });
+    profile = buildVelocityProfile(path, { tier, obstacles, feintes });
     perAnn.set(key, profile);
   }
   return profile;
