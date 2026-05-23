@@ -405,6 +405,26 @@ export function resolveFrameAt(
       {
         enabled: !!state.attackerVelocityProfileEnabled,
         tierFor: (attId) => state.attackerSpeedProfiles?.[attId],
+        obstaclesFor: (attId) => {
+          const obs: Point[] = [];
+          // Autres attaquants à t=0.5 (interp linéaire des positions
+          // de step). Exclut soi-même.
+          attackerIds.forEach((other) => {
+            if (other === attId) return;
+            const oA = a.off[other];
+            const oB = b.off[other];
+            if (!oA || !oB) return;
+            obs.push({ x: (oA.x + oB.x) * 0.5, y: (oA.y + oB.y) * 0.5 });
+          });
+          // Tous les défenseurs à t=0.5.
+          defenderIds.forEach((dId) => {
+            const dA = defA[dId];
+            const dB = defB[dId];
+            if (!dA || !dB) return;
+            obs.push({ x: (dA.x + dB.x) * 0.5, y: (dA.y + dB.y) * 0.5 });
+          });
+          return obs;
+        },
       },
     );
     attackerMovementType[id] = traj.movementType;

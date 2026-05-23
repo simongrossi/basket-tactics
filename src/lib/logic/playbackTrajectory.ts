@@ -82,6 +82,9 @@ export interface PlaybackVelocityProfileOptions {
   enabled: boolean;
   /** Renvoie le tier d'un attaquant (ou undefined = standard). */
   tierFor?: (id: AttackerId) => AttackerSpeedTier | undefined;
+  /** Phy.O V2 — Renvoie le snapshot d'obstacles mid-segment pour
+   *  l'attaquant `id` (exclu de la liste). */
+  obstaclesFor?: (id: AttackerId) => Point[];
 }
 
 /** Cache de profils par annotation × tier. Évite de re-construire le profil
@@ -92,16 +95,23 @@ function getOrBuildProfile(
   ann: Annotation,
   path: Point[],
   tier: AttackerSpeedTier | undefined,
+  obstacles: Point[],
 ): VelocityProfile {
   let perAnn = profileCache.get(ann);
   if (!perAnn) {
     perAnn = new Map();
     profileCache.set(ann, perAnn);
   }
-  const key = tier ?? 'standard';
+  const tierKey = tier ?? 'standard';
+  // Hash des obstacles : positions arrondies à l'entier, jointes.
+  // Invalide naturellement quand un joueur bouge.
+  const obstaclesHash = obstacles.length === 0
+    ? '0'
+    : obstacles.map((o) => `${o.x | 0},${o.y | 0}`).join(';');
+  const key = `${tierKey}|${obstaclesHash}`;
   let profile = perAnn.get(key);
   if (!profile) {
-    profile = buildVelocityProfile(path, { tier });
+    profile = buildVelocityProfile(path, { tier, obstacles });
     perAnn.set(key, profile);
   }
   return profile;
@@ -211,7 +221,8 @@ export function attackerTrajectoryAt(
       let s = actionT;
       if (velocityProfileOptions?.enabled) {
         const tier = velocityProfileOptions.tierFor?.(playerId);
-        s = getOrBuildProfile(ann, path, tier).remap(actionT);
+        const obstacles = velocityProfileOptions.obstaclesFor?.(playerId) ?? [];
+        s = getOrBuildProfile(ann, path, tier, obstacles).remap(actionT);
       }
       position = samplePolyline(path, s);
     } else {
@@ -226,7 +237,8 @@ export function attackerTrajectoryAt(
       let s = actionT;
       if (velocityProfileOptions?.enabled) {
         const tier = velocityProfileOptions.tierFor?.(playerId);
-        s = getOrBuildProfile(ann, path, tier).remap(actionT);
+        const obstacles = velocityProfileOptions.obstaclesFor?.(playerId) ?? [];
+        s = getOrBuildProfile(ann, path, tier, obstacles).remap(actionT);
       }
       position = samplePolyline(path, s);
     } else {
