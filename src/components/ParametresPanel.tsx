@@ -463,6 +463,12 @@ export function ParametresPanel({
             onChange={(v) => onPatch({ attackerVelocityProfileEnabled: v })}
             title="Les attaquants ralentissent dans les virages serrés (V-cuts) et ré-accélèrent en sortie. Vitesse constante sur les drives droits. Modulé par tier athlétique si défini. Opt-in, A/B comparable."
           />
+          <CheckboxLine
+            checked={!!state.attackerActiveDemarquage}
+            label="démarquage actif (Phy.O V3 — lecture défense)"
+            onChange={(v) => onPatch({ attackerActiveDemarquage: v })}
+            title="L'attaquant ralentit autour des points de son path où son défenseur matché est proche (≤ 50 px), simulant la lecture intentionnelle. Nécessite que le profil de vitesse offensif soit activé."
+          />
         </div>
       </SettingsSection>
     </Panel>
