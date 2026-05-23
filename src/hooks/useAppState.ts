@@ -451,6 +451,25 @@ export function useAppState() {
     [setStateWithHistory]
   );
 
+  const addFeinte = useCallback(
+    (stepIdx: number, annIdx: number, t: number) => {
+      setStateWithHistory((s) => annotationTx.addFeinte(s, stepIdx, annIdx, t));
+    },
+    [setStateWithHistory],
+  );
+  const updateFeinte = useCallback(
+    (stepIdx: number, annIdx: number, feinteIdx: number, t: number) => {
+      setStateWithHistory((s) => annotationTx.updateFeinte(s, stepIdx, annIdx, feinteIdx, t));
+    },
+    [setStateWithHistory],
+  );
+  const removeFeinte = useCallback(
+    (stepIdx: number, annIdx: number, feinteIdx: number) => {
+      setStateWithHistory((s) => annotationTx.removeFeinte(s, stepIdx, annIdx, feinteIdx));
+    },
+    [setStateWithHistory],
+  );
+
   // -- Tool --
   const setTool = useCallback((tool: Tool) => {
     setStateWithHistory((s) => coreTx.setTool(s, tool));
@@ -685,6 +704,9 @@ export function useAppState() {
     setAnnotationFrom,
     setAnnotationTo,
     setAnnotationWaypoint,
+    addFeinte,
+    updateFeinte,
+    removeFeinte,
     setForcedScreener,
     clearAnnotationsFor,
     setTool,
