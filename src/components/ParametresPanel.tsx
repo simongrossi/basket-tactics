@@ -506,6 +506,12 @@ export function ParametresPanel({
             </div>
           )}
           <CheckboxLine
+            checked={!!state.physicalContactBattlesEnabled}
+            label="Luttes de force (Box-out & Post-up)"
+            onChange={(v) => onPatch({ physicalContactBattlesEnabled: v })}
+            title="Modélise les duels physiques pendant la phase box-out : le défenseur en contact pousse l'attaquant à l'opposé du panier (et recule lui-même via la réaction). Filet de sécurité Rule 1 garanti."
+          />
+          <CheckboxLine
             checked={!!state.attackerVelocityProfileEnabled}
             label="profil de vitesse offensif (Phy.O — courbure)"
             onChange={(v) => onPatch({ attackerVelocityProfileEnabled: v })}

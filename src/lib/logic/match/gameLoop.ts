@@ -35,7 +35,8 @@ import {
   type OffensiveAction,
 } from '../offense';
 import { shotZoneFor, type ShotZone } from '../threats';
-import { distance } from '../geometry';
+import { distance, pushOutOfMany } from '../geometry';
+import { PLAYER_MIN_CLEARANCE_PX } from '@/lib/data/court';
 import {
   seededAiRng,
 } from './aiPossession';
@@ -661,6 +662,59 @@ function handleTransitionPause(
         const cur = next.defPos[id];
         if (!target || !cur) return;
         next.defPos[id] = { ...cur, x: target.x, y: target.y };
+      });
+    }
+
+    // Luttes de force (Box-out / Post-up) — opt-in via flag
+    // `physicalContactBattlesEnabled`. Modélise le duel physique : le
+    // défenseur en box-out qui touche un attaquant lui transmet une
+    // poussée OPPOSÉE au panier (= éloigne l'attaquant de la zone de
+    // rebond). Réaction newtonienne sur le défenseur (amortie ×0.3).
+    // Rule 1 préservée par `pushOutOfMany` en fin de couche.
+    if (baseAppState.physicalContactBattlesEnabled) {
+      const hoop = getDefenseHoop(baseAppState, next.attackingTeam);
+      const battleRadius = 40;
+      const baseForce = 5; // px max / frame
+      (Object.keys(next.boxOutTargets) as DefenderId[]).forEach((dId) => {
+        const def = next.defPos[dId];
+        if (!def) return;
+        const attId = def.matchedTo as AttackerId;
+        const att = next.off[attId];
+        if (!att) return;
+        const d = Math.hypot(def.x - att.x, def.y - att.y);
+        if (d < 1 || d >= battleRadius) return;
+        const fromHoopX = att.x - hoop.x;
+        const fromHoopY = att.y - hoop.y;
+        const fhMag = Math.hypot(fromHoopX, fromHoopY);
+        if (fhMag < 1) return;
+        const intensity = baseForce * (1 - d / battleRadius) * eased;
+        const ux = fromHoopX / fhMag;
+        const uy = fromHoopY / fhMag;
+        next.off[attId] = {
+          ...att,
+          x: att.x + ux * intensity,
+          y: att.y + uy * intensity,
+        };
+        next.defPos[dId] = {
+          ...def,
+          x: def.x - ux * intensity * 0.3,
+          y: def.y - uy * intensity * 0.3,
+        };
+      });
+      // Filet de sécurité Rule 1 : pushOut sur tous les attaquants contre
+      // tous les défenseurs et autres attaquants.
+      const attIds = Object.keys(next.off) as AttackerId[];
+      const defIds = Object.keys(next.defPos) as DefenderId[];
+      attIds.forEach((id) => {
+        const obstacles: Point[] = [];
+        attIds.forEach((other) => {
+          if (other !== id) obstacles.push(next.off[other]);
+        });
+        defIds.forEach((dId) => {
+          const d = next.defPos[dId];
+          if (d) obstacles.push({ x: d.x, y: d.y });
+        });
+        next.off[id] = pushOutOfMany(next.off[id], obstacles, PLAYER_MIN_CLEARANCE_PX);
       });
     }
   }

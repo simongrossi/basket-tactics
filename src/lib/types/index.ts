@@ -842,6 +842,11 @@ export interface AppState {
   /** Multiplicateur d'amplification de la pénalité d'écran (1.0 = no-op,
    *  legacy ; 2.0 = pénalité doublée, impact "violent"). */
   screenStiffness?: number;
+  /** Luttes de force (Box-out / Post-up) — pendant la phase box-out, applique
+   *  une poussée vectorielle défenseur→attaquant qui éloigne l'attaquant du
+   *  panier, avec réaction amortie sur le défenseur. Filet de sécurité
+   *  Rule 1 via `pushOutOfMany` en fin de couche. */
+  physicalContactBattlesEnabled?: boolean;
   /** Format de jeu actif : 2x2, 3x3, 4x4 ou 5x5.
    *  Les joueurs hors format restent en mémoire, mais le moteur, les rendus
    *  et les contrôles les ignorent pour éviter tout comportement fantôme. */
