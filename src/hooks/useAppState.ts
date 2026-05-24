@@ -10,6 +10,7 @@
 // CourtView, ContextMenu, …) consomment les mêmes noms de méthodes.
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useHistorizedState } from './useHistorizedState';
 import type {
   AppState,
   AddAnnotationOptions,
@@ -38,13 +39,6 @@ import { makeInitialState } from '@/lib/data/initial';
 import type { Template } from '@/lib/data/templates';
 import type { DefensePreset } from '@/lib/data/defensePresets';
 import type { DefenderProfile } from '@/lib/data/defenderProfiles';
-import {
-  commitCoalescedHistory,
-  pushHistorySnapshot,
-  redoFromHistory,
-  undoFromHistory,
-  type AppStateHistory,
-} from '@/lib/logic/appStateHistory';
 import { persistDetectedSwitchesThroughStep } from '@/lib/logic/engine';
 import { moveAttackerInState, moveDefenderInState } from '@/lib/logic/playerMove';
 import { loadFromStorage, saveToStorage, clearStorage } from '@/lib/state/persistence';
@@ -83,16 +77,17 @@ export function useAppState() {
   // Premier render identique côté SSR et client : on part toujours de l'état
   // par défaut. localStorage est lu dans un effect post-montage uniquement
   // (sinon hydration mismatch).
-  const [state, setState] = useState<AppState>(() => makeInitialState());
+  const {
+    state,
+    stateRef,
+    setStateRaw,
+    setStateWithHistory,
+    undo,
+    redo,
+    beginPlayerDrag,
+    commitPlayerDrag,
+  } = useHistorizedState(makeInitialState);
   const [hydrated, setHydrated] = useState(false);
-  const stateRef = useRef(state);
-  stateRef.current = state;
-
-  // Pile undo/redo. Hors state principal pour ne pas re-rendre à chaque push.
-  // setStateWithHistory pousse l'état précédent dans `past` et vide `future`.
-  // undo/redo utilisent setState brut pour ne pas se ré-historiser.
-  const historyRef = useRef<AppStateHistory>({ past: [], future: [] });
-  const dragHistoryAnchorRef = useRef<AppState | null>(null);
 
   // Animation transitoire "Tout en auto réel" : positions de départ capturées
   // au clic + timestamp. Non persistée. Cf. clearAllDefenseOverridesActiveStepAnimated.
@@ -109,53 +104,18 @@ export function useAppState() {
     return () => clearTimeout(timer);
   }, [defenseReleaseTransition]);
 
-  const setStateWithHistory: typeof setState = useCallback((updater) => {
-    setState((prev) => {
-      const next = typeof updater === 'function'
-        ? (updater as (s: AppState) => AppState)(prev)
-        : updater;
-      if (next === prev) return prev;
-      pushHistorySnapshot(historyRef.current, prev);
-      return next;
-    });
-  }, []);
-
-  const beginPlayerDrag = useCallback(() => {
-    if (!dragHistoryAnchorRef.current) {
-      dragHistoryAnchorRef.current = stateRef.current;
-    }
-  }, []);
-
-  const commitPlayerDrag = useCallback(() => {
-    const anchor = dragHistoryAnchorRef.current;
-    dragHistoryAnchorRef.current = null;
-    if (!anchor) return;
-    setState((cur) => {
-      commitCoalescedHistory(historyRef.current, anchor, cur);
-      return cur;
-    });
-  }, []);
-
-  const undo = useCallback(() => {
-    setState((cur) => undoFromHistory(historyRef.current, cur));
-  }, []);
-
-  const redo = useCallback(() => {
-    setState((cur) => redoFromHistory(historyRef.current, cur));
-  }, []);
-
   // Hydration : lit le localStorage post-montage.
   useEffect(() => {
     const persisted = loadFromStorage();
-    if (persisted) setState(persisted);
+    if (persisted) setStateRaw(persisted);
     setHydrated(true);
-  }, []);
+  }, [setStateRaw]);
 
   // Détection de switches après chaque changement d'état.
   useEffect(() => {
     if (!hydrated) return;
-    setState((cur) => persistDetectedSwitchesThroughStep(cur));
-  }, [hydrated, state]);
+    setStateRaw((cur) => persistDetectedSwitchesThroughStep(cur));
+  }, [hydrated, state, setStateRaw]);
 
   // Save debounced (400ms) — skip avant hydration pour ne pas écraser le persisté.
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -277,12 +237,12 @@ export function useAppState() {
   }, [setStateWithHistory]);
 
   const moveAttackerDuringDrag = useCallback((id: AttackerId, x: number, y: number) => {
-    setState((s) => moveAttackerInState(s, id, { x, y }));
-  }, []);
+    setStateRaw((s) => moveAttackerInState(s, id, { x, y }));
+  }, [setStateRaw]);
 
   const moveDefenderDuringDrag = useCallback((id: DefenderId, x: number, y: number) => {
-    setState((s) => moveDefenderInState(s, id, { x, y }));
-  }, []);
+    setStateRaw((s) => moveDefenderInState(s, id, { x, y }));
+  }, [setStateRaw]);
 
   const clearDefenseOverride = useCallback((id: DefenderId) => {
     setStateWithHistory((s) => defenseTx.clearDefenseOverride(s, id));
