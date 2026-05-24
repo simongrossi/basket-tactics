@@ -478,6 +478,34 @@ export function ParametresPanel({
             title="Étend le moteur de forces vectorielles aux attaquants : repel émergent contre les autres joueurs au lieu de la Bezier géométrique. Glissement plus naturel autour des clusters."
           />
           <CheckboxLine
+            checked={!!state.screenStiffnessEnabled}
+            label="Stiffness & Impact (récupération post-écran)"
+            onChange={(v) => onPatch({ screenStiffnessEnabled: v })}
+            title="Amplifie la pénalité de vitesse subie par un défenseur en contact d'écran ou en recovery, proportionnellement à la violence (multiplicateur). La cible reste inchangée — le pipeline d'écran n'est pas touché."
+          />
+          {state.screenStiffnessEnabled && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 16 }}>
+              <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 120 }} title="Facteur d'amplification de la pénalité d'écran. 1.0 = legacy, 2.0 = impact violent.">
+                violence d'impact
+              </span>
+              <input
+                type="range"
+                min={1.0}
+                max={3.0}
+                step={0.1}
+                value={state.screenStiffness ?? 1.5}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  onPatch({ screenStiffness: v });
+                }}
+                style={{ flex: 1 }}
+              />
+              <span style={{ fontSize: 10, color: '#94a3b8', minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                {(state.screenStiffness ?? 1.5).toFixed(1)}
+              </span>
+            </div>
+          )}
+          <CheckboxLine
             checked={!!state.attackerVelocityProfileEnabled}
             label="profil de vitesse offensif (Phy.O — courbure)"
             onChange={(v) => onPatch({ attackerVelocityProfileEnabled: v })}

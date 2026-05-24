@@ -124,5 +124,7 @@ export function makeInitialState(): AppState {
     dribblePhysicsEnabled: false,
     footworkRulesEnabled: false,
     cvtOffensiveEnabled: false,
+    screenStiffnessEnabled: false,
+    screenStiffness: 1.5,
   };
 }

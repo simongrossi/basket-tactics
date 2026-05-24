@@ -495,11 +495,20 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
       !isScreenedThisStep &&
       prevTargets?.[dId]?.screenPhase === 'impact' &&
       previousScreenQualityByDef[dId] !== undefined;
-    const screenContactPenalty = isScreenedThisStep
+    let screenContactPenalty = isScreenedThisStep
       ? screenPenaltyFromQuality(currentScreenQualityByDef[dId] ?? 50)
       : isRecoveringFromScreen
         ? screenPenaltyFromQuality(previousScreenQualityByDef[dId] ?? 50)
       : 1.0;
+    // Stiffness & Impact (opt-in) — amplifie la pénalité d'écran existante
+    // proportionnellement à `screenStiffness`. Préserve la cible D1 (le
+    // pipeline d'écran reste intouché) ; seul l'effort de dégagement coûte
+    // plus cher. À 1.0 = no-op. À 2.0 = pénalité doublée (impact "violent").
+    // Borne basse 0.08 pour éviter la paralysie totale.
+    if (state.screenStiffnessEnabled && (isScreenedThisStep || isRecoveringFromScreen)) {
+      const stiffness = state.screenStiffness ?? 1.5;
+      screenContactPenalty = Math.max(0.08, 1 - (1 - screenContactPenalty) * stiffness);
+    }
     const screenPhase = isScreenedThisStep
       ? 'impact'
       : isRecoveringFromScreen

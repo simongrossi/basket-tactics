@@ -834,6 +834,14 @@ export interface AppState {
    *  Quand actif, remplace l'évitement géométrique `curveAroundObstacle`
    *  par un accumulateur de forces `repel` (steeringEngine). */
   cvtOffensiveEnabled?: boolean;
+  /** Stiffness & Impact (Physique de l'écran) — amplifie la pénalité de
+   *  vitesse subie par un défenseur en contact d'écran ou en recovery.
+   *  Préserve strictement la cible D1 (le pipeline d'écran reste intouché) ;
+   *  seul l'effort de dégagement coûte plus cher. */
+  screenStiffnessEnabled?: boolean;
+  /** Multiplicateur d'amplification de la pénalité d'écran (1.0 = no-op,
+   *  legacy ; 2.0 = pénalité doublée, impact "violent"). */
+  screenStiffness?: number;
   /** Format de jeu actif : 2x2, 3x3, 4x4 ou 5x5.
    *  Les joueurs hors format restent en mémoire, mais le moteur, les rendus
    *  et les contrôles les ignorent pour éviter tout comportement fantôme. */
