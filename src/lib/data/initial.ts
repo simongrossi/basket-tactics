@@ -114,5 +114,14 @@ export function makeInitialState(): AppState {
       O4: 'rim-roller',
       O5: 'stretch-big',
     },
+    realSpeedMode: false,
+    attackerAccelerationEnabled: false,
+    attackerAcceleration: 5.0,
+    attackerMomentumEnabled: false,
+    attackerMomentum: 0.15,
+    activeInterceptionsEnabled: false,
+    physicsReboundsEnabled: false,
+    dribblePhysicsEnabled: false,
+    footworkRulesEnabled: false,
   };
 }

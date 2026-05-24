@@ -424,6 +424,15 @@ export function useAppState() {
     [setStateWithHistory]
   );
 
+  const toggleAnnotationSprint = useCallback(
+    (stepIdx: number, annoIdx: number) => {
+      setStateWithHistory((s) =>
+        annotationTx.toggleAnnotationSprint(s, stepIdx, annoIdx)
+      );
+    },
+    [setStateWithHistory]
+  );
+
   const setAnnotationFrom = useCallback(
     (stepIdx: number, annoIdx: number, point: { x: number; y: number }) => {
       setStateWithHistory((s) =>
@@ -698,6 +707,7 @@ export function useAppState() {
     deleteLastAnnotation,
     deleteAnnotation,
     setAnnotationPhase,
+    toggleAnnotationSprint,
     setAnnotationTiming,
     setAnnotationTimingAbs,
     setAnnotationQuality,

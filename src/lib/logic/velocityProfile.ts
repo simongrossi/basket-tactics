@@ -24,6 +24,7 @@ import {
   OFFENSIVE_POST_FEINTE_BOOST_OFFSET,
   OFFENSIVE_PROFILE_SAMPLES,
   OFFENSIVE_TIER_MULTIPLIER,
+  pxToMeters,
 } from '../data/physics';
 import { samplePolyline } from './polyline';
 
@@ -73,6 +74,16 @@ export interface VelocityProfileOptions {
   /** Phy.O V3 V4 — Offset du pic après le centre de la feinte (fraction
    *  d'arc). Défaut : OFFENSIVE_POST_FEINTE_BOOST_OFFSET (0.10). */
   postFeinteBoostOffset?: number;
+  /** Durée d'une étape (s) */
+  durationSec?: number;
+  /** Si vrai, applique le modèle d'accélération */
+  accelerationEnabled?: boolean;
+  /** Valeur max d'accélération (m/s²) */
+  acceleration?: number;
+  /** Vrai si le joueur part de l'arrêt complet */
+  startFromStandstill?: boolean;
+  /** Vrai si le joueur s'arrête complètement à la fin */
+  endAtStandstill?: boolean;
 }
 
 export interface VelocityProfile {
@@ -265,12 +276,44 @@ export function buildVelocityProfile(
     drFloor,
   );
   // v(s) = (feinte × friction × defenseReading) / (1 + α κ).
-  const vs = curvs.map(
+  let vs = curvs.map(
     (k, i) => (feinteFactors[i] * frictions[i] * defenseReadings[i]) / (1 + alpha * k),
   );
 
+  if (options.accelerationEnabled) {
+    const duration = options.durationSec ?? 2.0;
+    const accLimit = options.acceleration ?? 5.0;
+    const lengthM = pxToMeters(total);
+    const dsM = lengthM / samples;
+    const vAvg = lengthM / duration;
+
+    // Scale to physical speed (m/s)
+    let vPhysical = vs.map(vRel => vRel * vAvg);
+
+    // Forward pass (accel)
+    const vForward = new Array<number>(vPhysical.length).fill(0);
+    vForward[0] = options.startFromStandstill ? 0 : vPhysical[0];
+    for (let i = 1; i < vPhysical.length; i++) {
+      const maxV = Math.sqrt(vForward[i - 1] * vForward[i - 1] + 2 * accLimit * dsM);
+      vForward[i] = Math.min(vPhysical[i], maxV);
+    }
+
+    // Backward pass (decel)
+    const vFinal = [...vForward];
+    if (options.endAtStandstill) {
+      vFinal[vFinal.length - 1] = 0;
+    }
+    for (let i = vFinal.length - 2; i >= 0; i--) {
+      const maxV = Math.sqrt(vFinal[i + 1] * vFinal[i + 1] + 2 * accLimit * dsM);
+      vFinal[i] = Math.min(vFinal[i], maxV);
+    }
+
+    // Safety floor (0.5 m/s) to avoid division by zero
+    vs = vFinal.map(v => Math.max(v, 0.5));
+  }
+
   // Temps cumulé : t_phys(i) = Σ Δs / avg(v_{j-1}, v_j).
-  const dsUniform = total / samples;
+  const dsUniform = options.accelerationEnabled ? pxToMeters(total) / samples : total / samples;
   const tPhys = new Array<number>(pts.length).fill(0);
   for (let i = 1; i < pts.length; i++) {
     const vAvg = (vs[i - 1] + vs[i]) * 0.5;

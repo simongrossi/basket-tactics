@@ -11,6 +11,7 @@ export type PlayerCount = 2 | 3 | 4 | 5;
 export interface Point {
   x: number;
   y: number;
+  z?: number;
 }
 
 export interface Positions<K extends string> {
@@ -116,6 +117,8 @@ export interface Annotation {
    *  possibles. N'affecte que `cut` et `dribble`. Aucun effet sans
    *  `attackerVelocityProfileEnabled` actif. */
   feintes?: number[];
+  /** Option pour marquer un segment offensif (cut/dribble) comme un sprint (mouvement condensé sur les premiers 60% du step). */
+  sprint?: boolean;
 }
 
 /** A.3 — Note texte libre déposée sur le terrain. Purement visuelle :
@@ -778,6 +781,9 @@ export interface ComputedDefender {
    *  Métadonnée tactique consommable par les couches de help futures et
    *  par l'UI (badge "shadowing" optionnel). */
   isPassShadowed?: boolean;
+  /** Fraction de l'étape de freeze (latence de réaction + plant-and-cut pivot)
+   *  pendant laquelle le défenseur reste immobilisé au départ. */
+  delayFraction?: number;
 }
 
 /** Visuels d'attaquants calculés par étape (convention B + invariants anatomiques). */
@@ -814,6 +820,15 @@ export type AttackerSpeedTier = 'elite' | 'standard' | 'lent';
 export interface AppState {
   steps: Step[];
   activeStep: number;
+  realSpeedMode?: boolean;
+  attackerAccelerationEnabled?: boolean;
+  attackerAcceleration?: number;
+  attackerMomentumEnabled?: boolean;
+  attackerMomentum?: number;
+  activeInterceptionsEnabled?: boolean;
+  physicsReboundsEnabled?: boolean;
+  dribblePhysicsEnabled?: boolean;
+  footworkRulesEnabled?: boolean;
   /** Format de jeu actif : 2x2, 3x3, 4x4 ou 5x5.
    *  Les joueurs hors format restent en mémoire, mais le moteur, les rendus
    *  et les contrôles les ignorent pour éviter tout comportement fantôme. */

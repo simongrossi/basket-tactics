@@ -18,8 +18,18 @@ import type { Point } from '@/lib/types';
 
 const TENSION = 0.5;
 
-function dist(a: Point, b: Point): number {
+export function dist(a: Point, b: Point): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+export function polylineLength(points: Point[]): number {
+  const n = points.length;
+  if (n <= 1) return 0;
+  let total = 0;
+  for (let i = 0; i < n - 1; i++) {
+    total += dist(points[i], points[i + 1]);
+  }
+  return total;
 }
 
 /** Conversion Catmull-Rom (uniforme, τ=0.5) → Bezier cubique : 4 points

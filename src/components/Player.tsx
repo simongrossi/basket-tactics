@@ -461,22 +461,42 @@ interface BallProps {
 export function Ball({ pos, carrierPos, inFlight }: BallProps) {
   const p = pos ?? (carrierPos ? { x: carrierPos.x + 16, y: carrierPos.y - 16 } : undefined);
   if (!p) return null;
+
+  const hasZ = p.z !== undefined;
+  const z = p.z ?? 0;
+
+  // Calcul dynamique de l'ombre portée
+  const showShadow = inFlight || (hasZ && z < 25);
+  let shadowY = p.y + 14;
+  let shadowRx = 6;
+  let shadowRy = 1.5;
+  let shadowOpacity = 0.25;
+
+  if (hasZ) {
+    shadowY = inFlight ? p.y + z + 14 : p.y + 1.64 * z - 11;
+    shadowRx = Math.max(2, 6 * (1 - z / 140));
+    shadowRy = Math.max(0.5, 1.5 * (1 - z / 140));
+    shadowOpacity = Math.max(0.04, 0.3 * (1 - z / 120));
+  }
+
+  // Rayon du ballon avec effet 3D subtil
+  const r = hasZ ? 7 + Math.min(3, z * 0.02) : (inFlight ? 8 : 7);
+
   return (
     <g pointerEvents="none">
-      {inFlight && (
-        // Ombre projetée sous la parabole pour donner une impression de hauteur
+      {showShadow && (
         <ellipse
           cx={p.x}
-          cy={p.y + 14}
-          rx={6}
-          ry={1.5}
-          fill="rgba(0,0,0,0.25)"
+          cy={shadowY}
+          rx={shadowRx}
+          ry={shadowRy}
+          fill={`rgba(0,0,0,${shadowOpacity})`}
         />
       )}
       <circle
         cx={p.x}
         cy={p.y}
-        r={inFlight ? 8 : 7}
+        r={r}
         fill="#BA7517"
         stroke={inFlight ? '#fff' : '#412402'}
         strokeWidth={inFlight ? 2.5 : 2}

@@ -1641,3 +1641,35 @@ défenseur) à un paradigme **émergeant** de forces vectorielles pondérées
 [docs/GAME-ENGINE.md](docs/GAME-ENGINE.md) (cartographie moteur) avant
 toute ouverture de PR sur ce chantier.
 
+---
+
+### ⚪ Réalisme physique et déplacements avancés
+
+Pistes d'amélioration du réalisme physique, de la motricité des joueurs et de la gestion de la balle pour dépasser le cadre purement "tactique" actuel.
+
+#### 1. Cinématique des déplacements et modèle de vitesse
+- **Vitesse Réelle vs Vitesse Tactique (Mode Sprint NBA) :** Option pour basculer d'une échelle "vitesse tactique lente" (~1.5 m/s, timeline 2s) à une échelle "vitesse réelle" (~6-9 m/s, timeline 0.5s) afin de simuler des buzzer-beaters et coast-to-coast crédibles.
+- **Accélération et décélération non-linéaires en attaque :** Intégrer un vrai modèle de forces motrices physiques (poussée au sol, friction) pour l'attaque, à l'instar du modèle d'accélération défensive (G.3).
+- **Inertie et momentum offensif :** Amortir les changements de direction brusques des attaquants en appliquant une dérive centrifuge sur les coupes à angle aigu (casser ses appuis).
+- **Sprint Boost contextuel offensif :** Permettre de marquer un segment offensif comme un "sprint", augmentant la vitesse max au prix d'une inertie de freinage accrue.
+
+#### 2. Physique du ballon, passes et tirs
+- **Interceptions actives physiques :** Remplacer le diagnostic géométrique des lignes de passe par une interception active. Le ballon 3D peut être dévié ou attrapé par tout défenseur sur la trajectoire en fonction de son envergure, orientation et temps de réaction.
+- **Physique du tir et rebonds 3D non-déterministes :** Simuler l'arc de tir sous l'effet de la gravité, avec collision physique précise de la sphère contre l'arceau et la planche pour générer des rebonds réalistes.
+- **Physique du dribble :** Lier les oscillations de la balle au rythme des pas du porteur et à sa vitesse de déplacement.
+
+#### 3. Biomécanique et motricité (Footwork)
+- **Modélisation des appuis (Course vs Pas chassés) :** Différencier la vitesse maximale selon que le joueur court vers l'avant ou glisse latéralement en posture défensive.
+- **Temps de réaction lié à l'attention visuelle :** Introduire un temps de réaction cognitive (délai de 150-300ms) avant qu'un défenseur ne réagisse à un changement de trajectoire du porteur ou du ballon s'ils se trouvent dans son angle mort (hors du cône de 120°).
+- **Pivots et changements de facing réalistes :** Forcer un arrêt temporaire pour planter ses appuis lors d'une transition course avant ↔ course arrière (pivot à 180°).
+
+#### 4. Physique des collisions et contacts
+- **Stiffness & Impact (Physique de l'écran) :** Infliger un "temps de récupération" (ralentissement ou blocage) proportionnel à la force de l'impact lorsqu'un défenseur percute un poseur d'écran.
+- **Luttes de force (Box-out & Post-up) :** Modéliser les duels physiques par des forces opposées poussant le joueur adverse, plutôt que par des corrections géométriques a posteriori.
+- **CVT offensif (Pathfinding unifié) :** Étendre le moteur de forces vectorielles (CVT) à l'attaque pour un contournement dynamique des obstacles par les 10 joueurs.
+
+#### 5. Gestion du temps et transitions
+- **Timeline multi-pistes désynchronisée :** Séparer la timeline globale en pistes individuelles par joueur pour permettre des départs et arrêts d'actions asynchrones (ex: O2 démarre sa coupe 0.4s après le début de l'action).
+- **Repli défensif et transition fluide terrain complet :** Gérer le comportement de retraite (courir vers son panier tout en surveillant le ballon).
+
+

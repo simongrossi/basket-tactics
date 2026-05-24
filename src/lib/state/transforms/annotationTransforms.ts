@@ -382,3 +382,28 @@ export function removeFeinte(
     fs.filter((_, i) => i !== feinteIdx),
   );
 }
+
+/** Bascule le flag sprint (sprint boost) pour une annotation de mouvement. */
+export function toggleAnnotationSprint(
+  s: AppState,
+  stepIdx: number,
+  annoIdx: number
+): AppState {
+  const step = s.steps[stepIdx];
+  if (!step) return s;
+  const anno = step.annotations[annoIdx];
+  if (!anno) return s;
+  if (!MOVEMENT_TYPES.includes(anno.type)) return s;
+
+  const steps = s.steps.map((st, i) =>
+    i === stepIdx
+      ? {
+          ...st,
+          annotations: st.annotations.map((a, j) =>
+            j === annoIdx ? { ...a, sprint: !a.sprint } : a
+          ),
+        }
+      : st
+  );
+  return { ...s, steps };
+}

@@ -246,15 +246,32 @@ export function computeBallFrame(
   nextCarrier: Point,
   carrierChanged: boolean,
   localT: number,
-  passKind?: 'direct' | 'lob' | 'bounce' | 'skip'
+  passKind?: 'direct' | 'lob' | 'bounce' | 'skip',
+  dribblePhysicsEnabled?: boolean
 ): { pos: Point; inFlight: boolean } {
   const offsetX = 16;
   const offsetY = -16;
 
   if (!carrierChanged) {
+    if (dribblePhysicsEnabled) {
+      const dx = nextCarrier.x - prevCarrier.x;
+      const dy = nextCarrier.y - prevCarrier.y;
+      const dist = Math.hypot(dx, dy);
+      const freq = dist > 2 ? Math.max(2, Math.round(dist / 40)) : 2;
+      const zVal = Math.abs(Math.sin(localT * Math.PI * freq)) * 25;
+      const ratio = zVal / 25;
+      const curOffsetX = offsetX * ratio;
+      const curOffsetY = offsetY * ratio;
+      const x = prevCarrier.x + (nextCarrier.x - prevCarrier.x) * localT + curOffsetX;
+      const y = prevCarrier.y + (nextCarrier.y - prevCarrier.y) * localT + curOffsetY;
+      return {
+        pos: { x, y: y + (25 - zVal), z: zVal },
+        inFlight: false,
+      };
+    }
     const x = prevCarrier.x + (nextCarrier.x - prevCarrier.x) * localT + offsetX;
     const y = prevCarrier.y + (nextCarrier.y - prevCarrier.y) * localT + offsetY;
-    return { pos: { x, y }, inFlight: false };
+    return { pos: { x, y, z: 25 }, inFlight: false };
   }
 
   const start = { x: prevCarrier.x + offsetX, y: prevCarrier.y + offsetY };
@@ -277,7 +294,7 @@ export function computeBallFrame(
       : Math.sin(Math.PI * ((localT - 0.5) * 2));
     const x = start.x + (end.x - start.x) * localT;
     const y = start.y + (end.y - start.y) * localT - arc * liftBounce;
-    return { pos: { x, y }, inFlight: true };
+    return { pos: { x, y, z: arc * liftBounce }, inFlight: true };
   }
 
   const liftCoef =
@@ -292,11 +309,11 @@ export function computeBallFrame(
   const ctrlX = (start.x + end.x) / 2;
   const ctrlY = (start.y + end.y) / 2 - lift;
   const omt = 1 - localT;
+  const x = omt * omt * start.x + 2 * omt * localT * ctrlX + localT * localT * end.x;
+  const y = omt * omt * start.y + 2 * omt * localT * ctrlY + localT * localT * end.y;
+  const zVal = 2 * localT * (1 - localT) * lift;
   return {
-    pos: {
-      x: omt * omt * start.x + 2 * omt * localT * ctrlX + localT * localT * end.x,
-      y: omt * omt * start.y + 2 * omt * localT * ctrlY + localT * localT * end.y,
-    },
+    pos: { x, y, z: zVal },
     inFlight: true,
   };
 }

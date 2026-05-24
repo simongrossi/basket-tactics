@@ -62,6 +62,8 @@ import {
   type RouteObstacle,
   type DefensiveRoute,
 } from '../defensiveRoute';
+import { angleDiff, angleFromNorth } from '../angles';
+
 
 export { screenPenaltyFromQuality } from '../screenPhysics';
 
@@ -188,6 +190,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
 
   let prevPositions: DefenderPositions;
   let prevTargets: ReturnType<typeof computeDefenseTargets>['positions'] | null = null;
+  let prevComputed: ComputedDefense | null = null;
   if (stepIdx === 0) {
     if (state.defenseSystem === 'zone') {
       const baseLayout = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);
@@ -200,7 +203,15 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
     }
   } else {
     prevTargets = computeDefenseTargets(state, stepIdx - 1, false).positions;
-    prevPositions = extractDefenderPositions(prevTargets);
+    if (state.footworkRulesEnabled) {
+      prevComputed = effectiveDefensePositions(state, stepIdx - 1);
+      prevPositions = {} as DefenderPositions;
+      for (const dId of defenderIds) {
+        prevPositions[dId] = { x: prevComputed[dId].x, y: prevComputed[dId].y };
+      }
+    } else {
+      prevPositions = extractDefenderPositions(prevTargets);
+    }
   }
 
   // G.3 — V1 : modèle linéaire simple. Au step N (= stepIdx), la vitesse
@@ -496,6 +507,92 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         : targets[dId].screenPhase;
     // Vitesse effective = vitesse théorique × friction × pénalité écran.
     let effectiveMaxSpeed = maxSpeed * friction * screenContactPenalty;
+
+    // Biomécanique, motricité et attention (Footwork)
+    let delayFraction = 0;
+    if (state.footworkRulesEnabled) {
+      let latencyFraction = 0;
+      if (stepIdx > 0 && prevComputed) {
+        const matches = getMatchupsAt(state.steps, stepIdx - 1, state.playerCount);
+        const matchedDef = matches[dId];
+        const prevStep = state.steps[stepIdx - 1];
+        const hasPassTrigger = prevStep.annotations.some(ann => ann.type === 'pass');
+        const hasCutTrigger = prevStep.annotations.some(ann => ann.type === 'cut' && ann.fromId === matchedDef);
+
+        if (hasPassTrigger || hasCutTrigger) {
+          const prevOff = activeOffense(prevStep.off, state.playerCount);
+          const prevCarrier = activeBallCarrier(prevStep, state.playerCount);
+          const ballPosPrev = prevOff[prevCarrier];
+          const oppPosPrev = prevOff[matchedDef];
+          const defenderPosPrev = prevPositions[dId];
+          const prevGazeOrientation = prevComputed[dId].gazeOrientation;
+
+          let isPassBlind = false;
+          if (hasPassTrigger && ballPosPrev && defenderPosPrev) {
+            const angleToBall = angleFromNorth(defenderPosPrev, ballPosPrev);
+            isPassBlind = Math.abs(angleDiff(angleToBall, prevGazeOrientation)) > 60;
+          }
+
+          let isCutBlind = false;
+          if (hasCutTrigger && oppPosPrev && defenderPosPrev) {
+            const angleToOpp = angleFromNorth(defenderPosPrev, oppPosPrev);
+            isCutBlind = Math.abs(angleDiff(angleToOpp, prevGazeOrientation)) > 60;
+          }
+
+          const passCond = !hasPassTrigger || isPassBlind;
+          const cutCond = !hasCutTrigger || isCutBlind;
+          if (passCond && cutCond) {
+            const stepDurationSec = curStep.duration ?? state.secondsPerStep ?? 4;
+            latencyFraction = Math.min(1.0, 0.2 / stepDurationSec);
+          }
+        }
+      }
+
+      let pivotFraction = 0;
+      if (stepIdx >= 2 && prevComputed) {
+        const prevPrevComputed = effectiveDefensePositions(state, stepIdx - 2);
+        if (prevPrevComputed && prevPrevComputed[dId]) {
+          const prevPrevPos = { x: prevPrevComputed[dId].x, y: prevPrevComputed[dId].y };
+          const prevPos = { x: prevComputed[dId].x, y: prevComputed[dId].y };
+          const prevMoveDist = Math.hypot(prevPos.x - prevPrevPos.x, prevPos.y - prevPrevPos.y);
+          const curMoveDist = Math.hypot(to.x - prevPos.x, to.y - prevPos.y);
+          if (prevMoveDist > 5 && curMoveDist > 5) {
+            const prevMoveAngle = angleFromNorth(prevPrevPos, prevPos);
+            const curMoveAngle = angleFromNorth(prevPos, to);
+            const pivotDiff = Math.abs(angleDiff(curMoveAngle, prevMoveAngle));
+            if (pivotDiff > 90) {
+              const pivotDelaySec = 0.15 + 0.15 * ((pivotDiff - 90) / 90);
+              const stepDurationSec = curStep.duration ?? state.secondsPerStep ?? 4;
+              pivotFraction = Math.min(1.0, pivotDelaySec / stepDurationSec);
+            }
+          }
+        }
+      }
+
+      delayFraction = Math.max(latencyFraction, pivotFraction);
+      if (delayFraction > 0) {
+        effectiveMaxSpeed *= (1.0 - delayFraction);
+      }
+
+      let speedMult = 1.0;
+      if (stepIdx > 0) {
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 0.1) {
+          const moveAngle = angleFromNorth(from, to);
+          const prevOrientation = prevComputed ? prevComputed[dId].orientation : targets[dId].orientation;
+          const diffDeg = Math.abs(angleDiff(moveAngle, prevOrientation));
+          if (diffDeg <= 90) {
+            speedMult = 1.0 - 0.25 * (diffDeg / 90);
+          } else {
+            speedMult = 0.75 - 0.15 * ((diffDeg - 90) / 90);
+          }
+        }
+      }
+      effectiveMaxSpeed *= speedMult;
+    }
+
     // G.3 — Plafond par budget d'accélération (V1 linéaire depuis le repos).
     // Sans flag, accelBudget = Infinity → no-op.
     effectiveMaxSpeed = Math.min(effectiveMaxSpeed, accelBudget);
@@ -537,6 +634,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         helpPriority: targets[dId].helpPriority,
         helpKind: targets[dId].helpKind,
         isPassShadowed: targets[dId].isPassShadowed,
+        delayFraction: state.footworkRulesEnabled ? delayFraction : undefined,
       };
     } else {
       const r = effectiveMaxSpeed / pathLen;
@@ -580,6 +678,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         helpPriority: targets[dId].helpPriority,
         helpKind: targets[dId].helpKind,
         isPassShadowed: targets[dId].isPassShadowed,
+        delayFraction: state.footworkRulesEnabled ? delayFraction : undefined,
       };
     }
   });

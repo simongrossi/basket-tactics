@@ -23,12 +23,14 @@ interface UsePlaybackAnimationParams {
   onTick: (t: number) => void;
   /** Notifié quand `t` atteint `totalSteps` (lecture terminée). */
   onEnd?: () => void;
+  /** Mode vitesse réelle NBA */
+  realSpeedMode?: boolean;
 }
 
 const TICK_INTERVAL_MS = 33; // ~30 fps
 
 export function usePlaybackAnimation(params: UsePlaybackAnimationParams): void {
-  const { isPlaying, speed } = params;
+  const { isPlaying, speed, realSpeedMode } = params;
 
   // Refs pour découpler la boucle des changements de props (sinon chaque
   // changement de speed/state restart la boucle et la lecture stutter).
@@ -53,7 +55,7 @@ export function usePlaybackAnimation(params: UsePlaybackAnimationParams): void {
         return;
       }
       const elapsed = performance.now() - playStart;
-      const tickInfo = playbackTickAtElapsed({ startT, elapsedMs: elapsed, speed, totalSteps });
+      const tickInfo = playbackTickAtElapsed({ startT, elapsedMs: elapsed, speed, totalSteps, realSpeedMode });
       if (tickInfo.ended) {
         window.clearInterval(intervalId);
         onTickRef.current(tickInfo.t);
@@ -66,5 +68,5 @@ export function usePlaybackAnimation(params: UsePlaybackAnimationParams): void {
     const intervalId = window.setInterval(tick, TICK_INTERVAL_MS);
     tick(); // premier frame immédiat
     return () => window.clearInterval(intervalId);
-  }, [isPlaying, speed]);
+  }, [isPlaying, speed, realSpeedMode]);
 }

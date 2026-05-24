@@ -21,3 +21,11 @@ export function lerpAngleDeg(a: number, b: number, t: number): number {
   const diff = angleDiff(b, a);
   return a + diff * t;
 }
+
+/** Angle en degrés depuis le Nord (sens horaire, convention terrain). */
+export function angleFromNorth(from: { x: number; y: number }, to: { x: number; y: number }): number {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  return (Math.atan2(dx, -dy) * 180) / Math.PI;
+}
+

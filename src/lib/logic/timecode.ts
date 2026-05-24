@@ -15,8 +15,9 @@ export const DEFAULT_POSSESSION_SECONDS = 24;
  *  C'est la valeur GLOBALE par défaut, utilisée si `step.duration` n'est
  *  pas défini (cf. `getStepDurationSeconds`). */
 export function getSecondsPerStep(state: AppState): number {
+  const defaultSec = state.realSpeedMode ? 0.5 : DEFAULT_SECONDS_PER_STEP;
   const v = state.secondsPerStep;
-  if (typeof v !== 'number' || !isFinite(v) || v <= 0) return DEFAULT_SECONDS_PER_STEP;
+  if (typeof v !== 'number' || !isFinite(v) || v <= 0) return defaultSec;
   return v;
 }
 

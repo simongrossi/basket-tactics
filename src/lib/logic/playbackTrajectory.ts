@@ -1,11 +1,12 @@
 import type { Annotation, AnnotationType, AttackerId, Point, Step } from '@/lib/types';
-import { samplePolyline } from './polyline';
+import { samplePolyline, polylineLength } from './polyline';
 import { resolveAnnotationTiming } from './annotationTiming';
 import {
   buildVelocityProfile,
   type AttackerSpeedTier,
   type VelocityProfile,
 } from './velocityProfile';
+import { pxToMeters, metersToPx } from '../data/physics';
 
 const SCREEN_SET_FRACTION = 0.35;
 
@@ -90,6 +91,11 @@ export interface PlaybackVelocityProfileOptions {
   matchedDefenderFor?: (id: AttackerId) => Point | undefined;
   /** Phy.O V3 V4 — Active le boost post-feinte (lecture proactive). */
   postFeinteBoost?: boolean;
+  durationSec?: number;
+  accelerationEnabled?: boolean;
+  acceleration?: number;
+  momentumEnabled?: boolean;
+  momentum?: number;
 }
 
 /** Cache de profils par annotation × tier. Évite de re-construire le profil
@@ -103,6 +109,11 @@ function getOrBuildProfile(
   obstacles: Point[],
   matchedDefenderPos: Point | undefined,
   postFeinteBoost: boolean,
+  durationSec?: number,
+  accelerationEnabled?: boolean,
+  acceleration?: number,
+  startFromStandstill?: boolean,
+  endAtStandstill?: boolean,
 ): VelocityProfile {
   let perAnn = profileCache.get(ann);
   if (!perAnn) {
@@ -126,7 +137,7 @@ function getOrBuildProfile(
     : '0';
   // Phy.O V3 V4 — flag boost inclus dans la clé.
   const boostKey = postFeinteBoost ? '1' : '0';
-  const key = `${tierKey}|${obstaclesHash}|${feintesHash}|${mdpHash}|${boostKey}`;
+  const key = `${tierKey}|${obstaclesHash}|${feintesHash}|${mdpHash}|${boostKey}|${durationSec ?? 2}|${accelerationEnabled ? '1' : '0'}|${acceleration ?? 5}|${startFromStandstill ? '1' : '0'}|${endAtStandstill ? '1' : '0'}`;
   let profile = perAnn.get(key);
   if (!profile) {
     profile = buildVelocityProfile(path, {
@@ -135,6 +146,11 @@ function getOrBuildProfile(
       feintes,
       matchedDefenderPos,
       postFeinteBoost,
+      durationSec,
+      accelerationEnabled,
+      acceleration,
+      startFromStandstill,
+      endAtStandstill,
     });
     perAnn.set(key, profile);
   }
@@ -236,6 +252,9 @@ export function attackerTrajectoryAt(
     else actionT = 1;
   }
   const ann = chosen.ann;
+  if (ann.sprint) {
+    actionT = actionT >= 0.6 ? 1.0 : actionT / 0.6;
+  }
 
   const hasWaypoints = !!ann.waypoints && ann.waypoints.length > 0;
   if (ann.type === 'cut') {
@@ -243,6 +262,8 @@ export function attackerTrajectoryAt(
     if (hasWaypoints) {
       const path = annotationPolyline(ann);
       let s = actionT;
+      const startFromStandstill = stepIdx === 0 || findMovementAnnotations(steps[stepIdx - 1], playerId).length === 0;
+      const endAtStandstill = stepIdx + 1 >= steps.length - 1 || findMovementAnnotations(steps[stepIdx + 1], playerId).length === 0;
       if (velocityProfileOptions?.enabled) {
         const tier = velocityProfileOptions.tierFor?.(playerId);
         const obstacles = velocityProfileOptions.obstaclesFor?.(playerId) ?? [];
@@ -250,9 +271,61 @@ export function attackerTrajectoryAt(
         const postFeinteBoost = !!velocityProfileOptions.postFeinteBoost;
         s = getOrBuildProfile(
           ann, path, tier, obstacles, matchedDefenderPos, postFeinteBoost,
+          velocityProfileOptions.durationSec,
+          velocityProfileOptions.accelerationEnabled,
+          velocityProfileOptions.acceleration,
+          startFromStandstill,
+          endAtStandstill,
         ).remap(actionT);
       }
       position = samplePolyline(path, s);
+
+      // Moment/Centrifugal Drift
+      if (velocityProfileOptions?.momentumEnabled) {
+        const eps = 0.02;
+        const sPrev = Math.max(0, s - eps);
+        const sNext = Math.min(1, s + eps);
+        const p0 = samplePolyline(path, sPrev);
+        const p1 = position;
+        const p2 = samplePolyline(path, sNext);
+
+        const dx1 = p1.x - p0.x;
+        const dy1 = p1.y - p0.y;
+        const len1 = Math.hypot(dx1, dy1);
+
+        const dx2 = p2.x - p1.x;
+        const dy2 = p2.y - p1.y;
+        const len2 = Math.hypot(dx2, dy2);
+
+        if (len1 > 1e-3 && len2 > 1e-3) {
+          const u1x = dx1 / len1;
+          const u1y = dy1 / len1;
+          const u2x = dx2 / len2;
+          const u2y = dy2 / len2;
+
+          const dx = u2x - u1x;
+          const dy = u2y - u1y;
+
+          // Outward drift
+          const driftDirX = -dx;
+          const driftDirY = -dy;
+
+          const lengthM = pxToMeters(polylineLength(path));
+          const duration = velocityProfileOptions.durationSec ?? 2.0;
+          const vReal = lengthM / duration;
+          const vReal2 = vReal * vReal;
+
+          // s * (1 - s) * 4 to normalize max damping to 1.0 at s=0.5
+          const damping = s * (1 - s) * 4;
+
+          const coeff = velocityProfileOptions.momentum ?? 0.15;
+          const driftM_x = coeff * driftDirX * vReal2 * damping;
+          const driftM_y = coeff * driftDirY * vReal2 * damping;
+
+          position.x += metersToPx(driftM_x);
+          position.y += metersToPx(driftM_y);
+        }
+      }
     } else {
       position = lerp(ann.from, ann.to, actionT);
     }
@@ -263,6 +336,8 @@ export function attackerTrajectoryAt(
     if (hasWaypoints) {
       const path = annotationPolyline(ann);
       let s = actionT;
+      const startFromStandstill = stepIdx === 0 || findMovementAnnotations(steps[stepIdx - 1], playerId).length === 0;
+      const endAtStandstill = stepIdx + 1 >= steps.length - 1 || findMovementAnnotations(steps[stepIdx + 1], playerId).length === 0;
       if (velocityProfileOptions?.enabled) {
         const tier = velocityProfileOptions.tierFor?.(playerId);
         const obstacles = velocityProfileOptions.obstaclesFor?.(playerId) ?? [];
@@ -270,9 +345,61 @@ export function attackerTrajectoryAt(
         const postFeinteBoost = !!velocityProfileOptions.postFeinteBoost;
         s = getOrBuildProfile(
           ann, path, tier, obstacles, matchedDefenderPos, postFeinteBoost,
+          velocityProfileOptions.durationSec,
+          velocityProfileOptions.accelerationEnabled,
+          velocityProfileOptions.acceleration,
+          startFromStandstill,
+          endAtStandstill,
         ).remap(actionT);
       }
       position = samplePolyline(path, s);
+
+      // Moment/Centrifugal Drift
+      if (velocityProfileOptions?.momentumEnabled) {
+        const eps = 0.02;
+        const sPrev = Math.max(0, s - eps);
+        const sNext = Math.min(1, s + eps);
+        const p0 = samplePolyline(path, sPrev);
+        const p1 = position;
+        const p2 = samplePolyline(path, sNext);
+
+        const dx1 = p1.x - p0.x;
+        const dy1 = p1.y - p0.y;
+        const len1 = Math.hypot(dx1, dy1);
+
+        const dx2 = p2.x - p1.x;
+        const dy2 = p2.y - p1.y;
+        const len2 = Math.hypot(dx2, dy2);
+
+        if (len1 > 1e-3 && len2 > 1e-3) {
+          const u1x = dx1 / len1;
+          const u1y = dy1 / len1;
+          const u2x = dx2 / len2;
+          const u2y = dy2 / len2;
+
+          const dx = u2x - u1x;
+          const dy = u2y - u1y;
+
+          // Outward drift
+          const driftDirX = -dx;
+          const driftDirY = -dy;
+
+          const lengthM = pxToMeters(polylineLength(path));
+          const duration = velocityProfileOptions.durationSec ?? 2.0;
+          const vReal = lengthM / duration;
+          const vReal2 = vReal * vReal;
+
+          // s * (1 - s) * 4 to normalize max damping to 1.0 at s=0.5
+          const damping = s * (1 - s) * 4;
+
+          const coeff = velocityProfileOptions.momentum ?? 0.15;
+          const driftM_x = coeff * driftDirX * vReal2 * damping;
+          const driftM_y = coeff * driftDirY * vReal2 * damping;
+
+          position.x += metersToPx(driftM_x);
+          position.y += metersToPx(driftM_y);
+        }
+      }
     } else {
       position = lerp(ann.from, ann.to, actionT);
     }

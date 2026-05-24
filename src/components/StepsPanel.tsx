@@ -29,6 +29,7 @@ interface StepsPanelProps {
   onAddOutletPassStep?: (options?: { sourceStepIdx?: number }) => void;
   onSetBallCarrier: (carrier: AttackerId) => void;
   onDeleteAnnotation: (idx: number) => void;
+  onToggleAnnotationSprint?: (stepIdx: number, annoIdx: number) => void;
   onAddFeinte: (stepIdx: number, annIdx: number, t: number) => void;
   onUpdateFeinte: (stepIdx: number, annIdx: number, feinteIdx: number, t: number) => void;
   onRemoveFeinte: (stepIdx: number, annIdx: number, feinteIdx: number) => void;
@@ -397,6 +398,26 @@ export function StepsPanel(props: StepsPanelProps) {
                                 color: '#9ca3af',
                               }}
                             >
+                              <label
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                  fontSize: 9,
+                                  color: '#9ca3af',
+                                  cursor: 'pointer',
+                                  marginTop: 3,
+                                }}
+                                title="Sprint : le joueur atteint sa destination en 60% du temps de l'étape."
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={!!a.sprint}
+                                  onChange={() => props.onToggleAnnotationSprint?.(i, index)}
+                                  style={{ width: 11, height: 11 }}
+                                />
+                                sprint offensif (60% temps)
+                              </label>
                               {(a.feintes ?? []).map((tF, fi) => (
                                 <div
                                   key={fi}

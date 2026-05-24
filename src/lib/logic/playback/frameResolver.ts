@@ -403,7 +403,7 @@ export function resolveFrameAt(
       (idx) => getStepDurationSeconds(state, idx),
       // Phy.O — profil de vitesse offensif (opt-in).
       {
-        enabled: !!state.attackerVelocityProfileEnabled,
+        enabled: !!state.attackerVelocityProfileEnabled || !!state.attackerAccelerationEnabled || !!state.attackerMomentumEnabled,
         tierFor: (attId) => state.attackerSpeedProfiles?.[attId],
         obstaclesFor: (attId) => {
           const obs: Point[] = [];
@@ -442,6 +442,11 @@ export function resolveFrameAt(
           : undefined,
         // Phy.O V3 V4 — boost post-feinte activé par le même flag V3 V1.
         postFeinteBoost: !!state.attackerActiveDemarquage,
+        durationSec: getStepDurationSeconds(state, idxA),
+        accelerationEnabled: !!state.attackerAccelerationEnabled,
+        acceleration: state.attackerAcceleration,
+        momentumEnabled: !!state.attackerMomentumEnabled,
+        momentum: state.attackerMomentum,
       },
     );
     attackerMovementType[id] = traj.movementType;
@@ -638,6 +643,51 @@ export function resolveFrameAt(
   defenderIds.forEach((id) => {
     const candidates = screenerObstacles.filter((o) => id !== o.defenderToSkip);
 
+    if (state.footworkRulesEnabled) {
+      const delayFraction = defB[id]?.delayFraction ?? 0;
+      if (delayFraction > 0 && localT <= delayFraction) {
+        defPos[id] = {
+          ...defA[id],
+          delayFraction,
+        };
+        screenLockedDefenders.add(id);
+        if (decisions) {
+          decisions[id] = {
+            screenMode: null,
+            screenState: undefined,
+            quality: 0,
+            contactKey: undefined,
+            contactKind: undefined,
+            contactScreener: undefined,
+            contactScreenerDef: undefined,
+            contactScreeners: undefined,
+            activeScreener: undefined,
+            carrierContact: false,
+            offBallContactType: undefined,
+            curveBranch: 'none',
+            clusterId: undefined,
+            pushMode: 'skipped',
+            forcedPushSign: undefined,
+            routeKind: undefined,
+            memoryUsed: false,
+            contactPoint: undefined,
+            locked: true,
+            matchedTo: defA[id].matchedTo,
+            late: defA[id].late,
+            lastJumpPx: undefined,
+            motionTurnDeg: undefined,
+            motionInertia: undefined,
+          };
+        }
+        return;
+      }
+    }
+
+    const delayFraction = state.footworkRulesEnabled ? (defB[id]?.delayFraction ?? 0) : 0;
+    const tForDefender = delayFraction > 0 && delayFraction < 1
+      ? (localT - delayFraction) / (1 - delayFraction)
+      : localT;
+
     // Détection du mode de contact d'écran pour ce défenseur. La transition
     // peut être :
     //  - 'arriving' (defB onScreen, defA pas) : D1 atteint le poseur et y
@@ -675,8 +725,8 @@ export function resolveFrameAt(
     let contactProgressForMemory: number | undefined;
     // Time-remap sigmoïdal qui FIGE D1 sur le poseur (smooth, sans
     // discontinuité de vélocité). Pour les autres défenseurs ou hors
-    // écran, identité = localT.
-    let effT = screenContactT(localT, modeQuality, screenMode);
+    // écran, identité = tForDefender.
+    let effT = screenContactT(tForDefender, modeQuality, screenMode);
     // C.1 — Closeout footwork : si ce défenseur est en closeout et PAS
     // déjà en screen mode (le screen easing prime), applique un easing
     // sprint(65 %) puis freinage(35 %) sur la transition. Visuellement :
@@ -693,7 +743,7 @@ export function resolveFrameAt(
     const isImpactB = defB[id].screenPhase === 'impact';
     const screenState = resolveScreenContactState({
       mode: screenMode,
-      localT,
+      localT: tForDefender,
       quality: modeQuality,
       hadRecentContact: !!prevAnyMemory,
       engineRecover: isInRecoveryA || isInRecoveryB,
@@ -817,7 +867,7 @@ export function resolveFrameAt(
         clusterId = matched?.defenderToSkip ?? clusterPositionLabel(blocking);
       }
     }
-    const adhesion = screenContactAdhesion(localT, modeQuality, screenMode);
+    const adhesion = screenContactAdhesion(tForDefender, modeQuality, screenMode);
     if (adhesion > 0 && screenMode) {
       // Position du poseur FIGÉE au moment du contact (pas l'interpolation
       // courante). En basket réel, D1 reste où il s'est fait bumper — il
@@ -844,7 +894,7 @@ export function resolveFrameAt(
       const contactScreener = screenContactScreenerPoint({
         contact,
         mode: screenMode,
-        localT,
+        localT: tForDefender,
         offA,
         offB,
         stepA: state.steps[idxA],
@@ -859,7 +909,7 @@ export function resolveFrameAt(
           contact.offBallContact,
           contactOff,
           anchor,
-          localT
+          tForDefender
         );
         if (advancedContact) {
           contactScreenersForMemory = advancedContact.screeners;
@@ -875,7 +925,7 @@ export function resolveFrameAt(
           : rawContactPoint;
         if (contactPoint !== rawContactPoint) memoryUsed = true;
         contactPointForMemory = contactPoint;
-        const release = screenContactTangentRelease(localT, modeQuality, screenMode);
+        const release = screenContactTangentRelease(tForDefender, modeQuality, screenMode);
         const releasePoint = release > 0
           ? advancedContact
             ? offBallAdvancedReleasePoint(advancedContact, contactPoint, defB[id], release, modeQuality)
@@ -984,11 +1034,12 @@ export function resolveFrameAt(
       denying: defB[id].denying,
       helpTriggered: defB[id].helpTriggered,
       screenPhase: phase ?? defB[id].screenPhase,
-      orientation: lerpAngleDeg(defA[id].orientation, defB[id].orientation, localT),
-      gazeOrientation: lerpAngleDeg(defA[id].gazeOrientation, defB[id].gazeOrientation, localT),
-      facing: lerpPoint(defA[id].facing, defB[id].facing, localT),
-      armBallSide: lerpPoint(defA[id].armBallSide, defB[id].armBallSide, localT),
-      armManSide: lerpPoint(defA[id].armManSide, defB[id].armManSide, localT),
+      orientation: lerpAngleDeg(defA[id].orientation, defB[id].orientation, tForDefender),
+      gazeOrientation: lerpAngleDeg(defA[id].gazeOrientation, defB[id].gazeOrientation, tForDefender),
+      facing: lerpPoint(defA[id].facing, defB[id].facing, tForDefender),
+      armBallSide: lerpPoint(defA[id].armBallSide, defB[id].armBallSide, tForDefender),
+      armManSide: lerpPoint(defA[id].armManSide, defB[id].armManSide, tForDefender),
+      delayFraction: state.footworkRulesEnabled ? delayFraction : undefined,
     };
   });
   profiler?.lap('defenders');
@@ -1216,7 +1267,8 @@ export function resolveFrameAt(
     passLocalT <= 0 ? (off[carrierA] ?? offA[carrierA]) : (off[carrierB] ?? offB[carrierB]),
     passIsActive,
     passLocalT,
-    passKind
+    passKind,
+    state.dribblePhysicsEnabled
   );
   profiler?.lap('ball');
   const profile = profiler?.finish();

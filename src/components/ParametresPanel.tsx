@@ -171,6 +171,14 @@ export function ParametresPanel({
                 />
               </NumberField>
             </div>
+            <div style={{ marginTop: 8 }}>
+              <CheckboxLine
+                checked={!!state.realSpeedMode}
+                label="Mode Sprint NBA (Vitesse réelle)"
+                onChange={(v) => onPatch({ realSpeedMode: v })}
+                title="Passe de la vitesse d'explication tactique (2s par étape) à la vitesse réelle du match (0.5s par étape)."
+              />
+            </div>
           </ControlGroup>
         </SettingsSection>
       </div>
@@ -455,8 +463,14 @@ export function ParametresPanel({
         </div>
       </SettingsSection>
 
-      <SettingsSection title="Physique offensive">
+      <SettingsSection title="Physique & Biomécanique">
         <div style={{ display: 'grid', gap: 8 }}>
+          <CheckboxLine
+            checked={!!state.footworkRulesEnabled}
+            label="Biomécanique & Attention (Footwork)"
+            onChange={(v) => onPatch({ footworkRulesEnabled: v })}
+            title="Modulation de vitesse réaliste (pas chassés/reculons), latence de réaction en angle mort (200ms) et temps de pivot plant-and-cut (150-300ms) sur les défenseurs."
+          />
           <CheckboxLine
             checked={!!state.attackerVelocityProfileEnabled}
             label="profil de vitesse offensif (Phy.O — courbure)"
@@ -468,6 +482,85 @@ export function ParametresPanel({
             label="démarquage actif (Phy.O V3 — lecture défense)"
             onChange={(v) => onPatch({ attackerActiveDemarquage: v })}
             title="L'attaquant ralentit autour des points de son path où son défenseur matché est proche (≤ 50 px), simulant la lecture intentionnelle. Nécessite que le profil de vitesse offensif soit activé."
+          />
+          <CheckboxLine
+            checked={!!state.attackerAccelerationEnabled}
+            label="modèle d'accélération (attaque)"
+            onChange={(v) => onPatch({ attackerAccelerationEnabled: v })}
+            title="Active la latence physique d'accélération et de freinage pour l'attaque (profil S-curve robotics)."
+          />
+          {state.attackerAccelerationEnabled && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 16 }}>
+              <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 120 }} title="Accélération max (m/s²). Plus grand = montées en vitesse plus sèches.">
+                accélération (m/s²)
+              </span>
+              <input
+                type="range"
+                min={3.0}
+                max={12.0}
+                step={0.5}
+                value={state.attackerAcceleration ?? 5.0}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  onPatch({ attackerAcceleration: v });
+                }}
+                style={{ flex: 1 }}
+              />
+              <span style={{ fontSize: 10, color: '#94a3b8', minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                {(state.attackerAcceleration ?? 5.0).toFixed(1)}
+              </span>
+            </div>
+          )}
+          <CheckboxLine
+            checked={!!state.attackerMomentumEnabled}
+            label="momentum offensif (dérive centrifuge)"
+            onChange={(v) => onPatch({ attackerMomentumEnabled: v })}
+            title="L'attaquant dérive vers l'extérieur du virage proportionnellement à sa vitesse réelle et à la courbure locale."
+          />
+          {state.attackerMomentumEnabled && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 16 }}>
+              <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 120 }} title="Coefficient d'inertie offensive (dérive en virage).">
+                coefficient de dérive
+              </span>
+              <input
+                type="range"
+                min={0.05}
+                max={0.40}
+                step={0.01}
+                value={state.attackerMomentum ?? 0.15}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  onPatch({ attackerMomentum: v });
+                }}
+                style={{ flex: 1 }}
+              />
+              <span style={{ fontSize: 10, color: '#94a3b8', minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                {(state.attackerMomentum ?? 0.15).toFixed(2)}
+              </span>
+            </div>
+          )}
+        </div>
+      </SettingsSection>
+
+      <SettingsSection title="Physique du ballon & tirs">
+        <div style={{ display: 'grid', gap: 8 }}>
+          <CheckboxLine
+            checked={!!state.activeInterceptionsEnabled}
+            label="Interceptions actives (défense)"
+            onChange={(v) => onPatch({ activeInterceptionsEnabled: v })}
+            title="Active les interceptions physiques tick-par-tick des passes par les défenseurs à portée et bien orientés."
+          />
+          <CheckboxLine
+            checked={!!state.physicsReboundsEnabled}
+            label="Physique du tir & rebonds 3D"
+            onChange={(v) => onPatch({ physicsReboundsEnabled: v })}
+            title="Active la simulation 3D de la trajectoire de tir avec rebonds physiques sur l'arceau/la planche."
+          />
+          <CheckboxLine
+            checked={!!state.dribblePhysicsEnabled}
+            label="Oscillations du dribble"
+            onChange={(v) => onPatch({ dribblePhysicsEnabled: v })}
+            title="Simule les rebonds sinusoïdaux du dribble de l'attaquant selon sa vitesse."
           />
         </div>
       </SettingsSection>

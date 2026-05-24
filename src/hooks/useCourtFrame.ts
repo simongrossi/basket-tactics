@@ -115,6 +115,7 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     startT: playbackStartT,
     onTick: handleTick,
     onEnd: onPlaybackEnd,
+    realSpeedMode: state.realSpeedMode,
   });
 
   // Reset du playFrame quand la lecture s'arrête (pause / fin externe).
