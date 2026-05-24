@@ -6,6 +6,31 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Repli défensif — ferme ROADMAP § Réalisme physique 5.2 (`3fabd8c`)
+
+Dernier item livré du pilier physique opt-in (14/15) — reste seulement
+la timeline multi-pistes (5.1). Flag `defensiveTransitionEnabled` :
+pendant `TRANSITION_PAUSE_MS`, les ex-attaquants amorcent leur retraite
+vers leur panier OWN quand la possession va basculer (shot-made,
+turnover, rebond défensif). 3 px/tick, freeze à <80 px du panier,
+filet Rule 1 via `pushOutOfMany`. 6 tests dédiés, garde-fou clearance.
+
+### Refacto useAppState — extract persistance + history (`9684f07`, `d153e75`)
+
+Suite naturelle de A1-A4 (qui ont déjà livré le découpage d'`engine.ts`,
+`scriptedGenerators.ts`, `CourtView.tsx`). useAppState passe de 776 à
+692 lignes (-10.8 %).
+
+- **`src/lib/state/persistence.ts`** (`9684f07`) — `loadFromStorage`,
+  `saveToStorage`, `clearStorage`, `STORAGE_KEY`. SSR-safe. Inclut la
+  pipeline de migration (scriptedActions, normalizePlayerCount, reconcile
+  annotations). 6 tests : round-trip, JSON invalide, QuotaExceeded.
+- **`src/hooks/useHistorizedState.ts`** (`d153e75`) — pile undo/redo
+  + drag coalescing isolés. API : `setStateRaw` (sans push history),
+  `setStateWithHistory`, `undo`, `redo`, `beginPlayerDrag`,
+  `commitPlayerDrag`, `stateRef`. 6 tests : initialisation, no-history
+  raw, coalescing drag, etc.
+
 ### Pilier "Physique opt-in" — 8 flags V1 + section 4 collisions complète
 
 Vague de réalisme physique alignée sur ROADMAP § "Réalisme physique et
