@@ -1643,33 +1643,33 @@ toute ouverture de PR sur ce chantier.
 
 ---
 
-### ⚪ Réalisme physique et déplacements avancés
+### 🟡 Réalisme physique et déplacements avancés (V1 livrée, V2 à venir)
 
-Pistes d'amélioration du réalisme physique, de la motricité des joueurs et de la gestion de la balle pour dépasser le cadre purement "tactique" actuel.
+Pilier physique opt-in : 13 items livrés sur 15 (sections 1–4). Tous derrière des flags `AppState` (default false → comportement legacy préservé).
 
 #### 1. Cinématique des déplacements et modèle de vitesse
-- **Vitesse Réelle vs Vitesse Tactique (Mode Sprint NBA) :** Option pour basculer d'une échelle "vitesse tactique lente" (~1.5 m/s, timeline 2s) à une échelle "vitesse réelle" (~6-9 m/s, timeline 0.5s) afin de simuler des buzzer-beaters et coast-to-coast crédibles.
-- **Accélération et décélération non-linéaires en attaque :** Intégrer un vrai modèle de forces motrices physiques (poussée au sol, friction) pour l'attaque, à l'instar du modèle d'accélération défensive (G.3).
-- **Inertie et momentum offensif :** Amortir les changements de direction brusques des attaquants en appliquant une dérive centrifuge sur les coupes à angle aigu (casser ses appuis).
-- **Sprint Boost contextuel offensif :** Permettre de marquer un segment offensif comme un "sprint", augmentant la vitesse max au prix d'une inertie de freinage accrue.
+- 🟢 **Vitesse Réelle vs Vitesse Tactique (Mode Sprint NBA)** — livré `b92d59d` via `realSpeedMode` : timeline 0.5s au lieu de 2s pour simuler buzzer-beaters/coast-to-coast.
+- 🟢 **Accélération et décélération non-linéaires en attaque** — livré `b92d59d` via `attackerAccelerationEnabled` + slider 3–12 m/s² dans `velocityProfile.ts` (forward/backward pass).
+- 🟢 **Inertie et momentum offensif (dérive centrifuge)** — livré `b92d59d` via `attackerMomentumEnabled` + slider 0.05–0.40 dans `playbackTrajectory.ts`.
+- 🟢 **Sprint Boost contextuel offensif** — livré `b92d59d` via flag `sprint?: boolean` sur annotations cut/dribble (mouvement condensé sur 60 % du step).
 
 #### 2. Physique du ballon, passes et tirs
-- **Interceptions actives physiques :** Remplacer le diagnostic géométrique des lignes de passe par une interception active. Le ballon 3D peut être dévié ou attrapé par tout défenseur sur la trajectoire en fonction de son envergure, orientation et temps de réaction.
-- **Physique du tir et rebonds 3D non-déterministes :** Simuler l'arc de tir sous l'effet de la gravité, avec collision physique précise de la sphère contre l'arceau et la planche pour générer des rebonds réalistes.
-- **Physique du dribble :** Lier les oscillations de la balle au rythme des pas du porteur et à sa vitesse de déplacement.
+- 🟢 **Interceptions actives physiques** — livré `b92d59d` via `activeInterceptionsEnabled` : cône 90°, z ≤ 55 px, 12 % proba tick-par-tick.
+- 🟢 **Physique du tir et rebonds 3D non-déterministes** — livré `b92d59d` via `physicsReboundsEnabled` : gravité, restitution arceau/planche/sol, rebondeur au plus proche du landing spot.
+- 🟢 **Physique du dribble** — livré `b92d59d` via `dribblePhysicsEnabled` : oscillations sinusoïdales liées à la vitesse du porteur + ombre dynamique du ballon.
 
 #### 3. Biomécanique et motricité (Footwork)
-- **Modélisation des appuis (Course vs Pas chassés) :** Différencier la vitesse maximale selon que le joueur court vers l'avant ou glisse latéralement en posture défensive.
-- **Temps de réaction lié à l'attention visuelle :** Introduire un temps de réaction cognitive (délai de 150-300ms) avant qu'un défenseur ne réagisse à un changement de trajectoire du porteur ou du ballon s'ils se trouvent dans son angle mort (hors du cône de 120°).
-- **Pivots et changements de facing réalistes :** Forcer un arrêt temporaire pour planter ses appuis lors d'une transition course avant ↔ course arrière (pivot à 180°).
+- 🟢 **Modélisation des appuis (Course vs Pas chassés)** — livré `b92d59d` via `footworkRulesEnabled` : -25 % vitesse latérale, -40 % vitesse course arrière.
+- 🟢 **Temps de réaction lié à l'attention visuelle** — livré `b92d59d` : latence 200 ms si trigger (passe/cut) hors du cône de regard (>60°).
+- 🟢 **Pivots et changements de facing réalistes (plant-and-cut)** — livré `b92d59d` : 150–300 ms d'arrêt sur pivot > 90°.
 
-#### 4. Physique des collisions et contacts
-- **Stiffness & Impact (Physique de l'écran) :** Infliger un "temps de récupération" (ralentissement ou blocage) proportionnel à la force de l'impact lorsqu'un défenseur percute un poseur d'écran.
-- **Luttes de force (Box-out & Post-up) :** Modéliser les duels physiques par des forces opposées poussant le joueur adverse, plutôt que par des corrections géométriques a posteriori.
-- **CVT offensif (Pathfinding unifié) :** Étendre le moteur de forces vectorielles (CVT) à l'attaque pour un contournement dynamique des obstacles par les 10 joueurs.
+#### 4. Physique des collisions et contacts ✅
+- 🟢 **Stiffness & Impact (Physique de l'écran)** — livré `047de9e` via `screenStiffnessEnabled` + slider 1.0–3.0 : amplifie la pénalité `screenContactPenalty` en phase impact/recover. Cible D1 préservée (Rule 1bis).
+- 🟢 **Luttes de force (Box-out & Post-up)** — livré `d785528` via `physicalContactBattlesEnabled` : poussée vectorielle défenseur→attaquant à l'opposé du panier pendant la phase box-out, réaction Newton ×0.3 sur le défenseur. Filet `pushOutOfMany` final pour Rule 1.
+- 🟢 **CVT offensif (Pathfinding unifié)** — livré `6660454` via `cvtOffensiveEnabled` : remplace `curveAroundObstacle` (Bezier) par accumulateur `repel` (radius 52 px, weight 18, maxStep 6 px) via `steeringEngine`.
 
-#### 5. Gestion du temps et transitions
-- **Timeline multi-pistes désynchronisée :** Séparer la timeline globale en pistes individuelles par joueur pour permettre des départs et arrêts d'actions asynchrones (ex: O2 démarre sa coupe 0.4s après le début de l'action).
-- **Repli défensif et transition fluide terrain complet :** Gérer le comportement de retraite (courir vers son panier tout en surveillant le ballon).
+#### 5. Gestion du temps et transitions (non livré)
+- ⚪ **Timeline multi-pistes désynchronisée :** Séparer la timeline globale en pistes individuelles par joueur pour permettre des départs et arrêts d'actions asynchrones (ex : O2 démarre sa coupe 0.4 s après le début de l'action).
+- ⚪ **Repli défensif et transition fluide terrain complet :** Gérer le comportement de retraite (courir vers son panier tout en surveillant le ballon).
 
 

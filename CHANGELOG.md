@@ -6,6 +6,66 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Pilier "Physique opt-in" — 8 flags V1 + section 4 collisions complète
+
+Vague de réalisme physique alignée sur ROADMAP § "Réalisme physique et
+déplacements avancés". **13 items sur 15 livrés** (sections 1–4),
+tous derrière des flags `AppState` (default false → comportement legacy
+strictement préservé). 1787/1787 tests verts, `tsc --noEmit` clean.
+
+**Commits :** `b92d59d`, `6660454`, `047de9e`, `d785528`.
+
+#### Cinématique & vitesse (b92d59d)
+- **Mode Sprint NBA** (`realSpeedMode`) — timeline 0.5 s au lieu de 2 s
+  pour buzzer-beaters/coast-to-coast. Câblage : `playbackClock`,
+  `timecode`, `usePlaybackAnimation`.
+- **Accélération attaquant** (`attackerAccelerationEnabled` + slider
+  3–12 m/s²) — modèle forward/backward pass dans `velocityProfile.ts`.
+- **Momentum offensif** (`attackerMomentumEnabled` + slider 0.05–0.40)
+  — dérive centrifuge sur virages serrés dans `playbackTrajectory.ts`.
+- **Sprint annotation** — flag `sprint?: boolean` sur annotations
+  `cut`/`dribble` (mouvement condensé sur 60 % du step). Toggle UI dans
+  StepsPanel.
+
+#### Physique ballon & tirs (b92d59d)
+- **Interceptions actives** (`activeInterceptionsEnabled`) — cône 90°,
+  z ≤ 55 px, 12 % proba tick-par-tick dans `match/gameLoop.ts`.
+- **Trajectoire 3D du tir** (`physicsReboundsEnabled`) — gravité,
+  restitution arceau/planche/sol ; rebondeur = joueur le plus proche
+  du landing spot. Type `Point` étendu avec `z?: number`.
+- **Oscillations du dribble** (`dribblePhysicsEnabled`) — sinusoïdes
+  liées à la vitesse du porteur dans `computeBallFrame`, ombre du
+  ballon dynamique dans `Player.tsx`.
+
+#### Footwork défenseur (b92d59d)
+- **Biomécanique & Attention** (`footworkRulesEnabled`) — -25 % vitesse
+  latérale, -40 % course arrière, latence 200 ms en angle mort (cône
+  de regard >60°), pivot plant-and-cut 150–300 ms si changement de
+  cap >90°. Implémenté dans `defense/speedConstraint.ts`. Type
+  `ComputedDefender` étendu avec `delayFraction?: number`.
+
+#### Collisions & contacts (section 4 ✅)
+- **CVT offensif** (`cvtOffensiveEnabled`, commit `6660454`) — remplace
+  `curveAroundObstacle` (Bezier sur cluster dominant) par accumulateur
+  `repel` via `steeringEngine` dans `frameResolver.ts`. Constantes :
+  radius 52 px, weight 18, maxStep 6 px par frame. Solveur final de
+  superposition (1.b) conservé comme filet Rule 1.
+- **Stiffness & Impact** (`screenStiffnessEnabled` + `screenStiffness`
+  1.0–3.0, commit `047de9e`) — amplifie la pénalité de vitesse
+  existante (`screenContactPenalty`) en phases `impact` et `recover`,
+  borne basse 0.08. Cible D1 strictement préservée (Rule 1bis).
+- **Luttes de force** (`physicalContactBattlesEnabled`, commit
+  `d785528`) — poussée vectorielle défenseur→attaquant à l'opposé du
+  panier pendant la phase box-out (rayon 40 px, force 5 px/frame ×
+  falloff × ease). Réaction Newton ×0.3 sur le défenseur. Filet
+  `pushOutOfMany` final garantit Rule 1 (clearance 34 px).
+
+#### Tests dédiés
+`phyORealSpeed.test.ts`, `footwork.test.ts`,
+`ballPhysicsAndInterceptions.test.ts`, `cvtOffensive.test.ts`,
+`screenStiffness.test.ts`, `contactBattles.test.ts`. Garde-fous écran
+(`screens*` / `overlap*` / `userJson*` / `screenLab*`) tous verts.
+
 ### Qualité — typecheck propre + 4e levier de tuning CVT
 
 - **`tsc --noEmit` désormais 0 erreur** : nettoyage de 40+ erreurs de

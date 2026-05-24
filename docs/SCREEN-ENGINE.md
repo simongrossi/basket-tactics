@@ -465,6 +465,8 @@ du cercle du poseur, côté oppose au panier.
 | `step.forcedScreener` | step | undefined | Force la détection sur un attaquant spécifique |
 | `step.annotations[screen]` | step | undefined | Annotation visuelle (badge UI) — convention timing : drive transition N→N+1 |
 | `rule.screenNav` | par défenseur | undefined | Override individuel de la rule globale |
+| `screenStiffnessEnabled` | global | false | Pilier physique (047de9e) — amplifie la pénalité `screenContactPenalty` existante en phases impact/recover (`defense/speedConstraint.ts`). Cible D1 strictement préservée. |
+| `screenStiffness` | global | 1.5 | Multiplicateur 1.0–3.0 du flag ci-dessus. Borne basse de la pénalité finale à 0.08 pour éviter la paralysie. |
 
 **Règle : tout nouveau setting est OPT-IN (default falsy/undefined),
 préserve le comportement legacy.** Pas de régression silencieuse.

@@ -56,6 +56,31 @@ Ces valeurs sont **sous-réelles** (un sprint NBA atteint 9 m/s ; le moteur tour
 |---|---|---|---|
 | `DEFAULT_SCREEN_RADIUS_PX` | 35 | ≈ 95 cm | Distance max screener ↔ carrierDef pour qu'un écran porteur soit détecté. Au-delà, on considère qu'il n'y a pas de contact d'écran. Tunable via `state.screenRadius`. |
 
+## Physique opt-in (V1 livrée mai 2026)
+
+Au-delà des constantes ci-dessus, le moteur expose 10 **flags physiques opt-in** dans `AppState`. Tous default `false` → comportement legacy strictement préservé. UI : Paramètres → "Physique & Biomécanique" / "Physique du ballon & tirs". Voir [ROADMAP.md § Réalisme physique](../ROADMAP.md) pour le détail item par item.
+
+| Flag | Default | Effet | Câblage principal |
+|---|---|---|---|
+| `realSpeedMode` | false | Mode Sprint NBA : timeline 0.5 s/étape (au lieu de 2 s) — vitesses perçues × 4 | `playbackClock`, `timecode`, `usePlaybackAnimation` |
+| `attackerAccelerationEnabled` + `attackerAcceleration` | false / 5.0 | Accélération non-linéaire attaquant (slider 3–12 m/s²), forward/backward pass | `velocityProfile.ts` |
+| `attackerMomentumEnabled` + `attackerMomentum` | false / 0.15 | Dérive centrifuge sur virages (slider 0.05–0.40) | `playbackTrajectory.ts` |
+| `activeInterceptionsEnabled` | false | Interceptions tick-par-tick (cône 90°, z ≤ 55 px, 12 % proba) | `match/gameLoop.ts` |
+| `physicsReboundsEnabled` | false | Tir 3D avec gravité + restitution arceau/planche/sol ; rebondeur = plus proche du landing | `match/gameLoop.ts` |
+| `dribblePhysicsEnabled` | false | Oscillations sinusoïdales du dribble + ombre dynamique | `geometry.ts`, `Player.tsx` |
+| `footworkRulesEnabled` | false | -25 % latéral, -40 % course arrière, latence 200 ms angle mort, pivot 150–300 ms | `defense/speedConstraint.ts` |
+| `cvtOffensiveEnabled` | false | Remplace `curveAroundObstacle` (Bezier) par `repel`/`integrateForce` (steeringEngine) — radius 52 px, weight 18, maxStep 6 px | `playback/frameResolver.ts` |
+| `screenStiffnessEnabled` + `screenStiffness` | false / 1.5 | Amplifie la pénalité écran existante (multiplicateur 1.0–3.0, borne basse 0.08) | `defense/speedConstraint.ts` |
+| `physicalContactBattlesEnabled` | false | Luttes de force en box-out : poussée vectorielle attaquant↔défenseur, rayon 40 px, force 5 px/frame | `match/gameLoop.ts` |
+
+L'annotation `cut`/`dribble` accepte aussi un flag `sprint?: boolean` (mouvement condensé sur 60 % du temps de l'étape — toggle dans StepsPanel).
+
+**Types étendus :**
+- `Point` gagne `z?: number` pour la 3D du ballon (parabole tir, parabole passe, hauteur dribble).
+- `ComputedDefender` gagne `delayFraction?: number` pour la latence de réaction footwork (fraction de l'étape pendant laquelle le défenseur reste immobilisé).
+
+**Garde-fous Rule 1 / Rule 1bis :** chaque flag a son test dédié (`cvtOffensive.test.ts`, `screenStiffness.test.ts`, `contactBattles.test.ts`, etc.). Les couches qui mutent une position passent toujours par `pushOutOfMany` final ou `pushOutOfScreenContact`. Le pipeline d'écran (détection/response/animation) reste strictement intouché par Stiffness — seule la pénalité de vitesse existante est amplifiée.
+
 ## Tuning : par où commencer ?
 
 Les chiffres sont **conservateurs**. Pour les ajuster sans casser l'équilibre :
