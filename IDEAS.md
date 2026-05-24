@@ -4,6 +4,34 @@ Notes de développement au fil de l'eau. Les items en haut sont les plus récent
 
 ---
 
+## 📍 État au 2026-05-25 — audit du backlog
+
+La majorité des items marqués `(à attaquer)` ou TODO dans les sections
+plus bas a été livrée depuis. Le pilier "Réalisme physique" (15 items)
+est aussi complet. Voir [ROADMAP.md § Réalisme physique](ROADMAP.md) +
+[CHANGELOG.md](CHANGELOG.md). Items qui restent réellement ouverts :
+
+- ⚪ **Branche C — Overlay debug EJE/EJO** (`EJEOverlay.tsx`) : pur UI,
+  utile pour valider visuellement les calculs de spacing déjà livrés.
+- ⚪ **Numérotation des étapes sur le terrain** (cercles 1, 2, 3 sur les
+  joueurs qui bougent) — extension de `StepThumbnail.tsx` côté PDF.
+- ⚪ **Comparaison côte-à-côte** de 2 solutions tactiques.
+- ⚪ **Annotations richer** : couleurs personnalisables (texte libre est
+  déjà livré).
+- ⚪ **Tests rendu MultiTrackTimeline** (V2 du multi-pistes).
+- ⚪ **Anti-flicker détection écran (post-CVT)** — déjà *partiellement*
+  livré via `OFFBALL_SCREEN_HYSTERESIS_PX`, à vérifier si le cas
+  pré-CVT reste à traiter.
+- ⚪ **Plus de templates offensifs** : Iverson, Hammer, PNR aile/step-up,
+  Princeton chin, Pistol, Stagger.
+
+Items "Réalisme déplacements / physique" non encore explorés mais qui
+pourraient l'être : anatomie par type d'action (poses driver/screener/
+passeur), fatigue/endurance, gaze tracking ballon pendant repli,
+recovery post-shot, anticipation IA défensive variable.
+
+---
+
 ## Session 2026-05-19 (matinée + soir) — Chantiers en cours, état au commit f761626
 
 ### Livré (5 fixes session post-CVT)
@@ -130,15 +158,18 @@ sur `main`, **1545 → 1642 tests verts (+97)**. Tout en opt-in via
   **Limitation** : ne remplace pas le push-out binaire de
   `screens/helpers.ts`.
 
-**Reste à faire (sous-étapes restantes)** :
-- 1.3c — Refactorer `applyScreenAdjustment` pour remplacer
-  `pushOutOfScreener` / `pushOutOfCarrier` par un système `repel`
-  pur. Requiert revalidation exhaustive `screens*` / `overlap*` /
-  `userJson*` / `screenLab*`. **Le chantier le plus risqué** du
-  CVT — à attaquer après validation visuelle complète des câblages
-  actuels.
-- 1.4 — Activation par défaut + nettoyage de la double-sortie legacy.
-  À ne lancer qu'après stabilisation 1.3c et validation visuelle.
+**État au 2026-05-25** :
+- 1.3c — ❌ **Abandonné**. La revalidation a confirmé l'incompatibilité
+  avec l'invariant Règle 1bis (D1 strictement plaqué au poseur à
+  quality=100 : `dist ≤ MIN_PLAYER_CLEARANCE_PX + 1`). Un repel à
+  falloff linéaire produirait `dist = clearance + δ` (δ > 0). Voir
+  [docs/SCREEN-ENGINE.md § Limites acceptées](docs/SCREEN-ENGINE.md).
+  Le moteur d'écran conserve donc le push-out binaire ; la couche
+  `screenRepelLayer` raffine uniquement les défenseurs périphériques.
+- 1.4 — ✅ **Livré 2026-05-19**. Sous-étape 1.4b : flag
+  `useSteeringEngine` supprimé, moteur de forces = pipeline unique,
+  double-sortie legacy retirée (cf. plus haut "A. CVT — sous-étape 1.4b
+  ✅ LIVRÉE").
 
 **Tolérance tests d'équivalence intégrés** : 12 px (était 5 px en
 1.1b). Borne cumulative documentée :
@@ -349,21 +380,26 @@ A11, G.1.
 
 ---
 
-## Backlog actuel (à attaquer)
+## Backlog actuel (audit 2026-05-25)
+
+> Section essentiellement archive. Les items vraiment ouverts sont listés
+> en tête du fichier (§ "État au 2026-05-25"). Conservé ici pour
+> l'historique des décisions et le pointeur vers les commits/modules.
+
 
 ### Métriques tactiques EJE / EJO / EJP (FAIT — fondation, 949 verts)
 Module pur sous `src/lib/logic/tactical/` (commit `389aad5`). Inspiré de Mérand / Vandevelde : Espace de Jeu Effectif (convex hull + surface), Offensif (couloir ballon→cible 1.5 m / 2.5 m), Proche (8 secteurs égocentrés autour du porteur), graphe complet d'équipe (total spacing, centralité, pivot, diamètre), heuristique de niveau `grappe | comete | etalement | expert`. 23 tests dédiés ([tacticalMetrics.test.ts](src/lib/logic/__tests__/tacticalMetrics.test.ts)). **Aucun consommateur** pour l'instant — module inerte tant qu'on ne le branche pas. Doc complète : [docs/TACTICAL-METRICS.md](docs/TACTICAL-METRICS.md).
 
-### Enrichir l'évaluation offensive avec EJO + EJP (TODO — branche A)
-Brancher la fondation tactique dans `evaluateOffensiveOptions` de [offense.ts](src/lib/logic/offense.ts). Pour les **drives** : appliquer un facteur `1 − k · nbBloqueurs` (k ≈ 0.25 à calibrer) sur `driveShotQ`, avec `nbBloqueurs = corridorBlockers(buildEJO(carrierPos, hoop, EJO_CORRIDOR_WIDE_PX), defPos).length`. Un défenseur déjà dans le couloir large doit couper la qualité du drive. Pour les **passes** : si `readEJP(receiver, receiverBody, nearestDef).sector === 'front'`, malus sur `receivability` (passe interceptable) ; si `'back'`, bonus léger (défenseur trailing). L'orientation du receveur est déjà calculée par `computeAttackerOrientation`. Tests à ajouter : qualité de drive saturée vs couloir vide, receivability avec défenseur en front/back/right. Plan dédié à écrire avant implémentation.
+### Enrichir l'évaluation offensive avec EJO + EJP (FAIT — branche A)
+Branché dans `evaluateOffensiveOptions` de [offense.ts:177-215](src/lib/logic/offense.ts:177). Drives : facteur `1 − k · nbBloqueurs` via `corridorBlockers(buildEJO(...))`. Passes : `receivability` modulé par `readEJP(...).sector` (front = malus, back = bonus). Tests dans `tacticalMetrics.test.ts`.
 
-### Auto-positionnement des attaquants hors-ballon (TODO — branche B)
-Nouveau module `src/lib/logic/autoOffense/`. Pour chaque hors-ballon, échantillonner ≈ 12 positions candidates dans un anneau autour du panier compatible avec le profil (`shooter` au-delà de la 3pts, `rim-roller` proche du cercle, `creator` mid-range…). Pour chaque candidate, calculer `totalSpacing(buildSpacingGraph(off'))` où `off'` intègre la candidate, soustraire une pénalité si la candidate tombe dans l'EJO du porteur (sauf rôle "couper"), prendre l'argmax. **Obligatoire** : appliquer via `moveAttackerInState` pour déclencher le push-out anti-overlap de la [Règle 1](docs/PLAYER-CLEARANCE.md). UX : bouton "auto-position" dans le panneau offense, et option "appliquer à chaque step" pour recalculer après chaque déplacement du porteur. Plan dédié.
+### Auto-positionnement des attaquants hors-ballon (FAIT — branche B)
+Module [autoOffense/positionOffBall.ts](src/lib/logic/autoOffense/positionOffBall.ts) (160 lignes) — `computeOffBallPositions(off, carrier, hoop, profiles)` échantillonne 12 candidates par anneau-profil, score = `totalSpacing - pénalité_EJO`, argmax. Consommé par [useAppState.autoPositionOffBall](src/hooks/useAppState.ts:254) (mode édition) ET par [match/decisions/offBallMover.ts](src/lib/logic/match/decisions/offBallMover.ts) (Play IA). Push-out anti-overlap via `moveAttackerInState`. Tests : `autoOffense.test.ts`.
 
 ### Overlay debug EJE / EJO (TODO — branche C, optionnel mais utile pour A et B)
-Nouveau composant `EJEOverlay.tsx` rendu sur le SVG du terrain. Toggle dans le panneau Visualisation. Dessine : (a) hull EJE offensif en pointillé, (b) rectangle EJO ballon→panier, (c) badge texte coloré avec `evaluateSpacing(off).level`. Pas de modification du moteur — pur overlay UI. Utile pour valider visuellement la branche A avant de la brancher dans l'EV.
+Nouveau composant `EJEOverlay.tsx` rendu sur le SVG du terrain. Toggle dans le panneau Visualisation. Dessine : (a) hull EJE offensif en pointillé, (b) rectangle EJO ballon→panier, (c) badge texte coloré avec `evaluateSpacing(off).level`. Pas de modification du moteur — pur overlay UI. Utile pour valider visuellement la branche A déjà câblée.
 
-### Numérotation des étapes sur le terrain (vignettes playbook)
+### Numérotation des étapes sur le terrain (vignettes playbook) — TODO
 Petits ronds 1, 2, 3 sur les positions des joueurs dans chaque vignette PDF, pour voir l'ordre des actions sans avoir à comparer mentalement étape N et N+1. À implémenter dans `StepThumbnail.tsx` : tracer un petit cercle blanc avec un numéro à côté du joueur qui bouge entre cette étape et la précédente.
 
 ### Presets défensifs globaux (FAIT)
@@ -407,12 +443,8 @@ Implémenté dans `hooks/useKeyboardShortcuts.ts` :
 
 Skip auto si focus dans input/textarea/select/contenteditable, ou si Ctrl/Cmd/Alt enfoncé. Doc : [docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md).
 
-### Undo / Redo
-- Stack des AppState (max 50)
-- Ctrl+Z / Ctrl+Y → restaurer l'état
-- À séparer du state principal (un useReducer dédié)
-
----
+### Undo / Redo (FAIT)
+Pile undo/redo extraite dans [useHistorizedState](src/hooks/useHistorizedState.ts) (refacto A5 2026-05-24, commit `d153e75`). 50 entrées max, Ctrl+Z / Ctrl+Y, drag coalescing (1 entrée par geste), `setStateRaw` pour les effets internes qui ne doivent pas pousser l'historique.
 
 ---
 
@@ -446,11 +478,11 @@ Implémenté dans `engine.effectiveDefensePositions` : quand `ballCarrier` chang
 
 À ajouter v2 : modélisation de l'over-closeout (drive subi quand le défenseur arrive trop fort). Nécessite un trigger drive consolidé.
 
-### Stunt and recover
-Variante du hedge mais hors-ballon : tape vers le ballon puis recovery. Pas modélisé.
+### Stunt and recover (FAIT v1)
+Implémenté dans le pipeline défensif — un défenseur stunt fake un déplacement vers le ballon puis revient. Voir ROADMAP § "🟢 Stunt and recover (v1)".
 
-### Trap explicite (corner/sideline)
-La règle blitz s'applique sur écrans. Un trap simple sur attrape-corner n'est pas modélisé.
+### Trap explicite (corner/sideline) (FAIT v3)
+Couche `applyTrapLayer` dans le pipeline défensif. Voir ROADMAP § "🟢 Trap en corner / sideline (v3)".
 
 ---
 
@@ -486,19 +518,16 @@ Code couleur des pills : vert (good), orange (warn), rouge (bad), gris (neutral)
 ### Comparaison côte à côte
 Charger deux solutions tactiques du même set offensif et les jouer en parallèle pour comparer la couverture.
 
-### Annotations richer
-- Texte libre placé sur le terrain
-- Numérotation des actions (1. dribble, 2. écran, 3. coupe...)
-- Couleurs personnalisables par annotation
+### Annotations richer (partiel)
+- Texte libre placé sur le terrain → FAIT (livré 2026-05-23, voir CHANGELOG)
+- Numérotation des actions (1. dribble, 2. écran, 3. coupe...) → TODO
+- Couleurs personnalisables par annotation → TODO
 
-### Undo / Redo
-Stack d'états avec Ctrl+Z / Ctrl+Y. ~50 derniers états.
+### Mode présentation (FAIT v1 + v2)
+V1 livré (sidebar masquée, plein écran SVG, gros boutons playback). V2 fullscreen natif navigateur livré 2026-05-22. Voir ROADMAP.
 
-### Mode présentation
-Cacher la sidebar, plein écran SVG, gros boutons play/pause/step.
-
-### Export vidéo / GIF
-Capturer la lecture complète en vidéo téléchargeable (canvas → mediarecorder ou côté serveur).
+### Export vidéo / GIF (FAIT)
+Livré 2026-05-23 (commit dans CHANGELOG). Modal d'export GIF + WebM via `gif.js` (Web Worker) ou `MediaRecorder` natif. Pilote le renderer live via `exportT`. Téléchargement direct via Blob URL.
 
 ### Export playbook PDF / image (FAIT v1)
 Implémenté avec `PlaybookView` (overlay) + `StepThumbnail` (rendu statique réutilisable). Bouton "playbook (PDF)" en bas du panneau ouvre la vue, l'utilisateur ajuste titre / colonnes / défense / légende, puis clique "imprimer / PDF" — le navigateur fait son print dialog avec "Save as PDF". CSS `@media print` masque tout sauf le contenu playbook, gère pageBreakInside.
@@ -522,17 +551,18 @@ Logique pure très testable :
 
 Vitest, ~30 tests pour couvrir les chemins critiques.
 
-### Git init + premier commit
-Pas encore de repo. À faire avant tout refactor risqué.
+### Git init + premier commit (FAIT)
+Repo `simongrossi/basket-tactics` initialisé et poussé sur GitHub.
 
-### Refactor : extraire l'animation
-La boucle RAF dans CourtView est bien isolée mais elle pourrait devenir un hook `usePlayback(state)` réutilisable.
+### Refactor : extraire l'animation (FAIT — A2)
+Refacto A2 livré : `usePlaybackAnimation` dans [hooks/usePlaybackAnimation.ts](src/hooks/usePlaybackAnimation.ts), `frameResolver` dans [lib/logic/playback/frameResolver.ts](src/lib/logic/playback/frameResolver.ts), overlays extraits dans `src/components/overlays/`. CourtView descend à <600 lignes.
 
-### Documentation
-Le README mentionne le projet mais pas les nouveaux paliers (zone, écrans non-porteur, sag baseline). À mettre à jour après stabilisation.
+### Documentation (partiel)
+docs/ contient 39 fichiers à jour pour le pilier physique (cf. commit `2fec67b` du 2026-05-24). README à rafraîchir périodiquement.
 
-### Performance
-Pas de souci visible aujourd'hui (5 vs 5, frames 60Hz fluides) mais `effectiveDefensePositions` recompute toute la chaîne récursivement à chaque step. Memo possible.
+### Performance (FAIT — J.2 + J.5)
+- J.2 cache segmentaire du resolver livré 2026-05-15 (`87b212c`) — memoize `(idxA, idxB, statePatchHash)` → 50-70% du calcul redondant éliminé.
+- J.5 profiling + budget frame livré 2026-05-15 (`a40a8bc`) — `frame.profile` avec totalMs + phases.
 
 ---
 
