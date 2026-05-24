@@ -12,10 +12,11 @@ interface LibraryPanelProps {
   library: UserLibrary;
   onLoadTemplate: (template: Template) => void;
   onLoadSavedSystem: (sys: SavedSystem) => void;
-  onSaveSystem: (folderId: string, name: string, description?: string) => void;
+  onSaveSystem: (folderId: string, name: string, description?: string, tags?: string[]) => void;
   onRenameSystem: (systemId: string, newName: string) => void;
   onDeleteSystem: (systemId: string) => void;
   onMoveSystem: (systemId: string, targetFolderId: string) => void;
+  onSetSystemTags: (systemId: string, tags: string[]) => void;
   onCreateFolder: (name: string) => void;
   onRenameFolder: (folderId: string, newName: string) => void;
   onDeleteFolder: (folderId: string) => void;
@@ -75,6 +76,7 @@ export function LibraryPanel(props: LibraryPanelProps) {
           onRenameSystem={props.onRenameSystem}
           onDeleteSystem={props.onDeleteSystem}
           onMoveSystem={props.onMoveSystem}
+          onSetSystemTags={props.onSetSystemTags}
           onCreateFolder={props.onCreateFolder}
           onRenameFolder={props.onRenameFolder}
           onDeleteFolder={props.onDeleteFolder}

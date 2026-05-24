@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { CLASSIC_TEMPLATES, LAB_TEMPLATES, type Template } from '@/lib/data/templates';
 import type { UserLibrary, SavedSystem, SavedFolder } from '@/lib/data/library';
-import { collectTagCounts } from '@/lib/data/library';
+import { collectTagCounts, normalizeTag } from '@/lib/data/library';
 import { COLORS } from './ui';
 
 /** Identifiant abstrait pour le dossier "Systèmes classiques" (read-only). */
@@ -19,7 +19,8 @@ interface LibraryModalProps {
   /** Charge un template legacy (steps + defenseInitial seulement). */
   onLoadTemplate: (t: Template) => void;
   /** Sauvegarde l'état courant comme nouveau système dans le folder donné. */
-  onSaveCurrent: (folderId: string, name: string, description?: string) => void;
+  onSaveCurrent: (folderId: string, name: string, description?: string, tags?: string[]) => void;
+  onSetSystemTags: (systemId: string, tags: string[]) => void;
   onRenameSystem: (systemId: string, newName: string) => void;
   onDeleteSystem: (systemId: string) => void;
   onMoveSystem: (systemId: string, targetFolderId: string) => void;
@@ -40,7 +41,7 @@ interface LibraryModalProps {
 export function LibraryModal(props: LibraryModalProps) {
   const c = COLORS.offense;
   const {
-    library, hasWorkInProgress, onLoadSavedSystem, onLoadTemplate, onSaveCurrent,
+    library, hasWorkInProgress, onLoadSavedSystem, onLoadTemplate, onSaveCurrent, onSetSystemTags,
     onRenameSystem, onDeleteSystem, onMoveSystem, onCreateFolder, onRenameFolder,
     onDeleteFolder, onExportFolder, onImportFolder, onClose,
     mode = 'modal',
@@ -79,6 +80,14 @@ export function LibraryModal(props: LibraryModalProps) {
   const isReadOnlyFolder = isClassic || isLab;
   const templatesForFolder = isClassic ? CLASSIC_TEMPLATES : isLab ? LAB_TEMPLATES : [];
   const userFolder = library.folders.find((f) => f.id === selectedFolderId) ?? null;
+
+  // Tous les tags présents (suggestions d'autocomplete partagées par les
+  // éditeurs de TagEditor et la sidebar Catégories).
+  const allTagSuggestions = collectTagCounts([
+    ...CLASSIC_TEMPLATES,
+    ...LAB_TEMPLATES,
+    ...library.folders.flatMap((f) => f.systems),
+  ]).map((t) => t.tag);
 
   const handleLoadSaved = (sys: SavedSystem) => {
     if (hasWorkInProgress) {
@@ -380,6 +389,8 @@ export function LibraryModal(props: LibraryModalProps) {
                             }}
                             otherFolders={library.folders.filter((f) => f.id !== folder.id)}
                             onMove={(target) => onMoveSystem(s.id, target)}
+                            onSetTags={onSetSystemTags}
+                            allTagSuggestions={allTagSuggestions}
                           />
                         ))}
                       </div>
@@ -513,6 +524,8 @@ export function LibraryModal(props: LibraryModalProps) {
                         }}
                         otherFolders={library.folders.filter((f) => f.id !== userFolder.id)}
                         onMove={(target) => onMoveSystem(s.id, target)}
+                        onSetTags={onSetSystemTags}
+                        allTagSuggestions={allTagSuggestions}
                       />
                     ))}
                   </div>
@@ -551,8 +564,9 @@ export function LibraryModal(props: LibraryModalProps) {
       {showSaveDialog && userFolder && (
         <SaveDialog
           targetFolderName={userFolder.name}
-          onSubmit={(name, desc) => {
-            onSaveCurrent(userFolder.id, name, desc);
+          tagSuggestions={allTagSuggestions}
+          onSubmit={(name, desc, tags) => {
+            onSaveCurrent(userFolder.id, name, desc, tags);
             setShowSaveDialog(false);
           }}
           onCancel={() => setShowSaveDialog(false)}
@@ -670,6 +684,104 @@ function FolderRow({
   );
 }
 
+/** Mini-éditeur de tags : chips cliquables + input texte avec datalist
+ *  d'autocomplete sur les tags déjà existants dans la bibliothèque. */
+function TagEditor({
+  tags, suggestions, onChange, compact = false,
+}: {
+  tags: string[];
+  suggestions?: string[];
+  onChange: (next: string[]) => void;
+  /** Variante compacte (utilisée dans les SystemCard). */
+  compact?: boolean;
+}) {
+  const [draft, setDraft] = useState('');
+  const datalistId = useId();
+
+  const addDraft = (raw?: string) => {
+    const candidate = raw !== undefined ? raw : draft;
+    const t = normalizeTag(candidate);
+    if (!t || tags.includes(t)) {
+      setDraft('');
+      return;
+    }
+    onChange([...tags, t]);
+    setDraft('');
+  };
+
+  return (
+    <div
+      style={{
+        display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center',
+      }}
+    >
+      {tags.map((t) => (
+        <span
+          key={t}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 2,
+            fontSize: compact ? 10 : 11,
+            padding: compact ? '1px 4px 1px 6px' : '2px 5px 2px 7px',
+            borderRadius: 999,
+            background: 'rgba(167, 139, 250, 0.18)',
+            color: '#5b21b6',
+            border: '1px solid rgba(167, 139, 250, 0.42)',
+          }}
+        >
+          #{t}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange(tags.filter((x) => x !== t));
+            }}
+            title={`Retirer #${t}`}
+            style={{
+              border: 'none', background: 'transparent', cursor: 'pointer',
+              color: '#7c3aed', fontSize: compact ? 11 : 12, fontWeight: 700,
+              padding: '0 2px', lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+        </span>
+      ))}
+      <input
+        type="text"
+        list={suggestions && suggestions.length > 0 ? datalistId : undefined}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addDraft();
+          } else if (e.key === 'Backspace' && draft === '' && tags.length > 0) {
+            // Retire le dernier tag à Backspace sur input vide.
+            onChange(tags.slice(0, -1));
+          }
+        }}
+        onBlur={() => { if (draft.trim()) addDraft(); }}
+        placeholder={tags.length === 0 ? '+ tag (Entrée)' : '+ tag'}
+        style={{
+          fontSize: compact ? 10 : 11,
+          padding: compact ? '1px 4px' : '2px 5px',
+          minWidth: 70,
+          border: '1px dashed #94a3b8',
+          borderRadius: 4,
+          background: 'transparent',
+          color: '#1f2937',
+        }}
+      />
+      {suggestions && suggestions.length > 0 && (
+        <datalist id={datalistId}>
+          {suggestions.map((s) => (
+            <option key={s} value={s} />
+          ))}
+        </datalist>
+      )}
+    </div>
+  );
+}
+
 function NewFolderForm({
   onCreate, inline, accent, border,
 }: {
@@ -772,6 +884,7 @@ function NewFolderForm({
 function SystemCard({
   system, accent, accentText, border, bg,
   onLoad, onRename, onDelete, onMove, otherFolders,
+  onSetTags, allTagSuggestions,
 }: {
   system: SavedSystem;
   accent: string; accentText: string; border: string; bg: string;
@@ -780,6 +893,8 @@ function SystemCard({
   onDelete: () => void;
   onMove: (targetFolderId: string) => void;
   otherFolders: SavedFolder[];
+  onSetTags: (systemId: string, tags: string[]) => void;
+  allTagSuggestions: string[];
 }) {
   const [hover, setHover] = useState(false);
   return (
@@ -827,6 +942,15 @@ function SystemCard({
           {' '}sauvegardé {new Date(system.updatedAt).toLocaleDateString('fr-FR')}
         </div>
       </button>
+      {/* Éditeur de tags inline. Hors du <button> pour ne pas déclencher onLoad. */}
+      <div onClick={(e) => e.stopPropagation()}>
+        <TagEditor
+          tags={system.tags ?? []}
+          suggestions={allTagSuggestions}
+          onChange={(next) => onSetTags(system.id, next)}
+          compact
+        />
+      </div>
       {hover && (
         <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 2, background: '#fff', padding: 2, borderRadius: 4, border: `1px solid ${border}` }}>
           <button
@@ -916,14 +1040,20 @@ function RenameDialog({
 }
 
 function SaveDialog({
-  targetFolderName, onSubmit, onCancel,
+  targetFolderName, tagSuggestions, onSubmit, onCancel,
 }: {
   targetFolderName: string;
-  onSubmit: (name: string, description?: string) => void;
+  tagSuggestions: string[];
+  onSubmit: (name: string, description?: string, tags?: string[]) => void;
   onCancel: () => void;
 }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const submit = () => {
+    if (!name.trim()) return;
+    onSubmit(name.trim(), description.trim() || undefined, tags.length > 0 ? tags : undefined);
+  };
   return (
     <div
       onClick={onCancel}
@@ -952,7 +1082,7 @@ function SaveDialog({
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && name.trim()) onSubmit(name.trim(), description.trim() || undefined);
+            if (e.key === 'Enter' && name.trim()) submit();
             if (e.key === 'Escape') onCancel();
           }}
           style={{ width: '100%', padding: '6px 8px', fontSize: 13, border: '1px solid #d6d3d1', borderRadius: 4, marginBottom: 6 }}
@@ -962,12 +1092,16 @@ function SaveDialog({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
-          style={{ width: '100%', padding: '6px 8px', fontSize: 12, border: '1px solid #d6d3d1', borderRadius: 4, resize: 'vertical' }}
+          style={{ width: '100%', padding: '6px 8px', fontSize: 12, border: '1px solid #d6d3d1', borderRadius: 4, resize: 'vertical', marginBottom: 6 }}
         />
+        <div style={{ fontSize: 10, color: '#78716c', marginBottom: 4 }}>
+          🏷 Tags (Entrée pour ajouter, suggestions depuis tags existants) :
+        </div>
+        <TagEditor tags={tags} suggestions={tagSuggestions} onChange={setTags} />
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 12 }}>
           <button onClick={onCancel} style={smallBtn('transparent', '#57534e', '#d6d3d1')}>Annuler</button>
           <button
-            onClick={() => name.trim() && onSubmit(name.trim(), description.trim() || undefined)}
+            onClick={submit}
             disabled={!name.trim()}
             style={smallBtn('#D85A30', '#fff')}
           >

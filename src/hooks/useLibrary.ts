@@ -14,6 +14,7 @@ import {
   deleteSystem as deleteSystemFn,
   renameSystem as renameSystemFn,
   moveSystem as moveSystemFn,
+  setSystemTags as setSystemTagsFn,
   createFolder as createFolderFn,
   renameFolder as renameFolderFn,
   deleteFolder as deleteFolderFn,
@@ -59,13 +60,17 @@ export function useLibrary() {
   }, [library, hydrated]);
 
   const saveSystem = useCallback(
-    (state: AppState, folderId: string, name: string, description?: string) => {
-      const sys = snapshotFromAppState(state, name, description);
+    (state: AppState, folderId: string, name: string, description?: string, tags?: string[]) => {
+      const sys = snapshotFromAppState(state, name, description, tags);
       setLibrary((lib) => addSystemToFolder(lib, folderId, sys));
       return sys.id;
     },
     []
   );
+
+  const setSystemTags = useCallback((systemId: string, tags: string[]) => {
+    setLibrary((lib) => setSystemTagsFn(lib, systemId, tags));
+  }, []);
 
   const loadSystem = useCallback(
     (state: AppState, sys: SavedSystem): AppState => applySavedSystem(state, sys),
@@ -141,6 +146,7 @@ export function useLibrary() {
     deleteSystem,
     renameSystem,
     moveSystem,
+    setSystemTags,
     createFolder,
     renameFolder,
     deleteFolder,

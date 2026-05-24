@@ -443,9 +443,10 @@ export default function Page() {
                 library={lib.library}
                 onLoadSavedSystem={(sys) => app.importState(lib.loadSystem(app.state, sys))}
                 onLoadTemplate={app.loadTemplate}
-                onSaveCurrent={(folderId, name, description) =>
-                  lib.saveSystem(app.state, folderId, name, description)
+                onSaveCurrent={(folderId, name, description, tags) =>
+                  lib.saveSystem(app.state, folderId, name, description, tags)
                 }
+                onSetSystemTags={lib.setSystemTags}
                 onRenameSystem={lib.renameSystem}
                 onDeleteSystem={lib.deleteSystem}
                 onMoveSystem={lib.moveSystem}

@@ -160,7 +160,8 @@ function defaultLibrary(): UserLibrary {
 export function snapshotFromAppState(
   state: AppState,
   name: string,
-  description?: string
+  description?: string,
+  tags?: string[],
 ): SavedSystem {
   const now = Date.now();
   return {
@@ -182,8 +183,39 @@ export function snapshotFromAppState(
     triggers: { ...state.triggers },
     closeoutBoost: state.closeoutBoost,
     denyAggressiveness: state.denyAggressiveness,
+    ...(tags && tags.length > 0 ? { tags: [...tags] } : {}),
     createdAt: now,
     updatedAt: now,
+  };
+}
+
+/** Normalise un tag : trim, lowercase, retire le # initial éventuel, espaces → tirets. */
+export function normalizeTag(raw: string): string {
+  const t = raw.trim().toLowerCase().replace(/^#+/, '').replace(/\s+/g, '-');
+  return t;
+}
+
+/** Met à jour la liste de tags d'un système sauvegardé. Inputs non mutés.
+ *  Tags normalisés et dédupliqués. updatedAt rafraîchi. */
+export function setSystemTags(
+  lib: UserLibrary,
+  systemId: string,
+  tags: string[],
+): UserLibrary {
+  const normalized = Array.from(
+    new Set(tags.map((t) => normalizeTag(t)).filter((t) => t.length > 0)),
+  );
+  const now = Date.now();
+  return {
+    ...lib,
+    folders: lib.folders.map((f) => ({
+      ...f,
+      systems: f.systems.map((s) =>
+        s.id === systemId
+          ? { ...s, tags: normalized.length > 0 ? normalized : undefined, updatedAt: now }
+          : s,
+      ),
+    })),
   };
 }
 
