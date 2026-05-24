@@ -127,5 +127,6 @@ export function makeInitialState(): AppState {
     screenStiffnessEnabled: false,
     screenStiffness: 1.5,
     physicalContactBattlesEnabled: false,
+    defensiveTransitionEnabled: false,
   };
 }

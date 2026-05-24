@@ -512,6 +512,12 @@ export function ParametresPanel({
             title="Modélise les duels physiques pendant la phase box-out : le défenseur en contact pousse l'attaquant à l'opposé du panier (et recule lui-même via la réaction). Filet de sécurité Rule 1 garanti."
           />
           <CheckboxLine
+            checked={!!state.defensiveTransitionEnabled}
+            label="Repli défensif (transition)"
+            onChange={(v) => onPatch({ defensiveTransitionEnabled: v })}
+            title="Pendant la phase de transition entre 2 possessions, les ex-attaquants amorcent leur retraite vers leur propre panier (shot-made, turnover, rebond défensif). Cap 3 px/tick, freeze à 80 px du panier, filet Rule 1."
+          />
+          <CheckboxLine
             checked={!!state.attackerVelocityProfileEnabled}
             label="profil de vitesse offensif (Phy.O — courbure)"
             onChange={(v) => onPatch({ attackerVelocityProfileEnabled: v })}

@@ -847,6 +847,11 @@ export interface AppState {
    *  panier, avec réaction amortie sur le défenseur. Filet de sécurité
    *  Rule 1 via `pushOutOfMany` en fin de couche. */
   physicalContactBattlesEnabled?: boolean;
+  /** Repli défensif — pendant la phase de transition (TRANSITION_PAUSE_MS),
+   *  les ex-attaquants amorcent leur retraite vers leur propre panier
+   *  quand la possession va basculer (shot-made / turnover / rebond défensif).
+   *  Cap par tick, filet Rule 1. */
+  defensiveTransitionEnabled?: boolean;
   /** Format de jeu actif : 2x2, 3x3, 4x4 ou 5x5.
    *  Les joueurs hors format restent en mémoire, mais le moteur, les rendus
    *  et les contrôles les ignorent pour éviter tout comportement fantôme. */

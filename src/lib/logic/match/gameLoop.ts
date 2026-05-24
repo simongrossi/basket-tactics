@@ -719,6 +719,57 @@ function handleTransitionPause(
     }
   }
 
+  // Repli défensif (opt-in via defensiveTransitionEnabled) — pendant la
+  // pause de transition, les ex-attaquants amorcent leur retraite vers
+  // leur propre panier dès que la possession va basculer (shot-made,
+  // turnover, rebond défensif). Sur rebond offensif ou outcome 'empty',
+  // pas de repli (la même équipe garde la possession). Cap 3 px/tick,
+  // freeze à <80 px du panier, filet Rule 1 final.
+  if (baseAppState.defensiveTransitionEnabled && next.transitionStartedAtMs !== null) {
+    const willSwitchPossession =
+      next.outcome === 'shot-made' ||
+      next.outcome === 'forced-shot-made' ||
+      next.outcome === 'turnover-pass' ||
+      next.outcome === 'turnover-drive' ||
+      next.pendingRebound?.type === 'defensive';
+    if (willSwitchPossession) {
+      // Panier OWN des ex-attaquants = celui qu'attaquerait l'équipe opposée.
+      const otherTeam = next.attackingTeam === 'home' ? 'away' : 'home';
+      const ownHoop = getDefenseHoop(baseAppState, otherTeam);
+      const REPLI_SPEED_PX_PER_TICK = 3;
+      const ARRIVED_DIST_PX = 80;
+      const attIds = Object.keys(next.off) as AttackerId[];
+      attIds.forEach((aId) => {
+        const att = next.off[aId];
+        const dx = ownHoop.x - att.x;
+        const dy = ownHoop.y - att.y;
+        const d = Math.hypot(dx, dy);
+        if (d < ARRIVED_DIST_PX) return;
+        const ux = dx / d;
+        const uy = dy / d;
+        next.off[aId] = {
+          ...att,
+          x: att.x + ux * REPLI_SPEED_PX_PER_TICK,
+          y: att.y + uy * REPLI_SPEED_PX_PER_TICK,
+        };
+      });
+      // Filet Rule 1 : pushOut sur tous les ex-attaquants entre eux + contre
+      // les défenseurs (qui peuvent eux-mêmes être en box-out à mi-couloir).
+      const defIds = Object.keys(next.defPos) as DefenderId[];
+      attIds.forEach((id) => {
+        const obstacles: Point[] = [];
+        attIds.forEach((other) => {
+          if (other !== id) obstacles.push(next.off[other]);
+        });
+        defIds.forEach((dId) => {
+          const d = next.defPos[dId];
+          if (d) obstacles.push({ x: d.x, y: d.y });
+        });
+        next.off[id] = pushOutOfMany(next.off[id], obstacles, PLAYER_MIN_CLEARANCE_PX);
+      });
+    }
+  }
+
   const elapsed = next.possessionTimeMs - next.transitionStartedAtMs;
   if (elapsed < TRANSITION_PAUSE_MS) {
     return next; // toujours en pause
