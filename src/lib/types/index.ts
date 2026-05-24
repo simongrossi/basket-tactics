@@ -829,6 +829,11 @@ export interface AppState {
   physicsReboundsEnabled?: boolean;
   dribblePhysicsEnabled?: boolean;
   footworkRulesEnabled?: boolean;
+  /** CVT offensif — étend le moteur de forces vectorielles aux attaquants
+   *  pour un évitement émergent des obstacles (joueurs adverses + équipiers).
+   *  Quand actif, remplace l'évitement géométrique `curveAroundObstacle`
+   *  par un accumulateur de forces `repel` (steeringEngine). */
+  cvtOffensiveEnabled?: boolean;
   /** Format de jeu actif : 2x2, 3x3, 4x4 ou 5x5.
    *  Les joueurs hors format restent en mémoire, mais le moteur, les rendus
    *  et les contrôles les ignorent pour éviter tout comportement fantôme. */

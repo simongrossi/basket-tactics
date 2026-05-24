@@ -472,6 +472,12 @@ export function ParametresPanel({
             title="Modulation de vitesse réaliste (pas chassés/reculons), latence de réaction en angle mort (200ms) et temps de pivot plant-and-cut (150-300ms) sur les défenseurs."
           />
           <CheckboxLine
+            checked={!!state.cvtOffensiveEnabled}
+            label="CVT offensif (contournement par forces)"
+            onChange={(v) => onPatch({ cvtOffensiveEnabled: v })}
+            title="Étend le moteur de forces vectorielles aux attaquants : repel émergent contre les autres joueurs au lieu de la Bezier géométrique. Glissement plus naturel autour des clusters."
+          />
+          <CheckboxLine
             checked={!!state.attackerVelocityProfileEnabled}
             label="profil de vitesse offensif (Phy.O — courbure)"
             onChange={(v) => onPatch({ attackerVelocityProfileEnabled: v })}

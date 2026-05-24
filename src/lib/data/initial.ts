@@ -123,5 +123,6 @@ export function makeInitialState(): AppState {
     physicsReboundsEnabled: false,
     dribblePhysicsEnabled: false,
     footworkRulesEnabled: false,
+    cvtOffensiveEnabled: false,
   };
 }

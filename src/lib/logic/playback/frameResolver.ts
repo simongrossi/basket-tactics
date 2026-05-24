@@ -80,6 +80,22 @@ import {
   type ScreenContext,
   type ScreenObstacle,
 } from '../screenContext';
+import {
+  accumulateForces,
+  integrateForce,
+  repel,
+  type SteeringForce,
+} from '../steeringEngine';
+
+/** CVT offensif — rayon d'influence du repel autour de chaque obstacle.
+ *  Au-delà, force morte. Calibré ~50% au-dessus de `PLAYER_MIN_CLEARANCE_PX`
+ *  pour amorcer la déviation AVANT le contact géométrique. */
+const CVT_OFFENSIVE_REPEL_RADIUS_PX = 52;
+/** Poids du repel par obstacle. Réglé pour produire une déviation visible
+ *  sans casser la silhouette de la trajectoire dessinée par l'utilisateur. */
+const CVT_OFFENSIVE_REPEL_WEIGHT = 18;
+/** Magnitude maximale du déplacement appliqué par frame (anti-snap). */
+const CVT_OFFENSIVE_MAX_STEP_PX = 6;
 
 /** Trace des décisions prises pour un défenseur au sein de `resolveFrameAt`.
  *  Capturée UNIQUEMENT quand `options.collectDecisions` est true (= tests
@@ -467,25 +483,47 @@ export function resolveFrameAt(
       traj.movementType === 'idle' ||
       traj.movementType === 'dribble'
     ) {
-      const obstacles: ScreenObstacle[] = [];
-      attackerIds.forEach((other) => {
-        if (other === id) return;
-        obstacles.push({
-          center: midpoint(offA[other], offB[other]),
-          radius: PLAYER_OBSTACLE_RADIUS_PX,
-          defenderToSkip: 'D1' as DefenderId,
+      if (state.cvtOffensiveEnabled) {
+        // CVT offensif — accumulateur de forces `repel` depuis tous les
+        // autres joueurs (équipiers + adversaires). Glissement continu
+        // autour des clusters, là où `curveAroundObstacle` claque sur la
+        // Bezier du cluster dominant. Pas de fallback Bezier quand on est
+        // en mode CVT : la même couche fait le boulot pour 1 ou N obstacles.
+        const forces: SteeringForce[] = [];
+        attackerIds.forEach((other) => {
+          if (other === id) return;
+          forces.push(
+            repel(p, midpoint(offA[other], offB[other]), CVT_OFFENSIVE_REPEL_RADIUS_PX, CVT_OFFENSIVE_REPEL_WEIGHT, `repel-att-${other}`),
+          );
         });
-      });
-      defenderIds.forEach((dId) => {
-        obstacles.push({
-          center: midpoint(defA[dId], defB[dId]),
-          radius: PLAYER_OBSTACLE_RADIUS_PX,
-          defenderToSkip: 'D1' as DefenderId,
+        defenderIds.forEach((dId) => {
+          forces.push(
+            repel(p, midpoint(defA[dId], defB[dId]), CVT_OFFENSIVE_REPEL_RADIUS_PX, CVT_OFFENSIVE_REPEL_WEIGHT, `repel-def-${dId}`),
+          );
         });
-      });
-      const blocking = pickBlockingCluster(offA[id], offB[id], obstacles);
-      if (blocking) {
-        p = curveAroundObstacle(offA[id], offB[id], blocking.center, blocking.radius, localT);
+        const force = accumulateForces(forces);
+        p = integrateForce(p, force, CVT_OFFENSIVE_MAX_STEP_PX);
+      } else {
+        const obstacles: ScreenObstacle[] = [];
+        attackerIds.forEach((other) => {
+          if (other === id) return;
+          obstacles.push({
+            center: midpoint(offA[other], offB[other]),
+            radius: PLAYER_OBSTACLE_RADIUS_PX,
+            defenderToSkip: 'D1' as DefenderId,
+          });
+        });
+        defenderIds.forEach((dId) => {
+          obstacles.push({
+            center: midpoint(defA[dId], defB[dId]),
+            radius: PLAYER_OBSTACLE_RADIUS_PX,
+            defenderToSkip: 'D1' as DefenderId,
+          });
+        });
+        const blocking = pickBlockingCluster(offA[id], offB[id], obstacles);
+        if (blocking) {
+          p = curveAroundObstacle(offA[id], offB[id], blocking.center, blocking.radius, localT);
+        }
       }
     }
 
