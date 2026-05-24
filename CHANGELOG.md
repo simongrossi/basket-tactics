@@ -6,6 +6,21 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Timeline multi-pistes désynchronisée — closure ROADMAP § 5.1
+
+Audit ciblé : la feature était déjà implémentée à 100 % (incrémentalement
+via Étape 10 + B.4 + MultiTrackTimeline) mais l'item ROADMAP était resté
+⚪. Confirmation par inspection : annotations supportent `tStart`/`tEnd`
++ `tStartAbs`/`tEndAbs`, moteur `playbackTrajectory` fait du lookback
+`[stepIdx, stepIdx+1]`, transforms autorisent `[-1, 2]`, UI rend les
+débordements en `overflow: visible` + `boxShadow`.
+
+Comblement de la lacune de couverture : nouveau test
+`timelineMultiTrack.test.ts` (3 cas) qui valide la matrice combinée
+"3 acteurs + 1 annotation qui déborde cross-step + asynchronie intra-step"
+— scénario canonique de la roadmap. ROADMAP § Réalisme physique passe à
+**15/15 items livrés** (✅ V1 complète). 1808 / 1808 tests verts.
+
 ### Repli défensif — ferme ROADMAP § Réalisme physique 5.2 (`3fabd8c`)
 
 Dernier item livré du pilier physique opt-in (14/15) — reste seulement

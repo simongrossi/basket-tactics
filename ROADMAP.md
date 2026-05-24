@@ -1643,9 +1643,9 @@ toute ouverture de PR sur ce chantier.
 
 ---
 
-### 🟡 Réalisme physique et déplacements avancés (V1 quasi-complète)
+### ✅ Réalisme physique et déplacements avancés (V1 complète)
 
-Pilier physique opt-in : **14 items livrés sur 15** (sections 1–4 ✅, section 5.2 ✅). Tous derrière des flags `AppState` (default false → comportement legacy préservé).
+Pilier physique opt-in : **15 items livrés sur 15**. Sections 1, 2, 3, 4, 5 toutes vertes. Tous les comportements nouveaux derrière des flags `AppState` (default false → comportement legacy préservé). Pistes V2 notées item par item.
 
 #### 1. Cinématique des déplacements et modèle de vitesse
 - 🟢 **Vitesse Réelle vs Vitesse Tactique (Mode Sprint NBA)** — livré `b92d59d` via `realSpeedMode` : timeline 0.5s au lieu de 2s pour simuler buzzer-beaters/coast-to-coast.
@@ -1668,8 +1668,9 @@ Pilier physique opt-in : **14 items livrés sur 15** (sections 1–4 ✅, sectio
 - 🟢 **Luttes de force (Box-out & Post-up)** — livré `d785528` via `physicalContactBattlesEnabled` : poussée vectorielle défenseur→attaquant à l'opposé du panier pendant la phase box-out, réaction Newton ×0.3 sur le défenseur. Filet `pushOutOfMany` final pour Rule 1.
 - 🟢 **CVT offensif (Pathfinding unifié)** — livré `6660454` via `cvtOffensiveEnabled` : remplace `curveAroundObstacle` (Bezier) par accumulateur `repel` (radius 52 px, weight 18, maxStep 6 px) via `steeringEngine`.
 
-#### 5. Gestion du temps et transitions
-- ⚪ **Timeline multi-pistes désynchronisée :** Séparer la timeline globale en pistes individuelles par joueur pour permettre des départs et arrêts d'actions asynchrones (ex : O2 démarre sa coupe 0.4 s après le début de l'action).
+#### 5. Gestion du temps et transitions ✅
+- 🟢 **Timeline multi-pistes désynchronisée** — livré incrémentalement avant la roadmap physique (Étape 10 + B.4) puis consolidé. Annotations portent `tStart`/`tEnd` (fractions) et `tStartAbs`/`tEndAbs` (secondes absolues). Moteur `playbackTrajectory` fait du lookback `[stepIdx, stepIdx+1]` → supporte `tStart < 0` et `tEnd > 1` (annotations qui débordent sur le step adjacent). Transform `setAnnotationTiming` autorise `[-1, 2]` selon steps présents. UI [MultiTrackTimeline](src/components/MultiTrackTimeline.tsx) : drag des poignées laisse ratio sortir `[-1, 2]`, segment rendu en `overflow: visible` avec mise en évidence (`boxShadow`) quand l'annotation déborde. Couverture tests : `b4AnnotationTiming` (intra-step async), `playbackTrajectory` (cross-step 1 actor), `timelineMultiTrack` (matrice combinée 3 acteurs + overflow + indépendance).
+   - V2 possible : snap-to-other-annotation à l'édition (confort UX), tests rendu MultiTrackTimeline.
 - 🟢 **Repli défensif (transition)** — livré `3fabd8c` via `defensiveTransitionEnabled` : pendant `TRANSITION_PAUSE_MS`, les ex-attaquants amorcent leur retraite vers leur panier OWN quand la possession va basculer (shot-made / turnover / rebond défensif). 3 px/tick, freeze à <80 px du panier, filet Rule 1. La partie "surveillance du ballon" via gaze orientation reste à faire en V2.
 
 
