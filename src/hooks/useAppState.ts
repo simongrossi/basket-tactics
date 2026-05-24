@@ -46,13 +46,8 @@ import {
   type AppStateHistory,
 } from '@/lib/logic/appStateHistory';
 import { persistDetectedSwitchesThroughStep } from '@/lib/logic/engine';
-import { migrateScriptedActions } from '@/lib/logic/scriptedActionMigration';
-import { normalizePlayerCount, normalizeStateForPlayerCount } from '@/lib/logic/players';
-import {
-  ensureAnnotationsForMovement,
-  reconcileMovementAnnotations,
-} from '@/lib/logic/migrateAnnotations';
 import { moveAttackerInState, moveDefenderInState } from '@/lib/logic/playerMove';
+import { loadFromStorage, saveToStorage, clearStorage } from '@/lib/state/persistence';
 import { computeOffBallPositions } from '@/lib/logic/autoOffense';
 import { HOOP, HOOP_OPPOSITE } from '@/lib/data/court';
 import {
@@ -66,8 +61,6 @@ import {
   coreTx,
 } from '@/lib/state/transforms';
 import * as textNoteTx from '@/lib/state/transforms/textNoteTransforms';
-
-const STORAGE_KEY = 'basket-tactics-state-v1';
 
 /** État transitoire (= NON persisté, hors AppState) qui pilote l'animation
  *  "Tout en auto réel" : on capture les positions manuelles courantes au
@@ -85,34 +78,6 @@ export interface DefenseReleaseTransition {
 }
 
 const DEFENSE_RELEASE_DURATION_MS = 700;
-
-function loadFromStorage(): AppState | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<AppState>;
-    const defaults = makeInitialState();
-    const scriptedActions = parsed.scriptedActions
-      ? migrateScriptedActions(parsed.scriptedActions as unknown[])
-      : parsed.scriptedActions;
-    const merged = {
-      ...defaults,
-      ...parsed,
-      zoneConfig: { ...defaults.zoneConfig, ...(parsed.zoneConfig || {}) },
-      scriptedActions,
-    } as AppState;
-    const normalized = normalizeStateForPlayerCount(merged, normalizePlayerCount(merged.playerCount));
-    return {
-      ...normalized,
-      steps: reconcileMovementAnnotations(
-        ensureAnnotationsForMovement(normalized.steps, normalizePlayerCount(normalized.playerCount))
-      ),
-    };
-  } catch {
-    return null;
-  }
-}
 
 export function useAppState() {
   // Premier render identique côté SSR et client : on part toujours de l'état
@@ -195,16 +160,9 @@ export function useAppState() {
   // Save debounced (400ms) — skip avant hydration pour ne pas écraser le persisté.
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (typeof window === 'undefined') return;
     if (!hydrated) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch {
-        /* quota exceeded ou navigation privée — ignore */
-      }
-    }, 400);
+    saveTimer.current = setTimeout(() => saveToStorage(state), 400);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
@@ -576,9 +534,7 @@ export function useAppState() {
 
   // -- Reset / template / import / patch / playerCount --
   const resetAll = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
-    }
+    clearStorage();
     setStateWithHistory(coreTx.resetAll());
   }, [setStateWithHistory]);
 
