@@ -54,18 +54,40 @@ Pistes Sprite V3 (futures) :
 - ⚪ **Anti-flicker détection écran (post-CVT)** — déjà *partiellement*
   livré via `OFFBALL_SCREEN_HYSTERESIS_PX`, à vérifier si le cas
   pré-CVT reste à traiter.
-- ⚪ **Fatigue / endurance** : un joueur qui a couru sur N steps précédents
-  → vitesse max réduite par décay exponentiel. Flag opt-in.
+- ✅ **Fatigue / endurance** (V3 livré 2026-05-25) : compteur de
+  distance parcourue par défenseur ; au-delà de 300 px → vitesse ×0.7.
+  Vit dans `useCourtFrame` (rAF loop pendant drag attaquant). Ne
+  s'applique qu'en édition manuelle pour l'instant — appliquer aussi
+  pendant playback step→step reste une piste V4.
 - ⚪ **Gaze tracking ballon pendant repli défensif (V2 du chantier 5.2)** —
   le défenseur tourne la tête vers le ballon en courant.
-- ⚪ **Recovery post-shot** : le tireur reste figé en posture de
-  suspension ~300ms avant de bouger.
-- ⚪ **Anticipation IA défensive variable** : modulation du délai de
-  réaction selon profil athlétique (footwork latency est aujourd'hui
-  fixe à 200 ms).
-- ✅ **Inertie défenseur sur drag attaquant** (livré 2026-05-25) : flag
-  `defenderDragInertiaEnabled`, réutilise `defenseReleaseTransition`
-  (lerp ease-out cubique 400 ms) au démarrage du drag attaquant.
+- ✅ **Recovery post-shot** (Sprite V2 chantier D livré 2026-05-25) :
+  pose follow-through symétrique sur 1 step entier (pas de timing
+  temporel ms, modèle discret par step).
+- ✅ **Anticipation IA défensive variable** (V3 livré 2026-05-25) :
+  modulation du cap de vitesse défenseur par `defenderSpeedProfiles`
+  (elite ×1.3, lent ×0.7) ET par lecture du regard (cône <60° ×1.2,
+  hors cône >120° ×0.7). Pendant drag attaquant uniquement pour
+  l'instant.
+- ✅ **Inertie défenseur sur drag attaquant** (livré 2026-05-25, étendu
+  à la poursuite continue 2026-05-25). Flag `defenderDragInertiaEnabled`
+  pilote un rAF loop dans `useCourtFrame` avec cap vitesse (V1) +
+  footwork dynamique (V2) + intelligence/fatigue (V3). Cf.
+  [docs/physics.md § Poursuite défenseur](docs/physics.md).
+
+### Pistes V4 (poursuite défenseur)
+
+- ⚪ **Étendre la poursuite à playback step→step** : le mécanisme V1+V2+V3
+  ne vit qu'en mode édition (drag attaquant). En playback, seul le
+  `footworkRulesEnabled` legacy de `speedConstraint.ts` est actif.
+  Faire vivre fatigueRef + lecture du regard pendant playback
+  doublerait l'effet.
+- ⚪ **Anticipation variable selon le rythme de mouvement** : si
+  l'attaquant bouge lentement (signal "il prépare"), latence anticipation
+  réduite ; si saccadé (signal "il feinte"), latence amplifiée.
+- ⚪ **Sliders de tuning** : exposer les multiplicateurs (×0.6, ×0.7,
+  ×1.2, 200px, 300px, 150ms) comme settings tunables au lieu de
+  hardcoded.
 
 ---
 

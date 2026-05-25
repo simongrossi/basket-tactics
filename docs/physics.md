@@ -58,7 +58,7 @@ Ces valeurs sont **sous-réelles** (un sprint NBA atteint 9 m/s ; le moteur tour
 
 ## Physique opt-in (V1 livrée mai 2026)
 
-Au-delà des constantes ci-dessus, le moteur expose 10 **flags physiques opt-in** dans `AppState`. Tous default `false` → comportement legacy strictement préservé. UI : Paramètres → "Physique & Biomécanique" / "Physique du ballon & tirs". Voir [ROADMAP.md § Réalisme physique](../ROADMAP.md) pour le détail item par item.
+Au-delà des constantes ci-dessus, le moteur expose **12 flags physiques opt-in** dans `AppState`. Tous default `false` → comportement legacy strictement préservé. UI : Paramètres → "Physique & Biomécanique" / "Physique du ballon & tirs". Voir [ROADMAP.md § Réalisme physique](../ROADMAP.md) pour le détail item par item.
 
 | Flag | Default | Effet | Câblage principal |
 |---|---|---|---|
@@ -72,8 +72,37 @@ Au-delà des constantes ci-dessus, le moteur expose 10 **flags physiques opt-in*
 | `cvtOffensiveEnabled` | false | Remplace `curveAroundObstacle` (Bezier) par `repel`/`integrateForce` (steeringEngine) — radius 52 px, weight 18, maxStep 6 px | `playback/frameResolver.ts` |
 | `screenStiffnessEnabled` + `screenStiffness` | false / 1.5 | Amplifie la pénalité écran existante (multiplicateur 1.0–3.0, borne basse 0.08) | `defense/speedConstraint.ts` |
 | `physicalContactBattlesEnabled` | false | Luttes de force en box-out : poussée vectorielle attaquant↔défenseur, rayon 40 px, force 5 px/frame | `match/gameLoop.ts` |
+| `defensiveTransitionEnabled` | false | Repli défensif : ex-attaquants courent vers leur panier OWN pendant la pause de transition (shot-made / turnover / rebond défensif) | `match/gameLoop.ts` |
+| `defenderDragInertiaEnabled` | false | Poursuite défenseur dynamique pendant drag attaquant (édition). Cap vitesse + footwork dynamique (V2) + intelligence/fatigue (V3) | `useAppState`, `useCourtFrame` (rAF loop) |
 
 L'annotation `cut`/`dribble` accepte aussi un flag `sprint?: boolean` (mouvement condensé sur 60 % du temps de l'étape — toggle dans StepsPanel).
+
+### Poursuite défenseur (`defenderDragInertiaEnabled`) — détail
+
+Le flag pilote un mécanisme propre :
+1. **`useAppState`** maintient un état transient `defenderPursuit: { snapshot, active, startedAtMs }`.
+2. Au démarrage d'un drag attaquant, `beginDefenderPursuit()` capture les positions auto courantes des défenseurs (snapshot).
+3. **`useCourtFrame`** run un rAF loop tant que `pursuit.active === true` :
+   - À chaque tick (dt ≈ 16 ms), recalcule la cible auto via `effectiveDefensePositions`.
+   - Pour chaque défenseur, calcule un `effectiveMaxPxPerMs = baseMaxPxPerMs × profileMult × footworkMult × fatigueMult × gazeMult`.
+   - Déplacement = `min(distance_to_target, effectiveMaxPxPerMs × dt)`.
+4. À `endDefenderPursuit()` (commitPlayerDrag attaquant), le rAF loop s'arrête après ~500 ms (ease-out final).
+
+**Modulateurs** (calculés par défenseur, par tick) :
+- `profileMult` : `defenderSpeedProfiles[id]` → elite ×1.3, lent ×0.7, standard ×1.0.
+- `footworkMult` (V2, active si `footworkRulesEnabled`) :
+  - Course arrière (direction défenseur >90° de son orientation) : ×0.6
+  - Course latérale (60-90°) : ×0.7
+- `fatigueMult` (V3) : compteur `fatigueRef` accumule la distance parcourue. >300 px → ×0.7.
+- `gazeMult` (V3, active si `footworkRulesEnabled`) :
+  - Attaquant dans cône de regard (<60°) : ×1.2 (mieux placé)
+  - Hors cône (>120°) : ×0.7 (pris à contre-pied)
+
+**Latence pivot plant-and-cut (V2)** : changement de direction attaquant >90° entre 2 frames → `pivotLatencyRef[id] += 150 ms`. Pendant cette latence, le défenseur ne bouge pas.
+
+**Décrochage (V3)** : si l'écart défenseur ↔ cible dépasse 200 px, le défenseur "abandonne" la poursuite exacte. Snap à `cible - 200 px` (route directe), l'écart résiduel accumulé en fatigue.
+
+Le calcul vit dans `useCourtFrame.ts` (rAF loop). Le rendu se fait via `pursuitFrame` qui substitue `livePositionsRef` dans `staticFrame.defPos`. Position dans la chain de frames : `exportFrame ?? liveMatchFrame ?? playFrame ?? scrubFrame ?? pursuitFrame ?? releaseFrame ?? staticFrame`.
 
 **Types étendus :**
 - `Point` gagne `z?: number` pour la 3D du ballon (parabole tir, parabole passe, hauteur dribble).

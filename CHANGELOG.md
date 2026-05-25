@@ -48,6 +48,16 @@ Résultat : drag rapide ou avec changements de direction → défenseur
 distancé. Drag lent ou direct → suivi quasi-instantané. Défenseur lent
 ou pris à contre-pied → vraiment décroché.
 
+### Amplitude slider distance défenseur étendue (20-80 → 15-150 px)
+
+`DefensePanel.tsx` et `DefenderMenu.tsx` (override individuel) — range
+du slider distance défenseur ↔ son homme passe de 60 px (0.54 m à 2.16 m)
+à 135 px (0.40 m à 4.05 m), step 5. Couvre maintenant : hard deny (15 px
+≈ 0.40 m), standard (40 px ≈ 1.08 m, défaut), sag profond (100 px ≈
+2.70 m), deep help weak-side (150 px ≈ 4.05 m). Valeur effective
+clampée à `PLAYER_MIN_CLEARANCE_PX = 34 px` côté moteur (preservation
+Rule 1).
+
 ### Inertie défenseur sur drag attaquant (édition)
 
 Nouveau flag opt-in `defenderDragInertiaEnabled` (Paramètres → Physique
