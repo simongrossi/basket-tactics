@@ -516,6 +516,7 @@ export default function Page() {
               onMoveAttackerDuringDrag={app.moveAttackerDuringDrag}
               onMoveDefenderDuringDrag={app.moveDefenderDuringDrag}
               onCommitPlayerDrag={app.commitPlayerDrag}
+              onTriggerDefenderInertia={app.triggerDefenderDragInertia}
               onAddAnnotation={handleAddAnnotation}
               onAddTextNote={app.addTextNote}
               onUpdateTextNote={app.updateTextNote}

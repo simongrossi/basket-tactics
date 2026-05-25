@@ -466,6 +466,27 @@ export function useAppState() {
     setStateWithHistory(defenseTx.clearAllDefenseOverridesActiveStep);
   }, [setStateWithHistory]);
 
+  /** Inertie défenseur sur drag attaquant : capture les positions défenseurs
+   *  courantes AVANT que l'attaquant ne bouge, puis enclenche
+   *  `defenseReleaseTransition` (lerp easing cubique). Pendant le drag, les
+   *  cibles défenseurs se mettent à jour mais le blend depuis le snapshot
+   *  donne un effet d'inertie (le défenseur "rame" derrière l'attaquant).
+   *  No-op si `defenderDragInertiaEnabled` est faux. */
+  const triggerDefenderDragInertia = useCallback((durationMs = 400) => {
+    const cur = stateRef.current;
+    if (!cur.defenderDragInertiaEnabled) return;
+    const defPos = effectiveDefensePositions(cur, cur.activeStep);
+    const from: Partial<Record<DefenderId, Point>> = {};
+    (Object.keys(defPos) as DefenderId[]).forEach((id) => {
+      from[id] = { x: defPos[id].x, y: defPos[id].y };
+    });
+    setDefenseReleaseTransition({
+      fromPositions: from,
+      startedAtMs: performance.now(),
+      durationMs,
+    });
+  }, []);
+
   // -- Attackers --
   const setAttackerHand = useCallback((oId: AttackerId, hand: 'right' | 'left') => {
     setStateWithHistory((s) => attackerTx.setAttackerHand(s, oId, hand));
@@ -657,6 +678,7 @@ export function useAppState() {
     setZoneEditMode,
     clearAllDefenseOverridesActiveStep,
     clearAllDefenseOverridesActiveStepAnimated,
+    triggerDefenderDragInertia,
     defenseReleaseTransition,
     setStepLabel,
     patchStep,

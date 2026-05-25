@@ -87,6 +87,7 @@ interface CourtViewProps {
   onMoveAttackerDuringDrag?: (id: AttackerId, x: number, y: number) => void;
   onMoveDefenderDuringDrag?: (id: DefenderId, x: number, y: number) => void;
   onCommitPlayerDrag?: () => void;
+  onTriggerDefenderInertia?: () => void;
   onAddAnnotation: (a: Annotation, options?: AddAnnotationOptions) => void;
   onUpdateRule: (dId: DefenderId, patch: Partial<AppState['rules'][DefenderId]>) => void;
   onApplyDefenderProfile: (dId: DefenderId, profile: import('@/lib/data/defenderProfiles').DefenderProfile) => void;
@@ -210,6 +211,7 @@ export function CourtView(props: CourtViewProps) {
       isPlaying: props.isPlaying,
       onBeginPlayerDrag: props.onBeginPlayerDrag,
       onCommitPlayerDrag: props.onCommitPlayerDrag,
+      onTriggerDefenderInertia: props.onTriggerDefenderInertia,
       onMoveAttacker: props.onMoveAttacker,
       onMoveDefender: props.onMoveDefender,
       onMoveAttackerDuringDrag: props.onMoveAttackerDuringDrag,

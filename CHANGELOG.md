@@ -6,6 +6,25 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Inertie défenseur sur drag attaquant (édition)
+
+Nouveau flag opt-in `defenderDragInertiaEnabled` (Paramètres → Physique
+& Biomécanique). Quand actif, au démarrage d'un drag attaquant en mode
+édition, les défenseurs sont "freezés" sur leurs appuis puis rattrapent
+leur cible avec un easing cubique (~400 ms). Sans flag, comportement
+legacy : suivi instantané face-à-face (peu réaliste pour visualiser une
+réaction défensive).
+
+**Architecture** : nouveau callback `triggerDefenderDragInertia(durationMs?)`
+dans `useAppState` qui capture les positions défenseurs courantes via
+`effectiveDefensePositions` puis enclenche le mécanisme existant
+`defenseReleaseTransition` (consommé par `useCourtFrame:213-234`,
+ease-out cubique). `useCourtPointerHandlers` appelle ce callback au
+moment du `setDragging` quand l'`id` ne commence pas par 'D'. Plumbing
+via CourtView + page.tsx. Zéro nouveau code de blend — réutilise
+intégralement la couche `defenseReleaseTransition` déjà éprouvée par
+"Tout en auto réel".
+
 ### Sprite V2 — 5 items livrés (latéralité, dribble actif, post-shot, démo live, tests)
 
 Suite à la refonte sprite Prop A (commit `315ff05`), enchaînement des

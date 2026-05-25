@@ -861,6 +861,12 @@ export interface AppState {
    *  quand la possession va basculer (shot-made / turnover / rebond défensif).
    *  Cap par tick, filet Rule 1. */
   defensiveTransitionEnabled?: boolean;
+  /** Inertie défenseur sur drag attaquant (mode édition). Quand actif, au
+   *  démarrage d'un drag d'attaquant, les défenseurs sont "freezés" à leur
+   *  position courante puis rattrapent leur cible avec un easing cubique
+   *  (≈ 400 ms). Sans flag, comportement legacy : suivi instantané face-à-face.
+   *  Réutilise le mécanisme `defenseReleaseTransition` (blend lerp). */
+  defenderDragInertiaEnabled?: boolean;
   /** Format de jeu actif : 2x2, 3x3, 4x4 ou 5x5.
    *  Les joueurs hors format restent en mémoire, mais le moteur, les rendus
    *  et les contrôles les ignorent pour éviter tout comportement fantôme. */

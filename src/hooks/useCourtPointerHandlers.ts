@@ -47,6 +47,9 @@ interface UseCourtPointerHandlersOptions {
   isPlaying: boolean;
   onBeginPlayerDrag?: () => void;
   onCommitPlayerDrag?: () => void;
+  /** Inertie défenseur (opt-in) : à appeler au début d'un drag attaquant pour
+   *  capturer les positions défenseurs et déclencher `defenseReleaseTransition`. */
+  onTriggerDefenderInertia?: () => void;
   onMoveAttacker: (id: AttackerId, x: number, y: number) => void;
   onMoveDefender: (id: DefenderId, x: number, y: number) => void;
   onMoveAttackerDuringDrag?: (id: AttackerId, x: number, y: number) => void;
@@ -118,6 +121,7 @@ export function useCourtPointerHandlers(
     isPlaying,
     onBeginPlayerDrag,
     onCommitPlayerDrag,
+    onTriggerDefenderInertia,
     onMoveAttacker,
     onMoveDefender,
     onMoveAttackerDuringDrag,
@@ -352,6 +356,12 @@ export function useCourtPointerHandlers(
         }
         if (!target) return;
         onBeginPlayerDrag?.();
+        // Inertie défenseur (opt-in) : si l'utilisateur drag un ATTAQUANT,
+        // capturer les positions défenseurs avant que state.off ne change,
+        // pour que les défenseurs "rament derrière" plutôt que de coller.
+        if (!id!.startsWith('D')) {
+          onTriggerDefenderInertia?.();
+        }
         lastDragPointRef.current = null;
         dragMoveRef.current = null;
         setDragging({ id: id as PlayerId, isDef: id!.startsWith('D') });

@@ -63,6 +63,9 @@ Pistes Sprite V3 (futures) :
 - ⚪ **Anticipation IA défensive variable** : modulation du délai de
   réaction selon profil athlétique (footwork latency est aujourd'hui
   fixe à 200 ms).
+- ✅ **Inertie défenseur sur drag attaquant** (livré 2026-05-25) : flag
+  `defenderDragInertiaEnabled`, réutilise `defenseReleaseTransition`
+  (lerp ease-out cubique 400 ms) au démarrage du drag attaquant.
 
 ---
 

@@ -518,6 +518,12 @@ export function ParametresPanel({
             title="Pendant la phase de transition entre 2 possessions, les ex-attaquants amorcent leur retraite vers leur propre panier (shot-made, turnover, rebond défensif). Cap 3 px/tick, freeze à 80 px du panier, filet Rule 1."
           />
           <CheckboxLine
+            checked={!!state.defenderDragInertiaEnabled}
+            label="Inertie défenseur sur drag attaquant"
+            onChange={(v) => onPatch({ defenderDragInertiaEnabled: v })}
+            title="En mode édition, quand tu drag un attaquant, les défenseurs restent figés sur leurs appuis puis rattrapent leur cible avec un easing cubique (~400 ms). Sans flag, suivi instantané face-à-face. Réutilise le mécanisme defenseReleaseTransition (blend lerp)."
+          />
+          <CheckboxLine
             checked={!!state.attackerVelocityProfileEnabled}
             label="profil de vitesse offensif (Phy.O — courbure)"
             onChange={(v) => onPatch({ attackerVelocityProfileEnabled: v })}
