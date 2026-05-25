@@ -603,12 +603,12 @@ export function DefensePanel(props: DefensePanelProps) {
           </div>
           <Slider
             label="distance"
-            min={20}
-            max={80}
-            step={2}
+            min={15}
+            max={150}
+            step={5}
             value={state.defenseDistance}
             onChange={(v) => props.onPatch({ defenseDistance: v })}
-            title="Distance par défaut entre chaque défenseur et son attaquant marqué (px). Override-able par défenseur via clic-droit."
+            title="Distance par défaut entre chaque défenseur et son attaquant marqué (px). 15 = hard deny (~0.4 m), 40 = standard (1.1 m, défaut), 100 = sag (2.7 m), 150 = deep help weak-side (4 m). La valeur effective est clampée à PLAYER_MIN_CLEARANCE_PX (34 px) côté moteur. Override-able par défenseur via clic-droit."
           />
           <Slider
             label="vit. max"

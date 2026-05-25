@@ -516,13 +516,13 @@ export function DefenderMenu({
         </Row>
         <OverrideSliderRow
           label="distance"
-          min={20}
-          max={80}
-          step={2}
+          min={15}
+          max={150}
+          step={5}
           value={rule.distance}
           onChange={(v) => onUpdate({ distance: v })}
           onReset={() => onUpdate({ distance: undefined })}
-          title="Distance individuelle défenseur ↔ son homme. Petit nombre = défenseur collant ; grand nombre = laisse de l'espace."
+          title="Distance individuelle défenseur ↔ son homme (px). 15 = hard deny (~0.4 m), 40 = standard, 100 = sag, 150 = deep help (~4 m). Clampée à PLAYER_MIN_CLEARANCE_PX côté moteur."
         />
         <OverrideSliderRow
           label="closeout ×"
