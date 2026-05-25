@@ -6,6 +6,48 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Poursuite défenseur dynamique pendant drag — V1+V2+V3 complets
+
+Évolution majeure du flag `defenderDragInertiaEnabled`. L'inertie
+single-shot (400 ms freeze + ease cubique) est remplacée par un
+**mécanisme de poursuite continu** qui applique en temps réel les
+physiques tactiques pendant le drag d'un attaquant.
+
+**Architecture** :
+- Nouveau state transient `defenderPursuit: { snapshot, active,
+  startedAtMs }` dans `useAppState`.
+- `beginDefenderPursuit()` (au démarrage drag attaquant) capture le
+  snapshot et active le rAF loop. `endDefenderPursuit()` (au commit
+  du drag) désactive le loop.
+- `useCourtFrame` maintient `livePositionsRef`, `fatigueRef`,
+  `pivotLatencyRef`, `lastAttackerPosRef` et run un rAF loop tant que
+  `pursuit.active === true`.
+- Nouvelle frame `pursuitFrame` insérée dans la chain entre
+  `scrubFrame` et `releaseFrame`.
+
+**V1 — Cap vitesse** : à chaque frame du rAF loop, déplacement défenseur
+limité à `defenseMaxSpeed * dt` (normalisé sur `secondsPerStep`).
+Modulation par `defenderSpeedProfiles` : elite ×1.3, lent ×0.7.
+
+**V2 — Footwork dynamique** (active quand `footworkRulesEnabled`) :
+- Course arrière (direction défenseur >90° de son orientation) → ×0.6
+- Course latérale (60-90°) → ×0.7
+- Pivot plant-and-cut : changement de direction attaquant >90° entre
+  2 frames → latence 150 ms défenseur (cap = 0 pendant ce délai)
+
+**V3 — Défense intelligente et fatiguée** :
+- **Fatigue cumulée** : compteur de distance parcourue par défenseur,
+  au-delà de 300 px → vitesse × 0.7.
+- **Lecture du regard** : attaquant dans cône de regard (<60°) → ×1.2 ;
+  hors cône (>120°) → ×0.7. Pris à contre-pied = défenseur ralenti.
+- **Décrochage** : si l'écart défenseur ↔ cible dépasse 200 px, le
+  défenseur "abandonne" la poursuite exacte et reprend une route directe
+  (snap à cible − 200 px, le reste accumulé en fatigue).
+
+Résultat : drag rapide ou avec changements de direction → défenseur
+distancé. Drag lent ou direct → suivi quasi-instantané. Défenseur lent
+ou pris à contre-pied → vraiment décroché.
+
 ### Inertie défenseur sur drag attaquant (édition)
 
 Nouveau flag opt-in `defenderDragInertiaEnabled` (Paramètres → Physique

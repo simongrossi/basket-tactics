@@ -87,7 +87,8 @@ interface CourtViewProps {
   onMoveAttackerDuringDrag?: (id: AttackerId, x: number, y: number) => void;
   onMoveDefenderDuringDrag?: (id: DefenderId, x: number, y: number) => void;
   onCommitPlayerDrag?: () => void;
-  onTriggerDefenderInertia?: () => void;
+  onBeginDefenderPursuit?: () => void;
+  onEndDefenderPursuit?: () => void;
   onAddAnnotation: (a: Annotation, options?: AddAnnotationOptions) => void;
   onUpdateRule: (dId: DefenderId, patch: Partial<AppState['rules'][DefenderId]>) => void;
   onApplyDefenderProfile: (dId: DefenderId, profile: import('@/lib/data/defenderProfiles').DefenderProfile) => void;
@@ -124,6 +125,7 @@ interface CourtViewProps {
    *  time. Quand non-null et hors playback/scrub, useCourtFrame lerp les
    *  positions défenseurs depuis `fromPositions` vers la cible auto. */
   defenseReleaseTransition?: import('@/hooks/useAppState').DefenseReleaseTransition | null;
+  defenderPursuit?: import('@/hooks/useAppState').DefenderPursuit | null;
   /** B4 — état de la game loop "▶ Play IA (live)". Quand non-null, le
    *  rendu du terrain utilise ces positions au lieu du staticFrame.
    *  Priorité maximale dans la frame chain (au-dessus de playback et scrub). */
@@ -193,6 +195,7 @@ export function CourtView(props: CourtViewProps) {
     onPlaybackTick: props.onPlaybackTick,
     onPlaybackEnd: props.onPlaybackEnd,
     defenseReleaseTransition: props.defenseReleaseTransition,
+    defenderPursuit: props.defenderPursuit,
     liveMatchState: props.liveMatchState,
   });
 
@@ -211,7 +214,8 @@ export function CourtView(props: CourtViewProps) {
       isPlaying: props.isPlaying,
       onBeginPlayerDrag: props.onBeginPlayerDrag,
       onCommitPlayerDrag: props.onCommitPlayerDrag,
-      onTriggerDefenderInertia: props.onTriggerDefenderInertia,
+      onBeginDefenderPursuit: props.onBeginDefenderPursuit,
+      onEndDefenderPursuit: props.onEndDefenderPursuit,
       onMoveAttacker: props.onMoveAttacker,
       onMoveDefender: props.onMoveDefender,
       onMoveAttackerDuringDrag: props.onMoveAttackerDuringDrag,

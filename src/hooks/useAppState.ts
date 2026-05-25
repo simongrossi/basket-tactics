@@ -71,6 +71,21 @@ export interface DefenseReleaseTransition {
   durationMs: number;
 }
 
+/** État transient pour le mécanisme de poursuite défenseur pendant un drag
+ *  attaquant. Utilisé par useCourtFrame pour run un rAF loop qui met à jour
+ *  les positions défenseurs avec un cap de vitesse modulé (V1) + footwork
+ *  dynamique (V2) + fatigue/anticipation/décrochage (V3). */
+export interface DefenderPursuit {
+  /** Snapshot des positions au moment du début du drag (init des
+   *  livePositions). */
+  snapshot: Partial<Record<DefenderId, Point>>;
+  /** True tant que le drag est actif. False = en fin (ease-out vers cible
+   *  auto sur ~400 ms). */
+  active: boolean;
+  /** Timestamp du début du drag (pour timing / latence). */
+  startedAtMs: number;
+}
+
 const DEFENSE_RELEASE_DURATION_MS = 700;
 
 export function useAppState() {
@@ -93,6 +108,7 @@ export function useAppState() {
   // au clic + timestamp. Non persistée. Cf. clearAllDefenseOverridesActiveStepAnimated.
   const [defenseReleaseTransition, setDefenseReleaseTransition] =
     useState<DefenseReleaseTransition | null>(null);
+  const [defenderPursuit, setDefenderPursuit] = useState<DefenderPursuit | null>(null);
   // Auto-cleanup : on nullifie le transition quand sa durée est écoulée.
   useEffect(() => {
     if (!defenseReleaseTransition) return;
@@ -466,25 +482,31 @@ export function useAppState() {
     setStateWithHistory(defenseTx.clearAllDefenseOverridesActiveStep);
   }, [setStateWithHistory]);
 
-  /** Inertie défenseur sur drag attaquant : capture les positions défenseurs
-   *  courantes AVANT que l'attaquant ne bouge, puis enclenche
-   *  `defenseReleaseTransition` (lerp easing cubique). Pendant le drag, les
-   *  cibles défenseurs se mettent à jour mais le blend depuis le snapshot
-   *  donne un effet d'inertie (le défenseur "rame" derrière l'attaquant).
-   *  No-op si `defenderDragInertiaEnabled` est faux. */
-  const triggerDefenderDragInertia = useCallback((durationMs = 400) => {
+  /** Poursuite défenseur sur drag attaquant — démarrage. Capture les
+   *  positions défenseurs courantes et active le mécanisme de poursuite
+   *  (rAF loop dans useCourtFrame qui maintient des livePositions avec cap
+   *  vitesse modulé). No-op si `defenderDragInertiaEnabled` est faux. */
+  const beginDefenderPursuit = useCallback(() => {
     const cur = stateRef.current;
     if (!cur.defenderDragInertiaEnabled) return;
     const defPos = effectiveDefensePositions(cur, cur.activeStep);
-    const from: Partial<Record<DefenderId, Point>> = {};
+    const snapshot: Partial<Record<DefenderId, Point>> = {};
     (Object.keys(defPos) as DefenderId[]).forEach((id) => {
-      from[id] = { x: defPos[id].x, y: defPos[id].y };
+      snapshot[id] = { x: defPos[id].x, y: defPos[id].y };
     });
-    setDefenseReleaseTransition({
-      fromPositions: from,
+    setDefenderPursuit({
+      snapshot,
+      active: true,
       startedAtMs: performance.now(),
-      durationMs,
     });
+  }, []);
+
+  /** Poursuite défenseur — fin du drag. Désactive le rAF loop ; useCourtFrame
+   *  fera un ease-out final vers la cible auto sur ~400 ms. */
+  const endDefenderPursuit = useCallback(() => {
+    setDefenderPursuit((cur) => (cur ? { ...cur, active: false } : null));
+    // Reset complet après l'ease-out (~500 ms de marge).
+    setTimeout(() => setDefenderPursuit(null), 500);
   }, []);
 
   // -- Attackers --
@@ -678,8 +700,10 @@ export function useAppState() {
     setZoneEditMode,
     clearAllDefenseOverridesActiveStep,
     clearAllDefenseOverridesActiveStepAnimated,
-    triggerDefenderDragInertia,
+    beginDefenderPursuit,
+    endDefenderPursuit,
     defenseReleaseTransition,
+    defenderPursuit,
     setStepLabel,
     patchStep,
     addShotReboundStep,

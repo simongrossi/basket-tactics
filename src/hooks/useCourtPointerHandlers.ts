@@ -47,9 +47,13 @@ interface UseCourtPointerHandlersOptions {
   isPlaying: boolean;
   onBeginPlayerDrag?: () => void;
   onCommitPlayerDrag?: () => void;
-  /** Inertie défenseur (opt-in) : à appeler au début d'un drag attaquant pour
-   *  capturer les positions défenseurs et déclencher `defenseReleaseTransition`. */
-  onTriggerDefenderInertia?: () => void;
+  /** Poursuite défenseur (opt-in) — début : capture les positions défenseurs
+   *  et active le rAF loop dans useCourtFrame. À appeler au démarrage d'un
+   *  drag attaquant. */
+  onBeginDefenderPursuit?: () => void;
+  /** Poursuite défenseur — fin : désactive le rAF loop. À appeler au commit
+   *  du drag attaquant. */
+  onEndDefenderPursuit?: () => void;
   onMoveAttacker: (id: AttackerId, x: number, y: number) => void;
   onMoveDefender: (id: DefenderId, x: number, y: number) => void;
   onMoveAttackerDuringDrag?: (id: AttackerId, x: number, y: number) => void;
@@ -121,7 +125,8 @@ export function useCourtPointerHandlers(
     isPlaying,
     onBeginPlayerDrag,
     onCommitPlayerDrag,
-    onTriggerDefenderInertia,
+    onBeginDefenderPursuit,
+    onEndDefenderPursuit,
     onMoveAttacker,
     onMoveDefender,
     onMoveAttackerDuringDrag,
@@ -356,11 +361,11 @@ export function useCourtPointerHandlers(
         }
         if (!target) return;
         onBeginPlayerDrag?.();
-        // Inertie défenseur (opt-in) : si l'utilisateur drag un ATTAQUANT,
-        // capturer les positions défenseurs avant que state.off ne change,
-        // pour que les défenseurs "rament derrière" plutôt que de coller.
+        // Poursuite défenseur (opt-in) : si l'utilisateur drag un ATTAQUANT,
+        // capturer les positions défenseurs et activer le rAF loop pursuit
+        // (cap vitesse modulé, V1+V2+V3 dans useCourtFrame).
         if (!id!.startsWith('D')) {
-          onTriggerDefenderInertia?.();
+          onBeginDefenderPursuit?.();
         }
         lastDragPointRef.current = null;
         dragMoveRef.current = null;
@@ -552,6 +557,11 @@ export function useCourtPointerHandlers(
         queueDragMove(dragging.id, dragging.isDef, Math.round(x), Math.round(y));
         flushDragMove();
         onCommitPlayerDrag?.();
+        // Si c'était un drag attaquant et que la poursuite était active, on
+        // termine le rAF loop (useCourtFrame fait un ease-out final).
+        if (!dragging.isDef) {
+          onEndDefenderPursuit?.();
+        }
         setDragging(null);
         return;
       }

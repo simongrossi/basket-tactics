@@ -516,7 +516,8 @@ export default function Page() {
               onMoveAttackerDuringDrag={app.moveAttackerDuringDrag}
               onMoveDefenderDuringDrag={app.moveDefenderDuringDrag}
               onCommitPlayerDrag={app.commitPlayerDrag}
-              onTriggerDefenderInertia={app.triggerDefenderDragInertia}
+              onBeginDefenderPursuit={app.beginDefenderPursuit}
+              onEndDefenderPursuit={app.endDefenderPursuit}
               onAddAnnotation={handleAddAnnotation}
               onAddTextNote={app.addTextNote}
               onUpdateTextNote={app.updateTextNote}
@@ -551,6 +552,7 @@ export default function Page() {
                 app.setActiveStep(app.state.steps.length - 1);
               }}
               defenseReleaseTransition={app.defenseReleaseTransition}
+              defenderPursuit={app.defenderPursuit}
               liveMatchState={matchLoop.matchState}
               exportT={exportT}
               externalSvgRef={courtSvgRef}
