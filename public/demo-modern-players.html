@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Démo : Nouveaux Designs de Joueurs (Basket Tactics)</title>
+  
+  <!-- Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: rgba(22, 28, 45, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-orange: #f97316;
+      --accent-orange-glow: rgba(249, 115, 22, 0.15);
+      --accent-blue: #3b82f6;
+      --accent-blue-glow: rgba(59, 130, 246, 0.15);
+      --color-attack: #D85A30;
+      --color-attack-stroke: #4A1B0C;
+      --color-defense: #378ADD;
+      --color-defense-stroke: #042C53;
+      --court-wood: #1e1e2f;
+      --court-lines: rgba(255, 255, 255, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, .font-display {
+      font-family: 'Outfit', sans-serif;
+    }
+
+    header {
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0) 100%);
+      padding: 24px 40px;
+      border-bottom: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      z-index: 10;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 14px;
+      max-width: 800px;
+    }
+
+    .main-container {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 32px;
+      padding: 32px 40px;
+      max-width: 1800px;
+      width: 100%;
+      margin: 0 auto;
+      flex: 1;
+    }
+
+    /* Sidebar controls */
+    .sidebar {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 24px;
+      height: fit-content;
+      position: sticky;
+      top: 32px;
+      backdrop-filter: blur(8px);
+    }
+
+    .sidebar h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 10px;
+      color: #fff;
+    }
+
+    .control-group {
+      margin-bottom: 24px;
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    /* Team selector buttons */
+    .btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .btn-toggle {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-toggle:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .btn-toggle.active[data-team="attack"] {
+      background: var(--accent-orange-glow);
+      border-color: var(--accent-orange);
+      color: var(--accent-orange);
+      box-shadow: 0 0 12px var(--accent-orange-glow);
+    }
+
+    .btn-toggle.active[data-team="defense"] {
+      background: var(--accent-blue-glow);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+      box-shadow: 0 0 12px var(--accent-blue-glow);
+    }
+
+    .color-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .swatch-attack { background-color: var(--color-attack); border: 1px solid var(--color-attack-stroke); }
+    .swatch-defense { background-color: var(--color-defense); border: 1px solid var(--color-defense-stroke); }
+
+    /* Sliders */
+    .range-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .range-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .range-val {
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+      margin: 8px 0;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      transition: transform 0.1s ease;
+    }
+
+    .slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .checkbox-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .checkbox-line input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent-blue);
+      cursor: pointer;
+    }
+
+    /* Presets Panel */
+    .presets-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .preset-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+      font-size: 13px;
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+
+    .preset-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Main Showcase Grid */
+    .showcase {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: transparent;
+      transition: background 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .card.accent-proposal::before {
+      background: linear-gradient(90deg, #10b981, #06b6d4);
+    }
+
+    .card.accent-proposal {
+      border-color: rgba(16, 185, 129, 0.25);
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-badge {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 10px;
+      text-transform: uppercase;
+    }
+
+    .card-desc {
+      color: var(--text-muted);
+      font-size: 12px;
+      text-align: center;
+      margin-bottom: 20px;
+      min-height: 36px;
+    }
+
+    .render-container {
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 70%);
+      border: 1px dashed rgba(255,255,255,0.06);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .render-container svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .bullets-container {
+      width: 100%;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding-top: 16px;
+    }
+
+    .bullet-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12px;
+      margin-bottom: 8px;
+      color: #cbd5e1;
+    }
+
+    .bullet-icon {
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    /* Court Simulation Section */
+    .court-section {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 32px;
+    }
+
+    .court-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .court-header h3 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .court-selector {
+      display: flex;
+      background: rgba(255,255,255,0.04);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .court-selector-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .court-selector-btn.active {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    .court-container {
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      background-color: var(--court-wood);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 16 / 9;
+    }
+
+    .court-grid-lines {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .animate-btn {
+      background: #10b981;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.1s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .animate-btn:hover {
+      background: #059669;
+    }
+
+    .animate-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* Info Banner */
+    .banner {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .banner-icon {
+      font-size: 20px;
+      color: #10b981;
+    }
+
+    .banner-text {
+      font-size: 13.5px;
+      color: #a7f3d0;
+      line-height: 1.5;
+    }
+
+    /* Tooltip */
+    .player-group {
+      cursor: grab;
+      transition: outline 0.2s ease;
+    }
+    
+    .player-group:active {
+      cursor: grabbing;
+    }
+
+    .ball {
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Proposition : Modernisation du Design des Joueurs</h1>
+    <p>Cette page interactive vous permet d'explorer et de tester trois propositions de designs modernes pour représenter les joueurs de basket en vue du dessus (top-down), en respectant votre logique d'orientation du corps (pilote des bras) et d'orientation du regard.</p>
+  </header>
+
+  <div class="main-container">
+    
+    <!-- Sidebar Control Panel -->
+    <div class="sidebar">
+      <h2>Contrôles du Joueur</h2>
+      
+      <!-- Team Selector -->
+      <div class="control-group">
+        <label>Équipe / Rôle</label>
+        <div class="btn-group">
+          <button class="btn-toggle active" data-team="attack" onclick="setTeam('attack')">
+            <span class="color-swatch swatch-attack"></span> Attaque
+          </button>
+          <button class="btn-toggle" data-team="defense" onclick="setTeam('defense')">
+            <span class="color-swatch swatch-defense"></span> Défense
+          </button>
+        </div>
+      </div>
+      
+      <!-- Body Orientation Slider -->
+      <div class="control-group">
+        <div class="range-container">
+          <div class="range-header">
+            <span>Orientation Corps (Bras)</span>
+            <span class="range-val" id="val-body">0°</span>
+          </div>
+          <input type="range" class="slider" id="slider-body" min="0" max="360" value="0" oninput="updateBodyOrientation(this.value)">
+        </div>
+      </div>
+
+      <!-- Lock Gaze Option -->
+      <div class="control-group" style="margin-bottom: 12px;">
+        <label class="checkbox-line">
+          <input type="checkbox" id="lock-gaze" checked onchange="toggleGazeLock(this.checked)">
+          Lier le regard au corps
+        </label>
+      </div>
+      
+      <!-- Gaze Orientation Slider -->
+      <div class="control-group" id="gaze-container" style="opacity: 0.5; pointer-events: none;">
+        <div class="range-container">
+          <div class="range-header">
+            <span>Orientation Regard</span>
+            <span class="range-val" id="val-gaze">0°</span>
+          </div>
+          <input type="range" class="slider" id="slider-gaze" min="0" max="360" value="0" oninput="updateGazeOrientation(this.value)">
+        </div>
+      </div>
+
+      <!-- Defensive / Offensive States -->
+      <div class="control-group">
+        <label>États et Indicateurs</label>
+        <label class="checkbox-line" id="opt-carrier-container">
+          <input type="checkbox" id="opt-carrier" onchange="updateState()">
+          Porteur de balle / Déf. Porteur
+        </label>
+        <label class="checkbox-line" id="opt-late-container" style="display: none;">
+          <input type="checkbox" id="opt-late" onchange="updateState()">
+          Défenseur en Retard (Late)
+        </label>
+      </div>
+
+      <!-- Special Poses (Attacker) -->
+      <div class="control-group" id="poses-container">
+        <label>Pose Spécifique (Attaquant)</label>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label class="checkbox-line">
+            <input type="radio" name="attacker-pose" value="idle" checked onchange="updatePose(this.value)">
+            Stance Neutre (Idle)
+          </label>
+          <label class="checkbox-line">
+            <input type="radio" name="attacker-pose" value="dribble" onchange="updatePose(this.value)">
+            En Dribble (Driver)
+          </label>
+          <label class="checkbox-line">
+            <input type="radio" name="attacker-pose" value="shoot" onchange="updatePose(this.value)">
+            En Tir (Shooter)
+          </label>
+          <label class="checkbox-line">
+            <input type="radio" name="attacker-pose" value="screen" onchange="updatePose(this.value)">
+            Pose d'écran (Screener)
+          </label>
+        </div>
+      </div>
+
+      <!-- Presets -->
+      <div class="control-group">
+        <label>Scénarios Prédéfinis</label>
+        <div class="presets-grid">
+          <button class="preset-btn" onclick="applyPreset('def-stance')">🛡️ Défenseur Stance Standard</button>
+          <button class="preset-btn" onclick="applyPreset('def-carrier')">⭐ Défenseur sur Porteur</button>
+          <button class="preset-btn" onclick="applyPreset('def-late')">🚨 Défenseur en Retard (Late)</button>
+          <button class="preset-btn" onclick="applyPreset('att-dribble')">🏀 Attaquant en Dribble</button>
+          <button class="preset-btn" onclick="applyPreset('att-shoot')">🎯 Attaquant en Suspension (Tir)</button>
+          <button class="preset-btn" onclick="applyPreset('att-screen')">🚧 Écran Posé (Screener)</button>
+        </div>
+      </div>
+      
+    </div>
+
+    <!-- Main Content Panel -->
+    <div class="showcase">
+      
+      <!-- Top comparison grid -->
+      <div class="comparison-grid">
+        
+        <!-- REFERENCE CARD (CURRENT DESIGN) -->
+        <div class="card">
+          <div class="card-title">Design Actuel (Réf)</div>
+          <div class="card-desc">Cercle simple, bras sous forme de courbes flottantes Bézier et triangle de regard.</div>
+          
+          <div class="render-container">
+            <svg id="svg-current" viewBox="0 0 100 100"></svg>
+          </div>
+          
+          <div class="bullets-container">
+            <div class="bullet-item">
+              <span class="bullet-icon">⚠️</span>
+              <span>Les bras flottent à côté du corps sans attache physique visible.</span>
+            </div>
+            <div class="bullet-item">
+              <span class="bullet-icon">⚠️</span>
+              <span>Le triangle de regard flotte à l'extérieur du cercle.</span>
+            </div>
+            <div class="bullet-item">
+              <span class="bullet-icon">✔️</span>
+              <span>Rendu très simple et léger pour le DOM.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROPOSAL A: TACTICAL SILHOUETTE -->
+        <div class="card accent-proposal">
+          <div class="card-title">
+            Proposition A
+            <span class="card-badge">Silhouette</span>
+          </div>
+          <div class="card-desc">Unification anatomique. Des épaules et un torse établissent la présence physique du joueur.</div>
+          
+          <div class="render-container">
+            <svg id="svg-proposal-a" viewBox="0 0 100 100"></svg>
+          </div>
+          
+          <div class="bullets-container">
+            <div class="bullet-item">
+              <span class="bullet-icon">✨</span>
+              <span><strong>Vraie silhouette d'épaules :</strong> Les bras s'ancrent naturellement dans le dos/les côtés du corps.</span>
+            </div>
+            <div class="bullet-item">
+              <span class="bullet-icon">✨</span>
+              <span><strong>Tête + Visière intégrée :</strong> Le regard est modélisé par une visière lumineuse sur la tête (tourne avec le regard).</span>
+            </div>
+            <div class="bullet-item">
+              <span class="bullet-icon">✨</span>
+              <span><strong>Stances dynamiques :</strong> Les bras s'adaptent selon les actions (croisés pour l'écran, ballon en main en dribble).</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROPOSAL B: MODERN HALO (ANALYTICAL) -->
+        <div class="card accent-proposal">
+          <div class="card-title">
+            Proposition B
+            <span class="card-badge">Halo Tactique</span>
+          </div>
+          <div class="card-desc">Design analytique futuriste. Le corps est un disque épuré, les bras sont suggérés par leur zone de contrôle.</div>
+          
+          <div class="render-container">
+            <svg id="svg-proposal-b" viewBox="0 0 100 100"></svg>
+          </div>
+          
+          <div class="bullets-container">
+            <div class="bullet-item">
+              <span class="bullet-icon">✨</span>
+              <span><strong>Pas de lignes de bras confuses :</strong> La portée défensive est représentée par un arc de cercle en pointillés.</span>
+            </div>
+            <div class="bullet-item">
+              <span class="bullet-icon">✨</span>
+              <span><strong>Cône de vision (FOV) :</strong> Un projecteur translucide montre précisément le champ visuel.</span>
+            </div>
+            <div class="bullet-item">
+              <span class="bullet-icon">✨</span>
+              <span><strong>Indicateurs intégrés :</strong> Flèche de direction discrète sur le bord interne du cercle. Style "data tracking".</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROPOSAL C: ANATOMICAL VECTOR -->
+        <div class="card accent-proposal">
+          <div class="card-title">
+            Proposition C
+            <span class="card-badge">Pro Vector</span>
+          </div>
+          <div class="card-desc">Représentation vectorielle complète et détaillée. Silhouette humaine stylisée haut de gamme.</div>
+          
+          <div class="render-container">
+            <svg id="svg-proposal-c" viewBox="0 0 100 100"></svg>
+          </div>
+          
+          <div class="bullets-container">
+            <div class="bullet-item">
+              <span class="bullet-icon">✨</span>
+              <span><strong>Anatomie complète :</strong> Épaules, col de maillot, tête détaillée (oreilles, nez directionnel, cheveux/casque).</span>
+            </div>
+            <div class="bullet-item">
+              <span class="bullet-icon">✨</span>
+              <span><strong>Mains et articulations :</strong> Les bras ont du relief (biceps/avant-bras) et se terminent par des mains visibles.</span>
+            </div>
+            <div class="bullet-item">
+              <span class="bullet-icon">✨</span>
+              <span><strong>Haut de gamme :</strong> Ressemble aux applications de coaching professionnelles et aux jeux de simulation.</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Court Simulation Box -->
+      <div class="court-section">
+        <div class="court-header">
+          <div>
+            <h3>Visualisation en Situation de Jeu (Terrain 2D)</h3>
+            <p style="color: var(--text-muted); font-size: 13.5px; margin-top: 4px;">Comparez le rendu des designs sur un schéma de jeu réel avec plusieurs joueurs (5 attaquants, 5 défenseurs). Glissez les joueurs pour tester les chevauchements !</p>
+          </div>
+          
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <button class="animate-btn" id="btn-animate" onclick="toggleAnimation()">
+              <span id="animate-icon">▶</span> <span id="animate-text">Activer l'Animation</span>
+            </button>
+            <div class="court-selector">
+              <button class="court-selector-btn" id="selector-current" onclick="changeCourtDesign('current')">Actuel</button>
+              <button class="court-selector-btn active" id="selector-a" onclick="changeCourtDesign('a')">Prop. A</button>
+              <button class="court-selector-btn" id="selector-b" onclick="changeCourtDesign('b')">Prop. B</button>
+              <button class="court-selector-btn" id="selector-c" onclick="changeCourtDesign('c')">Prop. C</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="banner">
+          <span class="banner-icon">💡</span>
+          <span class="banner-text">
+            <strong>Observation :</strong> Le design d'origine (cercles simples) peut créer des confusions lorsque les bras de deux joueurs se croisent. La <strong>Proposition A</strong> conserve une lisibilité optimale grâce à des lignes de corps et de bras closes, tandis que la <strong>Proposition B (Halo)</strong> supprime totalement la collision de lignes pour un look épuré parfait en analyse tactique automatique.
+          </span>
+        </div>
+
+        <!-- Interactive SVG Court -->
+        <div class="court-container">
+          <svg id="svg-court" width="100%" height="100%" viewBox="0 0 740 420" style="background-color: #111827;">
+            <!-- Court markings -->
+            <rect x="0" y="0" width="740" height="420" fill="#1e293b" />
+            <!-- Basket key, 3pt line, court borders -->
+            <path d="M 0,20 L 740,20 L 740,400 L 0,400 Z" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2.5" />
+            <!-- Half court line -->
+            <line x1="370" y1="20" x2="370" y2="400" stroke="rgba(255,255,255,0.12)" stroke-width="2" />
+            <circle cx="370" cy="210" r="45" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2" />
+            
+            <!-- Left Side Key (Standard FIBA) -->
+            <rect x="0" y="110" width="140" height="200" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.12)" stroke-width="2" />
+            <!-- Free throw circle -->
+            <path d="M 140,165 A 45,45 0 0,1 140,255 Z" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2" stroke-dasharray="4 4" />
+            <path d="M 140,255 A 45,45 0 0,1 140,165 Z" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2" />
+            <!-- 3pt line left -->
+            <path d="M 0,50 L 70,50 A 160,160 0 0,1 70,370 L 0,370" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2" />
+            <!-- Rim Left -->
+            <line x1="30" y1="180" x2="30" y2="240" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
+            <circle cx="37" cy="210" r="9" fill="none" stroke="#f97316" stroke-width="1.8" />
+
+            <!-- Right Side Key (Standard FIBA) -->
+            <rect x="600" y="110" width="140" height="200" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.12)" stroke-width="2" />
+            <path d="M 600,165 A 45,45 0 0,0 600,255 Z" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2" stroke-dasharray="4 4" />
+            <path d="M 600,255 A 45,45 0 0,0 600,165 Z" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2" />
+            <path d="M 740,50 L 670,50 A 160,160 0 0,0 670,370 L 740,370" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2" />
+            <!-- Rim Right -->
+            <line x1="710" y1="180" x2="710" y2="240" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
+            <circle cx="703" cy="210" r="9" fill="none" stroke="#f97316" stroke-width="1.8" />
+
+            <!-- Dynamic Interactive Players will be injected here -->
+            <g id="court-players-group"></g>
+          </svg>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    const PLAYER_RADIUS = 16;
+    
+    // State state variable
+    let config = {
+      team: 'attack',
+      bodyAngle: 0,
+      gazeAngle: 0,
+      lockGaze: true,
+      isCarrier: false,
+      isLate: false,
+      pose: 'idle'
+    };
+
+    // Court visual configuration
+    let courtDesign = 'a'; // 'current', 'a', 'b', 'c'
+    let isAnimating = false;
+    let animationFrameId = null;
+    let time = 0;
+
+    // Court players data
+    const initialCourtPlayers = [
+      // Attacking team (Orange)
+      { id: 'O1', x: 280, y: 120, isAttacker: true, bodyAngle: 120, gazeAngle: 140, pose: 'dribble', isCarrier: true },
+      { id: 'O2', x: 200, y: 280, isAttacker: true, bodyAngle: -45, gazeAngle: -45, pose: 'idle' },
+      { id: 'O3', x: 120, y: 160, isAttacker: true, bodyAngle: 90, gazeAngle: 90, pose: 'screen' },
+      { id: 'O4', x: 340, y: 320, isAttacker: true, bodyAngle: -100, gazeAngle: -70, pose: 'idle' },
+      { id: 'O5', x: 75,  y: 350, isAttacker: true, bodyAngle: 45, gazeAngle: 50, pose: 'idle' },
+      
+      // Defending team (Blue)
+      { id: 'D1', x: 250, y: 155, isAttacker: false, bodyAngle: -60, gazeAngle: -60, isCarrier: true }, // defending O1
+      { id: 'D2', x: 170, y: 250, isAttacker: false, bodyAngle: 135, gazeAngle: 135 },
+      { id: 'D3', x: 100, y: 180, isAttacker: false, bodyAngle: -90, gazeAngle: -40, isLate: true }, // trapped by screen O3
+      { id: 'D4', x: 300, y: 290, isAttacker: false, bodyAngle: 80, gazeAngle: 80 },
+      { id: 'D5', x: 110, y: 300, isAttacker: false, bodyAngle: 45, gazeAngle: 45 }
+    ];
+
+    let courtPlayers = JSON.parse(JSON.stringify(initialCourtPlayers));
+
+    // SVG Drawing helpers
+    function drawCurrent(cx, cy, r, angleBody, angleGaze, state, team, isCarrier, isLate) {
+      const fill = team === 'attack' ? '#D85A30' : '#378ADD';
+      const stroke = team === 'attack' ? '#4A1B0C' : '#042C53';
+      let borderStroke = stroke;
+      let strokeWidth = 2.2;
+      
+      if (team === 'defense') {
+        if (isLate) { borderStroke = '#E24B4A'; strokeWidth = 4; }
+        else if (isCarrier) { borderStroke = '#FAC775'; strokeWidth = 3; }
+      }
+
+      // Arms (rotated with body orientation)
+      // Design F paths:
+      const leftPath = `M ${cx - r * 0.7} ${cy} Q ${cx - r * 2.0} ${cy - r * 0.5} ${cx - r * 1.8} ${cy - r * 1.4}`;
+      const rightPath = `M ${cx + r * 0.7} ${cy} Q ${cx + r * 2.0} ${cy - r * 0.5} ${cx + r * 1.8} ${cy - r * 1.4}`;
+
+      // Regard triangle (gaze)
+      const gazeRot = angleGaze;
+
+      return `
+        <g>
+          <!-- Arms -->
+          <g transform="rotate(${angleBody}, ${cx}, ${cy})">
+            <path d="${leftPath}" fill="none" stroke="${borderStroke}" stroke-width="${team === 'attack' ? 1.8 : 2.5}" stroke-linecap="round" />
+            <path d="${rightPath}" fill="none" stroke="${borderStroke}" stroke-width="${team === 'attack' ? 1.8 : 2.5}" stroke-linecap="round" />
+          </g>
+          <!-- Body circle -->
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${borderStroke}" stroke-width="${strokeWidth}" />
+          
+          <!-- Regard Triangle -->
+          <g transform="rotate(${gazeRot}, ${cx}, ${cy})">
+            <polygon points="${cx},${cy - r - 6} ${cx - 4},${cy - r} ${cx + 4},${cy - r}" fill="${borderStroke}" />
+          </g>
+          <!-- Jersey Num -->
+          <text x="${cx}" y="${cy + 4.5}" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="500" pointer-events="none">P1</text>
+        </g>
+      `;
+    }
+
+    function drawProposalA(cx, cy, r, angleBody, angleGaze, state, team, isCarrier, isLate) {
+      const fill = team === 'attack' ? '#D85A30' : '#378ADD';
+      const stroke = team === 'attack' ? '#4A1B0C' : '#042C53';
+      let borderStroke = stroke;
+      let strokeWidth = 2.5;
+      
+      if (team === 'defense') {
+        if (isLate) { borderStroke = '#E24B4A'; strokeWidth = 3.5; }
+        else if (isCarrier) { borderStroke = '#FAC775'; strokeWidth = 3.5; }
+      }
+
+      let armsHTML = '';
+      if (state === 'dribble') {
+        // Left guarding arm
+        armsHTML += `<path d="M ${cx - 15} ${cy - 1} Q ${cx - 28} ${cy - 4} ${cx - 30} ${cy - 11}" fill="none" stroke="${borderStroke}" stroke-width="${strokeWidth}" stroke-linecap="round" />`;
+        armsHTML += `<circle cx="${cx - 30}" cy="${cy - 11}" r="3" fill="${fill}" stroke="${borderStroke}" stroke-width="1.2" />`;
+        // Right dribbling arm
+        armsHTML += `<path d="M ${cx + 15} ${cy - 1} C ${cx + 22} ${cy + 7}, ${cx + 18} ${cy + 16}, ${cx + 10} ${cy + 20}" fill="none" stroke="${borderStroke}" stroke-width="${strokeWidth}" stroke-linecap="round" />`;
+        armsHTML += `<circle cx="${cx + 10}" cy="${cy + 20}" r="3" fill="${fill}" stroke="${borderStroke}" stroke-width="1.2" />`;
+        // Ball
+        armsHTML += `<circle cx="${cx + 10}" cy="${cy + 26}" r="5.5" fill="#BA7517" stroke="#412402" stroke-width="1.5" class="ball" />`;
+      } else if (state === 'shoot') {
+        // Left arm guide
+        armsHTML += `<path d="M ${cx - 15} ${cy - 3} Q ${cx - 10} ${cy - 16} ${cx - 4} ${cy - 21}" fill="none" stroke="${borderStroke}" stroke-width="${strokeWidth}" stroke-linecap="round" />`;
+        armsHTML += `<circle cx="${cx - 4}" cy="${cy - 21}" r="3" fill="${fill}" stroke="${borderStroke}" stroke-width="1.2" />`;
+        // Right arm shoot
+        armsHTML += `<path d="M ${cx + 15} ${cy - 3} Q ${cx + 18} ${cy - 18} ${cx + 11} ${cy - 27}" fill="none" stroke="${borderStroke}" stroke-width="${strokeWidth}" stroke-linecap="round" />`;
+        armsHTML += `<circle cx="${cx + 11}" cy="${cy - 27}" r="3" fill="${fill}" stroke="${borderStroke}" stroke-width="1.2" />`;
+        // Ball
+        armsHTML += `<circle cx="${cx + 11}" cy="${cy - 34}" r="5.5" fill="#BA7517" stroke="#412402" stroke-width="1.5" class="ball" />`;
+      } else if (state === 'screen') {
+        // Crossed hands on chest (legal FIBA screen position)
+        armsHTML += `<path d="M ${cx - 14} ${cy - 2} Q ${cx - 2} ${cy - 10} ${cx + 6} ${cy - 8}" fill="none" stroke="${borderStroke}" stroke-width="${strokeWidth}" stroke-linecap="round" />`;
+        armsHTML += `<path d="M ${cx + 14} ${cy - 2} Q ${cx + 2} ${cy - 10} ${cx - 6} ${cy - 8}" fill="none" stroke="${borderStroke}" stroke-width="${strokeWidth}" stroke-linecap="round" />`;
+      } else {
+        // Idle / ready defense - open curved arms
+        armsHTML += `<path d="M ${cx - 16} ${cy - 1} Q ${cx - 28} ${cy - 8} ${cx - 24} ${cy - 20}" fill="none" stroke="${borderStroke}" stroke-width="${strokeWidth}" stroke-linecap="round" />`;
+        armsHTML += `<circle cx="${cx - 24}" cy="${cy - 20}" r="3" fill="${fill}" stroke="${borderStroke}" stroke-width="1.2" />`;
+        armsHTML += `<path d="M ${cx + 16} ${cy - 1} Q ${cx + 28} ${cy - 8} ${cx + 24} ${cy - 20}" fill="none" stroke="${borderStroke}" stroke-width="${strokeWidth}" stroke-linecap="round" />`;
+        armsHTML += `<circle cx="${cx + 24}" cy="${cy - 20}" r="3" fill="${fill}" stroke="${borderStroke}" stroke-width="1.2" />`;
+      }
+
+      // Torso shoulders (curved forward capsule)
+      const torsoPath = `M ${cx - 17} ${cy + 1} C ${cx - 18} ${cy - 8}, ${cx + 18} ${cy - 8}, ${cx + 17} ${cy + 1} C ${cx + 13} ${cy + 8}, ${cx - 13} ${cy + 8}, ${cx - 17} ${cy + 1} Z`;
+
+      // Head & visor (gaze orientation)
+      const headHTML = `<circle cx="${cx}" cy="${cy - 3.5}" r="7.5" fill="${fill}" stroke="${borderStroke}" stroke-width="${strokeWidth}" />`;
+      const visorHTML = `<path d="M ${cx - 5} ${cy - 9.5} C ${cx - 3.5} ${cy - 14}, ${cx + 3.5} ${cy - 14}, ${cx + 5} ${cy - 9.5} Z" fill="#FFFFFF" opacity="0.9" stroke="${borderStroke}" stroke-width="0.8" />`;
+
+      return `
+        <g>
+          <!-- Body transform -->
+          <g transform="rotate(${angleBody}, ${cx}, ${cy})">
+            ${armsHTML}
+            <path d="${torsoPath}" fill="${fill}" stroke="${borderStroke}" stroke-width="${strokeWidth}" />
+          </g>
+          
+          <!-- Head transform -->
+          <g transform="rotate(${angleGaze}, ${cx}, ${cy})">
+            ${headHTML}
+            ${visorHTML}
+          </g>
+          <text x="${cx}" y="${cy + 16.5}" text-anchor="middle" fill="#FFFFFF" font-size="10.5" font-weight="700" style="text-shadow: 1px 1px 1px rgba(0,0,0,0.6)" pointer-events="none">P1</text>
+        </g>
+      `;
+    }
+
+    function drawProposalB(cx, cy, r, angleBody, angleGaze, state, team, isCarrier, isLate) {
+      const fill = team === 'attack' ? '#D85A30' : '#378ADD';
+      const stroke = team === 'attack' ? '#4A1B0C' : '#042C53';
+      let borderStroke = stroke;
+      let strokeWidth = 2.2;
+      
+      if (team === 'defense') {
+        if (isLate) { borderStroke = '#E24B4A'; strokeWidth = 3.5; }
+        else if (isCarrier) { borderStroke = '#FAC775'; strokeWidth = 3.5; }
+      }
+
+      // Reach radius (body control space)
+      const reachRad = state === 'screen' ? r * 1.25 : r * 1.6;
+      const reachDash = state === 'screen' ? "2 2" : "1.5 3.5";
+      const reachArc = `
+        <path d="M ${cx - reachRad} ${cy - r * 0.4} A ${reachRad} ${reachRad} 0 0 1 ${cx + reachRad} ${cy - r * 0.4}" 
+              fill="none" stroke="${borderStroke}" stroke-width="4" stroke-linecap="round" opacity="0.6" stroke-dasharray="${reachDash}" />
+      `;
+
+      // Gaze cone FOV
+      const fovGradId = `fov-grad-preview-${team}-${isCarrier}-${isLate}-${cx}-${cy}`;
+      const fovHTML = `
+        <defs>
+          <linearGradient id="${fovGradId}" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" stop-color="${fill}" stop-opacity="0.5" />
+            <stop offset="100%" stop-color="${fill}" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+        <path d="M ${cx} ${cy} L ${cx - 24} ${cy - 45} A 50 50 0 0 1 ${cx + 24} ${cy - 45} Z" 
+              fill="url(#${fovGradId})" opacity="0.4" pointer-events="none" />
+      `;
+
+      // Main circle
+      const baseCircle = `
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${borderStroke}" stroke-width="${strokeWidth}" />
+        <circle cx="${cx}" cy="${cy}" r="${r - 3.5}" fill="none" stroke="#FFFFFF" stroke-width="1.2" opacity="0.25" />
+      `;
+
+      // Directional arrow on circle border
+      const arrowHTML = `
+        <polygon points="${cx},${cy - r + 3} ${cx - 3.5},${cy - r + 8} ${cx + 3.5},${cy - r + 8}" fill="#FFFFFF" opacity="0.95" />
+      `;
+
+      // If dribbling, draw a small ball next to the reach zone
+      let extraHTML = '';
+      if (state === 'dribble') {
+        extraHTML = `<circle cx="${cx + reachRad * 0.8}" cy="${cy - reachRad * 0.5}" r="5.5" fill="#BA7517" stroke="#412402" stroke-width="1.5" class="ball" />`;
+      } else if (state === 'shoot') {
+        extraHTML = `<circle cx="${cx}" cy="${cy - 30}" r="5.5" fill="#BA7517" stroke="#412402" stroke-width="1.5" class="ball" />`;
+      }
+
+      return `
+        <g>
+          <!-- Field of View (Gaze orientation) -->
+          <g transform="rotate(${angleGaze}, ${cx}, ${cy})">
+            ${fovHTML}
+          </g>
+          
+          <!-- Control zone (Body orientation) -->
+          <g transform="rotate(${angleBody}, ${cx}, ${cy})">
+            ${reachArc}
+          </g>
+          
+          <!-- Ball (if dribble/shoot) -->
+          ${extraHTML}
+
+          <!-- Player Circle -->
+          ${baseCircle}
+
+          <!-- Arrow (Gaze orientation) -->
+          <g transform="rotate(${angleGaze}, ${cx}, ${cy})">
+            ${arrowHTML}
+          </g>
+          <text x="${cx}" y="${cy + 4.5}" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="700" pointer-events="none">P1</text>
+        </g>
+      `;
+    }
+
+    function drawProposalC(cx, cy, r, angleBody, angleGaze, state, team, isCarrier, isLate) {
+      const fill = team === 'attack' ? '#D85A30' : '#378ADD';
+      const stroke = team === 'attack' ? '#4A1B0C' : '#042C53';
+      let borderStroke = stroke;
+      let strokeWidth = 2.2;
+      
+      if (team === 'defense') {
+        if (isLate) { borderStroke = '#E24B4A'; strokeWidth = 3; }
+        else if (isCarrier) { borderStroke = '#FAC775'; strokeWidth = 3; }
+      }
+
+      // Torso shoulder pads path
+      const torsoPath = `
+        <path d="M ${cx - 19} ${cy + 3} 
+                 C ${cx - 20} ${cy - 7}, ${cx - 12} ${cy - 9}, ${cx} ${cy - 9} 
+                 C ${cx + 12} ${cy - 9}, ${cx + 20} ${cy - 7}, ${cx + 19} ${cy + 3} 
+                 C ${cx + 15} ${cy + 9}, ${cx - 15} ${cy + 9}, ${cx - 19} ${cy + 3} Z" 
+              fill="${fill}" stroke="${borderStroke}" stroke-width="${strokeWidth}" />
+        <path d="M ${cx - 10} ${cy - 5.5} Q ${cx} ${cy - 2.5} ${cx + 10} ${cy - 5.5}" fill="none" stroke="${borderStroke}" stroke-width="1.2" />
+      `;
+
+      let armsHTML = '';
+      if (state === 'dribble') {
+        armsHTML += `
+          <!-- Left Arm Stiff -->
+          <path d="M ${cx - 17} ${cy - 2} L ${cx - 27} ${cy - 6} L ${cx - 29} ${cy - 15}" fill="none" stroke="${borderStroke}" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M ${cx - 17} ${cy - 2} L ${cx - 27} ${cy - 6} L ${cx - 29} ${cy - 15}" fill="none" stroke="${fill}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="${cx - 29}" cy="${cy - 15}" r="3" fill="#FCD34D" stroke="${borderStroke}" stroke-width="1" />
+          
+          <!-- Right Arm Dribble -->
+          <path d="M ${cx + 17} ${cy - 2} L ${cx + 25} ${cy + 5} L ${cx + 16} ${cy + 17}" fill="none" stroke="${borderStroke}" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M ${cx + 17} ${cy - 2} L ${cx + 25} ${cy + 5} L ${cx + 16} ${cy + 17}" fill="none" stroke="${fill}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="${cx + 16}" cy="${cy + 17}" r="3" fill="#FCD34D" stroke="${borderStroke}" stroke-width="1" />
+          <!-- Ball -->
+          <circle cx="${cx + 16}" cy="${cy + 24}" r="5.5" fill="#BA7517" stroke="#412402" stroke-width="1.5" class="ball" />
+        `;
+      } else if (state === 'shoot') {
+        armsHTML += `
+          <!-- Left Arm Guide -->
+          <path d="M ${cx - 17} ${cy - 3} L ${cx - 14} ${cy - 15} L ${cx - 6} ${cy - 23}" fill="none" stroke="${borderStroke}" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M ${cx - 17} ${cy - 3} L ${cx - 14} ${cy - 15} L ${cx - 6} ${cy - 23}" fill="none" stroke="${fill}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="${cx - 6}" cy="${cy - 23}" r="3" fill="#FCD34D" stroke="${borderStroke}" stroke-width="1" />
+
+          <!-- Right Arm Shoot -->
+          <path d="M ${cx + 17} ${cy - 3} L ${cx + 20} ${cy - 19} L ${cx + 12} ${cy - 29}" fill="none" stroke="${borderStroke}" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M ${cx + 17} ${cy - 3} L ${cx + 20} ${cy - 19} L ${cx + 12} ${cy - 29}" fill="none" stroke="${fill}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="${cx + 12}" cy="${cy - 29}" r="3" fill="#FCD34D" stroke="${borderStroke}" stroke-width="1" />
+          <!-- Ball -->
+          <circle cx="${cx + 12}" cy="${cy - 36}" r="5.5" fill="#BA7517" stroke="#412402" stroke-width="1.5" class="ball" />
+        `;
+      } else if (state === 'screen') {
+        armsHTML += `
+          <!-- Crossed Left -->
+          <path d="M ${cx - 18} ${cy - 1} Q ${cx - 9} ${cy - 7} ${cx - 2} ${cy - 4}" fill="none" stroke="${borderStroke}" stroke-width="5.5" stroke-linecap="round" />
+          <path d="M ${cx - 18} ${cy - 1} Q ${cx - 9} ${cy - 7} ${cx - 2} ${cy - 4}" fill="none" stroke="${fill}" stroke-width="2.2" stroke-linecap="round" />
+          <!-- Crossed Right -->
+          <path d="M ${cx + 18} ${cy - 1} Q ${cx + 9} ${cy - 7} ${cx + 2} ${cy - 4}" fill="none" stroke="${borderStroke}" stroke-width="5.5" stroke-linecap="round" />
+          <path d="M ${cx + 18} ${cy - 1} Q ${cx + 9} ${cy - 7} ${cx + 2} ${cy - 4}" fill="none" stroke="${fill}" stroke-width="2.2" stroke-linecap="round" />
+        `;
+      } else {
+        // Idle wide open
+        armsHTML += `
+          <!-- Left Arm -->
+          <path d="M ${cx - 18} ${cy - 1} Q ${cx - 27} ${cy - 7} ${cx - 23} ${cy - 20}" fill="none" stroke="${borderStroke}" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M ${cx - 18} ${cy - 1} Q ${cx - 27} ${cy - 7} ${cx - 23} ${cy - 20}" fill="none" stroke="${fill}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="${cx - 23}" cy="${cy - 20}" r="3" fill="#FCD34D" stroke="${borderStroke}" stroke-width="1" />
+          
+          <!-- Right Arm -->
+          <path d="M ${cx + 18} ${cy - 1} Q ${cx + 27} ${cy - 7} ${cx + 23} ${cy - 20}" fill="none" stroke="${borderStroke}" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M ${cx + 18} ${cy - 1} Q ${cx + 27} ${cy - 7} ${cx + 23} ${cy - 20}" fill="none" stroke="${fill}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="${cx + 23}" cy="${cy - 20}" r="3" fill="#FCD34D" stroke="${borderStroke}" stroke-width="1" />
+        `;
+      }
+
+      // Head with ears, nose, helmet (gaze orientation)
+      const headHTML = `
+        <!-- Ears -->
+        <ellipse cx="${cx - 7.5}" cy="${cy - 3}" rx="1.5" ry="3" fill="#FCD34D" stroke="${borderStroke}" stroke-width="1" />
+        <ellipse cx="${cx + 7.5}" cy="${cy - 3}" rx="1.5" ry="3" fill="#FCD34D" stroke="${borderStroke}" stroke-width="1" />
+        <!-- Head -->
+        <ellipse cx="${cx}" cy="${cy - 3}" rx="7.2" ry="8" fill="#FCD34D" stroke="${borderStroke}" stroke-width="${strokeWidth}" />
+        <!-- Hair/Helmet cap -->
+        <path d="M ${cx - 6.8} ${cy - 4.5} C ${cx - 7.5} ${cy - 11}, ${cx + 7.5} ${cy - 11}, ${cx + 6.8} ${cy - 4.5} C ${cx + 5} ${cy - 7}, ${cx - 5} ${cy - 7}, ${cx - 6.8} ${cy - 4.5} Z" fill="#334155" />
+        <!-- Nose -->
+        <polygon points="${cx},${cy - 13.5} ${cx - 2},${cy - 9.5} ${cx + 2},${cy - 9.5}" fill="#FCD34D" stroke="${borderStroke}" stroke-width="0.8" stroke-linejoin="round" />
+      `;
+
+      return `
+        <g>
+          <!-- Torso & Arms (Body) -->
+          <g transform="rotate(${angleBody}, ${cx}, ${cy})">
+            ${torsoPath}
+            ${armsHTML}
+          </g>
+          <!-- Head (Gaze) -->
+          <g transform="rotate(${angleGaze}, ${cx}, ${cy})">
+            ${headHTML}
+          </g>
+          <text x="${cx}" y="${cy + 5.5}" text-anchor="middle" fill="${stroke}" font-size="9.5" font-weight="900" pointer-events="none">${team === 'attack' ? '8' : '23'}</text>
+        </g>
+      `;
+    }
+
+    // Master render function
+    function renderPreviews() {
+      const cx = 50, cy = 50, r = PLAYER_RADIUS;
+      const bAngle = config.bodyAngle;
+      const gAngle = config.gazeAngle;
+      const t = config.team;
+      const isC = config.isCarrier;
+      const isL = config.isLate;
+      const p = config.pose;
+
+      document.getElementById('svg-current').innerHTML = drawCurrent(cx, cy, r, bAngle, gAngle, p, t, isC, isL);
+      document.getElementById('svg-proposal-a').innerHTML = drawProposalA(cx, cy, r, bAngle, gAngle, p, t, isC, isL);
+      document.getElementById('svg-proposal-b').innerHTML = drawProposalB(cx, cy, r, bAngle, gAngle, p, t, isC, isL);
+      document.getElementById('svg-proposal-c').innerHTML = drawProposalC(cx, cy, r, bAngle, gAngle, p, t, isC, isL);
+    }
+
+    // Interaction handlers
+    function setTeam(team) {
+      config.team = team;
+      
+      // Update toggle buttons
+      document.querySelectorAll('.btn-toggle').forEach(btn => btn.classList.remove('active'));
+      document.querySelector(`.btn-toggle[data-team="${team}"]`).classList.add('active');
+
+      // Adjust controls visibility depending on team
+      const carrierLabel = document.querySelector('#opt-carrier-container');
+      const lateContainer = document.getElementById('opt-late-container');
+      const posesContainer = document.getElementById('poses-container');
+
+      if (team === 'attack') {
+        carrierLabel.innerHTML = '<input type="checkbox" id="opt-carrier" onchange="updateState()"> Porteur de balle (Ball)';
+        lateContainer.style.display = 'none';
+        posesContainer.style.display = 'block';
+      } else {
+        carrierLabel.innerHTML = '<input type="checkbox" id="opt-carrier" onchange="updateState()"> Défenseur sur Porteur';
+        lateContainer.style.display = 'block';
+        posesContainer.style.display = 'none';
+        
+        // Reset radio selection
+        config.pose = 'idle';
+      }
+
+      // Reapply state selection
+      document.getElementById('opt-carrier').checked = config.isCarrier;
+      const lateCheck = document.getElementById('opt-late');
+      if (lateCheck) lateCheck.checked = config.isLate;
+
+      renderPreviews();
+    }
+
+    function updateBodyOrientation(val) {
+      config.bodyAngle = parseInt(val);
+      document.getElementById('val-body').textContent = val + '°';
+      
+      if (config.lockGaze) {
+        config.gazeAngle = config.bodyAngle;
+        document.getElementById('slider-gaze').value = val;
+        document.getElementById('val-gaze').textContent = val + '°';
+      }
+      
+      renderPreviews();
+    }
+
+    function updateGazeOrientation(val) {
+      config.gazeAngle = parseInt(val);
+      document.getElementById('val-gaze').textContent = val + '°';
+      renderPreviews();
+    }
+
+    function toggleGazeLock(locked) {
+      config.lockGaze = locked;
+      const gazeContainer = document.getElementById('gaze-container');
+      if (locked) {
+        gazeContainer.style.opacity = '0.5';
+        gazeContainer.style.pointerEvents = 'none';
+        // align gaze with body
+        config.gazeAngle = config.bodyAngle;
+        document.getElementById('slider-gaze').value = config.bodyAngle;
+        document.getElementById('val-gaze').textContent = config.bodyAngle + '°';
+      } else {
+        gazeContainer.style.opacity = '1';
+        gazeContainer.style.pointerEvents = 'auto';
+      }
+      renderPreviews();
+    }
+
+    function updateState() {
+      config.isCarrier = document.getElementById('opt-carrier').checked;
+      const lateCheck = document.getElementById('opt-late');
+      config.isLate = lateCheck ? lateCheck.checked : false;
+      renderPreviews();
+    }
+
+    function updatePose(poseVal) {
+      config.pose = poseVal;
+      renderPreviews();
+    }
+
+    function applyPreset(presetName) {
+      const lockGazeCheck = document.getElementById('lock-gaze');
+      
+      if (presetName === 'def-stance') {
+        config.team = 'defense';
+        config.bodyAngle = -90;
+        config.gazeAngle = -90;
+        config.lockGaze = true;
+        config.isCarrier = false;
+        config.isLate = false;
+        config.pose = 'idle';
+      } 
+      else if (presetName === 'def-carrier') {
+        config.team = 'defense';
+        config.bodyAngle = -45;
+        config.gazeAngle = -45;
+        config.lockGaze = true;
+        config.isCarrier = true;
+        config.isLate = false;
+        config.pose = 'idle';
+      } 
+      else if (presetName === 'def-late') {
+        config.team = 'defense';
+        config.bodyAngle = -120;
+        config.gazeAngle = -60; // Gaze is different! Looking at ball
+        config.lockGaze = false;
+        config.isCarrier = false;
+        config.isLate = true;
+        config.pose = 'idle';
+      } 
+      else if (presetName === 'att-dribble') {
+        config.team = 'attack';
+        config.bodyAngle = 90;
+        config.gazeAngle = 90;
+        config.lockGaze = true;
+        config.isCarrier = true;
+        config.isLate = false;
+        config.pose = 'dribble';
+      } 
+      else if (presetName === 'att-shoot') {
+        config.team = 'attack';
+        config.bodyAngle = 0;
+        config.gazeAngle = 0;
+        config.lockGaze = true;
+        config.isCarrier = true;
+        config.isLate = false;
+        config.pose = 'shoot';
+      } 
+      else if (presetName === 'att-screen') {
+        config.team = 'attack';
+        config.bodyAngle = 90;
+        config.gazeAngle = 0; // Screening off-ball, looking at defender
+        config.lockGaze = false;
+        config.isCarrier = false;
+        config.isLate = false;
+        config.pose = 'screen';
+      }
+
+      // Synchronize UI elements
+      setTeam(config.team);
+      
+      document.getElementById('slider-body').value = config.bodyAngle;
+      document.getElementById('val-body').textContent = config.bodyAngle + '°';
+      
+      lockGazeCheck.checked = config.lockGaze;
+      toggleGazeLock(config.lockGaze);
+      
+      document.getElementById('slider-gaze').value = config.gazeAngle;
+      document.getElementById('val-gaze').textContent = config.gazeAngle + '°';
+      
+      document.getElementById('opt-carrier').checked = config.isCarrier;
+      const lateCheck = document.getElementById('opt-late');
+      if (lateCheck) lateCheck.checked = config.isLate;
+
+      // Select proper radio for attacker pose
+      if (config.team === 'attack') {
+        document.querySelector(`input[name="attacker-pose"][value="${config.pose}"]`).checked = true;
+      }
+
+      renderPreviews();
+    }
+
+    // Court visual updates
+    function changeCourtDesign(design) {
+      courtDesign = design;
+      document.querySelectorAll('.court-selector-btn').forEach(btn => btn.classList.remove('active'));
+      
+      const selectorId = `selector-${design}`;
+      document.getElementById(selectorId).classList.add('active');
+      
+      renderCourt();
+    }
+
+    function renderCourt() {
+      const g = document.getElementById('court-players-group');
+      let html = '';
+      
+      courtPlayers.forEach(p => {
+        const teamStr = p.isAttacker ? 'attack' : 'defense';
+        const poseStr = p.pose || 'idle';
+        const isC = !!p.isCarrier;
+        const isL = !!p.isLate;
+        
+        // Render depending on chosen design mode
+        if (courtDesign === 'current') {
+          html += `<g id="cp-${p.id}" class="court-player" data-id="${p.id}" transform="translate(0, 0)">${drawCurrent(p.x, p.y, PLAYER_RADIUS, p.bodyAngle, p.gazeAngle, poseStr, teamStr, isC, isL)}</g>`;
+        } else if (courtDesign === 'a') {
+          html += `<g id="cp-${p.id}" class="court-player" data-id="${p.id}" transform="translate(0, 0)">${drawProposalA(p.x, p.y, PLAYER_RADIUS, p.bodyAngle, p.gazeAngle, poseStr, teamStr, isC, isL)}</g>`;
+        } else if (courtDesign === 'b') {
+          html += `<g id="cp-${p.id}" class="court-player" data-id="${p.id}" transform="translate(0, 0)">${drawProposalB(p.x, p.y, PLAYER_RADIUS, p.bodyAngle, p.gazeAngle, poseStr, teamStr, isC, isL)}</g>`;
+        } else if (courtDesign === 'c') {
+          html += `<g id="cp-${p.id}" class="court-player" data-id="${p.id}" transform="translate(0, 0)">${drawProposalC(p.x, p.y, PLAYER_RADIUS, p.bodyAngle, p.gazeAngle, poseStr, teamStr, isC, isL)}</g>`;
+        }
+      });
+      
+      g.innerHTML = html;
+      setupDraggables();
+    }
+
+    // Animation Loop
+    function toggleAnimation() {
+      isAnimating = !isAnimating;
+      const btn = document.getElementById('btn-animate');
+      const btnIcon = document.getElementById('animate-icon');
+      const btnText = document.getElementById('animate-text');
+
+      if (isAnimating) {
+        btn.style.background = '#ef4444';
+        btnIcon.textContent = '⏸';
+        btnText.textContent = "Arrêter l'Animation";
+        animate();
+      } else {
+        btn.style.background = '#10b981';
+        btnIcon.textContent = '▶';
+        btnText.textContent = "Activer l'Animation";
+        cancelAnimationFrame(animationFrameId);
+      }
+    }
+
+    function animate() {
+      time += 0.02;
+      
+      // Let's modify angles dynamically to simulate real tracking action
+      courtPlayers.forEach((p, idx) => {
+        // Base sine wave movements for angles
+        const offset = idx * 1.5;
+        
+        if (p.id === 'O1') {
+          // Attacker dribbling back and forth horizontally
+          p.x = 280 + Math.sin(time) * 40;
+          p.bodyAngle = 90 + Math.sin(time) * 30;
+          p.gazeAngle = 90 + Math.cos(time) * 20;
+        } 
+        else if (p.id === 'D1') {
+          // Defender defending O1 (faces O1)
+          p.x = courtPlayers[0].x - 30;
+          p.y = courtPlayers[0].y + Math.sin(time * 1.2) * 15;
+          const dx = courtPlayers[0].x - p.x;
+          const dy = courtPlayers[0].y - p.y;
+          const angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+          p.bodyAngle = angle;
+          p.gazeAngle = angle + Math.sin(time * 2) * 15; // scanning field
+        }
+        else if (p.id === 'O3') {
+          // Screener standing still, turning body to screen
+          p.bodyAngle = 90 + Math.sin(time * 0.5) * 10;
+          p.gazeAngle = -45 + Math.cos(time * 0.7) * 25; // looking at actions
+        }
+        else {
+          // General scanning
+          p.bodyAngle += Math.sin(time + offset) * 0.8;
+          p.gazeAngle = p.bodyAngle + Math.sin(time * 2 + offset) * 30; // head scanning side-to-side
+        }
+      });
+
+      renderCourt();
+      animationFrameId = requestAnimationFrame(animate);
+    }
+
+    // Draggable code for SVG Players
+    function setupDraggables() {
+      const svg = document.getElementById('svg-court');
+      const players = svg.querySelectorAll('.court-player');
+      
+      players.forEach(pGroup => {
+        let isDragging = false;
+        const id = pGroup.getAttribute('data-id');
+        const playerObj = courtPlayers.find(p => p.id === id);
+
+        pGroup.addEventListener('mousedown', (e) => {
+          isDragging = true;
+          e.stopPropagation();
+        });
+
+        svg.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+          
+          const rect = svg.getBoundingClientRect();
+          // Convert screen client coords to SVG local viewBox coords
+          const scaleX = 740 / rect.width;
+          const scaleY = 420 / rect.height;
+          const x = (e.clientX - rect.left) * scaleX;
+          const y = (e.clientY - rect.top) * scaleY;
+          
+          // Constrain coordinates to court boundaries
+          playerObj.x = Math.max(10, Math.min(730, x));
+          playerObj.y = Math.max(10, Math.min(410, y));
+          
+          renderCourt();
+        });
+
+        window.addEventListener('mouseup', () => {
+          isDragging = false;
+        });
+      });
+    }
+
+    // Init
+    window.onload = () => {
+      renderPreviews();
+      renderCourt();
+    };
+  </script>
+</body>
+</html>

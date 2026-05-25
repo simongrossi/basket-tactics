@@ -699,7 +699,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
   // de frame qui lerp en sub-pixel. Arrondir ferait varier la position de
   // 0.5px d'une frame à l'autre → 30px d'erreur cumulée sur 60 frames.
 
-  recomputeDefenseFrameOrientations(state, offAtStep, curCarrier, out);
+  recomputeDefenseFrameOrientations(state, offAtStep, curCarrier, out, prevPositions);
 
   return out;
 }

@@ -63,12 +63,12 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
       <path
         d={polylinePath(annotationPoints(annotation))}
         fill="none"
-        stroke="#5F5E5A"
+        stroke="#FBBF24"
         strokeWidth={2.5}
         opacity={preview ? 0.5 : 1}
       />
     ) : (
-      <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke="#5F5E5A" strokeWidth={2.5} opacity={preview ? 0.5 : 1} />
+      <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke="#FBBF24" strokeWidth={2.5} opacity={preview ? 0.5 : 1} />
     );
     return (
       <>
@@ -78,7 +78,7 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
           y1={to.y + ny * 10}
           x2={to.x - nx * 10}
           y2={to.y - ny * 10}
-          stroke="#5F5E5A"
+          stroke="#FBBF24"
           strokeWidth={4}
           opacity={preview ? 0.5 : 1}
         />
@@ -163,7 +163,7 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
         <path
           d={polylinePath(visualPoints)}
           fill="none"
-          stroke="#5F5E5A"
+          stroke="#FBBF24"
           strokeWidth={2.5}
           markerEnd="url(#arrow-gray)"
           opacity={preview ? 0.5 : 1}
@@ -179,7 +179,7 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
         y1={from.y}
         x2={visualTo.x}
         y2={visualTo.y}
-        stroke="#5F5E5A"
+        stroke="#FBBF24"
         strokeWidth={2.5}
         markerEnd="url(#arrow-gray)"
         opacity={preview ? 0.5 : 1}

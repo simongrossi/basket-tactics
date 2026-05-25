@@ -78,10 +78,14 @@ export interface DefenderOrientationInput {
   gazeLock?: 'opponent' | 'ball-carrier' | 'both';
   /** Delta legacy du curseur orientation (±45°), ajouté au body auto. */
   manualDelta?: number;
+  /** Panier de référence défensif (pour détecter le repli). */
+  hoop?: Point;
+  /** Position précédente du défenseur (pour calculer le vecteur de repli). */
+  prevPos?: Point;
 }
 
 export function computeDefenderOrientation(input: DefenderOrientationInput): OrientationResult {
-  const { defenderPos, manPos, ballPos, isCarrierDefender, stance, vsCarrier, pnrRole, manualBody, bodyMode, gazeLock, manualDelta } = input;
+  const { defenderPos, manPos, ballPos, isCarrierDefender, stance, vsCarrier, pnrRole, manualBody, bodyMode, gazeLock, manualDelta, hoop, prevPos } = input;
 
   // ---------------------------------------------------------------------------
   // 1. Cibles des bras — par rôle/stance
@@ -136,6 +140,8 @@ export function computeDefenderOrientation(input: DefenderOrientationInput): Ori
     stance,
     pnrRole,
     bodyMode,
+    hoop,
+    prevPos,
   });
 
   // Modulation `vsCarrier` legacy pour on-ball (force baseline / topside).
@@ -183,7 +189,7 @@ export function computeDefenderOrientation(input: DefenderOrientationInput): Ori
 // ATTAQUANT
 // =============================================================================
 
-export type AttackerRole = 'carrier' | 'passer' | 'cutter' | 'screener' | 'idle';
+export type AttackerRole = 'carrier' | 'passer' | 'cutter' | 'screener' | 'idle' | 'shooter' | 'post-shot-recovery';
 
 export interface AttackerOrientationInput {
   attackerPos: Point;
@@ -232,6 +238,10 @@ export function computeAttackerOrientation(input: AttackerOrientationInput): Ori
     // de cette ligne d'épaule, calculées plus bas avec body perpendiculaire.
     armBallSide = screenTargetDefPos;
     armManSide = screenTargetDefPos;
+  } else if (role === 'shooter' || role === 'post-shot-recovery') {
+    // Tireur / Post-shot follow-through : bras levés vers le panier.
+    armBallSide = hoop;
+    armManSide = hoop;
   } else {
     // Idle : bras tendus vers le porteur (demande la passe).
     armBallSide = ballPos;
@@ -252,6 +262,8 @@ export function computeAttackerOrientation(input: AttackerOrientationInput): Ori
   } else if (role === 'screener' && screenTargetDefPos) {
     // Corps perpendiculaire à la trajectoire du défenseur ciblé.
     bodyAuto = angleFromNorth(attackerPos, screenTargetDefPos) + 90;
+  } else if (role === 'shooter' || role === 'post-shot-recovery') {
+    bodyAuto = angleFromNorth(attackerPos, hoop);
   } else {
     bodyAuto = angleFromNorth(attackerPos, ballPos);
   }
@@ -272,6 +284,8 @@ export function computeAttackerOrientation(input: AttackerOrientationInput): Ori
     gazeTarget = nextPos;
   } else if (role === 'screener' && screenTargetDefPos) {
     gazeTarget = screenTargetDefPos;
+  } else if (role === 'shooter' || role === 'post-shot-recovery') {
+    gazeTarget = hoop;
   } else {
     gazeTarget = ballPos;
   }
@@ -330,8 +344,10 @@ function computeDefenderBodyOrientation(input: {
   stance?: OffBallStance;
   pnrRole?: 'tag' | 'x-out' | 'stunt';
   bodyMode?: BodyOrientationMode;
+  hoop?: Point;
+  prevPos?: Point;
 }): number {
-  const { defenderPos, manPos, ballPos, isCarrierDefender, stance, pnrRole, bodyMode } = input;
+  const { defenderPos, manPos, ballPos, isCarrierDefender, stance, pnrRole, bodyMode, hoop, prevPos } = input;
   const manAngle = angleFromNorth(defenderPos, manPos);
   const ballAngle = angleFromNorth(defenderPos, ballPos);
 
@@ -366,6 +382,22 @@ function computeDefenderBodyOrientation(input: {
         return passAngle;
       case 'pass-lane-perp':
         return passAngle + 90;
+    }
+  }
+
+  // Transition defense repli : si le défenseur court vers son panier
+  // et que la balle est plus haute, on oriente le corps en biais à 45°
+  // pour garder un oeil sur le ballon (open stance).
+  if (!isCarrierDefender && hoop && prevPos) {
+    const distToHoop = Math.hypot(defenderPos.x - hoop.x, defenderPos.y - hoop.y);
+    const prevDistToHoop = Math.hypot(prevPos.x - hoop.x, prevPos.y - hoop.y);
+    const distBallToHoop = Math.hypot(ballPos.x - hoop.x, ballPos.y - hoop.y);
+    if (distToHoop < prevDistToHoop - 2 && distBallToHoop > distToHoop + 40) {
+      const hoopAngle = angleFromNorth(defenderPos, hoop);
+      const ballAngle = angleFromNorth(defenderPos, ballPos);
+      const diff = angleDiff(ballAngle, hoopAngle);
+      const sideSign = diff >= 0 ? 1 : -1;
+      return normalizeAngle(hoopAngle + sideSign * 45);
     }
   }
 

@@ -7,7 +7,7 @@ import { PLAYER_RADIUS } from '@/lib/data/court';
 import { Player } from '../Player';
 
 describe('Player orientation cues', () => {
-  it('rend les bras sur le corps et la flèche sur le regard', () => {
+  it('rend les bras sur le corps et la visière sur la tête', () => {
     const pos = { x: 100, y: 100 };
     const { container } = render(createElement('svg', null, createElement(Player, {
       id: 'D1',
@@ -17,14 +17,32 @@ describe('Player orientation cues', () => {
       gazeOrientation: 75,
     })));
 
+    // Vérifie le groupe de rotation du corps (bras et épaules)
     expect(container.querySelector('g[transform="rotate(0, 100, 100)"]')).not.toBeNull();
 
+    // Vérifie le groupe de rotation de la tête (avec le nez/regard)
+    expect(container.querySelector('g[transform="rotate(75, 100, 100)"]')).not.toBeNull();
+
+    // Vérifie qu'un polygone de nez est présent pour indiquer le regard
     const polygon = container.querySelector('polygon');
     expect(polygon).not.toBeNull();
-    const [tip] = polygon!.getAttribute('points')!.split(' ');
-    const [tipX, tipY] = tip.split(',').map(Number);
-    const rad = (75 * Math.PI) / 180;
-    expect(tipX).toBeCloseTo(pos.x + Math.sin(rad) * (PLAYER_RADIUS + 6), 3);
-    expect(tipY).toBeCloseTo(pos.y - Math.cos(rad) * (PLAYER_RADIUS + 6), 3);
+  });
+
+  it('clampe la rotation de la tête à la limite anatomique de ±75°', () => {
+    const pos = { x: 100, y: 100 };
+    const { container } = render(createElement('svg', null, createElement(Player, {
+      id: 'D1',
+      pos,
+      isAttacker: false,
+      orientation: 0,
+      gazeOrientation: 120, // Tête tournée vers le dos
+    })));
+
+    // Le corps tourne à 0°
+    expect(container.querySelector('g[transform="rotate(0, 100, 100)"]')).not.toBeNull();
+
+    // La tête doit être clampée à 75° et non à 120°
+    expect(container.querySelector('g[transform="rotate(75, 100, 100)"]')).not.toBeNull();
+    expect(container.querySelector('g[transform="rotate(120, 100, 100)"]')).toBeNull();
   });
 });

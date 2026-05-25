@@ -1,5 +1,6 @@
 import type { Point, ScreenContactPhase } from '@/lib/types';
 import { PLAYER_RADIUS } from '@/lib/data/court';
+import { angleDiff, normalizeAngle, angleFromNorth } from '@/lib/logic/angles';
 
 interface PlayerProps {
   id: string;
@@ -61,6 +62,10 @@ interface PlayerProps {
    * que d'éventuels overlays de debug puissent l'exploiter.
    */
   isScreening?: boolean;
+  /** Vrai si le joueur est le porteur du ballon (dribbleur) */
+  isCarrier?: boolean;
+  /** Vrai si le joueur est en train de tirer (shooter) */
+  isShooting?: boolean;
 }
 
 export function Player({
@@ -94,7 +99,9 @@ export function Player({
   mismatchThreshold = 2,
   showMismatchBadges = true,
   isSelected,
-  isScreening: _isScreening,
+  isScreening,
+  isCarrier,
+  isShooting,
 }: PlayerProps) {
   const fill = isAttacker ? '#D85A30' : '#378ADD';
 
@@ -121,8 +128,33 @@ export function Player({
   const r = PLAYER_RADIUS;
   const bodyOrientation = orientation ?? gazeOrientation ?? 0;
 
+  // Clamping du regard à ±75° par rapport aux épaules (human head/eyes neck limit)
+  let rawGaze = gazeOrientation;
+  if (rawGaze === undefined && facing) {
+    rawGaze = angleFromNorth(pos, facing);
+  }
+  if (rawGaze === undefined) {
+    rawGaze = bodyOrientation;
+  }
+  const diff = angleDiff(rawGaze, bodyOrientation);
+  let finalGaze = rawGaze;
+  if (diff > 75) {
+    finalGaze = normalizeAngle(bodyOrientation + 75);
+  } else if (diff < -75) {
+    finalGaze = normalizeAngle(bodyOrientation - 75);
+  }
+
+  // Couleurs de peau et détails pour la proposition C
+  const skinFill = '#FFE0B2';
+  const hairFill = '#475569';
+
   return (
     <g data-id={id} style={{ cursor: 'grab' }}>
+      {/* Target cliquable invisible pour le Drag and Drop. Rayon r*1.7 aligné
+       *  sur l'envergure des bras stylisés (mains à r*1.6, marge 0.1r). La
+       *  désambiguïsation des chevauchements attaquant/défenseur se fait côté
+       *  useCourtPointerHandlers via `findPlayerAt(pt)` (priorité attaquant). */}
+      <circle cx={pos.x} cy={pos.y} r={r * 1.4} fill="rgba(0,0,0,0)" />
       {/* #4 — Halo de sélection multiple (cyan pointillé). Rendu en
        *  premier pour passer sous tous les autres anneaux. */}
       {isSelected && !isAttacker && (
@@ -139,100 +171,245 @@ export function Player({
         />
       )}
       <g pointerEvents="none">
-        {/* Pictogramme stylisé FIBA : 2 arcs symétriques courbés.
-         *
-         * Les arcs sont dessinés "au-dessus" en posture neutre (à
-         * orientation=0°), puis le wrapper rotate les amène dans la
-         * direction du CORPS du joueur. Conséquence visuelle :
-         *  - corps nord → bras au-dessus, courbure vers le nord (= devant)
-         *  - corps est → bras à droite, courbure vers l'est (= devant)
-         *  - corps sud → bras en bas, courbure vers le sud (= devant)
-         *
-         * La flèche de regard est rendue séparément depuis `gazeOrientation`,
-         * ce qui permet une stance à plat avec tête tournée vers ballon/action. */}
+        {/* PROPOSITION C — ANATOMIQUE VECTORIEL */}
+        
+        {/* Corps (torse + bras) : tourne selon bodyOrientation */}
         <g transform={`rotate(${bodyOrientation}, ${pos.x}, ${pos.y})`}>
-          {/* === DESIGN F — FIGÉ ===
-           * Tracé Bezier des bras choisi par l'utilisateur via la page de
-           * démo /demo-arms. NE PAS MODIFIER sans une demande explicite —
-           * le design a été testé et validé contre 7 alternatives.
-           *
-           * Caractéristiques (en posture neutre, gaze=0°) :
-           *  - Épaule (départ M) : niveau central du cercle (y=0), côté à ±0.7r.
-           *  - Main (fin Q) : ±1.8r en x, -1.4r en y → loin extérieure et haute.
-           *  - Control point : ±2.0r en x, -0.5r en y → courbure largement
-           *    ouverte vers l'extérieur, "bras grands ouverts".
-           *
-           * Le wrapper rotate(bodyOrientation) pivote l'ensemble en bloc selon
-           * le corps du joueur. Le regard peut diverger et reste indiqué par
-           * le triangle pointeur.
-           */}
+          {/* Bras */}
+          {(() => {
+            if (isScreening) {
+              // Bras croisés (Screener)
+              return (
+                <>
+                  <path
+                    d={`M ${pos.x - r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x - r * 0.5625} ${pos.y - r * 0.4375} ${pos.x - r * 0.125} ${pos.y - r * 0.25}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth + 2.5}
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d={`M ${pos.x - r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x - r * 0.5625} ${pos.y - r * 0.4375} ${pos.x - r * 0.125} ${pos.y - r * 0.25}`}
+                    fill="none"
+                    stroke={fill}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d={`M ${pos.x + r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + r * 0.5625} ${pos.y - r * 0.4375} ${pos.x + r * 0.125} ${pos.y - r * 0.25}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth + 2.5}
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d={`M ${pos.x + r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + r * 0.5625} ${pos.y - r * 0.4375} ${pos.x + r * 0.125} ${pos.y - r * 0.25}`}
+                    fill="none"
+                    stroke={fill}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                  />
+                </>
+              );
+            } else if (isCarrier && !isShooting) {
+              // Posture Dribbleur (Driver) — 2 bras symétriques en L (garde).
+              // Humérus horizontal vers l'extérieur + avant-bras vertical qui
+              // POINTE VERS L'AVANT (vers le panier). Mêmes coords pour gauche
+              // et droite (juste miroir x).
+              return (
+                <>
+                  {/* Bras gauche en L (angle droit) */}
+                  <path
+                    d={`M ${pos.x - r * 1.125} ${pos.y - r * 0.0625} L ${pos.x - r * 1.4} ${pos.y - r * 0.0625} L ${pos.x - r * 1.4} ${pos.y - r * 1.0}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth + 2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d={`M ${pos.x - r * 1.125} ${pos.y - r * 0.0625} L ${pos.x - r * 1.4} ${pos.y - r * 0.0625} L ${pos.x - r * 1.4} ${pos.y - r * 1.0}`}
+                    fill="none"
+                    stroke={fill}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx={pos.x - r * 1.4} cy={pos.y - r * 1.0} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+
+                  {/* Bras droit en L (angle droit) — miroir parfait du gauche */}
+                  <path
+                    d={`M ${pos.x + r * 1.125} ${pos.y - r * 0.0625} L ${pos.x + r * 1.4} ${pos.y - r * 0.0625} L ${pos.x + r * 1.4} ${pos.y - r * 1.0}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth + 2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d={`M ${pos.x + r * 1.125} ${pos.y - r * 0.0625} L ${pos.x + r * 1.4} ${pos.y - r * 0.0625} L ${pos.x + r * 1.4} ${pos.y - r * 1.0}`}
+                    fill="none"
+                    stroke={fill}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx={pos.x + r * 1.4} cy={pos.y - r * 1.0} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+                </>
+              );
+            } else if (isShooting) {
+              // Posture Tireur (Shooter)
+              return (
+                <>
+                  {/* Bras gauche guide */}
+                  <path
+                    d={`M ${pos.x - r * 1.0625} ${pos.y - r * 0.1875} L ${pos.x - r * 0.875} ${pos.y - r * 0.9375} L ${pos.x - r * 0.375} ${pos.y - r * 1.4375}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth + 2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d={`M ${pos.x - r * 1.0625} ${pos.y - r * 0.1875} L ${pos.x - r * 0.875} ${pos.y - r * 0.9375} L ${pos.x - r * 0.375} ${pos.y - r * 1.4375}`}
+                    fill="none"
+                    stroke={fill}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx={pos.x - r * 0.375} cy={pos.y - r * 1.4375} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+
+                  {/* Bras droit shoot */}
+                  <path
+                    d={`M ${pos.x + r * 1.0625} ${pos.y - r * 0.1875} L ${pos.x + r * 1.25} ${pos.y - r * 1.1875} L ${pos.x + r * 0.75} ${pos.y - r * 1.8125}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth + 2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d={`M ${pos.x + r * 1.0625} ${pos.y - r * 0.1875} L ${pos.x + r * 1.25} ${pos.y - r * 1.1875} L ${pos.x + r * 0.75} ${pos.y - r * 1.8125}`}
+                    fill="none"
+                    stroke={fill}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx={pos.x + r * 0.75} cy={pos.y - r * 1.8125} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+                </>
+              );
+            } else {
+              // Posture Stance Standard / Droit d'aide.
+              // Bras à r * 1.4 (mains à 25.6 px du centre, envergure 51 px =
+              // 1.38 m). Cohérent avec le sprite pictographique stylisé (torse
+              // déformé ×1.4) : ratio bras/torse = 1.6x. Choix entre l'ancien
+              // r*1.4375 trop court ("cartoon trapu") et r*2.0 trop long
+              // ("tentacules" — envergure dépassait largement la largeur du
+              // panier visuellement).
+              return (
+                <>
+                  {/* Bras gauche */}
+                  <path
+                    d={`M ${pos.x - r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x - r * 1.4} ${pos.y - r * 0.55} ${pos.x - r * 1.4} ${pos.y - r * 1.25}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth + 2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d={`M ${pos.x - r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x - r * 1.4} ${pos.y - r * 0.55} ${pos.x - r * 1.4} ${pos.y - r * 1.25}`}
+                    fill="none"
+                    stroke={fill}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx={pos.x - r * 1.4} cy={pos.y - r * 1.25} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+
+                  {/* Bras droit */}
+                  <path
+                    d={`M ${pos.x + r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + r * 1.4} ${pos.y - r * 0.55} ${pos.x + r * 1.4} ${pos.y - r * 1.25}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth + 2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d={`M ${pos.x + r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + r * 1.4} ${pos.y - r * 0.55} ${pos.x + r * 1.4} ${pos.y - r * 1.25}`}
+                    fill="none"
+                    stroke={fill}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx={pos.x + r * 1.4} cy={pos.y - r * 1.25} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+                </>
+              );
+            }
+          })()}
+          
+          {/* Torse */}
           <path
-            d={`M ${pos.x - r * 0.7} ${pos.y} Q ${pos.x - r * 2.0} ${pos.y - r * 0.5} ${pos.x - r * 1.8} ${pos.y - r * 1.4}`}
-            fill="none"
+            d={`M ${pos.x - r * 1.0625} ${pos.y + r * 0.0625} C ${pos.x - r * 1.125} ${pos.y - r * 0.5}, ${pos.x + r * 1.125} ${pos.y - r * 0.5}, ${pos.x + r * 1.0625} ${pos.y + r * 0.0625} C ${pos.x + r * 0.8125} ${pos.y + r * 0.5}, ${pos.x - r * 0.8125} ${pos.y + r * 0.5}, ${pos.x - r * 1.0625} ${pos.y + r * 0.0625} Z`}
+            fill={fill}
             stroke={stroke}
-            strokeWidth={isAttacker ? 1.8 : 2.5}
-            strokeLinecap="round"
-            opacity={isAttacker ? 0.7 : 1}
+            strokeWidth={strokeWidth}
           />
+          {/* Col de maillot */}
           <path
-            d={`M ${pos.x + r * 0.7} ${pos.y} Q ${pos.x + r * 2.0} ${pos.y - r * 0.5} ${pos.x + r * 1.8} ${pos.y - r * 1.4}`}
+            d={`M ${pos.x - r * 0.625} ${pos.y - r * 0.344} Q ${pos.x} ${pos.y - r * 0.156} ${pos.x + r * 0.625} ${pos.y - r * 0.344}`}
             fill="none"
             stroke={stroke}
-            strokeWidth={isAttacker ? 1.8 : 2.5}
-            strokeLinecap="round"
-            opacity={isAttacker ? 0.7 : 1}
+            strokeWidth={1.5}
           />
         </g>
-        {(gazeOrientation !== undefined || facing) && (() => {
-          // Pointeur de "facing" : un petit triangle posé sur le bord du
-          // cercle, dans la direction regardée. Indique le regard
-          // sans toucher aux bras (ex. corps à plat, tête vers ballon/action).
-          //
-          // On dérive la direction du triangle depuis `gazeOrientation`
-          // (l'angle) plutôt que depuis `facing` (le point) quand les
-          // deux sont disponibles : pendant l'animation entre étapes,
-          // `gazeOrientation` est lerpé angulairement (chemin court
-          // autour du cercle) tandis que `facing` est lerpé linéairement
-          // en (x, y) — ce qui peut faire passer le point facing PAR le
-          // joueur et sortir du côté opposé. La flèche reste donc cohérente
-          // avec le regard, même quand les bras gardent l'orientation du corps.
-          let ux: number;
-          let uy: number;
-          if (gazeOrientation !== undefined) {
-            const rad = (gazeOrientation * Math.PI) / 180;
-            ux = Math.sin(rad);
-            uy = -Math.cos(rad);
-          } else if (facing) {
-            const dx = facing.x - pos.x;
-            const dy = facing.y - pos.y;
-            const len = Math.hypot(dx, dy) || 1;
-            ux = dx / len;
-            uy = dy / len;
-          } else {
-            return null;
-          }
-          const tip = { x: pos.x + ux * (r + 6), y: pos.y + uy * (r + 6) };
-          const base = { x: pos.x + ux * r, y: pos.y + uy * r };
-          const px = -uy * 4;
-          const py = ux * 4;
-          return (
-            <polygon
-              points={`${tip.x},${tip.y} ${base.x + px},${base.y + py} ${base.x - px},${base.y - py}`}
-              fill={stroke}
-              opacity={isAttacker ? 0.7 : 0.9}
-            />
-          );
-        })()}
+
+        {/* Tête (tête + oreilles + cheveux + nez) : tourne selon finalGaze */}
+        <g transform={`rotate(${finalGaze}, ${pos.x}, ${pos.y})`}>
+          {/* Oreilles */}
+          <ellipse cx={pos.x - r * 0.46875} cy={pos.y - r * 0.1875} rx={r * 0.09375} ry={r * 0.1875} fill={skinFill} stroke={stroke} strokeWidth={1} />
+          <ellipse cx={pos.x + r * 0.46875} cy={pos.y - r * 0.1875} rx={r * 0.09375} ry={r * 0.1875} fill={skinFill} stroke={stroke} strokeWidth={1} />
+          
+          {/* Tête principale */}
+          <ellipse cx={pos.x} cy={pos.y - r * 0.1875} rx={r * 0.45} ry={r * 0.5} fill={skinFill} stroke={stroke} strokeWidth={strokeWidth} />
+          
+          {/* Cheveux */}
+          <path
+            d={`M ${pos.x - r * 0.425} ${pos.y - r * 0.281} C ${pos.x - r * 0.469} ${pos.y - r * 0.6875}, ${pos.x + r * 0.469} ${pos.y - r * 0.6875}, ${pos.x + r * 0.425} ${pos.y - r * 0.281} C ${pos.x + r * 0.3125} ${pos.y - r * 0.4375}, ${pos.x - r * 0.3125} ${pos.y - r * 0.4375}, ${pos.x - r * 0.425} ${pos.y - r * 0.281} Z`}
+            fill={hairFill}
+          />
+          
+          {/* Nez (indicateur de regard) — agrandi + couleur contrastée pour
+           *  bien voir la direction du regard. Triangle rouge avec outline
+           *  noir. Avant : fill skinFill (orangé clair → peu visible). */}
+          <polygon
+            points={`${pos.x},${pos.y - r * 1.0} ${pos.x - r * 0.18},${pos.y - r * 0.6} ${pos.x + r * 0.18},${pos.y - r * 0.6}`}
+            fill="#E24B4A"
+            stroke="#000000"
+            strokeWidth={1}
+            strokeLinejoin="round"
+          />
+        </g>
       </g>
-      <circle cx={pos.x} cy={pos.y} r={r} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+      
+      {/* ID/Numéro du joueur — placé sur la TÊTE, texte noir avec outline
+       *  blanc épais pour rester lisible sur skin clair ET cheveux foncés.
+       *  fontSize 8 pour ne pas dépasser le cercle de la tête (ry ≈ r*0.5). */}
       <text
         x={pos.x}
-        y={pos.y + 5}
+        y={pos.y - r * 0.05}
         textAnchor="middle"
-        fill="#FFFFFF"
-        fontSize={13}
-        fontWeight={500}
+        fill="#000000"
+        fontSize={8}
+        fontWeight={800}
         pointerEvents="none"
+        stroke="#FFFFFF"
+        strokeWidth={2}
+        style={{ paintOrder: 'stroke fill' }}
       >
         {id}
       </text>

@@ -1262,7 +1262,7 @@ export function resolveFrameAt(
   const nextMotionMemory = options.prevFrame
     ? buildDefenderMotionMemory(defPos, options.prevFrame, defenderIds, motionResult?.stats)
     : undefined;
-  recomputeDefenseFrameOrientations(state, off, carrier, defPos);
+  recomputeDefenseFrameOrientations(state, off, carrier, defPos, defA);
   profiler?.lap('rateLimiter');
 
   // ---------------------------------------------------------------------

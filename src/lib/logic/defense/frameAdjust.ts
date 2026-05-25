@@ -125,9 +125,11 @@ export function recomputeDefenseFrameOrientations(
   state: AppState,
   offAtStep: AttackerPositions,
   ballCarrier: AttackerId,
-  defPos: ComputedDefense
+  defPos: ComputedDefense,
+  prevPositions?: Record<string, Point>
 ): ComputedDefense {
   const ballPos = offAtStep[ballCarrier];
+  const hoop = getDefenseHoop(state);
   getActiveDefenderIds(state.playerCount).forEach((dId) => {
     const slot = defPos[dId];
     const rule = state.rules[dId];
@@ -145,6 +147,8 @@ export function recomputeDefenseFrameOrientations(
       manualBody: rule.bodyOrientation,
       bodyMode: rule.bodyOrientationMode,
       gazeLock: rule.gazeLock,
+      hoop,
+      prevPos: prevPositions?.[dId],
     });
     slot.orientation = recomputed.bodyOrientation;
     slot.gazeOrientation = recomputed.gazeOrientation;

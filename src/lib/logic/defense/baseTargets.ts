@@ -190,6 +190,8 @@ export function applyBaseTargetsLayer(
       manualBody: rule.bodyOrientation,
       bodyMode: rule.bodyOrientationMode,
       gazeLock: rule.gazeLock,
+      hoop,
+      prevPos: defenderRef,
     });
 
     const screenPhase = screen && effectiveScreenRule !== 'switch' && dId === screen.carrierDef

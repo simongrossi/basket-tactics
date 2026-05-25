@@ -97,14 +97,19 @@ function HalfCourt() {
         strokeWidth={LINE_WIDTH}
       />
 
-      {/* Backboard (planche) — petit trait horizontal */}
-      <line
-        x1={cx - BACKBOARD_HALF_WIDTH}
-        y1={BACKBOARD_Y}
-        x2={cx + BACKBOARD_HALF_WIDTH}
-        y2={BACKBOARD_Y}
+      {/* Backboard (planche) — rectangle plein 1.78 m × 16 cm (vue de dessus).
+       *  Avant : line strokeWidth=4 (trop fin, ne se voit pas). Rectangle de
+       *  6 px de hauteur = présence visuelle nette tout en respectant
+       *  l'échelle (la planche réelle a 16 cm de profondeur en vue de dessus). */}
+      <rect
+        x={cx - BACKBOARD_HALF_WIDTH}
+        y={BACKBOARD_Y - 3}
+        width={BACKBOARD_HALF_WIDTH * 2}
+        height={6}
+        fill={LINE_COLOR}
         stroke={LINE_COLOR}
-        strokeWidth={4}
+        strokeWidth={1}
+        rx={1}
       />
       {/* Petit segment qui rattache la planche au panier (rim mount) */}
       <line
@@ -281,7 +286,7 @@ export function ArrowMarkers() {
         markerHeight={8}
         orient="auto-start-reverse"
       >
-        <path d="M 0 0 L 10 5 L 0 10 z" fill="#5F5E5A" />
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#FBBF24" />
       </marker>
     </defs>
   );

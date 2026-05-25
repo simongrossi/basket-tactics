@@ -15,6 +15,7 @@ import type {
 } from '@/lib/types';
 import type { PlaybackFrame } from '@/lib/logic/playback/frameResolver';
 import { Player } from '../Player';
+import { hasShotOutcome } from '@/lib/logic/shotTracking';
 
 interface CourtPlayersLayerProps {
   state: AppState;
@@ -80,6 +81,8 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
               armBallSide={frame.attVisuals[id]?.armBallSide}
               armManSide={frame.attVisuals[id]?.armManSide}
               isScreening={frame.attackerIsScreening?.[id] === true}
+              isCarrier={id === frame.carrier}
+              isShooting={id === frame.carrier && hasShotOutcome(state.steps[frame.stepIdx])}
             />
           );
         })}
@@ -138,6 +141,8 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
             armBallSide={frame.attVisuals[id]?.armBallSide}
             armManSide={frame.attVisuals[id]?.armManSide}
             isScreening={frame.attackerIsScreening?.[id] === true}
+            isCarrier={id === frame.carrier}
+            isShooting={id === frame.carrier && hasShotOutcome(state.steps[frame.stepIdx])}
           />
         );
       })}

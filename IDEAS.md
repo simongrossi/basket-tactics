@@ -11,6 +11,28 @@ plus bas a été livrée depuis. Le pilier "Réalisme physique" (15 items)
 est aussi complet. Voir [ROADMAP.md § Réalisme physique](ROADMAP.md) +
 [CHANGELOG.md](CHANGELOG.md). Items qui restent réellement ouverts :
 
+### Sprite joueur (refonte Prop A livrée — V2 à venir)
+
+Refonte Player.tsx en silhouette anatomique livrée 2026-05-25 (cf
+CHANGELOG `[Unreleased]` § Player redesign). Pistes V2 :
+
+- ⚪ **Pose Shooter** (carrier qui shoote) — pour l'instant la pose
+  shooter existe dans le code mais peu testée visuellement.
+- ⚪ **Bras du porteur de balle quand il dribble** : actuellement
+  symétriques en L (garde). Une vraie pose dribble (bras qui descend
+  vers le ballon) reste à essayer si tu veux distinguer "garde
+  protectrice" vs "dribble actif".
+- ⚪ **Latéralité (gauche/droit)** : le sprite est toujours rendu en
+  miroir parfait. `state.attackerHands` (déjà en data) pourrait piloter
+  l'inversion droite/gauche pour les vrais gauchers.
+- ⚪ **Pose recovery post-shot** (suspension après tir) — pas encore
+  implémentée. Le tireur reviendrait visuellement à la stance après ~2
+  frames sans transition de suspension.
+- ⚪ **Test rendu Player.tsx visuel** (snapshot SVG) — `Player.test.tsx`
+  testait l'ancien design, mis à jour mais sans assertion visuelle.
+
+### UI / overlays
+
 - ⚪ **Branche C — Overlay debug EJE/EJO** (`EJEOverlay.tsx`) : pur UI,
   utile pour valider visuellement les calculs de spacing déjà livrés.
 - ⚪ **Numérotation des étapes sur le terrain** (cercles 1, 2, 3 sur les
@@ -19,16 +41,26 @@ est aussi complet. Voir [ROADMAP.md § Réalisme physique](ROADMAP.md) +
 - ⚪ **Annotations richer** : couleurs personnalisables (texte libre est
   déjà livré).
 - ⚪ **Tests rendu MultiTrackTimeline** (V2 du multi-pistes).
-- ⚪ **Anti-flicker détection écran (post-CVT)** — déjà *partiellement*
-  livré via `OFFBALL_SCREEN_HYSTERESIS_PX`, à vérifier si le cas
-  pré-CVT reste à traiter.
+
+### Templates & contenu
+
 - ⚪ **Plus de templates offensifs** : Iverson, Hammer, PNR aile/step-up,
   Princeton chin, Pistol, Stagger.
 
-Items "Réalisme déplacements / physique" non encore explorés mais qui
-pourraient l'être : anatomie par type d'action (poses driver/screener/
-passeur), fatigue/endurance, gaze tracking ballon pendant repli,
-recovery post-shot, anticipation IA défensive variable.
+### Réalisme déplacements / physique (futures pistes)
+
+- ⚪ **Anti-flicker détection écran (post-CVT)** — déjà *partiellement*
+  livré via `OFFBALL_SCREEN_HYSTERESIS_PX`, à vérifier si le cas
+  pré-CVT reste à traiter.
+- ⚪ **Fatigue / endurance** : un joueur qui a couru sur N steps précédents
+  → vitesse max réduite par décay exponentiel. Flag opt-in.
+- ⚪ **Gaze tracking ballon pendant repli défensif (V2 du chantier 5.2)** —
+  le défenseur tourne la tête vers le ballon en courant.
+- ⚪ **Recovery post-shot** : le tireur reste figé en posture de
+  suspension ~300ms avant de bouger.
+- ⚪ **Anticipation IA défensive variable** : modulation du délai de
+  réaction selon profil athlétique (footwork latency est aujourd'hui
+  fixe à 200 ms).
 
 ---
 

@@ -6,6 +6,54 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Player redesign — silhouette anatomique (Prop A) + calibration échelle
+
+Refonte visuelle des sprites joueurs : abandon du pictogramme cercle+arcs
+"Design F" au profit d'une silhouette anatomique (tête + épaules + bras
+ancrés + visière de regard). Toutes les dimensions calibrées sur l'échelle
+FIBA (PX_PER_M = 37).
+
+**Sprite Player.tsx (Prop A)** :
+- Tête (cercle + oreilles + cheveux + nez rouge directionnel), torse forme
+  trapézoïdale, col de maillot, bras avec mains visibles (cercles skin).
+- 4 poses contextuelles : idle (stance standard), driver (porteur — 2 bras
+  en L symétriques, garde), screener (bras croisés torse), shooter (à venir).
+- Envergure bras calibrée à `r * 1.4` (44.8 px = 1.21 m) — compromis entre
+  l'anatomie réelle (2.0 m) et la stylisation pictographique du torse (×1.4
+  uniforme avec le ballon).
+- Triangle de regard agrandi et passé en rouge `#E24B4A` avec outline noir
+  → direction du regard visible d'un coup d'œil.
+
+**Court.tsx — planche visible** : la planche (`backboard`) passe de
+`<line strokeWidth=4>` à `<rect height=6 rx=1>` plein. Largeur préservée
+à 66 px = 1.78 m (FIBA exact). Beaucoup plus présente visuellement.
+
+**Numéros joueurs** : texte noir fontSize 8 fontWeight 800 positionné sur
+la tête, outline blanc épais via `paint-order: stroke fill`. Lisible sur
+skin clair / cheveux foncés / torse coloré sans badge supplémentaire.
+
+**Annotations** : couleur "neutre" (cut + screen) passe de `#5F5E5A`
+(gris foncé, invisible sur fond marron) à `#FBBF24` (jaune ambre).
+Le marker `arrow-gray` suit. Annotations de couleur "ballon" (dribble
++ pass) restent en orange `#D85A30`.
+
+**Drag & pick** :
+- Zone cliquable sprite : `r * 1.4` (≈22 px) cohérent avec l'envergure.
+- `useCourtPointerHandlers.ts` : `findPlayerAt(pt)` en priorité (qui
+  retourne l'attaquant avant le défenseur quand un sprite chevauche son
+  homme). Résout le bug où le défenseur du porteur (rendu au-dessus dans
+  le SVG) interceptait le drag sur le porteur.
+
+**Mockup HTML standalone** : `public/demo-modern-players.html` (1446 l) —
+page de comparaison côte-à-côte des 4 designs (Actuel, A, B, C) qui a
+servi au choix de la Prop A.
+
+**Test ajouté** : `attackerPostures.test.ts` (156 l) couvre les rôles
+shooter / dribble / screener et la propagation de `prevPositions` pour
+le repli défensif via `recomputeDefenseFrameOrientations`.
+
+1813 / 1813 tests verts, tsc clean.
+
 ### Timeline multi-pistes désynchronisée — closure ROADMAP § 5.1
 
 Audit ciblé : la feature était déjà implémentée à 100 % (incrémentalement

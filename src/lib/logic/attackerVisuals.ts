@@ -12,6 +12,7 @@ import type {
 import { activeBallCarrier, activeDefenseInitial, activeOffense } from './players';
 import { computeAttackerOrientation, type AttackerRole } from './orientation';
 import { detectOffBallScreens, detectScreen } from './screens';
+import { hasShotOutcome } from './shotTracking';
 import { DRIBBLE_THRESHOLD_PX } from '../constants/gameplay';
 import {
   computeDefenseTargets,
@@ -75,7 +76,14 @@ export function computeAttackerVisuals(
     let screenTargetDefPos: Point | undefined;
 
     if (id === carrier) {
-      role = 'carrier';
+      if (hasShotOutcome(cur)) {
+        role = 'shooter';
+      } else {
+        role = 'carrier';
+      }
+    } else if (prev && activeBallCarrier(prev, state.playerCount) === id && hasShotOutcome(prev)) {
+      // Le tireur du step précédent est en phase de recovery post-tir
+      role = 'post-shot-recovery';
     } else if (prev && activeBallCarrier(prev, state.playerCount) === id && carrier !== id) {
       // L'ex-porteur regarde le receveur (transition de balle).
       role = 'passer';

@@ -284,7 +284,13 @@ export function useCourtPointerHandlers(
       }
 
       if (state.tool === 'move') {
-        const id = target?.getAttribute('data-id') as PlayerId | null;
+        // Picking : priorise findPlayerAt(pt) qui retourne l'ATTAQUANT en
+        // priorité quand un attaquant et un défenseur sont à portée du clic.
+        // Évite le bug où le défenseur (rendu au-dessus dans le SVG) intercepte
+        // le drag sur un attaquant superposé (sprite Prop A élargi). Fallback
+        // sur le data-id du SVG si proximity-pick ne trouve rien.
+        const id =
+          findPlayerAt(pt) ?? (target?.getAttribute('data-id') as PlayerId | null);
 
         // #4 — Sélection multiple (mode move uniquement, ne conflicte pas
         // avec le Shift+freehand des autres tools).

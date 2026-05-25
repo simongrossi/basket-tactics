@@ -22,6 +22,7 @@ import {
   getActiveDefenderIds,
   isActiveAttacker,
 } from '@/lib/logic/players';
+import { hasShotOutcome } from '@/lib/logic/shotTracking';
 
 interface StepThumbnailProps {
   state: AppState;
@@ -92,6 +93,8 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     facing={attVisuals[id]?.facing}
                     armBallSide={attVisuals[id]?.armBallSide}
                     armManSide={attVisuals[id]?.armManSide}
+                    isCarrier={id === carrier}
+                    isShooting={id === carrier && hasShotOutcome(step)}
                   />
                 ))}
               {showDefense &&
@@ -123,6 +126,9 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     facing={attVisuals[id]?.facing}
                     armBallSide={attVisuals[id]?.armBallSide}
                     armManSide={attVisuals[id]?.armManSide}
+                    isCarrier={id === carrier}
+                    isShooting={id === carrier && hasShotOutcome(step)}
+                    isScreening
                   />
                 ) : null
               )}
