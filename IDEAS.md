@@ -11,25 +11,27 @@ plus bas a été livrée depuis. Le pilier "Réalisme physique" (15 items)
 est aussi complet. Voir [ROADMAP.md § Réalisme physique](ROADMAP.md) +
 [CHANGELOG.md](CHANGELOG.md). Items qui restent réellement ouverts :
 
-### Sprite joueur (refonte Prop A livrée — V2 à venir)
+### Sprite joueur (refonte Prop A + V2 livrées)
 
 Refonte Player.tsx en silhouette anatomique livrée 2026-05-25 (cf
-CHANGELOG `[Unreleased]` § Player redesign). Pistes V2 :
+CHANGELOG `[Unreleased]` § Player redesign). **Sprite V2** livré
+2026-05-25 (cf CHANGELOG § Sprite V2) — 5 items :
+- ✅ **C** Latéralité (`attackerHands` consommé via `dominantHand` prop)
+- ✅ **B** Dribble actif vs garde (asymétrie pose quand
+  `isActivelyDribbling=true`)
+- ✅ **D** Recovery post-shot (pose follow-through 1 step)
+- ✅ **A** Page démo `/demo-arms-actions` étendue avec section LIVE
+  Player V2 (toggles pose + dominantHand + équipe, rendu aux 4 angles)
+- ✅ **E** 8 tests structurels DOM dans `Player.test.tsx`
 
-- ⚪ **Pose Shooter** (carrier qui shoote) — pour l'instant la pose
-  shooter existe dans le code mais peu testée visuellement.
-- ⚪ **Bras du porteur de balle quand il dribble** : actuellement
-  symétriques en L (garde). Une vraie pose dribble (bras qui descend
-  vers le ballon) reste à essayer si tu veux distinguer "garde
-  protectrice" vs "dribble actif".
-- ⚪ **Latéralité (gauche/droit)** : le sprite est toujours rendu en
-  miroir parfait. `state.attackerHands` (déjà en data) pourrait piloter
-  l'inversion droite/gauche pour les vrais gauchers.
-- ⚪ **Pose recovery post-shot** (suspension après tir) — pas encore
-  implémentée. Le tireur reviendrait visuellement à la stance après ~2
-  frames sans transition de suspension.
-- ⚪ **Test rendu Player.tsx visuel** (snapshot SVG) — `Player.test.tsx`
-  testait l'ancien design, mis à jour mais sans assertion visuelle.
+Pistes Sprite V3 (futures) :
+- ⚪ **Timing temporel recovery post-shot** : la pose dure 1 step entier
+  côté playbook (modèle discret). En mode match live (`gameLoop`,
+  `MatchReplay`), un timing ~300ms via `transitionStartedAtMs` serait
+  plus naturel. Hors scope V2.
+- ⚪ **Sprite stylistique alternatif** : envisager une variante simplifiée
+  (silhouette minimaliste pour mode "schéma tactique pur"). Toggle via
+  un setting.
 
 ### UI / overlays
 

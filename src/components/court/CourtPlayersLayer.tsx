@@ -83,6 +83,9 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
               isScreening={frame.attackerIsScreening?.[id] === true}
               isCarrier={id === frame.carrier}
               isShooting={id === frame.carrier && hasShotOutcome(state.steps[frame.stepIdx])}
+              dominantHand={state.attackerHands?.[id] ?? 'right'}
+              isActivelyDribbling={frame.attVisuals[id]?.isActivelyDribbling}
+              isPostShotRecovery={frame.attVisuals[id]?.isPostShotRecovery}
             />
           );
         })}
@@ -143,6 +146,9 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
             isScreening={frame.attackerIsScreening?.[id] === true}
             isCarrier={id === frame.carrier}
             isShooting={id === frame.carrier && hasShotOutcome(state.steps[frame.stepIdx])}
+            dominantHand={state.attackerHands?.[id] ?? 'right'}
+            isActivelyDribbling={frame.attVisuals[id]?.isActivelyDribbling}
+            isPostShotRecovery={frame.attVisuals[id]?.isPostShotRecovery}
           />
         );
       })}

@@ -793,6 +793,15 @@ export interface ComputedAttacker {
   facing: Point;
   armBallSide: Point;
   armManSide: Point;
+  /** Sprite V2 — porteur en dribble ACTIF (delta > DRIBBLE_THRESHOLD_PX entre
+   *  step précédent et courant AVEC annotation `dribble` présente). Permet de
+   *  distinguer une pose dribble dynamique (main qui descend vers le ballon)
+   *  d'une pose garde statique (2 bras en L). Cf. Player.tsx pose driver. */
+  isActivelyDribbling?: boolean;
+  /** Sprite V2 — ex-tireur du step précédent en phase de recovery
+   *  post-tir. Permet d'afficher une pose follow-through (2 bras tendus haut)
+   *  au step suivant le release. Détection : `role === 'post-shot-recovery'`. */
+  isPostShotRecovery?: boolean;
 }
 export type ComputedAttackerVisuals = Record<AttackerId, ComputedAttacker>;
 

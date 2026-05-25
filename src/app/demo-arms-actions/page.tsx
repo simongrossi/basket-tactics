@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Player } from '@/components/Player';
 
 /**
  * Page démo : silhouettes de bras par RÔLE D'ACTION (chantier B —
@@ -200,6 +201,8 @@ export default function DemoArmsActions() {
         </div>
       )}
 
+      <LivePlayerV2Section />
+
       <details style={{ marginTop: 24, fontSize: 12, color: '#64748b' }}>
         <summary style={{ cursor: 'pointer' }}>Coordonnées Bezier des tracés proposés (debug)</summary>
         <pre style={{ background: '#1e293b', color: '#e2e8f0', padding: 12, borderRadius: 6, overflow: 'auto' }}>
@@ -279,6 +282,109 @@ function PictogramExample({ angle, pose, fillTeam }: { angle: number; pose: ArmP
           />
         </g>
       </svg>
+    </div>
+  );
+}
+
+// ============================================================================
+// LIVE Player rendering — vrai composant Player.tsx (Sprite V2 chantier A)
+// ============================================================================
+
+type LivePose = 'idle' | 'driverGarde' | 'dribbleActif' | 'screener' | 'shooter' | 'postShot';
+
+const LIVE_POSES: { id: LivePose; label: string; props: Record<string, boolean> }[] = [
+  { id: 'idle', label: 'Idle (stance)', props: {} },
+  { id: 'driverGarde', label: 'Driver garde (porteur statique)', props: { isCarrier: true } },
+  { id: 'dribbleActif', label: 'Dribble actif', props: { isCarrier: true, isActivelyDribbling: true } },
+  { id: 'screener', label: 'Screener', props: { isScreening: true } },
+  { id: 'shooter', label: 'Shooter', props: { isCarrier: true, isShooting: true } },
+  { id: 'postShot', label: 'Post-shot recovery', props: { isPostShotRecovery: true } },
+];
+
+function LivePlayerV2Section() {
+  const [pose, setPose] = useState<LivePose>('shooter');
+  const [hand, setHand] = useState<'right' | 'left'>('right');
+  const [team, setTeam] = useState<'attack' | 'defense'>('attack');
+
+  const poseDef = LIVE_POSES.find((p) => p.id === pose)!;
+  const cx = 80;
+  const cy = 90;
+
+  return (
+    <div style={{ marginTop: 32, padding: 16, background: '#fff', border: '2px solid #16a34a', borderRadius: 8 }}>
+      <h2 style={{ margin: '0 0 8px 0', fontSize: 16 }}>
+        🧪 LIVE — Vrai sprite Player.tsx (Sprite V2)
+      </h2>
+      <p style={{ fontSize: 12, color: '#475569', margin: '0 0 12px 0', maxWidth: 900 }}>
+        Rend le vrai composant <code>&lt;Player&gt;</code> avec ses props réelles, aux 4 orientations.
+        Toggle <strong>pose</strong> et <strong>main dominante</strong> pour valider visuellement les
+        6 poses du chantier Sprite V2 (chantiers A, B, C, D).
+      </p>
+
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 12 }}>
+        <label style={{ fontSize: 12, color: '#334155' }}>
+          Pose :{' '}
+          <select
+            value={pose}
+            onChange={(e) => setPose(e.target.value as LivePose)}
+            style={{ padding: '4px 6px', fontSize: 12 }}
+          >
+            {LIVE_POSES.map((p) => (
+              <option key={p.id} value={p.id}>{p.label}</option>
+            ))}
+          </select>
+        </label>
+
+        <label style={{ fontSize: 12, color: '#334155' }}>
+          Main dominante :{' '}
+          <select
+            value={hand}
+            onChange={(e) => setHand(e.target.value as 'right' | 'left')}
+            style={{ padding: '4px 6px', fontSize: 12 }}
+          >
+            <option value="right">Droitier</option>
+            <option value="left">Gaucher</option>
+          </select>
+        </label>
+
+        <label style={{ fontSize: 12, color: '#334155' }}>
+          Équipe :{' '}
+          <select
+            value={team}
+            onChange={(e) => setTeam(e.target.value as 'attack' | 'defense')}
+            style={{ padding: '4px 6px', fontSize: 12 }}
+          >
+            <option value="attack">Attaque (orange)</option>
+            <option value="defense">Défense (bleu)</option>
+          </select>
+        </label>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+        {ANGLES.map((angle) => (
+          <div key={angle} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 10, color: '#94a3b8' }}>
+              {angle === 0 ? 'Panier N' : angle === 90 ? 'Panier E' : angle === 180 ? 'Panier S' : 'Panier O'} ({angle}°)
+            </span>
+            <svg
+              width={160}
+              height={180}
+              viewBox="0 0 160 180"
+              style={{ border: '1px solid #e2e8f0', borderRadius: 4, background: '#fafaf9' }}
+            >
+              <Player
+                id={team === 'attack' ? 'O1' : 'D1'}
+                pos={{ x: cx, y: cy }}
+                isAttacker={team === 'attack'}
+                orientation={angle}
+                gazeOrientation={angle}
+                dominantHand={hand}
+                {...poseDef.props}
+              />
+            </svg>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

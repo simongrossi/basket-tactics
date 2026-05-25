@@ -139,12 +139,24 @@ export function computeAttackerVisuals(
       manualBody: manualOverride?.body,
       manualGaze: manualOverride?.gaze,
     });
+    // Sprite V2 — flag "dribble actif" : porteur qui a bougé > DRIBBLE_THRESHOLD_PX
+    // AVEC annotation `dribble` (même gating que `hasDribbleAnn` ci-dessus pour
+    // éviter de confondre un drag manuel d'édition avec un dribble narratif).
+    let isActivelyDribbling = false;
+    if (role === 'carrier' && effectivePrevPos) {
+      const dx = attackerPos.x - effectivePrevPos.x;
+      const dy = attackerPos.y - effectivePrevPos.y;
+      isActivelyDribbling = Math.hypot(dx, dy) > DRIBBLE_THRESHOLD_PX;
+    }
+
     out[id] = {
       orientation: r.bodyOrientation,
       gazeOrientation: r.gazeOrientation,
       facing: r.facing,
       armBallSide: r.armBallSide,
       armManSide: r.armManSide,
+      isActivelyDribbling,
+      isPostShotRecovery: role === 'post-shot-recovery',
     };
   });
 

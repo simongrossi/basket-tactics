@@ -66,6 +66,19 @@ interface PlayerProps {
   isCarrier?: boolean;
   /** Vrai si le joueur est en train de tirer (shooter) */
   isShooting?: boolean;
+  /** Main dominante (latéralité). 'right' (défaut) = main shoot/dribble à
+   *  droite du sprite. 'left' = miroir x sur les poses asymétriques
+   *  (shooter + dribble actif). Les poses symétriques (idle, screener,
+   *  driver garde) ne sont pas affectées. */
+  dominantHand?: 'right' | 'left';
+  /** Sprite V2 — porteur en dribble ACTIF (a bougé > DRIBBLE_THRESHOLD_PX
+   *  avec annotation `dribble` présente). Quand true ET `isCarrier && !isShooting`,
+   *  affiche une pose asymétrique (1 bras qui descend vers le ballon +
+   *  1 stiff arm latéral). Sinon (porteur statique) : pose garde (2 bras en L). */
+  isActivelyDribbling?: boolean;
+  /** Sprite V2 — pose recovery post-shot (ex-tireur du step précédent).
+   *  2 bras tendus haut symétriques (follow-through). Dure 1 step entier. */
+  isPostShotRecovery?: boolean;
 }
 
 export function Player({
@@ -102,6 +115,9 @@ export function Player({
   isScreening,
   isCarrier,
   isShooting,
+  dominantHand,
+  isActivelyDribbling,
+  isPostShotRecovery,
 }: PlayerProps) {
   const fill = isAttacker ? '#D85A30' : '#378ADD';
 
@@ -147,6 +163,11 @@ export function Player({
   // Couleurs de peau et détails pour la proposition C
   const skinFill = '#FFE0B2';
   const hairFill = '#475569';
+
+  // Latéralité : sign appliqué aux x relatifs (offset depuis pos.x) sur les
+  // poses asymétriques (shooter, dribble actif). +1 = droitier (défaut),
+  // -1 = gaucher → main dominante miroir sur l'autre côté.
+  const handSign = dominantHand === 'left' ? -1 : 1;
 
   return (
     <g data-id={id} style={{ cursor: 'grab' }}>
@@ -211,11 +232,59 @@ export function Player({
                   />
                 </>
               );
+            } else if (isCarrier && !isShooting && isActivelyDribbling) {
+              // Posture Dribble ACTIF — asymétrie : main dominante descend
+              // vers le ballon (Bezier qui plonge devant le corps), main
+              // non-dominante en stiff arm horizontal latéral. handSign
+              // inverse les côtés pour gaucher.
+              const sDribble = handSign;  // côté main qui dribble
+              const sStiff = -handSign;   // côté stiff arm
+              return (
+                <>
+                  {/* Bras non-dominant (stiff arm latéral) */}
+                  <path
+                    d={`M ${pos.x + sStiff * r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + sStiff * r * 1.55} ${pos.y - r * 0.1} ${pos.x + sStiff * r * 1.7} ${pos.y + r * 0.0}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth + 2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d={`M ${pos.x + sStiff * r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + sStiff * r * 1.55} ${pos.y - r * 0.1} ${pos.x + sStiff * r * 1.7} ${pos.y + r * 0.0}`}
+                    fill="none"
+                    stroke={fill}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx={pos.x + sStiff * r * 1.7} cy={pos.y + r * 0.0} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+
+                  {/* Bras dominant (dribble bas) */}
+                  <path
+                    d={`M ${pos.x + sDribble * r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + sDribble * r * 1.1} ${pos.y + r * 0.7} ${pos.x + sDribble * r * 0.4} ${pos.y + r * 1.5}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth + 2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d={`M ${pos.x + sDribble * r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + sDribble * r * 1.1} ${pos.y + r * 0.7} ${pos.x + sDribble * r * 0.4} ${pos.y + r * 1.5}`}
+                    fill="none"
+                    stroke={fill}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx={pos.x + sDribble * r * 0.4} cy={pos.y + r * 1.5} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+                </>
+              );
             } else if (isCarrier && !isShooting) {
-              // Posture Dribbleur (Driver) — 2 bras symétriques en L (garde).
+              // Posture Dribbleur statique (garde) — 2 bras symétriques en L.
               // Humérus horizontal vers l'extérieur + avant-bras vertical qui
-              // POINTE VERS L'AVANT (vers le panier). Mêmes coords pour gauche
-              // et droite (juste miroir x).
+              // POINTE VERS L'AVANT (vers le panier). Mêmes coords gauche/droite
+              // (symétrique, pas affecté par handSign).
               return (
                 <>
                   {/* Bras gauche en L (angle droit) */}
@@ -258,12 +327,16 @@ export function Player({
                 </>
               );
             } else if (isShooting) {
-              // Posture Tireur (Shooter)
+              // Posture Tireur (Shooter). Asymétrie : main dominante = bras
+              // shoot vertical, main non-dominante = guide hand devant la
+              // joue. handSign inverse les côtés gauche/droite pour gaucher.
+              const sShoot = handSign; // côté de la main qui shoote
+              const sGuide = -handSign; // côté de la main guide
               return (
                 <>
-                  {/* Bras gauche guide */}
+                  {/* Bras non-dominant (guide) */}
                   <path
-                    d={`M ${pos.x - r * 1.0625} ${pos.y - r * 0.1875} L ${pos.x - r * 0.875} ${pos.y - r * 0.9375} L ${pos.x - r * 0.375} ${pos.y - r * 1.4375}`}
+                    d={`M ${pos.x + sGuide * r * 1.0625} ${pos.y - r * 0.1875} L ${pos.x + sGuide * r * 0.875} ${pos.y - r * 0.9375} L ${pos.x + sGuide * r * 0.375} ${pos.y - r * 1.4375}`}
                     fill="none"
                     stroke={stroke}
                     strokeWidth={strokeWidth + 2.5}
@@ -271,18 +344,18 @@ export function Player({
                     strokeLinejoin="round"
                   />
                   <path
-                    d={`M ${pos.x - r * 1.0625} ${pos.y - r * 0.1875} L ${pos.x - r * 0.875} ${pos.y - r * 0.9375} L ${pos.x - r * 0.375} ${pos.y - r * 1.4375}`}
+                    d={`M ${pos.x + sGuide * r * 1.0625} ${pos.y - r * 0.1875} L ${pos.x + sGuide * r * 0.875} ${pos.y - r * 0.9375} L ${pos.x + sGuide * r * 0.375} ${pos.y - r * 1.4375}`}
                     fill="none"
                     stroke={fill}
                     strokeWidth={strokeWidth}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
-                  <circle cx={pos.x - r * 0.375} cy={pos.y - r * 1.4375} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+                  <circle cx={pos.x + sGuide * r * 0.375} cy={pos.y - r * 1.4375} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
 
-                  {/* Bras droit shoot */}
+                  {/* Bras dominant (shoot) */}
                   <path
-                    d={`M ${pos.x + r * 1.0625} ${pos.y - r * 0.1875} L ${pos.x + r * 1.25} ${pos.y - r * 1.1875} L ${pos.x + r * 0.75} ${pos.y - r * 1.8125}`}
+                    d={`M ${pos.x + sShoot * r * 1.0625} ${pos.y - r * 0.1875} L ${pos.x + sShoot * r * 1.25} ${pos.y - r * 1.1875} L ${pos.x + sShoot * r * 0.75} ${pos.y - r * 1.8125}`}
                     fill="none"
                     stroke={stroke}
                     strokeWidth={strokeWidth + 2.5}
@@ -290,14 +363,61 @@ export function Player({
                     strokeLinejoin="round"
                   />
                   <path
-                    d={`M ${pos.x + r * 1.0625} ${pos.y - r * 0.1875} L ${pos.x + r * 1.25} ${pos.y - r * 1.1875} L ${pos.x + r * 0.75} ${pos.y - r * 1.8125}`}
+                    d={`M ${pos.x + sShoot * r * 1.0625} ${pos.y - r * 0.1875} L ${pos.x + sShoot * r * 1.25} ${pos.y - r * 1.1875} L ${pos.x + sShoot * r * 0.75} ${pos.y - r * 1.8125}`}
                     fill="none"
                     stroke={fill}
                     strokeWidth={strokeWidth}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
-                  <circle cx={pos.x + r * 0.75} cy={pos.y - r * 1.8125} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+                  <circle cx={pos.x + sShoot * r * 0.75} cy={pos.y - r * 1.8125} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+                </>
+              );
+            } else if (isPostShotRecovery) {
+              // Posture Recovery post-shot — follow-through.
+              // 2 bras symétriques tendus haut (mains qui convergent au-dessus
+              // de la tête, posture de suspension après release). Pas affecté
+              // par handSign (symétrique). Dure 1 step entier (l'ex-tireur du
+              // step précédent affiche cette pose au step courant).
+              return (
+                <>
+                  {/* Bras gauche tendu haut */}
+                  <path
+                    d={`M ${pos.x - r * 1.0625} ${pos.y - r * 0.1875} L ${pos.x - r * 0.7} ${pos.y - r * 0.9} L ${pos.x - r * 0.4} ${pos.y - r * 1.7}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth + 2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d={`M ${pos.x - r * 1.0625} ${pos.y - r * 0.1875} L ${pos.x - r * 0.7} ${pos.y - r * 0.9} L ${pos.x - r * 0.4} ${pos.y - r * 1.7}`}
+                    fill="none"
+                    stroke={fill}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx={pos.x - r * 0.4} cy={pos.y - r * 1.7} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+
+                  {/* Bras droit tendu haut — miroir du gauche */}
+                  <path
+                    d={`M ${pos.x + r * 1.0625} ${pos.y - r * 0.1875} L ${pos.x + r * 0.7} ${pos.y - r * 0.9} L ${pos.x + r * 0.4} ${pos.y - r * 1.7}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth + 2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d={`M ${pos.x + r * 1.0625} ${pos.y - r * 0.1875} L ${pos.x + r * 0.7} ${pos.y - r * 0.9} L ${pos.x + r * 0.4} ${pos.y - r * 1.7}`}
+                    fill="none"
+                    stroke={fill}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx={pos.x + r * 0.4} cy={pos.y - r * 1.7} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
                 </>
               );
             } else {

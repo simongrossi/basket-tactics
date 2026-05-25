@@ -6,6 +6,58 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Sprite V2 — 5 items livrés (latéralité, dribble actif, post-shot, démo live, tests)
+
+Suite à la refonte sprite Prop A (commit `315ff05`), enchaînement des
+5 items "V2" documentés dans IDEAS.md :
+
+**C — Latéralité (`dominantHand`)** : `state.attackerHands` (champ
+orphelin jusqu'ici, défini dans `initial.ts:107` et `types/index.ts:24-25`,
+editable via le menu contextuel attaquant) est maintenant **consommé
+visuellement**. Ajout d'une prop `dominantHand?: 'right' | 'left'` à
+`Player.tsx`. Helper `handSign` (+1 droitier / -1 gaucher) appliqué aux
+coordonnées x relatives à `pos.x` sur les poses asymétriques (shooter,
+dribble actif). Les poses symétriques (idle, screener, driver garde,
+post-shot) ne sont pas affectées. Plumbing via `CourtPlayersLayer.tsx`
++ `StepThumbnail.tsx`.
+
+**B — Dribble actif vs garde statique** : nouveau champ
+`isActivelyDribbling?: boolean` sur `ComputedAttacker`. Calculé dans
+`attackerVisuals.ts` avec le gating `hasDribbleAnn` (réutilise le pattern
+de `effectivePrevPos` lignes 117-128) ET delta > `DRIBBLE_THRESHOLD_PX`.
+Évite de confondre un drag manuel d'édition avec un dribble narratif
+(bug fixé pour orientation dans `f0629d4`). Nouvelle pose driver
+asymétrique : main dominante descend en Bezier vers le ballon
+(`y + r * 1.5`), main non-dominante en stiff arm horizontal latéral.
+Pose garde statique (2 bras en L) conservée pour porteurs statiques.
+
+**D — Recovery post-shot** : nouveau champ
+`isPostShotRecovery?: boolean` sur `ComputedAttacker`. Détection déjà
+câblée dans `attackerVisuals.ts:84-86` (ex-porteur ET `shotOutcome`
+sur step précédent → `role = 'post-shot-recovery'`). Nouvelle pose
+"follow-through suspension" — 2 bras tendus haut symétriques convergent
+au-dessus de la tête (mains à `y - r * 1.7`). Dure 1 step entier
+(cohérent avec le modèle discret par step ; timing temporel ~300ms en
+mode match live reste hors scope V2).
+
+**A — Raffinement shooter via démo** : page `/demo-arms-actions`
+étendue avec une section **LIVE Player V2** qui rend le vrai composant
+`<Player>` aux 4 orientations (N/E/S/O). Toggles interactifs : pose
+(6 options : idle, driver garde, dribble actif, screener, shooter,
+post-shot), main dominante (droitier/gaucher), équipe (attaque/défense).
+Validation visuelle : la pose shooter reste cohérente aux 4 angles, le
+bras dominant suit la rotation du body. Pas d'ajustement géométrique
+nécessaire.
+
+**E — Tests structurels** : 8 nouveaux tests dans `Player.test.tsx`
+(format DOM querySelector, pas `toMatchSnapshot`). Couvre : idle,
+driver garde, dribble actif, screener, shooter, post-shot recovery,
+latéralité shooter, latéralité dribble. Sélecteurs ciblés sur
+`circle[fill="#FFE0B2"]` (mains skin) et leurs coordonnées (cx/cy)
+relatives à `pos`. Tests résistants à des ajustements de ratios mineurs.
+
+1821 / 1821 tests verts, tsc clean.
+
 ### Player redesign — silhouette anatomique (Prop A) + calibration échelle
 
 Refonte visuelle des sprites joueurs : abandon du pictogramme cercle+arcs

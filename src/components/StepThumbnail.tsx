@@ -95,6 +95,9 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     armManSide={attVisuals[id]?.armManSide}
                     isCarrier={id === carrier}
                     isShooting={id === carrier && hasShotOutcome(step)}
+                    dominantHand={state.attackerHands?.[id] ?? 'right'}
+                    isActivelyDribbling={attVisuals[id]?.isActivelyDribbling}
+                    isPostShotRecovery={attVisuals[id]?.isPostShotRecovery}
                   />
                 ))}
               {showDefense &&
@@ -129,6 +132,9 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     isCarrier={id === carrier}
                     isShooting={id === carrier && hasShotOutcome(step)}
                     isScreening
+                    dominantHand={state.attackerHands?.[id] ?? 'right'}
+                    isActivelyDribbling={attVisuals[id]?.isActivelyDribbling}
+                    isPostShotRecovery={attVisuals[id]?.isPostShotRecovery}
                   />
                 ) : null
               )}
