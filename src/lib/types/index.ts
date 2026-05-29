@@ -427,22 +427,52 @@ export type ScriptedAction = OffensiveScriptedAction | DefensiveScriptedAction;
  * point de divergence.
  */
 /**
- * Déclencheur de lecture (read-based offense, Phase L) — quelle couverture
- * défensive active automatiquement une branche. Quand `ScenarioBranch.trigger`
- * est défini, la branche est sélectionnée par le moteur en lisant la couverture
- * jouée au moment où l'écran est utilisé, au lieu d'un choix manuel.
- *
- * V1 : seule la couverture d'un écran porteur (PnR / side PnR) est lue.
+ * Origine de l'aide défensive sur un drive (read-based offense, Phase L.3).
+ * Classée relativement au ballon et au panier :
+ *  - `weak`   : l'aide vient du côté FAIBLE (opposé au ballon) → skip pass.
+ *  - `strong` : l'aide vient du côté FORT (même côté que le ballon) → kick.
+ *  - `low`    : l'aide vient de l'INTÉRIEUR (près du panier, low-man) → dump
+ *               au roller / dunker.
  */
-export interface ReadTrigger {
+export type HelpSource = 'weak' | 'strong' | 'low';
+
+/**
+ * Déclencheur de lecture (read-based offense, Phase L) — quelle réaction
+ * défensive active automatiquement une branche. Quand `ScenarioBranch.trigger`
+ * est défini, la branche est sélectionnée par le moteur en lisant la défense
+ * jouée au point de divergence, au lieu d'un choix manuel.
+ *
+ * Union discriminée par `kind` :
+ *  - `screen-coverage` (L.1) : couverture d'un écran porteur (PnR / side PnR).
+ *  - `help-source` (L.3) : origine de l'aide sur un drive (drive-and-kick).
+ *  - `deny` (L.3) : le défenseur du receveur refuse la ligne de passe (backdoor).
+ */
+export interface ScreenCoverageTrigger {
   kind: 'screen-coverage';
   /** Action-écran dont on lit la couverture. = `ScenarioBranch.divergeAfterActionId`. */
   actionId: string;
-  /** Couverture(s) effective(s) qui activent la branche. La couverture résolue
-   *  est un `ScreenRule` (la règle réellement jouée, override par défenseur ou
-   *  globale). */
+  /** Couverture(s) effective(s) qui activent la branche (`ScreenRule` réellement
+   *  joué : override par défenseur ou globale). */
   coverage: ScreenRule[];
 }
+
+export interface HelpSourceTrigger {
+  kind: 'help-source';
+  /** Action de drive dont on lit l'aide. */
+  actionId: string;
+  /** Origine(s) d'aide qui activent la branche. */
+  source: HelpSource[];
+}
+
+export interface DenyTrigger {
+  kind: 'deny';
+  /** Action (passe/cut) au terme de laquelle on lit le deny. */
+  actionId: string;
+  /** Receveur dont on inspecte le défenseur (denying → backdoor). */
+  receiver: AttackerId;
+}
+
+export type ReadTrigger = ScreenCoverageTrigger | HelpSourceTrigger | DenyTrigger;
 
 export interface ScenarioBranch {
   id: string;

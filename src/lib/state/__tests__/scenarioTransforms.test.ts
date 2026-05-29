@@ -124,6 +124,7 @@ describe('scenarioTransforms — branches', () => {
       trigger: { kind: 'screen-coverage', actionId: 'root', coverage: ['drop'] },
     };
     const s1 = scTx.addScenarioBranch(s0, reactive);
-    expect(s1.scenarioBranches?.[0].trigger?.coverage).toEqual(['drop']);
+    const t = s1.scenarioBranches?.[0].trigger;
+    expect(t?.kind === 'screen-coverage' && t.coverage).toEqual(['drop']);
   });
 });

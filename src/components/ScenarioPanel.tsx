@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import type {
   AttackerId, ScriptedAction, OffensiveScriptedAction, ActionSide, DriveDirection,
   DefensiveActionType, DefensiveActionParams, DefensiveScriptedAction, PlayerCount,
-  ScenarioBranch,
+  ScenarioBranch, ReadTrigger,
 } from '@/lib/types';
 import { getActiveAttackerIds, getActiveDefenderIds } from '@/lib/logic/players';
 import {
@@ -19,7 +19,7 @@ import {
 } from '@/lib/data/defensiveActionsCatalog';
 import type { ZoneRef } from '@/lib/data/courtZones';
 import { newScriptedActionId } from '@/lib/logic/compileScenario';
-import { buildCanonicalReadBranches } from '@/lib/data/readLibrary';
+import { buildCanonicalReadBranches, buildDriveKickReads, buildBackdoorReads } from '@/lib/data/readLibrary';
 import { ZoneSelect, ZonePickerModal } from './ZonePicker';
 import { inferDefensiveDefaults } from '@/lib/logic/defensiveDefaults';
 import { AddCoverageModal } from './AddCoverageModal';
@@ -143,25 +143,38 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
     props.onUpdateBranch(b.id, { ...b, label });
   };
 
-  // Une action-écran est éligible aux lectures canoniques si elle a un porteur
-  // ET un poseur renseignés (cf. readLibrary.buildCanonicalReadBranches).
+  // Une action est éligible aux lectures auto si on sait en lire la défense :
+  //  - écran porteur (porteur + poseur) → lectures de couverture PnR
+  //  - drive / iso (pénétrant) → lectures drive-and-kick (origine d'aide)
+  //  - passe / kick-out / give-and-go (receveur) → lecture backdoor (deny)
   const isReadEligible = (a: OffensiveScriptedAction) =>
-    !!a.params.ballHandler && !!a.params.screener;
+    (!!a.params.ballHandler && !!a.params.screener) ||
+    !!a.params.driver ||
+    !!a.params.to ||
+    !!a.params.receiver;
 
-  const handleInsertCanonicalReads = (action: OffensiveScriptedAction) => {
-    // Côté faible = un attaquant ≠ porteur ≠ poseur, pour le skip post-blitz.
-    const weakSideId = attackerIds.find(
-      (id) => id !== action.params.ballHandler && id !== action.params.screener,
+  const handleInsertReads = (action: OffensiveScriptedAction) => {
+    const candidates: ScenarioBranch[] = [];
+    if (action.params.ballHandler && action.params.screener) {
+      const weakSideId = attackerIds.find(
+        (id) => id !== action.params.ballHandler && id !== action.params.screener,
+      );
+      candidates.push(...buildCanonicalReadBranches(action, { weakSideId }, newScriptedActionId));
+    }
+    if (action.params.driver) {
+      candidates.push(
+        ...buildDriveKickReads(action, { attackers: attackerIds }, newScriptedActionId),
+      );
+    }
+    if (action.params.to || action.params.receiver) {
+      candidates.push(...buildBackdoorReads(action, newScriptedActionId));
+    }
+    // Dedup par signature de déclencheur pour ne pas réinsérer une lecture déjà
+    // présente sur cette action.
+    const existing = new Set(
+      props.scenarioBranches.map(branchTriggerSig).filter((s): s is string => s !== null),
     );
-    const branches = buildCanonicalReadBranches(action, { weakSideId }, newScriptedActionId);
-    // Évite les doublons : ne pas réinsérer une couverture déjà couverte pour
-    // cette action.
-    const already = new Set(
-      props.scenarioBranches
-        .filter((b) => b.trigger?.actionId === action.id)
-        .flatMap((b) => b.trigger!.coverage),
-    );
-    const fresh = branches.filter((b) => !b.trigger!.coverage.some((c) => already.has(c)));
+    const fresh = candidates.filter((b) => !existing.has(branchTriggerSig(b)!));
     if (fresh.length === 0) {
       window.alert('Les lectures standard de cette action sont déjà présentes.');
       return;
@@ -197,7 +210,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
               active={activeBranch?.id === b.id}
               autoActive={!activeBranch && props.resolvedReadBranchId === b.id}
               label={b.label}
-              coverage={b.trigger?.coverage}
+              chips={triggerChips(b.trigger)}
               onClick={() => props.onSetActiveBranch(b.id)}
               onRename={() => handleRenameBranch(b)}
               onDelete={() => {
@@ -215,7 +228,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
       {!activeBranch && props.resolvedReadBranchId && (() => {
         const read = props.scenarioBranches.find((b) => b.id === props.resolvedReadBranchId);
         if (!read) return null;
-        const cov = read.trigger?.coverage.join(' / ').toUpperCase();
+        const cov = triggerChips(read.trigger).join(' / ').toUpperCase();
         return (
           <div style={{
             fontSize: 11,
@@ -226,7 +239,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
             padding: '6px 8px',
           }}>
             🤖 Lecture auto : <strong>{read.label}</strong>
-            {cov ? <> — couverture lue : <strong>{cov}</strong></> : null}
+            {cov ? <> — déclencheur : <strong>{cov}</strong></> : null}
             <div style={{ color: '#a7f3d0', marginTop: 2 }}>
               L'offense s'adapte à la défense. Change la couverture défensive pour
               voir la lecture basculer.
@@ -294,13 +307,13 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
               <span style={{ fontSize: 11, color: '#9ca3af' }}>{isExpanded ? '▲' : '▼'}</span>
               {!activeBranch && isReadEligible(action) && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleInsertCanonicalReads(action); }}
+                  onClick={(e) => { e.stopPropagation(); handleInsertReads(action); }}
                   style={{
                     border: '1px solid #6ee7b7', background: '#0f2a22', cursor: 'pointer',
                     fontSize: 10, color: '#6ee7b7', padding: '2px 6px', borderRadius: 3,
                     fontWeight: 600,
                   }}
-                  title="Insérer les lectures standard selon la couverture défensive (drop, hedge, blitz, switch, ice, over, under)"
+                  title="Insérer les lectures standard selon la défense lue (couverture PnR, origine d'aide sur drive, ou deny → backdoor)"
                 >🤖 lectures auto</button>
               )}
               {!activeBranch && (
@@ -817,18 +830,39 @@ function defaultParamsFor(def: ScriptedActionDefinition): OffensiveScriptedActio
   return params;
 }
 
+/** Signature unique d'un déclencheur de lecture (dedup d'insertion). */
+function branchTriggerSig(b: ScenarioBranch): string | null {
+  const t = b.trigger;
+  if (!t) return null;
+  switch (t.kind) {
+    case 'screen-coverage': return `sc:${t.actionId}:${t.coverage.join('|')}`;
+    case 'help-source': return `hs:${t.actionId}:${t.source.join('|')}`;
+    case 'deny': return `deny:${t.actionId}:${t.receiver}`;
+  }
+}
+
+/** Puces courtes décrivant la condition d'un déclencheur (UI). */
+function triggerChips(t?: ReadTrigger): string[] {
+  if (!t) return [];
+  switch (t.kind) {
+    case 'screen-coverage': return t.coverage;
+    case 'help-source': return t.source.map((s) => `aide ${s}`);
+    case 'deny': return [`deny ${t.receiver}`];
+  }
+}
+
 function BranchTab({
-  active, autoActive, label, coverage, onClick, onRename, onDelete,
+  active, autoActive, label, chips, onClick, onRename, onDelete,
 }: {
   active: boolean;
   autoActive?: boolean;
   label: string;
-  coverage?: string[];
+  chips?: string[];
   onClick: () => void;
   onRename?: () => void;
   onDelete?: () => void;
 }) {
-  const isReactive = !!coverage && coverage.length > 0;
+  const isReactive = !!chips && chips.length > 0;
   // Une branche réactive auto-activée : anneau vert pointillé. Sélection
   // manuelle : fond orange plein. Réactive non active : liseré vert.
   const border = active
@@ -858,7 +892,7 @@ function BranchTab({
         userSelect: 'none',
       }}
       title={isReactive
-        ? `Lecture réactive (couverture : ${coverage!.join(', ')}). Clic = épingler manuellement.`
+        ? `Lecture réactive (${chips!.join(', ')}). Clic = épingler manuellement.`
         : (onRename ? 'Double-clic pour renommer' : undefined)}
     >
       {isReactive && <span style={{ fontSize: 9 }}>🤖</span>}

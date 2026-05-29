@@ -10,8 +10,9 @@
 // Priorité : un choix MANUEL (`activeBranchId`) prime toujours sur la
 // résolution automatique. Les branches sans `trigger` (V1) sont ignorées ici.
 
-import type { AppState, ScenarioBranch, Step } from '../../types';
+import type { AppState, ReadTrigger, ScenarioBranch, Step } from '../../types';
 import { resolveScreenCoverage } from './resolveCoverage';
+import { resolveHelpSource, resolveDeny } from './resolveHelp';
 
 /** Index du dernier step généré par `actionId` (= moment d'usage de l'écran),
  *  ou -1 si l'action n'a produit aucun step dans la liste courante. */
@@ -41,11 +42,26 @@ export function selectReactiveBranch(state: AppState): { branch: ScenarioBranch 
     if (!b.trigger) continue;
     const readStepIdx = lastStepIndexGeneratedBy(state.steps, b.trigger.actionId);
     if (readStepIdx < 0) continue;
-    const coverage = resolveScreenCoverage(state, readStepIdx);
-    if (coverage && b.trigger.coverage.includes(coverage)) {
+    if (triggerFires(state, readStepIdx, b.trigger)) {
       return { branch: b };
     }
   }
 
   return { branch: null };
+}
+
+/** Évalue si un déclencheur de lecture s'active au step donné. */
+function triggerFires(state: AppState, stepIdx: number, trigger: ReadTrigger): boolean {
+  switch (trigger.kind) {
+    case 'screen-coverage': {
+      const coverage = resolveScreenCoverage(state, stepIdx);
+      return coverage !== null && trigger.coverage.includes(coverage);
+    }
+    case 'help-source': {
+      const source = resolveHelpSource(state, stepIdx);
+      return source !== null && trigger.source.includes(source);
+    }
+    case 'deny':
+      return resolveDeny(state, stepIdx, trigger.receiver);
+  }
 }

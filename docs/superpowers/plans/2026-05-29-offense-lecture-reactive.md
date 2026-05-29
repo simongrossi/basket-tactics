@@ -119,13 +119,31 @@ toggler la défense, voir l'offense se relire + badge explicite.
 
 ---
 
-## Phase L.3 — Extensions (futur, hors V1)
+## Phase L.3 — Lectures hors PnR ✅ LIVRÉ 2026-05-29
 
-- **Lectures hors PnR** : drive-and-kick (aide corner → skip ; aide nail →
-  drop-off), backdoor sur deny. Nécessite un `ReadTrigger.kind: 'help-source'`
-  / `'deny'` et une détection d'origine d'aide.
+> `ReadTrigger` devient une union discriminée : `screen-coverage` (L.1) +
+> `help-source` (drive-and-kick) + `deny` (backdoor).
+
+- **Drive-and-kick** (`help-source`) : `resolveHelpSource` lit l'aidant le plus
+  engagé (`helpTriggered`, helpFactor max, hors carrierDef) et classe l'origine
+  via `classifyHelpOrigin` (pur) : `low` (homme libéré près du panier) /
+  `strong` (même côté ballon) / `weak` (côté opposé → skip).
+  `buildDriveKickReads` → une branche par origine (kick/skip/dump + tir).
+- **Backdoor** (`deny`) : `resolveDeny` lit `denying` sur le défenseur du
+  receveur. `buildBackdoorReads` → backdoor-cut si deny.
+- `selectReactiveBranch` dispatche sur `trigger.kind` (`triggerFires`).
+- UI `ScenarioPanel` : bouton « lectures auto » contextuel (écran / drive /
+  passe), puces de déclencheur génériques (`triggerChips`), dedup par
+  signature de trigger (`branchTriggerSig`).
+- +16 tests (classifier 4, garde-fous résolveurs 6, drive-kick 4, backdoor 2).
+  Suite complète verte (1864).
+
+### Restant (hors L.3)
 - **Arbres multi-niveaux** (sous-branches).
 - **Lecture probabiliste** (défense joue drop 70 % / blitz 30 %).
+- **Receveur dynamique** : le drive-and-kick sert un receveur fixé (fallback
+  déterministe, ajustable par le coach) plutôt que l'homme libéré résolu en
+  direct — évolution possible si on injecte l'id résolu dans les actions.
 
 ---
 

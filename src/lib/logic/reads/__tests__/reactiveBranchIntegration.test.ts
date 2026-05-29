@@ -47,7 +47,9 @@ function makeBaseState(screenRule: ScreenRule): AppState {
 }
 
 function branchIdFor(state: AppState, coverage: ScreenRule): string {
-  const b = (state.scenarioBranches ?? []).find((x) => x.trigger?.coverage[0] === coverage);
+  const b = (state.scenarioBranches ?? []).find(
+    (x) => x.trigger?.kind === 'screen-coverage' && x.trigger.coverage[0] === coverage,
+  );
   if (!b) throw new Error(`pas de branche ${coverage}`);
   return b.id;
 }
