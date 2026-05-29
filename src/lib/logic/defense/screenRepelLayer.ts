@@ -25,7 +25,8 @@
 //   poseur, ex: low-man tag du roller).
 //
 // Cap dur `SCREEN_REPEL_LAYER_MAX_SHIFT_PX = 3 px` — sous le bruit
-// visuel. Opt-in via `state.useSteeringEngine`.
+// visuel. Tourne inconditionnellement sur les défenseurs périphériques
+// (filtres skip ci-dessus) — il n'y a pas de flag global.
 
 import type { DefenderId, Matchups, Point } from '../../types';
 import { STEERING_SCREEN_REPEL_WEIGHT } from '../../data/physics';

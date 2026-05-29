@@ -149,7 +149,9 @@ export function offBallStanceTarget(
 //
 // Émetteurs `SteeringForce[]` consommables via `composeTarget(defenderPos, forces)`.
 //
-// Stratégie de migration : double-sortie sous flag `state.useSteeringEngine`.
+// Note : un flag `state.useSteeringEngine` avait été envisagé pour une
+// double-sortie progressive ; il n'a jamais été câblé — les émetteurs tournent
+// inconditionnellement (bit-équivalents au legacy par construction).
 //
 // Sous-étape 1.1 (livré) : un unique `seek` à poids = distance,
 // bit-équivalent au legacy.

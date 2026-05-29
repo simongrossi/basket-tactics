@@ -6,6 +6,85 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Offense en lecture réactive (read-based offense) — Phase L complète (2026-05-29)
+
+Saut « tableau animé » → « simulateur tactique » : l'offense **lit la défense
+jouée** et choisit automatiquement sa continuation, au lieu d'une séquence
+figée. Réutilise et relie deux briques existantes (système de branches
+`ScenarioBranch` + couverture défensive `OnScreenNav` / flags `helpTriggered`
+/ `denying`). Le choix manuel (`activeBranchId`) prime toujours.
+
+**Modèle (`src/lib/types`)** : `ReadTrigger` = union discriminée
+`screen-coverage | help-source | deny` ; `ScenarioBranch.trigger?` (réactive si
+défini, sinon manuelle V1) ; `AppState.resolvedReadBranchId?` (transient, badge).
+
+**Noyau pur (`src/lib/logic/reads/`)** :
+- `resolveScreenCoverage` — couverture effective d'un écran porteur, lue via
+  `buildDefenseFrameContext` (parité par construction avec le pipeline rendu).
+- `resolveHelpSource` + `classifyHelpOrigin` (pur) — origine de l'aide sur un
+  drive : `low` (homme libéré près du panier) / `strong` (même côté ballon) /
+  `weak` (côté opposé → skip).
+- `resolveDeny` — le défenseur du receveur refuse la ligne de passe (backdoor).
+- `selectReactiveBranch` — dispatch sur `trigger.kind` ; lit le step d'usage
+  (dernier `generatedBy` de l'action) sans recompiler (stable car pré-divergence).
+
+**Bibliothèque de lectures (`src/lib/data/readLibrary.ts`)** :
+- `buildCanonicalReadBranches` (PnR) : 7 lectures drop/under/over/hedge/switch/
+  ice/blitz (floater, pull-up 3, snake, re-screen, iso mismatch, reject, short
+  roll + skip).
+- `buildDriveKickReads` (drive) : 1 branche par origine d'aide (kick/skip/dump).
+- `buildBackdoorReads` (passe) : deny → backdoor-cut.
+
+**Câblage** : `recompileScenarioSteps` (transforms/shared) utilise
+`selectReactiveBranch` + pose `resolvedReadBranchId`. `addScenarioBranch(es)`
+recompile si la branche a un `trigger`.
+
+**UI (`ScenarioPanel`)** : bouton « 🤖 lectures auto » contextuel (écran / drive
+/ passe) qui insère les branches canoniques (dedup par signature) ; onglets de
+branche réactive marqués 🤖 + puce de couverture ; badge « 🤖 Lecture auto :
+… — déclencheur : X ».
+
+Rétrocompat stricte : branches sans `trigger` inchangées, golden snapshots
+verts. Spec + plan détaillés :
+[specs](docs/superpowers/specs/2026-05-29-offense-lecture-reactive-design.md) ·
+[plan](docs/superpowers/plans/2026-05-29-offense-lecture-reactive.md).
+~80 tests (resolveCoverage, resolveHelp, selectReactiveBranch, readLibrary,
+intégration recompile).
+
+### Dette moteur — refactos behavior-preserving (2026-05-29)
+
+- **DM.1 — Constantes défensives centralisées** : nouveau
+  `src/lib/logic/defense/constants.ts` (15 constantes de tuning, noms préfixés
+  par couche, groupées + documentées « slider-ready »). Chaque couche importe
+  avec alias local → zéro changement d'usage interne. La « collision »
+  `HELP_BUSY_THRESHOLD` (0.5 vs 0.3) était **deux seuils volontairement
+  distincts** (un dig tolère plus d'engagement qu'un bump) : levée par 2 noms
+  documentés (`POST_HELP_BUSY_THRESHOLD` / `CUTTER_BUMP_HELP_BUSY_THRESHOLD`)
+  + test verrou, **sans** unifier (préserve le comportement).
+- **DM.2 — Tests d'intégration du pipeline défensif** :
+  `defense/__tests__/pipelineIntegration.test.ts` (31 tests). Invariants
+  robustes (finitude + bornes, bijection des matchups, anti-superposition
+  Règle 1, déterminisme) sur matrice **9 couvertures × 10 combos de flags**
+  (dont kitchen-sink) via `effectiveDefensePositions`, + cohérences de rôle
+  (drop ≠ switch, `autoBumpCutters` préserve les rôles PnR, porteur jamais
+  abandonné). Comble le « risque de régression #1 » (ordre des 14 couches).
+- **DM.3 — Dédup des générateurs offensifs** : helper `screenAndCut`
+  (`scriptedGenerators/helpers.ts`) factorise le squelette « écran → cut ».
+  6 générateurs (flare/curl/shuffle/pin-down/back-screen/cross-screen) réduits
+  à des wrappers fournissant 4 spécificités. Refacto **bit-identique** (golden
+  snapshots + anti-flicker + movementSimulationAudit verts).
+
+### Suite de tests rétablie — jsdom localStorage + timeouts (2026-05-29)
+
+Sous **vitest 4 + jsdom 29**, `window.localStorage` n'était pas exposé (getter
+`undefined`, alors que jsdom 29 le supporte en standalone ; Node 22+ ajoute un
+`localStorage` natif expérimental vide qui parasite). Fix : `vitest.setup.ts`
+(polyfill `MemoryStorage` Web Storage activé si le storage natif est cassé) +
+`environmentOptions.jsdom.url`. Deux tests lourds re-timés (brute-force
+`movementSimulationAudit` 60 s → 240 s ; `deterministicScrub` sensible à la
+contention 15 s → 45 s). Suite passée de 15 échecs d'environnement à **100 %
+verte**. Détails : [docs/testing.md](docs/testing.md).
+
 ### Poursuite défenseur dynamique pendant drag — V1+V2+V3 complets
 
 Évolution majeure du flag `defenderDragInertiaEnabled`. L'inertie

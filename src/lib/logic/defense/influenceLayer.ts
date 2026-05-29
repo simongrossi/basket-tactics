@@ -13,7 +13,8 @@
 // - `helpFactor ≥ 0.5` : aide active, sa cible est déjà sur la ligne.
 // - `pnrRole` défini : rotation PnR en cours.
 //
-// Opt-in via `state.useSteeringEngine`. Cap dur à 5 px : reste sous
+// Tourne inconditionnellement sur les défenseurs "libres" (filtres skip
+// ci-dessus) — il n'y a pas de flag global. Cap dur à 5 px : reste sous
 // le bruit visuel mais suffit à orienter le placement vers la ligne.
 
 import type { DefenderId, Matchups, Point } from '../../types';

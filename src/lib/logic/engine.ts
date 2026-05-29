@@ -108,8 +108,8 @@ export function computeDefenseTargets(
   // Couche 1 — base man-to-man + help + screen-on-target + orientation initiale.
   applyBaseTargetsLayer(positions, matchups, ctx);
   // Couche 1.3 (CVT 2b) — Influence layer : interpose bias vers les
-  // lignes de passe. Subtil (≤ 5 px) et opt-in via useSteeringEngine.
-  // Skip carrier/denying/onScreen/pnrRole/helpFactor≥0.5 — ne touche
+  // lignes de passe. Subtil (≤ 5 px), inconditionnel. Skip
+  // carrier/denying/onScreen/pnrRole/helpFactor≥0.5 — ne touche
   // que les défenseurs "libres".
   applyInfluenceLayer(positions, matchups, ctx);
   // Couche 1.5 — Rim protection : "pas d'easy basket". Détecte les couloirs
@@ -129,9 +129,9 @@ export function computeDefenseTargets(
   applyPnRRotationsLayer(positions, matchups, ctx);
   // Couche 2.1 (CVT 1.3b) — Screen repel : raffine la trajectoire
   // des défenseurs périphériques (non carrier, non screener, non
-  // pnrRole) proches d'un poseur d'écran. Cap dur 3 px. Opt-in via
-  // useSteeringEngine. N'altère pas le push-out binaire des couches
-  // amont — purement additif.
+  // pnrRole) proches d'un poseur d'écran. Cap dur 3 px, inconditionnel.
+  // N'altère pas le push-out binaire des couches amont — purement
+  // additif.
   applyScreenRepelLayer(positions, matchups, ctx);
   // Couche 2.5 — C.7 V2 réaction défensive aux chaînes d'écrans (re-screen
   // / stagger / flare-fade). Opt-in via `state.readScreenChainsEnabled`.
