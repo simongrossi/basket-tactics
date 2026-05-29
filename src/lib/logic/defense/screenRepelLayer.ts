@@ -34,9 +34,9 @@ import { detectOffBallScreens } from '../screens';
 import { accumulateForces } from '../steeringEngine';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
-
-/** Cap dur du shift produit par cette couche (px). Très conservateur. */
-export const SCREEN_REPEL_LAYER_MAX_SHIFT_PX = 3;
+// Réexporté pour rétrocompat (tests + appelants importent depuis cette couche).
+export { SCREEN_REPEL_LAYER_MAX_SHIFT_PX } from './constants';
+import { SCREEN_REPEL_LAYER_MAX_SHIFT_PX } from './constants';
 
 /** Liste les poseurs d'écran (porteur + off-ball) à éviter, avec
  *  les défenseurs directement engagés à exclure (carrierDef /

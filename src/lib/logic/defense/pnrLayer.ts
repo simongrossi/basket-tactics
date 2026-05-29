@@ -13,9 +13,7 @@ import { computePnRRotations } from '../pnrRotations';
 import { distance } from '../geometry';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
-
-/** Seuil de proximité roller↔panier pour déclencher le tag-then-switch. */
-const TAG_THEN_SWITCH_DIST_PX = 150;
+import { PNR_TAG_THEN_SWITCH_DIST_PX as TAG_THEN_SWITCH_DIST_PX } from './constants';
 
 export function applyPnRRotationsLayer(
   positions: Record<DefenderId, DefenderTarget>,

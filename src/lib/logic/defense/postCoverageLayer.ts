@@ -18,14 +18,11 @@ import type { DefenderId, Matchups } from '../../types';
 import { distance } from '../geometry';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
-
-/** Fraction du chemin parcouru pour 'dig' : faux help, le défenseur reste à
- *  70% de sa position naturelle et 30% vers le pivot. */
-const DIG_FRACTION = 0.3;
-/** Fraction pour 'double' : double team réel, défenseur à 50% du chemin. */
-const DOUBLE_FRACTION = 0.5;
-/** Au-dessus de ce helpFactor, le défenseur est "occupé" et ne dig pas. */
-const HELP_BUSY_THRESHOLD = 0.5;
+import {
+  POST_DIG_FRACTION as DIG_FRACTION,
+  POST_DOUBLE_FRACTION as DOUBLE_FRACTION,
+  POST_HELP_BUSY_THRESHOLD as HELP_BUSY_THRESHOLD,
+} from './constants';
 
 export function applyPostCoverageLayer(
   positions: Record<DefenderId, DefenderTarget>,

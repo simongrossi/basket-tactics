@@ -27,6 +27,7 @@ import { activeBallCarrier, activeOffense, getActiveDefenderIds } from '../playe
 import { getDefenseHoop } from '../engine';
 import { computeDefenderOrientation } from '../orientation';
 import type { DefenderTarget } from './types';
+import { JUNK_CHASER_OFFSET_TO_HOOP_PX as CHASER_OFFSET_TO_HOOP_PX } from './constants';
 
 /** F.1 V1 — Box formation : 4 défenseurs sur les corners de la raquette. */
 const BOX_OFFSETS: { dx: number; dy: number }[] = [
@@ -53,9 +54,6 @@ const DIAMOND_OFFSETS: { dx: number; dy: number }[] = [
   { dx: +85,  dy: 0   }, // aile droite
   { dx: 0,    dy: +65 }, // pointe basse (sous le cercle)
 ];
-
-/** Recul du chaser depuis son homme vers le panier (entre eux). */
-const CHASER_OFFSET_TO_HOOP_PX = 18;
 
 /** Retourne les offsets de slot selon le type de junk defense. */
 function slotOffsetsFor(type: JunkType): { dx: number; dy: number }[] {

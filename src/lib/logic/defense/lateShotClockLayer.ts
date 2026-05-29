@@ -18,10 +18,7 @@ import type { DefenderId, Matchups } from '../../types';
 import { activeBallCarrier, activeOffense } from '../players';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
-
-/** Renforcement visuel du carrierDef vers le porteur (px). Modeste, juste
- *  pour qu'on voie la pression montée d'un cran sans casser la stance. */
-const CONTEST_PRESSURE_PX = 10;
+import { LATE_CLOCK_CONTEST_PRESSURE_PX as CONTEST_PRESSURE_PX } from './constants';
 
 export function applyLateShotClockLayer(
   positions: Record<DefenderId, DefenderTarget>,

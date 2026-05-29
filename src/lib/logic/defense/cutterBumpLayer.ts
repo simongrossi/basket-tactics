@@ -22,15 +22,11 @@ import { distance, pointToSegmentDistance } from '../geometry';
 import { detectCuts } from '../threatResolution';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
-
-/** Distance perpendiculaire max à la ligne du cut pour qu'un défenseur soit
- *  considéré comme candidat bumper. */
-const MAX_PERP_DIST_PX = 40;
-/** Offset appliqué : déplacement du défenseur vers la position courante
- *  du cutter. */
-const BUMP_OFFSET_PX = 12;
-/** Au-dessus de ce helpFactor, le défenseur est "occupé" et ne bumpe pas. */
-const HELP_BUSY_THRESHOLD = 0.3;
+import {
+  CUTTER_BUMP_MAX_PERP_DIST_PX as MAX_PERP_DIST_PX,
+  CUTTER_BUMP_OFFSET_PX as BUMP_OFFSET_PX,
+  CUTTER_BUMP_HELP_BUSY_THRESHOLD as HELP_BUSY_THRESHOLD,
+} from './constants';
 
 export function applyCutterBumpLayer(
   positions: Record<DefenderId, DefenderTarget>,

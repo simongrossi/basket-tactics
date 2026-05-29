@@ -13,8 +13,7 @@ import type { DefenderId, Matchups } from '../../types';
 import { detectFreePathThreats, type ThreatDefenderInput } from '../threatResolution';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
-
-const RIM_BIAS_WEIGHT = 0.5;
+import { RIM_PROTECTION_BIAS_WEIGHT as RIM_BIAS_WEIGHT } from './constants';
 
 export function applyRimProtectionLayer(
   positions: Record<DefenderId, DefenderTarget>,

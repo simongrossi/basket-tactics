@@ -56,11 +56,12 @@ Constats classés par impact. Le #1 a un plan dédié :
 
 ### 🛠️ Dette code à traiter avant d'empiler des features
 
-- **Constantes magiques éparpillées** dans les 14 couches défensives
-  (`TAG_THEN_SWITCH_DIST_PX=150`, `DIG_FRACTION=0.3`…). **Incohérence réelle** :
-  `HELP_BUSY_THRESHOLD` vaut 0.5 dans `postCoverageLayer` et 0.3 dans
-  `cutterBumpLayer`. → centraliser dans `src/lib/data/defenseConstants.ts`
-  exportable (bonus : exposable en sliders coach).
+- ✅ **Constantes magiques éparpillées** (DM.1 livré 2026-05-29) → centralisées
+  dans `src/lib/logic/defense/constants.ts` (15 constantes, noms préfixés par
+  couche, imports aliasés behavior-preserving). La « collision »
+  `HELP_BUSY_THRESHOLD` (0.5 vs 0.3) était en fait **deux seuils volontairement
+  distincts** (un dig tolère plus d'engagement qu'un bump) : levée par 2 noms
+  documentés + test verrou, pas d'unification (préserve le comportement).
 - **Fragilité de l'ordre des couches** : insérer une couche entre PnR et
   screen-repel peut casser silencieusement les rotations. **Aucun test
   d'intégration** « PnR + help coexistent » — seulement 3 tests de couches

@@ -23,8 +23,7 @@ import { detectScreenChain } from '../screens';
 import { computeDefenderOrientation } from '../orientation';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
-
-const RESCREEN_SHIFT_PX = 6;
+import { RESCREEN_SHIFT_PX } from './constants';
 
 export function applyChainResponseLayer(
   positions: Record<DefenderId, DefenderTarget>,

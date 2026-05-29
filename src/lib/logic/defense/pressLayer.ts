@@ -18,6 +18,10 @@ import { activeBallCarrier, activeOffense, getActiveDefenderIds } from '../playe
 import { getDefenseHoop } from '../engine';
 import { computeDefenderOrientation } from '../orientation';
 import type { DefenderTarget } from './types';
+import {
+  PRESS_TRAP_PULL_PX as TRAP_PULL_PX,
+  PRESS_TRAP_CROSS_THRESHOLD_Y as TRAP_CROSS_THRESHOLD_Y,
+} from './constants';
 
 /** Formation 2-2-1 half-court (V1, 5 défenseurs) :
  *  - 2 sur la ligne médiane (= entrée du terrain offensif)
@@ -71,17 +75,6 @@ function offsetsForType(type: PressType): Array<{ dx: number; dy: number; role: 
 export function isFullCourtPress(type: PressType): boolean {
   return type === 'full-court' || type === '1-2-1-1';
 }
-
-/** F.2 V2 — Décalage en px appliqué aux 2 défenseurs les plus proches du
- *  porteur quand celui-ci franchit la ligne médiane (= trap dynamique).
- *  Plus c'est élevé, plus le trap est visible. */
-const TRAP_PULL_PX = 35;
-
-/** F.2 V2 — Marge de tolérance autour de la médiane pour décider qu'un
- *  porteur "a franchi". HALF_COURT_Y = 540 ; on déclenche le trap quand
- *  le porteur est dans la moitié offensive (= y < 540 si attaque vers
- *  le haut). */
-const TRAP_CROSS_THRESHOLD_Y = 540;
 
 export function computePressDefenseTargets(
   state: AppState,

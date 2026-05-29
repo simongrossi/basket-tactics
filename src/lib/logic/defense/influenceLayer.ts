@@ -20,13 +20,9 @@ import type { DefenderId, Matchups, Point } from '../../types';
 import { projectOnSegment } from '../influenceMap';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
-
-/**
- * Cap dur du shift produit par la couche d'influence (px). Calibré
- * pour rester sous le bruit visuel (~6 px) tout en orientant le
- * placement vers la ligne de passe.
- */
-export const INTERPOSE_MAX_SHIFT_PX = 5;
+// Réexporté pour rétrocompat (tests + appelants importent depuis cette couche).
+export { INTERPOSE_MAX_SHIFT_PX } from './constants';
+import { INTERPOSE_MAX_SHIFT_PX } from './constants';
 
 export function applyInfluenceLayer(
   positions: Record<DefenderId, DefenderTarget>,
