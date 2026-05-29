@@ -57,7 +57,9 @@ describe('resolveFrameAtDeterministicScrub', () => {
     }
   });
 
-  it('reste fluide quand le scrub est recalculé from scratch frame par frame', { timeout: 15000 }, () => {
+  // ~8,5 s en isolation, mais sensible à la contention CPU quand l'audit lourd
+  // (movementSimulationAudit) tourne en parallèle → marge portée à 45 s.
+  it('reste fluide quand le scrub est recalculé from scratch frame par frame', { timeout: 45000 }, () => {
     TEMPLATE_IDS.forEach((tplId) => {
       const state = buildState(tplId);
       const transitions = state.steps.length - 1;

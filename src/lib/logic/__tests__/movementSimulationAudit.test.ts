@@ -64,7 +64,11 @@ const DEFAULT_PARAMS: Partial<Record<ScriptedActionType, ScriptedActionParams>> 
 };
 
 describe('movementSimulationAudit', () => {
-  it('simule les paires écran/cut et ne laisse pas de flicker ou saut playback', { timeout: 60_000 }, () => {
+  // Audit brute-force : 26 types d'actions × paires, simulés image par image à
+  // 60 fps. ~130 s en local (et davantage sous charge parallèle). Le timeout de
+  // 60 s d'origine était trop serré pour cette machine → relevé à 4 min. Le test
+  // est correct sur le fond ; seul le temps de calcul justifie cette marge.
+  it('simule les paires écran/cut et ne laisse pas de flicker ou saut playback', { timeout: 240_000 }, () => {
     const findings = auditScriptedActionPairs(ACTION_TYPES, DEFAULT_PARAMS, {
       fps: 60,
       maxJumpPx: 20,

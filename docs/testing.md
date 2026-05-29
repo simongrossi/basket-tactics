@@ -4,6 +4,25 @@
 
 [Vitest](https://vitest.dev/) en environnement Node, sans setup React (la logique testée est pure). Les chemins `@/*` sont résolus via `resolve.tsconfigPaths: true` (support natif Vitest 4).
 
+## Environnement jsdom + Web Storage
+
+Quelques fichiers déclarent `// @vitest-environment jsdom` (persistance,
+hooks UI). Sous **vitest 4 + jsdom 29**, `window.localStorage` n'est pas exposé
+(le getter renvoie `undefined`, alors que jsdom 29 le supporte en standalone —
+bug d'intégration ; Node 22+ a en plus un `localStorage` natif expérimental,
+vide, qui parasite). Fix dans `vitest.setup.ts` (référencé par `setupFiles`) :
+polyfill in-memory conforme à l'API Web Storage (classe `MemoryStorage`
+instanciable + instances `localStorage`/`sessionStorage`), activé uniquement
+quand le storage natif est absent/cassé. `environmentOptions.jsdom.url` fournit
+aussi une origine non-opaque.
+
+## Tests lourds (timeouts explicites)
+
+- `movementSimulationAudit.test.ts` : audit brute-force frame-par-frame de
+  26 actions × paires → ~130 s. Timeout porté à 240 s.
+- `deterministicScrub.test.ts` : ~8,5 s seul mais sensible à la contention CPU
+  quand l'audit tourne en parallèle → timeout 45 s.
+
 ## Lancer les tests
 
 ```bash
