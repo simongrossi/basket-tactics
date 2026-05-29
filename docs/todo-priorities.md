@@ -27,7 +27,7 @@
 | Item | Statut | Description | Effort |
 |---|---|---|---|
 | ~~**L.0**~~ | 🟢 livré 2026-05-29 | Noyau pur : `ReadTrigger` + `trigger?`/`resolvedReadBranchId?` (types) + `resolveScreenCoverage` (réutilise `buildDefenseFrameContext` → parité) + `selectReactiveBranch` (manuel prime, lit `generatedBy`). 13 tests. Helper `effectiveScreenNav` abandonné (inutile). | — |
-| **L.1** | ⚪ | Câblage compilation (manuel prime) + `readLibrary.ts` (tables canoniques) + golden snapshot 3 couvertures. | ~0.5 j |
+| ~~**L.1**~~ | 🟢 livré 2026-05-29 | Câblage `recompileScenarioSteps` (manuel prime, pose `resolvedReadBranchId`) + `readLibrary.ts` (7 lectures canoniques) + 11 tests (intégration 3 couvertures). Golden verts. | — |
 | **L.2** | ⚪ | UI : sélecteur de déclencheur dans `ScenarioPanel` + badge « Lecture : DROP → … ». | ~0.5-1 j |
 | **L.3** | ⚪ reporté | Lectures hors PnR (drive-and-kick, backdoor sur deny), arbres multi-niveaux, lecture probabiliste. | — |
 

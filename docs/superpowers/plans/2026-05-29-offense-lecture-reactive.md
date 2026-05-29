@@ -62,7 +62,13 @@ Rien de visible côté app encore (câblage = L.1).
 
 ---
 
-## Phase L.1 — Câblage compilation + bibliothèque de lectures
+## Phase L.1 — Câblage compilation + bibliothèque de lectures ✅ LIVRÉ 2026-05-29
+
+> Câblage dans `recompileScenarioSteps` (point unique de recompile) :
+> `selectReactiveBranch` remplace le lookup `activeBranchId` brut + pose
+> `resolvedReadBranchId`. `readLibrary.ts` fournit 7 lectures canoniques.
+> 11 nouveaux tests (7 readLibrary + 4 intégration). Golden snapshots verts
+> (chemin principal sans branche = inchangé).
 
 ### L.1.1 — Brancher la sélection auto
 - Au point d'appel de `compileScenario({ ..., activeBranch })`
