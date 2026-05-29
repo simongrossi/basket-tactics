@@ -48,7 +48,19 @@ export function clearScriptedActions(s: AppState): AppState {
 // ----- Branches scénario -----
 
 export function addScenarioBranch(s: AppState, branch: ScenarioBranch): AppState {
-  return { ...s, scenarioBranches: [...(s.scenarioBranches ?? []), branch] };
+  const next = { ...s, scenarioBranches: [...(s.scenarioBranches ?? []), branch] };
+  // Une branche RÉACTIVE (avec trigger) peut s'auto-activer selon la couverture
+  // défensive → recompiler pour résoudre la lecture. Une branche manuelle ne
+  // s'active qu'à la sélection → pas de recompile ici (comportement V1).
+  return branch.trigger ? recompileScenarioSteps(next) : next;
+}
+
+/** Ajout groupé (ex : insertion des lectures canoniques d'un écran). Recompile
+ *  une seule fois si au moins une branche est réactive. */
+export function addScenarioBranches(s: AppState, branches: ScenarioBranch[]): AppState {
+  if (branches.length === 0) return s;
+  const next = { ...s, scenarioBranches: [...(s.scenarioBranches ?? []), ...branches] };
+  return branches.some((b) => b.trigger) ? recompileScenarioSteps(next) : next;
 }
 
 export function updateScenarioBranch(

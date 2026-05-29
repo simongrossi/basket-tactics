@@ -603,6 +603,10 @@ export function useAppState() {
     setStateWithHistory((s) => scenarioTx.addScenarioBranch(s, branch));
   }, [setStateWithHistory]);
 
+  const addScenarioBranches = useCallback((branches: ScenarioBranch[]) => {
+    setStateWithHistory((s) => scenarioTx.addScenarioBranches(s, branches));
+  }, [setStateWithHistory]);
+
   const updateScenarioBranch = useCallback((id: string, branch: ScenarioBranch) => {
     setStateWithHistory((s) => scenarioTx.updateScenarioBranch(s, id, branch));
   }, [setStateWithHistory]);
@@ -725,6 +729,7 @@ export function useAppState() {
     updateScriptedAction,
     deleteScriptedAction,
     addScenarioBranch,
+    addScenarioBranches,
     updateScenarioBranch,
     deleteScenarioBranch,
     setActiveBranch,

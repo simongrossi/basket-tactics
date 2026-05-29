@@ -414,9 +414,11 @@ export default function Page() {
                     onUpdateDefensiveAction={app.updateDefensiveAction}
                     onDeleteDefensiveAction={app.deleteDefensiveAction}
                     onAddBranch={app.addScenarioBranch}
+                    onAddBranches={app.addScenarioBranches}
                     onUpdateBranch={app.updateScenarioBranch}
                     onDeleteBranch={app.deleteScenarioBranch}
                     onSetActiveBranch={app.setActiveBranch}
+                    resolvedReadBranchId={app.state.resolvedReadBranchId ?? null}
                   />
                 ),
               },

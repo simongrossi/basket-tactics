@@ -93,7 +93,14 @@ par test d'intégration + golden snapshot (3 couvertures → 3 séquences).
 
 ---
 
-## Phase L.2 — UI
+## Phase L.2 — UI ✅ LIVRÉ 2026-05-29
+
+> Bouton « 🤖 lectures auto » sur les actions-écran (porteur+poseur renseignés)
+> → insère les branches canoniques via `buildCanonicalReadBranches` +
+> `addScenarioBranches` (recompile groupé). Onglets de branche réactive marqués
+> 🤖 + puce de couverture ; badge « 🤖 Lecture auto : … » quand une branche
+> s'auto-active. `addScenarioBranch(es)` recompile si la branche a un `trigger`.
+> +3 tests transforms. Suite complète verte (1848).
 
 ### L.2.1 — Éditeur de déclencheur dans `ScenarioPanel`
 - À la création/édition d'une branche : sélecteur de déclencheur =

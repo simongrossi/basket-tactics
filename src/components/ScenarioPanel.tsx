@@ -19,6 +19,7 @@ import {
 } from '@/lib/data/defensiveActionsCatalog';
 import type { ZoneRef } from '@/lib/data/courtZones';
 import { newScriptedActionId } from '@/lib/logic/compileScenario';
+import { buildCanonicalReadBranches } from '@/lib/data/readLibrary';
 import { ZoneSelect, ZonePickerModal } from './ZonePicker';
 import { inferDefensiveDefaults } from '@/lib/logic/defensiveDefaults';
 import { AddCoverageModal } from './AddCoverageModal';
@@ -66,9 +67,12 @@ interface ScenarioPanelProps {
   onUpdateDefensiveAction: (id: string, updated: DefensiveScriptedAction) => void;
   onDeleteDefensiveAction: (id: string) => void;
   onAddBranch: (branch: ScenarioBranch) => void;
+  onAddBranches: (branches: ScenarioBranch[]) => void;
   onUpdateBranch: (id: string, branch: ScenarioBranch) => void;
   onDeleteBranch: (id: string) => void;
   onSetActiveBranch: (id: string | null) => void;
+  /** Id de la branche réactive auto-résolue (badge « Lecture : … »). */
+  resolvedReadBranchId?: string | null;
   playerCount: PlayerCount;
 }
 
@@ -139,6 +143,32 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
     props.onUpdateBranch(b.id, { ...b, label });
   };
 
+  // Une action-écran est éligible aux lectures canoniques si elle a un porteur
+  // ET un poseur renseignés (cf. readLibrary.buildCanonicalReadBranches).
+  const isReadEligible = (a: OffensiveScriptedAction) =>
+    !!a.params.ballHandler && !!a.params.screener;
+
+  const handleInsertCanonicalReads = (action: OffensiveScriptedAction) => {
+    // Côté faible = un attaquant ≠ porteur ≠ poseur, pour le skip post-blitz.
+    const weakSideId = attackerIds.find(
+      (id) => id !== action.params.ballHandler && id !== action.params.screener,
+    );
+    const branches = buildCanonicalReadBranches(action, { weakSideId }, newScriptedActionId);
+    // Évite les doublons : ne pas réinsérer une couverture déjà couverte pour
+    // cette action.
+    const already = new Set(
+      props.scenarioBranches
+        .filter((b) => b.trigger?.actionId === action.id)
+        .flatMap((b) => b.trigger!.coverage),
+    );
+    const fresh = branches.filter((b) => !b.trigger!.coverage.some((c) => already.has(c)));
+    if (fresh.length === 0) {
+      window.alert('Les lectures standard de cette action sont déjà présentes.');
+      return;
+    }
+    props.onAddBranches(fresh);
+  };
+
   return (
     <Panel theme="offense" title="🎬 Scénario">
       <div style={{ fontSize: 11, color: '#cbd5e1', lineHeight: 1.4 }}>
@@ -165,7 +195,9 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
             <BranchTab
               key={b.id}
               active={activeBranch?.id === b.id}
+              autoActive={!activeBranch && props.resolvedReadBranchId === b.id}
               label={b.label}
+              coverage={b.trigger?.coverage}
               onClick={() => props.onSetActiveBranch(b.id)}
               onRename={() => handleRenameBranch(b)}
               onDelete={() => {
@@ -177,6 +209,31 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
           ))}
         </div>
       )}
+
+      {/* Badge de lecture réactive : une branche s'est auto-activée selon la
+          couverture défensive jouée (aucun choix manuel). */}
+      {!activeBranch && props.resolvedReadBranchId && (() => {
+        const read = props.scenarioBranches.find((b) => b.id === props.resolvedReadBranchId);
+        if (!read) return null;
+        const cov = read.trigger?.coverage.join(' / ').toUpperCase();
+        return (
+          <div style={{
+            fontSize: 11,
+            color: '#6ee7b7',
+            background: 'rgba(110, 231, 183, 0.12)',
+            border: '1px solid rgba(110, 231, 183, 0.4)',
+            borderRadius: 4,
+            padding: '6px 8px',
+          }}>
+            🤖 Lecture auto : <strong>{read.label}</strong>
+            {cov ? <> — couverture lue : <strong>{cov}</strong></> : null}
+            <div style={{ color: '#a7f3d0', marginTop: 2 }}>
+              L'offense s'adapte à la défense. Change la couverture défensive pour
+              voir la lecture basculer.
+            </div>
+          </div>
+        );
+      })()}
 
       {activeBranch && (
         <div style={{
@@ -235,6 +292,17 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                 {def.label}
               </span>
               <span style={{ fontSize: 11, color: '#9ca3af' }}>{isExpanded ? '▲' : '▼'}</span>
+              {!activeBranch && isReadEligible(action) && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleInsertCanonicalReads(action); }}
+                  style={{
+                    border: '1px solid #6ee7b7', background: '#0f2a22', cursor: 'pointer',
+                    fontSize: 10, color: '#6ee7b7', padding: '2px 6px', borderRadius: 3,
+                    fontWeight: 600,
+                  }}
+                  title="Insérer les lectures standard selon la couverture défensive (drop, hedge, blitz, switch, ice, over, under)"
+                >🤖 lectures auto</button>
+              )}
               {!activeBranch && (
                 <button
                   onClick={(e) => { e.stopPropagation(); handleAddBranch(action.id); }}
@@ -242,7 +310,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                     border: '1px solid #fed7aa', background: '#262a32', cursor: 'pointer',
                     fontSize: 10, color: '#fdba74', padding: '2px 6px', borderRadius: 3,
                   }}
-                  title="Créer une variante qui diverge après cette action"
+                  title="Créer une variante manuelle qui diverge après cette action"
                 >+ variante</button>
               )}
               <button
@@ -750,14 +818,26 @@ function defaultParamsFor(def: ScriptedActionDefinition): OffensiveScriptedActio
 }
 
 function BranchTab({
-  active, label, onClick, onRename, onDelete,
+  active, autoActive, label, coverage, onClick, onRename, onDelete,
 }: {
   active: boolean;
+  autoActive?: boolean;
   label: string;
+  coverage?: string[];
   onClick: () => void;
   onRename?: () => void;
   onDelete?: () => void;
 }) {
+  const isReactive = !!coverage && coverage.length > 0;
+  // Une branche réactive auto-activée : anneau vert pointillé. Sélection
+  // manuelle : fond orange plein. Réactive non active : liseré vert.
+  const border = active
+    ? '#ea580c'
+    : autoActive
+      ? '#6ee7b7'
+      : isReactive
+        ? '#3f6212'
+        : '#2a2d35';
   return (
     <div
       onClick={onClick}
@@ -769,15 +849,19 @@ function BranchTab({
         padding: '4px 8px',
         borderRadius: 4,
         fontSize: 11,
-        fontWeight: active ? 700 : 500,
-        background: active ? '#ea580c' : '#262a32',
-        color: active ? '#fff' : '#fdba74',
-        border: `1px solid ${active ? '#ea580c' : '#2a2d35'}`,
+        fontWeight: active || autoActive ? 700 : 500,
+        background: active ? '#ea580c' : autoActive ? 'rgba(110,231,183,0.15)' : '#262a32',
+        color: active ? '#fff' : autoActive ? '#6ee7b7' : '#fdba74',
+        border: `1px solid ${border}`,
+        borderStyle: autoActive ? 'dashed' : 'solid',
         cursor: 'pointer',
         userSelect: 'none',
       }}
-      title={onRename ? `Double-clic pour renommer` : undefined}
+      title={isReactive
+        ? `Lecture réactive (couverture : ${coverage!.join(', ')}). Clic = épingler manuellement.`
+        : (onRename ? 'Double-clic pour renommer' : undefined)}
     >
+      {isReactive && <span style={{ fontSize: 9 }}>🤖</span>}
       <span>{label}</span>
       {onDelete && (
         <button

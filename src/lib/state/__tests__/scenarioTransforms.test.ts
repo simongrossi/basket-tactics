@@ -102,4 +102,28 @@ describe('scenarioTransforms — branches', () => {
     // mainActions reste vide.
     expect(s3.scriptedActions?.length ?? 0).toBe(0);
   });
+
+  it("addScenarioBranches ajoute en lot", () => {
+    const s0 = makeInitialState();
+    const s1 = scTx.addScenarioBranches(s0, [makeBranch('b1'), makeBranch('b2')]);
+    expect(s1.scenarioBranches?.map((b) => b.id)).toEqual(['b1', 'b2']);
+  });
+
+  it("addScenarioBranches([]) est un no-op", () => {
+    const s0 = makeInitialState();
+    const s1 = scTx.addScenarioBranches(s0, []);
+    expect(s1).toBe(s0);
+  });
+
+  it("une branche réactive (trigger) déclenche une recompile à l'ajout", () => {
+    // Sans scriptedActions, recompile est un no-op fonctionnel mais ne doit pas
+    // throw ; on vérifie surtout que la branche réactive est bien stockée.
+    const s0 = makeInitialState();
+    const reactive: ScenarioBranch = {
+      ...makeBranch('b-drop'),
+      trigger: { kind: 'screen-coverage', actionId: 'root', coverage: ['drop'] },
+    };
+    const s1 = scTx.addScenarioBranch(s0, reactive);
+    expect(s1.scenarioBranches?.[0].trigger?.coverage).toEqual(['drop']);
+  });
 });
