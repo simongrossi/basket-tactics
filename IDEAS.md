@@ -67,9 +67,11 @@ Constats classés par impact. Le #1 a un plan dédié :
   d'intégration** « PnR + help coexistent » — seulement 3 tests de couches
   isolées sur 14. Risque de régression #1. → ajouter des tests d'intégration
   du pipeline.
-- **Duplication des générateurs offensifs** (~50 % d'arithmétique de position
-  répétée ; `genFlareScreen` ne fait que `return genFlare`). → helper
-  paramétrable `screenAndCut(screener, cutter, type)`.
+- ✅ **Duplication des générateurs offensifs** (DM.3 livré 2026-05-29) → helper
+  `screenAndCut` dans `scriptedGenerators/helpers.ts` ; 6 générateurs
+  (flare/curl/shuffle/pin-down/back-screen/cross-screen) réduits à des wrappers
+  fournissant seulement leurs 4 spécificités (positions par défaut + libellés).
+  Refacto bit-identique (golden snapshots + anti-flicker verts).
 - **God-objects** : `gameLoop.ts` (2080), `frameResolver.ts` (2001),
   `DefensePanel.tsx` (1550), `useAppState.ts` (738, ~60 callbacks), prop drilling
   de 40+ callbacks depuis `page.tsx` sans Context. Freine l'évolution UI.

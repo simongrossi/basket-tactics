@@ -118,3 +118,59 @@ export type Generator = (
   prev: Step,
   action: OffensiveScriptedAction
 ) => Step[];
+
+// ============================================================
+// Motif partagé "écran → cut" (DM.3)
+// ============================================================
+//
+// 6 générateurs (flare, curl, shuffle, pin-down, back-screen, cross-screen)
+// partagent EXACTEMENT le même squelette en 2 steps :
+//   step 1 : le poseur va à `screenZone` (sinon position par défaut), annot 'screen'
+//   step 2 : le cutter va à `targetZone` (sinon cible par défaut), annot 'cut'
+// Seuls diffèrent les positions PAR DÉFAUT et les libellés. Ce helper factorise
+// le squelette ; chaque générateur ne fournit plus que ses 4 spécificités.
+//
+// Conventions strictement préservées (refactor bit-identique) :
+//  - `screenZone` / `targetZone` résolus via `resolveZonePoint(..., carrierPos)`
+//  - `move` clampe les positions stockées
+//  - le `screenPos` passé à `cutDefault` est la valeur PRÉ-clamp (comme shuffle
+//    qui calcule `lerp(screenPos, HOOP, 0.7)` sur la valeur brute).
+
+export interface ScreenAndCutOptions {
+  screener: AttackerId;
+  cutter: AttackerId;
+  screenLabel: string;
+  cutLabel: string;
+  /** Position d'écran par défaut (si pas de `screenZone`). */
+  screenDefault: (ctx: { cutterPos: Point; carrierPos: Point }) => Point;
+  /** Cible de cut par défaut (si pas de `targetZone`). */
+  cutDefault: (ctx: { cutterPos: Point; carrierPos: Point; screenPos: Point }) => Point;
+}
+
+export function screenAndCut(
+  prev: Step,
+  action: OffensiveScriptedAction,
+  opts: ScreenAndCutOptions
+): Step[] {
+  const { screener, cutter } = opts;
+  if (!screener || !cutter) return [];
+
+  const carrierPos = prev.off[prev.ballCarrier];
+  const cutterPos = prev.off[cutter];
+  const screenZonePoint = resolveZonePoint(action.params.screenZone, carrierPos);
+  const targetZonePoint = resolveZonePoint(action.params.targetZone, carrierPos);
+
+  const screenPos = screenZonePoint ?? opts.screenDefault({ cutterPos, carrierPos });
+  const off1 = move(prev.off, screener, screenPos);
+  const step1 = makeStepFrom(off1, prev.ballCarrier, [
+    annot('screen', screener, prev.off, off1, cutter),
+  ], { generatedBy: action.id, label: opts.screenLabel });
+
+  const cutPos = targetZonePoint ?? opts.cutDefault({ cutterPos, carrierPos, screenPos });
+  const off2 = move(off1, cutter, cutPos);
+  const step2 = makeStepFrom(off2, prev.ballCarrier, [
+    annot('cut', cutter, off1, off2),
+  ], { generatedBy: action.id, label: opts.cutLabel });
+
+  return [step1, step2];
+}

@@ -17,6 +17,7 @@ import {
   makeStepFrom,
   move,
   resolveZonePoint,
+  screenAndCut,
   sideSignFromCarrier,
   towards,
 } from './helpers';
@@ -243,131 +244,70 @@ const genBackdoorCut: Generator = (prev, action) => {
 // 7. Flare cut (= flare-screen + cutter qui s'éloigne du ballon)
 // ============================================================
 
-const genFlare: Generator = (prev, action) => {
-  const cutter = action.params.cutter as AttackerId;
-  const screener = action.params.screener as AttackerId;
-  if (!cutter || !screener) return [];
-
-  // Step 1 : screener vient se placer entre cutter et ballCarrier (côté ballon du cutter).
-  const cutterPos = prev.off[cutter];
-  const carrierPos = prev.off[prev.ballCarrier];
-  const screenZonePoint = resolveZonePoint(action.params.screenZone, carrierPos);
-  const targetZonePoint = resolveZonePoint(action.params.targetZone, carrierPos);
-
-  const screenPos = screenZonePoint ?? lerp(cutterPos, carrierPos, 0.4);
-  const off1 = move(prev.off, screener, screenPos);
-  const step1 = makeStepFrom(off1, prev.ballCarrier, [
-    annot('screen', screener, prev.off, off1, cutter),
-  ], { generatedBy: action.id, label: 'Pose flare' });
-
-  // Step 2 : cutter s'éloigne du ballon (ou rejoint la zone cible).
-  let flarePos: Point;
-  if (targetZonePoint) {
-    flarePos = targetZonePoint;
-  } else {
-    const dx = cutterPos.x - carrierPos.x;
-    const dy = cutterPos.y - carrierPos.y;
-    const len = Math.max(1, Math.hypot(dx, dy));
-    flarePos = clamp({ x: cutterPos.x + (dx / len) * 90, y: cutterPos.y + (dy / len) * 90 });
-  }
-  const off2 = move(off1, cutter, flarePos);
-  const step2 = makeStepFrom(off2, prev.ballCarrier, [
-    annot('cut', cutter, off1, off2),
-  ], { generatedBy: action.id, label: 'Flare cutter' });
-
-  return [step1, step2];
-};
+const genFlare: Generator = (prev, action) =>
+  screenAndCut(prev, action, {
+    screener: action.params.screener as AttackerId,
+    cutter: action.params.cutter as AttackerId,
+    screenLabel: 'Pose flare',
+    cutLabel: 'Flare cutter',
+    // Screener entre cutter et porteur (côté ballon du cutter).
+    screenDefault: ({ cutterPos, carrierPos }) => lerp(cutterPos, carrierPos, 0.4),
+    // Cutter s'éloigne du ballon de 90 px.
+    cutDefault: ({ cutterPos, carrierPos }) => {
+      const dx = cutterPos.x - carrierPos.x;
+      const dy = cutterPos.y - carrierPos.y;
+      const len = Math.max(1, Math.hypot(dx, dy));
+      return clamp({ x: cutterPos.x + (dx / len) * 90, y: cutterPos.y + (dy / len) * 90 });
+    },
+  });
 
 // ============================================================
 // 8. Curl cut
 // ============================================================
 
-const genCurlCut: Generator = (prev, action) => {
-  const cutter = action.params.cutter as AttackerId;
-  const screener = action.params.screener as AttackerId;
-  if (!cutter || !screener) return [];
-
-  const carrierPos = prev.off[prev.ballCarrier];
-  const screenZonePoint = resolveZonePoint(action.params.screenZone, carrierPos);
-  const targetZonePoint = resolveZonePoint(action.params.targetZone, carrierPos);
-
-  // Step 1 : screener à mi-chemin entre cutter et panier (ou zone explicite).
-  const screenPos = screenZonePoint ?? lerp(prev.off[cutter], HOOP, 0.4);
-  const off1 = move(prev.off, screener, screenPos);
-  const step1 = makeStepFrom(off1, prev.ballCarrier, [
-    annot('screen', screener, prev.off, off1, cutter),
-  ], { generatedBy: action.id, label: 'Pose écran' });
-
-  // Step 2 : cutter curl autour de l'écran et continue vers la cible.
-  const curlPos = targetZonePoint ?? towards(HOOP, prev.off[cutter], 40);
-  const off2 = move(off1, cutter, curlPos);
-  const step2 = makeStepFrom(off2, prev.ballCarrier, [
-    annot('cut', cutter, off1, off2),
-  ], { generatedBy: action.id, label: 'Curl panier' });
-
-  return [step1, step2];
-};
+const genCurlCut: Generator = (prev, action) =>
+  screenAndCut(prev, action, {
+    screener: action.params.screener as AttackerId,
+    cutter: action.params.cutter as AttackerId,
+    screenLabel: 'Pose écran',
+    cutLabel: 'Curl panier',
+    // Screener à mi-chemin entre cutter et panier.
+    screenDefault: ({ cutterPos }) => lerp(cutterPos, HOOP, 0.4),
+    // Cutter curl autour de l'écran vers le panier.
+    cutDefault: ({ cutterPos }) => towards(HOOP, cutterPos, 40),
+  });
 
 // ============================================================
 // 9. Shuffle cut (écran haut → panier)
 // ============================================================
 
-const genShuffleCut: Generator = (prev, action) => {
-  const cutter = action.params.cutter as AttackerId;
-  const screener = action.params.screener as AttackerId;
-  if (!cutter || !screener) return [];
-
-  const carrierPos = prev.off[prev.ballCarrier];
-  const screenZonePoint = resolveZonePoint(action.params.screenZone, carrierPos);
-  const targetZonePoint = resolveZonePoint(action.params.targetZone, carrierPos);
-
-  // Step 1 : screener au high post (ou zone explicite).
-  const screenPos: Point = screenZonePoint ?? { x: 300, y: 230 };
-  const off1 = move(prev.off, screener, screenPos);
-  const step1 = makeStepFrom(off1, prev.ballCarrier, [
-    annot('screen', screener, prev.off, off1, cutter),
-  ], { generatedBy: action.id, label: 'Écran haut' });
-
-  // Step 2 : cutter passe par l'écran et plonge bas du poste (ou zone cible).
-  const cutPos: Point = targetZonePoint ?? lerp(screenPos, HOOP, 0.7);
-  const off2 = move(off1, cutter, cutPos);
-  const step2 = makeStepFrom(off2, prev.ballCarrier, [
-    annot('cut', cutter, off1, off2),
-  ], { generatedBy: action.id, label: 'Shuffle panier' });
-
-  return [step1, step2];
-};
+const genShuffleCut: Generator = (prev, action) =>
+  screenAndCut(prev, action, {
+    screener: action.params.screener as AttackerId,
+    cutter: action.params.cutter as AttackerId,
+    screenLabel: 'Écran haut',
+    cutLabel: 'Shuffle panier',
+    // Screener au high post.
+    screenDefault: () => ({ x: 300, y: 230 }),
+    // Cutter passe l'écran et plonge bas du poste.
+    cutDefault: ({ screenPos }) => lerp(screenPos, HOOP, 0.7),
+  });
 
 // ============================================================
 // 10. Pin-down (down screen) — libère le cutter vers le haut/aile
 // ============================================================
 
-const genPinDown: Generator = (prev, action) => {
-  const screener = action.params.screener as AttackerId;
-  const cutter = action.params.cutter as AttackerId;
-  if (!screener || !cutter) return [];
-
-  const carrierPos = prev.off[prev.ballCarrier];
-  const screenZonePoint = resolveZonePoint(action.params.screenZone, carrierPos);
-  const targetZonePoint = resolveZonePoint(action.params.targetZone, carrierPos);
-
-  // Step 1 : screener descend juste au-dessus du cutter (ou zone explicite).
-  const cutterPos = prev.off[cutter];
-  const screenPos: Point = screenZonePoint ?? { x: cutterPos.x, y: cutterPos.y - 35 };
-  const off1 = move(prev.off, screener, screenPos);
-  const step1 = makeStepFrom(off1, prev.ballCarrier, [
-    annot('screen', screener, prev.off, off1, cutter),
-  ], { generatedBy: action.id, label: 'Pose pin-down' });
-
-  // Step 2 : cutter remonte (ou rejoint la zone cible).
-  const popUpPos: Point = targetZonePoint ?? { x: cutterPos.x, y: cutterPos.y + 80 };
-  const off2 = move(off1, cutter, popUpPos);
-  const step2 = makeStepFrom(off2, prev.ballCarrier, [
-    annot('cut', cutter, off1, off2),
-  ], { generatedBy: action.id, label: 'Pop sur écran' });
-
-  return [step1, step2];
-};
+const genPinDown: Generator = (prev, action) =>
+  screenAndCut(prev, action, {
+    screener: action.params.screener as AttackerId,
+    cutter: action.params.cutter as AttackerId,
+    screenLabel: 'Pose pin-down',
+    cutLabel: 'Pop sur écran',
+    // Screener descend juste au-dessus du cutter.
+    screenDefault: ({ cutterPos }) => ({ x: cutterPos.x, y: cutterPos.y - 35 }),
+    // Cutter remonte (pop).
+    cutDefault: ({ cutterPos }) => ({ x: cutterPos.x, y: cutterPos.y + 80 }),
+  });
 
 // ============================================================
 // 11. Flare screen (alias flare-cut, mais reader différent)
@@ -379,64 +319,33 @@ const genFlareScreen: Generator = (prev, action) => genFlare(prev, action);
 // 12. Back screen — cutter coupe vers panier en passant l'écran
 // ============================================================
 
-const genBackScreen: Generator = (prev, action) => {
-  const screener = action.params.screener as AttackerId;
-  const cutter = action.params.cutter as AttackerId;
-  if (!screener || !cutter) return [];
-
-  const carrierPos = prev.off[prev.ballCarrier];
-  const screenZonePoint = resolveZonePoint(action.params.screenZone, carrierPos);
-  const targetZonePoint = resolveZonePoint(action.params.targetZone, carrierPos);
-
-  // Step 1 : screener se place "côté loin du panier" du cutter (ou zone explicite).
-  const cutterPos = prev.off[cutter];
-  const screenPos: Point = screenZonePoint ?? { x: cutterPos.x, y: cutterPos.y + 35 };
-  const off1 = move(prev.off, screener, screenPos);
-  const step1 = makeStepFrom(off1, prev.ballCarrier, [
-    annot('screen', screener, prev.off, off1, cutter),
-  ], { generatedBy: action.id, label: 'Pose back-screen' });
-
-  // Step 2 : cutter coupe vers le panier (ou zone cible).
-  const cutPos = targetZonePoint ?? lerp(cutterPos, HOOP, 0.65);
-  const off2 = move(off1, cutter, cutPos);
-  const step2 = makeStepFrom(off2, prev.ballCarrier, [
-    annot('cut', cutter, off1, off2),
-  ], { generatedBy: action.id, label: 'Coupe panier' });
-
-  return [step1, step2];
-};
+const genBackScreen: Generator = (prev, action) =>
+  screenAndCut(prev, action, {
+    screener: action.params.screener as AttackerId,
+    cutter: action.params.cutter as AttackerId,
+    screenLabel: 'Pose back-screen',
+    cutLabel: 'Coupe panier',
+    // Screener côté "loin du panier" du cutter.
+    screenDefault: ({ cutterPos }) => ({ x: cutterPos.x, y: cutterPos.y + 35 }),
+    // Cutter coupe vers le panier.
+    cutDefault: ({ cutterPos }) => lerp(cutterPos, HOOP, 0.65),
+  });
 
 // ============================================================
 // 13. Cross screen — low post à low post opposé
 // ============================================================
 
-const genCrossScreen: Generator = (prev, action) => {
-  const screener = action.params.screener as AttackerId;
-  const cutter = action.params.cutter as AttackerId;
-  if (!screener || !cutter) return [];
-
-  const cutterPos = prev.off[cutter];
-  const carrierPos = prev.off[prev.ballCarrier];
-  const screenZonePoint = resolveZonePoint(action.params.screenZone, carrierPos);
-  const targetZonePoint = resolveZonePoint(action.params.targetZone, carrierPos);
-
-  // Screener traverse au milieu de la raquette à hauteur du cutter (ou zone explicite).
-  const screenPos: Point = screenZonePoint ?? { x: 300, y: cutterPos.y };
-  const off1 = move(prev.off, screener, screenPos);
-  const step1 = makeStepFrom(off1, prev.ballCarrier, [
-    annot('screen', screener, prev.off, off1, cutter),
-  ], { generatedBy: action.id, label: 'Pose cross-screen' });
-
-  // Cutter traverse vers l'autre côté (mirror x autour de 300, ou zone cible).
-  const oppositeX = 600 - cutterPos.x;
-  const cutPos: Point = targetZonePoint ?? { x: oppositeX, y: cutterPos.y };
-  const off2 = move(off1, cutter, cutPos);
-  const step2 = makeStepFrom(off2, prev.ballCarrier, [
-    annot('cut', cutter, off1, off2),
-  ], { generatedBy: action.id, label: 'Coupe cross' });
-
-  return [step1, step2];
-};
+const genCrossScreen: Generator = (prev, action) =>
+  screenAndCut(prev, action, {
+    screener: action.params.screener as AttackerId,
+    cutter: action.params.cutter as AttackerId,
+    screenLabel: 'Pose cross-screen',
+    cutLabel: 'Coupe cross',
+    // Screener au milieu de la raquette, à hauteur du cutter.
+    screenDefault: ({ cutterPos }) => ({ x: 300, y: cutterPos.y }),
+    // Cutter traverse côté opposé (mirror x autour de 300).
+    cutDefault: ({ cutterPos }) => ({ x: 600 - cutterPos.x, y: cutterPos.y }),
+  });
 
 // ============================================================
 // 14. Screen the screener (StS) — 3 steps
