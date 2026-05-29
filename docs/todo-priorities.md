@@ -36,7 +36,7 @@
 | Item | Statut | Description | Effort |
 |---|---|---|---|
 | ~~**DM.1**~~ | 🟢 livré 2026-05-29 | `defense/constants.ts` — 15 constantes centralisées (noms préfixés par couche), imports aliasés (behavior-preserving). Collision `HELP_BUSY_THRESHOLD` levée : 2 noms distincts documentés (`POST_*`=0.5 / `CUTTER_BUMP_*`=0.3 — écart volontaire, pas un bug). +2 tests verrou. Suite 1864 verte. | — |
-| **DM.2** | ⚪ | Tests d'intégration du pipeline défensif (« PnR + help coexistent », ordre des couches). Seulement 3/14 couches testées isolément. | ~0.5-1 j |
+| ~~**DM.2**~~ | 🟢 livré 2026-05-29 | `pipelineIntegration.test.ts` (31 tests) : invariants robustes (finitude+bornes, bijection matchups, anti-overlap, déterminisme) sur matrice **couvertures × flags** via `effectiveDefensePositions` + cohérences rôle (drop≠switch, persistance pnrRole sous autoBumpCutters, porteur jamais abandonné). Suite 1897 verte. | — |
 | **DM.3** | ⚪ | Helper `screenAndCut(...)` pour dédupliquer les générateurs offensifs (~50 % d'arithmétique répétée). | ~0.5 j |
 
 ### Phase B — Notion du temps ✅ COMPLÈTE (4/4)
