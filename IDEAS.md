@@ -4,6 +4,95 @@ Notes de développement au fil de l'eau. Les items en haut sont les plus récent
 
 ---
 
+## 🔎 Audit expert externe — 2026-05-29
+
+Relecture du code « à froid » (sans les .md), par un œil dev senior + coach.
+Constats classés par impact. Le #1 a un plan dédié :
+[spec](docs/superpowers/specs/2026-05-29-offense-lecture-reactive-design.md) +
+[plan](docs/superpowers/plans/2026-05-29-offense-lecture-reactive.md).
+
+### Ce qui est déjà excellent (à préserver)
+- **Pipeline défensif en 14 couches** (`engine.ts` L85-158) avec caps de
+  magnitude par couche : PnR (hedge/drop/ice/blitz/over/under/peel-switch),
+  scram switch par différentiel de rang, help-and-recover à décroissance
+  temporelle. Niveau rare pour un outil de ce type.
+- **55 actions offensives** (18 Tier1 + 28 Tier2 + 9 sets Tier3) + remises en
+  jeu BLOB/SLOB.
+- **Architecture saine** : transforms purs testés, undo/redo avec coalescing
+  de drag, 182 fichiers de test.
+
+### 🏀 Manques basket — par ordre d'impact
+
+1. **🔴 L'offense ne lit pas la défense** (→ Phase L, plan écrit). Chaque action
+   scriptée joue une séquence figée quelle que soit la couverture. Le branchement
+   conditionnel (blitz→short roll, drop→pull-up, switch→mismatch…) manque alors
+   que les deux briques existent (`ScenarioBranch` + couverture `OnScreenNav`).
+2. **🔴 Pas de continuité / motion offense**. Chaque action a un début/fin net,
+   pas de boucle (Princeton, flex, 5-out continu), pas de reversal guard-to-guard,
+   pas de chaîne DHO multiple. Impossible de modéliser une vraie continuité.
+3. **🔴 La transition n'existe pas**. Aucun fast-break, secondary break, outlet,
+   lanes 2c1/3c2 — soit ~25-30 % des possessions non couvertes.
+4. **🟠 Pas de fautes du tout dans le moteur** : ni faute défensive, ni and-one,
+   ni bonus, ni lancers francs comme issue, ni faute à donner exploitée.
+   `rebound.ts` ignore le box-out réel et la détente verticale (multiplieurs de
+   profil hardcodés : rim-roller ×1.4, etc.).
+5. **🟠 Closeouts non explicites** vers les shooters (rampe distance → intensité
+   de contest) — seulement implicite via la qualité d'écran.
+6. **🟠 Spacing aux corners non incité**. `positionOffBall.ts` maximise les
+   distances par paires mais n'incite pas l'occupation des corners (priorité
+   spacing #1 du basket moderne) ; optimisation gloutonne séquentielle, pas
+   d'optimum global.
+7. **🟠 Simulation de match — simplifications fortes** :
+   - équipe adverse en **stub** (50 % de réussite hardcodé,
+     `AWAY_SCORE_PROBABILITY`, `gameLoop.ts`) ;
+   - **défense gelée pendant un drive** (succès = RNG `DRIVE_SUCCESS_RATE=0.75`,
+     le défenseur ne peut pas réellement arrêter la pénétration) ;
+   - **pas de fatigue** en mode match (la V3 fatigue ne s'applique qu'à
+     l'édition manuelle) ; pas de timeout, pas de quart-temps.
+8. **🟡 Lacunes défensives ciblées** : tag du roller sans modèle de contact/faute,
+   X-out limité à un seul roller, pas d'ancre weak-side explicite, pas de
+   relâche de blitz quand le ballon ressort, agressivité de hedge globale et non
+   par défenseur, pas de re-scram en cascade.
+
+### 🛠️ Dette code à traiter avant d'empiler des features
+
+- **Constantes magiques éparpillées** dans les 14 couches défensives
+  (`TAG_THEN_SWITCH_DIST_PX=150`, `DIG_FRACTION=0.3`…). **Incohérence réelle** :
+  `HELP_BUSY_THRESHOLD` vaut 0.5 dans `postCoverageLayer` et 0.3 dans
+  `cutterBumpLayer`. → centraliser dans `src/lib/data/defenseConstants.ts`
+  exportable (bonus : exposable en sliders coach).
+- **Fragilité de l'ordre des couches** : insérer une couche entre PnR et
+  screen-repel peut casser silencieusement les rotations. **Aucun test
+  d'intégration** « PnR + help coexistent » — seulement 3 tests de couches
+  isolées sur 14. Risque de régression #1. → ajouter des tests d'intégration
+  du pipeline.
+- **Duplication des générateurs offensifs** (~50 % d'arithmétique de position
+  répétée ; `genFlareScreen` ne fait que `return genFlare`). → helper
+  paramétrable `screenAndCut(screener, cutter, type)`.
+- **God-objects** : `gameLoop.ts` (2080), `frameResolver.ts` (2001),
+  `DefensePanel.tsx` (1550), `useAppState.ts` (738, ~60 callbacks), prop drilling
+  de 40+ callbacks depuis `page.tsx` sans Context. Freine l'évolution UI.
+- **Logique « ball-side / weak-side » et détection d'aide dupliquées** sur 3
+  chemins (`zoneDefense`, `manDefense`, `help.ts`) → utilitaire partagé.
+
+### 📋 Produit — manques qui limitent l'usage terrain
+- **Pas de roster nommé** : on reste sur O1-O5 / D1-D5, sans noms/profils réels.
+- **Pas de partage** : export JSON/GIF/WebM mais pas de lien partageable ni
+  visionneuse pour les joueurs.
+- **Pas de bouton export PDF playbook** (le CSS `@media print` existe pourtant).
+- **Pas de responsive/mobile** : inutilisable sur tablette en bord de terrain
+  (cf [docs/mobile-plan.md](docs/mobile-plan.md), repoussé).
+
+### Priorisation proposée
+1. **Offense lecture-réactive** (Phase L — plan écrit) — saut qualitatif majeur,
+   briques déjà présentes.
+2. **Centraliser constantes + tests d'intégration défensifs** — sécurise tout
+   le reste.
+3. **Roster nommé + partage/PDF + responsive** — rend l'outil utilisable par un
+   vrai coach. (UX → respecte la consigne « basket d'abord » : à faire après 1+2.)
+
+---
+
 ## 📍 État au 2026-05-25 — audit du backlog
 
 La majorité des items marqués `(à attaquer)` ou TODO dans les sections

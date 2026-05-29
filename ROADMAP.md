@@ -8,6 +8,20 @@ Vision produit forward-looking.
 
 Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
+## ⚪ Prochain grand pas — Offense en lecture réactive (audit 2026-05-29)
+
+Le moteur défensif est très abouti (14 couches, couvertures FIBA). Le prochain
+saut produit est côté **offense** : la faire **lire la défense** au lieu de
+jouer une séquence figée. Quand la défense drop → pull-up ; blitz → short roll +
+skip ; switch → attaque du mismatch. Les briques existent déjà
+(`ScenarioBranch` + couverture `OnScreenNav`) — il manque le branchement
+automatique. C'est le passage « tableau animé » → « simulateur tactique ».
+
+- Spec : [docs/superpowers/specs/2026-05-29-offense-lecture-reactive-design.md](docs/superpowers/specs/2026-05-29-offense-lecture-reactive-design.md)
+- Plan (Phase L) : [docs/superpowers/plans/2026-05-29-offense-lecture-reactive.md](docs/superpowers/plans/2026-05-29-offense-lecture-reactive.md)
+- Audit complet (motion, transition, fautes, dette code, produit) :
+  [IDEAS.md § Audit expert 2026-05-29](IDEAS.md)
+
 ## Livré récemment (mai 2026)
 
 - 🟢 **Session 2026-05-12 — Grande session 4 phases** : **27 commits**,

@@ -14,6 +14,31 @@
 
 ## 🏀 BASKET — priorité absolue
 
+### Phase L — Offense en lecture réactive ⚪ NOUVEAU (audit 2026-05-29)
+
+> Saut « tableau animé » → « simulateur tactique ». L'offense lit la couverture
+> défensive jouée et choisit automatiquement sa continuation (blitz→short roll,
+> drop→pull-up, switch→mismatch…). Réutilise `ScenarioBranch` + `OnScreenNav`
+> déjà présents — chaînon manquant seulement.
+>
+> Spec : [2026-05-29-offense-lecture-reactive-design.md](superpowers/specs/2026-05-29-offense-lecture-reactive-design.md)
+> · Plan : [2026-05-29-offense-lecture-reactive.md](superpowers/plans/2026-05-29-offense-lecture-reactive.md)
+
+| Item | Statut | Description | Effort |
+|---|---|---|---|
+| **L.0** | ⚪ | Noyau pur : `ReadTrigger` + `effectiveScreenNav` (helper partagé) + `resolveScreenCoverage` + `selectReactiveBranch`. Tests purs. | ~0.5-1 j |
+| **L.1** | ⚪ | Câblage compilation (manuel prime) + `readLibrary.ts` (tables canoniques) + golden snapshot 3 couvertures. | ~0.5 j |
+| **L.2** | ⚪ | UI : sélecteur de déclencheur dans `ScenarioPanel` + badge « Lecture : DROP → … ». | ~0.5-1 j |
+| **L.3** | ⚪ reporté | Lectures hors PnR (drive-and-kick, backdoor sur deny), arbres multi-niveaux, lecture probabiliste. | — |
+
+### Dette moteur — à traiter avant d'empiler (audit 2026-05-29)
+
+| Item | Statut | Description | Effort |
+|---|---|---|---|
+| **DM.1** | ⚪ | Centraliser les constantes des 14 couches défensives dans `defenseConstants.ts`. Corrige l'incohérence `HELP_BUSY_THRESHOLD` (0.5 vs 0.3). | ~0.5 j |
+| **DM.2** | ⚪ | Tests d'intégration du pipeline défensif (« PnR + help coexistent », ordre des couches). Seulement 3/14 couches testées isolément. | ~0.5-1 j |
+| **DM.3** | ⚪ | Helper `screenAndCut(...)` pour dédupliquer les générateurs offensifs (~50 % d'arithmétique répétée). | ~0.5 j |
+
 ### Phase B — Notion du temps ✅ COMPLÈTE (4/4)
 
 | Item | Statut | Description |
