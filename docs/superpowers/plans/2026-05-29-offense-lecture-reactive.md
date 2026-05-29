@@ -11,50 +11,54 @@ livrable, testée, commit + push (Règle 2).
 
 ---
 
-## Phase L.0 — Noyau pur (types + résolution), aucun UI
+## Phase L.0 — Noyau pur (types + résolution), aucun UI ✅ LIVRÉ 2026-05-29
 
 **But** : tout le calcul de lecture en pur, testable sans React, sans toucher
 au rendu ni à la compilation.
 
-### L.0.1 — Helper partagé de couverture effective
-- Fichier : `src/lib/logic/screens/effectiveScreenNav.ts` (nouveau).
-- `effectiveScreenNav(state, screenerDef: DefenderId): OnScreenNav` :
-  retourne `rules[screenerDef].screenNav` si ≠ `'auto'`, sinon le `screenRule`
-  global de `state`.
-- **Refactor** : faire consommer ce helper par `carrierScreenAdjust` (qui
-  recalcule aujourd'hui cette priorité en interne) → source unique. Vérifier la
-  parité par les tests `screens*` existants (aucune régression attendue).
-- Tests : `effectiveScreenNav.test.ts` (override prime, fallback global, 'auto').
+### L.0.1 — ~~Helper partagé de couverture effective~~ → ABANDONNÉ (mieux)
+- **Déviation assumée** : le plan prévoyait d'extraire un helper
+  `effectiveScreenNav` pour mutualiser la résolution override/global. Or
+  `resolveScreenCoverage` (L.0.3) réutilise directement
+  `buildDefenseFrameContext`, qui calcule DÉJÀ `ctx.effectiveScreenRule` (la
+  seule occurrence de cette résolution, dans `context.ts`). Il n'y avait donc
+  aucune duplication réelle à factoriser, et la réutilisation du contexte donne
+  la **parité par construction** (y compris hedge-recovery + unwind-reject).
+  `carrierScreenAdjust` reçoit `rule` en paramètre — il ne résout rien. Helper
+  inutile (YAGNI).
 
-### L.0.2 — Types
+### L.0.2 — Types ✅
 - `src/lib/types/index.ts` :
   - ajouter `interface ReadTrigger { kind: 'screen-coverage'; actionId: string; coverage: OnScreenNav[] }`.
   - ajouter `trigger?: ReadTrigger` à `ScenarioBranch`.
   - ajouter `resolvedReadBranchId?: string | null` à l'`AppState` (transient).
 - Aucune valeur par défaut, additif pur.
 
-### L.0.3 — Résolution de couverture
+### L.0.3 — Résolution de couverture ✅
 - Fichier : `src/lib/logic/reads/resolveCoverage.ts` (nouveau dossier `reads/`).
-- `resolveScreenCoverage(state, atStepIdx): OnScreenNav | null` :
-  `detectScreen` au step → `screenerDef` → `effectiveScreenNav`. `null` si pas
-  d'écran. Réutilise les mêmes args que le pipeline défensif (matchups,
-  positions défenseurs au step).
-- Tests : `reads/__tests__/resolveCoverage.test.ts`.
+- `resolveScreenCoverage(state, atStepIdx): ScreenRule | null` : réutilise
+  `buildDefenseFrameContext(state, atStepIdx)` et renvoie
+  `ctx.screen ? ctx.effectiveScreenRule : null`. `null` aussi si défense
+  non-man ou index hors bornes. Type de retour = `ScreenRule` (la règle
+  réellement jouée), pas `OnScreenNav`.
+- Tests : `reads/__tests__/resolveCoverage.test.ts` (7 tests).
 
-### L.0.4 — Sélection de branche
+### L.0.4 — Sélection de branche ✅
 - Fichier : `src/lib/logic/reads/selectReactiveBranch.ts` (nouveau).
 - `selectReactiveBranch(state): { branch: ScenarioBranch | null }` :
-  manuel (`activeBranchId`) prime ; sinon compile chemin principal seul,
-  récupère `parentRanges[trigger.actionId].endIndex`, résout la couverture,
-  premier `coverage.includes(...)` gagne.
-- ⚠️ `compileScenario` ne renvoie pas `parentRanges` aujourd'hui. Deux options :
-  (a) exporter une fonction interne `compileMainPathWithRanges` ; ou
-  (b) recalculer le range via les `generatedBy` des steps. **Choisir (a)** :
-  extraire la passe 1 de `compileScenario` en helper renvoyant
-  `{ steps, parentRanges }`. Refactor sans changement de comportement.
-- Tests : `reads/__tests__/selectReactiveBranch.test.ts`.
+  manuel (`activeBranchId`) prime ; sinon, pour chaque branche avec `trigger`,
+  on trouve le **dernier step `generatedBy === trigger.actionId`** dans
+  `state.steps` (= moment d'usage de l'écran, AVANT toute divergence donc
+  stable), on résout la couverture à ce step, premier `coverage.includes(...)`
+  gagne.
+- **Simplification vs plan** : pas de recompilation ni de `parentRanges`. La
+  lecture se fait sur `state.steps` déjà compilé car le step d'usage de l'écran
+  précède le point de divergence (identique quelle que soit la branche active).
+- Tests : `reads/__tests__/selectReactiveBranch.test.ts` (7 tests).
 
-**Livrable L.0** : noyau pur + tests verts. Rien de visible côté app encore.
+**Livrable L.0** ✅ : noyau pur + 13 tests verts, type-check OK, garde-fous
+Règle 1bis verts (168 tests `screens*`/`overlap*`/`userJson*`/`screenLab*`).
+Rien de visible côté app encore (câblage = L.1).
 
 ---
 

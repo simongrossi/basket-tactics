@@ -426,6 +426,24 @@ export type ScriptedAction = OffensiveScriptedAction | DefensiveScriptedAction;
  * normalement ; une branche active remplace les actions suivantes après le
  * point de divergence.
  */
+/**
+ * Déclencheur de lecture (read-based offense, Phase L) — quelle couverture
+ * défensive active automatiquement une branche. Quand `ScenarioBranch.trigger`
+ * est défini, la branche est sélectionnée par le moteur en lisant la couverture
+ * jouée au moment où l'écran est utilisé, au lieu d'un choix manuel.
+ *
+ * V1 : seule la couverture d'un écran porteur (PnR / side PnR) est lue.
+ */
+export interface ReadTrigger {
+  kind: 'screen-coverage';
+  /** Action-écran dont on lit la couverture. = `ScenarioBranch.divergeAfterActionId`. */
+  actionId: string;
+  /** Couverture(s) effective(s) qui activent la branche. La couverture résolue
+   *  est un `ScreenRule` (la règle réellement jouée, override par défenseur ou
+   *  globale). */
+  coverage: ScreenRule[];
+}
+
 export interface ScenarioBranch {
   id: string;
   label: string;
@@ -435,6 +453,9 @@ export interface ScenarioBranch {
   divergeAfterActionId: string;
   /** Suite alternative d'actions (offensives ou défensives). */
   actions: ScriptedAction[];
+  /** Si défini → branche RÉACTIVE : auto-sélectionnée selon la couverture
+   *  défensive lue. Sinon → branche MANUELLE (V1, choisie via `activeBranchId`). */
+  trigger?: ReadTrigger;
 }
 
 export interface DefensiveDirective {
@@ -1224,6 +1245,10 @@ export interface AppState {
    *  principal. Le compilateur utilise cette valeur pour décider de la
    *  suite après le point de divergence. */
   activeBranchId?: string | null;
+  /** Lecture seule — posé par le sélecteur de branche réactive (Phase L) :
+   *  id de la branche réactive effectivement active (null = chemin principal).
+   *  Sert au badge « Lecture : DROP → … ». Transient, non persisté. */
+  resolvedReadBranchId?: string | null;
   /** Inclure les variantes dans le PDF playbook (une section par variante
    *  après le chemin principal). Indéfini = false par défaut. */
   pdfIncludeBranches?: boolean;
