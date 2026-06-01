@@ -39,6 +39,7 @@ export type { CoachDiagnostic, CoachSeverity, Rule, RuleContext } from './types'
 //  - tacticalReads vient en fin (lecture offensive, après tous les diag défense)
 //
 import { closeoutLongRule } from './rules/closeoutLong';
+import { shooterCloseoutRule } from './rules/shooterCloseout';
 import { switchMismatchRule } from './rules/switchMismatch';
 import { attackerJumpRule } from './rules/attackerJump';
 import { baselineDriveRule } from './rules/baselineDriveCoverage';
@@ -67,6 +68,7 @@ import { playerAnomalyRule } from './rules/playerAnomaly';
 
 const REGISTRY: Rule[] = [
   closeoutLongRule,
+  shooterCloseoutRule,
   switchMismatchRule,
   attackerJumpRule,
   baselineDriveRule,

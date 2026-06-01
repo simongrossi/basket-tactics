@@ -15,6 +15,7 @@ interface PlayerProps {
   isOverridden?: boolean;
   closingOut?: boolean;
   overClosed?: boolean;
+  closeoutQuality?: 'clean' | 'desperate' | 'late';
   isForcedScreener?: boolean;
   denying?: boolean;
   /** Angle horaire du corps depuis le NORD (0–360°). Pilote les bras :
@@ -94,6 +95,7 @@ export function Player({
   isOverridden,
   closingOut,
   overClosed,
+  closeoutQuality,
   isForcedScreener,
   denying,
   orientation,
@@ -645,13 +647,19 @@ export function Player({
       )}
       {closingOut && !isAttacker && showStateRings && showCloseoutRing && (
         <g pointerEvents="none">
-          {/* Anneau orange (closeout normal) ou rouge (over-closeout, déborde). */}
+          {/* Anneau closeout : vert (clean <80px) / orange (desperate 80-159px) /
+              rouge (late ≥160px ou over-closeout). */}
           <circle
             cx={pos.x}
             cy={pos.y}
             r={r + 5}
             fill="none"
-            stroke={overClosed ? '#DC2626' : '#F97316'}
+            stroke={
+              overClosed ? '#DC2626'
+              : closeoutQuality === 'late' ? '#DC2626'
+              : closeoutQuality === 'desperate' ? '#F97316'
+              : '#22C55E'
+            }
             strokeWidth={2.5}
             opacity={0.85}
           />
@@ -660,11 +668,16 @@ export function Player({
             cy={pos.y}
             r={r + 9}
             fill="none"
-            stroke={overClosed ? '#DC2626' : '#F97316'}
+            stroke={
+              overClosed ? '#DC2626'
+              : closeoutQuality === 'late' ? '#DC2626'
+              : closeoutQuality === 'desperate' ? '#F97316'
+              : '#22C55E'
+            }
             strokeWidth={1}
             opacity={0.4}
           />
-          {overClosed && (
+          {(overClosed || closeoutQuality === 'late') && (
             <text
               x={pos.x + r + 14}
               y={pos.y - r - 4}

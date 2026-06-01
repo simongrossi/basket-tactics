@@ -460,6 +460,19 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
     // Closeout : le défenseur du nouveau porteur bénéficie d'un bump de vitesse.
     const closingOut = isCloseoutTransition && targets[dId].isCarrierDefender;
     const overClosed = isOverClosedTransition && targets[dId].isCarrierDefender;
+
+    // Qualité du closeout : distance parcourue par le défenseur pour atteindre
+    // le nouveau porteur. Colore le ring (vert/orange/rouge) et alimente le
+    // diagnostic coach shooterCloseout.
+    let closeoutQuality: 'clean' | 'desperate' | 'late' | undefined;
+    if (closingOut) {
+      const defFrom = prevPositions[dId] ?? from;
+      const carrierTargetPos = curStep.off[curCarrier];
+      if (carrierTargetPos) {
+        const d = Math.hypot(defFrom.x - carrierTargetPos.x, defFrom.y - carrierTargetPos.y);
+        closeoutQuality = d < 80 ? 'clean' : d < 160 ? 'desperate' : 'late';
+      }
+    }
     // Override par défenseur > global > défaut, modulé par le profil offensif
     // du porteur sur lequel on closeoute (shooter → +15%, non-shooter → -15%).
     const ruleBoost = state.rules[dId]?.closeoutBoost;
@@ -631,6 +644,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         scrammedThisStep: targets[dId].scrammedThisStep,
         closingOut: closingOut || undefined,
         overClosed: overClosed || undefined,
+        closeoutQuality: closeoutQuality,
         denying: targets[dId].denying,
         helpTriggered: targets[dId].helpTriggered,
         pnrRole: targets[dId].pnrRole,
@@ -675,6 +689,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         scrammedThisStep: targets[dId].scrammedThisStep,
         closingOut: closingOut || undefined,
         overClosed: overClosed || undefined,
+        closeoutQuality: closeoutQuality,
         denying: targets[dId].denying,
         helpTriggered: targets[dId].helpTriggered,
         pnrRole: targets[dId].pnrRole,

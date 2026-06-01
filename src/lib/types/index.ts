@@ -791,6 +791,11 @@ export interface ComputedDefender {
    *  l'attaquant en a profité pour driver vers le panier. Modélise le
    *  risque "il s'est fait déborder". */
   overClosed?: boolean;
+  /** Qualité du closeout en cours (calculée par speedConstraint quand closingOut=true).
+   *  'clean'     : dist < 80px — défenseur à portée raisonnable, contest correct.
+   *  'desperate' : 80–159px   — long sprint, contest dégradé.
+   *  'late'      : ≥ 160px    — tir ouvert avant l'arrivée du défenseur. */
+  closeoutQuality?: 'clean' | 'desperate' | 'late';
   /** Le défenseur applique un strong-side denial automatique (glisse vers la
    *  ligne de passe). Utilisé pour différencier visuellement du ring "help"
    *  classique côté faible. */
