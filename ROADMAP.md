@@ -8,14 +8,21 @@ Vision produit forward-looking.
 
 Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
-## ⚪ Prochain grand pas — Offense en lecture réactive (audit 2026-05-29)
+## 🟢 Offense en lecture réactive — Phase L (livré 2026-05-29)
 
-Le moteur défensif est très abouti (14 couches, couvertures FIBA). Le prochain
-saut produit est côté **offense** : la faire **lire la défense** au lieu de
-jouer une séquence figée. Quand la défense drop → pull-up ; blitz → short roll +
-skip ; switch → attaque du mismatch. Les briques existent déjà
-(`ScenarioBranch` + couverture `OnScreenNav`) — il manque le branchement
-automatique. C'est le passage « tableau animé » → « simulateur tactique ».
+Le moteur défensif est très abouti (14 couches, couvertures FIBA). L'offense
+**lit maintenant la défense** et choisit sa continuation automatiquement
+(blitz → short roll, drop → pull-up, switch → mismatch). C'est le passage
+« tableau animé » → « simulateur tactique ».
+
+**Livré (L.0 → L.3)** : noyau pur + bibliothèque de 7 lectures canoniques +
+UI ScenarioPanel (onglets réactifs, badge "Lecture auto") + lectures hors PnR
+(drive-and-kick via `help-source`, backdoor via `deny`). +40 tests. Suite 1864 verte.
+
+**Restant (extensions)** :
+- Arbres multi-niveaux (sous-branches récursives)
+- Lecture probabiliste (défense joue drop 70 % / blitz 30 %)
+- Receveur dynamique sur le drive-and-kick
 
 - Spec : [docs/superpowers/specs/2026-05-29-offense-lecture-reactive-design.md](docs/superpowers/specs/2026-05-29-offense-lecture-reactive-design.md)
 - Plan (Phase L) : [docs/superpowers/plans/2026-05-29-offense-lecture-reactive.md](docs/superpowers/plans/2026-05-29-offense-lecture-reactive.md)
@@ -379,7 +386,7 @@ sort aussi du mode présentation.
 
 ## 3. Produit (export & partage)
 
-### ⚪ Export vidéo / GIF
+### 🟢 Export vidéo / GIF — livré 2026-05-23
 **Quoi.** Capturer l'animation fluide du système (lecture complète) en GIF ou vidéo MP4 téléchargeable. Permet de partager sur Slack/WhatsApp/X sans demander à quelqu'un d'ouvrir l'app.
 
 **Implémentation.** Deux pistes complémentaires :
@@ -407,7 +414,7 @@ bibliothèque utilisateur). Format différent (snapshot complet d'un
 système avec steps + défense), mais le besoin "sauvegarder son
 travail" est rempli.
 
-### ⚪ Annotations textuelles libres
+### 🟢 Annotations textuelles libres — livré 2026-05-23
 **Quoi.** Pouvoir déposer une note texte n'importe où sur le terrain ("trap si le 5 monte", "force baseline", "skip pass option"). Distincte des flèches d'action — c'est du commentaire libre, pour expliquer l'intention.
 
 **Implémentation.** Étendre `AnnotationType` avec `'text'` dans `lib/types/index.ts`. Nouveau champ optionnel `text?: string` dans `Annotation`. Le `from` représente l'ancrage (point sur le terrain), `to` est ignoré. Nouvel outil `T` (Text) à côté de `M / P / D / R / E` dans `OffensePanel`. Au clic sur le terrain en mode texte, prompt inline : un `<foreignObject>` SVG affiche un `<input>` qui devient un `<text>` au blur. Rendu dans `Annotations.tsx` : un `<text>` avec fond blanc semi-opaque (rectangle de fond + label centré). Edit/delete au clic sur le texte (réouvre l'input).
@@ -743,7 +750,7 @@ recover est progressif, avec decay configurable en steps ou en ms.
 - `helpStickyLayer` : si V2 actif, `blendFactor = 1 - cumMs / stickinessMs`. Plus fidèle basket (1200 ms ≈ standard NBA, indépendant du découpage en steps).
 - UI : slider 0-2500 ms par pas de 100 ms dans `DefensePanel` (section *Couvertures avancées*) ; activation V2 → désactive V1 legacy automatiquement.
 
-#### ⚪ C.7 — Read offensive action chains — détail du plan
+#### 🟢 C.7 — Read offensive action chains — livré (détail du plan ci-dessous)
 
 **Problème actuel.** Une action complexe = enchaînement de plusieurs
 écrans (flare → curl → fade, stagger sequential, re-screen, curl-into-cut)
@@ -1265,7 +1272,7 @@ play.
 **Risque 🟡.** Coût CPU au scrub (60 frames par déplacement de
 quelques px). Mitigation : memoize le préfixe (cf. J.2).
 
-#### ⚪ J.2 — Cache segmentaire du resolver — détail du plan
+#### 🟢 J.2 — Cache segmentaire du resolver — livré 2026-05-15 (détail ci-dessous)
 
 **Problème actuel.** `resolveFrameAt` recalcule à chaque appel :
 `matchupsA/B`, `ctxA/B/exit`, `screenerObstacles`, qualités, routes.
@@ -1286,7 +1293,7 @@ selon profiling brouillon), particulièrement perceptible quand
 changée. Tests : ajouter assertion "résultat == résultat sans cache"
 sur les 16 templates instrumentés.
 
-#### ⚪ J.3 — Solver de contraintes unifié — détail du plan
+#### 🟢 J.3 — Solver de contraintes unifié — livré 2026-05-15 (détail ci-dessous)
 
 **Problème actuel.** On a empilé : `pushOutOfMany` (attaquants),
 `pushOutOfMany` (défenseurs screen-locked), `pushOutOfManyConstrained`

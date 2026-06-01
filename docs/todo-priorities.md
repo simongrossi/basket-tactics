@@ -14,7 +14,7 @@
 
 ## 🏀 BASKET — priorité absolue
 
-### Phase L — Offense en lecture réactive ⚪ NOUVEAU (audit 2026-05-29)
+### Phase L — Offense en lecture réactive ✅ COMPLÈTE L.0→L.3 (livré 2026-05-29)
 
 > Saut « tableau animé » → « simulateur tactique ». L'offense lit la couverture
 > défensive jouée et choisit automatiquement sa continuation (blitz→short roll,
@@ -36,8 +36,8 @@
 | Item | Statut | Description | Effort |
 |---|---|---|---|
 | ~~**DM.1**~~ | 🟢 livré 2026-05-29 | `defense/constants.ts` — 15 constantes centralisées (noms préfixés par couche), imports aliasés (behavior-preserving). Collision `HELP_BUSY_THRESHOLD` levée : 2 noms distincts documentés (`POST_*`=0.5 / `CUTTER_BUMP_*`=0.3 — écart volontaire, pas un bug). +2 tests verrou. Suite 1864 verte. | — |
-| ~~**DM.2**~~ | 🟢 livré 2026-05-29 | `pipelineIntegration.test.ts` (31 tests) : invariants robustes (finitude+bornes, bijection matchups, anti-overlap, déterminisme) sur matrice **couvertures × flags** via `effectiveDefensePositions` + cohérences rôle (drop≠switch, persistance pnrRole sous autoBumpCutters, porteur jamais abandonné). Suite 1897 verte. | — |
-| ~~**DM.3**~~ | 🟢 livré 2026-05-29 | Helper `screenAndCut` (helpers.ts) : squelette « écran → cut » mutualisé. 6 générateurs (flare/curl/shuffle/pin-down/back-screen/cross-screen) réduits à des wrappers de 4 specs. Refacto bit-identique (golden + anti-flicker verts, suite 1897). | — |
+| ~~**DM.2**~~ | 🟢 livré 2026-05-29 | `pipelineIntegration.test.ts` — 31 tests de coexistence entre les 14 couches (PnR + help, trap + screen, etc.). Suite 1897 verte. | — |
+| ~~**DM.3**~~ | 🟢 livré 2026-05-29 | Helper `screenAndCut(...)` dans `scriptedGenerators/helpers.ts` — factorise le motif screen→cut copié dans 6 générateurs tier1. | — |
 
 ### Phase B — Notion du temps ✅ COMPLÈTE (4/4)
 
@@ -73,17 +73,17 @@ C.1 → C.7 livrés (V1 + V2 inclus). C.2 V2 (`helpStickinessMs`) livré
 le 2026-05-17, commit `751acf6`, 8 nouveaux tests. Voir ROADMAP pour
 les détails.
 
-### Phase D — Trajectoires raffinées 🟡 4/5 (D.4 reportée)
+### Phase D — Trajectoires raffinées ✅ COMPLÈTE (5/5)
 
 | Item | Statut | Description |
 |---|---|---|
 | ~~**D.1**~~ | 🟢 livré 2026-05-18 | Easing cross-step linear/ease-in-out/ease-out (8 tests). |
 | ~~**D.2**~~ | 🟢 V1+V2 livrés 2026-05-15 | `motionMemory` + `applyDefenderMotionInertia` modulés par `rule.maxSpeed`. |
 | ~~**D.3**~~ | 🟢 livré 2026-05-18 | `Annotation.passKind` direct/lob/bounce/skip (7 tests). |
-| **D.4** | ⚪ reporté (plan écrit) | Pathfinding défensif. Plan d'audit risque dans [d4-pathfinding-plan.md](d4-pathfinding-plan.md). Non lancé : ratio risque (Règle 1bis) / valeur (visuel) défavorable. |
+| ~~**D.4**~~ | 🟢 V1+V2 livrés 2026-05-22 | `defensiveRoute.ts` — routes candidates + lissage Catmull-Rom. V1 câblé dans frameResolver (trajectoire playback), V2 dans speedConstraint (cibles de step). Opt-in `state.defensiveRouting`. |
 | ~~**D.5**~~ | 🟢 validé 2026-05-18 | Invariant collision cross-frame testé bout-en-bout (4 tests). |
 
-### Phase J — Moteur écran / playback fines 🟡 4/7 (3 reportés)
+### Phase J — Moteur écran / playback ✅ COMPLÈTE (7/7)
 
 | Item | Statut | Description | Effort |
 |---|---|---|---|
@@ -91,9 +91,9 @@ les détails.
 | ~~**J.5**~~ | 🟢 V1 livré 2026-05-18 (`ccf73b9`) | Profile overlay live (mean/p95/max par phase, hottest highlight). | — |
 | ~~**J.6**~~ | 🟢 V1 livré 2026-05-18 (`d1d6792`) | Golden snapshots Vitest sur 4 templates (ucla-cut, pnr-central, pindown-corner, floppy). | — |
 | ~~**J.7**~~ | 🟢 V1 livré 2026-05-18 (`b5aced8`) | Panneau debug joueur (overlay tableau 5 défenseurs). | — |
-| **J.1** — Parité scrub ↔ playback | ⚪ reporté | Décrochages détectés en scrub absents en lecture animée. | ~6-8h |
-| **J.2** — Cache segmentaire du resolver | ⚪ reporté | Mémoïse les segments inchangés entre frames. | ~6-8h |
-| **J.3** — Solver de contraintes unifié | ⚪ reporté | Reformule le pipeline en problème d'optimisation. | ~2-3j |
+| ~~**J.1**~~ — Parité scrub ↔ playback | 🟢 livré 2026-05-15 (`38209d6`) | Mémoire scrub déterministe recalculée depuis début de segment. | — |
+| ~~**J.2**~~ — Cache segmentaire du resolver | 🟢 livré 2026-05-15 (`87b212c`) | Mémoïse les segments inchangés entre frames. | — |
+| ~~**J.3**~~ — Solver de contraintes unifié | 🟢 livré 2026-05-15 (`f7fcb8a`) | `constraintSolver.ts` — socle commun att/déf/poseurs/screen lock. | — |
 
 ### Phase K — Behavior Anomaly Detection ✅ COMPLÈTE (7/7)
 
@@ -125,8 +125,8 @@ les détails.
 
 | Item | Statut | Description | Effort | Priorité |
 |---|---|---|---|---|
-| A.2 — Mode présentation v2 | ⚪ | Fullscreen navigateur natif universel + raccourcis clavier | ~2h | ⏸ **après basket** |
-| A.3 — Annotations texte | ⚪ | Notes coaching inline sur steps/zones | ~2h | ⏸ **après basket** |
+| ~~A.2~~ — Mode présentation v2 | 🟢 livré 2026-05-22 | `requestFullscreen()` + sync `fullscreenchange` → sortie native sort aussi du mode présentation. | — |
+| ~~A.3~~ — Annotations texte | 🟢 livré 2026-05-23 | `TextNote` séparé d'`Annotation`, outil `note` + raccourci `T`, popup HTML édition, undo/persistance gratuits. | — |
 
 ### Phase H — Tests composants UI
 
