@@ -41,6 +41,26 @@ const DEFAULT_RING: [number, number] = [150, 250];
  *  qu'une candidate hors-couloir avec spacing comparable soit préférée. */
 export const CORRIDOR_PENALTY_PX = 60;
 
+/** Bonus de score (px de spacing équivalent) quand un shooter/stretch-big
+ *  se positionne dans un corner 3pts. Le corner est la position #1 du basket
+ *  moderne : tir le plus court, défenseur forcé de sortir loin de la raquette. */
+export const CORNER_BONUS_PX = 45;
+
+/** Rayon de détection autour d'un coin (px). */
+const CORNER_DETECT_RADIUS = 35;
+
+/** Positions des deux corners 3pts pour demi-terrain haut (panier en y ≈ 75). */
+const CORNER_POSITIONS_HALF: readonly [Point, Point] = [
+  { x: 53, y: 80 },   // corner gauche
+  { x: 547, y: 80 },  // corner droit
+];
+
+/** Profils qui bénéficient du bonus corner. */
+const CORNER_BOOSTED_PROFILES: ReadonlySet<OffensiveProfile> = new Set<OffensiveProfile>([
+  'shooter',
+  'stretch-big',
+]);
+
 const CORRIDOR_FRIENDLY_PROFILES: ReadonlySet<OffensiveProfile> = new Set<OffensiveProfile>([
   'slasher',
   'rim-roller',
@@ -102,6 +122,14 @@ function generateCandidates(
       );
     }
   }
+  // Pour shooter/stretch-big : injecter les 2 corners comme candidates
+  // explicites (en plus de l'éventail générique).
+  if (CORNER_BOOSTED_PROFILES.has(profile ?? 'creator')) {
+    const corners = hoop.y < 540
+      ? CORNER_POSITIONS_HALF
+      : (CORNER_POSITIONS_HALF.map(c => ({ x: c.x, y: 1080 - c.y })) as [Point, Point]);
+    corners.forEach(c => out.push(clampToCourt(c, hoop)));
+  }
   return out;
 }
 
@@ -144,6 +172,16 @@ export function computeOffBallPositions(
         inCorridor(cand, ejo)
       ) {
         score -= CORRIDOR_PENALTY_PX;
+      }
+
+      // Bonus corner pour shooter/stretch-big : incite l'occupation des coins.
+      if (CORNER_BOOSTED_PROFILES.has(profile ?? 'creator')) {
+        const corners = hoop.y < 540
+          ? CORNER_POSITIONS_HALF
+          : (CORNER_POSITIONS_HALF.map(c => ({ x: c.x, y: 1080 - c.y })) as [Point, Point]);
+        if (corners.some(corner => Math.hypot(cand.x - corner.x, cand.y - corner.y) < CORNER_DETECT_RADIUS)) {
+          score += CORNER_BONUS_PX;
+        }
       }
 
       if (score > bestScore) {
