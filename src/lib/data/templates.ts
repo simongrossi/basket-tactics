@@ -872,6 +872,188 @@ const SCREEN_LAB_HELP_RECOVER: Template = {
 };
 
 // ============================================================
+// ============================================================
+// Iverson cut — O1 traverse la raquette sur 2 écrans elbow
+// ============================================================
+const iversonSetup: AttackerPositions = {
+  O1: { x: 300, y: 420 },   // top, porteur
+  O2: { x: 100, y: 330 },   // wing gauche
+  O3: { x: 500, y: 330 },   // wing droit
+  O4: { x: 200, y: 210 },   // elbow gauche, 1er poseur
+  O5: { x: 400, y: 210 },   // elbow droit, 2e poseur
+};
+const iversonCut1: AttackerPositions = {
+  ...iversonSetup,
+  O1: { x: 200, y: 340 },   // O1 amorce vers elbow G
+};
+const iversonCut2: AttackerPositions = {
+  ...iversonCut1,
+  O1: { x: 340, y: 230 },   // O1 passe sous O4, traverse la raquette
+};
+const iversonExit: AttackerPositions = {
+  ...iversonCut2,
+  O1: { x: 460, y: 310 },   // O1 sort côté droit, reçoit la passe
+};
+
+const IVERSON_CUT: Template = {
+  id: 'iverson-cut',
+  name: 'Iverson cut',
+  tags: ['set', 'iverson', 'off-ball', 'cut'],
+  description: "O1 traverse la raquette en utilisant deux écrans elbow successifs (O4 puis O5) — ressort côté opposé pour recevoir une passe en sortie de course.",
+  defenseInitial: defaultDef(iversonSetup),
+  steps: [
+    { label: 'Setup', off: iversonSetup, ballCarrier: 'O2', annotations: [] },
+    {
+      label: "O1 amorce vers l'écran O4",
+      off: iversonCut1,
+      ballCarrier: 'O2',
+      annotations: [
+        { type: 'cut', fromId: 'O1', toId: null, from: iversonSetup.O1, to: iversonCut1.O1 } as Annotation,
+        { type: 'screen', fromId: 'O4', toId: null, from: iversonSetup.O4, to: { x: iversonSetup.O4.x + 10, y: iversonSetup.O4.y + 15 } } as Annotation,
+      ],
+    },
+    {
+      label: 'O1 traverse — écran O5',
+      off: iversonCut2,
+      ballCarrier: 'O2',
+      annotations: [
+        { type: 'cut', fromId: 'O1', toId: null, from: iversonCut1.O1, to: iversonCut2.O1 } as Annotation,
+        { type: 'screen', fromId: 'O5', toId: null, from: iversonSetup.O5, to: { x: iversonSetup.O5.x - 10, y: iversonSetup.O5.y + 15 } } as Annotation,
+      ],
+    },
+    {
+      label: 'Passe à O1 en sortie',
+      off: iversonExit,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'cut', fromId: 'O1', toId: null, from: iversonCut2.O1, to: iversonExit.O1 } as Annotation,
+        { type: 'pass', fromId: 'O2', toId: 'O1', from: iversonSetup.O2, to: iversonExit.O1 } as Annotation,
+      ],
+    },
+  ],
+};
+
+// ============================================================
+// Stagger — double écran séquentiel pour O3 (shooter)
+// ============================================================
+const staggerSetup: AttackerPositions = {
+  O1: { x: 460, y: 430 },   // porteur côté droit
+  O2: { x: 540, y: 310 },   // wing droit
+  O3: { x: 100, y: 280 },   // shooter côté gauche, sous les écrans
+  O4: { x: 200, y: 220 },   // 1er poseur (stagger bas)
+  O5: { x: 290, y: 170 },   // 2e poseur (stagger haut)
+};
+const staggerScreen1: AttackerPositions = {
+  ...staggerSetup,
+  O3: { x: 200, y: 280 },   // O3 passe sous le 1er écran (O4)
+};
+const staggerScreen2: AttackerPositions = {
+  ...staggerScreen1,
+  O3: { x: 310, y: 210 },   // O3 passe sous le 2e écran (O5)
+};
+const staggerCatch: AttackerPositions = {
+  ...staggerScreen2,
+  O3: { x: 420, y: 290 },   // O3 sort en wing droit pour recevoir
+};
+
+const STAGGER: Template = {
+  id: 'stagger',
+  name: 'Stagger',
+  tags: ['set', 'stagger', 'off-ball', 'shooter'],
+  description: "Double écran séquentiel (O4 bas, O5 haut) pour libérer O3 (shooter) vers l'aile. Le défenseur doit choisir : passer par-dessus les deux écrans ou switcher.",
+  defenseInitial: defaultDef(staggerSetup),
+  steps: [
+    { label: 'Setup', off: staggerSetup, ballCarrier: 'O1', annotations: [] },
+    {
+      label: 'O3 traverse le 1er écran (O4)',
+      off: staggerScreen1,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'screen', fromId: 'O4', toId: null, from: staggerSetup.O4, to: { x: staggerSetup.O4.x, y: staggerSetup.O4.y + 20 } } as Annotation,
+        { type: 'cut', fromId: 'O3', toId: null, from: staggerSetup.O3, to: staggerScreen1.O3 } as Annotation,
+      ],
+    },
+    {
+      label: 'O3 traverse le 2e écran (O5)',
+      off: staggerScreen2,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'screen', fromId: 'O5', toId: null, from: staggerSetup.O5, to: { x: staggerSetup.O5.x, y: staggerSetup.O5.y + 20 } } as Annotation,
+        { type: 'cut', fromId: 'O3', toId: null, from: staggerScreen1.O3, to: staggerScreen2.O3 } as Annotation,
+      ],
+    },
+    {
+      label: "Passe → O3 en sortie d'écran",
+      off: staggerCatch,
+      ballCarrier: 'O3',
+      annotations: [
+        { type: 'cut', fromId: 'O3', toId: null, from: staggerScreen2.O3, to: staggerCatch.O3 } as Annotation,
+        { type: 'pass', fromId: 'O1', toId: 'O3', from: staggerSetup.O1, to: staggerCatch.O3 } as Annotation,
+      ],
+    },
+  ],
+};
+
+// ============================================================
+// PNR aile — pick-and-roll sur l'aile gauche à 45°
+// ============================================================
+const pnrWingSetup: AttackerPositions = {
+  O1: { x: 130, y: 350 },   // porteur wing gauche
+  O2: { x: 300, y: 460 },   // meneur top, garde l'espace
+  O3: { x: 490, y: 320 },   // wing droit, spacing
+  O4: { x: 130, y: 210 },   // O4 descend poser l'écran aile
+  O5: { x: 370, y: 200 },   // O5 haut, rebond / spacing
+};
+const pnrWingScreen: AttackerPositions = {
+  ...pnrWingSetup,
+  O4: { x: 130, y: 310 },   // O4 en position d'écran sur l'aile
+};
+const pnrWingDrive: AttackerPositions = {
+  ...pnrWingScreen,
+  O1: { x: 220, y: 260 },   // O1 utilise l'écran, attaque la raquette
+};
+const pnrWingRoll: AttackerPositions = {
+  ...pnrWingDrive,
+  O4: { x: 230, y: 160 },   // O4 roll vers le panier
+};
+
+const PNR_WING: Template = {
+  id: 'pnr-wing',
+  name: 'PNR aile',
+  tags: ['pnr', 'wing', 'porteur'],
+  description: "Pick-and-roll posé sur l'aile gauche à 45° — angle de pénétration différent du PNR central, oblige la défense à gérer la ligne de drive et le roll simultanément.",
+  defenseInitial: defaultDef(pnrWingSetup),
+  steps: [
+    { label: 'Setup', off: pnrWingSetup, ballCarrier: 'O1', annotations: [] },
+    {
+      label: "O4 monte poser l'écran aile",
+      off: pnrWingScreen,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'cut', fromId: 'O4', toId: null, from: pnrWingSetup.O4, to: pnrWingScreen.O4 } as Annotation,
+        { type: 'screen', fromId: 'O4', toId: null, from: pnrWingScreen.O4, to: { x: pnrWingScreen.O4.x + 18, y: pnrWingScreen.O4.y } } as Annotation,
+      ],
+    },
+    {
+      label: 'O1 dribble — O4 roll',
+      off: pnrWingDrive,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'dribble', fromId: 'O1', toId: null, from: pnrWingSetup.O1, to: pnrWingDrive.O1 } as Annotation,
+      ],
+    },
+    {
+      label: 'O4 roll vers le panier',
+      off: pnrWingRoll,
+      ballCarrier: 'O1',
+      annotations: [
+        { type: 'cut', fromId: 'O4', toId: null, from: pnrWingDrive.O4, to: pnrWingRoll.O4 } as Annotation,
+        { type: 'dribble', fromId: 'O1', toId: null, from: pnrWingDrive.O1, to: { x: 260, y: 210 } } as Annotation,
+      ],
+    },
+  ],
+};
+
 // EXPORT
 // ============================================================
 //
@@ -890,6 +1072,9 @@ export const CLASSIC_TEMPLATES: Template[] = [
   UCLA_CUT,
   FLOPPY,
   HAMMER,
+  IVERSON_CUT,
+  STAGGER,
+  PNR_WING,
   ...INBOUND_TEMPLATES,
 ];
 
