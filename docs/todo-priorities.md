@@ -150,21 +150,27 @@ les détails.
 
 ---
 
+## 🎯 Livrés session 2026-06-01
+
+| Item | Statut | Description |
+|---|---|---|
+| ~~**Closeout quality ring**~~ | 🟢 livré 2026-06-01 | `closeoutQuality` clean/desperate/late sur `ComputedDefender`. Ring vert/orange/rouge dans Player.tsx. Règle coach `shooterCloseoutRule`. 4 tests. |
+| ~~**Corner preference**~~ | 🟢 livré 2026-06-01 | `CORNER_BONUS_PX=45` + candidates corner explicites dans `positionOffBall.ts` pour shooter/stretch-big. 4 tests. |
+| ~~**Templates offensifs +3**~~ | 🟢 livré 2026-06-01 | Iverson cut + Stagger + PNR aile dans CLASSIC_TEMPLATES. +18 golden snapshots. |
+
 ## 🎯 Ordre d'attaque proposé (basket only)
 
 État au **2026-05-18 (tooling)** : Phases B/C/F/G **complètes** (20/20),
-Phase D 4/5 (D.4 reportée), Phase J 4/7 (J.4 + J.5 + J.6 + J.7). Le
-moteur tactique est dans un état excellent ET muni d'outils de mesure
-+ régression auto. Il ne reste vraiment qu'un gros chantier basket
-(A11) et du tooling moteur optionnel (J.1/J.2/J.3).
+Phase D 5/5, Phase J 7/7. Le moteur tactique est dans un état excellent
+ET muni d'outils de mesure + régression auto.
 
 ### Tous les chantiers basket sont désormais livrés ✅
 
 A11 V1 (le dernier gros chantier basket) livré 2026-05-18 en ~3h
 (estimation initiale 5-8j). Le moteur tactique est **complet** :
 - Toutes les phases défensives (B, C, F, G) à 100 %.
-- Phase D 4/5 (D.4 reportée par choix).
-- Phase J 5/7 (J.4, J.5, J.6, J.7, J.1).
+- Phase D 5/5.
+- Phase J 7/7.
 - Phase E partielle : E.2, E.3, E.1 V2 stage 1+2a, A11 V1. Reste
   E.1 V2 stage 2b (refacto 2-way) — gros chantier reporté.
 
