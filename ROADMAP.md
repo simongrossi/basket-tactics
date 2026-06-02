@@ -29,6 +29,15 @@ UI ScenarioPanel (onglets réactifs, badge "Lecture auto") + lectures hors PnR
 - Audit complet (motion, transition, fautes, dette code, produit) :
   [IDEAS.md § Audit expert 2026-05-29](IDEAS.md)
 
+## Livré récemment (juin 2026)
+
+- 🟢 **Session 2026-06-01/02 — Lacunes basket + défensives** : closeout quality
+  ring (#5), spacing aux corners (#6), 3 templates offensifs (Iverson/Stagger/PNR
+  aile), puis les 3 lacunes défensives de l'audit 2026-05-29 — hedge par défenseur
+  (#8.3), ancre weak-side explicite (#8.2), relâche du blitz quand le ballon
+  ressort (#8.1). Tout opt-in. **1923 → 1945 tests verts.** Détail dans
+  [CHANGELOG.md](CHANGELOG.md).
+
 ## Livré récemment (mai 2026)
 
 - 🟢 **Session 2026-05-12 — Grande session 4 phases** : **27 commits**,

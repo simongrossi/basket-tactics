@@ -45,6 +45,9 @@ pas se superposer au poseur (même quand "stuck on screener"), etc.
 | `src/lib/logic/defense/chainResponseLayer.ts` | C.7 V2 — couche 2.5 réaction défensive aux chaînes |
 | `src/lib/logic/screens/detectRejectedScreen.ts` | B2 reject — détecte le porteur qui vire opposé |
 | `src/lib/logic/screens/detectSnakeDribble.ts` | B4 snake — détecte V sur 3 steps |
+| `src/lib/logic/defense/detectBlitzRelease.ts` | #8.1 — détecte le ballon qui ressort d'un blitz (carrier changé après un blitz N-1) |
+| `src/lib/logic/defense/pickWeakSideAnchor.ts` | #8.2 — désigne l'ancre weak-side (auto low man ou override coach) |
+| `src/lib/logic/blitzReleaseEasing.ts` | #8.1 — ease-out cubique de relâche du blitz (frameResolver) |
 | `src/lib/logic/screenPhysics.ts` | `screenContactT/Phase/Adhesion/TangentRelease` — easing sigmoïdal qui FIGE D1 sur le poseur |
 | `src/lib/logic/constraintSolver.ts` | solveur unifié point/obstacles/demi-plan + collisions multi-entités |
 | `src/lib/logic/screens.ts` | barrel (ré-export) |
@@ -58,6 +61,8 @@ state.steps[N].off + matchups
     ↓
 [applyBaseTargetsLayer]      — cible homme-à-homme + applyScreenAdjustment
     ↓
+[applyWeakSideAnchorLayer]   — couche 1.4 ancre weak-side (#8.2, opt-in)
+    ↓
 [applyRimProtectionLayer]    — pas d'easy basket
     ↓
 [applyHelpStickyLayer]       — C.2 sticky help avec decay
@@ -65,6 +70,8 @@ state.steps[N].off + matchups
 [applyPnRRotationsLayer]     — low-man tag + X-out + nail stunt
     ↓
 [applyChainResponseLayer]    — C.7 V2 réaction aux chaînes d'écrans
+    ↓
+[applyBlitzReleaseLayer]     — couche 2.6 relâche du blitz (#8.1, opt-in)
 [rate limiter playback]      — couches 1.c (attaquants) + 5.b (défenseurs)
                                quand `options.prevFrame` est fourni
     ↓

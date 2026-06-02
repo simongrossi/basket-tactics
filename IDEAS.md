@@ -50,9 +50,11 @@ Constats classés par impact. Le #1 a un plan dédié :
    - **pas de fatigue** en mode match (la V3 fatigue ne s'applique qu'à
      l'édition manuelle) ; pas de timeout, pas de quart-temps.
 8. **🟡 Lacunes défensives ciblées** : tag du roller sans modèle de contact/faute,
-   X-out limité à un seul roller, pas d'ancre weak-side explicite, pas de
-   relâche de blitz quand le ballon ressort, agressivité de hedge globale et non
-   par défenseur, pas de re-scram en cascade.
+   X-out limité à un seul roller, pas de re-scram en cascade.
+   ✅ **Livrés 2026-06-02** : ancre weak-side explicite (#8.2,
+   `weakSideAnchorLayer`), relâche de blitz quand le ballon ressort (#8.1,
+   `blitzReleaseLayer` + easing), agressivité de hedge par défenseur (#8.3,
+   `DefenderRule.hedgeAggression`).
 
 ### 🛠️ Dette code à traiter avant d'empiler des features
 

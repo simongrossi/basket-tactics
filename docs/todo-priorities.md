@@ -158,6 +158,17 @@ les détails.
 | ~~**Corner preference**~~ | 🟢 livré 2026-06-01 | `CORNER_BONUS_PX=45` + candidates corner explicites dans `positionOffBall.ts` pour shooter/stretch-big. 4 tests. |
 | ~~**Templates offensifs +3**~~ | 🟢 livré 2026-06-01 | Iverson cut + Stagger + PNR aile dans CLASSIC_TEMPLATES. +18 golden snapshots. |
 
+## 🎯 Livrés session 2026-06-02 — Lacunes défensives #8 (audit 2026-05-29)
+
+| Item | Statut | Description |
+|---|---|---|
+| ~~**#8.3 hedge per-déf**~~ | 🟢 livré 2026-06-02 | `DefenderRule.hedgeAggression` override le global (B3). Slider DefenderMenu + récap DefensePanel. 3 tests. |
+| ~~**#8.2 ancre weak-side**~~ | 🟢 livré 2026-06-02 | Couche 1.4 `weakSideAnchorLayer` + helper `pickWeakSideAnchor` (auto low man / override coach). Opt-in `weakSideAnchorEnabled`. Marqueur ⚓. 7 tests. |
+| ~~**#8.1 relâche blitz**~~ | 🟢 livré 2026-06-02 | Couche 2.6 `blitzReleaseLayer` + `detectBlitzRelease` + `blitzReleaseEasing` (frameResolver). screenerDef récupère le roller. Opt-in `blitzReleaseEnabled`. Badge ↩ RECOVER. 12 tests. |
+
+**Restent ouverts dans IDEAS §8** : tag roller avec modèle de contact/faute,
+X-out multi-roller, re-scram en cascade.
+
 ## 🎯 Ordre d'attaque proposé (basket only)
 
 État au **2026-05-18 (tooling)** : Phases B/C/F/G **complètes** (20/20),

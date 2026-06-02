@@ -6,6 +6,28 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Closeout quality + spacing corners + templates (2026-06-01)
+
+- **Closeout quality** (#5) : `ComputedDefender.closeoutQuality`
+  clean/desperate/late selon la distance defenseur→shooter au skip pass.
+  Ring vert/orange/rouge (Player.tsx), règle coach `shooterCloseoutRule`.
+- **Spacing corners** (#6) : `CORNER_BONUS_PX=45` dans positionOffBall —
+  shooter/stretch-big préfèrent les coins 3pts (candidates explicites + bonus).
+- **Templates offensifs** : Iverson cut, Stagger, PNR aile (CLASSIC_TEMPLATES).
+
+### Lacunes défensives #8 (2026-06-02) — hedge per-def + ancre weak-side + relâche blitz
+
+- **#8.3** `DefenderRule.hedgeAggression` per-défenseur (override le global B3).
+  Slider DefenderMenu + récap DefensePanel. 3 tests.
+- **#8.2** Ancre weak-side explicite : couche 1.4 `weakSideAnchorLayer`, helper
+  `pickWeakSideAnchor` (auto = low weak-side, override `DefenderRule.weakSideAnchor`).
+  Opt-in `state.weakSideAnchorEnabled`. Marqueur ⚓. 7 tests. (Fix au passage :
+  `closeoutQuality` n'était pas câblé depuis CourtPlayersLayer.)
+- **#8.1** Relâche du blitz : couche 2.6 `blitzReleaseLayer` + helper
+  `detectBlitzRelease` + `blitzReleaseEasing` (frameResolver, ease-out). Le
+  screenerDef récupère le roller quand le ballon ressort. Opt-in
+  `state.blitzReleaseEnabled`. Badge ↩ RECOVER. 12 tests. Suite 1945 verte.
+
 ### Phase L — Offense en lecture réactive (2026-05-29) — L.0 → L.3
 
 L'offense lit la couverture défensive et choisit sa continuation automatiquement.
