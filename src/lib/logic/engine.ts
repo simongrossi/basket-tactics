@@ -17,6 +17,7 @@ import {
 import type { DefenderTarget } from './defense/types';
 import { buildDefenseFrameContext } from './defense/context';
 import { applyBaseTargetsLayer } from './defense/baseTargets';
+import { applyDriveContainmentLayer } from './defense/driveContainmentLayer';
 import { applyInfluenceLayer } from './defense/influenceLayer';
 import { applyWeakSideAnchorLayer } from './defense/weakSideAnchorLayer';
 import { applyScreenRepelLayer } from './defense/screenRepelLayer';
@@ -109,6 +110,11 @@ export function computeDefenseTargets(
 
   // Couche 1 — base man-to-man + help + screen-on-target + orientation initiale.
   applyBaseTargetsLayer(positions, matchups, ctx);
+  // Couche 1.2 (2a) — Drive containment : le défenseur du porteur glisse
+  // couper la ligne de pénétration s'il peut atteindre le point de contain
+  // à temps. Opt-in via state.driveContainmentEnabled. N'altère que le
+  // défenseur du porteur.
+  applyDriveContainmentLayer(positions, matchups, ctx);
   // Couche 1.3 (CVT 2b) — Influence layer : interpose bias vers les
   // lignes de passe. Subtil (≤ 5 px), inconditionnel. Skip
   // carrier/denying/onScreen/pnrRole/helpFactor≥0.5 — ne touche

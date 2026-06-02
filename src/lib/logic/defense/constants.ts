@@ -67,3 +67,7 @@ export const INTERPOSE_MAX_SHIFT_PX = 5;
 // === screenRepelLayer (CVT 1.3b — soft repel des écrans) ===
 /** Décalage max de repel pour un défenseur libre. */
 export const SCREEN_REPEL_LAYER_MAX_SHIFT_PX = 3;
+
+// === driveContainmentLayer (2a — défense vivante / drive) ===
+/** Décalage max par step du défenseur du porteur vers le point de contain. */
+export const CONTAINMENT_MAX_SHIFT_PX = 8;
