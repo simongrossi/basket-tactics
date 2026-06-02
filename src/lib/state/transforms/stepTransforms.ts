@@ -19,6 +19,7 @@ import { buildShotReboundSetup, reboundStepLabel } from '@/lib/logic/shotRebound
 import { buildAwayPossessionSetup } from '@/lib/logic/awayPossessionSetup';
 import { buildInboundDefenseSetup } from '@/lib/logic/inboundDefenseSetup';
 import { buildJumpBallSetup } from '@/lib/logic/jumpBallSetup';
+import { buildFastBreakSteps } from '@/lib/logic/fastBreak';
 import { activeOffense } from '@/lib/logic/players';
 import { getDefenseHoop } from '@/lib/logic/engine';
 
@@ -360,6 +361,30 @@ export function addOutletPassStep(
   stepsCleared[sourceStepIdx] = { ...sourceStep, outletPassPending: undefined };
   const stateCleared: AppState = { ...s, steps: stepsCleared };
   return convertStepToAwayPossession(stateCleared, { mode: 'insert', sourceStepIdx });
+}
+
+/**
+ * Transition sous-projet 1 — génère le fast-break (outlet + sprint des couloirs)
+ * après un rebond défensif. Appende 2 steps, bascule full-court +
+ * attackingDirection='down'. No-op si le step source n'est pas un rebond
+ * défensif. `addOutletPassStep` (miroir demi-terrain) reste distinct.
+ */
+export function addFastBreakSteps(
+  s: AppState,
+  options: { sourceStepIdx?: number } = {},
+): AppState {
+  const sourceStepIdx = options.sourceStepIdx ?? s.activeStep;
+  const built = buildFastBreakSteps(s, sourceStepIdx);
+  if (!built) return s;
+  const steps = [...s.steps];
+  steps.splice(sourceStepIdx + 1, 0, built.outletStep, built.sprintStep);
+  return {
+    ...s,
+    steps,
+    fullCourt: true,
+    attackingDirection: 'down',
+    activeStep: sourceStepIdx + 2,
+  };
 }
 
 export function convertStepToAwayPossession(

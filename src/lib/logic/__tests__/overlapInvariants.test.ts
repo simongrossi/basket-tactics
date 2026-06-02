@@ -11,7 +11,8 @@ import { makeInitialState, makeStep } from '@/lib/data/initial';
 import { effectiveDefensePositions } from '@/lib/logic/engine';
 import { compileScenario } from '@/lib/logic/compileScenario';
 import { distance } from '@/lib/logic/geometry';
-import type { AppState, AttackerId, AttackerPositions, OffensiveScriptedAction } from '@/lib/types';
+import { addFastBreakSteps } from '@/lib/state/transforms/stepTransforms';
+import type { AppState, AttackerId, AttackerPositions, DefenderPositions, OffensiveScriptedAction } from '@/lib/types';
 import { PLAYER_MIN_CLEARANCE_PX } from '@/lib/data/court';
 
 describe('DIAG superposition complète', () => {
@@ -147,6 +148,31 @@ describe('auto-replacement — invariant clearance', () => {
           expect(distance(s.off[ids[i]], s.off[ids[j]])).toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.5);
         }
       }
+    }
+  });
+});
+
+describe('fast-break — invariant clearance', () => {
+  it('toutes les paires d’attaquants ≥ clearance sur les steps du break', () => {
+    const s0 = makeInitialState();
+    const off: AttackerPositions = {
+      O1: { x: 300, y: 300 }, O2: { x: 200, y: 250 }, O3: { x: 400, y: 250 },
+      O4: { x: 240, y: 140 }, O5: { x: 360, y: 140 },
+    };
+    const def: DefenderPositions = {
+      D1: { x: 300, y: 200 }, D2: { x: 180, y: 180 }, D3: { x: 300, y: 110 },
+      D4: { x: 230, y: 130 }, D5: { x: 370, y: 130 },
+    };
+    const state: AppState = {
+      ...s0, playerCount: 5, activeStep: 0,
+      steps: [{ off, ballCarrier: 'O1', annotations: [], defenseOverrides: def, rebounder: 'D3', reboundType: 'defensive' }],
+    };
+    const next = addFastBreakSteps(state, { sourceStepIdx: 0 });
+    const ids: AttackerId[] = ['O1', 'O2', 'O3', 'O4', 'O5'];
+    for (const st of next.steps) {
+      for (let i = 0; i < ids.length; i++)
+        for (let j = i + 1; j < ids.length; j++)
+          expect(distance(st.off[ids[i]], st.off[ids[j]])).toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.5);
     }
   });
 });
