@@ -6,6 +6,16 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Phase Motion — Ball-chain : reversal & DHO chain (2026-06-02)
+
+Sous-projet C du motion offense (dernier des trois). Deux types d'action
+`ball-reversal` (chaîne de passes) et `dho-chain` (hand-offs enchaînés) routent le
+ballon à travers une suite ordonnée de joueurs `chain`, mode par lien
+(`chainLinkModes`, pass/dho, mixte possible). Expander pur `expandBallChain` qui
+délègue chaque lien à `genPass`/`genHandOff` et thread l'état ; id namespacé `#lI`
+(préservation manualOverride). UI : ChainEditor dans le formulaire d'action.
+**Axe motion complet (A continuité + B auto-replacement + C ball-chain).** ~8 tests.
+
 ### Phase Motion — Auto-replacement (cascade de fill) (2026-06-02)
 
 Sous-projet B du motion offense. Quand un cut/drive (`basket-cut`, `backdoor-cut`,

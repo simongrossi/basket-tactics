@@ -32,11 +32,11 @@ rendu défensif et la branche lue.
 - Audit complet (motion, transition, fautes, dette code, produit) :
   [IDEAS.md § Audit expert 2026-05-29](IDEAS.md)
 
-## 🟢 Motion offense — Phase Motion (en cours, juin 2026)
+## 🟢 Motion offense — Phase Motion (livré juin 2026, A+B+C)
 
-L'offense gagne la **continuité** : une plage d'actions peut être rejouée en
-boucle avec **rotation des rôles** entre les joueurs (flex, Princeton, 5-out
-continu), jusqu'à K cycles ou sortie anticipée sur lecture.
+L'offense gagne la **continuité** (boucle + rotation des rôles), le **maintien du
+spacing** (fill auto) et le **routage du ballon** (reversal / DHO). Axe motion
+**complet**.
 
 **Livré (2026-06-02)** :
 - **Sous-projet A — continuité rotative** (`continuityLoop`) : déroulé au
@@ -44,14 +44,16 @@ continu), jusqu'à K cycles ou sortie anticipée sur lecture.
 - **Sous-projet B — auto-replacement** (`autoReplacementEnabled`) : cascade de
   fill *fill-from-behind* auto sur cut/drive, profondeur bornée 1–4, clearance
   garantie. ~21 tests.
+- **Sous-projet C — ball-chain** (`ball-reversal` / `dho-chain`) : route le
+  ballon à travers une chaîne unifiée (mode par lien pass/dho), expander
+  `expandBallChain` déléguant aux générateurs un-lien. ~8 tests.
 
-**Restant (sous-projets)** :
-- Ball reversal / DHO chain — sous-projet C
+**Restant (extensions, non bloquant)** :
 - Rotation auto-dérivée / miroir, sortie intra-cycle, snap formation, fill
-  spacing-optimal (corner bonus)
+  spacing-optimal (corner bonus), auto-route de chaîne côté faible
 
-- Specs : [continuity](docs/superpowers/specs/2026-06-02-continuity-motion-offense-design.md) · [auto-replacement](docs/superpowers/specs/2026-06-02-auto-replacement-design.md)
-- Plans : [continuity](docs/superpowers/plans/2026-06-02-continuity-motion-offense.md) · [auto-replacement](docs/superpowers/plans/2026-06-02-auto-replacement.md)
+- Specs : [continuity](docs/superpowers/specs/2026-06-02-continuity-motion-offense-design.md) · [auto-replacement](docs/superpowers/specs/2026-06-02-auto-replacement-design.md) · [ball-chain](docs/superpowers/specs/2026-06-02-ball-chain-design.md)
+- Plans : [continuity](docs/superpowers/plans/2026-06-02-continuity-motion-offense.md) · [auto-replacement](docs/superpowers/plans/2026-06-02-auto-replacement.md) · [ball-chain](docs/superpowers/plans/2026-06-02-ball-chain.md)
 
 ## Livré récemment (juin 2026)
 

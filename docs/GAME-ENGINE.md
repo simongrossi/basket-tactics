@@ -304,6 +304,12 @@ step généré avec une **cascade de fill** (`autoReplacement.ts` :
 `pushOutOfMany` pour la clearance) — les comble-spots bougent concurremment au
 cut. La défense suit son homme. Opt-in ; absent → 0 changement.
 
+**Ball-chain (Phase Motion).** Les actions `ball-reversal` / `dho-chain` sont des
+générateurs **composites** (`scriptedGenerators/ballChain.ts` : `expandBallChain`)
+qui routent le ballon à travers une chaîne ordonnée de joueurs en déléguant chaque
+lien à `genPass` / `genHandOff` (mode par lien) et en threadant l'état. Chaque
+lien reçoit un `generatedBy` namespacé `#lI`.
+
 ---
 
 ## Métriques tactiques (read-only)

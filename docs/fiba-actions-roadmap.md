@@ -158,10 +158,11 @@
 | ✅ | **Drift** | Replacement vers ligne de fond pendant drive. Désormais **auto-déclenchable** via la cascade `autoReplacementEnabled` (2026-06-02). |
 | ✅ | **Lift** | Replacement vers le top pendant drive. Idem — cascade auto sur cut/drive (`autoReplacementEnabled`). |
 | ✅ | **Replacement** | Remplacement d'espace après cut. Auto-déclenchable (fill-from-behind, profondeur bornée) via `autoReplacementEnabled` (2026-06-02). |
-| 🔜 | **Ball reversal** | Renversement ballon. Composition de 2-3 passes. |
-| 🔜 | **Flip** | Passe + retour immédiat. Composition pass → pass. |
-| 🔜 | **Boomerang pass** | Voir Flip. |
-| 🔜 | **Extra pass** | Passe supplémentaire après rotation. Composition pass → pass. |
+| ✅ | **Ball reversal** | Renversement ballon. Couvert par `ball-reversal` (chaîne de passes, `expandBallChain`). Livré 2026-06-02. |
+| ✅ | **DHO chain** | Hand-offs enchaînés. Couvert par `dho-chain` (chaîne de hand-offs). Livré 2026-06-02. |
+| ✅ | **Flip** | Passe + retour immédiat = `ball-reversal` `[A,B,A]`. Couvert par la chaîne. |
+| ✅ | **Boomerang pass** | Voir Flip — `ball-reversal` aller-retour. Couvert. |
+| ✅ | **Extra pass** | Passe supplémentaire = maillon de chaîne `ball-reversal`. Couvert. |
 | 🔜 | **Dishing** | Passe à un joueur démarqué après pénétration. Alias de kick-out. |
 | 🔜 | **Clear-out play** | Vider une zone pour 1c1. Auto-déduit de `isolation` (déjà fait). |
 
