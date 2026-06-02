@@ -4,6 +4,7 @@ import { useId, type CSSProperties, type ReactNode } from 'react';
 import type { AppState, PlayerCount, PlayerId } from '@/lib/types';
 import { PLAYER_COUNT_OPTIONS } from '@/lib/logic/players';
 import { Panel, CheckboxLine } from './ui';
+import { resolveRealismFlags } from '@/lib/logic/realismProfile';
 
 interface ParametresPanelProps {
   state: AppState;
@@ -120,6 +121,9 @@ export function ParametresPanel({
   onTogglePlayerDisqualified,
   onClearDisqualified,
 }: ParametresPanelProps) {
+  // Valeurs cinématiques effectives (preset réaliste résolu) pour que les
+  // cases reflètent l'état réel, pas seulement l'override brut.
+  const realism = resolveRealismFlags(state);
   return (
     <Panel theme="defense" title="⚙ Paramètres">
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
@@ -465,8 +469,23 @@ export function ParametresPanel({
 
       <SettingsSection title="Physique & Biomécanique">
         <div style={{ display: 'grid', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0' }}>Profil de réalisme</span>
+            <SegmentButton
+              active={state.realismProfile === 'realistic'}
+              onClick={() => onPatch({ realismProfile: 'realistic' })}
+            >
+              Réaliste
+            </SegmentButton>
+            <SegmentButton
+              active={state.realismProfile !== 'realistic'}
+              onClick={() => onPatch({ realismProfile: 'legacy' })}
+            >
+              Tactique
+            </SegmentButton>
+          </div>
           <CheckboxLine
-            checked={!!state.footworkRulesEnabled}
+            checked={realism.footworkRulesEnabled}
             label="Biomécanique & Attention (Footwork)"
             onChange={(v) => onPatch({ footworkRulesEnabled: v })}
             title="Modulation de vitesse réaliste (pas chassés/reculons), latence de réaction en angle mort (200ms) et temps de pivot plant-and-cut (150-300ms) sur les défenseurs."
@@ -524,7 +543,7 @@ export function ParametresPanel({
             title="En mode édition, quand tu drag un attaquant, les défenseurs restent figés sur leurs appuis puis rattrapent leur cible avec un easing cubique (~400 ms). Sans flag, suivi instantané face-à-face. Réutilise le mécanisme defenseReleaseTransition (blend lerp)."
           />
           <CheckboxLine
-            checked={!!state.attackerVelocityProfileEnabled}
+            checked={realism.attackerVelocityProfileEnabled}
             label="profil de vitesse offensif (Phy.O — courbure)"
             onChange={(v) => onPatch({ attackerVelocityProfileEnabled: v })}
             title="Les attaquants ralentissent dans les virages serrés (V-cuts) et ré-accélèrent en sortie. Vitesse constante sur les drives droits. Modulé par tier athlétique si défini. Opt-in, A/B comparable."
@@ -536,12 +555,12 @@ export function ParametresPanel({
             title="L'attaquant ralentit autour des points de son path où son défenseur matché est proche (≤ 50 px), simulant la lecture intentionnelle. Nécessite que le profil de vitesse offensif soit activé."
           />
           <CheckboxLine
-            checked={!!state.attackerAccelerationEnabled}
+            checked={realism.attackerAccelerationEnabled}
             label="modèle d'accélération (attaque)"
             onChange={(v) => onPatch({ attackerAccelerationEnabled: v })}
             title="Active la latence physique d'accélération et de freinage pour l'attaque (profil S-curve robotics)."
           />
-          {state.attackerAccelerationEnabled && (
+          {realism.attackerAccelerationEnabled && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 16 }}>
               <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 120 }} title="Accélération max (m/s²). Plus grand = montées en vitesse plus sèches.">
                 accélération (m/s²)
@@ -551,7 +570,7 @@ export function ParametresPanel({
                 min={3.0}
                 max={12.0}
                 step={0.5}
-                value={state.attackerAcceleration ?? 5.0}
+                value={realism.attackerAcceleration ?? 5.0}
                 onChange={(e) => {
                   const v = parseFloat(e.target.value);
                   onPatch({ attackerAcceleration: v });
@@ -559,17 +578,17 @@ export function ParametresPanel({
                 style={{ flex: 1 }}
               />
               <span style={{ fontSize: 10, color: '#94a3b8', minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                {(state.attackerAcceleration ?? 5.0).toFixed(1)}
+                {(realism.attackerAcceleration ?? 5.0).toFixed(1)}
               </span>
             </div>
           )}
           <CheckboxLine
-            checked={!!state.attackerMomentumEnabled}
+            checked={realism.attackerMomentumEnabled}
             label="momentum offensif (dérive centrifuge)"
             onChange={(v) => onPatch({ attackerMomentumEnabled: v })}
             title="L'attaquant dérive vers l'extérieur du virage proportionnellement à sa vitesse réelle et à la courbure locale."
           />
-          {state.attackerMomentumEnabled && (
+          {realism.attackerMomentumEnabled && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 16 }}>
               <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 120 }} title="Coefficient d'inertie offensive (dérive en virage).">
                 coefficient de dérive
@@ -579,7 +598,7 @@ export function ParametresPanel({
                 min={0.05}
                 max={0.40}
                 step={0.01}
-                value={state.attackerMomentum ?? 0.15}
+                value={realism.attackerMomentum ?? 0.15}
                 onChange={(e) => {
                   const v = parseFloat(e.target.value);
                   onPatch({ attackerMomentum: v });
@@ -587,7 +606,7 @@ export function ParametresPanel({
                 style={{ flex: 1 }}
               />
               <span style={{ fontSize: 10, color: '#94a3b8', minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                {(state.attackerMomentum ?? 0.15).toFixed(2)}
+                {(realism.attackerMomentum ?? 0.15).toFixed(2)}
               </span>
             </div>
           )}
