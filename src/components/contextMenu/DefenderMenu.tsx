@@ -544,6 +544,16 @@ export function DefenderMenu({
           onReset={() => onUpdate({ denyAggressiveness: undefined })}
           title="Force du marquage en avant sur la ligne de passe. 0 = ignore, 1 = full denial assumé."
         />
+        <OverrideSliderRow
+          label="hedge agr."
+          min={0}
+          max={100}
+          step={5}
+          value={rule.hedgeAggression}
+          onChange={(v) => onUpdate({ hedgeAggression: v })}
+          onReset={() => onUpdate({ hedgeAggression: undefined })}
+          title="Agressivité du show (hedge) de CE défenseur (0-100). Override le réglage global. Pertinent quand screenRule = hedge. 0 = soft (reste bas), 100 = hard (sort fort sur le porteur)."
+        />
       </CollapsibleMenuSection>
 
       <CollapsibleMenuSection title="Orientation & vision" icon={Eye}>

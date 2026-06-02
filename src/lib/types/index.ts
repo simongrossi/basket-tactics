@@ -543,6 +543,10 @@ export interface DefenderRule {
    *  un pivot lent (60-80) sera souvent en retard sur les rotations, un
    *  meneur rapide (130-160) atteint sa cible plus souvent à temps. */
   maxSpeed?: number;
+  /** Override individuel de `state.hedgeAggression` (B3, 0-100). Undefined =
+   *  global. Permet d'avoir un D5 qui hedge mou (20) et un autre agressif (90)
+   *  sur des écrans différents. */
+  hedgeAggression?: number;
   /** QI défensif d'anticipation (0-100, défaut 50). Module la capacité du
    *  défenseur à lire le jeu et anticiper la trajectoire de l'attaquant
    *  pendant la phase de recovery (après un écran notamment). Trois logiques

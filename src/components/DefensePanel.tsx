@@ -716,8 +716,16 @@ export function DefensePanel(props: DefensePanelProps) {
                   step={5}
                   value={state.hedgeAggression ?? 50}
                   onChange={(v) => props.onPatch({ hedgeAggression: v })}
-                  title="Distance à laquelle D5 sort sur le porteur dans le hedge (0 = soft show, 100 = hard hedge)"
+                  title="Distance à laquelle D5 sort sur le porteur dans le hedge (0 = soft show, 100 = hard hedge). Override per-défenseur via clic-droit → Avancé → hedge agr."
                 />
+              )}
+              {state.screenRule === 'hedge' && (
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }} title="Agressivité hedge effective par défenseur (override per-défenseur > global). Clic-droit défenseur → Avancé pour modifier.">
+                  hedge/déf :{' '}
+                  {(['D1', 'D2', 'D3', 'D4', 'D5'] as const)
+                    .map((d) => `${d}:${state.rules[d]?.hedgeAggression ?? state.hedgeAggression ?? 50}`)
+                    .join(' · ')}
+                </div>
               )}
               {state.screenRule === 'hedge' && (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

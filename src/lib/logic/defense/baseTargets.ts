@@ -149,7 +149,8 @@ export function applyBaseTargetsLayer(
     }
 
     if (screen && effectiveScreenRule !== 'switch') {
-      target = applyScreenAdjustment(target, screen, effectiveScreenRule, dId, off, state.screenRadius, state.dropDepth, hoop, screenQuality, state.hedgeAggression ?? 50);
+      const hedgeAgg = state.rules[dId]?.hedgeAggression ?? state.hedgeAggression ?? 50;
+      target = applyScreenAdjustment(target, screen, effectiveScreenRule, dId, off, state.screenRadius, state.dropDepth, hoop, screenQuality, hedgeAgg);
     }
 
     // C.4 — Pre-rotation : si pas d'écran encore détecté MAIS un attaquant
