@@ -115,14 +115,15 @@ export function makeInitialState(): AppState {
       O5: 'stretch-big',
     },
     realSpeedMode: false,
-    attackerAccelerationEnabled: false,
+    // Flags du groupe cinématique laissés `undefined` (et non `false`) pour
+    // que le resolver `resolveRealismFlags` puisse appliquer le preset
+    // réaliste via `?? preset` — un `false` explicite serait un override
+    // coach. Comportement legacy inchangé : `!!undefined === false`.
     attackerAcceleration: 5.0,
-    attackerMomentumEnabled: false,
     attackerMomentum: 0.15,
     activeInterceptionsEnabled: false,
     physicsReboundsEnabled: false,
     dribblePhysicsEnabled: false,
-    footworkRulesEnabled: false,
     cvtOffensiveEnabled: false,
     screenStiffnessEnabled: false,
     screenStiffness: 1.5,

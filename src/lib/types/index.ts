@@ -927,9 +927,15 @@ export interface AddAnnotationOptions {
  *  les attaquants arrivent à `ann.to` au boundary (invariant). */
 export type AttackerSpeedTier = 'elite' | 'standard' | 'lent';
 
+/** Profil de réalisme cinématique. `'realistic'` (défaut app) active le
+ *  groupe cinématique calibré ; `'legacy'`/undefined = comportement
+ *  historique (flags bruts). Résolu par `resolveRealismFlags`. */
+export type RealismProfile = 'realistic' | 'legacy';
+
 export interface AppState {
   steps: Step[];
   activeStep: number;
+  realismProfile?: RealismProfile;
   realSpeedMode?: boolean;
   attackerAccelerationEnabled?: boolean;
   attackerAcceleration?: number;
