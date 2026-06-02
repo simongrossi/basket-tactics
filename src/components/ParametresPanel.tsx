@@ -491,6 +491,12 @@ export function ParametresPanel({
             title="Modulation de vitesse réaliste (pas chassés/reculons), latence de réaction en angle mort (200ms) et temps de pivot plant-and-cut (150-300ms) sur les défenseurs."
           />
           <CheckboxLine
+            checked={!!state.driveContainmentEnabled}
+            label="Défense vivante sur drive (containment)"
+            onChange={(v) => onPatch({ driveContainmentEnabled: v })}
+            title="Sur un drive, le défenseur du porteur glisse couper la ligne de pénétration s'il peut atteindre le point de contain à temps (course d'ETA selon l'athlétisme). Diagnostic coach 'drive contenu / ligne ouverte'. N'altère pas le tracé dessiné."
+          />
+          <CheckboxLine
             checked={!!state.cvtOffensiveEnabled}
             label="CVT offensif (contournement par forces)"
             onChange={(v) => onPatch({ cvtOffensiveEnabled: v })}
