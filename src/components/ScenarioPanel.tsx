@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import type {
   AttackerId, ScriptedAction, OffensiveScriptedAction, ActionSide, DriveDirection,
   DefensiveActionType, DefensiveActionParams, DefensiveScriptedAction, PlayerCount,
-  ScenarioBranch, ReadTrigger,
+  ScenarioBranch, ReadTrigger, ScreenRule,
 } from '@/lib/types';
+import { coverageBranchStats } from '@/lib/logic/reads/coverageRoll';
 import { getActiveAttackerIds, getActiveDefenderIds } from '@/lib/logic/players';
 import {
   SCRIPTED_ACTIONS_CATALOG,
@@ -73,6 +74,13 @@ interface ScenarioPanelProps {
   onSetActiveBranch: (id: string | null) => void;
   /** Id de la branche réactive auto-résolue (badge « Lecture : … »). */
   resolvedReadBranchId?: string | null;
+  // -- Lecture probabiliste (Phase L proba) --
+  probabilisticReadsEnabled?: boolean;
+  coverageDistribution?: { coverage: ScreenRule; weight: number }[];
+  rolledCoverage?: ScreenRule;
+  onToggleProbabilisticReads: (enabled: boolean) => void;
+  onSetCoverageDistribution: (dist: { coverage: ScreenRule; weight: number }[]) => void;
+  onRerollCoverage: () => void;
   playerCount: PlayerCount;
 }
 
@@ -116,6 +124,22 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
   };
 
   const activeBranch = props.scenarioBranches.find((b) => b.id === props.activeBranchId) ?? null;
+
+  // Phase L proba — couvertures lisibles = celles présentes dans les triggers
+  // screen-coverage des branches.
+  const readableCoverages = Array.from(
+    new Set(
+      props.scenarioBranches
+        .filter((b) => b.trigger?.kind === 'screen-coverage')
+        .flatMap((b) => (b.trigger?.kind === 'screen-coverage' ? b.trigger.coverage : [])),
+    ),
+  );
+  const hasReactiveScreenBranches = readableCoverages.length > 0;
+  const stats = coverageBranchStats({
+    coverageDistribution: props.coverageDistribution,
+    scenarioBranches: props.scenarioBranches,
+  } as Parameters<typeof coverageBranchStats>[0]);
+  const dist = props.coverageDistribution ?? [];
   // Phase 3 défense scriptable : la liste peut contenir des actions défensives ;
   // ce panneau ne gère pour l'instant que les offensives (la zone défensive
   // sera ajoutée Task 6). En mode branche active, on affiche les actions de la
@@ -247,6 +271,96 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
           </div>
         );
       })()}
+
+      {/* Lecture probabiliste : la défense joue une distribution de couvertures
+          tirée de façon seedée (Phase L proba). N'apparaît qu'avec des branches
+          réactives screen-coverage. */}
+      {hasReactiveScreenBranches && (
+        <div style={{ marginTop: 10, padding: 8, border: '1px solid #334155', borderRadius: 6 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
+            <input
+              type="checkbox"
+              checked={!!props.probabilisticReadsEnabled}
+              onChange={(e) => props.onToggleProbabilisticReads(e.target.checked)}
+            />
+            🎲 Lecture probabiliste (tendances défensives)
+          </label>
+
+          {props.probabilisticReadsEnabled && (
+            <div style={{ marginTop: 8 }}>
+              {/* Éditeur de distribution */}
+              {dist.map((d, di) => (
+                <div key={di} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <select
+                    value={d.coverage}
+                    onChange={(e) => {
+                      const next = dist.map((x, j) =>
+                        j === di ? { ...x, coverage: e.target.value as ScreenRule } : x,
+                      );
+                      props.onSetCoverageDistribution(next);
+                    }}
+                    style={{ fontSize: 11 }}
+                  >
+                    {readableCoverages.map((cov) => (
+                      <option key={cov} value={cov}>{cov}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number" min={0} max={100} step={5}
+                    value={Math.round(d.weight * 100)}
+                    onChange={(e) => {
+                      const w = Math.max(0, parseInt(e.target.value) || 0) / 100;
+                      const next = dist.map((x, j) => (j === di ? { ...x, weight: w } : x));
+                      props.onSetCoverageDistribution(next);
+                    }}
+                    style={{ width: 56, fontSize: 11 }}
+                  />
+                  <span style={{ fontSize: 10, color: '#94a3b8' }}>%</span>
+                  <button
+                    onClick={() => props.onSetCoverageDistribution(dist.filter((_, j) => j !== di))}
+                    style={{ border: 'none', background: 'transparent', color: '#dc2626', cursor: 'pointer' }}
+                    title="Retirer cette couverture"
+                  >×</button>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  const used = new Set(dist.map((d) => d.coverage));
+                  const next = readableCoverages.find((cov) => !used.has(cov));
+                  if (next) props.onSetCoverageDistribution([...dist, { coverage: next, weight: 0.5 }]);
+                }}
+                style={{ fontSize: 10, padding: '2px 6px', border: '1px solid #94a3b8', borderRadius: 3, background: 'transparent', color: '#cbd5e1', cursor: 'pointer' }}
+              >+ couverture</button>
+
+              {/* Bouton rejouer + couverture réalisée */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                <button
+                  onClick={() => props.onRerollCoverage()}
+                  style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, border: '1px solid #475569', background: '#1e293b', color: '#e2e8f0', cursor: 'pointer' }}
+                >🎲 rejouer la défense</button>
+                {props.rolledCoverage && (
+                  <span style={{ fontSize: 11, color: '#cbd5e1' }}>
+                    réalisé : <strong style={{ textTransform: 'uppercase' }}>{props.rolledCoverage}</strong>
+                  </span>
+                )}
+              </div>
+
+              {/* Panneau stats */}
+              <div style={{ marginTop: 8 }}>
+                {stats.map((s, si) => (
+                  <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, marginBottom: 2 }}>
+                    <span style={{ minWidth: 48, color: '#94a3b8', textTransform: 'uppercase' }}>{s.coverage}</span>
+                    <div style={{ flex: 1, height: 8, background: '#0f172a', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.round(s.weight * 100)}%`, height: '100%', background: '#6366f1' }} />
+                    </div>
+                    <span style={{ minWidth: 80, color: '#cbd5e1' }}>{Math.round(s.weight * 100)}% {s.branchLabel}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {activeBranch && (
         <div style={{

@@ -420,6 +420,12 @@ export default function Page() {
                     onDeleteBranch={app.deleteScenarioBranch}
                     onSetActiveBranch={app.setActiveBranch}
                     resolvedReadBranchId={app.state.resolvedReadBranchId ?? null}
+                    probabilisticReadsEnabled={app.state.probabilisticReadsEnabled}
+                    coverageDistribution={app.state.coverageDistribution}
+                    rolledCoverage={app.state.rolledCoverage}
+                    onToggleProbabilisticReads={app.toggleProbabilisticReads}
+                    onSetCoverageDistribution={app.setCoverageDistribution}
+                    onRerollCoverage={app.rerollCoverage}
                   />
                 ),
               },

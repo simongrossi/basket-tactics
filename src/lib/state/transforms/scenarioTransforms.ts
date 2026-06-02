@@ -3,6 +3,7 @@
 
 import type { AppState, ScenarioBranch, ScriptedAction } from '@/lib/types';
 import { mutateActionsScope, recompileScenarioSteps } from './shared';
+import { rollCoverage, type CoverageWeight } from '@/lib/logic/reads/coverageRoll';
 
 export function addScriptedAction(s: AppState, action: ScriptedAction): AppState {
   const next = mutateActionsScope(s, (list) => [...list, action]);
@@ -81,4 +82,32 @@ export function deleteScenarioBranch(s: AppState, id: string): AppState {
 
 export function setActiveBranch(s: AppState, id: string | null): AppState {
   return recompileScenarioSteps({ ...s, activeBranchId: id });
+}
+
+// Phase L proba — lecture probabiliste : la défense joue une distribution de
+// couvertures tirée de façon seedée. Voir docs/superpowers/specs/
+// 2026-06-02-lecture-probabiliste-design.md.
+
+export function toggleProbabilisticReads(s: AppState, enabled: boolean): AppState {
+  return recompileScenarioSteps({ ...s, probabilisticReadsEnabled: enabled });
+}
+
+export function setCoverageDistribution(s: AppState, dist: CoverageWeight[]): AppState {
+  const seed = s.coverageRollSeed ?? 0;
+  const rolled = rollCoverage(dist, seed) ?? undefined;
+  return recompileScenarioSteps({
+    ...s,
+    coverageDistribution: dist,
+    rolledCoverage: rolled,
+  });
+}
+
+export function rerollCoverage(s: AppState): AppState {
+  const seed = (s.coverageRollSeed ?? 0) + 1;
+  const rolled = rollCoverage(s.coverageDistribution ?? [], seed) ?? undefined;
+  return recompileScenarioSteps({
+    ...s,
+    coverageRollSeed: seed,
+    rolledCoverage: rolled,
+  });
 }

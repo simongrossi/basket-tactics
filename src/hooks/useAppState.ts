@@ -626,6 +626,22 @@ export function useAppState() {
     setStateWithHistory((s) => scenarioTx.setActiveBranch(s, id));
   }, [setStateWithHistory]);
 
+  // -- Lecture probabiliste (Phase L proba) --
+  const toggleProbabilisticReads = useCallback((enabled: boolean) => {
+    setStateWithHistory((s) => scenarioTx.toggleProbabilisticReads(s, enabled));
+  }, [setStateWithHistory]);
+
+  const setCoverageDistribution = useCallback(
+    (dist: { coverage: ScreenRule; weight: number }[]) => {
+      setStateWithHistory((s) => scenarioTx.setCoverageDistribution(s, dist));
+    },
+    [setStateWithHistory],
+  );
+
+  const rerollCoverage = useCallback(() => {
+    setStateWithHistory((s) => scenarioTx.rerollCoverage(s));
+  }, [setStateWithHistory]);
+
   // -- Actions défensives scriptées --
   const addDefensiveAction = useCallback(
     (
@@ -741,6 +757,9 @@ export function useAppState() {
     updateScenarioBranch,
     deleteScenarioBranch,
     setActiveBranch,
+    toggleProbabilisticReads,
+    setCoverageDistribution,
+    rerollCoverage,
     moveScriptedAction,
     clearScriptedActions,
     addDefensiveAction,
