@@ -49,6 +49,7 @@ import { lerpAngleDeg } from '../angles';
 import { buildStep0DetectionPositions } from '../step0Detection';
 import { closeoutEasing } from '../closeoutEasing';
 import { blitzReleaseEasing } from '../blitzReleaseEasing';
+import { resolveRealismFlags } from '../realismProfile';
 import {
   PLAYER_MIN_CLEARANCE_PX,
   PLAYER_OBSTACLE_RADIUS_PX,
@@ -386,6 +387,9 @@ export function resolveFrameAt(
   const totalSteps = state.steps.length - 1;
   if (totalSteps <= 0) return null;
 
+  // Source de vérité unique du groupe cinématique (cf. realismProfile.ts).
+  const realism = resolveRealismFlags(state);
+
   const clamped = Math.max(0, Math.min(totalSteps, t));
   const idxA = Math.floor(clamped);
   const idxB = Math.min(idxA + 1, totalSteps);
@@ -420,7 +424,7 @@ export function resolveFrameAt(
       (idx) => getStepDurationSeconds(state, idx),
       // Phy.O — profil de vitesse offensif (opt-in).
       {
-        enabled: !!state.attackerVelocityProfileEnabled || !!state.attackerAccelerationEnabled || !!state.attackerMomentumEnabled,
+        enabled: realism.attackerVelocityProfileEnabled || realism.attackerAccelerationEnabled || realism.attackerMomentumEnabled,
         tierFor: (attId) => state.attackerSpeedProfiles?.[attId],
         obstaclesFor: (attId) => {
           const obs: Point[] = [];
@@ -474,10 +478,10 @@ export function resolveFrameAt(
         // Phy.O V3 V4 — boost post-feinte activé par le même flag V3 V1.
         postFeinteBoost: !!state.attackerActiveDemarquage,
         durationSec: getStepDurationSeconds(state, idxA),
-        accelerationEnabled: !!state.attackerAccelerationEnabled,
-        acceleration: state.attackerAcceleration,
-        momentumEnabled: !!state.attackerMomentumEnabled,
-        momentum: state.attackerMomentum,
+        accelerationEnabled: realism.attackerAccelerationEnabled,
+        acceleration: realism.attackerAcceleration,
+        momentumEnabled: realism.attackerMomentumEnabled,
+        momentum: realism.attackerMomentum,
       },
     );
     attackerMovementType[id] = traj.movementType;
@@ -696,7 +700,7 @@ export function resolveFrameAt(
   defenderIds.forEach((id) => {
     const candidates = screenerObstacles.filter((o) => id !== o.defenderToSkip);
 
-    if (state.footworkRulesEnabled) {
+    if (realism.footworkRulesEnabled) {
       const delayFraction = defB[id]?.delayFraction ?? 0;
       if (delayFraction > 0 && localT <= delayFraction) {
         defPos[id] = {
@@ -736,7 +740,7 @@ export function resolveFrameAt(
       }
     }
 
-    const delayFraction = state.footworkRulesEnabled ? (defB[id]?.delayFraction ?? 0) : 0;
+    const delayFraction = realism.footworkRulesEnabled ? (defB[id]?.delayFraction ?? 0) : 0;
     const tForDefender = delayFraction > 0 && delayFraction < 1
       ? (localT - delayFraction) / (1 - delayFraction)
       : localT;
@@ -1096,7 +1100,7 @@ export function resolveFrameAt(
       facing: lerpPoint(defA[id].facing, defB[id].facing, tForDefender),
       armBallSide: lerpPoint(defA[id].armBallSide, defB[id].armBallSide, tForDefender),
       armManSide: lerpPoint(defA[id].armManSide, defB[id].armManSide, tForDefender),
-      delayFraction: state.footworkRulesEnabled ? delayFraction : undefined,
+      delayFraction: realism.footworkRulesEnabled ? delayFraction : undefined,
     };
   });
   profiler?.lap('defenders');
