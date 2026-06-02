@@ -132,3 +132,10 @@ export function makeInitialState(): AppState {
     defenderDragInertiaEnabled: false,
   };
 }
+
+/** État initial côté APPLICATION : identique à `makeInitialState()` mais
+ *  en profil réaliste par défaut. Les tests continuent d'utiliser
+ *  `makeInitialState()` (legacy) → suite verte par construction. */
+export function makeAppInitialState(): AppState {
+  return { ...makeInitialState(), realismProfile: 'realistic' };
+}

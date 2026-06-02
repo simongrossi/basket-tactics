@@ -35,7 +35,7 @@ import type {
   ZoneRegionOverride,
 } from '@/lib/types';
 import { effectiveDefensePositions } from '@/lib/logic/engine';
-import { makeInitialState } from '@/lib/data/initial';
+import { makeAppInitialState } from '@/lib/data/initial';
 import type { Template } from '@/lib/data/templates';
 import type { DefensePreset } from '@/lib/data/defensePresets';
 import type { DefenderProfile } from '@/lib/data/defenderProfiles';
@@ -101,7 +101,7 @@ export function useAppState() {
     redo,
     beginPlayerDrag,
     commitPlayerDrag,
-  } = useHistorizedState(makeInitialState);
+  } = useHistorizedState(makeAppInitialState);
   const [hydrated, setHydrated] = useState(false);
 
   // Animation transitoire "Tout en auto réel" : positions de départ capturées
