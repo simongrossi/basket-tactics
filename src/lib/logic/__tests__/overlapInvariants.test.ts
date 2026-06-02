@@ -175,4 +175,27 @@ describe('fast-break — invariant clearance', () => {
           expect(distance(st.off[ids[i]], st.off[ids[j]])).toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.5);
     }
   });
+
+  it('driveContainmentEnabled : clearance préservée sur un drive', () => {
+    // 2a — la couche driveContainment glisse le défenseur du porteur vers le
+    // point de contain ; elle doit rester compatible Rule 1 (push-out aval).
+    const base = makeInitialState();
+    const off0 = base.steps[0].off;
+    const prev = makeStep(off0, 'O1', []);
+    // O1 avance nettement vers le panier (drive).
+    const cur = makeStep({ ...off0, O1: { x: 250, y: 300 } }, 'O1', []);
+    const state: AppState = {
+      ...base,
+      driveContainmentEnabled: true,
+      steps: [prev, cur],
+      activeStep: 1,
+    };
+    const def = effectiveDefensePositions(state, 1);
+    const dids = ['D1', 'D2', 'D3', 'D4', 'D5'] as const;
+    for (let i = 0; i < dids.length; i++)
+      for (let j = i + 1; j < dids.length; j++)
+        expect(distance(def[dids[i]], def[dids[j]])).toBeGreaterThanOrEqual(
+          PLAYER_MIN_CLEARANCE_PX - 0.5,
+        );
+  });
 });
