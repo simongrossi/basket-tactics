@@ -83,6 +83,9 @@ interface ScenarioPanelProps {
   onRerollCoverage: () => void;
   continuityLoop?: import('@/lib/types').ContinuityLoop;
   onSetContinuityLoop: (loop: import('@/lib/types').ContinuityLoop | null) => void;
+  autoReplacementEnabled?: boolean;
+  autoReplacementDepth?: number;
+  onSetAutoReplacement: (enabled: boolean, depth: number) => void;
   playerCount: PlayerCount;
 }
 
@@ -160,6 +163,13 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
       maxCycles: 3,
     };
   };
+
+  // Phase Motion — auto-replacement : visible s'il existe une action déclencheuse.
+  const AUTO_REPL_TRIGGERS = new Set(['basket-cut', 'backdoor-cut', 'flash-cut', 'give-and-go', 'drive']);
+  const hasReplacementTrigger = props.scriptedActions.some(
+    (a) => a.kind === 'offensive' && AUTO_REPL_TRIGGERS.has(a.type),
+  );
+  const replDepth = props.autoReplacementDepth ?? 2;
 
   // Phase 3 défense scriptable : la liste peut contenir des actions défensives ;
   // ce panneau ne gère pour l'instant que les offensives (la zone défensive
@@ -483,6 +493,39 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
               <div style={{ fontSize: 10, color: '#64748b' }}>
                 Boucle : {rotation.join('→')} ↺ · {loop.maxCycles} cycles max
                 {loop.exitBranchId ? ' · sortie sur lecture' : ''}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Auto-replacement — cascade de fill sur cut/drive (Phase Motion). */}
+      {hasReplacementTrigger && (
+        <div style={{ marginTop: 10, padding: 8, border: '1px solid #334155', borderRadius: 6 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
+            <input
+              type="checkbox"
+              checked={!!props.autoReplacementEnabled}
+              onChange={(e) => props.onSetAutoReplacement(e.target.checked, replDepth)}
+            />
+            ↪ Auto-replacement (maintien du spacing)
+          </label>
+          {props.autoReplacementEnabled && (
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+                <span style={{ color: '#94a3b8' }}>profondeur de cascade</span>
+                <input
+                  type="number" min={1} max={4} step={1}
+                  value={replDepth}
+                  onChange={(e) => {
+                    const v = Math.max(1, Math.min(4, parseInt(e.target.value) || 1));
+                    props.onSetAutoReplacement(true, v);
+                  }}
+                  style={{ width: 48, fontSize: 11 }}
+                />
+              </div>
+              <div style={{ fontSize: 10, color: '#64748b' }}>
+                Fill auto : cascade prof. {replDepth} sur cut/drive (le joueur derrière comble le spot vidé).
               </div>
             </div>
           )}

@@ -119,3 +119,12 @@ export function setContinuityLoop(s: AppState, loop: ContinuityLoop | null): App
   else delete next.continuityLoop;
   return recompileScenarioSteps(next);
 }
+
+// Phase Motion — auto-replacement : active/désactive + profondeur de cascade.
+export function setAutoReplacement(s: AppState, enabled: boolean, depth: number): AppState {
+  return recompileScenarioSteps({
+    ...s,
+    autoReplacementEnabled: enabled,
+    autoReplacementDepth: Math.max(1, Math.min(4, Math.floor(depth))),
+  });
+}

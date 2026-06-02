@@ -649,6 +649,13 @@ export function useAppState() {
     [setStateWithHistory],
   );
 
+  const setAutoReplacement = useCallback(
+    (enabled: boolean, depth: number) => {
+      setStateWithHistory((s) => scenarioTx.setAutoReplacement(s, enabled, depth));
+    },
+    [setStateWithHistory],
+  );
+
   // -- Actions défensives scriptées --
   const addDefensiveAction = useCallback(
     (
@@ -768,6 +775,7 @@ export function useAppState() {
     setCoverageDistribution,
     rerollCoverage,
     setContinuityLoop,
+    setAutoReplacement,
     moveScriptedAction,
     clearScriptedActions,
     addDefensiveAction,

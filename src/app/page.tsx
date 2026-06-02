@@ -428,6 +428,9 @@ export default function Page() {
                     onRerollCoverage={app.rerollCoverage}
                     continuityLoop={app.state.continuityLoop}
                     onSetContinuityLoop={app.setContinuityLoop}
+                    autoReplacementEnabled={app.state.autoReplacementEnabled}
+                    autoReplacementDepth={app.state.autoReplacementDepth}
+                    onSetAutoReplacement={app.setAutoReplacement}
                   />
                 ),
               },
