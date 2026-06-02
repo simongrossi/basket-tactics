@@ -6,6 +6,17 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Phase Motion — Continuity offense (boucle rotative) (2026-06-02)
+
+Première brique du motion offense (IDEAS §2). Une plage d'actions offensives
+`[startActionId, endActionId]` est rejouée jusqu'à K cycles (1–6) avec rotation
+des rôles : la permutation σ relabelise les IDs joueurs à chaque cycle (σ^k),
+chaque cycle recevant un id d'action namespacé (`#cK`) pour préserver les
+manualOverride. La défense suit son homme (aucun remap). Sortie hybride : max K
+cycles ou sortie anticipée sur lecture Phase L (`exitBranchId`). Helpers purs
+`rotateActionParams` / `expandContinuityLoop`, opt-in `continuityLoop`. UI
+ScenarioPanel (plage, roue de rotation, cycles, sortie). ~19 tests. Suite 1996 verte.
+
 ### Phase L — Lecture probabiliste (2026-06-02)
 
 La défense joue une distribution de couvertures (drop 70 % / blitz 30 %) tirée de

@@ -287,6 +287,15 @@ L'ordre interne (cf. [logique-defensive.md § Pipeline de calcul](logique-defens
 
 Pour la zone, étape 1 est remplacée par `computeZoneDefenseTargets` (ownership continu).
 
+**Compile offensif — continuity (Phase Motion).** En amont du rendu,
+`compileScenario` déroule l'éventuelle **boucle de continuité**
+(`state.continuityLoop`) via `expandContinuityLoop` (`reads/continuityLoop.ts`)
+AVANT les passes : la plage d'actions `[start, end]` est rejouée K cycles avec
+rotation des rôles (permutation σ^k sur les IDs joueurs des params), chaque cycle
+recevant un id namespacé (`#cK`). Le résultat est une liste d'actions plate que
+les passes offensive/défensive consomment normalement — la défense suit son homme
+sans remap. Opt-in ; absent → 0 changement.
+
 ---
 
 ## Métriques tactiques (read-only)

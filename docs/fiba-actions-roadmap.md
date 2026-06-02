@@ -153,7 +153,7 @@
 | 🔜 | **Quick hitter** | Action rapide création de tir ouvert. Catégorie générique. |
 | 🔜 | **Set play** | Séquence définie. Catégorie générique (toute composition). |
 | 🔜 | **Special plays** | Action ad-hoc. Hors-scope automatisation. |
-| 🔜 | **Continuity offense** | Séquence répétitive. Compose plusieurs actions en boucle. |
+| ✅ | **Continuity offense** | Séquence répétitive. Boucle rotative au compile-time (`continuityLoop` : plage d'actions × K cycles + rotation σ + sortie hybride). Livré 2026-06-02. |
 | 🔜 | **Two-for-one** | 2 actions rapides en fin de quart-temps. Hors-scope géométrique, c'est du tempo. |
 | 🔜 | **Drift** | Replacement vers ligne de fond pendant drive. À déclencher auto pendant `drive`. |
 | 🔜 | **Lift** | Replacement vers le top pendant drive. Idem drift inverse. |

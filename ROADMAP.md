@@ -32,6 +32,24 @@ rendu défensif et la branche lue.
 - Audit complet (motion, transition, fautes, dette code, produit) :
   [IDEAS.md § Audit expert 2026-05-29](IDEAS.md)
 
+## 🟢 Motion offense — Phase Motion (en cours, juin 2026)
+
+L'offense gagne la **continuité** : une plage d'actions peut être rejouée en
+boucle avec **rotation des rôles** entre les joueurs (flex, Princeton, 5-out
+continu), jusqu'à K cycles ou sortie anticipée sur lecture.
+
+**Livré (2026-06-02)** : boucle de continuité rotative (`continuityLoop`) —
+déroulé au compile-time, permutation σ, sortie hybride sur lecture Phase L. UI
+ScenarioPanel (plage, roue, cycles, sortie). ~19 tests.
+
+**Restant (sous-projets)** :
+- Replacement / relocate (drift, lift, fill du corner) — sous-projet B
+- Ball reversal / DHO chain — sous-projet C
+- Rotation auto-dérivée / miroir, sortie intra-cycle, snap formation
+
+- Spec : [docs/superpowers/specs/2026-06-02-continuity-motion-offense-design.md](docs/superpowers/specs/2026-06-02-continuity-motion-offense-design.md)
+- Plan : [docs/superpowers/plans/2026-06-02-continuity-motion-offense.md](docs/superpowers/plans/2026-06-02-continuity-motion-offense.md)
+
 ## Livré récemment (juin 2026)
 
 - 🟢 **Session 2026-06-01/02 — Lacunes basket + défensives** : closeout quality

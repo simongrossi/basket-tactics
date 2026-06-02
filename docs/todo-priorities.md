@@ -166,6 +166,7 @@ les détails.
 | ~~**#8.2 ancre weak-side**~~ | 🟢 livré 2026-06-02 | Couche 1.4 `weakSideAnchorLayer` + helper `pickWeakSideAnchor` (auto low man / override coach). Opt-in `weakSideAnchorEnabled`. Marqueur ⚓. 7 tests. |
 | ~~**#8.1 relâche blitz**~~ | 🟢 livré 2026-06-02 | Couche 2.6 `blitzReleaseLayer` + `detectBlitzRelease` + `blitzReleaseEasing` (frameResolver). screenerDef récupère le roller. Opt-in `blitzReleaseEnabled`. Badge ↩ RECOVER. 12 tests. |
 | ~~**Lecture probabiliste** (extension Phase L)~~ | 🟢 livré 2026-06-02 | Distribution de couvertures seedée (drop 70 % / blitz 30 %). `rolledCoverage` pilote `effectiveScreenRule` → défense + branche (source unique). Helpers `rollCoverage`/`coverageBranchStats`, `mulberry32` extrait dans `rng.ts`. UI ScenarioPanel (éditeur distribution + 🎲 rejouer + stats). ~16 tests. |
+| ~~**Continuity offense** (Phase Motion, sous-projet A)~~ | 🟢 livré 2026-06-02 | Boucle rotative : plage d'actions × K cycles (1–6) + rotation des rôles σ^k (relabel IDs joueurs, id namespacé `#cK`) + sortie hybride sur lecture Phase L. Helpers purs `rotateActionParams`/`expandContinuityLoop`, opt-in `continuityLoop`, déroulé au compile-time (défense suit son homme, 0 remap). UI ScenarioPanel (plage, roue, cycles, sortie). ~19 tests. Replacement (B) + reversal (C) restants. |
 
 **Restent ouverts dans IDEAS §8** : tag roller avec modèle de contact/faute,
 X-out multi-roller, re-scram en cascade.
