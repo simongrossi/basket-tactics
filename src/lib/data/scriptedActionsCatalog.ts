@@ -12,7 +12,8 @@ export type ParamKind =
   | 'giver' | 'driver' | 'shooter' | 'from' | 'to'
   | 'firstScreener' | 'secondScreener'
   | 'side' | 'direction'
-  | 'targetZone' | 'screenZone' | 'fromZone';
+  | 'targetZone' | 'screenZone' | 'fromZone'
+  | 'chain';
 
 export interface ScriptedActionDefinition {
   type: ScriptedActionType;
@@ -517,6 +518,26 @@ export const SCRIPTED_ACTIONS_CATALOG: Record<ScriptedActionType, ScriptedAction
     requiredParams: ['from', 'to'],
     stepsGenerated: 1,
     reader: (p) => `High-low : ${fmt(p.from)} (haut poste) passe à ${fmt(p.to)} (bas poste).`,
+  },
+  'ball-reversal': {
+    type: 'ball-reversal',
+    label: 'Renversement (ball reversal)',
+    fibaTerm: 'Ball reversal',
+    description: 'Le ballon traverse une chaîne de passes (swing guard-to-guard).',
+    category: 'combinaison',
+    requiredParams: ['chain'],
+    stepsGenerated: 2,
+    reader: (p) => `Renversement : ${(p.chain ?? []).join(' → ') || '—'} (passes).`,
+  },
+  'dho-chain': {
+    type: 'dho-chain',
+    label: 'Chaîne de DHO',
+    fibaTerm: 'DHO chain',
+    description: 'Hand-offs enchaînés : le ballon passe de main en main le long d\'une chaîne.',
+    category: 'combinaison',
+    requiredParams: ['chain'],
+    stepsGenerated: 2,
+    reader: (p) => `Chaîne DHO : ${(p.chain ?? []).join(' → ') || '—'}.`,
   },
 
   // =====================================================

@@ -48,6 +48,7 @@ const PARAM_LABELS: Record<ParamKind, string> = {
   targetZone: 'Zone cible',
   screenZone: 'Zone de l\'écran',
   fromZone: 'Zone de départ',
+  chain: 'Chaîne',
 };
 
 interface ScenarioPanelProps {
@@ -1048,6 +1049,12 @@ function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
   const updateZoneParam = (key: ParamKind, value: ZoneRef | undefined) => {
     updateParam(key, value);
   };
+  const updateChain = (chain: AttackerId[], modes?: ('pass' | 'dho')[]) => {
+    const nextParams = { ...action.params } as Record<string, unknown>;
+    nextParams.chain = chain;
+    if (modes) nextParams.chainLinkModes = modes; else delete nextParams.chainLinkModes;
+    onChange({ ...action, params: nextParams as OffensiveScriptedAction['params'] });
+  };
   const [zonePickerFor, setZonePickerFor] = useState<ParamKind | null>(null);
   const allParams: ParamKind[] = [...def.requiredParams, ...(def.optionalParams ?? [])];
   const isZoneParam = (k: ParamKind) =>
@@ -1059,7 +1066,15 @@ function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
           <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 80 }}>
             {PARAM_LABELS[paramKey]}{def.requiredParams.includes(paramKey) ? ' *' : ''}
           </span>
-          {isZoneParam(paramKey) ? (
+          {paramKey === 'chain' ? (
+            <ChainEditor
+              chain={(action.params.chain as AttackerId[] | undefined) ?? []}
+              modes={action.params.chainLinkModes as ('pass' | 'dho')[] | undefined}
+              defaultMode={action.type === 'dho-chain' ? 'dho' : 'pass'}
+              attackerIds={attackerIds}
+              onChange={updateChain}
+            />
+          ) : isZoneParam(paramKey) ? (
             <ZoneSelect
               value={action.params[paramKey] as ZoneRef | undefined}
               onChange={(z) => updateZoneParam(paramKey, z)}
@@ -1100,6 +1115,60 @@ function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
   );
 }
 
+function ChainEditor({
+  chain, modes, defaultMode, attackerIds, onChange,
+}: {
+  chain: AttackerId[];
+  modes: ('pass' | 'dho')[] | undefined;
+  defaultMode: 'pass' | 'dho';
+  attackerIds: AttackerId[];
+  onChange: (chain: AttackerId[], modes?: ('pass' | 'dho')[]) => void;
+}) {
+  const linkMode = (i: number): 'pass' | 'dho' => modes?.[i] ?? defaultMode;
+  const setLinkMode = (i: number, m: 'pass' | 'dho') => {
+    const next = Array.from({ length: Math.max(chain.length - 1, 0) }, (_, j) => (j === i ? m : linkMode(j)));
+    onChange(chain, next);
+  };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
+      {chain.map((p, i) => (
+        <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <select
+              value={p}
+              onChange={(e) => onChange(chain.map((x, j) => (j === i ? (e.target.value as AttackerId) : x)), modes)}
+              style={{ fontSize: 11 }}
+            >
+              {attackerIds.map((id) => (<option key={id} value={id}>{id}</option>))}
+            </select>
+            {chain.length > 2 && (
+              <button
+                onClick={() => onChange(chain.filter((_, j) => j !== i), modes?.filter((_, j) => j !== Math.min(i, chain.length - 2)))}
+                title="Retirer ce maillon"
+                style={{ border: 'none', background: 'transparent', color: '#dc2626', cursor: 'pointer' }}
+              >×</button>
+            )}
+          </div>
+          {i < chain.length - 1 && (
+            <button
+              onClick={() => setLinkMode(i, linkMode(i) === 'pass' ? 'dho' : 'pass')}
+              style={{ alignSelf: 'flex-start', fontSize: 9, padding: '1px 6px', borderRadius: 3, border: '1px solid #475569', background: '#1e293b', color: '#cbd5e1', cursor: 'pointer' }}
+            >↓ {linkMode(i) === 'dho' ? 'DHO' : 'passe'}</button>
+          )}
+        </div>
+      ))}
+      <button
+        onClick={() => {
+          const used = new Set(chain);
+          const next = attackerIds.find((id) => !used.has(id)) ?? attackerIds[0];
+          onChange([...chain, next], modes);
+        }}
+        style={{ alignSelf: 'flex-start', fontSize: 10, padding: '2px 6px', border: '1px solid #94a3b8', borderRadius: 3, background: 'transparent', color: '#cbd5e1', cursor: 'pointer' }}
+      >+ maillon</button>
+    </div>
+  );
+}
+
 function paramOptionsFor(key: ParamKind, attackerIds: AttackerId[]): string[] {
   if (key === 'side') return SIDES;
   if (key === 'direction') return DRIVE_DIRECTIONS;
@@ -1111,6 +1180,7 @@ function defaultParamsFor(def: ScriptedActionDefinition): OffensiveScriptedActio
   const params: OffensiveScriptedAction['params'] = {};
   if (def.optionalParams?.includes('side')) params.side = 'fort';
   if (def.optionalParams?.includes('direction')) params.direction = 'panier';
+  if (def.requiredParams.includes('chain')) params.chain = ['O1', 'O2'];
   return params;
 }
 
