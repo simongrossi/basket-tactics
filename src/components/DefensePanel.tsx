@@ -871,6 +871,12 @@ export function DefensePanel(props: DefensePanelProps) {
                 title="Quand un cut hors-ballon est détecté, un défenseur sur la trajectoire reçoit un offset de 12px vers le cutter"
               />
               <CheckboxLine
+                checked={!!state.weakSideAnchorEnabled}
+                label="ancre weak-side (#8.2)"
+                onChange={(v) => props.onPatch({ weakSideAnchorEnabled: v })}
+                title="Désigne un défenseur côté faible (le low man, ou override coach) qui s'enfonce vers la raquette pour protéger le panier/skip. Marqueur ⚓. Clic-droit défenseur pour forcer l'ancre."
+              />
+              <CheckboxLine
                 checked={!!state.unwindRejectedScreens}
                 label="unwind sur reject screen (B2)"
                 onChange={(v) => props.onPatch({ unwindRejectedScreens: v })}

@@ -18,6 +18,7 @@ import type { DefenderTarget } from './defense/types';
 import { buildDefenseFrameContext } from './defense/context';
 import { applyBaseTargetsLayer } from './defense/baseTargets';
 import { applyInfluenceLayer } from './defense/influenceLayer';
+import { applyWeakSideAnchorLayer } from './defense/weakSideAnchorLayer';
 import { applyScreenRepelLayer } from './defense/screenRepelLayer';
 import { applyRimProtectionLayer } from './defense/rimProtectionLayer';
 import { applyHelpStickyLayer } from './defense/helpStickyLayer';
@@ -112,6 +113,10 @@ export function computeDefenseTargets(
   // carrier/denying/onScreen/pnrRole/helpFactor≥0.5 — ne touche
   // que les défenseurs "libres".
   applyInfluenceLayer(positions, matchups, ctx);
+  // Couche 1.4 — Ancre weak-side explicite (#8.2). Opt-in via
+  // state.weakSideAnchorEnabled. Enfonce un défenseur désigné vers la raquette
+  // côté faible (protection panier/skip), au lieu du sag passif distribué.
+  applyWeakSideAnchorLayer(positions, matchups, ctx);
   // Couche 1.5 — Rim protection : "pas d'easy basket". Détecte les couloirs
   // libres vers le panier et désigne un défenseur (autre que carrierDef) pour
   // les fermer, peu importe le matchup.

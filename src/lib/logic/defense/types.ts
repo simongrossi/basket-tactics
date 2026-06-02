@@ -37,4 +37,6 @@ export interface DefenderTarget {
    *  `PASS_SHADOW_TOLERANCE_PX`).
    *  Permet aux défenseurs adjacents de flotter en aide. */
   isPassShadowed?: boolean;
+  /** #8.2 — ancre weak-side désignée (cf. ComputedDefender.weakSideAnchor). */
+  weakSideAnchor?: boolean;
 }

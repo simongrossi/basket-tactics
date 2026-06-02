@@ -554,6 +554,16 @@ export function DefenderMenu({
           onReset={() => onUpdate({ hedgeAggression: undefined })}
           title="Agressivité du show (hedge) de CE défenseur (0-100). Override le réglage global. Pertinent quand screenRule = hedge. 0 = soft (reste bas), 100 = hard (sort fort sur le porteur)."
         />
+        <Row
+          label="ancre weak-side"
+          title="Force CE défenseur comme ancre weak-side (protection raquette côté faible), au lieu de la désignation auto. Nécessite l'option 'ancre weak-side' activée dans le panneau défense."
+        >
+          <input
+            type="checkbox"
+            checked={!!rule.weakSideAnchor}
+            onChange={(e) => onUpdate({ weakSideAnchor: e.target.checked || undefined })}
+          />
+        </Row>
       </CollapsibleMenuSection>
 
       <CollapsibleMenuSection title="Orientation & vision" icon={Eye}>

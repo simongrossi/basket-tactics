@@ -547,6 +547,10 @@ export interface DefenderRule {
    *  global. Permet d'avoir un D5 qui hedge mou (20) et un autre agressif (90)
    *  sur des écrans différents. */
   hedgeAggression?: number;
+  /** #8.2 — Override coach : désigne CE défenseur comme ancre weak-side
+   *  (protection raquette/skip côté faible). Undefined/false = désignation
+   *  auto par le moteur (le low weak-side). */
+  weakSideAnchor?: boolean;
   /** QI défensif d'anticipation (0-100, défaut 50). Module la capacité du
    *  défenseur à lire le jeu et anticiper la trajectoire de l'attaquant
    *  pendant la phase de recovery (après un écran notamment). Trois logiques
@@ -800,6 +804,9 @@ export interface ComputedDefender {
    *  'desperate' : 80–159px   — long sprint, contest dégradé.
    *  'late'      : ≥ 160px    — tir ouvert avant l'arrivée du défenseur. */
   closeoutQuality?: 'clean' | 'desperate' | 'late';
+  /** #8.2 — Ce défenseur est l'ancre weak-side désignée (protection raquette
+   *  côté faible). Piloté par weakSideAnchorLayer. */
+  weakSideAnchor?: boolean;
   /** Le défenseur applique un strong-side denial automatique (glisse vers la
    *  ligne de passe). Utilisé pour différencier visuellement du ring "help"
    *  classique côté faible. */
@@ -974,6 +981,10 @@ export interface AppState {
    *  Le trigger `state.triggers.post` doit aussi être activé pour que la
    *  couverture s'applique (deux switches indépendants : détection + réaction). */
   postCoverage?: 'none' | 'dig' | 'double';
+  /** #8.2 — Active l'ancre weak-side explicite : un défenseur désigné protège
+   *  la raquette / le skip côté faible (position dédiée vs sag passif via
+   *  helpPct). Default undefined = legacy. */
+  weakSideAnchorEnabled?: boolean;
   /** B2 V2 — Quand un reject screen SHARP est détecté (porteur vire opposé
    *  net, awayness ≤ -0.7), la défense relâche la couverture sur-anticipée :
    *  l'écran est traité comme inexistant pour ce step, retour à l'individuel

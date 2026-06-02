@@ -16,6 +16,7 @@ interface PlayerProps {
   closingOut?: boolean;
   overClosed?: boolean;
   closeoutQuality?: 'clean' | 'desperate' | 'late';
+  weakSideAnchor?: boolean;
   isForcedScreener?: boolean;
   denying?: boolean;
   /** Angle horaire du corps depuis le NORD (0–360°). Pilote les bras :
@@ -96,6 +97,7 @@ export function Player({
   closingOut,
   overClosed,
   closeoutQuality,
+  weakSideAnchor,
   isForcedScreener,
   denying,
   orientation,
@@ -689,6 +691,17 @@ export function Player({
             </text>
           )}
         </g>
+      )}
+      {weakSideAnchor && !isAttacker && showStateRings && (
+        <text
+          x={pos.x - r - 4}
+          y={pos.y + r + 12}
+          fontSize={11}
+          textAnchor="middle"
+          pointerEvents="none"
+        >
+          ⚓
+        </text>
       )}
       {!isOverridden && !isAttacker && showLockBadges && (
         <g pointerEvents="none">

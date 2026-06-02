@@ -105,6 +105,8 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
             isOverridden={!!state.steps[state.activeStep]?.defenseOverrides?.[id]}
             closingOut={p.closingOut}
             overClosed={p.overClosed}
+            closeoutQuality={p.closeoutQuality}
+            weakSideAnchor={p.weakSideAnchor}
             denying={p.denying}
             pnrRole={p.pnrRole}
             mismatchSeverity={p.mismatchSeverity}
