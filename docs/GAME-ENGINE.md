@@ -296,6 +296,14 @@ recevant un id namespacé (`#cK`). Le résultat est une liste d'actions plate qu
 les passes offensive/défensive consomment normalement — la défense suit son homme
 sans remap. Opt-in ; absent → 0 changement.
 
+**Auto-replacement (Phase Motion).** Dans la passe 1, juste après le générateur
+d'une action déclencheuse (`basket-cut`/`backdoor-cut`/`flash-cut`/`give-and-go`/
+`drive`), si `state.autoReplacementEnabled`, `compileScenario` enrichit le dernier
+step généré avec une **cascade de fill** (`autoReplacement.ts` :
+`computeReplacementChain` *fill-from-behind* + `applyReplacementToStep` avec
+`pushOutOfMany` pour la clearance) — les comble-spots bougent concurremment au
+cut. La défense suit son homme. Opt-in ; absent → 0 changement.
+
 ---
 
 ## Métriques tactiques (read-only)

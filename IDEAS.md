@@ -32,8 +32,10 @@ Constats classés par impact. Le #1 a un plan dédié :
    pas de chaîne DHO multiple. Impossible de modéliser une vraie continuité.
    ✅ **Boucle de continuité rotative livrée 2026-06-02** (`continuityLoop` :
    plage d'actions rejouée K cycles avec rotation des rôles σ + sortie hybride
-   sur lecture Phase L). Replacement/relocate + ball reversal/DHO restants
-   (sous-projets B et C, specs séparés).
+   sur lecture Phase L).
+   ✅ **Auto-replacement (sous-projet B) livré 2026-06-02** (`autoReplacementEnabled` :
+   cascade de fill *fill-from-behind* auto sur cut/drive, profondeur bornée 1–4).
+   Ball reversal / DHO chain (C) restant (spec séparé).
 3. **🔴 La transition n'existe pas**. Aucun fast-break, secondary break, outlet,
    lanes 2c1/3c2 — soit ~25-30 % des possessions non couvertes.
 4. **🟠 Pas de fautes du tout dans le moteur** : ni faute défensive, ni and-one,

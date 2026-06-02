@@ -155,9 +155,9 @@
 | 🔜 | **Special plays** | Action ad-hoc. Hors-scope automatisation. |
 | ✅ | **Continuity offense** | Séquence répétitive. Boucle rotative au compile-time (`continuityLoop` : plage d'actions × K cycles + rotation σ + sortie hybride). Livré 2026-06-02. |
 | 🔜 | **Two-for-one** | 2 actions rapides en fin de quart-temps. Hors-scope géométrique, c'est du tempo. |
-| 🔜 | **Drift** | Replacement vers ligne de fond pendant drive. À déclencher auto pendant `drive`. |
-| 🔜 | **Lift** | Replacement vers le top pendant drive. Idem drift inverse. |
-| 🔜 | **Replacement** | Remplacement d'espace après cut. Auto pendant cut. |
+| ✅ | **Drift** | Replacement vers ligne de fond pendant drive. Désormais **auto-déclenchable** via la cascade `autoReplacementEnabled` (2026-06-02). |
+| ✅ | **Lift** | Replacement vers le top pendant drive. Idem — cascade auto sur cut/drive (`autoReplacementEnabled`). |
+| ✅ | **Replacement** | Remplacement d'espace après cut. Auto-déclenchable (fill-from-behind, profondeur bornée) via `autoReplacementEnabled` (2026-06-02). |
 | 🔜 | **Ball reversal** | Renversement ballon. Composition de 2-3 passes. |
 | 🔜 | **Flip** | Passe + retour immédiat. Composition pass → pass. |
 | 🔜 | **Boomerang pass** | Voir Flip. |

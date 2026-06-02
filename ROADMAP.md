@@ -38,17 +38,20 @@ L'offense gagne la **continuité** : une plage d'actions peut être rejouée en
 boucle avec **rotation des rôles** entre les joueurs (flex, Princeton, 5-out
 continu), jusqu'à K cycles ou sortie anticipée sur lecture.
 
-**Livré (2026-06-02)** : boucle de continuité rotative (`continuityLoop`) —
-déroulé au compile-time, permutation σ, sortie hybride sur lecture Phase L. UI
-ScenarioPanel (plage, roue, cycles, sortie). ~19 tests.
+**Livré (2026-06-02)** :
+- **Sous-projet A — continuité rotative** (`continuityLoop`) : déroulé au
+  compile-time, permutation σ, sortie hybride sur lecture Phase L. ~19 tests.
+- **Sous-projet B — auto-replacement** (`autoReplacementEnabled`) : cascade de
+  fill *fill-from-behind* auto sur cut/drive, profondeur bornée 1–4, clearance
+  garantie. ~21 tests.
 
 **Restant (sous-projets)** :
-- Replacement / relocate (drift, lift, fill du corner) — sous-projet B
 - Ball reversal / DHO chain — sous-projet C
-- Rotation auto-dérivée / miroir, sortie intra-cycle, snap formation
+- Rotation auto-dérivée / miroir, sortie intra-cycle, snap formation, fill
+  spacing-optimal (corner bonus)
 
-- Spec : [docs/superpowers/specs/2026-06-02-continuity-motion-offense-design.md](docs/superpowers/specs/2026-06-02-continuity-motion-offense-design.md)
-- Plan : [docs/superpowers/plans/2026-06-02-continuity-motion-offense.md](docs/superpowers/plans/2026-06-02-continuity-motion-offense.md)
+- Specs : [continuity](docs/superpowers/specs/2026-06-02-continuity-motion-offense-design.md) · [auto-replacement](docs/superpowers/specs/2026-06-02-auto-replacement-design.md)
+- Plans : [continuity](docs/superpowers/plans/2026-06-02-continuity-motion-offense.md) · [auto-replacement](docs/superpowers/plans/2026-06-02-auto-replacement.md)
 
 ## Livré récemment (juin 2026)
 

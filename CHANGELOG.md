@@ -6,6 +6,16 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Phase Motion — Auto-replacement (cascade de fill) (2026-06-02)
+
+Sous-projet B du motion offense. Quand un cut/drive (`basket-cut`, `backdoor-cut`,
+`flash-cut`, `give-and-go`, `drive`) vide un spot périmètre, une cascade de fill
+*fill-from-behind* (le joueur du même côté plus loin du panier comble le spot, sa
+place devient le spot suivant) maintient le spacing — bornée en profondeur (1–4,
+défaut 2). Fusion concurrente dans le step du cut, clearance via `pushOutOfMany`.
+Module pur `autoReplacement.ts`, opt-in `autoReplacementEnabled`. UI ScenarioPanel
+(toggle + profondeur). ~21 tests. Suite 2019 verte.
+
 ### Phase Motion — Continuity offense (boucle rotative) (2026-06-02)
 
 Première brique du motion offense (IDEAS §2). Une plage d'actions offensives
