@@ -968,6 +968,11 @@ export interface AppState {
    *  quand la possession va basculer (shot-made / turnover / rebond défensif).
    *  Cap par tick, filet Rule 1. */
   defensiveTransitionEnabled?: boolean;
+  /** Défense vivante / drive (2a) — opt-in. Quand actif, le défenseur du
+   *  porteur glisse vers le point de contain sur un drive (couche
+   *  driveContainmentLayer) et le diagnostic coach signale drive contenu /
+   *  ligne ouverte. Default off → pipeline bit-identique. */
+  driveContainmentEnabled?: boolean;
   /** Inertie défenseur sur drag attaquant (mode édition). Quand actif, au
    *  démarrage d'un drag d'attaquant, les défenseurs sont "freezés" à leur
    *  position courante puis rattrapent leur cible avec un easing cubique
