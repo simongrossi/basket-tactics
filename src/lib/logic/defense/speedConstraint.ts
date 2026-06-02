@@ -46,6 +46,7 @@ import {
   getMatchupsAt,
 } from '../engine';
 import { recomputeDefenseFrameOrientations } from './frameAdjust';
+import { resolveRealismFlags } from '../realismProfile';
 import {
   anticipationTarget,
   screenPenaltyFromQuality,
@@ -157,6 +158,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
 }
 
 function computeEffectiveDefensePositions(state: AppState, stepIdx: number): ComputedDefense {
+  const realism = resolveRealismFlags(state);
   const { positions: targets } = computeDefenseTargets(state, stepIdx);
   const defenderIds = getActiveDefenderIds(state.playerCount);
   const curStep = state.steps[stepIdx];
@@ -203,7 +205,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
     }
   } else {
     prevTargets = computeDefenseTargets(state, stepIdx - 1, false).positions;
-    if (state.footworkRulesEnabled) {
+    if (realism.footworkRulesEnabled) {
       prevComputed = effectiveDefensePositions(state, stepIdx - 1);
       prevPositions = {} as DefenderPositions;
       for (const dId of defenderIds) {
@@ -534,7 +536,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
 
     // Biomécanique, motricité et attention (Footwork)
     let delayFraction = 0;
-    if (state.footworkRulesEnabled) {
+    if (realism.footworkRulesEnabled) {
       let latencyFraction = 0;
       if (stepIdx > 0 && prevComputed) {
         const matches = getMatchupsAt(state.steps, stepIdx - 1, state.playerCount);
@@ -661,7 +663,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         isPassShadowed: targets[dId].isPassShadowed,
         weakSideAnchor: targets[dId].weakSideAnchor,
         blitzRecovering: targets[dId].blitzRecovering,
-        delayFraction: state.footworkRulesEnabled ? delayFraction : undefined,
+        delayFraction: realism.footworkRulesEnabled ? delayFraction : undefined,
       };
     } else {
       const r = effectiveMaxSpeed / pathLen;
@@ -708,7 +710,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         isPassShadowed: targets[dId].isPassShadowed,
         weakSideAnchor: targets[dId].weakSideAnchor,
         blitzRecovering: targets[dId].blitzRecovering,
-        delayFraction: state.footworkRulesEnabled ? delayFraction : undefined,
+        delayFraction: realism.footworkRulesEnabled ? delayFraction : undefined,
       };
     }
   });
