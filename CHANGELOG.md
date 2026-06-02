@@ -6,6 +6,15 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Phase L — Lecture probabiliste (2026-06-02)
+
+La défense joue une distribution de couvertures (drop 70 % / blitz 30 %) tirée de
+façon seedée. La couverture réalisée (`rolledCoverage`) remplace la base de
+`effectiveScreenRule` → pilote À LA FOIS le rendu défensif ET la branche lue
+(source unique). Helpers `rollCoverage` / `coverageBranchStats`, `mulberry32`
+extrait dans `rng.ts`. UI ScenarioPanel : éditeur de distribution, bouton 🎲
+rejouer, panneau stats. Opt-in `probabilisticReadsEnabled`. ~16 tests.
+
 ### Phy.O V3 V2 — Choix de côté du cut (2026-06-02)
 
 `Annotation.flipSideIfDefenderOn?: 'left'|'right'`. Si le défenseur matché est

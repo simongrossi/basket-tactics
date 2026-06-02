@@ -140,7 +140,9 @@ toggler la défense, voir l'offense se relire + badge explicite.
 
 ### Restant (hors L.3)
 - **Arbres multi-niveaux** (sous-branches).
-- **Lecture probabiliste** (défense joue drop 70 % / blitz 30 %).
+- ~~**Lecture probabiliste**~~ ✅ livré 2026-06-02 — distribution seedée de
+  couvertures pilotant défense + branche via `effectiveScreenRule` (source
+  unique). Voir plan `docs/superpowers/plans/2026-06-02-lecture-probabiliste.md`.
 - **Receveur dynamique** : le drive-and-kick sert un receveur fixé (fallback
   déterministe, ajustable par le coach) plutôt que l'homme libéré résolu en
   direct — évolution possible si on injecte l'id résolu dans les actions.

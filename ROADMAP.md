@@ -19,9 +19,12 @@ Le moteur défensif est très abouti (14 couches, couvertures FIBA). L'offense
 UI ScenarioPanel (onglets réactifs, badge "Lecture auto") + lectures hors PnR
 (drive-and-kick via `help-source`, backdoor via `deny`). +40 tests. Suite 1864 verte.
 
+**Extension livrée (2026-06-02)** : lecture probabiliste — la défense joue une
+distribution de couvertures seedée (drop 70 % / blitz 30 %) pilotant à la fois le
+rendu défensif et la branche lue.
+
 **Restant (extensions)** :
 - Arbres multi-niveaux (sous-branches récursives)
-- Lecture probabiliste (défense joue drop 70 % / blitz 30 %)
 - Receveur dynamique sur le drive-and-kick
 
 - Spec : [docs/superpowers/specs/2026-05-29-offense-lecture-reactive-design.md](docs/superpowers/specs/2026-05-29-offense-lecture-reactive-design.md)

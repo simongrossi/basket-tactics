@@ -165,6 +165,7 @@ les détails.
 | ~~**#8.3 hedge per-déf**~~ | 🟢 livré 2026-06-02 | `DefenderRule.hedgeAggression` override le global (B3). Slider DefenderMenu + récap DefensePanel. 3 tests. |
 | ~~**#8.2 ancre weak-side**~~ | 🟢 livré 2026-06-02 | Couche 1.4 `weakSideAnchorLayer` + helper `pickWeakSideAnchor` (auto low man / override coach). Opt-in `weakSideAnchorEnabled`. Marqueur ⚓. 7 tests. |
 | ~~**#8.1 relâche blitz**~~ | 🟢 livré 2026-06-02 | Couche 2.6 `blitzReleaseLayer` + `detectBlitzRelease` + `blitzReleaseEasing` (frameResolver). screenerDef récupère le roller. Opt-in `blitzReleaseEnabled`. Badge ↩ RECOVER. 12 tests. |
+| ~~**Lecture probabiliste** (extension Phase L)~~ | 🟢 livré 2026-06-02 | Distribution de couvertures seedée (drop 70 % / blitz 30 %). `rolledCoverage` pilote `effectiveScreenRule` → défense + branche (source unique). Helpers `rollCoverage`/`coverageBranchStats`, `mulberry32` extrait dans `rng.ts`. UI ScenarioPanel (éditeur distribution + 🎲 rejouer + stats). ~16 tests. |
 
 **Restent ouverts dans IDEAS §8** : tag roller avec modèle de contact/faute,
 X-out multi-roller, re-scram en cascade.
