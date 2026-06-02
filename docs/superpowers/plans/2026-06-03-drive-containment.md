@@ -109,7 +109,7 @@ describe('evaluateDriveContainment', () => {
     const r = evaluateDriveContainment({
       carrier: { x: 250, y: 400 },
       carrierPrev: { x: 250, y: 450 },
-      defender: { x: 285, y: 330 },    // légèrement de côté, à hauteur intermédiaire
+      defender: { x: 280, y: 370 },    // 30px de côté, photo-finish (etaCarrier=etaDef=3.0)
       hoop,
       carrierSpeed: 10,
       defenderSpeed: 10,
@@ -240,7 +240,9 @@ export function evaluateDriveContainment(
 
   const etaCarrier = eta(carrier, containPoint, carrierSpeed);
   const etaDef = eta(defender, containPoint, defenderSpeed);
-  const margin = etaDef - etaCarrier;
+  // `etaDef === etaCarrier` couvre le cas deux ETA infinies (vitesses ≤ 0)
+  // qui produirait sinon `Infinity − Infinity = NaN`.
+  const margin = etaDef === etaCarrier ? 0 : etaDef - etaCarrier;
 
   let level: ContainmentLevel;
   if (margin < -CONTAIN_MARGIN_STEPS) level = 'walled';
