@@ -87,6 +87,8 @@ const DEFAULT_PARAMS: Record<string, Record<string, unknown>> = {
   'slide-action': { cutter: 'O2', screener: 'O4' },
   'split-action': { passer: 'O1', receiver: 'O3', screener: 'O4', cutter: 'O2' },
   'high-low-action': { from: 'O4', to: 'O5' },
+  'ball-reversal': { chain: ['O1', 'O2', 'O3'] },
+  'dho-chain': { chain: ['O1', 'O2'] },
 
   // Tier 2 — Replacements
   drift: { cutter: 'O3' },
