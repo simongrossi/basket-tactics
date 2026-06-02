@@ -35,6 +35,7 @@ import {
   type PlaybackFrame,
 } from '@/lib/logic/playback/frameResolver';
 import { computeAttackerThreats } from '@/lib/logic/threats';
+import { resolveRealismFlags } from '@/lib/logic/realismProfile';
 import { usePlaybackAnimation } from '@/hooks/usePlaybackAnimation';
 
 interface UseCourtFrameOptions {
@@ -269,6 +270,7 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     let raf = 0;
     const tick = () => {
       const cur = stateRef.current;
+      const realism = resolveRealismFlags(cur);
       const now = performance.now();
       const dt = Math.max(1, now - lastTickRef.current);
       lastTickRef.current = now;
@@ -297,7 +299,7 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
         let footworkMult = 1.0;
         const matchedAttId = target[id].matchedTo;
         const matchedAtt = matchedAttId ? off[matchedAttId] : null;
-        if (cur.footworkRulesEnabled && matchedAtt) {
+        if (realism.footworkRulesEnabled && matchedAtt) {
           // Direction du défenseur vers sa cible.
           const dx = t.x - live.x;
           const dy = t.y - live.y;
@@ -350,7 +352,7 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
         // V3 — lecture du regard : si l'attaquant est dans le cône de regard
         // du défenseur (±60°), latence × 0.5 (mieux lu) ; sinon ×1.5.
         let gazeMult = 1.0;
-        if (cur.footworkRulesEnabled && matchedAtt) {
+        if (realism.footworkRulesEnabled && matchedAtt) {
           const gaze = target[id].gazeOrientation ?? 0;
           const angleToAtt = (Math.atan2(matchedAtt.x - live.x, -(matchedAtt.y - live.y)) * 180) / Math.PI;
           const gazeDiff = Math.abs(((angleToAtt - gaze + 540) % 360) - 180);
