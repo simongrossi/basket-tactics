@@ -1732,6 +1732,17 @@ Pilier physique opt-in : **15 items livrés sur 15**. Sections 1, 2, 3, 4, 5 tou
 > [spec](docs/superpowers/specs/2026-06-02-realism-profile-default-design.md) ·
 > [plan](docs/superpowers/plans/2026-06-02-realism-profile-default.md).
 
+> 🟠 **Défense vivante / drive 2a — `driveContainment` (2026-06-03).** Sur un
+> drive, le défenseur du porteur **glisse couper la ligne** s'il gagne la course
+> au point de contain (cœur pur `evaluateDriveContainment`, approche A : ETA
+> porteur vs défenseur → `beaten`/`contained`/`walled`), avec diagnostic coach
+> « drive contenu / ligne ouverte ». Opt-in `driveContainmentEnabled`, tracé
+> dessiné intact. Le cœur est agnostique du contexte → **2b (à faire)** câblera
+> le match-sim (issue du drive : pull-up / kick-out / strip au lieu du tir RNG à
+> l'arrivée). Suite 2063 verte. Cf.
+> [spec](docs/superpowers/specs/2026-06-03-drive-containment-design.md) ·
+> [plan](docs/superpowers/plans/2026-06-03-drive-containment.md).
+
 #### 1. Cinématique des déplacements et modèle de vitesse
 - 🟢 **Vitesse Réelle vs Vitesse Tactique (Mode Sprint NBA)** — livré `b92d59d` via `realSpeedMode` : timeline 0.5s au lieu de 2s pour simuler buzzer-beaters/coast-to-coast.
 - 🟢 **Accélération et décélération non-linéaires en attaque** — livré `b92d59d` via `attackerAccelerationEnabled` + slider 3–12 m/s² dans `velocityProfile.ts` (forward/backward pass).

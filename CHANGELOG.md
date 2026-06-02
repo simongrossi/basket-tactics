@@ -6,6 +6,31 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Défense vivante / drive — 2a : `driveContainment` (cœur + playback) (2026-06-03)
+
+Deuxième axe du programme « comportement plus réel et précis » (cinématique ✅ →
+**défense vivante / drive** → contact & fautes). Sous-projet 2a : un défenseur de
+porteur qui **glisse couper la ligne de pénétration** sur un drive s'il est
+athlétiquement capable d'y arriver, + un **diagnostic coach** honnête, **sans
+toucher le tracé dessiné**.
+
+- **Cœur pur** `logic/driveContainment.ts` — `evaluateDriveContainment`
+  (approche A : course d'ETA porteur vs défenseur jusqu'au point de contain →
+  verdict `beaten` / `contained` / `walled`) + `containmentSpeed` (tier
+  athlétique × base). Agnostique du contexte → réutilisable par le match-sim (2b).
+- **Couche playback** `defense/driveContainmentLayer.ts` (Couche 1.2, opt-in
+  `driveContainmentEnabled`) : glisse la cible du défenseur du porteur vers le
+  containPoint si `contained`/`walled` (cap `CONTAINMENT_MAX_SHIFT_PX = 8 px`),
+  laisse le défenseur en retard si `beaten`. N'altère que le défenseur du
+  porteur ; clearance Rule 1 garantie en aval. Default off → pipeline
+  bit-identique (golden intacts).
+- **Diagnostic coach** `coachDiagnostics/rules/driveContainment.ts` : « Drive de
+  O1 contenu par D1 — ligne coupée » / « ligne ouverte (D1 battu) ».
+- **UI** ParametresPanel : toggle « Défense vivante sur drive (containment) ».
+- **Tracé du porteur intact** ; déviation auto déférée au match-sim (2b).
+
++18 tests (cœur, couche, règle, garde-fou clearance). **Suite 2063 verte.**
+
 ### Cinématique fine — Preset réaliste par défaut (`realismProfile`) (2026-06-02)
 
 Premier sous-projet de l'axe « comportement plus réel et précis » (ordre :
