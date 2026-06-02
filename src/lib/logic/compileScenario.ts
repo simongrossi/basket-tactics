@@ -4,12 +4,14 @@
 // main (`manualOverride: true`) en les réinjectant à leur position d'origine
 // dans le groupe de l'action qui les a générés.
 
-import type { AttackerPositions, AttackerId, DefensiveScriptedAction, PlayerCount, ScenarioBranch, ScriptedAction, Step } from '@/lib/types';
+import type { AttackerPositions, AttackerId, ContinuityLoop, DefensiveScriptedAction, PlayerCount, ScenarioBranch, ScriptedAction, Step } from '@/lib/types';
 import { SCRIPTED_GENERATORS } from './scriptedGenerators';
 import { applyDefensivePass, type ParentRangeMap } from './defensiveCompilation';
 import { ensureAnnotationsForMovement } from './migrateAnnotations';
 import { breakUpTeleports } from './breakUpTeleports';
 import { smoothMovementFlickers } from './smoothMovementFlickers';
+import { getActiveAttackerIds } from './players';
+import { expandContinuityLoop } from './reads/continuityLoop';
 
 export interface CompileInput {
   initialOff: AttackerPositions;
@@ -25,6 +27,12 @@ export interface CompileInput {
    *  principal jusqu'à `branch.divergeAfterActionId` inclus, puis continue
    *  avec `branch.actions` au lieu du reste du chemin principal. */
   activeBranch?: ScenarioBranch | null;
+  /** Phase Motion — boucle de continuité à dérouler avant les passes. */
+  continuityLoop?: ContinuityLoop | null;
+  /** Sortie anticipée (option C) : prédicat évalué aux frontières de cycle. */
+  continuityExitAtCycle?: (cycle: number) => boolean;
+  /** Actions de finition jouées à la sortie anticipée. */
+  continuityExitActions?: ScriptedAction[];
 }
 
 export function compileScenario(input: CompileInput): Step[] {
@@ -47,6 +55,15 @@ export function compileScenario(input: CompileInput): Step[] {
   } else {
     actions = mainActions;
   }
+
+  // Phase Motion — expansion de la boucle de continuité (no-op si absente ou
+  // invalide). Opère sur la liste effective ; passes 1 & 2 itèrent le résultat.
+  actions = expandContinuityLoop(
+    actions,
+    input.continuityLoop,
+    getActiveAttackerIds(input.playerCount ?? 5),
+    { exitAtCycle: input.continuityExitAtCycle, exitActions: input.continuityExitActions },
+  );
 
   const initialStep: Step = {
     off: structuredClone(initialOff),

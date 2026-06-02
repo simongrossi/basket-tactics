@@ -33,6 +33,15 @@ export function recompileScenarioSteps(state: AppState): AppState {
   // l'écran précède toute divergence → stable). Rétrocompat : sans branche
   // réactive ni manuelle, `branch` est null → comportement chemin principal.
   const { branch: activeBranch } = selectReactiveBranch(state);
+  // Phase Motion — sortie anticipée : armée si la boucle référence une branche
+  // de sortie ET que la lecture réactive résout justement cette branche. V1 :
+  // évaluation statique (la couverture ne variant pas par cycle, la sortie tombe
+  // au cycle 0 si elle matche — cf. limite documentée dans le spec).
+  const loop = state.continuityLoop;
+  const exitArmed = !!(loop?.exitBranchId && activeBranch && activeBranch.id === loop.exitBranchId);
+  const exitBranch = exitArmed
+    ? (state.scenarioBranches ?? []).find((b) => b.id === loop!.exitBranchId)
+    : undefined;
   const newSteps = compileScenario({
     initialOff: initial.off,
     initialBallCarrier: initial.ballCarrier,
@@ -40,6 +49,9 @@ export function recompileScenarioSteps(state: AppState): AppState {
     existingSteps: state.steps,
     playerCount: state.playerCount,
     activeBranch,
+    continuityLoop: loop,
+    continuityExitAtCycle: exitArmed ? () => true : undefined,
+    continuityExitActions: exitBranch?.actions,
   });
   const activeStep = Math.min(state.activeStep, newSteps.length - 1);
   // Badge « Lecture : … » : id de la branche RÉSOLUE automatiquement (= branche
