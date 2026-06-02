@@ -52,6 +52,8 @@ export function recompileScenarioSteps(state: AppState): AppState {
     continuityLoop: loop,
     continuityExitAtCycle: exitArmed ? () => true : undefined,
     continuityExitActions: exitBranch?.actions,
+    autoReplacementEnabled: state.autoReplacementEnabled,
+    autoReplacementDepth: state.autoReplacementDepth,
   });
   const activeStep = Math.min(state.activeStep, newSteps.length - 1);
   // Badge « Lecture : … » : id de la branche RÉSOLUE automatiquement (= branche

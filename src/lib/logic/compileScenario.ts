@@ -12,6 +12,7 @@ import { breakUpTeleports } from './breakUpTeleports';
 import { smoothMovementFlickers } from './smoothMovementFlickers';
 import { getActiveAttackerIds } from './players';
 import { expandContinuityLoop } from './reads/continuityLoop';
+import { applyReplacementToStep, computeReplacementChain, isReplacementTrigger, replacementCutterId } from './autoOffense/autoReplacement';
 
 export interface CompileInput {
   initialOff: AttackerPositions;
@@ -33,6 +34,9 @@ export interface CompileInput {
   continuityExitAtCycle?: (cycle: number) => boolean;
   /** Actions de finition jouées à la sortie anticipée. */
   continuityExitActions?: ScriptedAction[];
+  /** Phase Motion — auto-replacement : déclenche la cascade de fill sur cut/drive. */
+  autoReplacementEnabled?: boolean;
+  autoReplacementDepth?: number;
 }
 
 export function compileScenario(input: CompileInput): Step[] {
@@ -104,6 +108,23 @@ export function compileScenario(input: CompileInput): Step[] {
     if (!gen) continue;
     const generated = gen(prev, action);
     if (generated.length === 0) continue;
+
+    // Phase Motion — auto-replacement : si l'action vide un spot, la cascade de
+    // fill est fusionnée dans le dernier step généré (concurrent). `action` est
+    // déjà narrowed offensive (guard en tête de boucle).
+    if (input.autoReplacementEnabled && isReplacementTrigger(action.type)) {
+      const cutterId = replacementCutterId(action);
+      if (cutterId) {
+        const chain = computeReplacementChain(
+          prev.off, cutterId, prev.ballCarrier,
+          getActiveAttackerIds(input.playerCount ?? 5),
+          input.autoReplacementDepth ?? 2,
+        );
+        if (chain.length > 0) {
+          generated[generated.length - 1] = applyReplacementToStep(generated[generated.length - 1], chain);
+        }
+      }
+    }
 
     const startIndex = result.length;
     const overrides = manualByAction.get(action.id);

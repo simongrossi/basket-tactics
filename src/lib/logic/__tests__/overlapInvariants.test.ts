@@ -9,7 +9,9 @@
 import { describe, expect, it } from 'vitest';
 import { makeInitialState, makeStep } from '@/lib/data/initial';
 import { effectiveDefensePositions } from '@/lib/logic/engine';
-import type { AppState, AttackerPositions } from '@/lib/types';
+import { compileScenario } from '@/lib/logic/compileScenario';
+import { distance } from '@/lib/logic/geometry';
+import type { AppState, AttackerId, AttackerPositions, OffensiveScriptedAction } from '@/lib/types';
 import { PLAYER_MIN_CLEARANCE_PX } from '@/lib/data/court';
 
 describe('DIAG superposition complète', () => {
@@ -122,5 +124,29 @@ describe('DIAG superposition complète', () => {
     const def = effectiveDefensePositions(state, 0);
     const distD1_O1 = Math.hypot(def.D1.x - off.O1.x, def.D1.y - off.O1.y);
     expect(distD1_O1).toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.5);
+  });
+});
+
+describe('auto-replacement — invariant clearance', () => {
+  it('toutes les paires ≥ PLAYER_MIN_CLEARANCE_PX après cascade', () => {
+    const initialOff: AttackerPositions = {
+      O1: { x: 300, y: 250 }, O2: { x: 480, y: 200 }, O3: { x: 500, y: 320 },
+      O4: { x: 510, y: 430 }, O5: { x: 150, y: 320 },
+    };
+    const cut: OffensiveScriptedAction = {
+      kind: 'offensive', id: 'c1', type: 'basket-cut', params: { cutter: 'O2' },
+    };
+    const steps = compileScenario({
+      initialOff, initialBallCarrier: 'O1', actions: [cut], playerCount: 5,
+      autoReplacementEnabled: true, autoReplacementDepth: 2,
+    });
+    const ids: AttackerId[] = ['O1', 'O2', 'O3', 'O4', 'O5'];
+    for (const s of steps) {
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+          expect(distance(s.off[ids[i]], s.off[ids[j]])).toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.5);
+        }
+      }
+    }
   });
 });
