@@ -180,10 +180,18 @@ export function buildDefenseFrameContext(
 
   // Règle effective : on regarde l'override individuel du défenseur du porteur,
   // sinon on retombe sur la règle globale.
+  // Phase L proba — quand le mode probabiliste est actif, la couverture TIRÉE
+  // remplace la règle globale comme base (l'override par défenseur garde sa
+  // précédence). Source unique : pilote À LA FOIS le rendu défensif et la
+  // lecture offensive (resolveScreenCoverage lit ce même effectiveScreenRule).
+  const baseRule: ScreenRule =
+    state.probabilisticReadsEnabled && state.rolledCoverage
+      ? state.rolledCoverage
+      : state.screenRule;
   let effectiveScreenRule: ScreenRule = (() => {
-    if (!screen) return state.screenRule;
+    if (!screen) return baseRule;
     const nav = state.rules[screen.carrierDef]?.screenNav;
-    return nav && nav !== 'auto' ? nav : state.screenRule;
+    return nav && nav !== 'auto' ? nav : baseRule;
   })();
 
   // C.3 — Hedge length : si la rule effective est 'hedge' ET un délai de

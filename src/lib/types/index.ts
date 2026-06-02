@@ -1312,6 +1312,17 @@ export interface AppState {
    *  id de la branche réactive effectivement active (null = chemin principal).
    *  Sert au badge « Lecture : DROP → … ». Transient, non persisté. */
   resolvedReadBranchId?: string | null;
+  /** Phase L proba — Master opt-in de la lecture probabiliste. Default
+   *  undefined = legacy déterministe. */
+  probabilisticReadsEnabled?: boolean;
+  /** Tendance défensive niveau scénario : couvertures pondérées (poids relatifs,
+   *  normalisés au tirage). */
+  coverageDistribution?: { coverage: ScreenRule; weight: number }[];
+  /** Seed du tirage courant (reproductibilité). Bumpé par « rejouer ». */
+  coverageRollSeed?: number;
+  /** Couverture réalisée par le dernier tirage. Lue par defense/context.ts pour
+   *  piloter la défense + la branche. */
+  rolledCoverage?: ScreenRule;
   /** Inclure les variantes dans le PDF playbook (une section par variante
    *  après le chemin principal). Indéfini = false par défaut. */
   pdfIncludeBranches?: boolean;
