@@ -19,6 +19,9 @@ export const driveContainmentRule: Rule = (ctx) => {
 
   const prevOff = activeOffense(state.steps[stepIdx - 1].off, state.playerCount);
   const carrierPrev = prevOff[carrier] ?? null;
+  // `def` est la position RÉSOLUE (post-nudge de driveContainmentLayer), pas la
+  // cible pré-nudge. Le diagnostic reflète donc l'état rendu — pas de parité
+  // de verdict garantie avec la couche, ce qui est voulu (label read-only).
   const def = defPos[carrierDef];
   const base = state.defenseMaxSpeed;
 

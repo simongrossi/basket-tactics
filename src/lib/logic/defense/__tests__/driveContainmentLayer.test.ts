@@ -45,7 +45,10 @@ describe('applyDriveContainmentLayer', () => {
     expect(positions).toEqual(before);
   });
 
-  it('flag on + contained → carrierDef nudgé vers containPoint, ≤ cap', () => {
+  // Défenseur (285,330) → verdict 'walled' (margin −3.5). 'walled' et
+  // 'contained' partagent le même chemin de nudge, ce test couvre donc les
+  // deux ; le vrai photo-finish 'contained' est exercé dans driveContainment.test.ts.
+  it('flag on + contained/walled → carrierDef nudgé vers containPoint, ≤ cap', () => {
     const positions: Record<string, DefenderTarget> = {
       D1: carrierDef(285, 330),
     };
