@@ -81,6 +81,8 @@ interface ScenarioPanelProps {
   onToggleProbabilisticReads: (enabled: boolean) => void;
   onSetCoverageDistribution: (dist: { coverage: ScreenRule; weight: number }[]) => void;
   onRerollCoverage: () => void;
+  continuityLoop?: import('@/lib/types').ContinuityLoop;
+  onSetContinuityLoop: (loop: import('@/lib/types').ContinuityLoop | null) => void;
   playerCount: PlayerCount;
 }
 
@@ -140,6 +142,25 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
     scenarioBranches: props.scenarioBranches,
   } as Parameters<typeof coverageBranchStats>[0]);
   const dist = props.coverageDistribution ?? [];
+
+  // Phase Motion — continuity : actions offensives candidates pour borner la
+  // boucle, et attaquants actifs pour la roue de rotation.
+  const offActionsForLoop = props.scriptedActions
+    .map((a, i) => ({ a, i }))
+    .filter((x) => x.a.kind === 'offensive');
+  const loopActive = !!props.continuityLoop;
+  const loop = props.continuityLoop;
+  const rotation = loop?.rotation ?? attackerIds;
+  const defaultLoop = (): import('@/lib/types').ContinuityLoop | null => {
+    if (offActionsForLoop.length < 2) return null;
+    return {
+      startActionId: offActionsForLoop[0].a.id,
+      endActionId: offActionsForLoop[offActionsForLoop.length - 1].a.id,
+      rotation: attackerIds,
+      maxCycles: 3,
+    };
+  };
+
   // Phase 3 défense scriptable : la liste peut contenir des actions défensives ;
   // ce panneau ne gère pour l'instant que les offensives (la zone défensive
   // sera ajoutée Task 6). En mode branche active, on affiche les actions de la
@@ -356,6 +377,112 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                     <span style={{ minWidth: 80, color: '#cbd5e1' }}>{Math.round(s.weight * 100)}% {s.branchLabel}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Continuity / motion offense — boucle rotative (Phase Motion). N'apparaît
+          qu'avec ≥ 2 actions offensives. */}
+      {offActionsForLoop.length >= 2 && (
+        <div style={{ marginTop: 10, padding: 8, border: '1px solid #334155', borderRadius: 6 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
+            <input
+              type="checkbox"
+              checked={loopActive}
+              onChange={(e) => props.onSetContinuityLoop(e.target.checked ? defaultLoop() : null)}
+            />
+            🔁 Continuité (motion) — boucle rotative
+          </label>
+
+          {loopActive && loop && (
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {/* Plage de boucle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+                <span style={{ color: '#94a3b8' }}>de</span>
+                <select
+                  value={loop.startActionId}
+                  onChange={(e) => props.onSetContinuityLoop({ ...loop, startActionId: e.target.value })}
+                  style={{ fontSize: 11 }}
+                >
+                  {offActionsForLoop.map((x) => (
+                    <option key={x.a.id} value={x.a.id}>#{x.i + 1} {x.a.type}</option>
+                  ))}
+                </select>
+                <span style={{ color: '#94a3b8' }}>à</span>
+                <select
+                  value={loop.endActionId}
+                  onChange={(e) => props.onSetContinuityLoop({ ...loop, endActionId: e.target.value })}
+                  style={{ fontSize: 11 }}
+                >
+                  {offActionsForLoop.map((x) => (
+                    <option key={x.a.id} value={x.a.id}>#{x.i + 1} {x.a.type}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Roue de rotation */}
+              <div style={{ fontSize: 11, color: '#cbd5e1' }}>
+                <div style={{ color: '#94a3b8', marginBottom: 2 }}>Rotation des rôles :</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                  {rotation.map((p, ri) => (
+                    <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                      <strong>{p}</strong>
+                      {ri < rotation.length - 1 && <span style={{ color: '#64748b' }}>→</span>}
+                      <button
+                        onClick={() => {
+                          const next = [...rotation];
+                          const j = (ri + 1) % next.length;
+                          [next[ri], next[j]] = [next[j], next[ri]];
+                          props.onSetContinuityLoop({ ...loop, rotation: next });
+                        }}
+                        title="Permuter avec le suivant"
+                        style={{ border: 'none', background: 'transparent', color: '#6366f1', cursor: 'pointer', fontSize: 10 }}
+                      >⇄</button>
+                    </span>
+                  ))}
+                  <span style={{ color: '#64748b' }}>↺</span>
+                </div>
+              </div>
+
+              {/* Cycles max */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+                <span style={{ color: '#94a3b8' }}>cycles max</span>
+                <input
+                  type="number" min={1} max={6} step={1}
+                  value={loop.maxCycles}
+                  onChange={(e) => {
+                    const v = Math.max(1, Math.min(6, parseInt(e.target.value) || 1));
+                    props.onSetContinuityLoop({ ...loop, maxCycles: v });
+                  }}
+                  style={{ width: 48, fontSize: 11 }}
+                />
+              </div>
+
+              {/* Sortie sur lecture (option C) */}
+              {props.scenarioBranches.some((b) => b.trigger?.kind === 'screen-coverage') && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+                  <span style={{ color: '#94a3b8' }}>sortir si lecture</span>
+                  <select
+                    value={loop.exitBranchId ?? ''}
+                    onChange={(e) => props.onSetContinuityLoop({ ...loop, exitBranchId: e.target.value || null })}
+                    style={{ fontSize: 11 }}
+                  >
+                    <option value="">— aucune —</option>
+                    {props.scenarioBranches
+                      .filter((b) => b.trigger?.kind === 'screen-coverage')
+                      .map((b) => (
+                        <option key={b.id} value={b.id}>{b.label}</option>
+                      ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Récap */}
+              <div style={{ fontSize: 10, color: '#64748b' }}>
+                Boucle : {rotation.join('→')} ↺ · {loop.maxCycles} cycles max
+                {loop.exitBranchId ? ' · sortie sur lecture' : ''}
               </div>
             </div>
           )}

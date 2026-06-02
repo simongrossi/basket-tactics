@@ -1,7 +1,7 @@
 // Transformations sur le scénario scripté : actions + branches.
 // Toutes branch-aware via `mutateActionsScope`.
 
-import type { AppState, ScenarioBranch, ScriptedAction } from '@/lib/types';
+import type { AppState, ContinuityLoop, ScenarioBranch, ScriptedAction } from '@/lib/types';
 import { mutateActionsScope, recompileScenarioSteps } from './shared';
 import { rollCoverage, type CoverageWeight } from '@/lib/logic/reads/coverageRoll';
 
@@ -110,4 +110,12 @@ export function rerollCoverage(s: AppState): AppState {
     coverageRollSeed: seed,
     rolledCoverage: rolled,
   });
+}
+
+// Phase Motion — continuity offense : pose/efface la boucle de continuité.
+export function setContinuityLoop(s: AppState, loop: ContinuityLoop | null): AppState {
+  const next = { ...s };
+  if (loop) next.continuityLoop = loop;
+  else delete next.continuityLoop;
+  return recompileScenarioSteps(next);
 }

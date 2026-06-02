@@ -642,6 +642,13 @@ export function useAppState() {
     setStateWithHistory((s) => scenarioTx.rerollCoverage(s));
   }, [setStateWithHistory]);
 
+  const setContinuityLoop = useCallback(
+    (loop: import('@/lib/types').ContinuityLoop | null) => {
+      setStateWithHistory((s) => scenarioTx.setContinuityLoop(s, loop));
+    },
+    [setStateWithHistory],
+  );
+
   // -- Actions défensives scriptées --
   const addDefensiveAction = useCallback(
     (
@@ -760,6 +767,7 @@ export function useAppState() {
     toggleProbabilisticReads,
     setCoverageDistribution,
     rerollCoverage,
+    setContinuityLoop,
     moveScriptedAction,
     clearScriptedActions,
     addDefensiveAction,

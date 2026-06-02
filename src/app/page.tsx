@@ -426,6 +426,8 @@ export default function Page() {
                     onToggleProbabilisticReads={app.toggleProbabilisticReads}
                     onSetCoverageDistribution={app.setCoverageDistribution}
                     onRerollCoverage={app.rerollCoverage}
+                    continuityLoop={app.state.continuityLoop}
+                    onSetContinuityLoop={app.setContinuityLoop}
                   />
                 ),
               },
