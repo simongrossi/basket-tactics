@@ -27,6 +27,9 @@ interface StepsPanelProps {
    *  ajoute un step adverse (= chaîne rebond défensif → transition en
    *  1 clic). No-op si outletPassPending n'est pas posé. */
   onAddOutletPassStep?: (options?: { sourceStepIdx?: number }) => void;
+  /** Transition sous-projet 1 — génère le fast-break (outlet + sprint des
+   *  couloirs vers HOOP_OPPOSITE, full-court). Visible sur un rebond défensif. */
+  onAddFastBreakSteps?: (options?: { sourceStepIdx?: number }) => void;
   onSetBallCarrier: (carrier: AttackerId) => void;
   onDeleteAnnotation: (idx: number) => void;
   onToggleAnnotationSprint?: (stepIdx: number, annoIdx: number) => void;
@@ -720,6 +723,30 @@ export function StepsPanel(props: StepsPanelProps) {
                   }}
                 >
                   🔄 outlet → transition adverse (A11 V3)
+                </button>
+              )}
+              {/* Transition sous-projet 1 — fast-break full-court : outlet +
+                  sprint des couloirs vers le panier opposé. Visible sur un
+                  rebond défensif. */}
+              {activeStep.reboundType === 'defensive' && props.onAddFastBreakSteps && (
+                <button
+                  type="button"
+                  onClick={() => props.onAddFastBreakSteps!()}
+                  title="Génère un fast-break (outlet + sprint des 3 couloirs vers le panier opposé, full-court). L'équipe qui rebondit court."
+                  style={{
+                    width: '100%',
+                    fontSize: 10,
+                    padding: '5px 6px',
+                    borderRadius: 4,
+                    border: '1px solid #f59e0b',
+                    background: '#262a32',
+                    color: '#fcd34d',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    marginTop: 4,
+                  }}
+                >
+                  ⚡ fast-break (outlet + sprint couloirs)
                 </button>
               )}
               {/* E.1 stage 2b — Bouton libre "Convertir en possession adverse"

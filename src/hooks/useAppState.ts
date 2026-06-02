@@ -183,6 +183,13 @@ export function useAppState() {
     [setStateWithHistory],
   );
 
+  const addFastBreakSteps = useCallback(
+    (options?: { sourceStepIdx?: number }) => {
+      setStateWithHistory((s) => stepTx.addFastBreakSteps(s, options ?? {}));
+    },
+    [setStateWithHistory],
+  );
+
   const convertStepToAwayPossession = useCallback(
     (options?: { mode?: 'insert' | 'replace'; sourceStepIdx?: number }) => {
       setStateWithHistory((s) => stepTx.convertStepToAwayPossession(s, options));
@@ -749,6 +756,7 @@ export function useAppState() {
     setStepLabel,
     patchStep,
     addShotReboundStep,
+    addFastBreakSteps,
     convertStepToAwayPossession,
     addOutletPassStep,
     setBallCarrier,

@@ -380,6 +380,7 @@ export default function Page() {
                     onAddShotReboundStep={app.addShotReboundStep}
                     onConvertStepToAwayPossession={app.convertStepToAwayPossession}
                     onAddOutletPassStep={app.addOutletPassStep}
+                    onAddFastBreakSteps={app.addFastBreakSteps}
                     onSetBallCarrier={app.setBallCarrier}
                     onDeleteAnnotation={app.deleteAnnotation}
                     onToggleAnnotationSprint={app.toggleAnnotationSprint}
