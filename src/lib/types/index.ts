@@ -317,6 +317,8 @@ export type ScriptedActionType =
   | 'slide-action'
   | 'split-action'
   | 'high-low-action'
+  | 'ball-reversal'
+  | 'dho-chain'
   // ---------- Tier 2 — Replacements ----------
   | 'drift'
   | 'lift'
@@ -363,6 +365,11 @@ export interface ScriptedActionParams {
   screenZone?: ZoneRef;
   /** Zone d'origine (pour replacement / fill / drift / lift). */
   fromZone?: ZoneRef;
+  /** Phase Motion C — suite ordonnée de joueurs que le ballon traverse (≥ 2). */
+  chain?: AttackerId[];
+  /** Mode de chaque lien de la chaîne (longueur = chain.length − 1). Absent /
+   *  plus court → les liens manquants prennent le mode global du preset. */
+  chainLinkModes?: ('pass' | 'dho')[];
 }
 
 export interface OffensiveScriptedAction {

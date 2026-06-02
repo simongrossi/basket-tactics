@@ -14,6 +14,7 @@ import { type Generator } from './scriptedGenerators/helpers';
 import * as t1 from './scriptedGenerators/tier1';
 import * as t2 from './scriptedGenerators/tier2';
 import * as t3 from './scriptedGenerators/tier3';
+import { genBallReversal, genDhoChain } from './scriptedGenerators/ballChain';
 
 export type { Generator };
 
@@ -73,6 +74,8 @@ export const SCRIPTED_GENERATORS: Record<string, Generator> = {
   'slide-action': t2.genSlideAction,
   'split-action': t2.genSplitAction,
   'high-low-action': t2.genHighLowAction,
+  'ball-reversal': genBallReversal,
+  'dho-chain': genDhoChain,
 
   // Tier 2 — Replacements
   drift: t2.genDrift,
