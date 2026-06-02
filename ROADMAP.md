@@ -55,6 +55,25 @@ spacing** (fill auto) et le **routage du ballon** (reversal / DHO). Axe motion
 - Specs : [continuity](docs/superpowers/specs/2026-06-02-continuity-motion-offense-design.md) · [auto-replacement](docs/superpowers/specs/2026-06-02-auto-replacement-design.md) · [ball-chain](docs/superpowers/specs/2026-06-02-ball-chain-design.md)
 - Plans : [continuity](docs/superpowers/plans/2026-06-02-continuity-motion-offense.md) · [auto-replacement](docs/superpowers/plans/2026-06-02-auto-replacement.md) · [ball-chain](docs/superpowers/plans/2026-06-02-ball-chain.md)
 
+## 🟠 Transition / fast-break (en cours, juin 2026)
+
+Le dernier gros 🔴 de l'audit (IDEAS §3, ~25-30 % des possessions). L'offense
+gagne la **transition** : rebond → outlet → course.
+
+**Livré (2026-06-02)** :
+- **Sous-projet 1 — outlet + sprint des couloirs** (`buildFastBreakSteps` /
+  `addFastBreakSteps`) : sur rebond défensif, l'équipe qui rebondit (mapping D→O
+  sans miroir) part en fast-break full-court (outlet + 3 couloirs vers
+  `HOOP_OPPOSITE` + repli défensif), bouton ⚡ StepsPanel. ~10 tests.
+
+**Restant (sous-projets)** :
+- Avantage numérique 2c1/3c2 + conclusion (layup / lecture) — sous-projet 2
+- Secondary break → bascule vers le demi-terrain placé — sous-projet 3
+- Transition auto dans le match-sim (audit #7)
+
+- Spec : [fast-break](docs/superpowers/specs/2026-06-02-fast-break-outlet-lanes-design.md)
+- Plan : [fast-break](docs/superpowers/plans/2026-06-02-fast-break-outlet-lanes.md)
+
 ## Livré récemment (juin 2026)
 
 - 🟢 **Session 2026-06-01/02 — Lacunes basket + défensives** : closeout quality

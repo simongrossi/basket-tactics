@@ -310,6 +310,14 @@ qui routent le ballon à travers une chaîne ordonnée de joueurs en déléguant
 lien à `genPass` / `genHandOff` (mode par lien) et en threadant l'état. Chaque
 lien reçoit un `generatedBy` namespacé `#lI`.
 
+**Fast-break (Transition).** `fastBreak.ts` (`buildFastBreakSteps`) génère 2 steps
+(outlet + sprint des couloirs) à partir d'un step de rebond **défensif** :
+l'équipe qui sécurise le rebond (les `D`) est mappée en attaquants (`D→O`, sans
+miroir, positions conservées) et sprinte en full-court vers `HOOP_OPPOSITE`
+(`attackingDirection='down'`), pendant que l'autre équipe se replie. Appendé par
+le transform `addFastBreakSteps` (bouton ⚡ StepsPanel). Distinct de
+`addOutletPassStep` / `convertStepToAwayPossession` (miroir demi-terrain, E.1).
+
 ---
 
 ## Métriques tactiques (read-only)

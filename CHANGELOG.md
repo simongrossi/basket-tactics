@@ -6,6 +6,17 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Transition — Fast-break : outlet + sprint des couloirs (2026-06-02)
+
+Premier sous-projet de la transition (IDEAS §3, dernier 🔴). Sur un rebond
+défensif, l'équipe qui sécurise le ballon (mapping D→O sans miroir) part en
+fast-break full-court : passe **outlet** vers le meneur le plus proche, puis
+**sprint des 3 couloirs** vers `HOOP_OPPOSITE` (ball au milieu, ailes aux
+extrêmes, rebondeur trailer) avec **repli défensif** (`sprintBoost`). Builder pur
+`buildFastBreakSteps` + transform `addFastBreakSteps` (bascule full-court +
+attackingDirection='down'), bouton ⚡ StepsPanel. `addOutletPassStep` (E.1)
+inchangé. ~10 tests. Suite 2037 verte.
+
 ### Phase Motion — Ball-chain : reversal & DHO chain (2026-06-02)
 
 Sous-projet C du motion offense (dernier des trois). Deux types d'action

@@ -40,6 +40,10 @@ Constats classés par impact. Le #1 a un plan dédié :
    offense COMPLET (A continuité + B auto-replacement + C ball-chain).**
 3. **🔴 La transition n'existe pas**. Aucun fast-break, secondary break, outlet,
    lanes 2c1/3c2 — soit ~25-30 % des possessions non couvertes.
+   ✅ **Sous-projet 1 (outlet + sprint des couloirs) livré 2026-06-02**
+   (`buildFastBreakSteps`/`addFastBreakSteps` : sur rebond défensif, outlet +
+   sprint des 3 couloirs full-court vers `HOOP_OPPOSITE` + repli défensif).
+   Avantage numérique 2c1/3c2 (sous-projet 2) + secondary break (3) restants.
 4. **🟠 Pas de fautes du tout dans le moteur** : ni faute défensive, ni and-one,
    ni bonus, ni lancers francs comme issue, ni faute à donner exploitée.
    `rebound.ts` ignore le box-out réel et la détente verticale (multiplieurs de
