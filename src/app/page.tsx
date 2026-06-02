@@ -383,6 +383,7 @@ export default function Page() {
                     onSetBallCarrier={app.setBallCarrier}
                     onDeleteAnnotation={app.deleteAnnotation}
                     onToggleAnnotationSprint={app.toggleAnnotationSprint}
+                    onSetAnnotationFlipSide={app.setAnnotationFlipSide}
                     onAddFeinte={app.addFeinte}
                     onUpdateFeinte={app.updateFeinte}
                     onRemoveFeinte={app.removeFeinte}

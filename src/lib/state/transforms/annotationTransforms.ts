@@ -281,6 +281,30 @@ export function setAnnotationQuality(
   return { ...s, steps };
 }
 
+/** Phy.O V3 V2 — pose/efface le côté de flip d'un cut. */
+export function setAnnotationFlipSide(
+  s: AppState,
+  stepIdx: number,
+  annoIdx: number,
+  side: 'left' | 'right' | undefined,
+): AppState {
+  const step = s.steps[stepIdx];
+  if (!step) return s;
+  const anno = step.annotations[annoIdx];
+  if (!anno) return s;
+  const steps = s.steps.map((st, i) =>
+    i === stepIdx
+      ? {
+          ...st,
+          annotations: st.annotations.map((a, j) =>
+            j === annoIdx ? { ...a, flipSideIfDefenderOn: side } : a
+          ),
+        }
+      : st
+  );
+  return { ...s, steps };
+}
+
 /** Bascule la phase d'une annotation entre 'end' (mouvement pendant l'étape,
  *  arrivée à la fin) et 'start' (déjà à destination dès le début, mouvement
  *  pendant la transition précédente). Resync les positions des étapes

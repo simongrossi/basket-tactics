@@ -457,6 +457,20 @@ export function resolveFrameAt(
               return { x: (dA.x + dB.x) * 0.5, y: (dA.y + dB.y) * 0.5 };
             }
           : undefined,
+        // Phy.O V3 V2 — résolveur dédié pour le flip de côté du cut. TOUJOURS
+        // fourni (le flip est opt-in par annotation, pas par flag global) →
+        // n'active pas l'effet démarquage V3 V1 par effet de bord.
+        flipDefenderFor: (attId) => {
+          const matchups = getMatchupsAt(state.steps, idxA, state.playerCount);
+          const dId = (Object.keys(matchups) as DefenderId[]).find(
+            (d) => matchups[d] === attId,
+          );
+          if (!dId) return undefined;
+          const dA = defA[dId];
+          const dB = defB[dId];
+          if (!dA || !dB) return undefined;
+          return { x: (dA.x + dB.x) * 0.5, y: (dA.y + dB.y) * 0.5 };
+        },
         // Phy.O V3 V4 — boost post-feinte activé par le même flag V3 V1.
         postFeinteBoost: !!state.attackerActiveDemarquage,
         durationSec: getStepDurationSeconds(state, idxA),

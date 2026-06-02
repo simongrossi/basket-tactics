@@ -30,6 +30,7 @@ interface StepsPanelProps {
   onSetBallCarrier: (carrier: AttackerId) => void;
   onDeleteAnnotation: (idx: number) => void;
   onToggleAnnotationSprint?: (stepIdx: number, annoIdx: number) => void;
+  onSetAnnotationFlipSide: (stepIdx: number, annIdx: number, side: 'left' | 'right' | undefined) => void;
   onAddFeinte: (stepIdx: number, annIdx: number, t: number) => void;
   onUpdateFeinte: (stepIdx: number, annIdx: number, feinteIdx: number, t: number) => void;
   onRemoveFeinte: (stepIdx: number, annIdx: number, feinteIdx: number) => void;
@@ -418,6 +419,29 @@ export function StepsPanel(props: StepsPanelProps) {
                                 />
                                 sprint offensif (60% temps)
                               </label>
+                              {a.type === 'cut' && (
+                                <label
+                                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#cbd5e1', marginTop: 3 }}
+                                  title="Phy.O V3 V2 — si le défenseur matché est de ce côté de la ligne du cut, le cut part automatiquement du côté opposé (path miroité)."
+                                >
+                                  flip si déf.
+                                  <select
+                                    value={a.flipSideIfDefenderOn ?? 'none'}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      props.onSetAnnotationFlipSide(
+                                        i, index,
+                                        v === 'none' ? undefined : (v as 'left' | 'right'),
+                                      );
+                                    }}
+                                    style={{ fontSize: 10 }}
+                                  >
+                                    <option value="none">non</option>
+                                    <option value="left">à gauche</option>
+                                    <option value="right">à droite</option>
+                                  </select>
+                                </label>
+                              )}
                               {(a.feintes ?? []).map((tF, fi) => (
                                 <div
                                   key={fi}

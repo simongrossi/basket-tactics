@@ -117,6 +117,12 @@ export interface Annotation {
    *  possibles. N'affecte que `cut` et `dribble`. Aucun effet sans
    *  `attackerVelocityProfileEnabled` actif. */
   feintes?: number[];
+  /** Phy.O V3 V2 — Choix de côté du cut. Si défini, à la lecture on évalue si
+   *  le défenseur matché est du côté 'left' ou 'right' de la ligne from→to.
+   *  S'il est du côté spécifié, le path est miroité par symétrie axiale autour
+   *  de from→to (le cut part de l'autre côté). Endpoints préservés. Undefined =
+   *  path dessiné inchangé. */
+  flipSideIfDefenderOn?: 'left' | 'right';
   /** Option pour marquer un segment offensif (cut/dribble) comme un sprint (mouvement condensé sur les premiers 60% du step). */
   sprint?: boolean;
 }

@@ -400,6 +400,13 @@ export function useAppState() {
     },
     [setStateWithHistory],
   );
+
+  const setAnnotationFlipSide = useCallback(
+    (stepIdx: number, annIdx: number, side: 'left' | 'right' | undefined) => {
+      setStateWithHistory((s) => annotationTx.setAnnotationFlipSide(s, stepIdx, annIdx, side));
+    },
+    [setStateWithHistory],
+  );
   const updateFeinte = useCallback(
     (stepIdx: number, annIdx: number, feinteIdx: number, t: number) => {
       setStateWithHistory((s) => annotationTx.updateFeinte(s, stepIdx, annIdx, feinteIdx, t));
@@ -677,6 +684,7 @@ export function useAppState() {
     setAnnotationFrom,
     setAnnotationTo,
     setAnnotationWaypoint,
+    setAnnotationFlipSide,
     addFeinte,
     updateFeinte,
     removeFeinte,

@@ -1,6 +1,7 @@
 import type { Annotation, AnnotationType, AttackerId, Point, Step } from '@/lib/types';
 import { samplePolyline, polylineLength } from './polyline';
 import { resolveAnnotationTiming } from './annotationTiming';
+import { maybeFlipCutPath } from './cutSideFlip';
 import {
   buildVelocityProfile,
   type AttackerSpeedTier,
@@ -89,6 +90,10 @@ export interface PlaybackVelocityProfileOptions {
   /** Phy.O V3 V1 — Position mid-segment du matched defender. Sans
    *  callback ou retour undefined, la lecture défensive est inactive. */
   matchedDefenderFor?: (id: AttackerId) => Point | undefined;
+  /** Phy.O V3 V2 — Position mid-segment du matched defender pour le flip de
+   *  côté du cut. TOUJOURS fourni (indépendant de attackerActiveDemarquage),
+   *  contrairement à matchedDefenderFor qui est gaté sur le flag V3 V1. */
+  flipDefenderFor?: (id: AttackerId) => Point | undefined;
   /** Phy.O V3 V4 — Active le boost post-feinte (lecture proactive). */
   postFeinteBoost?: boolean;
   durationSec?: number;
@@ -114,6 +119,7 @@ function getOrBuildProfile(
   acceleration?: number,
   startFromStandstill?: boolean,
   endAtStandstill?: boolean,
+  flipApplied?: boolean,
 ): VelocityProfile {
   let perAnn = profileCache.get(ann);
   if (!perAnn) {
@@ -137,7 +143,7 @@ function getOrBuildProfile(
     : '0';
   // Phy.O V3 V4 — flag boost inclus dans la clé.
   const boostKey = postFeinteBoost ? '1' : '0';
-  const key = `${tierKey}|${obstaclesHash}|${feintesHash}|${mdpHash}|${boostKey}|${durationSec ?? 2}|${accelerationEnabled ? '1' : '0'}|${acceleration ?? 5}|${startFromStandstill ? '1' : '0'}|${endAtStandstill ? '1' : '0'}`;
+  const key = `${tierKey}|${obstaclesHash}|${feintesHash}|${mdpHash}|${boostKey}|${durationSec ?? 2}|${accelerationEnabled ? '1' : '0'}|${acceleration ?? 5}|${startFromStandstill ? '1' : '0'}|${endAtStandstill ? '1' : '0'}|${flipApplied ? '1' : '0'}`;
   let profile = perAnn.get(key);
   if (!profile) {
     profile = buildVelocityProfile(path, {
@@ -260,7 +266,17 @@ export function attackerTrajectoryAt(
   if (ann.type === 'cut') {
     let position: Point;
     if (hasWaypoints) {
-      const path = annotationPolyline(ann);
+      let path = annotationPolyline(ann);
+      // Phy.O V3 V2 — choix de côté du cut : si le défenseur matché est du côté
+      // trigger, le path est miroité autour de from→to (le cut part de l'autre
+      // côté). Endpoints préservés. Indépendant du profil de vitesse.
+      let flipApplied = false;
+      if (ann.flipSideIfDefenderOn) {
+        const flipDefPos = velocityProfileOptions?.flipDefenderFor?.(playerId);
+        const flip = maybeFlipCutPath(path, ann.from, ann.to, ann.flipSideIfDefenderOn, flipDefPos);
+        path = flip.path;
+        flipApplied = flip.flipped;
+      }
       let s = actionT;
       const startFromStandstill = stepIdx === 0 || findMovementAnnotations(steps[stepIdx - 1], playerId).length === 0;
       const endAtStandstill = stepIdx + 1 >= steps.length - 1 || findMovementAnnotations(steps[stepIdx + 1], playerId).length === 0;
@@ -276,6 +292,7 @@ export function attackerTrajectoryAt(
           velocityProfileOptions.acceleration,
           startFromStandstill,
           endAtStandstill,
+          flipApplied,
         ).remap(actionT);
       }
       position = samplePolyline(path, s);
