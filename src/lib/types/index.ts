@@ -494,6 +494,24 @@ export interface ScenarioBranch {
   trigger?: ReadTrigger;
 }
 
+/** Phase Motion — boucle de continuité. Une plage contiguë d'actions
+ *  OFFENSIVES `[startActionId, endActionId]` (inclusive) rejouée jusqu'à
+ *  `maxCycles` fois, en relabelisant les IDs joueurs par la permutation
+ *  `rotation` (σ^k au cycle k). */
+export interface ContinuityLoop {
+  /** Bornes (inclusives) de la plage d'actions formant le corps de boucle. */
+  startActionId: string;
+  endActionId: string;
+  /** Roue de rotation : ordre cyclique des attaquants actifs. σ(p) = élément
+   *  suivant dans la roue (le dernier boucle sur le premier). */
+  rotation: AttackerId[];
+  /** Borne haute de cycles. Clampé 1…6 au déroulé. */
+  maxCycles: number;
+  /** Sortie anticipée sur lecture (Phase L). Si défini ET que la branche
+   *  réactive résolue == cette branche, la boucle sort tôt vers ses actions. */
+  exitBranchId?: string | null;
+}
+
 export interface DefensiveDirective {
   type: DefensiveActionType;
   defenders: DefenderId[];
@@ -1323,6 +1341,10 @@ export interface AppState {
   /** Couverture réalisée par le dernier tirage. Lue par defense/context.ts pour
    *  piloter la défense + la branche. */
   rolledCoverage?: ScreenRule;
+  /** Continuity / motion offense (boucle rotative). undefined = legacy
+   *  déterministe (aucune boucle). Voir docs/superpowers/specs/
+   *  2026-06-02-continuity-motion-offense-design.md. */
+  continuityLoop?: ContinuityLoop;
   /** Inclure les variantes dans le PDF playbook (une section par variante
    *  après le chemin principal). Indéfini = false par défaut. */
   pdfIncludeBranches?: boolean;
