@@ -39,4 +39,6 @@ export interface DefenderTarget {
   isPassShadowed?: boolean;
   /** #8.2 — ancre weak-side désignée (cf. ComputedDefender.weakSideAnchor). */
   weakSideAnchor?: boolean;
+  /** #8.1 — sort d'un blitz (cf. ComputedDefender.blitzRecovering). */
+  blitzRecovering?: boolean;
 }

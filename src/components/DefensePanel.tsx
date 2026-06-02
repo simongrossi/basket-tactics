@@ -876,6 +876,14 @@ export function DefensePanel(props: DefensePanelProps) {
                 onChange={(v) => props.onPatch({ weakSideAnchorEnabled: v })}
                 title="Désigne un défenseur côté faible (le low man, ou override coach) qui s'enfonce vers la raquette pour protéger le panier/skip. Marqueur ⚓. Clic-droit défenseur pour forcer l'ancre."
               />
+              {state.screenRule === 'blitz' && (
+                <CheckboxLine
+                  checked={!!state.blitzReleaseEnabled}
+                  label="relâche du blitz (#8.1)"
+                  onChange={(v) => props.onPatch({ blitzReleaseEnabled: v })}
+                  title="Quand le ballon ressort du trap blitz, le screenerDef récupère le roller et les 2 trappeurs décrochent (easing de relâche). Badge ↩ RECOVER."
+                />
+              )}
               <CheckboxLine
                 checked={!!state.unwindRejectedScreens}
                 label="unwind sur reject screen (B2)"

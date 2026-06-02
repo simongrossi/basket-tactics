@@ -25,6 +25,7 @@ import { applyHelpStickyLayer } from './defense/helpStickyLayer';
 import { applyLateShotClockLayer } from './defense/lateShotClockLayer';
 import { applyPnRRotationsLayer } from './defense/pnrLayer';
 import { applyChainResponseLayer } from './defense/chainResponseLayer';
+import { applyBlitzReleaseLayer } from './defense/blitzReleaseLayer';
 import { applyOffBallScreenLayer } from './defense/offBallScreenLayer';
 import { applyTrapLayer } from './defense/trapLayer';
 import { applyDirectiveLayer } from './defense/directiveLayer';
@@ -143,6 +144,10 @@ export function computeDefenseTargets(
   // Modulations modestes (≤ 6 px / flags d'orientation) qui passent ensuite
   // par resolvePlayerCollisions en aval (anti-superposition garantie).
   applyChainResponseLayer(positions, matchups, ctx);
+  // Couche 2.6 — Relâche du blitz (#8.1). Opt-in via state.blitzReleaseEnabled.
+  // Quand le ballon ressort d'un trap blitz, le screenerDef récupère le roller
+  // et les 2 trappeurs sont flaggés blitzRecovering (easing de relâche).
+  applyBlitzReleaseLayer(positions, matchups, ctx);
   // Couche 3 — Écrans hors-ballon (mute matchups en cas de switch off-ball).
   applyOffBallScreenLayer(positions, matchups, ctx);
   // Couche 4 — Trap auto (porteur en zone de trappe).

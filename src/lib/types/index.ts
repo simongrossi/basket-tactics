@@ -807,6 +807,9 @@ export interface ComputedDefender {
   /** #8.2 — Ce défenseur est l'ancre weak-side désignée (protection raquette
    *  côté faible). Piloté par weakSideAnchorLayer. */
   weakSideAnchor?: boolean;
+  /** #8.1 — Ce défenseur sort d'un blitz (le ballon vient de ressortir du
+   *  trap). Pilote l'easing de relâche (frameResolver) + le badge ↩ RECOVER. */
+  blitzRecovering?: boolean;
   /** Le défenseur applique un strong-side denial automatique (glisse vers la
    *  ligne de passe). Utilisé pour différencier visuellement du ring "help"
    *  classique côté faible. */
@@ -985,6 +988,10 @@ export interface AppState {
    *  la raquette / le skip côté faible (position dédiée vs sag passif via
    *  helpPct). Default undefined = legacy. */
   weakSideAnchorEnabled?: boolean;
+  /** #8.1 — Active la relâche tactique du blitz quand le ballon ressort du
+   *  trap : le screenerDef récupère le roller, le carrierDef recover. Default
+   *  undefined = legacy (retombée homme-à-homme générique). */
+  blitzReleaseEnabled?: boolean;
   /** B2 V2 — Quand un reject screen SHARP est détecté (porteur vire opposé
    *  net, awayness ≤ -0.7), la défense relâche la couverture sur-anticipée :
    *  l'écran est traité comme inexistant pour ce step, retour à l'individuel

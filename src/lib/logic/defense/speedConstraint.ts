@@ -343,6 +343,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         helpKind: targets[dId].helpKind,
         isPassShadowed: targets[dId].isPassShadowed,
         weakSideAnchor: targets[dId].weakSideAnchor,
+        blitzRecovering: targets[dId].blitzRecovering,
       };
       return;
     }
@@ -659,6 +660,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         helpKind: targets[dId].helpKind,
         isPassShadowed: targets[dId].isPassShadowed,
         weakSideAnchor: targets[dId].weakSideAnchor,
+        blitzRecovering: targets[dId].blitzRecovering,
         delayFraction: state.footworkRulesEnabled ? delayFraction : undefined,
       };
     } else {
@@ -705,6 +707,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         helpKind: targets[dId].helpKind,
         isPassShadowed: targets[dId].isPassShadowed,
         weakSideAnchor: targets[dId].weakSideAnchor,
+        blitzRecovering: targets[dId].blitzRecovering,
         delayFraction: state.footworkRulesEnabled ? delayFraction : undefined,
       };
     }

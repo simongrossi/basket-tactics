@@ -107,6 +107,7 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
             overClosed={p.overClosed}
             closeoutQuality={p.closeoutQuality}
             weakSideAnchor={p.weakSideAnchor}
+            blitzRecovering={p.blitzRecovering}
             denying={p.denying}
             pnrRole={p.pnrRole}
             mismatchSeverity={p.mismatchSeverity}

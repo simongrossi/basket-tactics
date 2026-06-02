@@ -48,6 +48,7 @@ import { attackerTrajectoryAt, type MovementType } from '../playbackTrajectory';
 import { lerpAngleDeg } from '../angles';
 import { buildStep0DetectionPositions } from '../step0Detection';
 import { closeoutEasing } from '../closeoutEasing';
+import { blitzReleaseEasing } from '../blitzReleaseEasing';
 import {
   PLAYER_MIN_CLEARANCE_PX,
   PLAYER_OBSTACLE_RADIUS_PX,
@@ -772,6 +773,10 @@ export function resolveFrameAt(
     // Cf. `lib/logic/closeoutEasing.ts`.
     if (!screenMode && defB[id].closingOut) {
       effT = closeoutEasing(effT);
+    } else if (!screenMode && defB[id].blitzRecovering) {
+      // #8.1 — Relâche du blitz : ease-out (décroche vite de la cage puis se
+      // pose). Même point d'intervention que le closeout, on ne touche que effT.
+      effT = blitzReleaseEasing(effT);
     }
     // Décision de verrouillage contre followDefendersAtFrame. Plusieurs
     // conditions cumulatives pour assurer la continuité visuelle :
