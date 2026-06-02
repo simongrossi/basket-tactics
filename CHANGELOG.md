@@ -6,6 +6,34 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Cinématique fine — Preset réaliste par défaut (`realismProfile`) (2026-06-02)
+
+Premier sous-projet de l'axe « comportement plus réel et précis » (ordre :
+cinématique → défense vivante → contact). Aucune nouvelle mécanique : on
+**calibre et active par défaut** le réalisme cinématique déjà livré (accélération,
+momentum, velocity profile par courbure, footwork + reaction-time/plant-and-cut),
+jusqu'ici en flags opt-in `false`.
+
+- **Resolver pur** `resolveRealismFlags` (`logic/realismProfile.ts`) = source de
+  vérité unique du groupe cinématique. Profil `'realistic'` → preset
+  `PRESET_REALISTIC` (un flag explicitement posé reste un override coach) ;
+  `'legacy'`/`undefined` → flags bruts **bit-identiques** au comportement
+  historique. Scope strictement déterministe : RNG (rebonds/interceptions/dribble),
+  contact, transition et mode Sprint NBA restent hors preset (lus bruts).
+- **Routage** des 12 sites de lecture moteur (`frameResolver`, `speedConstraint`,
+  `useCourtFrame`) à travers le resolver — golden snapshots intacts.
+- **Défaut app** réaliste via `makeAppInitialState` (les tests gardent
+  `makeInitialState` legacy → suite verte par construction) ; `makeInitialState`
+  laisse les flags du groupe `undefined` au lieu de `false` pour que `?? preset`
+  fonctionne.
+- **Migration** à l'ouverture : un scénario sans `realismProfile` est homogénéisé
+  en `'realistic'` (effacement des `false` cinématiques résiduels pour ne pas
+  bloquer le preset).
+- **UI** ParametresPanel : sélecteur **Réaliste / Tactique** ; les cases physiques
+  individuelles reflètent la valeur résolue et restent des overrides avancés.
+
++12 tests (resolver + migration). **Suite 2045 verte.**
+
 ### Transition — Fast-break : outlet + sprint des couloirs (2026-06-02)
 
 Premier sous-projet de la transition (IDEAS §3, dernier 🔴). Sur un rebond

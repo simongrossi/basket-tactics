@@ -1722,6 +1722,16 @@ toute ouverture de PR sur ce chantier.
 
 Pilier physique opt-in : **15 items livrés sur 15**. Sections 1, 2, 3, 4, 5 toutes vertes. Tous les comportements nouveaux derrière des flags `AppState` (default false → comportement legacy préservé). Pistes V2 notées item par item.
 
+> 🟢 **Cinématique fine #1 — preset réaliste par défaut (2026-06-02).** Le
+> sous-groupe **cinématique déterministe** (accélération, momentum, velocity
+> profile par courbure, footwork + reaction/plant-and-cut) n'est plus opt-in :
+> il est **actif par défaut** via `realismProfile: 'realistic'` (champ `AppState`
+> + resolver pur `resolveRealismFlags`, source de vérité unique). Toggle UI
+> Réaliste/Tactique, migration des scénarios à l'ouverture, escape-hatch legacy
+> par-flag. RNG / contact / transition restent opt-in. Suite 2045 verte. Cf.
+> [spec](docs/superpowers/specs/2026-06-02-realism-profile-default-design.md) ·
+> [plan](docs/superpowers/plans/2026-06-02-realism-profile-default.md).
+
 #### 1. Cinématique des déplacements et modèle de vitesse
 - 🟢 **Vitesse Réelle vs Vitesse Tactique (Mode Sprint NBA)** — livré `b92d59d` via `realSpeedMode` : timeline 0.5s au lieu de 2s pour simuler buzzer-beaters/coast-to-coast.
 - 🟢 **Accélération et décélération non-linéaires en attaque** — livré `b92d59d` via `attackerAccelerationEnabled` + slider 3–12 m/s² dans `velocityProfile.ts` (forward/backward pass).
