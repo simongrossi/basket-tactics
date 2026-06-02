@@ -6,6 +6,14 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Phy.O V3 V2 — Choix de côté du cut (2026-06-02)
+
+`Annotation.flipSideIfDefenderOn?: 'left'|'right'`. Si le défenseur matché est
+du côté spécifié de la ligne du cut, le path est miroité par symétrie axiale
+autour de from→to (le cut part du côté opposé). Helper pur `cutSideFlip.ts`,
+résolveur dédié `flipDefenderFor` (séparé de V3 V1 → zéro effet de bord), select
+tri-état StepsPanel. Endpoints préservés. 14 tests. Suite 1959 verte.
+
 ### Closeout quality + spacing corners + templates (2026-06-01)
 
 - **Closeout quality** (#5) : `ComputedDefender.closeoutQuality`

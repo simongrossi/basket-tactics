@@ -1,7 +1,8 @@
 # Phy.O V3 V2 — Choix de côté du cut (approche B) — RFC
 
 Date : 2026-05-23
-Statut : **spec design — implémentation à reprendre en session dédiée.**
+Statut : **🟢 LIVRÉ 2026-06-02** (commit `b3263be`). Helper `cutSideFlip.ts`,
+résolveur dédié `flipDefenderFor`, select tri-état StepsPanel. 14 tests.
 
 ## Problème
 
