@@ -1345,6 +1345,11 @@ export interface AppState {
    *  déterministe (aucune boucle). Voir docs/superpowers/specs/
    *  2026-06-02-continuity-motion-offense-design.md. */
   continuityLoop?: ContinuityLoop;
+  /** Phase Motion — auto-replacement : quand un cut/drive vide un spot, la
+   *  cascade de fill comble le périmètre. undefined = off (legacy). */
+  autoReplacementEnabled?: boolean;
+  /** Profondeur max de la cascade (nb de maillons). Défaut 2, clampé 1…4. */
+  autoReplacementDepth?: number;
   /** Inclure les variantes dans le PDF playbook (une section par variante
    *  après le chemin principal). Indéfini = false par défaut. */
   pdfIncludeBranches?: boolean;
