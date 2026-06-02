@@ -5,6 +5,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeInitialState } from '@/lib/data/initial';
+import { resolveRealismFlags } from '@/lib/logic/realismProfile';
 import { STORAGE_KEY, clearStorage, loadFromStorage, saveToStorage } from '../persistence';
 
 describe('persistence (localStorage)', () => {
@@ -64,5 +65,47 @@ describe('persistence (localStorage)', () => {
     } finally {
       Storage.prototype.setItem = originalSetItem;
     }
+  });
+});
+
+describe('loadFromStorage — migration realismProfile', () => {
+  beforeEach(() => {
+    if (typeof window !== 'undefined') window.localStorage.clear();
+  });
+
+  it('un état sans realismProfile est migré en realistic', () => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ activeStep: 0, steps: [] }),
+    );
+    const loaded = loadFromStorage();
+    expect(loaded?.realismProfile).toBe('realistic');
+  });
+
+  it('un état pré-feature avec flags cinématiques false explicites est migré vers le preset réaliste', () => {
+    // Reproduit le localStorage sérialisé AVANT la feature : booleans à false.
+    const preFeature = {
+      ...makeInitialState(),
+      attackerAccelerationEnabled: false,
+      attackerMomentumEnabled: false,
+      attackerVelocityProfileEnabled: false,
+      footworkRulesEnabled: false,
+    };
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(preFeature));
+    const loaded = loadFromStorage();
+    expect(loaded?.realismProfile).toBe('realistic');
+    // Les false résiduels doivent être effacés → le resolver applique le preset.
+    const r = resolveRealismFlags(loaded!);
+    expect(r.footworkRulesEnabled).toBe(true);
+    expect(r.attackerAccelerationEnabled).toBe(true);
+    expect(r.attackerMomentumEnabled).toBe(true);
+    expect(r.attackerVelocityProfileEnabled).toBe(true);
+  });
+
+  it('un état avec legacy explicite est préservé (override coach respecté)', () => {
+    const state = { ...makeInitialState(), realismProfile: 'legacy' as const };
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const loaded = loadFromStorage();
+    expect(loaded?.realismProfile).toBe('legacy');
   });
 });

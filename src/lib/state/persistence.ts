@@ -19,12 +19,32 @@ import {
 
 export const STORAGE_KEY = 'basket-tactics-state-v1';
 
+/** Migration du profil de réalisme à l'ouverture.
+ *
+ *  - Scénario POST-feature (`realismProfile` présent) : respecté tel quel
+ *    (les flags cinématiques sont des overrides coach délibérés).
+ *  - Scénario PRÉ-feature (`realismProfile` absent) : homogénéisé en
+ *    `'realistic'`. Les flags cinématiques avaient le défaut legacy `false`
+ *    sérialisé ; on les efface pour que `resolveRealismFlags` applique le
+ *    preset réaliste (un `false` résiduel serait pris pour un override). */
+function migrateRealismProfile(parsed: Partial<AppState>): Partial<AppState> {
+  if (parsed.realismProfile !== undefined) return parsed;
+  const {
+    attackerAccelerationEnabled: _accel,
+    attackerMomentumEnabled: _momentum,
+    attackerVelocityProfileEnabled: _velocity,
+    footworkRulesEnabled: _footwork,
+    ...rest
+  } = parsed;
+  return { ...rest, realismProfile: 'realistic' };
+}
+
 export function loadFromStorage(): AppState | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<AppState>;
+    const parsed = migrateRealismProfile(JSON.parse(raw) as Partial<AppState>);
     const defaults = makeInitialState();
     const scriptedActions = parsed.scriptedActions
       ? migrateScriptedActions(parsed.scriptedActions as unknown[])
