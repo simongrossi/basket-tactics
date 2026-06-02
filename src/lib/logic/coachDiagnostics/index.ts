@@ -43,6 +43,7 @@ import { shooterCloseoutRule } from './rules/shooterCloseout';
 import { switchMismatchRule } from './rules/switchMismatch';
 import { attackerJumpRule } from './rules/attackerJump';
 import { baselineDriveRule } from './rules/baselineDriveCoverage';
+import { driveContainmentRule } from './rules/driveContainment';
 import { offBallCutsRule } from './rules/offBallCuts';
 import { matchupOrphansRule } from './rules/matchupOrphans';
 import { pickAndRollRule } from './rules/pickAndRoll';
@@ -72,6 +73,7 @@ const REGISTRY: Rule[] = [
   switchMismatchRule,
   attackerJumpRule,
   baselineDriveRule,
+  driveContainmentRule,
   offBallCutsRule,
   matchupOrphansRule,
   pickAndRollRule,
