@@ -57,8 +57,15 @@ Constats classés par impact. Le #1 a un plan dédié :
 7. **🟠 Simulation de match — simplifications fortes** :
    - équipe adverse en **stub** (50 % de réussite hardcodé,
      `AWAY_SCORE_PROBABILITY`, `gameLoop.ts`) ;
-   - **défense gelée pendant un drive** (succès = RNG `DRIVE_SUCCESS_RATE=0.75`,
-     le défenseur ne peut pas réellement arrêter la pénétration) ;
+   - **défense gelée pendant un drive** (le défenseur ne peut pas réellement
+     arrêter la pénétration) — *en cours, programme « défense vivante / drive »* :
+     ✅ **2a livré (2026-06-03)** : cœur pur `evaluateDriveContainment` (course
+     d'ETA → beaten/contained/walled) + couche playback `driveContainmentLayer`
+     + diagnostic coach (opt-in `driveContainmentEnabled`). ⚪ **2b.1 specé**
+     (issues du drive dans le match-sim : pull-up / kick-out / strip mid-drive,
+     `docs/superpowers/specs/2026-06-03-drive-outcomes-matchsim-design.md`) →
+     puis 2b.2 système de fautes → 2b.3 charge. `DRIVE_SUCCESS_RATE` n'existe
+     d'ailleurs plus (le moteur utilise `scoreProbability` contestée) ;
    - **pas de fatigue** en mode match (la V3 fatigue ne s'applique qu'à
      l'édition manuelle) ; pas de timeout, pas de quart-temps.
 8. **🟡 Lacunes défensives ciblées** : tag du roller sans modèle de contact/faute,
