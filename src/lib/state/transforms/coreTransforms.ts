@@ -3,6 +3,7 @@
 // ces transforms).
 
 import type { AppState, PlayerCount, PlayerId, Tool } from '@/lib/types';
+import { migrateScriptedActions } from '@/lib/logic/scriptedActionMigration';
 import { makeInitialState } from '@/lib/data/initial';
 import type { Template } from '@/lib/data/templates';
 import {
@@ -41,10 +42,14 @@ export function loadTemplate(s: AppState, template: Template): AppState {
  *  les annotations de mouvement. Le caller fournit déjà l'état désérialisé. */
 export function importState(next: AppState): AppState {
   const defaults = makeInitialState();
+  const scriptedActions = next.scriptedActions
+    ? migrateScriptedActions(next.scriptedActions)
+    : next.scriptedActions;
   const merged: AppState = {
     ...defaults,
     ...next,
     zoneConfig: { ...defaults.zoneConfig, ...(next.zoneConfig || {}) },
+    scriptedActions,
   };
   const normalized = normalizeStateForPlayerCount(
     merged,

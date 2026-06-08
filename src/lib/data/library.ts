@@ -1,4 +1,19 @@
-import type { AppState, Step, DefenderPositions, ZoneConfig, ScreenRule, OffBallScreenRule, DefenderRules, AttackerHands, AttackerProfiles, DefenseSystem, DropDepth } from '../types';
+import type {
+  AppState,
+  Step,
+  DefenderPositions,
+  ZoneConfig,
+  ScreenRule,
+  OffBallScreenRule,
+  DefenderRules,
+  AttackerHands,
+  AttackerProfiles,
+  DefenseSystem,
+  DropDepth,
+  ScriptedAction,
+  ScenarioBranch,
+  ContinuityLoop,
+} from '../types';
 
 /**
  * Bibliothèque utilisateur — gestion locale de systèmes sauvegardés
@@ -33,6 +48,13 @@ export interface SavedSystem {
   triggers: AppState['triggers'];
   closeoutBoost?: number;
   denyAggressiveness?: number;
+  /** Scenario & Nodal Graph fields */
+  scriptedActions?: ScriptedAction[];
+  scenarioBranches?: ScenarioBranch[];
+  activeBranchId?: string | null;
+  continuityLoop?: ContinuityLoop | null;
+  autoReplacementEnabled?: boolean;
+  autoReplacementDepth?: number;
   /** Tags / hashtags pour la catégorisation transverse (mirroir de
    *  `Template.tags`). Filtre par click dans la sidebar. */
   tags?: string[];
@@ -183,6 +205,12 @@ export function snapshotFromAppState(
     triggers: { ...state.triggers },
     closeoutBoost: state.closeoutBoost,
     denyAggressiveness: state.denyAggressiveness,
+    scriptedActions: state.scriptedActions ? structuredClone(state.scriptedActions) : undefined,
+    scenarioBranches: state.scenarioBranches ? structuredClone(state.scenarioBranches) : undefined,
+    activeBranchId: state.activeBranchId,
+    continuityLoop: state.continuityLoop ? structuredClone(state.continuityLoop) : undefined,
+    autoReplacementEnabled: state.autoReplacementEnabled,
+    autoReplacementDepth: state.autoReplacementDepth,
     ...(tags && tags.length > 0 ? { tags: [...tags] } : {}),
     createdAt: now,
     updatedAt: now,
@@ -239,6 +267,12 @@ export function applySavedSystem(state: AppState, sys: SavedSystem): AppState {
     triggers: { ...sys.triggers },
     closeoutBoost: sys.closeoutBoost ?? state.closeoutBoost,
     denyAggressiveness: sys.denyAggressiveness ?? state.denyAggressiveness,
+    scriptedActions: sys.scriptedActions ? structuredClone(sys.scriptedActions) : [],
+    scenarioBranches: sys.scenarioBranches ? structuredClone(sys.scenarioBranches) : [],
+    activeBranchId: sys.activeBranchId !== undefined ? sys.activeBranchId : null,
+    continuityLoop: sys.continuityLoop ? structuredClone(sys.continuityLoop) : undefined,
+    autoReplacementEnabled: sys.autoReplacementEnabled ?? false,
+    autoReplacementDepth: sys.autoReplacementDepth ?? 2,
   };
 }
 
