@@ -100,6 +100,7 @@ export function ScenarioGraphView({
   onClose,
 }: ScenarioGraphViewProps) {
   const [selectedActionId, setSelectedActionId] = useState<string | null>(null);
+  const [selectedPlayerPerspective, setSelectedPlayerPerspective] = useState<AttackerId | null>(null);
 
   const attackerIds = useMemo(() => getActiveAttackerIds(state.playerCount), [state.playerCount]);
   const defenderIds = useMemo(() => getActiveDefenderIds(state.playerCount), [state.playerCount]);
@@ -329,6 +330,35 @@ export function ScenarioGraphView({
               Éditeur Graphique de Jeu
             </span>
           </div>
+        </div>
+
+        {/* Perspective de Joueur */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Perspective de vue
+          </span>
+          <select
+            value={selectedPlayerPerspective || ''}
+            onChange={(e) => setSelectedPlayerPerspective((e.target.value as AttackerId) || null)}
+            style={{
+              fontSize: 12,
+              padding: '6px 10px',
+              borderRadius: 6,
+              background: '#1e293b',
+              border: '1px solid #334155',
+              color: '#fff',
+              outline: 'none',
+              cursor: 'pointer',
+              width: '100%',
+            }}
+          >
+            <option value="">👥 Équipe (Vue globale)</option>
+            {attackerIds.map((id) => (
+              <option key={id} value={id}>
+                🏃‍♂️ Joueur {id} {state.playerNames?.[id] ? `(${state.playerNames[id]})` : ''}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div style={{ width: '100%', height: 1, background: 'rgba(255, 255, 255, 0.08)', marginBottom: 20 }} />
@@ -646,6 +676,7 @@ export function ScenarioGraphView({
           onSetActiveBranch={onSetActiveBranch}
           onSelectedAction={handleSelectedAction}
           selectedActionId={selectedActionId}
+          selectedPlayerPerspective={selectedPlayerPerspective}
         />
 
         {/* Floating Active Branch Pill (top-left) */}

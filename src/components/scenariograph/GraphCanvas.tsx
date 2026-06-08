@@ -16,6 +16,7 @@ interface GraphCanvasProps {
   onSetActiveBranch: (id: string | null) => void;
   onSelectedAction: (action: ScriptedAction | null, branchId: string | null) => void;
   selectedActionId: string | null;
+  selectedPlayerPerspective?: AttackerId | null;
 }
 
 interface NodeCoords {
@@ -34,9 +35,48 @@ interface NodeCoords {
 
 interface EdgeCoords {
   id: string;
+  fromNodeId?: string;
+  toNodeId?: string;
   from: { x: number; y: number; port: 'right' | 'bottom' };
   to: { x: number; y: number; port: 'left' | 'top' };
   active?: boolean;
+}
+
+export function getPlayerRoleInAction(action: ScriptedAction | undefined, playerId: AttackerId): string | null {
+  if (!action || action.kind !== 'offensive') return null;
+  const params = action.params;
+  const roles: string[] = [];
+
+  if (params.ballHandler === playerId) roles.push('Porteur');
+  if (params.screener === playerId) roles.push('Screener');
+  if (params.cutter === playerId) roles.push('Cutter');
+  if (params.passer === playerId) roles.push('Passeur');
+  if (params.receiver === playerId) roles.push('Receveur');
+  if (params.giver === playerId) roles.push('Donneur');
+  if (params.driver === playerId) roles.push('Pénétrant');
+  if (params.shooter === playerId) roles.push('Tireur');
+  if (params.from === playerId) roles.push('De');
+  if (params.to === playerId) roles.push('Vers');
+  if (params.firstScreener === playerId) roles.push('1er Screener');
+  if (params.secondScreener === playerId) roles.push('2e Screener');
+  if (params.chain && params.chain.includes(playerId)) {
+    const idx = params.chain.indexOf(playerId);
+    roles.push(`Relais #${idx + 1}`);
+  }
+
+  return roles.length > 0 ? roles.join(' + ') : null;
+}
+
+export function isNodeInvolved(node: NodeCoords | undefined, playerId: AttackerId | null): boolean {
+  if (!playerId || !node) return true;
+  if (node.type === 'start') return true;
+  if (node.type === 'trigger') {
+    return node.triggerBranch?.actions.some(a => getPlayerRoleInAction(a, playerId)) ?? false;
+  }
+  if (node.action) {
+    return !!getPlayerRoleInAction(node.action, playerId);
+  }
+  return false;
 }
 
 export function GraphCanvas({
@@ -51,6 +91,7 @@ export function GraphCanvas({
   onSetActiveBranch,
   onSelectedAction,
   selectedActionId,
+  selectedPlayerPerspective = null,
 }: GraphCanvasProps) {
   const [transform, setTransform] = useState({ scale: 0.9, x: 50, y: 80 });
   const [isPanning, setIsPanning] = useState(false);
@@ -104,6 +145,8 @@ export function GraphCanvas({
   // Liaisons chemin principal
   edges.push({
     id: 'start-to-first',
+    fromNodeId: 'start',
+    toNodeId: mainActions[0]?.id || 'end',
     from: { x: 20 + 130, y: 150 + 25, port: 'right' },
     to: {
       x: mainActions[0] ? 200 : 200,
@@ -123,6 +166,8 @@ export function GraphCanvas({
 
     edges.push({
       id: `main-${fromAct.id}-${toAct.id}`,
+      fromNodeId: fromAct.id,
+      toNodeId: toAct.id,
       from: { x: fromX, y: fromY, port: 'right' },
       to: { x: toX, y: toY, port: 'left' },
       active: activeActionId === toAct.id,
@@ -167,6 +212,8 @@ export function GraphCanvas({
       // Edge parent -> trigger
       edges.push({
         id: `parent-to-${triggerNodeId}`,
+        fromNodeId: branch.divergeAfterActionId,
+        toNodeId: triggerNodeId,
         from: { x: parentX + NODE_W / 2, y: parentY + NODE_H, port: 'bottom' },
         to: { x: triggerX + 35, y: triggerY, port: 'top' },
         active: activeActionId === branch.divergeAfterActionId,
@@ -202,6 +249,8 @@ export function GraphCanvas({
         // Edge trigger -> first branch action
         edges.push({
           id: `trigger-to-branch-${branch.id}`,
+          fromNodeId: triggerNodeId,
+          toNodeId: bAct.id,
           from: { x: triggerX + 70, y: triggerY + 20, port: 'right' },
           to: { x, y: y + NODE_H / 2, port: 'left' },
           active: activeActionId === bAct.id || state.activeBranchId === branch.id,
@@ -211,6 +260,8 @@ export function GraphCanvas({
         const prevAct = branch.actions[j - 1];
         edges.push({
           id: `branch-${branch.id}-${prevAct.id}-${bAct.id}`,
+          fromNodeId: prevAct.id,
+          toNodeId: bAct.id,
           from: { x: x - GAP_X + NODE_W, y: y + NODE_H / 2, port: 'right' },
           to: { x, y: y + NODE_H / 2, port: 'left' },
           active: activeActionId === bAct.id,
@@ -304,8 +355,13 @@ export function GraphCanvas({
       d = `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
     }
 
+    const fromNode = nodes.find((n) => n.id === edge.fromNodeId);
+    const toNode = nodes.find((n) => n.id === edge.toNodeId);
+    const isEdgeInvolved = isNodeInvolved(fromNode, selectedPlayerPerspective) && isNodeInvolved(toNode, selectedPlayerPerspective);
+    const opacity = isEdgeInvolved ? 1.0 : 0.2;
+
     return (
-      <g key={edge.id}>
+      <g key={edge.id} style={{ opacity, transition: 'opacity 0.2s' }}>
         <path
           d={d}
           fill="none"
@@ -456,6 +512,9 @@ export function GraphCanvas({
             const isSelected = selectedActionId === node.id;
             const isNodeActive = node.stepIdx !== undefined && activeActionId === node.id;
 
+            const isNodeInvolvedVal = isNodeInvolved(node, selectedPlayerPerspective);
+            const opacity = isNodeInvolvedVal ? 1.0 : 0.25;
+
             let border = '1px solid rgba(255, 255, 255, 0.1)';
             let bg = 'rgba(30, 41, 59, 0.7)';
             if (isNodeActive) {
@@ -473,6 +532,8 @@ export function GraphCanvas({
               border = '1px solid rgba(139, 92, 246, 0.3)';
             }
 
+            const playerRole = selectedPlayerPerspective ? getPlayerRoleInAction(node.action, selectedPlayerPerspective) : null;
+
             return (
               <foreignObject
                 key={node.id}
@@ -480,6 +541,7 @@ export function GraphCanvas({
                 y={node.y}
                 width={node.width}
                 height={node.height}
+                style={{ opacity, transition: 'opacity 0.2s' }}
               >
                 <div
                   className="node-card"
@@ -585,6 +647,26 @@ export function GraphCanvas({
                           <span>Screen: {node.action.params.screener}</span>
                         )}
                       </div>
+                      {playerRole && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            bottom: 6,
+                            right: 6,
+                            background: 'rgba(249, 115, 22, 0.2)',
+                            border: '1px solid rgba(249, 115, 22, 0.4)',
+                            color: '#ffedd5',
+                            fontSize: 8,
+                            fontWeight: 800,
+                            padding: '1.5px 5px',
+                            borderRadius: 4,
+                            textTransform: 'uppercase',
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          {playerRole}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
