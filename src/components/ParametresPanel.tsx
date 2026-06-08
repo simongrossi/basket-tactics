@@ -185,6 +185,129 @@ export function ParametresPanel({
             </div>
           </ControlGroup>
         </SettingsSection>
+
+        <SettingsSection title="Roster & Effectif">
+          <ControlGroup title="Noms & Numéros" accent={UI.orange}>
+            <div style={{ marginBottom: 4 }}>
+              <CheckboxLine
+                checked={state.showPlayerNames !== false}
+                label="Noms sur le terrain"
+                onChange={(v) => onPatch({ showPlayerNames: v })}
+                title="Active l'affichage du nom des joueurs sous leur cercle sur le terrain."
+              />
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxHeight: 110, overflowY: 'auto', paddingRight: 4 }}>
+              {/* Attaquants */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ fontSize: 9, fontWeight: 800, color: UI.orange, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 2 }}>Attaque</div>
+                {Array.from({ length: state.playerCount }, (_, i) => {
+                  const id = `O${i + 1}` as PlayerId;
+                  return (
+                    <div key={id} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        placeholder={id}
+                        value={state.playerNumbers?.[id] ?? ''}
+                        onChange={(e) => {
+                          const numbers = { ...(state.playerNumbers ?? {}), [id]: e.target.value.slice(0, 3) };
+                          onPatch({ playerNumbers: numbers });
+                        }}
+                        style={{
+                          width: 32,
+                          height: 22,
+                          fontSize: 10,
+                          textAlign: 'center',
+                          fontWeight: 'bold',
+                          border: `1px solid ${UI.border}`,
+                          borderRadius: 4,
+                          background: UI.controlOff,
+                          color: UI.text,
+                        }}
+                        title={`Numéro de maillot pour ${id}`}
+                      />
+                      <input
+                        type="text"
+                        placeholder={`Joueur ${i + 1}`}
+                        value={state.playerNames?.[id] ?? ''}
+                        onChange={(e) => {
+                          const names = { ...(state.playerNames ?? {}), [id]: e.target.value };
+                          onPatch({ playerNames: names });
+                        }}
+                        style={{
+                          flex: 1,
+                          height: 22,
+                          fontSize: 10,
+                          padding: '0 6px',
+                          border: `1px solid ${UI.border}`,
+                          borderRadius: 4,
+                          background: UI.controlOff,
+                          color: UI.text,
+                          minWidth: 0,
+                        }}
+                        title={`Nom pour ${id}`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Défenseurs */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ fontSize: 9, fontWeight: 800, color: UI.accent, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 2 }}>Défense</div>
+                {Array.from({ length: state.playerCount }, (_, i) => {
+                  const id = `D${i + 1}` as PlayerId;
+                  return (
+                    <div key={id} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        placeholder={id}
+                        value={state.playerNumbers?.[id] ?? ''}
+                        onChange={(e) => {
+                          const numbers = { ...(state.playerNumbers ?? {}), [id]: e.target.value.slice(0, 3) };
+                          onPatch({ playerNumbers: numbers });
+                        }}
+                        style={{
+                          width: 32,
+                          height: 22,
+                          fontSize: 10,
+                          textAlign: 'center',
+                          fontWeight: 'bold',
+                          border: `1px solid ${UI.border}`,
+                          borderRadius: 4,
+                          background: UI.controlOff,
+                          color: UI.text,
+                        }}
+                        title={`Numéro de maillot pour ${id}`}
+                      />
+                      <input
+                        type="text"
+                        placeholder={`Défenseur ${i + 1}`}
+                        value={state.playerNames?.[id] ?? ''}
+                        onChange={(e) => {
+                          const names = { ...(state.playerNames ?? {}), [id]: e.target.value };
+                          onPatch({ playerNames: names });
+                        }}
+                        style={{
+                          flex: 1,
+                          height: 22,
+                          fontSize: 10,
+                          padding: '0 6px',
+                          border: `1px solid ${UI.border}`,
+                          borderRadius: 4,
+                          background: UI.controlOff,
+                          color: UI.text,
+                          minWidth: 0,
+                        }}
+                        title={`Nom pour ${id}`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </ControlGroup>
+        </SettingsSection>
       </div>
 
       {/* F.4 — Disqualifications */}

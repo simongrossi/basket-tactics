@@ -983,6 +983,12 @@ export interface AppState {
    *  Les joueurs hors format restent en mémoire, mais le moteur, les rendus
    *  et les contrôles les ignorent pour éviter tout comportement fantôme. */
   playerCount: PlayerCount;
+  /** Noms personnalisés des joueurs pour le roster. */
+  playerNames?: Partial<Record<PlayerId, string>>;
+  /** Numéros de maillots personnalisés. */
+  playerNumbers?: Partial<Record<PlayerId, string>>;
+  /** Option d'affichage globale pour afficher ou masquer les noms des joueurs sur le terrain. */
+  showPlayerNames?: boolean;
   /** F.4 — Joueurs disqualifiés (technique / 5e faute / expulsion).
    *  Rendus grisés sur le terrain avec badge "DQ". V1 : pas d'impact
    *  engine (= visuel uniquement, le joueur reste comptabilisé dans

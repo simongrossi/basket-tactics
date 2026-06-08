@@ -172,6 +172,8 @@ export default function SimulationPage() {
             onSetAttackerOrientation={noopWithArgs}
             onSetZoneOverride={noopWithArgs}
             onClearZoneOverride={noopWithArgs}
+            onSetPlayerName={noopWithArgs}
+            onSetPlayerNumber={noopWithArgs}
             onDeleteAnnotation={noopWithArgs}
             onSetAnnotationFrom={noopWithArgs}
             onSetAnnotationTo={noopWithArgs}

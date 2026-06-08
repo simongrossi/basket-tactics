@@ -8,26 +8,33 @@ import { SIDEBAR } from './tokens';
 type Props = {
   presentMode: boolean;
   onTogglePresentMode: () => void;
+  isPlayerMode?: boolean;
+  onTogglePlayerMode?: () => void;
   onOpenPlayerTimeline: () => void;
   /** E.2 — Ouvre la modal d'export GIF / WebM. */
   onOpenExport: () => void;
   onExport: () => void;
   onImport: () => void;
   onReset: () => void;
+  onShare?: () => Promise<string>;
   collapsed?: boolean;
 };
 
 export function SidebarOverflowMenu({
   presentMode,
   onTogglePresentMode,
+  isPlayerMode = false,
+  onTogglePlayerMode,
   onOpenPlayerTimeline,
   onOpenExport,
   onExport,
   onImport,
   onReset,
+  onShare,
   collapsed = false,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [portalPos, setPortalPos] = useState<{ left: number; bottom: number } | null>(null);
@@ -104,9 +111,35 @@ export function SidebarOverflowMenu({
         onClick={run(onTogglePresentMode)}
         label={presentMode ? 'Quitter plein écran' : 'Plein écran'}
       />
+      {onTogglePlayerMode && (
+        <Item
+          onClick={run(onTogglePlayerMode)}
+          label={isPlayerMode ? '✍️ Mode Éditeur' : '📖 Mode Lecteur (Joueur)'}
+        />
+      )}
       <Item onClick={run(onOpenPlayerTimeline)} label="Timeline par joueur" />
       <Item onClick={run(onOpenExport)} label="🎥 Exporter (GIF / WebM)" />
       <Divider />
+      {onShare && (
+        <>
+          <Item
+            onClick={async () => {
+              try {
+                const url = await onShare();
+                await navigator.clipboard.writeText(url);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              } catch (err) {
+                console.error('Failed to copy share link:', err);
+                alert('Erreur lors de la copie du lien.');
+              }
+            }}
+            label={copied ? '✓ Lien copié !' : '🔗 Partager tactique (lien)'}
+            style={copied ? { color: '#34d399', fontWeight: 650 } : undefined}
+          />
+          <Divider />
+        </>
+      )}
       <Item
         onClick={run(() => {
           if (typeof window !== 'undefined') window.location.href = '/simulation';
@@ -162,10 +195,12 @@ function Item({
   onClick,
   label,
   danger,
+  style,
 }: {
   onClick: () => void;
   label: string;
   danger?: boolean;
+  style?: React.CSSProperties;
 }) {
   return (
     <button
@@ -180,6 +215,7 @@ function Item({
         cursor: 'pointer',
         color: danger ? '#fca5a5' : SIDEBAR.text,
         fontWeight: 500,
+        ...style,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = danger ? 'rgba(239, 68, 68, 0.15)' : SIDEBAR.bgHover;

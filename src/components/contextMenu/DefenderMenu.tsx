@@ -22,7 +22,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import type { ActionTimingAnchor, DefenderId, DefenderRule, Tool } from '@/lib/types';
+import type { ActionTimingAnchor, DefenderId, DefenderRule, Tool, PlayerId } from '@/lib/types';
 import { DEFENDER_PROFILES, type DefenderProfile } from '@/lib/data/defenderProfiles';
 import { useClampedPosition, useDraggablePopup } from './popupHooks';
 import { ToolBar } from './ToolBar';
@@ -207,6 +207,10 @@ export interface DefenderMenuProps {
   onSetActionTimingAnchor?: (mode: ActionTimingAnchor) => void;
   onUpdate: (patch: Partial<DefenderRule>) => void;
   onApplyProfile: (profile: DefenderProfile) => void;
+  name?: string;
+  number?: string;
+  onSetPlayerName: (id: PlayerId, name: string) => void;
+  onSetPlayerNumber: (id: PlayerId, num: string) => void;
   onClearOverride: () => void;
   onClose: () => void;
 }
@@ -226,6 +230,10 @@ export function DefenderMenu({
   onApplyProfile,
   onClearOverride,
   onClose,
+  name,
+  number,
+  onSetPlayerName,
+  onSetPlayerNumber,
 }: DefenderMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
   const clamped = useClampedPosition(x, y, ref);
@@ -323,6 +331,44 @@ export function DefenderMenu({
         >
           <X size={17} strokeWidth={2.4} />
         </button>
+      </div>
+
+      {/* Roster Customization Section */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, alignItems: 'center' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: BLUE_ACCENT, width: 44, textTransform: 'uppercase' }}>Roster</span>
+        <input
+          type="text"
+          placeholder="N°"
+          value={number ?? ''}
+          onChange={(e) => onSetPlayerNumber(dId, e.target.value.slice(0, 3))}
+          style={{
+            width: 36,
+            height: 26,
+            background: DARK_PANEL.bgSubtle,
+            border: `1px solid ${DARK_PANEL.border}`,
+            color: DARK_PANEL.text,
+            borderRadius: 6,
+            fontSize: 12,
+            textAlign: 'center',
+            fontWeight: 'bold',
+          }}
+        />
+        <input
+          type="text"
+          placeholder={`Nom du joueur (${dId})`}
+          value={name ?? ''}
+          onChange={(e) => onSetPlayerName(dId, e.target.value)}
+          style={{
+            flex: 1,
+            height: 26,
+            background: DARK_PANEL.bgSubtle,
+            border: `1px solid ${DARK_PANEL.border}`,
+            color: DARK_PANEL.text,
+            borderRadius: 6,
+            fontSize: 12,
+            padding: '0 8px',
+          }}
+        />
       </div>
 
       <ToolBar

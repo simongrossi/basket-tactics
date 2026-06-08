@@ -12,6 +12,7 @@ import type {
   DominantHand,
   OffensiveProfile,
   Tool,
+  PlayerId,
 } from '@/lib/types';
 import { useClampedPosition } from './popupHooks';
 import { ToolBar } from './ToolBar';
@@ -60,6 +61,10 @@ export interface AttackerMenuProps {
   onSetAttackerSpeedTier: (tier: AttackerSpeedTier | undefined) => void;
   onSetBodyOrientation: (v: number | undefined) => void;
   onSetGazeOrientation: (v: number | undefined) => void;
+  name?: string;
+  number?: string;
+  onSetPlayerName: (id: PlayerId, name: string) => void;
+  onSetPlayerNumber: (id: PlayerId, num: string) => void;
   /** Création d'une annotation auto (passe / écran) depuis le sous-menu. */
   onCreateAutoAnnotation: (annotation: Annotation) => void;
   onClose: () => void;
@@ -73,6 +78,7 @@ export function AttackerMenu({
   onSetDominantHand, onSetOffensiveProfile,
   attackerSpeedTier, onSetAttackerSpeedTier,
   onSetBodyOrientation, onSetGazeOrientation, onClose,
+  name, number, onSetPlayerName, onSetPlayerNumber,
 }: AttackerMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
   const pos = useClampedPosition(x, y, ref);
@@ -127,11 +133,43 @@ export function AttackerMenu({
         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.45)',
       }}
     >
-      <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8, color: ORANGE_ACCENT }}>
-        ⚪ {oId}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10, alignItems: 'center' }}>
+        <input
+          type="text"
+          placeholder="N°"
+          value={number ?? ''}
+          onChange={(e) => onSetPlayerNumber(oId, e.target.value.slice(0, 3))}
+          style={{
+            width: 36,
+            height: 26,
+            background: DARK_PANEL.bgSubtle,
+            border: `1px solid ${DARK_PANEL.border}`,
+            color: DARK_PANEL.text,
+            borderRadius: 6,
+            fontSize: 12,
+            textAlign: 'center',
+            fontWeight: 'bold',
+          }}
+        />
+        <input
+          type="text"
+          placeholder={`Nom du joueur (${oId})`}
+          value={name ?? ''}
+          onChange={(e) => onSetPlayerName(oId, e.target.value)}
+          style={{
+            flex: 1,
+            height: 26,
+            background: DARK_PANEL.bgSubtle,
+            border: `1px solid ${DARK_PANEL.border}`,
+            color: DARK_PANEL.text,
+            borderRadius: 6,
+            fontSize: 12,
+            padding: '0 8px',
+          }}
+        />
         <span
           onClick={onClose}
-          style={{ float: 'right', cursor: 'pointer', color: DARK_PANEL.textDim, fontSize: 14 }}
+          style={{ cursor: 'pointer', color: DARK_PANEL.textDim, fontSize: 16, padding: '0 4px' }}
         >
           ×
         </span>

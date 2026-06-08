@@ -1,7 +1,7 @@
 import type { Annotation, Point } from '@/lib/types';
 import { dribbleWavePath } from '@/lib/logic/dribbleWave';
 import { polylinePath, samplePolyline } from '@/lib/logic/polyline';
-import { PLAYER_PICK_RADIUS_PX } from '@/lib/data/court';
+import { PLAYER_RADIUS } from '@/lib/data/court';
 
 interface AnnotationProps {
   annotation: Annotation;
@@ -10,7 +10,7 @@ interface AnnotationProps {
 
 /** Marge en plus du rayon joueur pour que la pointe de flèche reste lisible
  *  juste avant le cercle, sans toucher le badge. */
-const ARROW_END_PADDING = PLAYER_PICK_RADIUS_PX;
+const ARROW_END_PADDING = PLAYER_RADIUS + 4;
 
 /** Raccourcit `to` de `amount` px le long de la direction `from → to`, pour
  *  que la pointe de flèche s'affiche AVANT le cercle joueur cible (sinon le

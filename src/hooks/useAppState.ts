@@ -25,6 +25,7 @@ import type {
   DefensiveScriptedAction,
   OffensiveProfile,
   PlayerCount,
+  PlayerId,
   Point,
   ScenarioBranch,
   ScreenRule,
@@ -42,6 +43,7 @@ import type { DefenderProfile } from '@/lib/data/defenderProfiles';
 import { persistDetectedSwitchesThroughStep } from '@/lib/logic/engine';
 import { moveAttackerInState, moveDefenderInState } from '@/lib/logic/playerMove';
 import { loadFromStorage, saveToStorage, clearStorage } from '@/lib/state/persistence';
+import { decompressStateFromUrl } from '@/lib/state/urlCompression';
 import { computeOffBallPositions } from '@/lib/logic/autoOffense';
 import { HOOP, HOOP_OPPOSITE } from '@/lib/data/court';
 import {
@@ -120,11 +122,27 @@ export function useAppState() {
     return () => clearTimeout(timer);
   }, [defenseReleaseTransition]);
 
-  // Hydration : lit le localStorage post-montage.
+  // Hydration : lit l'URL partagée ou le localStorage post-montage.
   useEffect(() => {
-    const persisted = loadFromStorage();
-    if (persisted) setStateRaw(persisted);
-    setHydrated(true);
+    async function init() {
+      if (typeof window !== 'undefined' && window.location.hash.startsWith('#share=')) {
+        const payload = window.location.hash.slice('#share='.length);
+        const shared = await decompressStateFromUrl(payload);
+        if (shared) {
+          setStateRaw(shared);
+          // Nettoie le hash pour ne pas recharger à chaque refresh
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          setHydrated(true);
+          return;
+        } else {
+          alert('Impossible de charger la tactique partagée : lien corrompu ou obsolète.');
+        }
+      }
+      const persisted = loadFromStorage();
+      if (persisted) setStateRaw(persisted);
+      setHydrated(true);
+    }
+    init();
   }, [setStateRaw]);
 
   // Détection de switches après chaque changement d'état.
@@ -247,6 +265,20 @@ export function useAppState() {
   const clearDisqualified = useCallback(() => {
     setStateWithHistory(coreTx.clearDisqualified);
   }, [setStateWithHistory]);
+
+  const setPlayerName = useCallback(
+    (id: PlayerId, name: string) => {
+      setStateWithHistory((s) => coreTx.setPlayerName(s, id, name));
+    },
+    [setStateWithHistory]
+  );
+
+  const setPlayerNumber = useCallback(
+    (id: PlayerId, num: string) => {
+      setStateWithHistory((s) => coreTx.setPlayerNumber(s, id, num));
+    },
+    [setStateWithHistory]
+  );
 
   // -- Joueurs (positions) --
   // Note : moves utilisent `playerMove` directement (déjà extrait), pas un
@@ -767,6 +799,8 @@ export function useAppState() {
     convertStepToJumpBall,
     togglePlayerDisqualified,
     clearDisqualified,
+    setPlayerName,
+    setPlayerNumber,
     loadTemplate,
     clearDefenseOverride,
     autoPositionOffBall,

@@ -8,6 +8,18 @@ Vision produit forward-looking.
 
 Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
+## 🟡 Chantiers de l'Audit (Juin 2026)
+
+À la suite de l'audit complet du produit, de nouveaux chantiers prioritaires ont été définis pour rendre l'application pleinement opérationnelle pour des coachs réels :
+
+1. **🟢 Roster Nommé & Numéros de maillots** : Remplacer les identifiants techniques `O1-O5` / `D1-D5` par les noms et numéros des vrais joueurs sur le terrain, dans les menus contextuels, et dans le panneau des paramètres. *(Fait)*
+2. **🟢 Compatibilité Tactile & Ergonomie** : Bumper la zone de saisie des joueurs (~44px) pour tablettes, implémenter un appui long (long-press) pour remplacer le clic droit sur iOS/Android, et ajouter le Zoom & Pan SVG sur le terrain. *(Fait)*
+3. **🟢 Partage Collaboratif Simplifié** : Permettre de générer des liens de partage instantané (ex. URL compressée en Base64 contenant tout l'état de l'application, ou base de données cloud légère). *(Fait)*
+4. **⚪ Réalisme & Simulation de Match (Match-Sim) V2** : Ajouter un système de fautes réelles (personnelles et bonus), gestion des lancers-francs, et fatigue influençant la vitesse de pointe.
+5. **⚪ Éditeur de Scénario Graphique** : Créer un éditeur nodal (type organigramme / flowchart) pour concevoir et visualiser graphiquement les branches de lecture réactives de l'attaque.
+
+---
+
 ## 🟢 Offense en lecture réactive — Phase L (livré 2026-05-29)
 
 Le moteur défensif est très abouti (14 couches, couvertures FIBA). L'offense
@@ -483,7 +495,17 @@ travail" est rempli.
 
 ## Synthèse priorisation (chantiers ⚪ restants)
 
-### UX / Produit — 3 chantiers restants
+### Chantiers de l'Audit (Juin 2026)
+
+| # | Chantier | Statut | Effort | Risque | Valeur |
+|---|---|---|---|---|---|
+| **9** | **Roster Nommé & Numéros de maillots** | 🟡 En cours | 2h | 🟢 Faible | 🔥 Critique |
+| **10** | **Compatibilité Tactile & Ergonomie (Zoom/Pan, hit-boxes, appui long)** | ⚪ À faire | 6h | 🟡 Moyen | 🔥 Critique |
+| **11** | **Partage Collaboratif Simplifié (Base64 URL)** | ⚪ À faire | 2h | 🟢 Faible | 🔥 Critique |
+| **12** | **Simulation Réaliste V2 (Fautes, lancers-francs, fatigue)** | ⚪ À faire | 1.5j | 🔴 Élevé | 🟡 Moyen |
+| **13** | **Éditeur de Scénario Graphique Nodal** | ⚪ À faire | 3j | 🔴 Élevé | 🟡 Moyen |
+
+### UX / Produit — Historique
 
 | # | Chantier | Effort | Risque | Valeur |
 |---|---|---|---|---|

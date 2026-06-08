@@ -18,6 +18,7 @@ import type {
   OffensiveProfile,
   Tool,
   ZoneRegionOverride,
+  PlayerId,
 } from '@/lib/types';
 import type { DefenderProfile } from '@/lib/data/defenderProfiles';
 import type { PlaybackFrame } from '@/lib/logic/playback/frameResolver';
@@ -60,6 +61,9 @@ interface CourtMenusProps {
   // Zone menu
   onSetZoneOverride: (regionId: string, override: Partial<ZoneRegionOverride>) => void;
   onClearZoneOverride: (regionId: string) => void;
+  // Roster customisation
+  onSetPlayerName: (id: PlayerId, name: string) => void;
+  onSetPlayerNumber: (id: PlayerId, num: string) => void;
 }
 
 export function CourtMenus(props: CourtMenusProps) {
@@ -85,6 +89,8 @@ export function CourtMenus(props: CourtMenusProps) {
     onAddAnnotation,
     onSetZoneOverride,
     onClearZoneOverride,
+    onSetPlayerName,
+    onSetPlayerNumber,
   } = props;
 
   return (
@@ -106,6 +112,10 @@ export function CourtMenus(props: CourtMenusProps) {
           onApplyProfile={(profile) => onApplyDefenderProfile(ctxMenu.dId, profile)}
           onClearOverride={() => onClearDefenseOverride(ctxMenu.dId)}
           onClose={onCloseCtxMenu}
+          name={state.playerNames?.[ctxMenu.dId]}
+          number={state.playerNumbers?.[ctxMenu.dId]}
+          onSetPlayerName={onSetPlayerName}
+          onSetPlayerNumber={onSetPlayerNumber}
         />
       )}
       {ctxMenu?.kind === 'attacker' && (() => {
@@ -141,6 +151,10 @@ export function CourtMenus(props: CourtMenusProps) {
             state={state}
             onCreateAutoAnnotation={onAddAnnotation}
             onClose={onCloseCtxMenu}
+            name={state.playerNames?.[oId]}
+            number={state.playerNumbers?.[oId]}
+            onSetPlayerName={onSetPlayerName}
+            onSetPlayerNumber={onSetPlayerNumber}
           />
         );
       })()}

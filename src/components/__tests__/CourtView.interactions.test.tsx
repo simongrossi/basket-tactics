@@ -71,6 +71,8 @@ function renderCourt(overrides: Partial<ComponentProps<typeof CourtView>> = {}) 
     onAddTextNote: vi.fn(),
     onUpdateTextNote: vi.fn(),
     onRemoveTextNote: vi.fn(),
+    onSetPlayerName: vi.fn(),
+    onSetPlayerNumber: vi.fn(),
     isPlaying: false,
     playbackSpeed: 1,
     ...overrides,

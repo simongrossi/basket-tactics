@@ -27,6 +27,7 @@ import type {
   Point,
   ComputedDefense,
   TextNote,
+  PlayerId,
 } from '@/lib/types';
 import { CourtBackground, ArrowMarkers } from './Court';
 import { Ball } from './Player';
@@ -108,6 +109,8 @@ interface CourtViewProps {
   onSetAnnotationWaypoint: (stepIdx: number, annoIdx: number, wpIdx: number, point: { x: number; y: number }) => void;
   onSetTool: (t: Tool) => void;
   onSetActionTimingAnchor?: (mode: ActionTimingAnchor) => void;
+  onSetPlayerName: (id: PlayerId, name: string) => void;
+  onSetPlayerNumber: (id: PlayerId, num: string) => void;
   /** A.3 — Notes texte libres : création, édition, suppression. */
   onAddTextNote: (stepIdx: number, note: TextNote) => void;
   onUpdateTextNote: (stepIdx: number, noteIdx: number, text: string) => void;
@@ -136,11 +139,15 @@ interface CourtViewProps {
   /** E.2 — Ref externe sur le `<svg>` du terrain. Permet à `Page` de lire
    *  le SVG live pendant l'export. */
   externalSvgRef?: React.MutableRefObject<SVGSVGElement | null>;
+  isPlayerMode?: boolean;
 }
 
 export function CourtView(props: CourtViewProps) {
   const { state } = props;
   const svgRef = useRef<SVGSVGElement>(null);
+  const contentRef = useRef<SVGGElement>(null);
+  const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
+  const [spacePressed, setSpacePressed] = useState(false);
   const [zoneRegionMenu, setZoneRegionMenu] = useState<ZoneRegionMenuState | null>(null);
   const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null);
 
@@ -173,6 +180,58 @@ export function CourtView(props: CourtViewProps) {
   useEffect(() => {
     if (state.tool !== 'text') setTextPopup(null);
   }, [state.tool]);
+
+  // Key listeners for spacebar tracking
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === ' ' || e.key === 'Spacebar') {
+        const active = document.activeElement?.tagName;
+        if (active !== 'INPUT' && active !== 'TEXTAREA') {
+          e.preventDefault();
+          setSpacePressed(true);
+        }
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === ' ' || e.key === 'Spacebar') {
+        setSpacePressed(false);
+      }
+    };
+    const handleBlur = () => setSpacePressed(false);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, []);
+
+  // Native Wheel listener centered on cursor for non-passive prevention of scroll
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = svg.getBoundingClientRect();
+      const centerX = e.clientX - rect.left;
+      const centerY = e.clientY - rect.top;
+      const zoomFactor = e.deltaY < 0 ? 1.05 : 0.95;
+      setTransform((prev) => {
+        const nextScale = Math.max(0.5, Math.min(5, prev.scale * zoomFactor));
+        if (nextScale === prev.scale) return prev;
+        const factor = nextScale / prev.scale;
+        const nextX = centerX - (centerX - prev.x) * factor;
+        const nextY = centerY - (centerY - prev.y) * factor;
+        return { scale: nextScale, x: nextX, y: nextY };
+      });
+    };
+    svg.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      svg.removeEventListener('wheel', handleWheel);
+    };
+  }, []);
 
   // Esc clear la sélection.
   useEffect(() => {
@@ -212,6 +271,7 @@ export function CourtView(props: CourtViewProps) {
       state,
       svgRef,
       isPlaying: props.isPlaying,
+      isPlayerMode: props.isPlayerMode,
       onBeginPlayerDrag: props.onBeginPlayerDrag,
       onCommitPlayerDrag: props.onCommitPlayerDrag,
       onBeginDefenderPursuit: props.onBeginDefenderPursuit,
@@ -250,6 +310,21 @@ export function CourtView(props: CourtViewProps) {
           });
         }
       },
+      onOpenContextMenu: (id, clientX, clientY) => {
+        const wrap = svgRef.current?.parentElement?.getBoundingClientRect();
+        if (!wrap) return;
+        const x = clientX - wrap.left;
+        const y = clientY - wrap.top;
+        if (id.startsWith('D')) {
+          setCtxMenu({ kind: 'defender', dId: id as DefenderId, x, y });
+        } else if (id.startsWith('O')) {
+          setCtxMenu({ kind: 'attacker', oId: id as AttackerId, x, y });
+        }
+      },
+      transform,
+      onTransformChange: setTransform,
+      spacePressed,
+      contentRef,
     });
 
   // Clic-droit : suppression directe sur une annotation, sinon ouverture
@@ -308,6 +383,47 @@ export function CourtView(props: CourtViewProps) {
     else if (oId) setCtxMenu({ kind: 'attacker', oId, x, y });
   };
 
+  const handleZoomIn = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    setTransform((prev) => {
+      const nextScale = Math.min(5, prev.scale * 1.25);
+      const factor = nextScale / prev.scale;
+      return {
+        scale: nextScale,
+        x: cx - (cx - prev.x) * factor,
+        y: cy - (cy - prev.y) * factor,
+      };
+    });
+  };
+
+  const handleZoomOut = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    setTransform((prev) => {
+      const nextScale = Math.max(0.5, prev.scale / 1.25);
+      const factor = nextScale / prev.scale;
+      return {
+        scale: nextScale,
+        x: cx - (cx - prev.x) * factor,
+        y: cy - (cy - prev.y) * factor,
+      };
+    });
+  };
+
+  const handleZoomReset = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setTransform({ scale: 1, x: 0, y: 0 });
+  };
+
   return (
     <div
       onContextMenu={onContextMenu}
@@ -329,14 +445,22 @@ export function CourtView(props: CourtViewProps) {
         }}
         viewBox={`0 0 ${COURT.width} ${state.fullCourt ? FULL_COURT_HEIGHT : COURT.height}`}
         preserveAspectRatio="xMidYMid meet"
-        style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none', userSelect: 'none' }}
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'block',
+          touchAction: 'none',
+          userSelect: 'none',
+          cursor: spacePressed ? 'grab' : undefined,
+        }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
         <ArrowMarkers />
-        <CourtBackground fullCourt={state.fullCourt} attackingDirection={state.attackingDirection} />
+        <g ref={contentRef} transform={`translate(${transform.x}, ${transform.y}) scale(${transform.scale})`}>
+          <CourtBackground fullCourt={state.fullCourt} attackingDirection={state.attackingDirection} />
 
         {/* #2 — Feedback visuel snap-to-grid pendant le drag avec Ctrl/Cmd. */}
         <SnapGuideOverlay
@@ -360,10 +484,16 @@ export function CourtView(props: CourtViewProps) {
                 toCourtPoint={(cx, cy) => {
                   const svg = svgRef.current;
                   if (!svg) return null;
+                  const el = contentRef.current ?? svg;
                   const pt = svg.createSVGPoint();
                   pt.x = cx;
                   pt.y = cy;
-                  const ctm = svg.getScreenCTM();
+                  const getCTM = () => {
+                    if (typeof el.getScreenCTM === 'function') return el.getScreenCTM();
+                    if (typeof svg.getScreenCTM === 'function') return svg.getScreenCTM();
+                    return null;
+                  };
+                  const ctm = getCTM();
                   if (!ctm) return null;
                   const t = pt.matrixTransform(ctm.inverse());
                   return { x: t.x, y: t.y };
@@ -869,6 +999,7 @@ export function CourtView(props: CourtViewProps) {
             <animate attributeName="r" values={`${PLAYER_RADIUS + 6};${PLAYER_RADIUS + 10};${PLAYER_RADIUS + 6}`} dur="1.2s" repeatCount="indefinite" />
           </circle>
         )}
+        </g>
       </svg>
 
       {/* A.3 — Popup d'édition de note (HTML position:fixed, hors SVG). */}
@@ -1016,7 +1147,100 @@ export function CourtView(props: CourtViewProps) {
         onAddAnnotation={props.onAddAnnotation}
         onSetZoneOverride={props.onSetZoneOverride}
         onClearZoneOverride={props.onClearZoneOverride}
+        onSetPlayerName={props.onSetPlayerName}
+        onSetPlayerNumber={props.onSetPlayerNumber}
       />
+
+      {/* Floating Zoom Controls */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 14,
+          right: 14,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+          background: 'rgba(30, 41, 59, 0.85)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          padding: 4,
+          borderRadius: 8,
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+          zIndex: 40,
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={handleZoomIn}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 6,
+            border: 'none',
+            background: 'rgba(255, 255, 255, 0.1)',
+            color: '#fff',
+            fontSize: 16,
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.2s',
+          }}
+          title="Zoomer (+)"
+        >
+          ＋
+        </button>
+        <button
+          onClick={handleZoomOut}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 6,
+            border: 'none',
+            background: 'rgba(255, 255, 255, 0.1)',
+            color: '#fff',
+            fontSize: 16,
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.2s',
+          }}
+          title="Dézoomer (-)"
+        >
+          －
+        </button>
+        <button
+          onClick={handleZoomReset}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 6,
+            border: 'none',
+            background: 'rgba(255, 255, 255, 0.1)',
+            color: '#fff',
+            fontSize: 9,
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.2s',
+          }}
+          title="Réinitialiser"
+        >
+          RESET
+        </button>
+      </div>
     </div>
   );
 }

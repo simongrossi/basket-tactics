@@ -6,6 +6,30 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Chantiers de l'Audit — Roster, Tactile, Partage & Mode Joueur (2026-06-04)
+
+Suite à l'audit complet de l'application, quatre grands chantiers ergonomiques et de partage ont été livrés pour l'usage concret par des coachs et des joueurs réels :
+
+- **Noms & Numéros de maillots (Roster Customisation)** :
+  - Remplacement des identifiants techniques fixes (`O1-O5` / `D1-D5`) par des noms et numéros éditables.
+  - Formulaires d'édition intégrés dans les menus contextuels (clic droit/long-press) et dans le panneau des paramètres.
+  - Rendu visuel soigné sur le terrain et intégration dans les vignettes statiques et l'export PDF (Playbook).
+- **Compatibilité Tactile & Ergonomie** :
+  - Hitboxes de sélection des joueurs élargies à 44px pour un confort de saisie optimal sur tablette/mobile.
+  - Logique d'appui long (long-press, `600ms`) pour émuler le clic droit et ouvrir les menus contextuels sur mobile/tablette.
+  - Support natif du zoom et du déplacement panoramique (pinch-to-zoom, molette, pan avec `Espace` ou clic du milieu) avec un panneau de boutons de contrôle flottants premium en verre dépoli (glassmorphism).
+- **Partage Collaboratif par Lien URL** :
+  - Compression binaire `deflate` (via l'API standard `CompressionStream`) de l'état JSON complet de l'application.
+  - Encodage Base64url hyper-compact stocké directement dans le hash de l'URL (`#share=<payload>`), permettant un partage instantané sans base de données serveur.
+  - Décompression et nettoyage dynamique de l'URL au montage pour éviter les rafraîchissements accidentels.
+- **Mode Joueur / Visionneuse Épurée (Reader Mode)** :
+  - Mode d'affichage épuré s'activant automatiquement via `mode=player` dans les URLs partagées.
+  - Masquage complet de la Sidebar d'édition latérale, des graphes d'analyse de diagnostics, de la timeline par joueur et des metrics de performance.
+  - Rendu en pleine largeur d'écran (100%) avec une en-tête flottante premium affichant les détails de l'étape courante, les contrôles de lecture simplifiés, et un bouton d'action pour repasser en mode édition.
+  - Blocage des drags de joueurs, de l'édition de notes/annotations et des raccourcis clavier de modification pour éviter toute erreur de manipulation en lisant la tactique sur le terrain.
+
++11 tests unitaires et d'interaction (Vitest). **Suite 2074 tests verte.**
+
 ### Défense vivante / drive — 2a : `driveContainment` (cœur + playback) (2026-06-03)
 
 Deuxième axe du programme « comportement plus réel et précis » (cinématique ✅ →

@@ -81,3 +81,19 @@ export function togglePlayerDisqualified(s: AppState, playerId: PlayerId): AppSt
 export function clearDisqualified(s: AppState): AppState {
   return { ...s, disqualifiedPlayers: undefined };
 }
+
+/** Roster — Définit le nom personnalisé d'un joueur. */
+export function setPlayerName(s: AppState, id: PlayerId, name: string): AppState {
+  return {
+    ...s,
+    playerNames: { ...(s.playerNames ?? {}), [id]: name },
+  };
+}
+
+/** Roster — Définit le numéro personnalisé d'un joueur. */
+export function setPlayerNumber(s: AppState, id: PlayerId, num: string): AppState {
+  return {
+    ...s,
+    playerNumbers: { ...(s.playerNumbers ?? {}), [id]: num },
+  };
+}

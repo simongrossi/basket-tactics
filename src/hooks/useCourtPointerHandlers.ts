@@ -45,6 +45,7 @@ interface UseCourtPointerHandlersOptions {
   state: AppState;
   svgRef: React.RefObject<SVGSVGElement | null>;
   isPlaying: boolean;
+  isPlayerMode?: boolean;
   onBeginPlayerDrag?: () => void;
   onCommitPlayerDrag?: () => void;
   /** Poursuite défenseur (opt-in) — début : capture les positions défenseurs
@@ -83,6 +84,11 @@ interface UseCourtPointerHandlersOptions {
     screenPos: { x: number; y: number };
     noteIdx: number | null;
   }) => void;
+  onOpenContextMenu?: (id: PlayerId, clientX: number, clientY: number) => void;
+  transform: { scale: number; x: number; y: number };
+  onTransformChange: (t: { scale: number; x: number; y: number }) => void;
+  spacePressed?: boolean;
+  contentRef: React.RefObject<SVGGElement | null>;
 }
 
 export interface MarqueeRect {
@@ -123,6 +129,7 @@ export function useCourtPointerHandlers(
     state,
     svgRef,
     isPlaying,
+    isPlayerMode = false,
     onBeginPlayerDrag,
     onCommitPlayerDrag,
     onBeginDefenderPursuit,
@@ -142,6 +149,11 @@ export function useCourtPointerHandlers(
     onClearDefenderSelection,
     textNotes,
     onTextToolClick,
+    onOpenContextMenu,
+    transform,
+    onTransformChange,
+    spacePressed,
+    contentRef,
   } = opts;
 
   const [dragging, setDragging] = useState<{ id: PlayerId; isDef: boolean } | null>(null);
@@ -183,19 +195,45 @@ export function useCourtPointerHandlers(
     others: Map<DefenderId, Point>;
   } | null>(null);
 
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressTriggeredRef = useRef<boolean>(false);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const activePointersRef = useRef<Map<number, Point>>(new Map());
+  const lastGestureRef = useRef<{ distance: number; midpoint: Point } | null>(null);
+  const panStartRef = useRef<{ clientX: number; clientY: number; transformX: number; transformY: number } | null>(null);
+
+  const transformRef = useRef(transform);
+  useEffect(() => {
+    transformRef.current = transform;
+  }, [transform]);
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current !== null) {
+        window.clearTimeout(longPressTimerRef.current);
+      }
+    };
+  }, []);
+
   const svgPoint = useCallback(
     (evt: React.PointerEvent | PointerEvent | React.MouseEvent): Point => {
       const svg = svgRef.current;
       if (!svg) return { x: 0, y: 0 };
+      const el = contentRef.current ?? svg;
       const pt = svg.createSVGPoint();
       pt.x = evt.clientX;
       pt.y = evt.clientY;
-      const ctm = svg.getScreenCTM();
+      const getCTM = () => {
+        if (typeof el.getScreenCTM === 'function') return el.getScreenCTM();
+        if (typeof svg.getScreenCTM === 'function') return svg.getScreenCTM();
+        return null;
+      };
+      const ctm = getCTM();
       if (!ctm) return { x: 0, y: 0 };
       const transformed = pt.matrixTransform(ctm.inverse());
       return { x: transformed.x, y: transformed.y };
     },
-    [svgRef]
+    [svgRef, contentRef]
   );
 
   const findPlayerAt = useCallback(
@@ -225,8 +263,7 @@ export function useCourtPointerHandlers(
   const queueDragMove = useCallback(
     (id: PlayerId, isDef: boolean, x: number, y: number) => {
       dragMoveRef.current = { id, isDef, x, y };
-      if (dragRafRef.current !== null) return;
-      dragRafRef.current = window.requestAnimationFrame(() => {
+      dragRafRef.current = requestAnimationFrame(() => {
         dragRafRef.current = null;
         const move = dragMoveRef.current;
         dragMoveRef.current = null;
@@ -246,7 +283,7 @@ export function useCourtPointerHandlers(
 
   const flushDragMove = useCallback(() => {
     if (dragRafRef.current !== null) {
-      window.cancelAnimationFrame(dragRafRef.current);
+      cancelAnimationFrame(dragRafRef.current);
       dragRafRef.current = null;
     }
     const move = dragMoveRef.current;
@@ -266,18 +303,96 @@ export function useCourtPointerHandlers(
   useEffect(() => {
     return () => {
       if (dragRafRef.current !== null) {
-        window.cancelAnimationFrame(dragRafRef.current);
+        cancelAnimationFrame(dragRafRef.current);
       }
     };
   }, []);
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
+      activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (activePointersRef.current.size === 2) {
+        const pts = Array.from(activePointersRef.current.values());
+        const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+        lastGestureRef.current = { distance: d, midpoint: mid };
+        setDragging(null);
+        setPending(null);
+        if (longPressTimerRef.current !== null) {
+          window.clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
+        if (dragRafRef.current !== null) {
+          cancelAnimationFrame(dragRafRef.current);
+          dragRafRef.current = null;
+        }
+        return;
+      }
+
+      if (isPlayerMode) {
+        // Player Mode: only panning, no drag/edit
+        panStartRef.current = {
+          clientX: e.clientX,
+          clientY: e.clientY,
+          transformX: transformRef.current.x,
+          transformY: transformRef.current.y,
+        };
+        svgRef.current?.setPointerCapture(e.pointerId);
+        if (longPressTimerRef.current !== null) {
+          window.clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
+        return;
+      }
+
       if (e.button === 2) return;
       onClearContextMenu();
       if (isPlaying) return;
       const target = (e.target as Element).closest('g[data-id]');
       const pt = svgPoint(e);
+      const id = findPlayerAt(pt) ?? (target?.getAttribute('data-id') as PlayerId | null);
+
+      const isPanTrigger =
+        spacePressed ||
+        e.button === 1 ||
+        (state.tool === 'move' && !id && !e.shiftKey);
+
+      if (isPanTrigger) {
+        panStartRef.current = {
+          clientX: e.clientX,
+          clientY: e.clientY,
+          transformX: transformRef.current.x,
+          transformY: transformRef.current.y,
+        };
+        svgRef.current?.setPointerCapture(e.pointerId);
+        if (longPressTimerRef.current !== null) {
+          window.clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
+        return;
+      }
+
+      if (e.button === 0 && id) {
+        touchStartPosRef.current = { x: e.clientX, y: e.clientY };
+        longPressTriggeredRef.current = false;
+        if (longPressTimerRef.current !== null) {
+          window.clearTimeout(longPressTimerRef.current);
+        }
+        longPressTimerRef.current = window.setTimeout(() => {
+          longPressTimerRef.current = null;
+          longPressTriggeredRef.current = true;
+          if (onOpenContextMenu) {
+            onOpenContextMenu(id, e.clientX, e.clientY);
+          }
+          setDragging(null);
+          setPending(null);
+          if (dragRafRef.current !== null) {
+            cancelAnimationFrame(dragRafRef.current);
+            dragRafRef.current = null;
+          }
+        }, 600);
+      }
 
       // A.3 — Outil 'note' : tout clic ouvre le popup (création si zone vide,
       // édition si on tape sur une note existante). Court-circuite les autres
@@ -298,8 +413,7 @@ export function useCourtPointerHandlers(
         // Évite le bug où le défenseur (rendu au-dessus dans le SVG) intercepte
         // le drag sur un attaquant superposé (sprite Prop A élargi). Fallback
         // sur le data-id du SVG si proximity-pick ne trouve rien.
-        const id =
-          findPlayerAt(pt) ?? (target?.getAttribute('data-id') as PlayerId | null);
+        // (L'id a déjà été calculé plus haut dans ce handler)
 
         // #4 — Sélection multiple (mode move uniquement, ne conflicte pas
         // avec le Shift+freehand des autres tools).
@@ -415,11 +529,63 @@ export function useCourtPointerHandlers(
       });
       svgRef.current?.setPointerCapture(e.pointerId);
     },
-    [findPlayerAt, frameOff, isPlaying, onAddAnnotation, onBeginPlayerDrag, onClearContextMenu, onClearDefenderSelection, onTextToolClick, onToggleDefenderSelection, pendingAutoSourceId, selectedDefenders, state, svgPoint, svgRef, textNotes]
+    [findPlayerAt, frameOff, isPlaying, isPlayerMode, onAddAnnotation, onBeginPlayerDrag, onClearContextMenu, onClearDefenderSelection, onTextToolClick, onToggleDefenderSelection, pendingAutoSourceId, selectedDefenders, state, svgPoint, svgRef, textNotes]
   );
 
   const onPointerMove = useCallback(
     (e: React.PointerEvent) => {
+      if (activePointersRef.current.has(e.pointerId)) {
+        activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      }
+
+      if (activePointersRef.current.size === 2 && lastGestureRef.current) {
+        const pts = Array.from(activePointersRef.current.values());
+        const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+        
+        const prev = lastGestureRef.current;
+        const zoomFactor = d / prev.distance;
+        
+        const nextScale = Math.max(0.5, Math.min(5, transformRef.current.scale * zoomFactor));
+        const factor = nextScale / transformRef.current.scale;
+        
+        let nextX = mid.x - (mid.x - transformRef.current.x) * factor;
+        let nextY = mid.y - (mid.y - transformRef.current.y) * factor;
+        
+        nextX += (mid.x - prev.midpoint.x);
+        nextY += (mid.y - prev.midpoint.y);
+        
+        onTransformChange({
+          scale: nextScale,
+          x: nextX,
+          y: nextY,
+        });
+        
+        lastGestureRef.current = { distance: d, midpoint: mid };
+        return;
+      }
+
+      if (panStartRef.current) {
+        const start = panStartRef.current;
+        const dx = e.clientX - start.clientX;
+        const dy = e.clientY - start.clientY;
+        onTransformChange({
+          scale: transformRef.current.scale,
+          x: start.transformX + dx,
+          y: start.transformY + dy,
+        });
+        return;
+      }
+
+      if (touchStartPosRef.current && longPressTimerRef.current !== null) {
+        const dx = e.clientX - touchStartPosRef.current.x;
+        const dy = e.clientY - touchStartPosRef.current.y;
+        if (Math.hypot(dx, dy) > 10) {
+          window.clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
+      }
+
       const pt = svgPoint(e);
 
       // #4 — Marquee en cours (Shift+drag dans le vide).
@@ -497,6 +663,29 @@ export function useCourtPointerHandlers(
 
   const onPointerUp = useCallback(
     (e: React.PointerEvent) => {
+      activePointersRef.current.delete(e.pointerId);
+      if (activePointersRef.current.size < 2) {
+        lastGestureRef.current = null;
+      }
+
+      if (longPressTimerRef.current !== null) {
+        window.clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+
+      if (panStartRef.current) {
+        panStartRef.current = null;
+        svgRef.current?.releasePointerCapture(e.pointerId);
+        return;
+      }
+
+      const wasLongPress = longPressTriggeredRef.current;
+      longPressTriggeredRef.current = false;
+      if (wasLongPress) {
+        svgRef.current?.releasePointerCapture(e.pointerId);
+        return;
+      }
+
       // #4 — Finalisation du marquee.
       if (marqueeStartRef.current && marquee) {
         // Collecte les défenseurs dans le rectangle.

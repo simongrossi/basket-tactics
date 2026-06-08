@@ -41,6 +41,9 @@ interface PlayerProps {
   showCloseoutRing?: boolean;
   showDenyingRing?: boolean;
   showForcedScreenerBadge?: boolean;
+  name?: string;
+  number?: string;
+  showName?: boolean;
   /** Rôle PnR (P1) — affiche un anneau distinct selon la rotation. */
   pnrRole?: 'tag' | 'x-out' | 'stunt';
   /** Severity du mismatch après switch (B1). Range 0–4. Affiche un badge ⚠
@@ -124,6 +127,9 @@ export function Player({
   dominantHand,
   isActivelyDribbling,
   isPostShotRecovery,
+  name,
+  number,
+  showName = true,
 }: PlayerProps) {
   const fill = isAttacker ? '#D85A30' : '#378ADD';
 
@@ -177,11 +183,11 @@ export function Player({
 
   return (
     <g data-id={id} style={{ cursor: 'grab' }}>
-      {/* Target cliquable invisible pour le Drag and Drop. Rayon r*1.7 aligné
-       *  sur l'envergure des bras stylisés (mains à r*1.6, marge 0.1r). La
-       *  désambiguïsation des chevauchements attaquant/défenseur se fait côté
+      {/* Target cliquable invisible pour le Drag and Drop. Rayon à 22px
+       *  (diamètre 44px) pour respecter les standards de taille de cibles tactiles.
+       *  La désambiguïsation des chevauchements attaquant/défenseur se fait côté
        *  useCourtPointerHandlers via `findPlayerAt(pt)` (priorité attaquant). */}
-      <circle cx={pos.x} cy={pos.y} r={r * 1.4} fill="rgba(0,0,0,0)" />
+      <circle cx={pos.x} cy={pos.y} r={22} fill="rgba(0,0,0,0)" />
       {/* #4 — Halo de sélection multiple (cyan pointillé). Rendu en
        *  premier pour passer sous tous les autres anneaux. */}
       {isSelected && !isAttacker && (
@@ -537,8 +543,24 @@ export function Player({
         strokeWidth={2}
         style={{ paintOrder: 'stroke fill' }}
       >
-        {id}
+        {number || id}
       </text>
+      {showName && name && (
+        <text
+          x={pos.x}
+          y={pos.y + r + 12}
+          textAnchor="middle"
+          fill={isAttacker ? '#fdba74' : '#bfdbfe'}
+          fontSize={9}
+          fontWeight={700}
+          pointerEvents="none"
+          stroke="#111827"
+          strokeWidth={2.5}
+          style={{ paintOrder: 'stroke fill' }}
+        >
+          {name}
+        </text>
+      )}
       {showHelpRing && (denying ? showDenyingRing : true) && (
         <circle
           cx={pos.x}

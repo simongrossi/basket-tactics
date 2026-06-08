@@ -98,6 +98,9 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     dominantHand={state.attackerHands?.[id] ?? 'right'}
                     isActivelyDribbling={attVisuals[id]?.isActivelyDribbling}
                     isPostShotRecovery={attVisuals[id]?.isPostShotRecovery}
+                    name={state.playerNames?.[id]}
+                    number={state.playerNumbers?.[id]}
+                    showName={state.showPlayerNames !== false}
                   />
                 ))}
               {showDefense &&
@@ -115,6 +118,9 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     gazeOrientation={p.gazeOrientation}
                     armBallSide={p.armBallSide}
                     armManSide={p.armManSide}
+                    name={state.playerNames?.[id]}
+                    number={state.playerNumbers?.[id]}
+                    showName={state.showPlayerNames !== false}
                   />
                 ))}
               {Array.from(screenerIds).map((id) =>
@@ -135,6 +141,9 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     dominantHand={state.attackerHands?.[id] ?? 'right'}
                     isActivelyDribbling={attVisuals[id]?.isActivelyDribbling}
                     isPostShotRecovery={attVisuals[id]?.isPostShotRecovery}
+                    name={state.playerNames?.[id]}
+                    number={state.playerNumbers?.[id]}
+                    showName={state.showPlayerNames !== false}
                   />
                 ) : null
               )}

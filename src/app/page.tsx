@@ -35,6 +35,7 @@ import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offen
 import { computeCoachDiagnostics } from '@/lib/logic/coachDiagnostics';
 import { activeBallCarrier, activeOffense } from '@/lib/logic/players';
 import type { ActionTimingAnchor, AddAnnotationOptions, Annotation, AppState, Step } from '@/lib/types';
+import { compressStateToUrl } from '@/lib/state/urlCompression';
 
 export default function Page() {
   const app = useAppState();
@@ -48,6 +49,7 @@ export default function Page() {
   const [scrubT, setScrubT] = useState<number | null>(null);
   const [playbackStartT, setPlaybackStartT] = useState(0);
   const [presentMode, setPresentMode] = useState(false);
+  const [isPlayerMode, setIsPlayerMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // E.2 — État d'export : `exportT` (instant à capturer) primera dans
   // useCourtFrame sur scrub/playback ; `courtSvgRef` permet au capture
@@ -210,14 +212,26 @@ export default function Page() {
     return () => document.removeEventListener('fullscreenchange', handler);
   }, []);
 
+  // Détection du mode lecteur depuis l'URL (hash ou query string)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      const search = window.location.search;
+      const hasPlayer = hash.includes('mode=player') || search.includes('mode=player');
+      if (hasPlayer) {
+        setIsPlayerMode(true);
+      }
+    }
+  }, []);
+
   useKeyboardShortcuts({
     onPlayPause: handlePlayToggle,
     onPrevStep: () => app.setActiveStep(app.state.activeStep - 1),
     onNextStep: () => app.setActiveStep(app.state.activeStep + 1),
-    onSetTool: app.setTool,
-    onDeleteLastAnnotation: app.deleteLastAnnotation,
-    onUndo: app.undo,
-    onRedo: app.redo,
+    onSetTool: isPlayerMode ? () => {} : app.setTool,
+    onDeleteLastAnnotation: isPlayerMode ? () => {} : app.deleteLastAnnotation,
+    onUndo: isPlayerMode ? () => {} : app.undo,
+    onRedo: isPlayerMode ? () => {} : app.redo,
   });
 
   const handleExport = useCallback(() => {
@@ -228,6 +242,11 @@ export default function Page() {
     a.download = 'systeme_basket.json';
     a.click();
     URL.revokeObjectURL(url);
+  }, [app.state]);
+
+  const handleShare = useCallback(async () => {
+    const payload = await compressStateToUrl(app.state);
+    return window.location.origin + window.location.pathname + '#share=' + payload + '&mode=player';
   }, [app.state]);
 
   const handleImport = useCallback(() => {
@@ -279,7 +298,7 @@ export default function Page() {
       }}
     >
       <div
-        className={presentMode ? 'layout-grid presenting' : 'layout-grid'}
+        className={presentMode || isPlayerMode ? 'layout-grid presenting' : 'layout-grid'}
         style={{
           // Refonte UI — largeur de la sidebar pilotée par useSidebarState.
           // Le mode présentation force une seule colonne (cf. .presenting).
@@ -288,7 +307,7 @@ export default function Page() {
           }px`,
         }}
       >
-        {!presentMode && (
+        {!presentMode && !isPlayerMode && (
           <Sidebar
             activeView={sidebar.activeView}
             collapsed={sidebar.collapsed}
@@ -299,11 +318,14 @@ export default function Page() {
               <SidebarOverflowMenu
                 presentMode={presentMode}
                 onTogglePresentMode={handleTogglePresentMode}
+                isPlayerMode={isPlayerMode}
+                onTogglePlayerMode={() => setIsPlayerMode((v) => !v)}
                 onOpenPlayerTimeline={() => setShowPlayerTimeline(true)}
                 onOpenExport={() => setShowExportModal(true)}
                 onExport={handleExport}
                 onImport={handleImport}
                 onReset={app.resetAll}
+                onShare={handleShare}
                 collapsed={sidebar.collapsed}
               />
             }
@@ -504,7 +526,39 @@ export default function Page() {
           {sidebar.activeView === 'court' && (
           <>
           <div style={{ position: 'relative', minHeight: 0, overflow: 'hidden', display: 'grid' }}>
-            {app.state.showCoachDiagnostics !== false && (
+            {isPlayerMode && (
+              <div className="player-header">
+                <div className="player-brand">
+                  <span style={{ color: '#ea580c' }}>🏀</span> Basket Tactics
+                  <span style={{
+                    fontSize: 10,
+                    background: 'rgba(234, 88, 12, 0.2)',
+                    color: '#fdba74',
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                    fontWeight: '600',
+                    marginLeft: 6,
+                  }}>LECTEUR</span>
+                </div>
+                <div className="player-step-info">
+                  <div style={{ fontSize: 9, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    Étape {(() => {
+                      const realIndices: number[] = [];
+                      app.state.steps.forEach((s, idx) => { if (!s.isInterpolated) realIndices.push(idx); });
+                      const currentRealIdx = realIndices.indexOf(app.state.activeStep);
+                      return currentRealIdx !== -1 ? currentRealIdx + 1 : app.state.activeStep + 1;
+                    })()} sur {app.state.steps.filter(s => !s.isInterpolated).length || 1}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2, color: '#f3f4f6', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {app.state.steps[app.state.activeStep]?.label || 'Sans description'}
+                  </div>
+                </div>
+                <button className="player-edit-btn" onClick={() => setIsPlayerMode(false)}>
+                  ✍️ Mode Éditeur
+                </button>
+              </div>
+            )}
+            {app.state.showCoachDiagnostics !== false && !isPlayerMode && (
               <CoachDiagnosticsOverlay diagnostics={coachDiagnostics} />
             )}
             {/* E.1 V1 — HUD compact en overlay quand mode présentation actif
@@ -524,7 +578,7 @@ export default function Page() {
             )}
             <CourtView
               state={app.state}
-              diagnostics={coachDiagnostics}
+              diagnostics={isPlayerMode ? [] : coachDiagnostics}
               onMoveAttacker={app.moveAttacker}
               onMoveDefender={app.moveDefender}
               onBeginPlayerDrag={app.beginPlayerDrag}
@@ -549,6 +603,8 @@ export default function Page() {
               onSetAttackerOrientation={app.setAttackerOrientation}
               onSetZoneOverride={app.setZoneOverride}
               onClearZoneOverride={app.clearZoneOverride}
+              onSetPlayerName={app.setPlayerName}
+              onSetPlayerNumber={app.setPlayerNumber}
               onDeleteAnnotation={app.deleteAnnotation}
               onSetAnnotationFrom={app.setAnnotationFrom}
               onSetAnnotationTo={app.setAnnotationTo}
@@ -571,9 +627,10 @@ export default function Page() {
               liveMatchState={matchLoop.matchState}
               exportT={exportT}
               externalSvgRef={courtSvgRef}
+              isPlayerMode={isPlayerMode}
             />
           </div>
-          {(app.state.scriptedActions?.length ?? 0) > 0 && (
+          {(app.state.scriptedActions?.length ?? 0) > 0 && !isPlayerMode && (
             <ScenarioReader
               scriptedActions={app.state.scriptedActions ?? []}
               activeStep={app.state.activeStep}
@@ -601,25 +658,27 @@ export default function Page() {
                 onSetPlaybackSpeed={setPlaybackSpeed}
               />
             </div>
-            <button
-              onClick={() => setShowMultiTrack((v) => !v)}
-              title={showMultiTrack ? 'Masquer les pistes joueurs' : 'Afficher les pistes joueurs (multi-track)'}
-              style={{
-                padding: '6px 10px',
-                fontSize: 12,
-                border: '1px solid #2a2d35',
-                borderRadius: 6,
-                background: showMultiTrack ? 'rgba(216, 90, 48, 0.2)' : '#2f343d',
-                color: showMultiTrack ? '#fdba74' : '#cbd5e1',
-                cursor: 'pointer',
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {showMultiTrack ? '▼' : '▲'} pistes
-            </button>
+            {!isPlayerMode && (
+              <button
+                onClick={() => setShowMultiTrack((v) => !v)}
+                title={showMultiTrack ? 'Masquer les pistes joueurs' : 'Afficher les pistes joueurs (multi-track)'}
+                style={{
+                  padding: '6px 10px',
+                  fontSize: 12,
+                  border: '1px solid #2a2d35',
+                  borderRadius: 6,
+                  background: showMultiTrack ? 'rgba(216, 90, 48, 0.2)' : '#2f343d',
+                  color: showMultiTrack ? '#fdba74' : '#cbd5e1',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {showMultiTrack ? '▼' : '▲'} pistes
+              </button>
+            )}
           </div>
-          {showMultiTrack && (
+          {showMultiTrack && !isPlayerMode && (
             <MultiTrackTimeline
               state={app.state}
               fullT={scrubT ?? playbackT ?? app.state.activeStep}
@@ -641,12 +700,14 @@ export default function Page() {
               onSetQuality={app.setAnnotationQuality}
             />
           )}
-          {metrics && <MetricsBar metrics={metrics} bestAction={bestAction} screenAction={screenAction} />}
-          <MetricsChart
-            state={app.state}
-            activeStep={app.state.activeStep}
-            onSetActiveStep={app.setActiveStep}
-          />
+          {metrics && !isPlayerMode && <MetricsBar metrics={metrics} bestAction={bestAction} screenAction={screenAction} />}
+          {!isPlayerMode && (
+            <MetricsChart
+              state={app.state}
+              activeStep={app.state.activeStep}
+              onSetActiveStep={app.setActiveStep}
+            />
+          )}
           </>
           )}
         </div>
@@ -703,6 +764,84 @@ export default function Page() {
         }
         .layout-grid.presenting {
           grid-template-columns: 1fr;
+        }
+        .player-header {
+          position: absolute;
+          top: 14px;
+          left: 14px;
+          right: 14px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          z-index: 50;
+          pointer-events: none;
+        }
+        .player-brand {
+          background: rgba(30, 41, 59, 0.85);
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          padding: 8px 14px;
+          border-radius: 8px;
+          color: #fff;
+          font-size: 13px;
+          font-weight: bold;
+          display: flex;
+          align-items: center;
+          pointer-events: auto;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .player-step-info {
+          background: rgba(30, 41, 59, 0.85);
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          padding: 8px 18px;
+          border-radius: 8px;
+          color: #fff;
+          text-align: center;
+          pointer-events: auto;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+          max-width: 400px;
+          flex: 1;
+          min-width: 0;
+        }
+        .player-edit-btn {
+          background: rgba(234, 88, 12, 0.9);
+          border: 1px solid #ea580c;
+          color: #fff;
+          padding: 8px 14px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          pointer-events: auto;
+          box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+          transition: background 0.2s;
+        }
+        .player-edit-btn:hover {
+          background: #ea580c;
+        }
+
+        @media (max-width: 640px) {
+          .player-header {
+            flex-direction: column;
+            align-items: stretch;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            gap: 6px;
+          }
+          .player-brand {
+            display: none;
+          }
+          .player-step-info {
+            max-width: none;
+            padding: 6px 12px;
+          }
+          .player-edit-btn {
+            padding: 6px 12px;
+            text-align: center;
+          }
         }
         .center-col {
           display: grid;

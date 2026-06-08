@@ -54,3 +54,10 @@ if (typeof window !== 'undefined') {
     define(g, 'sessionStorage', (w as Record<string, unknown>).sessionStorage);
   }
 }
+
+if (typeof window !== 'undefined') {
+  if (typeof window.CompressionStream === 'undefined' && typeof globalThis.CompressionStream !== 'undefined') {
+    Object.defineProperty(window, 'CompressionStream', { value: globalThis.CompressionStream, configurable: true });
+    Object.defineProperty(window, 'DecompressionStream', { value: globalThis.DecompressionStream, configurable: true });
+  }
+}

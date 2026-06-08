@@ -113,7 +113,7 @@ export const BALL_RADIUS = 7;
 //  - CLUSTER_LINK_DIST : distance max entre deux joueurs liés (poseur ↔ déf).
 //  - MIN_CLEARANCE : distance minimale entre deux centres joueur (anti-overlap).
 export const PLAYER_OBSTACLE_RADIUS_PX = PLAYER_RADIUS + 2;
-export const PLAYER_PICK_RADIUS_PX = PLAYER_RADIUS + 4;
+export const PLAYER_PICK_RADIUS_PX = 22;
 export const PLAYER_CLUSTER_BASE_R_PX = PLAYER_RADIUS + 4;
 export const PLAYER_CLUSTER_LINK_DIST_PX = PLAYER_RADIUS * 4;
 export const PLAYER_MIN_CLEARANCE_PX = PLAYER_RADIUS * 2 + 2;

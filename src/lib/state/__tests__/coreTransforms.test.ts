@@ -40,4 +40,35 @@ describe('coreTransforms', () => {
       expect(s0.activeStep).toBe(0);
     });
   });
+
+  describe('setPlayerName', () => {
+    it("définit le nom personnalisé du joueur dans playerNames", () => {
+      const s0 = makeInitialState();
+      const s1 = coreTx.setPlayerName(s0, 'O1', 'Tony Parker');
+      expect(s1.playerNames?.O1).toBe('Tony Parker');
+    });
+  });
+
+  describe('setPlayerNumber', () => {
+    it("définit le numéro de maillot personnalisé du joueur dans playerNumbers", () => {
+      const s0 = makeInitialState();
+      const s1 = coreTx.setPlayerNumber(s0, 'O1', '9');
+      expect(s1.playerNumbers?.O1).toBe('9');
+    });
+  });
+
+  describe('importState', () => {
+    it("conserve la compatibilité ascendante pour les anciennes sauvegardes", () => {
+      const s0 = makeInitialState();
+      const oldState = { ...s0 } as any;
+      delete oldState.playerNames;
+      delete oldState.playerNumbers;
+      delete oldState.showPlayerNames;
+
+      const imported = coreTx.importState(oldState);
+      expect(imported.playerNames).toEqual({});
+      expect(imported.playerNumbers).toEqual({});
+      expect(imported.showPlayerNames).toBe(true);
+    });
+  });
 });
