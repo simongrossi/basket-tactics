@@ -35,6 +35,12 @@ export function loadTemplate(s: AppState, template: Template): AppState {
     ),
     activeStep: 0,
     defenseInitial: structuredClone(template.defenseInitial),
+    scriptedActions: template.scriptedActions ? structuredClone(template.scriptedActions) : [],
+    scenarioBranches: template.scenarioBranches ? structuredClone(template.scenarioBranches) : [],
+    activeBranchId: template.activeBranchId !== undefined ? template.activeBranchId : null,
+    continuityLoop: template.continuityLoop ? structuredClone(template.continuityLoop) : undefined,
+    autoReplacementEnabled: template.autoReplacementEnabled ?? undefined,
+    autoReplacementDepth: template.autoReplacementDepth ?? undefined,
   };
 }
 

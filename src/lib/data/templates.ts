@@ -1,4 +1,12 @@
-import type { AttackerPositions, DefenderPositions, Step, Annotation } from '../types';
+import type {
+  AttackerPositions,
+  DefenderPositions,
+  Step,
+  Annotation,
+  ScriptedAction,
+  ScenarioBranch,
+  ContinuityLoop,
+} from '../types';
 import { INBOUND_TEMPLATES } from './inboundTemplates';
 
 export interface Template {
@@ -12,7 +20,14 @@ export interface Template {
    *  Exemples : `['pnr', 'porteur']`, `['off-ball', 'pindown']`,
    *  `['touche', 'blob']`, `['lab']`. */
   tags?: string[];
+  scriptedActions?: ScriptedAction[];
+  scenarioBranches?: ScenarioBranch[];
+  activeBranchId?: string | null;
+  continuityLoop?: ContinuityLoop | null;
+  autoReplacementEnabled?: boolean;
+  autoReplacementDepth?: number;
 }
+
 
 /**
  * Position canonique de défenseurs alignés sur l'attaque pour les templates.
@@ -78,6 +93,14 @@ const PNR_CENTRAL: Template = {
   tags: ['pnr', 'porteur'],
   description: "Pick & roll au centre. O5 monte poser l'écran, O1 attaque, O5 plonge.",
   defenseInitial: defaultDef(pnrSetup),
+  scriptedActions: [
+    {
+      kind: 'offensive',
+      id: 'pnr-central-1',
+      type: 'pick-and-roll',
+      params: { ballHandler: 'O1', screener: 'O5', side: 'fort' },
+    },
+  ],
   steps: [
     {
       label: 'Setup',
@@ -381,6 +404,20 @@ const SPAIN_PNR: Template = {
   tags: ['pnr', 'spain', 'porteur'],
   description: "PNR central + back-screen de O4 sur D5 pour libérer O5 dans la raquette.",
   defenseInitial: defaultDef(spainSetup),
+  scriptedActions: [
+    {
+      kind: 'offensive',
+      id: 'spain-pnr-1',
+      type: 'pick-and-roll',
+      params: { ballHandler: 'O1', screener: 'O5', side: 'fort' },
+    },
+    {
+      kind: 'offensive',
+      id: 'spain-pnr-2',
+      type: 'back-screen',
+      params: { screener: 'O4', cutter: 'O5' },
+    },
+  ],
   steps: [
     { label: 'Setup', off: spainSetup, ballCarrier: 'O1', annotations: [] },
     {
