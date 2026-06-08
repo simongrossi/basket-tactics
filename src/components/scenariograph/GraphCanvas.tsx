@@ -331,7 +331,8 @@ export function GraphCanvas({
   return (
     <div
       style={{
-        flex: 1,
+        width: '100%',
+        height: '100%',
         position: 'relative',
         background: '#0f172a',
         overflow: 'hidden',
