@@ -10,7 +10,8 @@ export type SidebarView =
   | 'court'
   | 'playbook'
   | 'library'
-  | 'settings';
+  | 'settings'
+  | 'scenariograph';
 
 const STORAGE_KEY = 'bt:sidebar:v1';
 
@@ -40,7 +41,13 @@ function load(): Persisted {
 }
 
 function isView(v: unknown): v is SidebarView {
-  return v === 'court' || v === 'playbook' || v === 'library' || v === 'settings';
+  return (
+    v === 'court' ||
+    v === 'playbook' ||
+    v === 'library' ||
+    v === 'settings' ||
+    v === 'scenariograph'
+  );
 }
 
 export function useSidebarState() {

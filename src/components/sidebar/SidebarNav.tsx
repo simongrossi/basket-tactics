@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpen, Clapperboard, Library, Settings, Target } from 'lucide-react';
+import { BookOpen, Clapperboard, GitFork, Library, Settings, Target } from 'lucide-react';
 import type { SidebarView } from '@/hooks/useSidebarState';
 import { SIDEBAR } from './tokens';
 import { SidebarNavItem } from './SidebarNavItem';
@@ -13,6 +13,7 @@ type Props = {
 
 const ITEMS: { view: SidebarView; icon: typeof Target; label: string }[] = [
   { view: 'court', icon: Target, label: 'Terrain' },
+  { view: 'scenariograph', icon: GitFork, label: 'Scénario Nodal' },
   { view: 'playbook', icon: BookOpen, label: 'Playbook' },
   { view: 'library', icon: Library, label: 'Bibliothèque' },
   { view: 'settings', icon: Settings, label: 'Paramètres' },

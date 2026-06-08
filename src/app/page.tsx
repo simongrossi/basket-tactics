@@ -25,6 +25,7 @@ import { MiniBoxScore } from '@/components/MiniBoxScore';
 import { PlaybookView } from '@/components/PlaybookView';
 import { PlayerTimelineModal } from '@/components/PlayerTimelineModal';
 import { MultiTrackTimeline } from '@/components/MultiTrackTimeline';
+import { ScenarioGraphView } from '@/components/scenariograph/ScenarioGraphView';
 import { MetricsBar } from '@/components/MetricsBar';
 import { MetricsChart } from '@/components/MetricsChart';
 import { CoachDiagnosticsOverlay } from '@/components/CoachDiagnosticsOverlay';
@@ -521,6 +522,25 @@ export default function Page() {
                   />
                 </div>
               </div>
+            </SidebarThemeProvider>
+          )}
+          {sidebar.activeView === 'scenariograph' && (
+            <SidebarThemeProvider dark>
+              <ScenarioGraphView
+                state={app.state}
+                activeStep={app.state.activeStep}
+                onSetActiveStep={app.setActiveStep}
+                onAddScriptedAction={app.addScriptedAction}
+                onUpdateScriptedAction={app.updateScriptedAction}
+                onDeleteScriptedAction={app.deleteScriptedAction}
+                onMoveScriptedAction={app.moveScriptedAction}
+                onAddScenarioBranch={app.addScenarioBranch}
+                onUpdateScenarioBranch={app.updateScenarioBranch}
+                onDeleteScenarioBranch={app.deleteScenarioBranch}
+                onSetActiveBranch={app.setActiveBranch}
+                onSetContinuityLoop={app.setContinuityLoop}
+                onClose={() => sidebar.setActiveView('court')}
+              />
             </SidebarThemeProvider>
           )}
           {sidebar.activeView === 'court' && (
