@@ -1,13 +1,16 @@
 import type {
   AttackerPositions,
   DefenderPositions,
+  DefenseSystem,
   Step,
   Annotation,
   ScriptedAction,
   ScenarioBranch,
   ContinuityLoop,
+  ZoneType,
 } from '../types';
 import { INBOUND_TEMPLATES } from './inboundTemplates';
+import { ANTI_ZONE_TEMPLATES } from './antiZoneTemplates';
 
 export interface Template {
   id: string;
@@ -26,6 +29,11 @@ export interface Template {
   continuityLoop?: ContinuityLoop | null;
   autoReplacementEnabled?: boolean;
   autoReplacementDepth?: number;
+  /** Système défensif à activer au chargement (ex. templates anti-zone →
+   *  'zone'). Absent = ne pas toucher au système défensif courant. */
+  defenseSystem?: DefenseSystem;
+  /** Type de zone à activer si `defenseSystem === 'zone'` (ex. 'zone-2-3'). */
+  zoneType?: ZoneType;
 }
 
 
@@ -1230,6 +1238,7 @@ export const CLASSIC_TEMPLATES: Template[] = [
   IVERSON_CUT,
   STAGGER,
   PNR_WING,
+  ...ANTI_ZONE_TEMPLATES,
   ...INBOUND_TEMPLATES,
 ];
 

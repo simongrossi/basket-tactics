@@ -41,6 +41,13 @@ export function loadTemplate(s: AppState, template: Template): AppState {
     continuityLoop: template.continuityLoop ? structuredClone(template.continuityLoop) : undefined,
     autoReplacementEnabled: template.autoReplacementEnabled ?? undefined,
     autoReplacementDepth: template.autoReplacementDepth ?? undefined,
+    // Templates anti-zone : activent le système défensif voulu (ex. zone 2-3)
+    // pour que le coach voie immédiatement l'attaque face à la bonne défense.
+    defenseSystem: template.defenseSystem ?? s.defenseSystem,
+    zoneConfig:
+      template.defenseSystem === 'zone' && template.zoneType
+        ? { ...s.zoneConfig, type: template.zoneType }
+        : s.zoneConfig,
   };
 }
 
