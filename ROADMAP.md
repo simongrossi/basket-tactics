@@ -99,10 +99,16 @@ match-sim crédible, attaque de zone.
 
 ### 🛠️ Dette qui conditionne ces chantiers
 
-- **Aucun test d'intégration du pipeline défensif** (3 couches testées
-  isolément sur 14+) — « risque de régression #1 » de l'audit
-  2026-05-29. À faire **avant** fautes et transition, qui vont insérer
-  des couches.
+- 🟢 **Tests d'intégration du pipeline défensif — couverts (2026-06-11)**.
+  Le « risque de régression #1 » de l'audit 2026-05-29 était partiellement
+  périmé : DM.2 (`defense/__tests__/pipelineIntegration.test.ts`) existait
+  déjà, mais figé sur l'état pré-juin. **Vague 2 livrée** (commit `c581327`,
+  +29 tests) : matrice étendue aux 6 couches de juin (driveContainment,
+  weakSideAnchor, blitzRelease, unwind, snakeKeep, switchPolicy), test
+  sémantique « PnR + aide coexistent », double écran porteur + off-ball,
+  séquence multi-steps avec invariants à chaque step, systèmes
+  court-circuit zone/junk/press. Les chantiers fautes/transition peuvent
+  insérer des couches avec ce filet.
 - **God-objects exactement là où on va travailler** : `gameLoop.ts`
   (~2080 l. — match-sim V2), `frameResolver.ts` (~2000 l. —
   transition/playback), `DefensePanel.tsx` (~1550 l.). En bonus : dédup
@@ -113,7 +119,7 @@ match-sim crédible, attaque de zone.
 
 | # | Chantier | Statut | Effort | Valeur |
 |---|---|---|---|---|
-| 1 | Tests d'intégration pipeline défensif + découpe `gameLoop`/`frameResolver` | ⚪ | 2-3j | 🛡 sécurise tout le reste |
+| 1 | Tests d'intégration pipeline défensif ✅ (2026-06-11) + découpe `gameLoop`/`frameResolver` ⚪ | 🟡 | 1-2j restants | 🛡 sécurise tout le reste |
 | 2 | **Contact & fautes** (2b.2 → 2b.3 charge → bonus/LF) | ⚪ (2b.1 specé) | 1.5-2j | 🔴 manque basket #1 |
 | 3 | **Transition complète** (2c1/3c2 + secondary break + cross-matching) | ⚪ | 2-3j | 🔴 25-30 % des possessions |
 | 4 | **Match-sim V2** (adversaire réel, fatigue, quart-temps, banc) | ⚪ | 2-3j | 🔴 dépend de 2+3 |
