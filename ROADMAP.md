@@ -49,13 +49,16 @@ match-sim crédible, attaque de zone.
    mode match, pas de quart-temps, pas de timeout, pas de banc. Le
    roster nommé livré appelle la suite logique : 5 de départ,
    remplacements, minutes.
-4. **Attaque de zone — inexistante** *(nouveau, non tracé jusqu'ici)*.
-   La défense couvre 5 zones + junk + press, mais **l'offense n'a aucun
-   concept anti-zone** : surcharge d'un côté, flash high-post, short
-   corner, écran sur la zone, alignement adapté (1-3-1 face à une 2-3).
-   Les 57 générateurs et les lectures Phase L sont pensés contre
-   l'homme. Face à une zone 2-3, l'attaque joue comme si c'était de
-   l'homme — le décalage le plus visible pour un coach réel.
+4. **Attaque de zone** — 🟡 **V1 livrée 2026-06-12** (commit `4e353d9`) :
+   3 templates anti-zone avec lectures (`antiZoneTemplates.ts`) —
+   **Surcharge vs 2-3** (overload + short corner, lectures en cascade
+   multi-niveaux : low sort → corner → fermé → renversement),
+   **Flash high post vs 2-3** (nail + high-low), **Renversement short
+   corner vs 1-3-1** (dilemme de l'ancre). Les templates activent la
+   zone correspondante au chargement (`Template.defenseSystem/zoneType`).
+   Reste ⚪ : écran sur la zone (screen the zone), zone matchup/3-2,
+   lectures RÉACTIVES anti-zone (triggers lus sur la zone, pas seulement
+   branches manuelles), spacing anti-zone dans les générateurs.
 
 ### 🟠 Moyens — réalisme et profondeur tactique
 
@@ -64,10 +67,11 @@ match-sim crédible, attaque de zone.
    rim-roller ×1.4). Et côté offense il manque la **décision crash vs
    sécurité** (envoyer 2-3 au rebond offensif ou se replier) — un vrai
    choix de coach moderne. Recouvre A11 V3 (boxOutLayer dynamique).
-6. **Extensions Phase L** : arbres multi-niveaux (sous-branches
-   récursives) et receveur dynamique sur le drive-and-kick. En match
-   réel une lecture est une chaîne (drive → kick → extra pass →
-   closeout attaqué). **L'éditeur nodal en cours est le bon véhicule.**
+6. **Extensions Phase L** : 🟡 **arbres multi-niveaux livrés 2026-06-11**
+   (commit `77ab9c5` : `parentBranchId`, compilation en cascade,
+   breadcrumb + sous-branches dans l'éditeur nodal). Reste ⚪ : receveur
+   dynamique sur le drive-and-kick, lectures réactives de niveau 2
+   (trigger sur une sous-branche).
 7. **Game management fin de match** *(nouveau)*. Late shot clock et
    foul-to-give existent en diagnostic, mais aucune situation de fin de
    match : 2-for-1, faute volontaire à +3, tenir la dernière
@@ -125,8 +129,8 @@ match-sim crédible, attaque de zone.
 | 2 | **Contact & fautes** — 2b.1 issues du drive ✅ (2026-06-11, pull-up/kick-out/strip mid-drive) → 2b.2 fautes ⚪ → 2b.3 charge ⚪ → bonus/LF ⚪ | 🟡 | 1-1.5j restants | 🔴 manque basket #1 |
 | 3 | **Transition complète** (2c1/3c2 + secondary break + cross-matching) | ⚪ | 2-3j | 🔴 25-30 % des possessions |
 | 4 | **Match-sim V2** (adversaire réel, fatigue, quart-temps, banc) | ⚪ | 2-3j | 🔴 dépend de 2+3 |
-| 5 | **Attaque de zone** (nouveau chantier à créer) | ⚪ | 2-3j | 🔴 seul gros trou non tracé |
-| 6 | Extensions Phase L via l'éditeur nodal (multi-niveaux, receveur dyn.) | 🟡 éditeur en cours | 1-2j | 🟠 synergie travail actuel |
+| 5 | **Attaque de zone** — V1 ✅ (2026-06-12, 3 templates + lectures) · screen-the-zone, lectures réactives anti-zone ⚪ | 🟡 | 1-2j restants | 🔴 gap critique comblé en V1 |
+| 6 | Extensions Phase L — multi-niveaux ✅ (2026-06-11, sous-branches récursives) · receveur dynamique ⚪ | 🟡 | 0.5-1j restant | 🟠 synergie travail actuel |
 | 7 | Game management fin de match (2-for-1, faute à +3…) | ⚪ | 1j | 🟠 |
 | 8 | Rebond réaliste + crash vs repli (recouvre A11 V3) | ⚪ | 1-2j | 🟠 |
 | 9 | Poursuite défenseur V4 en playback | ⚪ | 1j | 🟠 qualité visuelle lecture |
