@@ -109,17 +109,19 @@ match-sim crédible, attaque de zone.
   séquence multi-steps avec invariants à chaque step, systèmes
   court-circuit zone/junk/press. Les chantiers fautes/transition peuvent
   insérer des couches avec ce filet.
-- **God-objects exactement là où on va travailler** : `gameLoop.ts`
-  (~2080 l. — match-sim V2), `frameResolver.ts` (~2000 l. —
-  transition/playback), `DefensePanel.tsx` (~1550 l.). En bonus : dédup
-  ball-side/weak-side (3 chemins) et prop drilling 40+ callbacks depuis
+- **God-objects** : 🟢 `gameLoop.ts` **découpé 2026-06-11** (2080 → 325 l.,
+  barrel + 7 modules dans `match/gameLoop/`, API publique inchangée,
+  commit `0a3b95e`) — les chantiers fautes et match-sim V2 travailleront
+  dans ces modules. Restent ⚪ : `frameResolver.ts` (~2000 l. — session
+  dédiée, épicentre Règle 1bis), `DefensePanel.tsx` (~1550 l.), dédup
+  ball-side/weak-side (3 chemins), prop drilling 40+ callbacks depuis
   `page.tsx`.
 
 ### 📌 Priorisation consolidée (ordre conseillé)
 
 | # | Chantier | Statut | Effort | Valeur |
 |---|---|---|---|---|
-| 1 | Tests d'intégration pipeline défensif ✅ (2026-06-11) + découpe `gameLoop`/`frameResolver` ⚪ | 🟡 | 1-2j restants | 🛡 sécurise tout le reste |
+| 1 | Tests d'intégration pipeline ✅ + découpe `gameLoop` ✅ (2080→325 l., 2026-06-11) · découpe `frameResolver` ⚪ (session dédiée — épicentre Règle 1bis) | 🟡 | 1j restant | 🛡 sécurise tout le reste |
 | 2 | **Contact & fautes** (2b.2 → 2b.3 charge → bonus/LF) | ⚪ (2b.1 specé) | 1.5-2j | 🔴 manque basket #1 |
 | 3 | **Transition complète** (2c1/3c2 + secondary break + cross-matching) | ⚪ | 2-3j | 🔴 25-30 % des possessions |
 | 4 | **Match-sim V2** (adversaire réel, fatigue, quart-temps, banc) | ⚪ | 2-3j | 🔴 dépend de 2+3 |
