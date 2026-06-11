@@ -2,7 +2,9 @@
 
 **Date** : 2026-06-03
 **Sous-projet** : Défense vivante / drive #2b.1 (issues du drive, sans fautes)
-**Statut** : design validé, prêt pour plan d'implémentation
+**Statut** : ✅ livré 2026-06-11 (commit `c9d409e`, +13 tests) — implémenté
+conformément à la spec (décideur pur `decisions/driveOutcome.ts` + câblage
+`gameLoop/carrierActions.ts::advanceDrive`, opt-in `driveContainmentEnabled`)
 
 > Suite du sous-projet 2 (défense vivante / drive). 2a a livré le **cœur pur**
 > `evaluateDriveContainment` + le câblage **playback**. 2b câble le **match-sim**.

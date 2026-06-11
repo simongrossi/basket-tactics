@@ -122,7 +122,7 @@ match-sim crédible, attaque de zone.
 | # | Chantier | Statut | Effort | Valeur |
 |---|---|---|---|---|
 | 1 | Tests d'intégration pipeline ✅ + découpe `gameLoop` ✅ (2080→325 l., 2026-06-11) · découpe `frameResolver` ⚪ (session dédiée — épicentre Règle 1bis) | 🟡 | 1j restant | 🛡 sécurise tout le reste |
-| 2 | **Contact & fautes** (2b.2 → 2b.3 charge → bonus/LF) | ⚪ (2b.1 specé) | 1.5-2j | 🔴 manque basket #1 |
+| 2 | **Contact & fautes** — 2b.1 issues du drive ✅ (2026-06-11, pull-up/kick-out/strip mid-drive) → 2b.2 fautes ⚪ → 2b.3 charge ⚪ → bonus/LF ⚪ | 🟡 | 1-1.5j restants | 🔴 manque basket #1 |
 | 3 | **Transition complète** (2c1/3c2 + secondary break + cross-matching) | ⚪ | 2-3j | 🔴 25-30 % des possessions |
 | 4 | **Match-sim V2** (adversaire réel, fatigue, quart-temps, banc) | ⚪ | 2-3j | 🔴 dépend de 2+3 |
 | 5 | **Attaque de zone** (nouveau chantier à créer) | ⚪ | 2-3j | 🔴 seul gros trou non tracé |
