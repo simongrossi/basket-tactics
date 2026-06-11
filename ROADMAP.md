@@ -8,6 +8,124 @@ Vision produit forward-looking.
 
 Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
+## 🔎 Audit expert basket — 2026-06-11 (consolidation)
+
+> **C'est la section de référence pour prioriser.** Elle croise la
+> relecture « œil de coach » du moteur avec **tous** les chantiers ⚪/🟡
+> encore ouverts dans ce fichier et dans [IDEAS.md](IDEAS.md). Les
+> sections plus bas restent l'historique détaillé.
+
+### État des lieux
+
+Le **demi-terrain placé est mature** : défense 14+ couches (PnR, scram,
+junk, press, zones), offense en lecture réactive (Phase L), motion
+complet (continuité + auto-replacement + ball-chain), réalisme
+cinématique actif par défaut, ~2060 tests verts. Les manques sont
+désormais concentrés sur **4 axes** : contact/fautes, transition,
+match-sim crédible, attaque de zone.
+
+### 🔴 Critiques — ce qui empêche de simuler un vrai basket
+
+1. **Contact & fautes — le demi-jeu absent.** Aucune faute dans le
+   moteur : pas de faute défensive sur drive, pas d'and-one, pas de
+   bonus / lancers-francs comme issue de possession, pas de passage en
+   force. Le foul-to-give n'est qu'un diagnostic. ~20 % des possessions
+   réelles se terminent sur un coup de sifflet. Déjà tracé (programme
+   réalisme 2b.2 fautes → 2b.3 charge + chantier #12 ci-dessous) mais
+   **à promouvoir en chantier structurant** : tag du roller, drive
+   containment et rebond restent des approximations géométriques tant
+   que le contact n'existe pas.
+2. **Transition — livrée au tiers.** L'outlet + sprint des couloirs
+   existe (sous-projet 1). Manquent : la **lecture de l'avantage
+   numérique** (2c1 : attaquer le défenseur, passer au dernier moment ;
+   3c2 : couloirs + drag), la **conclusion** (layup vs kick corner), le
+   **secondary break** (bascule vers le demi-terrain placé), et côté
+   défense le **cross-matching du repli** (prendre le premier attaquant
+   disponible, pas son homme) avec la hiérarchie réelle : arrêter le
+   ballon → protéger le panier → matcher ensuite. ~25-30 % des
+   possessions.
+3. **Match-sim — adversaire factice.** `AWAY_SCORE_PROBABILITY` à 50 %
+   hardcodé : l'équipe adverse tire à pile ou face. Pas de fatigue en
+   mode match, pas de quart-temps, pas de timeout, pas de banc. Le
+   roster nommé livré appelle la suite logique : 5 de départ,
+   remplacements, minutes.
+4. **Attaque de zone — inexistante** *(nouveau, non tracé jusqu'ici)*.
+   La défense couvre 5 zones + junk + press, mais **l'offense n'a aucun
+   concept anti-zone** : surcharge d'un côté, flash high-post, short
+   corner, écran sur la zone, alignement adapté (1-3-1 face à une 2-3).
+   Les 57 générateurs et les lectures Phase L sont pensés contre
+   l'homme. Face à une zone 2-3, l'attaque joue comme si c'était de
+   l'homme — le décalage le plus visible pour un coach réel.
+
+### 🟠 Moyens — réalisme et profondeur tactique
+
+5. **Rebond naïf + décision crash vs repli.** `match/rebound.ts` ignore
+   le box-out réel et la détente (multiplicateurs hardcodés :
+   rim-roller ×1.4). Et côté offense il manque la **décision crash vs
+   sécurité** (envoyer 2-3 au rebond offensif ou se replier) — un vrai
+   choix de coach moderne. Recouvre A11 V3 (boxOutLayer dynamique).
+6. **Extensions Phase L** : arbres multi-niveaux (sous-branches
+   récursives) et receveur dynamique sur le drive-and-kick. En match
+   réel une lecture est une chaîne (drive → kick → extra pass →
+   closeout attaqué). **L'éditeur nodal en cours est le bon véhicule.**
+7. **Game management fin de match** *(nouveau)*. Late shot clock et
+   foul-to-give existent en diagnostic, mais aucune situation de fin de
+   match : 2-for-1, faute volontaire à +3, tenir la dernière
+   possession, raccourcir le jeu quand on mène.
+8. **Lacunes défensives résiduelles** (IDEAS §8) : X-out limité à un
+   seul roller, pas de re-scram en cascade, tag du roller sans contact.
+   À ranger derrière le chantier fautes (le contact en est le
+   prérequis).
+9. **Poursuite défenseur V4 en playback.** Fatigue, lecture du regard et
+   anticipation variable ne vivent qu'en édition (drag attaquant). En
+   playback, seul le legacy `footworkRulesEnabled` est actif — la
+   lecture animée est moins « vivante » que l'édition, alors que c'est
+   elle qu'on montre aux joueurs.
+
+### 🟡 Mineurs / opportunités
+
+10. **Latéralité fonctionnelle** : `dominantHand` n'affecte que le
+    sprite. Finition main faible / drive côté fort changerait les
+    lectures de l'ice (forcer la mauvaise main est le but réel de cette
+    couverture).
+11. **Boxscore / stats par possession** dans le match-sim (efficacité
+    par action, par joueur) — transformerait la simulation en outil
+    d'analyse.
+12. **Spacing optimum global** : `positionOffBall` reste glouton par
+    paires ; fill spacing-optimal avec bonus corner noté restant
+    (Phase Motion).
+13. **Comparaison côte-à-côte** de deux défenses sur le même système
+    (backlog IDEAS, forte valeur coach).
+
+### 🛠️ Dette qui conditionne ces chantiers
+
+- **Aucun test d'intégration du pipeline défensif** (3 couches testées
+  isolément sur 14+) — « risque de régression #1 » de l'audit
+  2026-05-29. À faire **avant** fautes et transition, qui vont insérer
+  des couches.
+- **God-objects exactement là où on va travailler** : `gameLoop.ts`
+  (~2080 l. — match-sim V2), `frameResolver.ts` (~2000 l. —
+  transition/playback), `DefensePanel.tsx` (~1550 l.). En bonus : dédup
+  ball-side/weak-side (3 chemins) et prop drilling 40+ callbacks depuis
+  `page.tsx`.
+
+### 📌 Priorisation consolidée (ordre conseillé)
+
+| # | Chantier | Statut | Effort | Valeur |
+|---|---|---|---|---|
+| 1 | Tests d'intégration pipeline défensif + découpe `gameLoop`/`frameResolver` | ⚪ | 2-3j | 🛡 sécurise tout le reste |
+| 2 | **Contact & fautes** (2b.2 → 2b.3 charge → bonus/LF) | ⚪ (2b.1 specé) | 1.5-2j | 🔴 manque basket #1 |
+| 3 | **Transition complète** (2c1/3c2 + secondary break + cross-matching) | ⚪ | 2-3j | 🔴 25-30 % des possessions |
+| 4 | **Match-sim V2** (adversaire réel, fatigue, quart-temps, banc) | ⚪ | 2-3j | 🔴 dépend de 2+3 |
+| 5 | **Attaque de zone** (nouveau chantier à créer) | ⚪ | 2-3j | 🔴 seul gros trou non tracé |
+| 6 | Extensions Phase L via l'éditeur nodal (multi-niveaux, receveur dyn.) | 🟡 éditeur en cours | 1-2j | 🟠 synergie travail actuel |
+| 7 | Game management fin de match (2-for-1, faute à +3…) | ⚪ | 1j | 🟠 |
+| 8 | Rebond réaliste + crash vs repli (recouvre A11 V3) | ⚪ | 1-2j | 🟠 |
+| 9 | Poursuite défenseur V4 en playback | ⚪ | 1j | 🟠 qualité visuelle lecture |
+| 10 | Latéralité fonctionnelle · boxscore · comparaison côte-à-côte | ⚪ | ponctuel | 🟡 |
+
+---
+
 ## 🟡 Chantiers de l'Audit (Juin 2026)
 
 À la suite de l'audit complet du produit, de nouveaux chantiers prioritaires ont été définis pour rendre l'application pleinement opérationnelle pour des coachs réels :
@@ -15,8 +133,8 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 1. **🟢 Roster Nommé & Numéros de maillots** : Remplacer les identifiants techniques `O1-O5` / `D1-D5` par les noms et numéros des vrais joueurs sur le terrain, dans les menus contextuels, et dans le panneau des paramètres. *(Fait)*
 2. **🟢 Compatibilité Tactile & Ergonomie** : Bumper la zone de saisie des joueurs (~44px) pour tablettes, implémenter un appui long (long-press) pour remplacer le clic droit sur iOS/Android, et ajouter le Zoom & Pan SVG sur le terrain. *(Fait)*
 3. **🟢 Partage Collaboratif Simplifié** : Permettre de générer des liens de partage instantané (ex. URL compressée en Base64 contenant tout l'état de l'application, ou base de données cloud légère). *(Fait)*
-4. **⚪ Réalisme & Simulation de Match (Match-Sim) V2** : Ajouter un système de fautes réelles (personnelles et bonus), gestion des lancers-francs, et fatigue influençant la vitesse de pointe.
-5. **⚪ Éditeur de Scénario Graphique** : Créer un éditeur nodal (type organigramme / flowchart) pour concevoir et visualiser graphiquement les branches de lecture réactives de l'attaque.
+4. **⚪ Réalisme & Simulation de Match (Match-Sim) V2** : Ajouter un système de fautes réelles (personnelles et bonus), gestion des lancers-francs, et fatigue influençant la vitesse de pointe. → repris et élargi par l'audit 2026-06-11 (items 2 + 4 de la priorisation consolidée).
+5. **🟡 Éditeur de Scénario Graphique** *(en cours, juin 2026)* : éditeur nodal pour concevoir et visualiser graphiquement les branches de lecture réactives. **V1 livrée** (canvas arbre interactif + sidebar propriétés + aperçu PiP + persistance Playbook Library + filtrage par perspective joueur). Restant : extensions Phase L au travers de l'éditeur (arbres multi-niveaux, receveur dynamique).
 
 ---
 
@@ -497,13 +615,17 @@ travail" est rempli.
 
 ### Chantiers de l'Audit (Juin 2026)
 
+> ⚠️ Tableau historique. La priorisation à jour est dans
+> [§ Audit expert basket 2026-06-11](#-audit-expert-basket--2026-06-11-consolidation)
+> en tête de fichier.
+
 | # | Chantier | Statut | Effort | Risque | Valeur |
 |---|---|---|---|---|---|
-| **9** | **Roster Nommé & Numéros de maillots** | 🟡 En cours | 2h | 🟢 Faible | 🔥 Critique |
-| **10** | **Compatibilité Tactile & Ergonomie (Zoom/Pan, hit-boxes, appui long)** | ⚪ À faire | 6h | 🟡 Moyen | 🔥 Critique |
-| **11** | **Partage Collaboratif Simplifié (Base64 URL)** | ⚪ À faire | 2h | 🟢 Faible | 🔥 Critique |
-| **12** | **Simulation Réaliste V2 (Fautes, lancers-francs, fatigue)** | ⚪ À faire | 1.5j | 🔴 Élevé | 🟡 Moyen |
-| **13** | **Éditeur de Scénario Graphique Nodal** | ⚪ À faire | 3j | 🔴 Élevé | 🟡 Moyen |
+| ~~**9**~~ | ~~**Roster Nommé & Numéros de maillots**~~ | 🟢 Livré | — | — | — |
+| ~~**10**~~ | ~~**Compatibilité Tactile & Ergonomie (Zoom/Pan, hit-boxes, appui long)**~~ | 🟢 Livré | — | — | — |
+| ~~**11**~~ | ~~**Partage Collaboratif Simplifié (Base64 URL)**~~ | 🟢 Livré | — | — | — |
+| **12** | **Simulation Réaliste V2 (Fautes, lancers-francs, fatigue)** | ⚪ À faire — repris par l'audit 2026-06-11 (items 2+4) | 1.5j | 🔴 Élevé | 🔴 Critique (réévalué) |
+| **13** | **Éditeur de Scénario Graphique Nodal** | 🟡 V1 livrée (canvas + sidebar + PiP + persistance + filtre joueur) | 3j | 🔴 Élevé | 🟡 Moyen |
 
 ### UX / Produit — Historique
 
