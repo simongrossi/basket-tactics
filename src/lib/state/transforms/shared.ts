@@ -12,6 +12,7 @@
 import type { AppState, ScriptedAction } from '@/lib/types';
 import { compileScenario } from '@/lib/logic/compileScenario';
 import { selectReactiveBranch } from '@/lib/logic/reads/selectReactiveBranch';
+import { resolveActiveBranchPath } from '@/lib/logic/reads/branchPath';
 
 export function markStepAsManual(state: AppState, stepIdx: number): AppState {
   if (stepIdx <= 0) return state;
@@ -33,6 +34,14 @@ export function recompileScenarioSteps(state: AppState): AppState {
   // l'écran précède toute divergence → stable). Rétrocompat : sans branche
   // réactive ni manuelle, `branch` est null → comportement chemin principal.
   const { branch: activeBranch } = selectReactiveBranch(state);
+  // Lectures multi-niveaux : résoudre le chemin complet [racine → feuille].
+  // Pour une branche réactive (auto-sélectionnée), elle est toujours de niveau 1
+  // (pas de parentBranchId) — pas de multi-niveau réactif en V1. Pour une branche
+  // manuelle (`activeBranchId`), remonter toute la chaîne parentale.
+  const allBranches = state.scenarioBranches ?? [];
+  const activeBranchPath = activeBranch
+    ? resolveActiveBranchPath(allBranches, activeBranch.id)
+    : [];
   // Phase Motion — sortie anticipée : armée si la boucle référence une branche
   // de sortie ET que la lecture réactive résout justement cette branche. V1 :
   // évaluation statique (la couverture ne variant pas par cycle, la sortie tombe
@@ -40,7 +49,7 @@ export function recompileScenarioSteps(state: AppState): AppState {
   const loop = state.continuityLoop;
   const exitArmed = !!(loop?.exitBranchId && activeBranch && activeBranch.id === loop.exitBranchId);
   const exitBranch = exitArmed
-    ? (state.scenarioBranches ?? []).find((b) => b.id === loop!.exitBranchId)
+    ? allBranches.find((b) => b.id === loop!.exitBranchId)
     : undefined;
   const newSteps = compileScenario({
     initialOff: initial.off,
@@ -48,7 +57,7 @@ export function recompileScenarioSteps(state: AppState): AppState {
     actions,
     existingSteps: state.steps,
     playerCount: state.playerCount,
-    activeBranch,
+    activeBranchPath,
     continuityLoop: loop,
     continuityExitAtCycle: exitArmed ? () => true : undefined,
     continuityExitActions: exitBranch?.actions,

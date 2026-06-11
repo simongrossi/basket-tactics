@@ -75,9 +75,23 @@ export function updateScenarioBranch(
 }
 
 export function deleteScenarioBranch(s: AppState, id: string): AppState {
-  const list = (s.scenarioBranches ?? []).filter((b) => b.id !== id);
-  const activeBranchId = s.activeBranchId === id ? null : s.activeBranchId;
+  // Cascade-suppression : supprimer la branche + toutes ses sous-branches (récursivement).
+  const allDescendants = collectDescendantIds(s.scenarioBranches ?? [], id);
+  const idsToRemove = new Set([id, ...allDescendants]);
+  const list = (s.scenarioBranches ?? []).filter((b) => !idsToRemove.has(b.id));
+  // Si l'active branch supprimée → remonter au parent (ou null)
+  let activeBranchId = s.activeBranchId;
+  if (activeBranchId && idsToRemove.has(activeBranchId)) {
+    const deleted = (s.scenarioBranches ?? []).find((b) => b.id === id);
+    activeBranchId = deleted?.parentBranchId ?? null;
+  }
   return recompileScenarioSteps({ ...s, scenarioBranches: list, activeBranchId });
+}
+
+/** Collecte récursivement tous les ids de sous-branches d'une branche. */
+function collectDescendantIds(branches: import('@/lib/types').ScenarioBranch[], parentId: string): string[] {
+  const directChildren = branches.filter((b) => b.parentBranchId === parentId);
+  return directChildren.flatMap((c) => [c.id, ...collectDescendantIds(branches, c.id)]);
 }
 
 export function setActiveBranch(s: AppState, id: string | null): AppState {

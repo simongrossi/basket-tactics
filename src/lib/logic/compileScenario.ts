@@ -5,6 +5,7 @@
 // dans le groupe de l'action qui les a générés.
 
 import type { AttackerPositions, AttackerId, ContinuityLoop, DefensiveScriptedAction, PlayerCount, ScenarioBranch, ScriptedAction, Step } from '@/lib/types';
+import { buildEffectiveActions } from './reads/branchPath';
 import { SCRIPTED_GENERATORS } from './scriptedGenerators';
 import { applyDefensivePass, type ParentRangeMap } from './defensiveCompilation';
 import { ensureAnnotationsForMovement } from './migrateAnnotations';
@@ -24,10 +25,14 @@ export interface CompileInput {
   /** Nombre de joueurs actifs. Utilisé par la migration d'annotations pour
    *  éviter de traiter des joueurs absents (ex. O5 en mode 4 joueurs). */
   playerCount?: PlayerCount;
-  /** Branche active (Étape 7). Si fournie, le compilateur joue le chemin
-   *  principal jusqu'à `branch.divergeAfterActionId` inclus, puis continue
-   *  avec `branch.actions` au lieu du reste du chemin principal. */
+  /** Branche active (niveau 1, rétrocompat). Remplacé par `activeBranchPath`
+   *  pour les lectures multi-niveaux. Si les deux sont fournis, `activeBranchPath`
+   *  a la priorité. */
   activeBranch?: ScenarioBranch | null;
+  /** Lectures multi-niveaux : chemin ordonné [racine → ... → feuille].
+   *  Le compilateur applique chaque branche en cascade sur les actions effectives
+   *  précédentes. Produit par `resolveActiveBranchPath`. */
+  activeBranchPath?: ScenarioBranch[];
   /** Phase Motion — boucle de continuité à dérouler avant les passes. */
   continuityLoop?: ContinuityLoop | null;
   /** Sortie anticipée (option C) : prédicat évalué aux frontières de cycle. */
@@ -40,25 +45,16 @@ export interface CompileInput {
 }
 
 export function compileScenario(input: CompileInput): Step[] {
-  const { initialOff, initialBallCarrier, actions: mainActions, existingSteps = [], activeBranch } = input;
+  const { initialOff, initialBallCarrier, actions: mainActions, existingSteps = [] } = input;
 
-  // Construit la liste effective des actions à compiler :
-  //  - chemin principal jusqu'à `divergeAfterActionId` inclus
-  //  - puis les actions de la branche active
-  // Si pas de branche active OU si la diverge ne référence aucune action existante,
-  // on utilise simplement le chemin principal.
-  let actions: ScriptedAction[];
-  if (activeBranch) {
-    const divergeIdx = mainActions.findIndex((a) => a.id === activeBranch.divergeAfterActionId);
-    if (divergeIdx >= 0) {
-      actions = [...mainActions.slice(0, divergeIdx + 1), ...activeBranch.actions];
-    } else {
-      // Référence invalide → fallback au chemin principal pour ne rien casser.
-      actions = mainActions;
-    }
-  } else {
-    actions = mainActions;
-  }
+  // Construit la liste effective des actions à compiler en appliquant le chemin
+  // de branches en cascade. `activeBranchPath` (multi-niveaux) a la priorité sur
+  // `activeBranch` (niveau 1, rétrocompat).
+  const branchPath: ScenarioBranch[] =
+    input.activeBranchPath ??
+    (input.activeBranch ? [input.activeBranch] : []);
+
+  let actions = buildEffectiveActions(mainActions, branchPath);
 
   // Phase Motion — expansion de la boucle de continuité (no-op si absente ou
   // invalide). Opère sur la liste effective ; passes 1 & 2 itèrent le résultat.

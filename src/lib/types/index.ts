@@ -490,15 +490,18 @@ export type ReadTrigger = ScreenCoverageTrigger | HelpSourceTrigger | DenyTrigge
 export interface ScenarioBranch {
   id: string;
   label: string;
-  /** Id de la `ScriptedAction` (du chemin principal) après laquelle la
-   *  branche prend le relais. Les steps de cette action incluse sont
-   *  joués, puis la branche démarre. */
+  /** Id de la `ScriptedAction` après laquelle la branche prend le relais.
+   *  Si `parentBranchId` est absent, référence une action du chemin principal.
+   *  Si `parentBranchId` est présent, référence une action dans la branche parent. */
   divergeAfterActionId: string;
   /** Suite alternative d'actions (offensives ou défensives). */
   actions: ScriptedAction[];
   /** Si défini → branche RÉACTIVE : auto-sélectionnée selon la couverture
    *  défensive lue. Sinon → branche MANUELLE (V1, choisie via `activeBranchId`). */
   trigger?: ReadTrigger;
+  /** Lectures multi-niveaux : id de la branche parente dont cette sous-branche
+   *  diverge. Absent (ou undefined) = branche de premier niveau (diverge du main). */
+  parentBranchId?: string;
 }
 
 /** Phase Motion — boucle de continuité. Une plage contiguë d'actions

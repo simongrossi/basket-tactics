@@ -174,100 +174,140 @@ export function GraphCanvas({
     });
   }
 
-  // Branches
+  // Map id d'action → position {x, y} utilisée pour placer les sous-branches
+  // dont la divergence pointe vers une action de branche (pas du main).
+  const actionNodePos = new Map<string, { x: number; y: number }>();
+  // Peupler avec les positions du chemin principal
+  mainActions.forEach((act, idx) => {
+    actionNodePos.set(act.id, { x: 200 + idx * GAP_X, y: 140 });
+  });
+
+  // Branches — rendu récursif par niveau.
+  // On traite d'abord les branches de niveau 1 (sans parentBranchId),
+  // puis les sous-branches dont les positions de divergence sont connues.
   const branches = state.scenarioBranches ?? [];
-  branches.forEach((branch, bIdx) => {
-    // Trouver l'action parente après laquelle ça diverge
-    const parentIdx = mainActions.findIndex((a) => a.id === branch.divergeAfterActionId);
-    if (parentIdx === -1) return;
 
-    const parentX = 200 + parentIdx * GAP_X;
-    const parentY = 140;
-
-    // trigger node
-    const triggerId = `trigger-${branch.id}`;
-    let triggerNode = nodes.find((n) => n.id === triggerId);
-    
-    // Pour éviter de dupliquer si plusieurs branches partent du même nœud,
-    // on regroupe par actionId divergeAfterActionId
-    const triggerNodeId = `trigger-after-${branch.divergeAfterActionId}`;
+  function layoutBranchGroup(
+    parentActionId: string,          // id de l'action après laquelle les branches divergent
+    branchesForParent: ScenarioBranch[],
+    parentNodeX: number,
+    parentNodeY: number,
+    depthY: number,                  // Y de base pour ce groupe (trigger + actions)
+  ) {
+    const triggerNodeId = `trigger-after-${parentActionId}`;
     let existingTrigger = nodes.find((n) => n.id === triggerNodeId);
 
-    const triggerX = parentX + NODE_W / 2 - 35;
-    const triggerY = parentY + 110;
+    const triggerX = parentNodeX + NODE_W / 2 - 35;
+    const triggerY = depthY;
 
     if (!existingTrigger) {
+      const firstBranch = branchesForParent[0];
       existingTrigger = {
         id: triggerNodeId,
         type: 'trigger',
-        label: branch.trigger ? `🔮 Lecture : ${branch.trigger.kind}` : '🔀 Choix Coach',
+        label: firstBranch.trigger ? `🔮 Lecture : ${firstBranch.trigger.kind}` : '🔀 Choix Coach',
         x: triggerX,
         y: triggerY,
         width: 70,
         height: 40,
-        triggerBranch: branch,
+        triggerBranch: firstBranch,
       };
       nodes.push(existingTrigger);
 
-      // Edge parent -> trigger
       edges.push({
         id: `parent-to-${triggerNodeId}`,
-        fromNodeId: branch.divergeAfterActionId,
+        fromNodeId: parentActionId,
         toNodeId: triggerNodeId,
-        from: { x: parentX + NODE_W / 2, y: parentY + NODE_H, port: 'bottom' },
+        from: { x: parentNodeX + NODE_W / 2, y: parentNodeY + NODE_H, port: 'bottom' },
         to: { x: triggerX + 35, y: triggerY, port: 'top' },
-        active: activeActionId === branch.divergeAfterActionId,
+        active: activeActionId === parentActionId,
       });
     }
 
-    // Calcul vertical des branches divergentes pour cette action
-    const actionBranches = branches.filter((b) => b.divergeAfterActionId === branch.divergeAfterActionId);
-    const localBIdx = actionBranches.findIndex((b) => b.id === branch.id);
+    branchesForParent.forEach((branch, localBIdx) => {
+      const branchY = triggerY + 90 + localBIdx * GAP_Y;
 
-    const branchY = triggerY + 90 + localBIdx * GAP_Y;
+      branch.actions.forEach((bAct, j) => {
+        const x = parentNodeX + 160 + j * GAP_X;
+        const y = branchY;
+        const stepIdx = state.steps.findIndex((s) => s.generatedBy === bAct.id);
 
-    // Rendu des actions dans la branche
-    branch.actions.forEach((bAct, j) => {
-      const x = parentX + 160 + j * GAP_X;
-      const y = branchY;
-      const stepIdx = state.steps.findIndex((s) => s.generatedBy === bAct.id);
+        nodes.push({
+          id: bAct.id,
+          type: 'action',
+          label: bAct.label || bAct.type,
+          x,
+          y,
+          width: NODE_W,
+          height: NODE_H,
+          action: bAct,
+          branchId: branch.id,
+          stepIdx: stepIdx !== -1 ? stepIdx : undefined,
+        });
+        actionNodePos.set(bAct.id, { x, y });
 
-      nodes.push({
-        id: bAct.id,
-        type: 'action',
-        label: bAct.label || bAct.type,
-        x,
-        y,
-        width: NODE_W,
-        height: NODE_H,
-        action: bAct,
-        branchId: branch.id,
-        stepIdx: stepIdx !== -1 ? stepIdx : undefined,
+        if (j === 0) {
+          edges.push({
+            id: `trigger-to-branch-${branch.id}`,
+            fromNodeId: triggerNodeId,
+            toNodeId: bAct.id,
+            from: { x: triggerX + 70, y: triggerY + 20, port: 'right' },
+            to: { x, y: y + NODE_H / 2, port: 'left' },
+            active: activeActionId === bAct.id || state.activeBranchId === branch.id,
+          });
+        } else {
+          const prevAct = branch.actions[j - 1];
+          edges.push({
+            id: `branch-${branch.id}-${prevAct.id}-${bAct.id}`,
+            fromNodeId: prevAct.id,
+            toNodeId: bAct.id,
+            from: { x: x - GAP_X + NODE_W, y: y + NODE_H / 2, port: 'right' },
+            to: { x, y: y + NODE_H / 2, port: 'left' },
+            active: activeActionId === bAct.id,
+          });
+        }
       });
 
-      if (j === 0) {
-        // Edge trigger -> first branch action
-        edges.push({
-          id: `trigger-to-branch-${branch.id}`,
-          fromNodeId: triggerNodeId,
-          toNodeId: bAct.id,
-          from: { x: triggerX + 70, y: triggerY + 20, port: 'right' },
-          to: { x, y: y + NODE_H / 2, port: 'left' },
-          active: activeActionId === bAct.id || state.activeBranchId === branch.id,
-        });
-      } else {
-        // Edge between branch actions
-        const prevAct = branch.actions[j - 1];
-        edges.push({
-          id: `branch-${branch.id}-${prevAct.id}-${bAct.id}`,
-          fromNodeId: prevAct.id,
-          toNodeId: bAct.id,
-          from: { x: x - GAP_X + NODE_W, y: y + NODE_H / 2, port: 'right' },
-          to: { x, y: y + NODE_H / 2, port: 'left' },
-          active: activeActionId === bAct.id,
-        });
-      }
+      // Sous-branches divergeant d'une action dans cette branche
+      branch.actions.forEach((bAct) => {
+        const subBranches = branches.filter(
+          (b) => b.parentBranchId === branch.id && b.divergeAfterActionId === bAct.id
+        );
+        if (subBranches.length === 0) return;
+        const bActPos = actionNodePos.get(bAct.id);
+        if (!bActPos) return;
+        layoutBranchGroup(
+          bAct.id,
+          subBranches,
+          bActPos.x,
+          bActPos.y,
+          bActPos.y + NODE_H + 50,
+        );
+      });
     });
+  }
+
+  // Grouper les branches de niveau 1 par action de divergence
+  const level1Branches = branches.filter((b) => !b.parentBranchId);
+  const byDivergeAction = new Map<string, ScenarioBranch[]>();
+  level1Branches.forEach((b) => {
+    const existing = byDivergeAction.get(b.divergeAfterActionId) ?? [];
+    existing.push(b);
+    byDivergeAction.set(b.divergeAfterActionId, existing);
+  });
+
+  byDivergeAction.forEach((branchGroup, parentActionId) => {
+    const parentIdx = mainActions.findIndex((a) => a.id === parentActionId);
+    if (parentIdx === -1) return;
+    const parentNodeX = 200 + parentIdx * GAP_X;
+    const parentNodeY = 140;
+    layoutBranchGroup(
+      parentActionId,
+      branchGroup,
+      parentNodeX,
+      parentNodeY,
+      parentNodeY + 110,
+    );
   });
 
   // Pan & Zoom Event Handlers

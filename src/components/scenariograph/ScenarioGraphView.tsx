@@ -29,6 +29,7 @@ import {
   buildDriveKickReads,
   buildBackdoorReads,
 } from '@/lib/data/readLibrary';
+import { resolveActiveBranchPath } from '@/lib/logic/reads/branchPath';
 import { ZoneSelect, ZonePickerModal } from '../ZonePicker';
 import { DefensiveActionForm } from '../DefensiveActionForm';
 import { GraphCanvas } from './GraphCanvas';
@@ -109,6 +110,12 @@ export function ScenarioGraphView({
     return state.activeBranchId
       ? state.scenarioBranches?.find((b) => b.id === state.activeBranchId) || null
       : null;
+  }, [state.activeBranchId, state.scenarioBranches]);
+
+  // Chemin de branches [racine → feuille] pour le breadcrumb et la navigation
+  const activeBranchPath = useMemo(() => {
+    if (!state.activeBranchId) return [];
+    return resolveActiveBranchPath(state.scenarioBranches ?? [], state.activeBranchId);
   }, [state.activeBranchId, state.scenarioBranches]);
 
   const currentActions = useMemo(() => {
@@ -221,8 +228,12 @@ export function ScenarioGraphView({
   };
 
   const handleAddBranch = (afterActionId: string) => {
+    const depth = activeBranchPath.length;
+    const depthLabel = depth === 0
+      ? 'Nom de la variante (ex: "Si drop", "Si switch")'
+      : `Nom de la sous-variante (ex: "Si low man monte", "Si aide faible")`;
     const label = window.prompt(
-      'Nom de la variante (ex: "Si drop", "Si switch")',
+      depthLabel,
       `Variante ${(state.scenarioBranches?.length ?? 0) + 1}`
     );
     if (!label) return;
@@ -231,6 +242,8 @@ export function ScenarioGraphView({
       label,
       divergeAfterActionId: afterActionId,
       actions: [],
+      // Si on est dans une branche, la nouvelle est une sous-branche
+      parentBranchId: state.activeBranchId ?? undefined,
     };
     onAddScenarioBranch(newBranch);
     onSetActiveBranch(newBranch.id);
@@ -679,9 +692,11 @@ export function ScenarioGraphView({
           selectedPlayerPerspective={selectedPlayerPerspective}
         />
 
-        {/* Floating Active Branch Pill (top-left) */}
-        {state.activeBranchId && (() => {
-          const branch = state.scenarioBranches?.find((b) => b.id === state.activeBranchId);
+        {/* Floating Active Branch Pill (top-left) — breadcrumb multi-niveau */}
+        {state.activeBranchId && activeBranchPath.length > 0 && (() => {
+          const parentBranchId = activeBranchPath.length > 1
+            ? activeBranchPath[activeBranchPath.length - 2].id
+            : null;
           return (
             <div
               style={{
@@ -690,7 +705,7 @@ export function ScenarioGraphView({
                 left: 16,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12,
+                gap: 10,
                 background: 'rgba(109, 40, 217, 0.85)',
                 backdropFilter: 'blur(12px)',
                 border: '1px solid rgba(139, 92, 246, 0.4)',
@@ -698,9 +713,10 @@ export function ScenarioGraphView({
                 padding: '8px 12px',
                 boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
                 zIndex: 10,
+                maxWidth: 400,
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
                 <span
                   style={{
                     fontSize: 8,
@@ -710,14 +726,32 @@ export function ScenarioGraphView({
                     letterSpacing: 0.5,
                   }}
                 >
-                  Variante active
+                  {activeBranchPath.length > 1 ? `Niveau ${activeBranchPath.length}` : 'Variante active'}
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>
-                  {branch?.label || 'Sans nom'}
-                </span>
+                {/* Breadcrumb */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2, flexWrap: 'wrap' }}>
+                  {activeBranchPath.map((b, i) => (
+                    <span key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {i > 0 && <span style={{ color: '#a78bfa', fontSize: 9 }}>›</span>}
+                      <span
+                        onClick={() => onSetActiveBranch(b.id)}
+                        style={{
+                          fontSize: i === activeBranchPath.length - 1 ? 11 : 9,
+                          fontWeight: i === activeBranchPath.length - 1 ? 700 : 500,
+                          color: i === activeBranchPath.length - 1 ? '#fff' : '#c4b5fd',
+                          cursor: i < activeBranchPath.length - 1 ? 'pointer' : 'default',
+                          textDecoration: i < activeBranchPath.length - 1 ? 'underline' : 'none',
+                          textDecorationColor: '#a78bfa',
+                        }}
+                      >
+                        {b.label || 'Sans nom'}
+                      </span>
+                    </span>
+                  ))}
+                </div>
               </div>
               <button
-                onClick={() => onSetActiveBranch(null)}
+                onClick={() => onSetActiveBranch(parentBranchId)}
                 style={{
                   background: 'rgba(255, 255, 255, 0.1)',
                   border: 'none',
@@ -728,11 +762,13 @@ export function ScenarioGraphView({
                   borderRadius: 4,
                   cursor: 'pointer',
                   transition: 'background 0.2s',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
               >
-                Retour
+                {activeBranchPath.length > 1 ? '↑ Parent' : 'Retour'}
               </button>
             </div>
           );
