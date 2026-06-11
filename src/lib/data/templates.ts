@@ -212,6 +212,26 @@ const HORNS_FLARE: Template = {
   tags: ['set', 'horns', 'off-ball'],
   description: "Alignement Horns. O1 passe à O2 puis utilise un flare screen de O5 côté faible pour un tir extérieur.",
   defenseInitial: defaultDef(hornsSetup),
+  scriptedActions: [
+    {
+      kind: 'offensive',
+      id: 'horns-flare-1',
+      type: 'pass',
+      params: { from: 'O1', to: 'O2' },
+    },
+    {
+      kind: 'offensive',
+      id: 'horns-flare-2',
+      type: 'flare-screen',
+      params: { screener: 'O5', cutter: 'O1' },
+    },
+    {
+      kind: 'offensive',
+      id: 'horns-flare-3',
+      type: 'pass',
+      params: { from: 'O2', to: 'O1' },
+    },
+  ],
   steps: [
     {
       label: 'Setup Horns',
@@ -316,6 +336,20 @@ const PINDOWN_CORNER: Template = {
   tags: ['off-ball', 'pindown'],
   description: "O4 descend poser un pindown pour O2 au coin. O2 sort vers l'aile et reçoit la passe pour un tir.",
   defenseInitial: defaultDef(pinSetup),
+  scriptedActions: [
+    {
+      kind: 'offensive',
+      id: 'pindown-corner-1',
+      type: 'pin-down',
+      params: { screener: 'O4', cutter: 'O2' },
+    },
+    {
+      kind: 'offensive',
+      id: 'pindown-corner-2',
+      type: 'pass',
+      params: { from: 'O1', to: 'O2' },
+    },
+  ],
   steps: [
     {
       label: 'Setup',
@@ -474,6 +508,20 @@ const UCLA_CUT: Template = {
   tags: ['off-ball', 'cut', 'ucla'],
   description: "Passe latérale + back-screen high post pour cut basket de O1.",
   defenseInitial: defaultDef(uclaSetup),
+  scriptedActions: [
+    {
+      kind: 'offensive',
+      id: 'ucla-cut-1',
+      type: 'pass',
+      params: { from: 'O1', to: 'O3' },
+    },
+    {
+      kind: 'offensive',
+      id: 'ucla-cut-2',
+      type: 'ucla-cut',
+      params: { cutter: 'O1', screener: 'O5' },
+    },
+  ],
   steps: [
     { label: 'Setup', off: uclaSetup, ballCarrier: 'O1', annotations: [] },
     {
@@ -521,6 +569,20 @@ const FLOPPY: Template = {
   tags: ['set', 'floppy', 'off-ball'],
   description: "O2 sous le panier choisit son écran (gauche O4 ou droite O5) pour ressortir.",
   defenseInitial: defaultDef(floppySetup),
+  scriptedActions: [
+    {
+      kind: 'offensive',
+      id: 'floppy-1',
+      type: 'pin-down',
+      params: { screener: 'O4', cutter: 'O2' },
+    },
+    {
+      kind: 'offensive',
+      id: 'floppy-2',
+      type: 'pass',
+      params: { from: 'O1', to: 'O2' },
+    },
+  ],
   steps: [
     { label: 'Setup floppy', off: floppySetup, ballCarrier: 'O1', annotations: [] },
     {
@@ -572,6 +634,26 @@ const HAMMER: Template = {
   tags: ['off-ball', 'hammer', 'sideline'],
   description: "Drive baseline d'O1, O5 vient poser un backscreen baseline sur le défenseur de O3 → skip pass corner faible pour tir 3.",
   defenseInitial: defaultDef(hammerSetup),
+  scriptedActions: [
+    {
+      kind: 'offensive',
+      id: 'hammer-1',
+      type: 'drive',
+      params: { driver: 'O1' },
+    },
+    {
+      kind: 'offensive',
+      id: 'hammer-2',
+      type: 'hammer-screen',
+      params: { screener: 'O5', cutter: 'O3' },
+    },
+    {
+      kind: 'offensive',
+      id: 'hammer-3',
+      type: 'pass',
+      params: { from: 'O1', to: 'O3' },
+    },
+  ],
   steps: [
     { label: 'Setup', off: hammerSetup, ballCarrier: 'O1', annotations: [] },
     {
@@ -938,6 +1020,20 @@ const IVERSON_CUT: Template = {
   tags: ['set', 'iverson', 'off-ball', 'cut'],
   description: "O1 traverse la raquette en utilisant deux écrans elbow successifs (O4 puis O5) — ressort côté opposé pour recevoir une passe en sortie de course.",
   defenseInitial: defaultDef(iversonSetup),
+  scriptedActions: [
+    {
+      kind: 'offensive',
+      id: 'iverson-cut-1',
+      type: 'iverson-cut',
+      params: { cutter: 'O1', firstScreener: 'O4', secondScreener: 'O5' },
+    },
+    {
+      kind: 'offensive',
+      id: 'iverson-cut-2',
+      type: 'pass',
+      params: { from: 'O2', to: 'O1' },
+    },
+  ],
   steps: [
     { label: 'Setup', off: iversonSetup, ballCarrier: 'O2', annotations: [] },
     {
@@ -999,6 +1095,20 @@ const STAGGER: Template = {
   tags: ['set', 'stagger', 'off-ball', 'shooter'],
   description: "Double écran séquentiel (O4 bas, O5 haut) pour libérer O3 (shooter) vers l'aile. Le défenseur doit choisir : passer par-dessus les deux écrans ou switcher.",
   defenseInitial: defaultDef(staggerSetup),
+  scriptedActions: [
+    {
+      kind: 'offensive',
+      id: 'stagger-1',
+      type: 'staggered-screen',
+      params: { cutter: 'O3', firstScreener: 'O4', secondScreener: 'O5' },
+    },
+    {
+      kind: 'offensive',
+      id: 'stagger-2',
+      type: 'pass',
+      params: { from: 'O1', to: 'O3' },
+    },
+  ],
   steps: [
     { label: 'Setup', off: staggerSetup, ballCarrier: 'O1', annotations: [] },
     {
@@ -1060,6 +1170,14 @@ const PNR_WING: Template = {
   tags: ['pnr', 'wing', 'porteur'],
   description: "Pick-and-roll posé sur l'aile gauche à 45° — angle de pénétration différent du PNR central, oblige la défense à gérer la ligne de drive et le roll simultanément.",
   defenseInitial: defaultDef(pnrWingSetup),
+  scriptedActions: [
+    {
+      kind: 'offensive',
+      id: 'pnr-wing-1',
+      type: 'pick-and-roll',
+      params: { ballHandler: 'O1', screener: 'O4', side: 'fort' },
+    },
+  ],
   steps: [
     { label: 'Setup', off: pnrWingSetup, ballCarrier: 'O1', annotations: [] },
     {
