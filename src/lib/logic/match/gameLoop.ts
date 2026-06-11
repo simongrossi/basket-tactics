@@ -306,7 +306,14 @@ export function tickMatch(
     return resolveShot(next, action, rng, false, baseAppState);
   }
   if (action.type === 'drive') {
-    next.intent = { kind: 'drive', target: action.shotPos, expectedAction: action };
+    next.intent = {
+      kind: 'drive',
+      target: action.shotPos,
+      expectedAction: action,
+      // 2b.1 — position de départ du drive : sert de carrierPrev au
+      // containment (progression cumulée, pas le grain 8 px/tick).
+      startPos: carrierPos ? { x: carrierPos.x, y: carrierPos.y } : undefined,
+    };
     return advanceDrive(next, dtMs, baseAppState);
   }
   if (action.type === 'pass-shoot' && action.targetId) {

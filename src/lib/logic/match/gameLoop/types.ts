@@ -25,7 +25,11 @@ import type { ReboundResult } from '../rebound';
  *  bout de AWAY_POSSESSION_DURATION_MS). */
 export type CarrierIntent =
   | { kind: 'idle' }
-  | { kind: 'drive'; target: Point; expectedAction: OffensiveAction }
+  // 2b.1 — `startPos` : position du porteur à la CRÉATION de l'intent
+  // (sert de carrierPrev au containment : progression cumulée depuis le
+  // départ, pas le grain fin 8 px/tick). `resolved` : anti-flapping,
+  // le containment n'est évalué qu'UNE fois par drive.
+  | { kind: 'drive'; target: Point; expectedAction: OffensiveAction; startPos?: Point; resolved?: boolean }
   | { kind: 'pass'; receiver: AttackerId; progress: number; expectedAction: OffensiveAction }
   | { kind: 'shoot'; action: OffensiveAction; forced: boolean }
   | { kind: 'away-possession'; remainingMs: number }

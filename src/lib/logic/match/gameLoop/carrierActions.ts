@@ -11,9 +11,14 @@ import {
 } from '../../offense';
 import { distance } from '../../geometry';
 import { angleDiff } from '../../angles';
+import {
+  containmentSpeed,
+  evaluateDriveContainment,
+} from '../../driveContainment';
 import { seededAiRng } from '../aiPossession';
 import { triggerRelocateAfterPass } from '../decisions/offBallMover';
-import { MAX_CARRIER_STEP_PX } from './constants';
+import { resolveDriveOutcome } from '../decisions/driveOutcome';
+import { DRIVE_DECISION_ZONE_PX, MAX_CARRIER_STEP_PX } from './constants';
 import { ballAt, dist, parabolaArc, refreshDefense } from './helpers';
 import type { MatchState } from './types';
 
@@ -81,6 +86,108 @@ export function pickForcedShot(state: MatchState, baseAppState: AppState): Offen
   };
 }
 
+/** 2b.1 — Évalue le containment à l'entrée de la zone dangereuse et
+ *  applique l'issue (pull-up / kick-out / strip). Retourne le state si
+ *  l'issue interrompt le drive, `null` si le drive continue (beaten,
+ *  hors zone, ou fallbacks épuisés). Mute `state.intent.resolved` pour
+ *  garantir l'évaluation unique (anti-flapping). */
+function applyDriveOutcomeInZone(
+  state: MatchState,
+  baseAppState: AppState,
+  carrierPos: Point
+): MatchState | null {
+  if (state.intent.kind !== 'drive') return null;
+  const hoop = getDefenseHoop(baseAppState, state.attackingTeam);
+  const distToHoop = Math.hypot(hoop.x - carrierPos.x, hoop.y - carrierPos.y);
+  if (distToHoop >= DRIVE_DECISION_ZONE_PX) return null;
+
+  // Évaluation unique par drive (anti-flapping).
+  state.intent = { ...state.intent, resolved: true };
+
+  // Défenseur du porteur : matché au porteur courant.
+  const carrierDef = (Object.keys(state.defPos) as DefenderId[]).find(
+    (d) => state.defPos[d]?.matchedTo === state.carrier
+  );
+  if (!carrierDef) return null;
+  const def = state.defPos[carrierDef];
+
+  const base = baseAppState.defenseMaxSpeed;
+  const containment = evaluateDriveContainment({
+    carrier: carrierPos,
+    carrierPrev: state.intent.startPos ?? null,
+    defender: { x: def.x, y: def.y },
+    hoop,
+    carrierSpeed: containmentSpeed(
+      baseAppState.attackerSpeedProfiles?.[state.carrier],
+      base
+    ),
+    defenderSpeed: containmentSpeed(
+      baseAppState.defenderSpeedProfiles?.[carrierDef],
+      base
+    ),
+  });
+
+  const rng = seededAiRng(state.seed + state.tickCount * 53 + 7);
+  const outcome = resolveDriveOutcome(containment.level, rng);
+
+  if (outcome === 'continue') return null;
+
+  if (outcome === 'strip') {
+    // Ballon arraché au point de contain — turnover (calque turnover-pass).
+    state.outcome = 'turnover-drive';
+    state.teamStats = {
+      ...state.teamStats,
+      [state.attackingTeam]: {
+        ...state.teamStats[state.attackingTeam],
+        turnovers: state.teamStats[state.attackingTeam].turnovers + 1,
+      },
+    };
+    state.eventLog.push({
+      possession: state.possession,
+      clock: state.shotClockMs / 1000,
+      actor: state.carrier,
+      type: 'turnover',
+      label: `Strip sur drive ${state.carrier} par ${carrierDef}`,
+    });
+    state.intent = { kind: 'idle' };
+    return state;
+  }
+
+  // pull-up et kick-out se choisissent dans les options offensives
+  // ré-évaluées à la position COURANTE (pas au cercle).
+  const actions = evaluateOffensiveOptions(
+    state.off,
+    state.defPos,
+    state.carrier,
+    hoop,
+    baseAppState.attackerProfiles,
+  );
+
+  if (outcome === 'kickout') {
+    const pass = actions.find((a) => a.type === 'pass-shoot' && a.targetId);
+    if (pass && pass.targetId) {
+      state.intent = {
+        kind: 'pass',
+        receiver: pass.targetId,
+        progress: 0,
+        expectedAction: pass,
+      };
+      return state;
+    }
+    // Aucune passe viable → fallback pull-up (spec).
+  }
+
+  // pullup (ou fallback kick-out sans receveur) : tir à la position courante.
+  const shoot = actions.find((a) => a.type === 'shoot');
+  if (shoot) {
+    state.intent = { kind: 'shoot', action: shoot, forced: false };
+    refreshDefense(state, baseAppState);
+    return state;
+  }
+  // Cas pathologique sans option de tir : le drive continue.
+  return null;
+}
+
 export function advanceDrive(
   state: MatchState,
   _dtMs: number,
@@ -89,6 +196,14 @@ export function advanceDrive(
   if (state.intent.kind !== 'drive') return state;
   const carrierPos = state.off[state.carrier];
   if (!carrierPos) return state;
+  // 2b.1 — Issues du drive (opt-in `driveContainmentEnabled`) : à l'entrée
+  // de la zone dangereuse, le défenseur du porteur peut couper la
+  // pénétration (pull-up / kick-out / strip) au lieu du layup garanti.
+  if (baseAppState.driveContainmentEnabled && !state.intent.resolved) {
+    const interrupted = applyDriveOutcomeInZone(state, baseAppState, carrierPos);
+    if (interrupted) return interrupted;
+  }
+  if (state.intent.kind !== 'drive') return state;
   const dx = state.intent.target.x - carrierPos.x;
   const dy = state.intent.target.y - carrierPos.y;
   const dist = Math.hypot(dx, dy);

@@ -66,6 +66,11 @@ export const MAX_CARRIER_STEP_PX = 8;
 
 export const DEFAULT_CREATIVITY = 0.35;
 
+/** 2b.1 — zone de décision du drive : le containment n'est évalué qu'à
+ *  l'entrée dans la zone dangereuse (abords de la raquette, ~3.8 m du
+ *  cercle). Avant ça, le drive avance normalement. */
+export const DRIVE_DECISION_ZONE_PX = 140;
+
 /** B3a — seuil de contestation. Un défenseur à ≤ CONTEST_THRESHOLD_PX
  *  du tireur compte le tir comme "contesté". Aligné avec
  *  `contestMultiplier` dans `offense.ts` (palier à 80 px).
