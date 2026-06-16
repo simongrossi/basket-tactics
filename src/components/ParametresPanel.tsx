@@ -353,6 +353,21 @@ export function ParametresPanel({
 
       <SettingsSection title="Visu & légende">
         <div style={categoryGridStyle}>
+          <ToggleGroup title="Équipes affichées" accent={UI.orange}>
+            <ToggleCard
+              checked={state.showAttackers !== false}
+              label="attaquants"
+              sample="dot" color={UI.orange}
+              onChange={(v) => onPatch({ showAttackers: v })}
+            />
+            <ToggleCard
+              checked={state.showDefenders !== false}
+              label="défenseurs"
+              sample="dot" color={UI.cyan}
+              onChange={(v) => onPatch({ showDefenders: v })}
+            />
+          </ToggleGroup>
+
           <ToggleGroup title="Tracés & repères" accent={UI.green}>
             <ToggleCard
               checked={state.showHelpLines}

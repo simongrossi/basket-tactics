@@ -58,9 +58,15 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
   // visuelle home/away pourrait être améliorée en Phase 3 (badges par
   // équipe, couleurs distinctes), mais V2 reste minimal côté UI.
 
+  // Coaching — masquage d'une équipe entière pour présenter le système nu.
+  // Default true (rétrocompat : les deux équipes visibles). N'altère que le
+  // rendu : positions et moteur intacts.
+  const showAttackers = state.showAttackers !== false;
+  const showDefenders = state.showDefenders !== false;
+
   return (
     <g>
-      {(Object.entries(frame.off) as [AttackerId, Point][])
+      {showAttackers && (Object.entries(frame.off) as [AttackerId, Point][])
         .filter(([id]) => !screenerIds.has(id))
         .map(([id, pos]) => {
           const gazeOverride = screenerGazeOverride(id, frame);
@@ -92,7 +98,7 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
             />
           );
         })}
-      {(Object.entries(frame.defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(
+      {showDefenders && (Object.entries(frame.defPos) as [DefenderId, ComputedDefense[DefenderId]][]).map(
         ([id, p]) => (
           <Player
             key={id}
@@ -133,7 +139,7 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
           />
         )
       )}
-      {Array.from(screenerIds).map((id) => {
+      {showAttackers && Array.from(screenerIds).map((id) => {
         if (!frame.off[id]) return null;
         const gazeOverride = screenerGazeOverride(id, frame);
         const finalGaze =

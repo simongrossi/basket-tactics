@@ -1298,6 +1298,13 @@ export interface AppState {
   showScreenIndicators?: boolean;
   showStateRings?: boolean;
   showLockBadges?: boolean;
+  /** Coaching — masquage d'une équipe entière de sprites sur le terrain.
+   *  Default true (les deux équipes visibles, UX historique). Permet au coach
+   *  de présenter le système offensif nu (sans défense), ou inversement de ne
+   *  montrer que le placement défensif. N'affecte que le RENDU des sprites :
+   *  le moteur, les positions et les calculs restent inchangés. */
+  showDefenders?: boolean;
+  showAttackers?: boolean;
   /** Toggles fine sur les sous-visuels — chacun est combiné en ET logique
    *  avec son master (par ex. `showLateRing && showStateRings`). Default
    *  true partout pour préserver l'UX existante. Permettent au coach de
