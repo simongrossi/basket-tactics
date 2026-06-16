@@ -17,6 +17,7 @@ import { DefensePanel } from '@/components/DefensePanel';
 import { SidebarOverflowMenu } from '@/components/sidebar/SidebarOverflowMenu';
 import { ParametresPanel } from '@/components/ParametresPanel';
 import { LibraryModal } from '@/components/LibraryModal';
+import { SessionsView } from '@/components/SessionsView';
 import { SidebarThemeProvider } from '@/components/sidebar/SidebarThemeContext';
 import { Timeline } from '@/components/Timeline';
 import { PresentationBar } from '@/components/PresentationBar';
@@ -115,6 +116,20 @@ export default function Page() {
     setMatchSpeed(2);
     matchLoop.start({ maxPossessions: 10 });
   }, [handleEnterFullscreenMatch, matchLoop]);
+
+  // Coaching #3 — déroulé interactif d'une séance : ouvrir un système d'un
+  // bloc charge ce système dans le terrain et bascule en mode présentation
+  // (lecteur) pour l'expliquer aux joueurs. Retour aux séances via la sidebar
+  // (sortie du mode lecteur).
+  const handleOpenSessionSystem = useCallback((systemId: string) => {
+    const sys = lib.library.folders
+      .flatMap((f) => f.systems)
+      .find((s) => s.id === systemId);
+    if (!sys) return;
+    app.importState(lib.loadSystem(app.state, sys));
+    sidebar.setActiveView('court');
+    setIsPlayerMode(true);
+  }, [lib, app, sidebar]);
 
   const metrics = useMemo(() => {
     const step = app.state.steps[app.state.activeStep];
@@ -558,6 +573,18 @@ export default function Page() {
                   />
                 </div>
               </div>
+            </SidebarThemeProvider>
+          )}
+          {sidebar.activeView === 'sessions' && (
+            <SidebarThemeProvider dark>
+              <SessionsView
+                library={lib.library}
+                onCreateSession={lib.createSession}
+                onUpdateSession={lib.updateSession}
+                onDeleteSession={lib.deleteSession}
+                onDuplicateSession={lib.duplicateSession}
+                onOpenSystem={handleOpenSessionSystem}
+              />
             </SidebarThemeProvider>
           )}
           {sidebar.activeView === 'scenariograph' && (

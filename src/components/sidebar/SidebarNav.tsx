@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpen, Clapperboard, GitFork, Library, Settings, Target } from 'lucide-react';
+import { BookOpen, Clapperboard, GitFork, Library, Settings, Target, CalendarDays } from 'lucide-react';
 import type { SidebarView } from '@/hooks/useSidebarState';
 import { SIDEBAR } from './tokens';
 import { SidebarNavItem } from './SidebarNavItem';
@@ -16,6 +16,7 @@ const ITEMS: { view: SidebarView; icon: typeof Target; label: string }[] = [
   { view: 'scenariograph', icon: GitFork, label: 'Scénario Nodal' },
   { view: 'playbook', icon: BookOpen, label: 'Playbook' },
   { view: 'library', icon: Library, label: 'Bibliothèque' },
+  { view: 'sessions', icon: CalendarDays, label: 'Séances' },
   { view: 'settings', icon: Settings, label: 'Paramètres' },
 ];
 

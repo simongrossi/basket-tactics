@@ -10,6 +10,7 @@ export type SidebarView =
   | 'court'
   | 'playbook'
   | 'library'
+  | 'sessions'
   | 'settings'
   | 'scenariograph';
 
@@ -45,6 +46,7 @@ function isView(v: unknown): v is SidebarView {
     v === 'court' ||
     v === 'playbook' ||
     v === 'library' ||
+    v === 'sessions' ||
     v === 'settings' ||
     v === 'scenariograph'
   );
