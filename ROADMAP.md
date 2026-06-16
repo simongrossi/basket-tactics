@@ -121,6 +121,18 @@ match-sim crédible, attaque de zone.
   ball-side/weak-side (3 chemins), prop drilling 40+ callbacks depuis
   `page.tsx`.
 
+### 🏀 Coaching — usage entraînement / avec les joueurs (2026-06-17)
+
+Axe « montrer & enseigner les systèmes » (cf. mémoire coaching-backlog).
+Livrés : **masquage d'équipe** (montrer un système nu), **mode présentation
+pas-à-pas** (`PresentationBar` + `realSteps.ts` — ◀/▶ étapes réelles, clavier,
+chrome d'édition masqué ; commit `f5bb97a`), **séances** (vue Séances +
+`practiceSessions.ts` — agenda de blocs chronométrés systèmes/libres, fiche
+imprimable + déroulé interactif « Ouvrir » ; commits `23901ec`, `3019aa5`).
+Restent : **mode quiz / lecture cachée** (prochain candidat, s'appuie sur les
+arbres multi-niveaux), handouts joueur riches, clés d'enseignement par étape,
+roster réel réutilisable, tableau blanc freehand.
+
 ### 📌 Priorisation consolidée (ordre conseillé)
 
 | # | Chantier | Statut | Effort | Valeur |
