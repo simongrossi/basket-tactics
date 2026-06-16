@@ -19,6 +19,8 @@ import { ParametresPanel } from '@/components/ParametresPanel';
 import { LibraryModal } from '@/components/LibraryModal';
 import { SidebarThemeProvider } from '@/components/sidebar/SidebarThemeContext';
 import { Timeline } from '@/components/Timeline';
+import { PresentationBar } from '@/components/PresentationBar';
+import { nextRealStepIndex, prevRealStepIndex } from '@/lib/logic/playback/realSteps';
 import { CourtView } from '@/components/CourtView';
 import { LiveMatchOverlay } from '@/components/LiveMatchOverlay';
 import { MiniBoxScore } from '@/components/MiniBoxScore';
@@ -213,6 +215,33 @@ export default function Page() {
     return () => document.removeEventListener('fullscreenchange', handler);
   }, []);
 
+  // Coaching #1 — navigation clavier de la présentation pas-à-pas (mode
+  // lecteur). ←/→ ou PageUp/PageDown (télécommande de présentation) changent
+  // d'étape réelle ; Espace lance/arrête la lecture animée. Ignoré pendant la
+  // lecture (sauf Espace) et si la cible est un champ de saisie.
+  useEffect(() => {
+    if (!isPlayerMode) return;
+    const handler = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      if (e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        handlePlayToggle();
+        return;
+      }
+      if (isPlaying) return;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+        e.preventDefault();
+        app.setActiveStep(nextRealStepIndex(app.state.steps, app.state.activeStep));
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        app.setActiveStep(prevRealStepIndex(app.state.steps, app.state.activeStep));
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isPlayerMode, isPlaying, handlePlayToggle, app]);
+
   // Détection du mode lecteur depuis l'URL (hash ou query string)
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -221,6 +250,7 @@ export default function Page() {
       const hasPlayer = hash.includes('mode=player') || search.includes('mode=player');
       if (hasPlayer) {
         setIsPlayerMode(true);
+        sidebar.setActiveView('court');
       }
     }
   }, []);
@@ -320,7 +350,13 @@ export default function Page() {
                 presentMode={presentMode}
                 onTogglePresentMode={handleTogglePresentMode}
                 isPlayerMode={isPlayerMode}
-                onTogglePlayerMode={() => setIsPlayerMode((v) => !v)}
+                onTogglePlayerMode={() => setIsPlayerMode((v) => {
+                  // Entrer en mode lecteur force la vue terrain : la sidebar
+                  // est masquée, sans ça on resterait bloqué sur une vue
+                  // routée (Paramètres, Bibliothèque…) sans moyen d'en sortir.
+                  if (!v) sidebar.setActiveView('court');
+                  return !v;
+                })}
                 onOpenPlayerTimeline={() => setShowPlayerTimeline(true)}
                 onOpenExport={() => setShowExportModal(true)}
                 onExport={handleExport}
@@ -649,6 +685,17 @@ export default function Page() {
               externalSvgRef={courtSvgRef}
               isPlayerMode={isPlayerMode}
             />
+            {/* Coaching #1 — télécommande de présentation pas-à-pas, en
+                overlay sur le terrain en mode lecteur (sans match live). */}
+            {isPlayerMode && !matchLoop.matchState && (
+              <PresentationBar
+                steps={app.state.steps}
+                activeStep={app.state.activeStep}
+                onSetActiveStep={app.setActiveStep}
+                onTogglePlay={handlePlayToggle}
+                isPlaying={isPlaying}
+              />
+            )}
           </div>
           {(app.state.scriptedActions?.length ?? 0) > 0 && !isPlayerMode && (
             <ScenarioReader
@@ -657,6 +704,7 @@ export default function Page() {
               stepToActionId={app.state.steps.map((s) => s.generatedBy)}
             />
           )}
+          {!isPlayerMode && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ flex: 1 }}>
               <Timeline
@@ -698,6 +746,7 @@ export default function Page() {
               </button>
             )}
           </div>
+          )}
           {showMultiTrack && !isPlayerMode && (
             <MultiTrackTimeline
               state={app.state}
