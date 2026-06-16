@@ -132,6 +132,9 @@ export interface UserLibrary {
    *  bibliothèques sauvegardées avant la v1.1 (sera initialisé à `[]` au
    *  premier chargement). */
   defensePresets?: UserDefensePreset[];
+  /** Séances d'entraînement (coaching #3). Optionnel pour rétrocompat —
+   *  initialisé paresseusement par les CRUD de `practiceSessions.ts`. */
+  sessions?: import('./practiceSessions').PracticeSession[];
   /** Version du schéma — sert pour migrations futures. */
   version: 1;
 }

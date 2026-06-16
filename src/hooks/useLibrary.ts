@@ -26,6 +26,15 @@ import {
   deleteDefensePreset as deleteDefensePresetFn,
   renameDefensePreset as renameDefensePresetFn,
 } from '@/lib/data/library';
+import {
+  makeSession,
+  type PracticeSession,
+  addSession as addSessionFn,
+  updateSession as updateSessionFn,
+  deleteSession as deleteSessionFn,
+  renameSession as renameSessionFn,
+  duplicateSession as duplicateSessionFn,
+} from '@/lib/data/practiceSessions';
 
 /**
  * Hook bibliothèque utilisateur. Gère l'état persisté en localStorage
@@ -138,6 +147,30 @@ export function useLibrary() {
     setLibrary((lib) => renameDefensePresetFn(lib, id, newName));
   }, []);
 
+  // ----- Séances d'entraînement (coaching #3) -----
+
+  const createSession = useCallback((name: string): string => {
+    const session = makeSession(name);
+    setLibrary((lib) => addSessionFn(lib, session));
+    return session.id;
+  }, []);
+
+  const updateSession = useCallback((session: PracticeSession) => {
+    setLibrary((lib) => updateSessionFn(lib, session));
+  }, []);
+
+  const deleteSession = useCallback((id: string) => {
+    setLibrary((lib) => deleteSessionFn(lib, id));
+  }, []);
+
+  const renameSession = useCallback((id: string, newName: string) => {
+    setLibrary((lib) => renameSessionFn(lib, id, newName));
+  }, []);
+
+  const duplicateSession = useCallback((id: string) => {
+    setLibrary((lib) => duplicateSessionFn(lib, id));
+  }, []);
+
   return {
     library,
     hydrated,
@@ -156,5 +189,10 @@ export function useLibrary() {
     loadDefensePreset,
     deleteDefensePreset,
     renameDefensePreset,
+    createSession,
+    updateSession,
+    deleteSession,
+    renameSession,
+    duplicateSession,
   };
 }
