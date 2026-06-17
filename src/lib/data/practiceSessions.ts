@@ -40,6 +40,10 @@ function uid(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/** Bloc sans `id` (généré à l'insertion) — utilisé par les exercices exemples
+ *  (`drillTemplates.ts`) insérés comme blocs pré-remplis. */
+export type SessionBlockTemplate = Omit<SessionBlock, 'id'>;
+
 // ============================================================
 // Factories
 // ============================================================
@@ -59,6 +63,12 @@ export function makeSystemBlock(
   durationMin = 15,
 ): SessionBlock {
   return { id: uid('blk'), kind: 'system', title, durationMin, systemId };
+}
+
+/** Instancie un bloc à partir d'un template (exercice exemple) : copie + id
+ *  frais, indépendant du template source. */
+export function blockFromTemplate(t: SessionBlockTemplate): SessionBlock {
+  return { ...t, id: uid('blk') };
 }
 
 // ============================================================
