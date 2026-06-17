@@ -123,15 +123,24 @@ match-sim crédible, attaque de zone.
 
 ### 🏀 Coaching — usage entraînement / avec les joueurs (2026-06-17)
 
-Axe « montrer & enseigner les systèmes » (cf. mémoire coaching-backlog).
-Livrés : **masquage d'équipe** (montrer un système nu), **mode présentation
-pas-à-pas** (`PresentationBar` + `realSteps.ts` — ◀/▶ étapes réelles, clavier,
-chrome d'édition masqué ; commit `f5bb97a`), **séances** (vue Séances +
-`practiceSessions.ts` — agenda de blocs chronométrés systèmes/libres, fiche
-imprimable + déroulé interactif « Ouvrir » ; commits `23901ec`, `3019aa5`).
-Restent : **mode quiz / lecture cachée** (prochain candidat, s'appuie sur les
-arbres multi-niveaux), handouts joueur riches, clés d'enseignement par étape,
-roster réel réutilisable, tableau blanc freehand.
+Axe « montrer & enseigner les systèmes » — l'usage premier de l'outil est de
+présenter/enseigner des systèmes aux joueurs, pas de simuler des matchs
+(cf. mémoires coaching-first + coaching-backlog). Backlog des 7 chantiers
+identifiés à l'audit coaching, avec statut :
+
+| # | Chantier | Statut | Notes |
+|---|---|---|---|
+| 1 | **Mode présentation des systèmes + révélation pas-à-pas** — grand terrain, zéro chrome d'édition, télécommande « étape suivante » pour dérouler le set phase par phase en parlant (tablette/TV) | 🟢 **livré** (`f5bb97a`) | `PresentationBar` + `realSteps.ts` : ◀/▶ étapes réelles, lecture, clavier ←/→/Espace, timeline masquée, entrée en lecteur force la vue terrain. Brique `masquage d'équipe` (`showDefenders`/`showAttackers`, `594bc4e`) incluse |
+| 2 | **Mode quiz / lecture cachée** — montrer la situation, masquer la branche de lecture, « si drop, tu fais quoi ? », puis révéler. Entraînement à la décision | ⚪ **prochain** | Quasi gratuit : réutilise les arbres de lecture multi-niveaux (`scenarioBranches` + `parentBranchId`, `77ab9c5`). Très forte valeur pédagogique, unique |
+| 3 | **Planification de séance / drills** — échauffement → exercice → situation → scrimmage, avec durées | 🟢 **livré** (`23901ec`, `3019aa5`) | Vue Séances + `practiceSessions.ts` : agenda de blocs chronométrés (systèmes biblio + blocs libres), total auto, fiche imprimable + déroulé interactif « Ouvrir ». Reste possible : éditeur de drills dédié (dessins distincts des systèmes) |
+| 4 | **Fiches imprimables propres (handouts joueur)** — une page par système (diagramme + clés + consignes) à donner/afficher | ⚪ | `window.print()` actuel sort les vignettes Playbook + la fiche de séance, mais pas un handout d'une page par système. Synergie avec #5 |
+| 5 | **Clés d'enseignement structurées par étape** — points clés / erreurs fréquentes / timing attachés au système, affichés en présentation | ⚪ | Aujourd'hui `Step.label` + notes texte libres seulement. Donnerait du contenu à #1 (présentation) et #4 (handouts) |
+| 6 | **Roster réel réutilisable** — effectif d'équipe défini une fois (postes, main forte), appliqué à n'importe quel template | ⚪ | Noms/numéros aujourd'hui par-scénario (`playerNames`/`playerNumbers`). Personnaliserait les systèmes aux vrais joueurs |
+| 7 | **Tableau blanc freehand** — stylo libre pour griffonner un ajustement à la volée (« je te le dessine ») | ⚪ | Annotations aujourd'hui structurées (passe/cut/écran). Réflexe coach en timeout |
+
+Ordre conseillé pour la suite : **#2 (quiz)** d'abord (valeur max, coût quasi
+nul vu les arbres multi-niveaux), puis **#5 → #4** (clés d'enseignement qui
+alimentent les handouts), puis **#6 (roster)** et **#7 (whiteboard)**.
 
 ### 📌 Priorisation consolidée (ordre conseillé)
 
