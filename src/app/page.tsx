@@ -40,6 +40,7 @@ import { computeCoachDiagnostics } from '@/lib/logic/coachDiagnostics';
 import { activeBallCarrier, activeOffense } from '@/lib/logic/players';
 import type { ActionTimingAnchor, AddAnnotationOptions, Annotation, AppState, Step } from '@/lib/types';
 import { compressStateToUrl } from '@/lib/state/urlCompression';
+import { findTemplate } from '@/lib/data/templates';
 
 export default function Page() {
   const app = useAppState();
@@ -130,6 +131,14 @@ export default function Page() {
     sidebar.setActiveView('court');
     setIsPlayerMode(true);
   }, [lib, app, sidebar]);
+
+  const handleVisualizeDrillTemplate = useCallback((templateId: string) => {
+    const template = findTemplate(templateId);
+    if (!template) return;
+    app.loadTemplate(template);
+    sidebar.setActiveView('court');
+    setIsPlayerMode(true);
+  }, [app, sidebar]);
 
   const metrics = useMemo(() => {
     const step = app.state.steps[app.state.activeStep];
@@ -584,6 +593,7 @@ export default function Page() {
                 onDeleteSession={lib.deleteSession}
                 onDuplicateSession={lib.duplicateSession}
                 onOpenSystem={handleOpenSessionSystem}
+                onVisualizeTemplate={handleVisualizeDrillTemplate}
               />
             </SidebarThemeProvider>
           )}

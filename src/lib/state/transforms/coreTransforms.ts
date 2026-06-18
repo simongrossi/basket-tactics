@@ -48,6 +48,8 @@ export function loadTemplate(s: AppState, template: Template): AppState {
       template.defenseSystem === 'zone' && template.zoneType
         ? { ...s.zoneConfig, type: template.zoneType }
         : s.zoneConfig,
+    // Drills : masquer la défense pour ne montrer que les courses attaquantes.
+    showDefenders: template.hideDefenseOnLoad ? false : s.showDefenders,
   };
 }
 

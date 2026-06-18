@@ -23,6 +23,10 @@ export interface SessionBlock {
   /** Pour `kind: 'system'` : id du `SavedSystem` référencé. Absent pour les
    *  blocs libres. Peut devenir orphelin si le système est supprimé. */
   systemId?: string;
+  /** Id d'un `Template` intégré (ex. scénario de drill) à visualiser sur le
+   *  terrain. Permet à un bloc libre (exercice) d'être animé/présenté sans être
+   *  un système de la bibliothèque. */
+  templateId?: string;
 }
 
 export interface PracticeSession {

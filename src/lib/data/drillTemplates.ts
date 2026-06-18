@@ -19,6 +19,8 @@ export const DRILL_TEMPLATES: DrillTemplate[] = [
     category: 'Transition',
     title: 'Philadelphia (transition + tir en continu)',
     durationMin: 15,
+    // Lié au scénario animé `drill-philadelphia` → bouton « Visualiser ».
+    templateId: 'drill-philadelphia',
     notes:
       "Exercice de transition + tir en continu (conditionnement game-speed).\n" +
       "Mise en place : 3 lignes en fond de terrain — 2 ailiers sur les côtés, " +

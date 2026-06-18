@@ -8,6 +8,7 @@ describe('DRILL_TEMPLATES', () => {
     expect(philly).toBeDefined();
     expect(philly!.category).toBe('Transition');
     expect(philly!.durationMin).toBeGreaterThan(0);
+    expect(philly!.templateId).toBe('drill-philadelphia');
     // Consignes détaillées multi-lignes (fiche d'exercice).
     expect(philly!.notes!.length).toBeGreaterThan(100);
     expect(philly!.notes!.includes('\n')).toBe(true);
@@ -33,5 +34,6 @@ describe('DRILL_TEMPLATES', () => {
     expect(a.title).toBe(philly.title);
     expect(a.notes).toBe(philly.notes);
     expect(a.durationMin).toBe(philly.durationMin);
+    expect(a.templateId).toBe('drill-philadelphia');
   });
 });

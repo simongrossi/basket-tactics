@@ -11,6 +11,7 @@ import type {
 } from '../types';
 import { INBOUND_TEMPLATES } from './inboundTemplates';
 import { ANTI_ZONE_TEMPLATES } from './antiZoneTemplates';
+import { DRILL_SCENARIOS } from './drillScenarios';
 
 export interface Template {
   id: string;
@@ -34,6 +35,10 @@ export interface Template {
   defenseSystem?: DefenseSystem;
   /** Type de zone à activer si `defenseSystem === 'zone'` (ex. 'zone-2-3'). */
   zoneType?: ZoneType;
+  /** Exercices (drills) : masque la défense au chargement — un drill montre les
+   *  courses des attaquants, pas un face-à-face défensif. Réutilise le toggle
+   *  `showDefenders` (masquage d'équipe). */
+  hideDefenseOnLoad?: boolean;
 }
 
 
@@ -1239,6 +1244,7 @@ export const CLASSIC_TEMPLATES: Template[] = [
   STAGGER,
   PNR_WING,
   ...ANTI_ZONE_TEMPLATES,
+  ...DRILL_SCENARIOS,
   ...INBOUND_TEMPLATES,
 ];
 

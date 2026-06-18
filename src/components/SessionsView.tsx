@@ -37,6 +37,8 @@ interface SessionsViewProps {
   onDuplicateSession: (id: string) => void;
   /** Déroulé interactif : charge le système dans le terrain (mode présentation). */
   onOpenSystem: (systemId: string) => void;
+  /** Visualise un scénario intégré (drill) : charge le Template dans le terrain. */
+  onVisualizeTemplate: (templateId: string) => void;
 }
 
 const C = {
@@ -64,6 +66,7 @@ export function SessionsView({
   onDeleteSession,
   onDuplicateSession,
   onOpenSystem,
+  onVisualizeTemplate,
 }: SessionsViewProps) {
   const sessions = getSessions(library);
   const [selectedId, setSelectedId] = useState<string | null>(sessions[0]?.id ?? null);
@@ -176,6 +179,7 @@ export function SessionsView({
             onAddSystem={handleAddSystem}
             onAddDrill={handleAddDrill}
             onOpenSystem={onOpenSystem}
+            onVisualizeTemplate={onVisualizeTemplate}
           />
         )}
       </div>
@@ -314,7 +318,7 @@ function SessionEditor({
   session, library, allSystems, showSystemPicker, setShowSystemPicker,
   showDrillPicker, setShowDrillPicker,
   onPatchSession, onUpdateSession, onDeleteSession, onDuplicateSession,
-  onAddFree, onAddSystem, onAddDrill, onOpenSystem,
+  onAddFree, onAddSystem, onAddDrill, onOpenSystem, onVisualizeTemplate,
 }: {
   session: PracticeSession;
   library: UserLibrary;
@@ -331,6 +335,7 @@ function SessionEditor({
   onAddSystem: (sys: SavedSystem) => void;
   onAddDrill: (drill: DrillTemplate) => void;
   onOpenSystem: (systemId: string) => void;
+  onVisualizeTemplate: (templateId: string) => void;
 }) {
   const total = sessionTotalMinutes(session);
 
@@ -410,6 +415,7 @@ function SessionEditor({
               onDelete={() => onUpdateSession(deleteBlock(session, block.id))}
               onMove={(dir) => onUpdateSession(moveBlock(session, block.id, dir))}
               onOpen={() => block.systemId && onOpenSystem(block.systemId)}
+              onVisualize={() => block.templateId && onVisualizeTemplate(block.templateId)}
             />
           ))}
         </div>
@@ -499,7 +505,7 @@ function SessionEditor({
 // ============================================================
 
 function BlockRow({
-  block, index, total, orphan, onUpdate, onDelete, onMove, onOpen,
+  block, index, total, orphan, onUpdate, onDelete, onMove, onOpen, onVisualize,
 }: {
   block: SessionBlock;
   index: number;
@@ -509,8 +515,10 @@ function BlockRow({
   onDelete: () => void;
   onMove: (dir: 'up' | 'down') => void;
   onOpen: () => void;
+  onVisualize: () => void;
 }) {
   const isSystem = block.kind === 'system';
+  const hasVisual = !isSystem && !!block.templateId;
   return (
     <div className="block-row-card" style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: 12, borderRadius: 8, border: `1px solid ${C.border}`, background: C.panel }}>
       {/* Index + réordonnancement */}
@@ -563,6 +571,11 @@ function BlockRow({
         {isSystem && (
           <button onClick={onOpen} disabled={orphan} className="session-btn-open" style={{ ...btnBase, opacity: orphan ? 0.4 : 1, cursor: orphan ? 'not-allowed' : 'pointer', padding: '6px 10px' }} title="Ouvrir dans le terrain (présentation)">
             <Play size={13} /> Ouvrir
+          </button>
+        )}
+        {hasVisual && (
+          <button onClick={onVisualize} className="session-btn-open" style={{ ...btnBase, padding: '6px 10px' }} title="Visualiser l'exercice sur le terrain (présentation)">
+            <Play size={13} /> Visualiser
           </button>
         )}
         <button onClick={onDelete} className="session-delete-block-btn" style={iconBtn(false)} title="Supprimer le bloc"><Trash2 size={13} /></button>
