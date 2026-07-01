@@ -42,7 +42,15 @@ Tous les items P1/P2 weak-side se feraient en triple sans ce refactor.
 
 ## P1 — Coaching visible (valeur pédagogique directe)
 
-### P1.1 — Split-line / help-side stance weak-side 〔M〕
+### ✅ P1.1 — Split-line / help-side stance weak-side 〔M〕 (livré 2026-07-01)
+
+> Livré : branche `helpside-splitline` dans `computeHelpTarget` (help.ts),
+> opt-in `state.helpSideStanceEnabled` (toggle DefensePanel « stance split
+> line »). Conditions : weak-side + homme à ≥ 250 px du ballon
+> (`HELP_SIDE_TWO_PASSES_PX`) + pas de trigger. Cible = axe panier à hauteur
+> du ballon, pull `HELP_SIDE_SPLIT_LINE_PULL = 0.85` × helpPct/100 ×
+> leaveMultiplier. À une passe, le sag legacy reste. 9 nouveaux tests
+> (6 unitaires help + 3 intégration pipeline), 2238 verts.
 
 Le concept d'enseignement n°1 absent du moteur : un défenseur à deux
 passes du ballon se positionne sur la **ligne médiane** (split line),

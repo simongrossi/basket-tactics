@@ -129,6 +129,22 @@ export const DEFAULT_CLOSEOUT_BOOST = 1.4;
  */
 export const DEFAULT_DENY_AGGRESSIVENESS = 0.45;
 
+/**
+ * P1.1 — Help-side split line. Seuil « à deux passes » : distance
+ * homme ↔ porteur au-delà de laquelle un défenseur weak-side prend la
+ * stance split line (au lieu du sag proportionnel). ≈ 6,75 m. Cohérent
+ * avec le seuil « à une passe » (< 250 px) du strong-side denial.
+ */
+export const HELP_SIDE_TWO_PASSES_PX = 250;
+
+/**
+ * P1.1 — Intensité du pull vers la split line (fraction du chemin
+ * manPos → aim), multipliée par helpPct/100 et le coût de quitter
+ * l'attaquant. 0.85 = stance franche (un pied dans la raquette) tout en
+ * laissant helpPct au coach comme levier.
+ */
+export const HELP_SIDE_SPLIT_LINE_PULL = 0.85;
+
 // =============================================================
 // Vitesses par poste (presets)
 // =============================================================

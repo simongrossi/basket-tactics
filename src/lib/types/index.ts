@@ -879,7 +879,7 @@ export interface ComputedDefender {
   /** Priorité d'aide effective (paint / man / passlane). */
   helpPriority?: HelpPriority;
   /** Catégorie de la branche d'aide qui a produit le résultat (debug). */
-  helpKind?: 'sag-weakside' | 'denial-strongside' | 'active-help' | 'none';
+  helpKind?: 'sag-weakside' | 'helpside-splitline' | 'denial-strongside' | 'active-help' | 'none';
   /** CVT Chantier 3b — vrai si ce défenseur occulte une ligne de passe
    *  (proj dans le segment ET `|perpDist| < PASS_SHADOW_TOLERANCE_PX`).
    *  Métadonnée tactique consommable par les couches de help futures et
@@ -1039,6 +1039,11 @@ export interface AppState {
    *  la raquette / le skip côté faible (position dédiée vs sag passif via
    *  helpPct). Default undefined = legacy. */
   weakSideAnchorEnabled?: boolean;
+  /** P1.1 — Stance help-side « split line » : un défenseur weak-side dont
+   *  l'homme est à deux passes du ballon (> 250 px) se place sur l'axe
+   *  panier à hauteur du ballon (un pied dans la raquette), au lieu du sag
+   *  proportionnel. Default undefined = legacy (sag). */
+  helpSideStanceEnabled?: boolean;
   /** #8.1 — Active la relâche tactique du blitz quand le ballon ressort du
    *  trap : le screenerDef récupère le roller, le carrierDef recover. Default
    *  undefined = legacy (retombée homme-à-homme générique). */

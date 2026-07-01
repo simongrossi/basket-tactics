@@ -31,7 +31,7 @@ export interface DefenderTarget {
   armManSide: Point;
   helpAim?: Point;
   helpPriority?: HelpPriority;
-  helpKind?: 'sag-weakside' | 'denial-strongside' | 'active-help' | 'none';
+  helpKind?: 'sag-weakside' | 'helpside-splitline' | 'denial-strongside' | 'active-help' | 'none';
   /** CVT Chantier 3b — vrai si CE défenseur occulte une ligne de passe
    *  vers un attaquant non-porteur (proj dans le segment ET |perpDist| <
    *  `PASS_SHADOW_TOLERANCE_PX`).

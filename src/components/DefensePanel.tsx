@@ -876,6 +876,12 @@ export function DefensePanel(props: DefensePanelProps) {
                 onChange={(v) => props.onPatch({ weakSideAnchorEnabled: v })}
                 title="Désigne un défenseur côté faible (le low man, ou override coach) qui s'enfonce vers la raquette pour protéger le panier/skip. Marqueur ⚓. Clic-droit défenseur pour forcer l'ancre."
               />
+              <CheckboxLine
+                checked={!!state.helpSideStanceEnabled}
+                label="stance split line (P1.1)"
+                onChange={(v) => props.onPatch({ helpSideStanceEnabled: v })}
+                title="Un défenseur côté faible dont l'homme est à deux passes du ballon se place sur l'axe du panier à hauteur du ballon (un pied dans la raquette), en vision ballon + homme — au lieu du sag proportionnel."
+              />
               {state.screenRule === 'blitz' && (
                 <CheckboxLine
                   checked={!!state.blitzReleaseEnabled}

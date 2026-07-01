@@ -8,6 +8,8 @@ import type {
 } from '../types';
 import { HOOP } from '../data/court';
 import {
+  HELP_SIDE_SPLIT_LINE_PULL,
+  HELP_SIDE_TWO_PASSES_PX,
   RIM_PROTECTION_DROP_ZONE_PX,
   STEERING_MAN_SLOWING_RADIUS_PX,
 } from '../data/physics';
@@ -76,11 +78,20 @@ export interface HelpResult {
   priority?: import('../types').HelpPriority;
   /** Catégorie du calcul, pour différencier visuellement :
    *  - 'sag-weakside' : sag baseline passif, pas de trigger
+   *  - 'helpside-splitline' : stance split line (P1.1, opt-in) — homme
+   *    weak-side à deux passes, position sur l'axe panier à hauteur du ballon
    *  - 'denial-strongside' : strong-side denial automatique
    *  - 'active-help' : aide via trigger drive/post/paint
    *  - 'none' : helpFactor=0 (helpMode disabled, ou aucune branche ne s'applique)
    */
-  kind?: 'sag-weakside' | 'denial-strongside' | 'active-help' | 'none';
+  kind?: 'sag-weakside' | 'helpside-splitline' | 'denial-strongside' | 'active-help' | 'none';
+}
+
+/** Options opt-in de `computeHelpTarget` (défaut = comportement legacy). */
+export interface HelpOptions {
+  /** P1.1 — active la stance split line pour les défenseurs weak-side dont
+   *  l'homme est à deux passes du ballon (state.helpSideStanceEnabled). */
+  helpSideStance?: boolean;
 }
 
 export function computeHelpTarget(
@@ -98,7 +109,8 @@ export function computeHelpTarget(
   /** Coût de quitter l'attaquant marqué pour aider. 1.0 = neutre, <1 réduit
    *  l'aide (ne pas quitter un shooter), >1 augmente (sag franc sur un
    *  non-shooter). Calculé en amont via leaveAttackerCostMultiplier(profile). */
-  leaveMultiplier: number = 1
+  leaveMultiplier: number = 1,
+  opts?: HelpOptions
 ): HelpResult {
   // helpMode 'disabled' : court-circuit, le défenseur n'aide jamais
   // (ni triggers, ni sag baseline, ni denial)
@@ -109,6 +121,35 @@ export function computeHelpTarget(
   const myAttSide = strictSide(attPos.x, hoop.x);
 
   if (!triggers.any || rule.helpPct === 0) {
+    // P1.1 — Help-side split line (opt-in). Un défenseur weak-side dont
+    // l'homme est à DEUX passes du ballon ne se contente pas d'un sag
+    // proportionnel : il prend la stance d'aide enseignée — sur la split
+    // line (axe panier), à hauteur du ballon, un pied dans la raquette,
+    // en vision ballon + homme. Prime sur le sag legacy quand le flag est
+    // actif ; à une passe (< seuil), le sag legacy reste la bonne réponse.
+    if (
+      opts?.helpSideStance &&
+      rule.helpPct > 0 &&
+      isWeakSide(myAttSide, ballSide) &&
+      distance(attPos, carrierPos) >= HELP_SIDE_TWO_PASSES_PX
+    ) {
+      const aim = { x: hoop.x, y: carrierPos.y };
+      const pull = Math.min(
+        1,
+        (rule.helpPct / 100) * HELP_SIDE_SPLIT_LINE_PULL * leaveMultiplier
+      );
+      return {
+        target: {
+          x: manPos.x + (aim.x - manPos.x) * pull,
+          y: manPos.y + (aim.y - manPos.y) * pull,
+        },
+        helpFactor: pull,
+        aim,
+        priority: rule.priority,
+        kind: 'helpside-splitline',
+      };
+    }
+
     if (rule.helpPct > 0 && isWeakSide(myAttSide, ballSide)) {
       const sagFactor = (rule.helpPct / 100) * 0.5 * leaveMultiplier;
       const sign = hoop.y > 540 ? -1 : 1; // sens panier→milieu (sag pousse vers le milieu)
@@ -319,10 +360,11 @@ export function computeHelpForces(
   denyAggressiveness: number = 0.45,
   leaveMultiplier: number = 1,
   slowingRadius: number = STEERING_MAN_SLOWING_RADIUS_PX,
+  opts?: HelpOptions,
 ): HelpForcesResult {
   const legacy = computeHelpTarget(
     manPos, rule, triggers, carrierPos, attPos, ballSide,
-    allOff, hoop, denyAggressiveness, leaveMultiplier,
+    allOff, hoop, denyAggressiveness, leaveMultiplier, opts,
   );
   const d = distance(defenderRef, legacy.target);
   const forces: SteeringForce[] = d < 1e-6

@@ -311,3 +311,79 @@ describe('computeHelpForces — amortissement zone proche (1.1b appliqué à hel
     }
   });
 });
+
+describe('computeHelpTarget — help-side split line (P1.1, opt-in)', () => {
+  // Ballon à droite, homme weak-side à gauche À DEUX PASSES (> 250 px du ballon).
+  const carrier = { x: 450, y: 470 };
+  const attFar = { x: 150, y: 350 }; // dist ≈ 323 px → 2 passes
+  const attNear = { x: 240, y: 420 }; // dist ≈ 168 px → 1 passe
+  const manPosFar = { x: 150, y: 280 };
+  const manPosNear = { x: 240, y: 340 };
+  const splitOn = { helpSideStance: true };
+
+  it('flag on + weak-side + 2 passes → stance split line (kind dédié, aim sur l\'axe à hauteur du ballon)', () => {
+    const r = computeHelpTarget(
+      manPosFar, ruleSag(50), noTriggers, carrier, attFar, 1,
+      undefined, HOOP, 0.45, 1, splitOn
+    );
+    expect(r.kind).toBe('helpside-splitline');
+    expect(r.aim).toBeDefined();
+    expect(r.aim!.x).toBe(HOOP.x); // split line = axe panier
+    expect(r.aim!.y).toBe(carrier.y); // à hauteur du ballon
+    expect(r.helpFactor).toBeGreaterThan(0);
+  });
+
+  it('le pull vers la split line est plus fort que le sag legacy', () => {
+    const legacy = computeHelpTarget(
+      manPosFar, ruleSag(50), noTriggers, carrier, attFar, 1
+    );
+    const split = computeHelpTarget(
+      manPosFar, ruleSag(50), noTriggers, carrier, attFar, 1,
+      undefined, HOOP, 0.45, 1, splitOn
+    );
+    const distLegacy = Math.abs(legacy.target.x - HOOP.x);
+    const distSplit = Math.abs(split.target.x - HOOP.x);
+    expect(distSplit).toBeLessThan(distLegacy);
+  });
+
+  it('flag on mais homme à UNE passe (< 250 px) → sag legacy inchangé', () => {
+    const withFlag = computeHelpTarget(
+      manPosNear, ruleSag(50), noTriggers, carrier, attNear, 1,
+      undefined, HOOP, 0.45, 1, splitOn
+    );
+    const without = computeHelpTarget(
+      manPosNear, ruleSag(50), noTriggers, carrier, attNear, 1
+    );
+    expect(withFlag.kind).toBe('sag-weakside');
+    expect(withFlag.target).toEqual(without.target);
+  });
+
+  it('flag on + strong-side → denial inchangé', () => {
+    const attStrong = { x: 400, y: 380 };
+    const manStrong = { x: 400, y: 300 };
+    const withFlag = computeHelpTarget(
+      manStrong, ruleSag(50), noTriggers, carrier, attStrong, 1,
+      undefined, HOOP, 0.45, 1, splitOn
+    );
+    const without = computeHelpTarget(
+      manStrong, ruleSag(50), noTriggers, carrier, attStrong, 1
+    );
+    expect(withFlag.kind).toBe('denial-strongside');
+    expect(withFlag.target).toEqual(without.target);
+  });
+
+  it('flag off (default) → sag legacy strictement préservé (régression)', () => {
+    const r = computeHelpTarget(
+      manPosFar, ruleSag(50), noTriggers, carrier, attFar, 1
+    );
+    expect(r.kind).toBe('sag-weakside');
+  });
+
+  it('trigger actif → l\'aide active prime, pas de split line', () => {
+    const r = computeHelpTarget(
+      manPosFar, ruleSag(50), driveTriggers, carrier, attFar, 1,
+      undefined, HOOP, 0.45, 1, splitOn
+    );
+    expect(r.kind).not.toBe('helpside-splitline');
+  });
+});

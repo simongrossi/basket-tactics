@@ -92,7 +92,7 @@ export function applyBaseTargetsLayer(
     let helpTriggered = false;
     let helpAim: Point | undefined;
     let helpPriority: HelpPriority | undefined;
-    let helpKind: 'sag-weakside' | 'denial-strongside' | 'active-help' | 'none' | undefined;
+    let helpKind: 'sag-weakside' | 'helpside-splitline' | 'denial-strongside' | 'active-help' | 'none' | undefined;
 
     // Override de distance individuel (rule.distance) > global
     let dist = rule.distance ?? state.defenseDistance;
@@ -135,6 +135,7 @@ export function applyBaseTargetsLayer(
         const helpRes = computeHelpForces(
           defenderRef, stancePos, rule, triggers, carrierPos, att, side, off, hoop,
           denyAggressiveness, leaveMult, slowingRadius,
+          { helpSideStance: state.helpSideStanceEnabled },
         );
         target = helpRes.forces.length > 0
           ? composeTarget(defenderRef, helpRes.forces)

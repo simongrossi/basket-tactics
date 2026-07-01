@@ -94,6 +94,12 @@ La cible "denyAim" est sur le segment porteur ↔ attaquant à 35% du chemin dep
 
 Pour un denial **manuel total** (fronting, 3/4 deny), l'utilisateur garde le contrôle via `DefenderRule.offBallStance` (`'fronting'` ou `'deny-3q'`), traités séparément en amont dans le moteur.
 
+## Stance help-side « split line » (P1.1, opt-in)
+
+`state.helpSideStanceEnabled` (toggle « stance split line » dans DefensePanel). Sans trigger actif, un défenseur **weak-side** dont l'homme est à **deux passes** du ballon (`distance(homme, porteur) ≥ HELP_SIDE_TWO_PASSES_PX = 250 px`) ne se contente plus du sag proportionnel : il prend la stance d'aide enseignée — sur la **split line** (axe panier, x = 300), **à hauteur du ballon**, un pied dans la raquette, en vision ballon + homme.
+
+Cible `aim = { x: hoop.x, y: carrier.y }`, pull `= helpPct/100 × HELP_SIDE_SPLIT_LINE_PULL (0.85) × leaveMultiplier` (capé à 1) — helpPct et le profil offensif du marqué restent les leviers du coach. `HelpResult.kind = 'helpside-splitline'`. À **une passe** (< 250 px), le sag baseline legacy reste la bonne réponse et s'applique inchangé. Le strong-side denial et l'aide sur trigger ont priorité comme avant. Tests : `help.test.ts § help-side split line` + `helpSideStance.test.ts` (intégration pipeline).
+
 ## Stance off-ball `'stunt'` (fake d'aide)
 
 Cinquième valeur de `OffBallStance`, à côté de `sag / behind / deny-3q / fronting`. Position calculée dans `offBallStanceTarget` avec un blend 0.4 entre la position "behind" (entre homme et panier) et la position "fronting" (entre homme et ballon). Moins agressif que `deny-3q` (0.75), plus offensif que `behind`. Le "recover" est naturel : à l'étape suivante, l'utilisateur remet la stance à `sag` ou `behind`, le défenseur revient sur son homme avec la lateness habituelle (modulée par `defenseMaxSpeed`).
