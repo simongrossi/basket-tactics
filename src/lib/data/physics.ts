@@ -145,6 +145,23 @@ export const HELP_SIDE_TWO_PASSES_PX = 250;
  */
 export const HELP_SIDE_SPLIT_LINE_PULL = 0.85;
 
+/**
+ * P1.4 — Drive naissant (pré-trigger). Rampe d'intensité 0..1 sur le
+ * delta porteur→panier entre 2 steps : 0 sous MIN, 1 à FULL (= seuil du
+ * vrai trigger drive dans triggers.ts). Gated à MAX_DIST du panier —
+ * au-delà, remonter la balle n'est pas une menace de pénétration.
+ */
+export const EARLY_DRIVE_MIN_DELTA_PX = 10;
+export const EARLY_DRIVE_FULL_DELTA_PX = 25;
+export const EARLY_DRIVE_MAX_DIST_PX = 350;
+
+/**
+ * P1.4 — Boost max du facteur d'aide weak-side quand un drive naissant
+ * est détecté (ajouté au facteur sag/split-line, capé à 1). Le shrink
+ * reste un PRÉ-mouvement : plus doux que l'aide active sur trigger.
+ */
+export const EARLY_DRIVE_SHRINK_BOOST = 0.35;
+
 // =============================================================
 // Vitesses par poste (presets)
 // =============================================================

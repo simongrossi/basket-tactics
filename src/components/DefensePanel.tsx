@@ -882,6 +882,12 @@ export function DefensePanel(props: DefensePanelProps) {
                 onChange={(v) => props.onPatch({ helpSideStanceEnabled: v })}
                 title="Un défenseur côté faible dont l'homme est à deux passes du ballon se place sur l'axe du panier à hauteur du ballon (un pied dans la raquette), en vision ballon + homme — au lieu du sag proportionnel."
               />
+              <CheckboxLine
+                checked={!!state.weakSideShrinkEnabled}
+                label="shrink sur drive naissant (P1.4)"
+                onChange={(v) => props.onPatch({ weakSideShrinkEnabled: v })}
+                title="Quand le porteur commence à gagner du terrain vers le panier (sous le seuil du trigger drive), les défenseurs côté faible approfondissent leur aide vers la raquette — pré-rotation avant l'aide active."
+              />
               {state.screenRule === 'blitz' && (
                 <CheckboxLine
                   checked={!!state.blitzReleaseEnabled}

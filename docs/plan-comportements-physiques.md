@@ -96,16 +96,16 @@ un pied dans la raquette — pas juste un sag proportionnel.
 - Diag-only, zéro impact physique — même pattern que l'overlay debug
   écran. Risque quasi nul.
 
-### P1.4 — Shrink weak-side sur drive naissant 〔M〕
+### ✅ P1.4 — Shrink weak-side sur drive naissant 〔M〕 (livré 2026-07-02)
 
-Le low man tag existe pour le PnR mais sur un drive isolé, l'aile
-opposée ne se resserre pas avant que le trigger drive soit pleinement
-actif.
-
-- Pré-trigger « drive naissant » (delta porteur→panier sur 1 step,
-  seuil sous celui de `triggers.drive`) → pull partiel des weak-side
-  vers la raquette (réutilise la mécanique de `preRotationEnabled` C.4).
-- Opt-in. Dépend de P0.1 et bénéficie de P1.1.
+> Livré : détecteur pur `detectEarlyDrive` (triggers.ts) — rampe 0..1
+> sur le delta porteur→panier (10→25 px = seuil du vrai trigger drive),
+> gated à 350 px du panier. Option `earlyDriveShrink` de
+> `computeHelpTarget` : approfondit le sag ET la split line weak-side
+> de `intensité × EARLY_DRIVE_SHRINK_BOOST (0.35)`, capé à 1.
+> Neutralisé dès que l'aide active se déclenche (triggers.any).
+> Opt-in `state.weakSideShrinkEnabled` (toggle DefensePanel).
+> 12 tests (7 détecteur + 3 help + 2 intégration), 2260 verts.
 
 ---
 

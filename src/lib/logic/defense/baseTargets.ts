@@ -18,6 +18,7 @@ import type {
 } from '../../types';
 import { DEFAULT_DENY_AGGRESSIVENESS, STEERING_MAN_SLOWING_RADIUS_PX } from '../../data/physics';
 import { computeHelpForces, computeHelpTarget, leaveAttackerCostMultiplier } from '../help';
+import { detectEarlyDrive } from '../triggers';
 import { applyScreenAdjustment, detectImminentScreen } from '../screens';
 import { computeDefenderOrientation } from '../orientation';
 import {
@@ -79,6 +80,13 @@ export function applyBaseTargetsLayer(
   // CVT tuning — rayon de décélération `arrive`, lu une fois par couche.
   const slowingRadius = state.steeringSlowingRadius ?? STEERING_MAN_SLOWING_RADIUS_PX;
 
+  // P1.4 — intensité du drive naissant, calculée une fois par step. Le
+  // shrink n'a de sens qu'en pré-trigger : si l'aide active est déjà
+  // déclenchée (triggers.any), elle prime et le shrink est neutralisé.
+  const earlyDriveShrink = state.weakSideShrinkEnabled && !triggers.any
+    ? detectEarlyDrive(off, prevOff, ballCarrier, hoop)
+    : 0;
+
   defenderIds.forEach((dId) => {
     const oId = matchups[dId];
     const att = off[oId];
@@ -135,7 +143,7 @@ export function applyBaseTargetsLayer(
         const helpRes = computeHelpForces(
           defenderRef, stancePos, rule, triggers, carrierPos, att, side, off, hoop,
           denyAggressiveness, leaveMult, slowingRadius,
-          { helpSideStance: state.helpSideStanceEnabled },
+          { helpSideStance: state.helpSideStanceEnabled, earlyDriveShrink },
         );
         target = helpRes.forces.length > 0
           ? composeTarget(defenderRef, helpRes.forces)

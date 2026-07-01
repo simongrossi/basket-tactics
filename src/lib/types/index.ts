@@ -1044,6 +1044,11 @@ export interface AppState {
    *  panier à hauteur du ballon (un pied dans la raquette), au lieu du sag
    *  proportionnel. Default undefined = legacy (sag). */
   helpSideStanceEnabled?: boolean;
+  /** P1.4 — Shrink weak-side sur drive naissant : quand le porteur gagne du
+   *  terrain vers le panier SOUS le seuil du trigger drive, les défenseurs
+   *  weak-side approfondissent leur sag/split-line proportionnellement
+   *  (pré-rotation d'aide). Default undefined = legacy. */
+  weakSideShrinkEnabled?: boolean;
   /** #8.1 — Active la relâche tactique du blitz quand le ballon ressort du
    *  trap : le screenerDef récupère le roller, le carrierDef recover. Default
    *  undefined = legacy (retombée homme-à-homme générique). */

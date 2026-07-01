@@ -7,7 +7,41 @@ import type {
 } from '../types';
 import { HOOP } from '../data/court';
 import { POST_HOLD_THRESHOLD_PX } from '../constants/gameplay';
+import {
+  EARLY_DRIVE_FULL_DELTA_PX,
+  EARLY_DRIVE_MAX_DIST_PX,
+  EARLY_DRIVE_MIN_DELTA_PX,
+} from '../data/physics';
 import { distHoop, inPaint, distance } from './geometry';
+
+/**
+ * P1.4 — Détecte un « drive naissant » : le porteur gagne du terrain vers
+ * le panier mais SOUS le seuil du vrai trigger drive (25 px). Retourne une
+ * intensité 0..1 (rampe linéaire entre MIN et FULL delta), 0 si le porteur
+ * est statique, s'éloigne, n'a pas de step précédent, ou est trop loin du
+ * panier pour menacer (> EARLY_DRIVE_MAX_DIST_PX).
+ *
+ * Consommé par le shrink weak-side (state.weakSideShrinkEnabled) : l'aile
+ * opposée se resserre vers la raquette AVANT que l'aide active se déclenche.
+ */
+export function detectEarlyDrive(
+  off: AttackerPositions,
+  prevOff: AttackerPositions | null,
+  ballCarrier: AttackerId,
+  hoop: Point = HOOP
+): number {
+  const carrier = off[ballCarrier];
+  const prevCarrier = prevOff?.[ballCarrier];
+  if (!carrier || !prevCarrier) return 0;
+  const d2hoop = distHoop(carrier, hoop);
+  if (d2hoop >= EARLY_DRIVE_MAX_DIST_PX) return 0;
+  const delta = distHoop(prevCarrier, hoop) - d2hoop;
+  if (delta <= EARLY_DRIVE_MIN_DELTA_PX) return 0;
+  return Math.min(
+    1,
+    (delta - EARLY_DRIVE_MIN_DELTA_PX) / (EARLY_DRIVE_FULL_DELTA_PX - EARLY_DRIVE_MIN_DELTA_PX)
+  );
+}
 
 export function detectTriggers(
   off: AttackerPositions,

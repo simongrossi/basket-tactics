@@ -8,6 +8,7 @@ import type {
 } from '../types';
 import { HOOP } from '../data/court';
 import {
+  EARLY_DRIVE_SHRINK_BOOST,
   HELP_SIDE_SPLIT_LINE_PULL,
   HELP_SIDE_TWO_PASSES_PX,
   RIM_PROTECTION_DROP_ZONE_PX,
@@ -92,6 +93,10 @@ export interface HelpOptions {
   /** P1.1 — active la stance split line pour les défenseurs weak-side dont
    *  l'homme est à deux passes du ballon (state.helpSideStanceEnabled). */
   helpSideStance?: boolean;
+  /** P1.4 — intensité 0..1 du drive naissant (cf. `detectEarlyDrive`).
+   *  Approfondit le pull weak-side (sag ou split line) de
+   *  `intensité × EARLY_DRIVE_SHRINK_BOOST`, capé à 1. 0/undefined = legacy. */
+  earlyDriveShrink?: number;
 }
 
 export function computeHelpTarget(
@@ -137,6 +142,7 @@ export function computeHelpTarget(
       const pull = Math.min(
         1,
         (rule.helpPct / 100) * HELP_SIDE_SPLIT_LINE_PULL * leaveMultiplier
+          + (opts?.earlyDriveShrink ?? 0) * EARLY_DRIVE_SHRINK_BOOST
       );
       return {
         target: {
@@ -151,7 +157,13 @@ export function computeHelpTarget(
     }
 
     if (rule.helpPct > 0 && isWeakSide(myAttSide, ballSide)) {
-      const sagFactor = (rule.helpPct / 100) * 0.5 * leaveMultiplier;
+      // P1.4 — drive naissant : le sag weak-side s'approfondit AVANT que
+      // l'aide active se déclenche (shrink pré-trigger, capé à 1).
+      const sagFactor = Math.min(
+        1,
+        (rule.helpPct / 100) * 0.5 * leaveMultiplier
+          + (opts?.earlyDriveShrink ?? 0) * EARLY_DRIVE_SHRINK_BOOST
+      );
       const sign = hoop.y > 540 ? -1 : 1; // sens panier→milieu (sag pousse vers le milieu)
       const aim = {
         x: (manPos.x + hoop.x) / 2 + (carrierPos.x - hoop.x) * 0.2,
