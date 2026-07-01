@@ -6,7 +6,7 @@ import type {
   AttackerId,
   OffensiveProfile,
 } from '../types';
-import { HOOP } from '../data/court';
+import { FT_LINE_Y, HOOP } from '../data/court';
 import {
   EARLY_DRIVE_SHRINK_BOOST,
   HELP_SIDE_SPLIT_LINE_PULL,
@@ -15,7 +15,7 @@ import {
   STEERING_MAN_SLOWING_RADIUS_PX,
 } from '../data/physics';
 import { distance } from './geometry';
-import { strictSide, isWeakSide, isStrongSide } from './courtSides';
+import { strictSide, sideWithTolerance, isWeakSide, isStrongSide } from './courtSides';
 import { arrive, type SteeringForce } from './steeringEngine';
 
 /**
@@ -97,6 +97,18 @@ export interface HelpOptions {
    *  Approfondit le pull weak-side (sag ou split line) de
    *  `intensité × EARLY_DRIVE_SHRINK_BOOST`, capé à 1. 0/undefined = legacy. */
   earlyDriveShrink?: number;
+  /** P2.2 — deny du reversal au nail : le défenseur du joueur en tête
+   *  (bande centrale) glisse vers le nail (axe panier, ligne des lancers
+   *  francs) quand le ballon est sur une aile, pour contester la passe de
+   *  renversement (state.denyReversalEnabled). */
+  denyReversal?: boolean;
+}
+
+/** Le « nail » : milieu de la ligne des lancers francs, point d'ancrage du
+ *  deny de reversal et du nail stunt. Miroité si le panier de référence est
+ *  en bas (attackingDirection down). */
+function nailPoint(hoop: Point): Point {
+  return { x: hoop.x, y: hoop.y > 540 ? 2 * 540 - FT_LINE_Y : FT_LINE_Y };
 }
 
 export function computeHelpTarget(
@@ -178,6 +190,34 @@ export function computeHelpTarget(
         aim,
         priority: rule.priority,
         kind: 'sag-weakside',
+      };
+    }
+
+    // P2.2 — Deny du reversal au nail (opt-in). Le joueur en tête (bande
+    // centrale ±30 px) est l'outlet naturel de la passe de renversement
+    // quand le ballon est sur une aile. Son défenseur glisse vers le nail
+    // (axe panier, hauteur lancers francs) : il conteste le swing tout en
+    // restant en position d'aide centrale. Prime sur le denial strong-side
+    // legacy (dont l'aim serait la ligne de passe directe).
+    if (
+      opts?.denyReversal &&
+      rule.priority !== 'paint' &&
+      ballSide !== 0 &&
+      sideWithTolerance(attPos.x, hoop.x) === 0 &&
+      denyAggressiveness > 0
+    ) {
+      const aim = nailPoint(hoop);
+      const pull = denyAggressiveness;
+      return {
+        target: {
+          x: manPos.x + (aim.x - manPos.x) * pull,
+          y: manPos.y + (aim.y - manPos.y) * pull,
+        },
+        helpFactor: pull,
+        denying: true,
+        aim,
+        priority: rule.priority,
+        kind: 'denial-strongside',
       };
     }
 

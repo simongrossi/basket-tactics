@@ -894,6 +894,12 @@ export function DefensePanel(props: DefensePanelProps) {
                 onChange={(v) => props.onPatch({ jumpPassingLanesEnabled: v })}
                 title="Pendant le vol d'une passe, un défenseur proche de la ligne passeur→receveur fait un pas dans la ligne (tentative de déflection) puis revient — « move on the pass, not on the catch ». Visible en lecture/scrub uniquement."
               />
+              <CheckboxLine
+                checked={!!state.denyReversalEnabled}
+                label="deny du reversal au nail (P2.2)"
+                onChange={(v) => props.onPatch({ denyReversalEnabled: v })}
+                title="Quand le ballon est sur une aile, le défenseur du joueur en tête glisse vers le nail (axe panier, hauteur lancers francs) pour contester la passe de renversement. Intensité pilotée par « denial agr. »."
+              />
               {state.screenRule === 'blitz' && (
                 <CheckboxLine
                   checked={!!state.blitzReleaseEnabled}

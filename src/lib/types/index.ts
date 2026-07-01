@@ -1054,6 +1054,11 @@ export interface AppState {
    *  (tentative de déflection) puis revient. Playback/scrub uniquement,
    *  endpoints moteur intacts. Default undefined = legacy. */
   jumpPassingLanesEnabled?: boolean;
+  /** P2.2 — Deny du reversal au nail : le défenseur du joueur en tête
+   *  (bande centrale) glisse vers le nail (axe panier, hauteur lancers
+   *  francs) quand le ballon est sur une aile, pour contester la passe de
+   *  renversement. Default undefined = legacy. */
+  denyReversalEnabled?: boolean;
   /** #8.1 — Active la relâche tactique du blitz quand le ballon ressort du
    *  trap : le screenerDef récupère le roller, le carrierDef recover. Default
    *  undefined = legacy (retombée homme-à-homme générique). */

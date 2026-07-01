@@ -143,7 +143,11 @@ export function applyBaseTargetsLayer(
         const helpRes = computeHelpForces(
           defenderRef, stancePos, rule, triggers, carrierPos, att, side, off, hoop,
           denyAggressiveness, leaveMult, slowingRadius,
-          { helpSideStance: state.helpSideStanceEnabled, earlyDriveShrink },
+          {
+            helpSideStance: state.helpSideStanceEnabled,
+            earlyDriveShrink,
+            denyReversal: state.denyReversalEnabled,
+          },
         );
         target = helpRes.forces.length > 0
           ? composeTarget(defenderRef, helpRes.forces)
