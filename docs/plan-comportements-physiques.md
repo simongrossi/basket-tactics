@@ -65,18 +65,19 @@ un pied dans la raquette — pas juste un sag proportionnel.
 - Visible sur **chaque** diapo de séance → meilleur ratio valeur/effort
   du plan.
 
-### P1.2 — Côté de contournement selon la règle over/under 〔S-M〕
+### ✅ P1.2 — Côté de contournement selon la règle over/under 〔S-M〕 (re-scopé 2026-07-02)
 
-`curveAroundObstacle` choisit le côté géométriquement ; un défenseur
-en « under » doit passer côté panier, en « over » côté ballon
-(TODO connu, IDEAS.md § contournement).
-
-- Threader `routeKind` (déjà exposé par `FrameDecision`) jusqu'au choix
-  de côté de la Bezier dans `playback/frameResolver.ts`.
-- ⚠ Règle 1bis : relire SCREEN-ENGINE.md, côté STABLE sur tout le
-  segment (pas de flip mid-segment), lancer `screens*` + `overlap*` +
-  `userJson*` + `screenLab*`.
-- Corrige une incohérence qui contredit ce que le coach enseigne.
+> **Déjà couvert par le moteur de routes** — le TODO d'IDEAS.md qui a
+> motivé cet item était obsolète. `carrierScreenRoutePreference` /
+> `offBallScreenRoutePreference` (screenPhysics.ts) produisent le
+> `forcedPushSign` consommé par frameResolver : under/weak → côté
+> panier, over/hedge/drop/blitz/peel-switch → côté opposé, ice → côté
+> opposé au porteur, switch → pas de route ; off-ball routé par type
+> (backscreen/flex/hammer côté panier, flare chase/under, elevator gap).
+> Livré P1.2 : 4 tests garde-fous du contrat porteur dans
+> `screenPhysicsRoute.test.ts` + TODO IDEAS.md corrigé. Le seul cas
+> encore « automatique » = défenseurs périphériques hors contact, où
+> le côté géométrique est le bon comportement basket.
 
 ### ✅ P1.3 — Overlay pédagogique triangle ballon-homme-panier 〔S〕 (livré 2026-07-02)
 

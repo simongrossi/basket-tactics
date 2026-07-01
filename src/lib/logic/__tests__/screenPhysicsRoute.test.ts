@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DetectedOffBallScreen, Point } from '@/lib/types';
-import { offBallScreenRoutePreference } from '../screenPhysics';
+import { carrierScreenRoutePreference, offBallScreenRoutePreference } from '../screenPhysics';
 
 function baseScreen(overrides: Partial<DetectedOffBallScreen> = {}): DetectedOffBallScreen {
   return {
@@ -73,5 +73,59 @@ describe('offBallScreenRoutePreference', () => {
       .toBeNull();
     expect(offBallScreenRoutePreference(baseScreen(), 'bump', { x: 300, y: 470 }))
       .toBeNull();
+  });
+});
+
+// P1.2 — garde-fous du contrat carrierScreenRoutePreference : le côté de
+// contournement du défenseur du porteur DOIT suivre la règle défensive
+// (under → côté panier, over/hedge/drop → côté opposé au panier, ice →
+// côté opposé au porteur, switch → pas de route). Comportement déjà câblé
+// dans frameResolver ; ces tests le verrouillent unitairement.
+describe('carrierScreenRoutePreference — côté selon la règle (P1.2)', () => {
+  const hoop = { x: 300, y: 75 };
+  const off = {
+    O1: { x: 340, y: 360 }, // porteur, côté droit du poseur
+    O2: { x: 100, y: 300 },
+    O3: { x: 500, y: 300 },
+    O4: { x: 150, y: 150 },
+    O5: { x: 300, y: 330 }, // poseur
+  } as const;
+  const screen = {
+    screener: 'O5',
+    screenerDef: 'D5',
+    carrier: 'O1',
+    carrierDef: 'D1',
+    screenerPos: off.O5,
+  } as const;
+  const toHoop = unit({ x: hoop.x - off.O5.x, y: hoop.y - off.O5.y });
+
+  it('under et weak → route côté panier', () => {
+    for (const rule of ['under', 'weak'] as const) {
+      const route = carrierScreenRoutePreference(rule, screen, off, hoop);
+      expect(route, rule).not.toBeNull();
+      expect(dot(route!, toHoop), rule).toBeGreaterThan(0.9);
+    }
+  });
+
+  it('over, hedge, drop, blitz, peel-switch → route côté opposé au panier', () => {
+    for (const rule of ['over', 'hedge', 'drop', 'blitz', 'peel-switch'] as const) {
+      const route = carrierScreenRoutePreference(rule, screen, off, hoop);
+      expect(route, rule).not.toBeNull();
+      expect(dot(route!, toHoop), rule).toBeLessThan(-0.9);
+    }
+  });
+
+  it('ice → route du côté opposé au porteur (ferme le côté du ballon)', () => {
+    const route = carrierScreenRoutePreference('ice', screen, off, hoop);
+    expect(route).not.toBeNull();
+    // Le porteur est côté +perp du poseur ; la route ice doit pointer -perp.
+    const perp = { x: -toHoop.y, y: toHoop.x };
+    const sToC = unit({ x: off.O1.x - off.O5.x, y: off.O1.y - off.O5.y });
+    const carrierSide = Math.sign(dot(sToC, perp));
+    expect(Math.sign(dot(route!, perp))).toBe(-carrierSide);
+  });
+
+  it('switch → pas de route de contournement (swap de matchups)', () => {
+    expect(carrierScreenRoutePreference('switch', screen, off, hoop)).toBeNull();
   });
 });

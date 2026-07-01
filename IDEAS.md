@@ -640,8 +640,13 @@ Un filet de sécurité `pushOutOfMany` (plusieurs passes) pousse chaque défense
 
 Évolutions possibles :
 - Étendre aux attaquants (notamment porteur qui contourne un écran avec son ballon)
-- Choisir le côté de contournement selon la règle d'écran active (over/under) plutôt que automatique
-- Multi-obstacles : le code actuel ne contourne qu'un seul poseur à la fois (le porteur en priorité). Si plusieurs écrans simultanés, prendre le plus proche du segment.
+- ✅ ~~Choisir le côté de contournement selon la règle d'écran active (over/under)~~ —
+  fait depuis le moteur de routes (`screenPhysics.carrierScreenRoutePreference` /
+  `offBallScreenRoutePreference` → `forcedPushSign` dans frameResolver) : under/weak
+  côté panier, over/hedge/drop/blitz côté opposé, ice côté opposé au porteur, routes
+  off-ball par type d'écran. Contrat verrouillé par `screenPhysicsRoute.test.ts` (P1.2).
+- ✅ ~~Multi-obstacles~~ — couvert par `pickBlockingCluster` (super-cluster v2) et
+  `pickStaggeredPair` + `curveAroundStaggeredPair` (weave v3).
 
 ### Strong-side denial (FAIT v1)
 Implémenté dans `help.computeHelpTarget`. Conditions : pas de trigger, strong-side, attaquant à <250px du ballon, `priority !== 'paint'`. Pull vers `denyAim = att + 0.35 * (carrier - att)` avec `denyFactor` jusqu'à 0.45 modulé par la proximité du ballon. Tests dans `help.test.ts § strong-side denial` (6 cas dont régression sag weak-side). Doc : `docs/logique-defensive.md § Strong-side denial automatique`.
