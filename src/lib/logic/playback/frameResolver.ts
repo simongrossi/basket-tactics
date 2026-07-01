@@ -39,6 +39,7 @@ import {
 import { pushOutOfScreenContact } from '../screenCollision';
 import { solveEntityCollisions } from '../constraintSolver';
 import { computeDefensiveRoute, sampleRoute, type RouteObstacle } from '../defensiveRoute';
+import { passLaneJumpOffset } from '../passLaneJump';
 import { applyEasing } from './easing';
 import { applyPathAwareInterpolation } from './pathAwareInterpolation';
 import { getStepDurationSeconds } from '../timecode';
@@ -1110,6 +1111,27 @@ export function resolveFrameAt(
   //    collisions strictes + ré-orientation finale.
   // ---------------------------------------------------------------------
   followDefendersAtFrame(defPos, off, carrier, state, idxA, idxB, screenLockedDefenders);
+  // 5.0a — P2.1 (opt-in) : jump the passing lane. Pendant le vol d'une passe
+  // (carrierA ≠ carrierB), les défenseurs proches de la ligne passeur→receveur
+  // (endpoints STABLES : offA[carrierA] → offB[carrierB]) font un micro-pas
+  // dans la ligne, enveloppe sin(π·localT) → nul aux bornes, endpoints moteur
+  // intacts. Exclusions : défenseurs en contact d'écran, closeout (le
+  // défenseur du receveur sprinte sur son homme, pas sur la ligne), override
+  // manuel. `resolvePlayerCollisions` plus bas reste le filet dur.
+  if (state.jumpPassingLanesEnabled && carrierA !== carrierB) {
+    const passer = offA[carrierA];
+    const receiver = offB[carrierB];
+    if (passer && receiver) {
+      defenderIds.forEach((id) => {
+        if (screenLockedDefenders.has(id)) return;
+        if (defB[id].closingOut) return;
+        if (state.steps[idxB]?.defenseOverrides?.[id]) return;
+        const jump = passLaneJumpOffset({ defender: defPos[id], passer, receiver, localT });
+        defPos[id].x += jump.x;
+        defPos[id].y += jump.y;
+      });
+    }
+  }
   // 5.0 — PAI V1 (opt-in) : Path-Aware Interpolation. Détecte les paires
   // de joueurs qui s'effleurent (< MIN_CLEARANCE + 8 px) à la frame
   // courante et applique une déviation tangentielle cappée à 4 px/frame.

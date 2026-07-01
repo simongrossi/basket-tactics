@@ -162,6 +162,16 @@ export const EARLY_DRIVE_MAX_DIST_PX = 350;
  */
 export const EARLY_DRIVE_SHRINK_BOOST = 0.35;
 
+/**
+ * P2.1 — Jump the passing lane. Pendant le vol d'une passe, un défenseur
+ * proche de la ligne passeur→receveur fait un pas DANS la ligne (tentative
+ * de déflection), puis revient — « move on the pass, not on the catch ».
+ * MAX < rate limiter playback (18 px/frame) ; l'enveloppe sin(π·t) rend le
+ * mouvement nul aux bornes du segment (endpoints moteur intacts).
+ */
+export const PASS_LANE_JUMP_MAX_PX = 12;
+export const PASS_LANE_JUMP_RADIUS_PX = 60;
+
 // =============================================================
 // Vitesses par poste (presets)
 // =============================================================

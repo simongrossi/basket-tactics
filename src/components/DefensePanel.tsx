@@ -888,6 +888,12 @@ export function DefensePanel(props: DefensePanelProps) {
                 onChange={(v) => props.onPatch({ weakSideShrinkEnabled: v })}
                 title="Quand le porteur commence à gagner du terrain vers le panier (sous le seuil du trigger drive), les défenseurs côté faible approfondissent leur aide vers la raquette — pré-rotation avant l'aide active."
               />
+              <CheckboxLine
+                checked={!!state.jumpPassingLanesEnabled}
+                label="jump ligne de passe (P2.1)"
+                onChange={(v) => props.onPatch({ jumpPassingLanesEnabled: v })}
+                title="Pendant le vol d'une passe, un défenseur proche de la ligne passeur→receveur fait un pas dans la ligne (tentative de déflection) puis revient — « move on the pass, not on the catch ». Visible en lecture/scrub uniquement."
+              />
               {state.screenRule === 'blitz' && (
                 <CheckboxLine
                   checked={!!state.blitzReleaseEnabled}

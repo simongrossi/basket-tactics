@@ -1049,6 +1049,11 @@ export interface AppState {
    *  weak-side approfondissent leur sag/split-line proportionnellement
    *  (pré-rotation d'aide). Default undefined = legacy. */
   weakSideShrinkEnabled?: boolean;
+  /** P2.1 — Jump the passing lane : pendant le vol d'une passe, un défenseur
+   *  proche de la ligne passeur→receveur fait un pas dans la ligne
+   *  (tentative de déflection) puis revient. Playback/scrub uniquement,
+   *  endpoints moteur intacts. Default undefined = legacy. */
+  jumpPassingLanesEnabled?: boolean;
   /** #8.1 — Active la relâche tactique du blitz quand le ballon ressort du
    *  trap : le screenerDef récupère le roller, le carrierDef recover. Default
    *  undefined = legacy (retombée homme-à-homme générique). */

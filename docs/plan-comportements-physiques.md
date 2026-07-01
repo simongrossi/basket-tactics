@@ -111,17 +111,17 @@ un pied dans la raquette — pas juste un sag proportionnel.
 
 ## P2 — Lignes de passe (l'axe le moins développé du moteur)
 
-### P2.1 — Jump the passing lane pendant le vol du ballon 〔M〕
+### ✅ P2.1 — Jump the passing lane pendant le vol du ballon 〔M〕 (livré 2026-07-02)
 
-`isPassShadowed` est calculé (chantier 3b) mais reste métadonnée ; la
-parabole 3D du ballon existe. Il manque le câblage : pendant la fenêtre
-de vol d'une passe, le défenseur deny concerné fait un pas dans la ligne.
-
-- Dans `resolveFrameAt` : si passe en cours (carrier change entre A et B)
-  ET un défenseur shadow la ligne → micro-déplacement vers la ligne
-  pendant la fenêtre de vol, retour ensuite.
-- Respecter rate limiter 18 px/frame + collisions aval.
-- Tests : frame-level sur un scénario passe skip ; `overlapInvariants`.
+> Livré : helper pur `passLaneJumpOffset` (passLaneJump.ts) — pendant le
+> vol d'une passe (carrierA ≠ carrierB), tout défenseur à < 60 px de la
+> ligne passeur→receveur (endpoints stables) fait un pas dans la ligne
+> (max 12 px, enveloppe sin(π·t) → nul aux bornes, jamais au-delà de la
+> ligne). Injecté dans resolveFrameAt après followDefendersAtFrame,
+> avant collisions ; exclusions : screen-locked, closeout (le défenseur
+> du receveur sprinte sur son homme), overrides. Opt-in
+> `state.jumpPassingLanesEnabled` (toggle DefensePanel). 11 tests
+> (7 helper + 4 intégration frame-level), batterie écran complète verte.
 
 ### P2.2 — Deny du reversal au nail 〔S-M〕
 
