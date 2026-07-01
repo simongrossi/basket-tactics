@@ -96,8 +96,11 @@ Constats classés par impact. Le #1 a un plan dédié :
 - **God-objects** : `gameLoop.ts` (2080), `frameResolver.ts` (2001),
   `DefensePanel.tsx` (1550), `useAppState.ts` (738, ~60 callbacks), prop drilling
   de 40+ callbacks depuis `page.tsx` sans Context. Freine l'évolution UI.
-- **Logique « ball-side / weak-side » et détection d'aide dupliquées** sur 3
-  chemins (`zoneDefense`, `manDefense`, `help.ts`) → utilitaire partagé.
+- ✅ **Logique « ball-side / weak-side » dé-dupliquée** (P0.1 livré 2026-07-01)
+  → utilitaire partagé `logic/courtSides.ts` (sideWithTolerance / strictSide /
+  binarySide / isWeakSide / isStrongSide), consommé par `help.ts`,
+  `zoneDefense`, `manDefense`, `geometry` et `zoneSituations` (ré-exports
+  conservés). Refacto bit-identique, 2229 tests verts.
 
 ### 📋 Produit — manques qui limitent l'usage terrain
 - **Pas de roster nommé** : on reste sur O1-O5 / D1-D5, sans noms/profils réels.

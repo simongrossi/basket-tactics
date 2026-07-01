@@ -10,6 +10,7 @@ import type {
 } from '../types';
 import { HOOP } from '../data/court';
 import { distance } from './geometry';
+import { strictSide, sideWithTolerance, isWeakSide } from './courtSides';
 import { manTarget, carrierDefenderTarget } from './manDefense';
 import { baseMatchups } from '../data/initial';
 import { detectOverload, findCriticalZoneAttackers } from './zoneSituations';
@@ -85,6 +86,11 @@ const BASE_REACH = 200;
 
 /** Largeur du demi-terrain (px). Centre vertical = COURT_CENTER_X. */
 const COURT_CENTER_X = 300;
+
+/** Bande centrale des home slots de zone : un slot à moins de 30 px de
+ *  l'axe est « central » (ni strong ni weak). Distinct de
+ *  CARRIER_SIDE_TOLERANCE_PX (même valeur, concept différent). */
+const ZONE_HOME_CENTER_TOLERANCE_PX = 30;
 
 /**
  * Paramètres tactiques par type de zone. Pondèrent le calcul des "claims"
@@ -180,16 +186,15 @@ function ballSideShifted(
 ): Point {
   const ballOffset = ballPos.x - COURT_CENTER_X;
   const homeOffset = home.x - COURT_CENTER_X;
-  const homeIsCenter = Math.abs(homeOffset) < 30;
-  const isWeakSide =
-    !homeIsCenter && Math.sign(homeOffset) !== Math.sign(ballOffset) && ballOffset !== 0;
+  const homeSide = sideWithTolerance(home.x, COURT_CENTER_X, ZONE_HOME_CENTER_TOLERANCE_PX);
+  const weakSide = isWeakSide(homeSide, strictSide(ballPos.x, COURT_CENTER_X));
 
   let shiftX = 0;
   let shiftY = 0;
 
-  if (homeIsCenter) {
+  if (homeSide === 0) {
     shiftX = ballOffset * helpFactor * 0.4 * 0.6;
-  } else if (isWeakSide) {
+  } else if (weakSide) {
     // Weak-side : pull fort vers l'axe central (x=300), pas juste vers le
     // ballon. Le défenseur côté faible doit "contrôler la raquette" en
     // glissant vers la ligne médiane plutôt que de rester sur son homme
@@ -329,12 +334,12 @@ export function computeZoneTargets(
       // sortie, pas le matchup naturel (la zone absorbe le porteur). On
       // filtre d'abord par côté ; si vide (ballon central), tous candidats
       // restent en course. Puis on prend le plus proche latéralement.
-      const ballSide = Math.sign(ballPos.x - COURT_CENTER_X);
+      const ballSide = strictSide(ballPos.x, COURT_CENTER_X);
       const sameSide =
         ballSide === 0
           ? candidates
           : candidates.filter(
-              (zone) => Math.sign(zone.homePos.x - COURT_CENTER_X) === ballSide
+              (zone) => strictSide(zone.homePos.x, COURT_CENTER_X) === ballSide
             );
       const finalCandidates = sameSide.length > 0 ? sameSide : candidates;
       const sorted = [...finalCandidates].sort(
@@ -722,20 +727,13 @@ export function computeZoneTargets(
       primaryAttacker !== null &&
       primaryAttacker !== ballCarrier
     ) {
-      const ballOffsetLocal = ballPos.x - COURT_CENTER_X;
-      const homeOffsetLocal = zone.homePos.x - COURT_CENTER_X;
-      const homeIsCenterLocal = Math.abs(homeOffsetLocal) < 30;
+      const ballSideLocal = strictSide(ballPos.x, COURT_CENTER_X);
+      const homeSideLocal = sideWithTolerance(
+        zone.homePos.x, COURT_CENTER_X, ZONE_HOME_CENTER_TOLERANCE_PX
+      );
       const attPosLocal = off[primaryAttacker as AttackerId];
-      const attOffsetLocal = (attPosLocal?.x ?? COURT_CENTER_X) - COURT_CENTER_X;
-      const isWeakSideDef =
-        !homeIsCenterLocal &&
-        ballOffsetLocal !== 0 &&
-        Math.sign(homeOffsetLocal) !== Math.sign(ballOffsetLocal);
-      const isWeakSideAtt =
-        ballOffsetLocal !== 0 &&
-        attOffsetLocal !== 0 &&
-        Math.sign(attOffsetLocal) !== Math.sign(ballOffsetLocal);
-      if (isWeakSideDef && isWeakSideAtt) {
+      const attSideLocal = strictSide(attPosLocal?.x ?? COURT_CENTER_X, COURT_CENTER_X);
+      if (isWeakSide(homeSideLocal, ballSideLocal) && isWeakSide(attSideLocal, ballSideLocal)) {
         engagement *= 0.5;
       }
     }

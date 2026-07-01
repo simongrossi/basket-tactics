@@ -15,7 +15,17 @@ Effort : **S** ≤ ½ journée · **M** 1-2 jours · **L** chantier multi-sessio
 
 ## P0 — Fondation (à faire avant tout le reste)
 
-### P0.1 — Dé-doublonner la logique ball-side / weak-side / aide 〔M〕
+### ✅ P0.1 — Dé-doublonner la logique ball-side / weak-side / aide 〔M〕 (livré 2026-07-01)
+
+> Livré : module pur [`src/lib/logic/courtSides.ts`](../src/lib/logic/courtSides.ts)
+> (`sideWithTolerance` / `strictSide` / `binarySide` / `ballSide` /
+> `attackerSide` / `isWeakSide` / `isStrongSide`). Les deux sémantiques
+> historiques (bande centrale vs signe strict) sont conservées telles
+> quelles — les unifier serait un changement de comportement, hors scope.
+> Consommé par `help.ts`, `zoneDefense.ts`, `manDefense.ts` ; ré-exports
+> de compat dans `geometry.ts` et `zoneSituations.ts` (zéro caller touché).
+> Refacto bit-identique : 2229 tests verts, +11 tests unitaires
+> `courtSides.test.ts`.
 
 **Pourquoi d'abord** : la logique « quel côté du terrain, qui est en
 position d'aide » est dupliquée sur 3 modules (noté IDEAS.md § dette).

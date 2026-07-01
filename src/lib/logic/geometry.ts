@@ -1,5 +1,8 @@
 import type { Point } from '../types';
-import { CARRIER_SIDE_TOLERANCE_PX, HOOP, PAINT } from '../data/court';
+import { HOOP, PAINT } from '../data/court';
+
+// Ré-export historique : la logique de côté vit dans courtSides.ts.
+export { ballSide } from './courtSides';
 import { solveEntityCollisions, solvePointConstraints } from './constraintSolver';
 
 export function distance(a: Point, b: Point): number {
@@ -46,13 +49,6 @@ export function clamp(v: number, lo: number, hi: number): number {
 export function normalize(p: Point): Point {
   const len = Math.hypot(p.x, p.y) || 1;
   return { x: p.x / len, y: p.y / len };
-}
-
-export function ballSide(carrierPos: Point | undefined): -1 | 0 | 1 {
-  if (!carrierPos) return 0;
-  const dx = carrierPos.x - HOOP.x;
-  if (Math.abs(dx) < CARRIER_SIDE_TOLERANCE_PX) return 0;
-  return dx > 0 ? 1 : -1;
 }
 
 /**

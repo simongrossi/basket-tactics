@@ -1,5 +1,6 @@
 import type { AttackerPositions, AttackerId, Point } from '../types';
-import { CARRIER_SIDE_TOLERANCE_PX, HOOP } from '../data/court';
+import { HOOP } from '../data/court';
+import { attackerSide } from './courtSides';
 
 /**
  * Module utilitaire pour identifier des situations tactiques particulières
@@ -19,13 +20,8 @@ import { CARRIER_SIDE_TOLERANCE_PX, HOOP } from '../data/court';
  *                de moitié de terrain). Force la zone à tourner.
  */
 
-/** Un attaquant est "côté G" si x < hoop.x - CARRIER_SIDE_TOLERANCE_PX,
- *  "côté D" si x > hoop.x + tolerance, "central" sinon. Renvoie -1 / 0 / 1. */
-export function attackerSide(pos: Point, hoop: Point = HOOP): -1 | 0 | 1 {
-  const dx = pos.x - hoop.x;
-  if (Math.abs(dx) < CARRIER_SIDE_TOLERANCE_PX) return 0;
-  return dx > 0 ? 1 : -1;
-}
+// Ré-export historique : la logique de côté vit dans courtSides.ts.
+export { attackerSide };
 
 export interface OverloadInfo {
   /** Côté du ballon (-1 G, 0 central, 1 D). */

@@ -5,6 +5,7 @@ import {
   STEERING_MAN_SLOWING_RADIUS_PX,
 } from '../data/physics';
 import { clamp, distance } from './geometry';
+import { binarySide } from './courtSides';
 import { arrive, type SteeringForce } from './steeringEngine';
 
 /** Décalage latéral en x à appliquer à la position cible du défenseur selon
@@ -83,7 +84,7 @@ export function carrierDefenderTarget(
   // selon le côté du porteur (+ vers le centre du terrain en haut/bas)
   const perpX = -dy / dist;
   const perpY = dx / dist;
-  const sideSign = att.x >= hoop.x ? 1 : -1;
+  const sideSign = binarySide(att.x, hoop.x);
   return {
     x: hoop.x + dx * ratio - (dx / dist) * bumpOffset + perpX * lateralOffset * sideSign,
     y: hoop.y + dy * ratio - (dy / dist) * bumpOffset + perpY * lateralOffset * sideSign,

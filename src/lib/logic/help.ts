@@ -12,6 +12,7 @@ import {
   STEERING_MAN_SLOWING_RADIUS_PX,
 } from '../data/physics';
 import { distance } from './geometry';
+import { strictSide, isWeakSide, isStrongSide } from './courtSides';
 import { arrive, type SteeringForce } from './steeringEngine';
 
 /**
@@ -104,10 +105,11 @@ export function computeHelpTarget(
   if (rule.helpMode === 'disabled') {
     return { target: manPos, helpFactor: 0, kind: 'none', priority: rule.priority };
   }
-  const myAttSide = Math.sign(attPos.x - hoop.x) || 0;
+  // Sémantique stricte (pas de bande centrale) — historique de l'aide man.
+  const myAttSide = strictSide(attPos.x, hoop.x);
 
   if (!triggers.any || rule.helpPct === 0) {
-    if (rule.helpPct > 0 && ballSide !== 0 && myAttSide !== 0 && myAttSide !== ballSide) {
+    if (rule.helpPct > 0 && isWeakSide(myAttSide, ballSide)) {
       const sagFactor = (rule.helpPct / 100) * 0.5 * leaveMultiplier;
       const sign = hoop.y > 540 ? -1 : 1; // sens panier→milieu (sag pousse vers le milieu)
       const aim = {
@@ -134,9 +136,7 @@ export function computeHelpTarget(
     // raquette quoi qu'il arrive).
     if (
       rule.priority !== 'paint' &&
-      ballSide !== 0 &&
-      myAttSide !== 0 &&
-      myAttSide === ballSide &&
+      isStrongSide(myAttSide, ballSide) &&
       denyAggressiveness > 0
     ) {
       const distAttBall = distance(attPos, carrierPos);
@@ -169,9 +169,9 @@ export function computeHelpTarget(
     // Toujours aider à fond, indépendamment du côté
     sideFactor = 1;
   } else {
-    if (ballSide === 0 || myAttSide === 0) sideFactor = 0.7;
-    else if (myAttSide !== ballSide) sideFactor = 1;
-    else sideFactor = 0.35;
+    if (isWeakSide(myAttSide, ballSide)) sideFactor = 1;
+    else if (isStrongSide(myAttSide, ballSide)) sideFactor = 0.35;
+    else sideFactor = 0.7; // ballon ou homme dans l'axe
   }
   if (rule.helpMode === 'passive') {
     sideFactor *= 0.5;
