@@ -2,11 +2,13 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  defenseTriangleOverlayData,
   isPassShadowed,
   passShadowsByDefender,
   profileWeightMultipliers,
   scaledProfileMultipliers,
   triangleAngleDeg,
+  triangleVerdict,
 } from '@/lib/logic/defenseTriangle';
 import type { AttackerPositions, DefenderId, OffensiveProfile, Point } from '@/lib/types';
 import { PASS_SHADOW_TOLERANCE_PX } from '@/lib/data/physics';
@@ -196,5 +198,65 @@ describe('passShadowsByDefender', () => {
 
   it("PASS_SHADOW_TOLERANCE_PX = 16 par défaut", () => {
     expect(PASS_SHADOW_TOLERANCE_PX).toBe(16);
+  });
+});
+
+describe('defenseTriangleOverlayData — P1.3 overlay pédagogique', () => {
+  const off = {
+    O1: { x: 450, y: 400 }, // porteur
+    O2: { x: 100, y: 340 },
+    O3: { x: 480, y: 250 },
+    O4: { x: 150, y: 150 },
+    O5: { x: 400, y: 130 },
+  };
+  const matchups = { D1: 'O1', D2: 'O2', D3: 'O3', D4: 'O4', D5: 'O5' } as const;
+
+  it('exclut le défenseur du porteur (triangle sans objet en 1c1 sur ballon)', () => {
+    const defenders = {
+      D1: { x: 430, y: 350 }, D2: { x: 180, y: 300 }, D3: { x: 440, y: 220 },
+      D4: { x: 200, y: 140 }, D5: { x: 380, y: 120 },
+    };
+    const entries = defenseTriangleOverlayData(defenders, matchups, off, 'O1');
+    expect(entries.find((e) => e.id === 'D1')).toBeUndefined();
+    expect(entries).toHaveLength(4);
+  });
+
+  it("chaque entrée porte l'angle au sommet défenseur (cohérent avec triangleAngleDeg)", () => {
+    const defenders = {
+      D1: { x: 430, y: 350 }, D2: { x: 180, y: 300 }, D3: { x: 440, y: 220 },
+      D4: { x: 200, y: 140 }, D5: { x: 380, y: 120 },
+    };
+    const entries = defenseTriangleOverlayData(defenders, matchups, off, 'O1');
+    const d2 = entries.find((e) => e.id === 'D2')!;
+    expect(d2.ball).toEqual(off.O1);
+    expect(d2.man).toEqual(off.O2);
+    expect(d2.angleDeg).toBeCloseTo(
+      triangleAngleDeg(off.O1, defenders.D2, off.O2), 6
+    );
+  });
+
+  it('verdict open : ballon et homme tiennent dans le cône de vision (≤ 120°)', () => {
+    expect(triangleVerdict(90)).toBe('open');
+    expect(triangleVerdict(120)).toBe('open');
+  });
+
+  it('verdict flat : défenseur aligné entre ballon et homme (> 150°), tête qui pivote', () => {
+    expect(triangleVerdict(151)).toBe('flat');
+    expect(triangleVerdict(180)).toBe('flat');
+  });
+
+  it('verdict wide : entre les deux (120° < θ ≤ 150°)', () => {
+    expect(triangleVerdict(135)).toBe('wide');
+  });
+
+  it('défenseur exactement sur la ligne ballon-homme → angle ~180 → flat', () => {
+    const defenders = {
+      D1: { x: 430, y: 350 },
+      D2: { x: 275, y: 370 }, // sur le segment O1(450,400) ↔ O2(100,340)
+      D3: { x: 440, y: 220 }, D4: { x: 200, y: 140 }, D5: { x: 380, y: 120 },
+    };
+    const entries = defenseTriangleOverlayData(defenders, matchups, off, 'O1');
+    const d2 = entries.find((e) => e.id === 'D2')!;
+    expect(d2.verdict).toBe('flat');
   });
 });

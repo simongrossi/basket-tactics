@@ -471,6 +471,12 @@ export function ParametresPanel({
               sample="dashed" color={UI.violet}
               onChange={(v) => onPatch({ showHelpDebug: v })}
             />
+            <ToggleCard
+              checked={!!state.showDefenseTriangles}
+              label="triangles vision défense"
+              sample="dashed" color={UI.green}
+              onChange={(v) => onPatch({ showDefenseTriangles: v })}
+            />
           </ToggleGroup>
         </div>
 

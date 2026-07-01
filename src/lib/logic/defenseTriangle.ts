@@ -168,3 +168,63 @@ export function passShadowsByDefender(
   }
   return out as Record<DefenderId, boolean>;
 }
+
+// ---------------------------------------------------------------------------
+// P1.3 — Overlay pédagogique « triangle ballon-homme-panier »
+// ---------------------------------------------------------------------------
+
+/** Verdict pédagogique sur l'angle θ au sommet défenseur :
+ *  - 'open' : ballon ET homme tiennent dans le cône de vision du projet
+ *    (120°, cf. FieldOfViewOverlay) — posture "pistols" enseignée.
+ *  - 'wide' : vision partagée, tête sur pivot léger (120° < θ ≤ 150°).
+ *  - 'flat' : défenseur quasi aligné entre ballon et homme (> 150°) —
+ *    il doit tourner la tête pour voir l'un des deux, lecture cassée. */
+export type TriangleVerdict = 'open' | 'wide' | 'flat';
+
+/** θ max (deg) pour un triangle 'open' = ouverture du cône de vision. */
+export const TRIANGLE_OPEN_MAX_DEG = 120;
+/** θ min (deg) au-delà duquel le triangle est 'flat' (aligné). */
+export const TRIANGLE_FLAT_MIN_DEG = 150;
+
+export function triangleVerdict(angleDeg: number): TriangleVerdict {
+  if (angleDeg > TRIANGLE_FLAT_MIN_DEG) return 'flat';
+  if (angleDeg > TRIANGLE_OPEN_MAX_DEG) return 'wide';
+  return 'open';
+}
+
+/** Données de rendu du triangle vision d'UN défenseur off-ball. */
+export interface DefenseTriangleEntry {
+  id: DefenderId;
+  def: Point;
+  ball: Point;
+  man: Point;
+  angleDeg: number;
+  verdict: TriangleVerdict;
+}
+
+/**
+ * Prépare les triangles ballon-défenseur-homme pour l'overlay pédagogique
+ * (« vois ton homme, vois le ballon »). Strictement diagnostique : aucune
+ * influence sur la physique. Le défenseur du porteur est exclu (le triangle
+ * n'a pas de sens en 1c1 sur le ballon), ainsi que toute entrée dont une
+ * position manque.
+ */
+export function defenseTriangleOverlayData(
+  defenders: Record<DefenderId, Point>,
+  matchups: Partial<Record<DefenderId, AttackerId>>,
+  off: AttackerPositions,
+  ballCarrier: AttackerId,
+): DefenseTriangleEntry[] {
+  const ball = off[ballCarrier];
+  if (!ball) return [];
+  const out: DefenseTriangleEntry[] = [];
+  for (const [dId, def] of Object.entries(defenders) as [DefenderId, Point][]) {
+    const oId = matchups[dId];
+    if (!oId || oId === ballCarrier) continue;
+    const man = off[oId];
+    if (!man) continue;
+    const angleDeg = triangleAngleDeg(ball, def, man);
+    out.push({ id: dId, def, ball, man, angleDeg, verdict: triangleVerdict(angleDeg) });
+  }
+  return out;
+}

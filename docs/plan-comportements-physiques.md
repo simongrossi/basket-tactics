@@ -78,7 +78,15 @@ en « under » doit passer côté panier, en « over » côté ballon
   `userJson*` + `screenLab*`.
 - Corrige une incohérence qui contredit ce que le coach enseigne.
 
-### P1.3 — Overlay pédagogique triangle ballon-homme-panier 〔S〕
+### ✅ P1.3 — Overlay pédagogique triangle ballon-homme-panier 〔S〕 (livré 2026-07-02)
+
+> Livré : helper pur `defenseTriangleOverlayData` + `triangleVerdict`
+> (defenseTriangle.ts) — verdict open (≤ 120° = cône de vision) / wide /
+> flat (> 150°, aligné). Composant `DefenseTriangleOverlay` (triangle
+> translucide + 2 lignes de vision + badge d'angle coloré), toggle
+> « triangles vision défense » dans Paramètres → VISU & LÉGENDE
+> (`state.showDefenseTriangles`). Diag-only, défenseur du porteur exclu.
+> 6 tests, vérifié en preview.
 
 `defenseTriangle.ts` calcule déjà les angles ; rien ne l'affiche.
 

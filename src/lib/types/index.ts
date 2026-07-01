@@ -1292,6 +1292,11 @@ export interface AppState {
    *  PnR (tag/x-out/stunt) avec couleur dédiée. Outil pour comprendre/debug
    *  la logique défensive — pas un visuel coach. */
   showHelpDebug?: boolean;
+  /** P1.3 — Overlay pédagogique « triangle ballon-homme-panier » : pour
+   *  chaque défenseur off-ball, triangle de vision ballon-défenseur-homme
+   *  + badge d'angle coloré (open/wide/flat). Visuel coach ("vois ton homme,
+   *  vois le ballon"), strictement diagnostique. */
+  showDefenseTriangles?: boolean;
   /** Vue debug d'écran : affiche l'identité du contact, la qualité, le mode
    *  arriving/stuck/leaving, le cluster choisi et le push appliqué. Outil
    *  dev pour diagnostiquer les téléports autour des écrans. */
