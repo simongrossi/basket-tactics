@@ -100,6 +100,18 @@ Pour un denial **manuel total** (fronting, 3/4 deny), l'utilisateur garde le con
 
 Cible `aim = { x: hoop.x, y: carrier.y }`, pull `= helpPct/100 × HELP_SIDE_SPLIT_LINE_PULL (0.85) × leaveMultiplier` (capé à 1) — helpPct et le profil offensif du marqué restent les leviers du coach. `HelpResult.kind = 'helpside-splitline'`. À **une passe** (< 250 px), le sag baseline legacy reste la bonne réponse et s'applique inchangé. Le strong-side denial et l'aide sur trigger ont priorité comme avant. Tests : `help.test.ts § help-side split line` + `helpSideStance.test.ts` (intégration pipeline).
 
+## Shrink weak-side sur drive naissant (P1.4, opt-in)
+
+`state.weakSideShrinkEnabled` (toggle « shrink sur drive naissant »). Pré-trigger `detectEarlyDrive` (triggers.ts) : rampe 0..1 quand le porteur gagne 10→25 px vers le panier (= sous le seuil du vrai trigger drive), gated à 350 px du panier. L'intensité approfondit le sag ET la split line weak-side de `intensité × EARLY_DRIVE_SHRINK_BOOST (0.35)`, capé à 1. Neutralisé dès que `triggers.any` (l'aide active prime). Tests : `earlyDriveShrink.test.ts`.
+
+## Jump the passing lane (P2.1, opt-in, playback)
+
+`state.jumpPassingLanesEnabled` (toggle « jump ligne de passe »). Pendant le vol d'une passe (carrier change entre les steps A et B), tout défenseur à < `PASS_LANE_JUMP_RADIUS_PX (60)` de la ligne passeur→receveur (endpoints stables `offA[carrierA] → offB[carrierB]`) fait un pas dans la ligne : max `PASS_LANE_JUMP_MAX_PX (12)`, enveloppe `sin(π·localT)` → nul aux bornes (endpoints moteur intacts), capé à la distance restante (ne traverse jamais la ligne). Injection `resolveFrameAt` couche 5.0a, avant le solveur de collisions. Exclusions : contact d'écran, closeout, overrides. Helper pur : `passLaneJump.ts`. Tests : `passLaneJump.test.ts`.
+
+## Deny du reversal au nail (P2.2, opt-in)
+
+`state.denyReversalEnabled` (toggle « deny du reversal au nail »). Ballon sur une aile + homme en tête (bande centrale ±30 px) + pas de trigger + `priority ≠ paint` → le défenseur glisse vers le **nail** (axe panier, hauteur lancers francs `FT_LINE_Y`, miroité si panier inversé), intensité = `denyAggressiveness`. Prime sur le denial strong-side legacy (dont l'aim serait la ligne de passe directe). `denying: true`, ring cyan existant. Tests : `denyReversal.test.ts`.
+
 ## Stance off-ball `'stunt'` (fake d'aide)
 
 Cinquième valeur de `OffBallStance`, à côté de `sag / behind / deny-3q / fronting`. Position calculée dans `offBallStanceTarget` avec un blend 0.4 entre la position "behind" (entre homme et panier) et la position "fronting" (entre homme et ballon). Moins agressif que `deny-3q` (0.75), plus offensif que `behind`. Le "recover" est naturel : à l'étape suivante, l'utilisateur remet la stance à `sag` ou `behind`, le défenseur revient sur son homme avec la lateness habituelle (modulée par `defenseMaxSpeed`).

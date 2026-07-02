@@ -49,6 +49,12 @@ Ces valeurs sont **sous-réelles** (un sprint NBA atteint 9 m/s ; le moteur tour
 |---|---|---|
 | `DEFAULT_DENY_AGGRESSIVENESS` | 0.45 | Intensité du strong-side denial automatique (sans trigger). 0 = désactivé, 1 = pull complet vers la ligne de passe. Tunable via `state.denyAggressiveness` ou `rule.denyAggressiveness`. |
 | `RIM_PROTECTION_DROP_ZONE_PX` | 75 | ≈ 2 m. Distance du panier où le helper paint pose son aim sur la ligne porteur→panier lors du "tag and recover" du big sur drive. Voir [orientation-anti-teleport.md § Bugs basket corrigés](orientation-anti-teleport.md). |
+| `HELP_SIDE_TWO_PASSES_PX` | 250 | ≈ 6,75 m. Seuil « à deux passes » de la stance split line (P1.1, opt-in `helpSideStanceEnabled`). Cohérent avec le « à une passe » (< 250 px) du denial. |
+| `HELP_SIDE_SPLIT_LINE_PULL` | 0.85 | Intensité du pull vers la split line (× helpPct/100 × leaveMultiplier, capé à 1). |
+| `EARLY_DRIVE_MIN/FULL_DELTA_PX` | 10 / 25 | Rampe du pré-trigger « drive naissant » (P1.4, opt-in `weakSideShrinkEnabled`) : 0 sous 10 px de gain vers le panier, 1 à 25 px (= seuil du vrai trigger drive). Gated à `EARLY_DRIVE_MAX_DIST_PX` (350). |
+| `EARLY_DRIVE_SHRINK_BOOST` | 0.35 | Boost max du facteur d'aide weak-side sur drive naissant. |
+| `PASS_LANE_JUMP_MAX_PX` | 12 | Pas max dans la ligne de passe pendant le vol du ballon (P2.1, opt-in `jumpPassingLanesEnabled`). < rate limiter playback (18 px/frame) ; enveloppe sin(π·t) nulle aux bornes du segment. |
+| `PASS_LANE_JUMP_RADIUS_PX` | 60 | Rayon d'éligibilité autour de la ligne passeur→receveur. |
 
 ## Détection d'écran
 

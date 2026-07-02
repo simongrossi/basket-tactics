@@ -11,6 +11,13 @@
 
 Effort : **S** ≤ ½ journée · **M** 1-2 jours · **L** chantier multi-sessions.
 
+> **État au 2026-07-02 : P0 ✅ · P1 ✅ · P2 ✅** (9 commits, 2279 tests
+> verts). L'audit d'exécution a révélé que plusieurs items P3/P4 étaient
+> déjà livrés par des chantiers antérieurs (voir re-scopes ci-dessous) —
+> le backlog restant réel : P3.1-V1 (rampe d'accélération défenseur),
+> P3.3 (congestion — tests RED écrits), P3.5 (lead pursuit closeout),
+> P4.1 (porteur shoulder-to-shoulder), P4.3, P4.4.
+
 ---
 
 ## P0 — Fondation (à faire avant tout le reste)
@@ -149,7 +156,18 @@ un pied dans la raquette — pas juste un sag proportionnel.
 
 ## P3 — Réalisme du mouvement (gains visuels, chantiers plus lourds)
 
-### P3.1 — Inertie défenseur en playback 〔L〕
+### 🔄 P3.1 — Inertie défenseur en playback 〔L → M〕 (re-scopé 2026-07-02)
+
+> **Audit** : l'inertie de virage existe déjà et est active par défaut en
+> playback — `applyDefenderMotionInertia` (frameResolver) : mémoire de
+> vélocité par frame (`motionMemory`), pénalité proportionnelle à l'angle
+> de virage, profils de mobilité par vitesse de poste
+> (`defenderPlaybackMobility`), skip écran/overrides. Le footwork
+> (latéral/reculons) est couvert par `footworkRulesEnabled` via
+> `realismProfile`. **Reste réel** : la rampe d'ACCÉLÉRATION depuis
+> l'arrêt (la fonction skip quand `previousSpeed < MIN` → un défenseur
+> immobile atteint sa vitesse max en 1 frame). V1 restante : cap de
+> croissance de vitesse par frame, opt-in, dans la même fonction.
 
 Le plus gros gain de réalisme : les défenseurs partent/s'arrêtent
 instantanément (latence d'accélération « binaire »,
@@ -166,32 +184,44 @@ fatigue, gaze, latence pivot) mais ne tournent qu'en édition.
 - À découper : V1 accélération/décélération seule, V2 footwork,
   V3 fatigue/gaze.
 
-### P3.2 — `slowingRadius` d'arrive corrélé à la friction 〔S〕
+### ✅ P3.2 — `slowingRadius` d'arrive corrélé à la friction 〔S〕 (re-scopé 2026-07-02)
 
-`STEERING_MAN_SLOWING_RADIUS_PX = 12` est trop court (piège noté
-IDEAS.md) : un closeout réel freine sur ~1 m. Corréler avec
-`PROXIMITY_FRICTION_RADIUS`, mesurer sur les Labs, ajuster.
+> **Déjà couvert par le tunable** : slider « CVT amorti px » (4-30,
+> default 12, `state.steeringSlowingRadius`) dans DefensePanel →
+> Réglages globaux. Changer le default 12 casserait la bit-compat legacy
+> (contre la convention projet) ; le coach qui veut un freinage plus
+> réaliste monte le slider vers 20-25. Repère : la friction de proximité
+> (`proximityFriction`, threshold 30 px) borne le comportement au contact.
 
-### P3.3 — Pénalité de congestion en trafic 〔M〕
+### 🟡 P3.3 — Pénalité de congestion en trafic 〔M〕 (RED écrit 2026-07-02)
 
-Un défenseur qui traverse une raquette encombrée va à vitesse max.
-Pénalité fonction du nombre de joueurs dans un rayon (~60 px), dans
-`speedConstraint.ts`, opt-in. Rend crédibles les rotations
-weak-side → paint.
+> **Re-scopé après audit** : `proximityFriction` couvre déjà le frôlement
+> (distance MIN au trajet, threshold 30 px, floor 0.6) — le manque réel
+> est la **densité** : traverser 4 corps coûte comme en frôler 1. Reste :
+> `congestionFactor(from, to, obstacles)` (compte des corps à < 55 px du
+> segment, pénalité dégressive, plancher 0.55), multiplié à la friction
+> dans speedConstraint Lever B, opt-in `congestionPenaltyEnabled`.
+> **Tests RED déjà écrits** : `__tests__/congestionPenalty.test.ts`.
 
-### P3.4 — Preset « Réalisme » groupant les flags physiques 〔S〕
+### ✅ P3.4 — Preset « Réalisme » groupant les flags physiques 〔S〕 (re-scopé 2026-07-02)
 
-12 flags opt-in default off que personne n'active
-(`footworkRulesEnabled`, `screenStiffnessEnabled`, momentum, etc.).
-Un bouton preset dans Paramètres qui active un set validé
-visuellement. Zéro moteur, pure UI.
+> **Déjà livré** par le chantier cinématique : `state.realismProfile`
+> (`'realistic'` / `'legacy'`), résolu par `realismProfile.ts ::
+> resolveRealismFlags` (source de vérité unique, preset
+> `PRESET_REALISTIC` : accélération + momentum + velocity profile +
+> footwork, overrides coach respectés). UI : SegmentButtons
+> « Réaliste / Tactique » dans Paramètres → Physique & Biomécanique.
+> Les flags RNG (rebonds, interceptions, dribble) restent volontairement
+> hors preset (scope cinématique déterministe).
 
-### P3.5 — Lead pursuit (anticipation de trajectoire) 〔M-L〕
+### 🔄 P3.5 — Lead pursuit (anticipation de trajectoire) 〔M-L → M〕 (re-scopé 2026-07-02)
 
-Closeout et chase d'écran visent la position **courante** de l'homme ;
-un vrai défenseur vise le point d'interception. Cible = projection de
-la trajectoire de l'attaquant (waypoints/annotation déjà connus du
-resolver). Opt-in, après P3.1.
+> **Audit** : l'interception existe déjà pour la **recovery post-écran**
+> — `recoveryTarget` (screenPhysics.ts) combine lookahead (projection de
+> vélocité), basket-line bias et résolution quadratique du point
+> d'interception. **Reste réel** : étendre au closeout hors écran (le
+> défenseur du nouveau porteur vise la position courante, pas le point
+> de rencontre). Opt-in, après P3.1-V1.
 
 ---
 
@@ -205,12 +235,16 @@ poseur (offset ≈ `MIN_PLAYER_CLEARANCE_PX`) quand l'annotation dribble
 traverse un écran détecté. TODO connu (IDEAS.md § contournement,
 « étendre aux attaquants »).
 
-### P4.2 — Pathfinding D.4 V1 〔L〕
+### ✅ P4.2 — Pathfinding D.4 V1 〔L〕 (re-scopé 2026-07-02)
 
-Plan d'audit écrit ([d4-pathfinding-plan.md](d4-pathfinding-plan.md)),
-jamais lancé. Nécessaire seulement pour les traversées de stack
-(elevator, zipper, 3+ obstacles). Déclencher quand P4.1 et le weave v3
-montrent leurs limites — pas avant.
+> **Déjà livré** — contrairement à ce que ROADMAP/IDEAS laissaient
+> penser (« V1 non lancée »), le routage est câblé : module pur
+> `defensiveRoute.ts` (`computeDefensiveRoute` : détour gauche/droite
+> autour du cluster bloquant, escalade d'offset, choix route dégagée la
+> plus courte, échantillonnage Catmull-Rom) + injection frameResolver
+> couche 5.c derrière `state.defensiveRouting` (exclusions : écran,
+> pnrRole, closeout, overrides). Tests : `defensiveRoute.test.ts`,
+> `d4DefensiveRouting.test.ts`, `d4DefensiveRoutingV2.test.ts`.
 
 ### P4.3 — Obstacles échantillonnés sur le segment 〔M〕
 
@@ -230,24 +264,23 @@ anti-récursion de SCREEN-ENGINE).
 
 ---
 
-## Ordre d'exécution recommandé
+## Ordre d'exécution — état au 2026-07-02
 
 ```
-P0.1 ──► P1.1 ──► P1.4
-   │        │
-   │        └──► (valide le vocabulaire weak-side)
-   ├──► P2.2
-P1.2 (indépendant, dès maintenant)
-P1.3 (indépendant, quick win)
-P2.1 ──► P2.3
-P3.2 / P3.4 (quick wins indépendants)
-P3.1 ──► P3.3 ──► P3.5
-P4.* (à la demande, quand le besoin visuel est prouvé)
+✅ P0.1 → ✅ P1.1 → ✅ P1.4          (fondation → weak-side)
+✅ P1.2 (re-scope + garde-fous)      ✅ P1.3 (overlay triangles)
+✅ P2.1 → ✅ P2.2 → ✅ P2.3          (lignes de passe)
+✅ P3.2 / ✅ P3.4 / ✅ P4.2          (re-scopes : déjà livrés ailleurs)
+
+Backlog restant réel :
+🟡 P3.3 congestion (tests RED prêts) ──► 🔄 P3.1-V1 rampe accélération
+──► 🔄 P3.5 lead pursuit closeout ──► P4.1 shoulder-to-shoulder
+P4.3 / P4.4 : à instruire séparément (risque écran / design multi-step)
 ```
 
-**Prochain sprint suggéré** : P0.1 + P1.1 + P1.3 (une fondation, un
-concept d'enseignement majeur, un overlay quick-win) — cohérent avec
-le backlog coaching en cours.
+**Prochain sprint suggéré** : P3.3 (GREEN sur les tests existants) +
+P3.1-V1 (rampe d'accélération dans `applyDefenderMotionInertia`) +
+P4.1 (le porteur frotte son écran — visible sur chaque PnR enseigné).
 
 **Règles transverses** (rappel CLAUDE.md) : tout nouveau comportement
 est opt-in default off ; toute mutation de position passe par le

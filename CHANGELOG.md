@@ -6,6 +6,57 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Comportements physiques défensifs — plan P0→P2 (2026-07-01/02)
+
+Exécution des phases P0 à P2 du plan priorisé
+[docs/plan-comportements-physiques.md](docs/plan-comportements-physiques.md)
+(9 commits, TDD strict, 2213 → 2279 tests verts). Tous les nouveaux
+comportements sont **opt-in** (default off, legacy bit-identique).
+
+- **P0.1 — `logic/courtSides.ts`** : utilitaire partagé du « côté du
+  terrain ». `sideWithTolerance` (bande centrale ±30 px — ballon,
+  attaquants), `strictSide` (signe pur — aide man, zone), `binarySide`
+  (offsets latéraux), prédicats `isWeakSide`/`isStrongSide`. Consommé par
+  `help.ts`, `zoneDefense.ts`, `manDefense.ts` ; ré-exports de compat dans
+  `geometry.ts` et `zoneSituations.ts` (zéro appelant modifié). Les deux
+  sémantiques historiques divergentes sont désormais un choix documenté.
+- **P1.1 — Stance help-side split line** (`helpSideStanceEnabled`) :
+  défenseur weak-side dont l'homme est à ≥ 250 px du ballon
+  (`HELP_SIDE_TWO_PASSES_PX`) → position sur la split line (axe panier) à
+  hauteur du ballon, pull 0.85 × helpPct × leaveMultiplier. Nouveau
+  `HelpResult.kind = 'helpside-splitline'`. À une passe, sag legacy.
+- **P1.2 — Côté de contournement over/under** : constat d'audit — déjà
+  implémenté par `screenPhysics.carrierScreenRoutePreference` (under/weak
+  → côté panier, over/hedge/drop/blitz → opposé, ice → opposé au porteur).
+  Livré : 4 tests garde-fous du contrat (`screenPhysicsRoute.test.ts`) +
+  correction des TODO obsolètes d'IDEAS.md.
+- **P1.3 — Overlay triangles de vision défensive** (`showDefenseTriangles`,
+  Paramètres → VISU & LÉGENDE) : pour chaque défenseur off-ball, triangle
+  ballon-défenseur-homme + badge d'angle coloré — open (≤ 120° = cône de
+  vision), wide, flat (> 150°, aligné). Helper pur
+  `defenseTriangleOverlayData` + `triangleVerdict`. Diag-only.
+- **P1.4 — Shrink weak-side sur drive naissant** (`weakSideShrinkEnabled`) :
+  détecteur pur `detectEarlyDrive` (rampe 0..1 sur le delta porteur→panier
+  10→25 px, gated à 350 px) → le sag/split-line weak-side s'approfondit de
+  `intensité × 0.35` AVANT le déclenchement de l'aide active.
+- **P2.1 — Jump the passing lane** (`jumpPassingLanesEnabled`) : pendant le
+  vol d'une passe, tout défenseur à < 60 px de la ligne passeur→receveur
+  (endpoints stables) fait un pas dans la ligne — max 12 px, enveloppe
+  sin(π·localT) nulle aux bornes (endpoints moteur et invariants
+  step-level strictement intacts), jamais au-delà de la ligne. Injection
+  `resolveFrameAt` couche 5.0a, avant le solveur de collisions.
+  Exclusions : contact d'écran, closeout, overrides.
+- **P2.2 — Deny du reversal au nail** (`denyReversalEnabled`) : ballon sur
+  une aile → le défenseur du joueur en tête (bande centrale) glisse vers
+  le nail (axe panier, `FT_LINE_Y`, miroité si panier inversé). Intensité
+  = `denyAggressiveness`, exclusion priority=paint.
+- **P2.3** — re-scopé sans code : couvert par `PassLanesOverlay`
+  (contestée/bloquée) + règle coach `passOpenRule` (lignes ouvertes).
+
+UI : 4 nouveaux toggles dans DefensePanel → Réglages globaux →
+Couvertures avancées + 1 dans Paramètres → VISU & LÉGENDE. Nouvelles
+constantes documentées dans `data/physics.ts`. +66 tests.
+
 ### Chantiers de l'Audit — Roster, Tactile, Partage & Mode Joueur (2026-06-04)
 
 Suite à l'audit complet de l'application, quatre grands chantiers ergonomiques et de partage ont été livrés pour l'usage concret par des coachs et des joueurs réels :

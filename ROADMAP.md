@@ -237,6 +237,42 @@ gagne la **transition** : rebond → outlet → course.
 - Spec : [fast-break](docs/superpowers/specs/2026-06-02-fast-break-outlet-lanes-design.md)
 - Plan : [fast-break](docs/superpowers/plans/2026-06-02-fast-break-outlet-lanes.md)
 
+## Livré récemment (juillet 2026)
+
+- 🟢 **Session 2026-07-01/02 — Comportements physiques défensifs, plan P0→P2**
+  (9 commits, 2213 → 2279 tests verts). Plan priorisé complet dans
+  [docs/plan-comportements-physiques.md](docs/plan-comportements-physiques.md)
+  (7 axes audités : déplacement, écrans, ralentissements, logique,
+  contournements, lignes de passe, weak-side). Livré :
+  - **P0.1** — utilitaire partagé `logic/courtSides.ts` (ball-side /
+    weak-side / strong-side) : dé-duplique la logique de côté inlinée sur
+    5 fichiers, 2 sémantiques historiques préservées (bande centrale vs
+    signe strict), refacto bit-identique.
+  - **P1.1** — stance help-side **split line** (opt-in
+    `helpSideStanceEnabled`) : défenseur weak-side à 2 passes → axe panier
+    à hauteur du ballon, un pied dans la raquette.
+  - **P1.2** — côté de contournement selon over/under : **déjà couvert**
+    par le moteur de routes (`carrierScreenRoutePreference`) — TODO
+    IDEAS.md obsolète corrigé + 4 tests garde-fous du contrat.
+  - **P1.3** — overlay pédagogique **triangles de vision** (« vois ton
+    homme, vois le ballon ») : triangle ballon-défenseur-homme + badge
+    d'angle open/wide/flat (toggle `showDefenseTriangles`).
+  - **P1.4** — **shrink weak-side sur drive naissant** (opt-in
+    `weakSideShrinkEnabled`) : pré-trigger `detectEarlyDrive` (rampe
+    10→25 px vers le panier), l'aile opposée se resserre AVANT l'aide
+    active.
+  - **P2.1** — **jump the passing lane** (opt-in `jumpPassingLanesEnabled`) :
+    pendant le vol d'une passe, pas dans la ligne (max 12 px, enveloppe
+    sin(π·t), endpoints moteur intacts) puis retour.
+  - **P2.2** — **deny du reversal au nail** (opt-in `denyReversalEnabled`) :
+    ballon sur l'aile → le défenseur du joueur en tête conteste le swing
+    au nail.
+  - **P2.3** — re-scopé : déjà couvert (PassLanesOverlay + `passOpenRule`).
+  - Audit P3/P4 : `realismProfile` (P3.4), inertie de virage playback
+    (P3.1 partiel) et routage D.4 (P4.2) **déjà livrés** — le plan les
+    re-scope ; restent la rampe d'accélération défenseur, la pénalité de
+    congestion (tests RED écrits), le porteur shoulder-to-shoulder.
+
 ## Livré récemment (juin 2026)
 
 - 🟢 **Session 2026-06-01/02 — Lacunes basket + défensives** : closeout quality
