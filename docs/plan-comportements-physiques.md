@@ -123,23 +123,27 @@ un pied dans la raquette — pas juste un sag proportionnel.
 > `state.jumpPassingLanesEnabled` (toggle DefensePanel). 11 tests
 > (7 helper + 4 intégration frame-level), batterie écran complète verte.
 
-### P2.2 — Deny du reversal au nail 〔S-M〕
+### ✅ P2.2 — Deny du reversal au nail 〔S-M〕 (livré 2026-07-02)
 
-Le denial strong-side plafonne à `denyFactor 0.45` en pull passif ;
-aucune notion de contestation du reversal en tête de raquette hors
-stunt PnR.
+> Livré : branche nail dans `computeHelpTarget` (avant le denial
+> strong-side legacy). Conditions : ballon sur une aile + homme en tête
+> (bande centrale ±30 px) + pas de trigger + `priority ≠ paint`
+> (cohérent avec le denial legacy). Cible = nail (axe panier, hauteur
+> lancers francs `FT_LINE_Y`, miroité si panier inversé), intensité
+> pilotée par `denyAggressiveness`. Opt-in `state.denyReversalEnabled`
+> (toggle DefensePanel « deny du reversal au nail »). 8 tests TDD.
 
-- Étendre `computeHelpTarget` : défenseur du joueur en tête (angle
-  ballon-cible passant par le nail) glisse vers le nail (réutilise la
-  géométrie du nail stunt de `pnrLayer`).
-- Opt-in `state.denyReversalEnabled`.
+### ✅ P2.3 — Interceptions visibles hors mode match 〔S〕 (re-scopé 2026-07-02)
 
-### P2.3 — Interceptions visibles hors mode match 〔S〕 *(optionnel)*
-
-`activeInterceptionsEnabled` ne vit que dans `match/gameLoop.ts`. En
-lecture de système, afficher au minimum un badge « passe risquée »
-quand une ligne est shadowée (diag coach, pas de physique). S'appuie
-sur P2.1.
+> **Déjà couvert par l'existant** — l'audit initial avait manqué deux
+> briques : `PassLanesOverlay` affiche les lignes de passe contestées /
+> bloquées en édition et lecture (toggles `showContestedPass` /
+> `showBlockedPass`, default on), et la règle coach `passOpenRule`
+> (registry coachDiagnostics) signale les lignes OUVERTES vers une
+> menace (`receivability` + score, warning/critical). Le « badge passe
+> risquée » demandé existe donc des deux points de vue (défense :
+> ligne ouverte à fermer ; attaque : passe contestée/bloquée).
+> Aucun code nécessaire.
 
 ---
 
