@@ -8,9 +8,28 @@ Vision produit forward-looking.
 
 Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
+## 🧭 Priorité actuelle (mise à jour 2026-09-22)
+
+**Coaching d'abord** : l'usage premier est de préparer, expliquer et présenter
+des systèmes aux joueurs. La simulation (fautes, transition, match simulé) passe
+après. Ordre de travail :
+
+1. **Consolidation coach** ([PLAN-COACH.md](PLAN-COACH.md)) — lot 1 fiabilité
+   🟢, lot 2 usage coach 🟢 (U01→U05 + construction pas à pas du 22/09).
+   Reste : U06 essai avec des coachs sur tablette physique (humain).
+2. **Axe coaching** (tableau § « Coaching — usage entraînement » ci-dessous) :
+   quiz / lecture cachée → clés d'enseignement → fiche d'une page par système
+   → effectif réutilisable → tableau blanc.
+3. **Réalisme validé** (PLAN-COACH lot 3, R01→R04) et physique défensive
+   ([plan P3/P4](docs/plan-comportements-physiques.md) : P3.3 congestion
+   — tests écrits, non commités —, P3.1, P3.5, P4.1).
+4. **Moteur / simulation** : tableau « Priorisation moteur » plus bas (fautes,
+   transition, match simulé V2, zone…).
+
 ## 🔎 Audit expert basket — 2026-06-11 (consolidation)
 
-> **C'est la section de référence pour prioriser.** Elle croise la
+> **Référence pour l'axe moteur / simulation** (l'ordre global est dans
+> « Priorité actuelle » ci-dessus). Elle croise la
 > relecture « œil de coach » du moteur avec **tous** les chantiers ⚪/🟡
 > encore ouverts dans ce fichier et dans [IDEAS.md](IDEAS.md). Les
 > sections plus bas restent l'historique détaillé.
@@ -20,7 +39,7 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 Le **demi-terrain placé est mature** : défense 14+ couches (PnR, scram,
 junk, press, zones), offense en lecture réactive (Phase L), motion
 complet (continuité + auto-replacement + ball-chain), réalisme
-cinématique actif par défaut, ~2060 tests verts. Les manques sont
+cinématique actif par défaut, ~2060 tests verts (2 466 au 2026-09-22). Les manques sont
 désormais concentrés sur **4 axes** : contact/fautes, transition,
 match-sim crédible, attaque de zone.
 
@@ -130,7 +149,7 @@ identifiés à l'audit coaching, avec statut :
 
 | # | Chantier | Statut | Notes |
 |---|---|---|---|
-| 1 | **Mode présentation des systèmes + révélation pas-à-pas** — grand terrain, zéro chrome d'édition, télécommande « étape suivante » pour dérouler le set phase par phase en parlant (tablette/TV) | 🟢 **livré** (`f5bb97a`) | `PresentationBar` + `realSteps.ts` : ◀/▶ étapes réelles, lecture, clavier ←/→/Espace, timeline masquée, entrée en lecteur force la vue terrain. Brique `masquage d'équipe` (`showDefenders`/`showAttackers`, `594bc4e`) incluse |
+| 1 | **Mode présentation des systèmes + révélation pas-à-pas** — grand terrain, zéro chrome d'édition, télécommande « étape suivante » pour dérouler le set phase par phase en parlant (tablette/TV) | 🟢 **livré** (`f5bb97a`) | `PresentationBar` + `realSteps.ts` (navigation) + `stepNumbering.ts` (compteur commun, 2026-09-22) : ◀/▶ étapes réelles, lecture, clavier ←/→/Espace, timeline masquée, entrée en lecteur force la vue terrain. Brique `masquage d'équipe` (`showDefenders`/`showAttackers`, `594bc4e`) incluse |
 | 2 | **Mode quiz / lecture cachée** — montrer la situation, masquer la branche de lecture, « si drop, tu fais quoi ? », puis révéler. Entraînement à la décision | ⚪ **prochain** | Quasi gratuit : réutilise les arbres de lecture multi-niveaux (`scenarioBranches` + `parentBranchId`, `77ab9c5`). Très forte valeur pédagogique, unique |
 | 3 | **Planification de séance / drills** — échauffement → exercice → situation → scrimmage, avec durées | 🟢 **livré** (`23901ec`, `3019aa5`) | Vue Séances + `practiceSessions.ts` : agenda de blocs chronométrés (systèmes biblio + blocs libres), total auto, fiche imprimable + déroulé guidé (U05, 2026-09-22 : bloc précédent/suivant, minuteur, consignes, variantes, reprise, brouillon restauré). Reste possible : éditeur de drills dédié (dessins distincts des systèmes) |
 | 4 | **Fiches imprimables propres (handouts joueur)** — une page par système (diagramme + clés + consignes) à donner/afficher | ⚪ | `window.print()` actuel sort les vignettes Playbook + la fiche de séance, mais pas un handout d'une page par système. Synergie avec #5 |
@@ -142,7 +161,17 @@ Ordre conseillé pour la suite : **#2 (quiz)** d'abord (valeur max, coût quasi
 nul vu les arbres multi-niveaux), puis **#5 → #4** (clés d'enseignement qui
 alimentent les handouts), puis **#6 (roster)** et **#7 (whiteboard)**.
 
-### 📌 Priorisation consolidée (ordre conseillé)
+Autres finitions coaching ouvertes (IDEAS) : sélectionner une flèche pour la
+supprimer / modifier (aujourd'hui « Supprimer la dernière flèche »), couleurs
+des flèches, comparaison côte-à-côte de deux défenses.
+
+🟢 **Construction d'un système pas à pas — 2026-09-22** : « + étape » sans
+temps mort, outils accessibles en 1024×768, bandeau de guidage, numérotation
+unique (`stepNumbering.ts`), et règle « ce qui est dessiné sur l'étape k se joue
+pendant k → k+1, passes comprises » (`stepActions.ts`, libellés des modèles
+remontés sur l'étape de l'action). Détail : CHANGELOG et PLAN-COACH.
+
+### 📌 Priorisation moteur / simulation (après l'axe coaching — cf. « Priorité actuelle »)
 
 | # | Chantier | Statut | Effort | Valeur |
 |---|---|---|---|---|
@@ -167,7 +196,7 @@ alimentent les handouts), puis **#6 (roster)** et **#7 (whiteboard)**.
 2. **🟢 Compatibilité Tactile & Ergonomie** : Bumper la zone de saisie des joueurs (~44px) pour tablettes, implémenter un appui long (long-press) pour remplacer le clic droit sur iOS/Android, et ajouter le Zoom & Pan SVG sur le terrain. *(Fait)*
 3. **🟢 Partage Collaboratif Simplifié** : Permettre de générer des liens de partage instantané (ex. URL compressée en Base64 contenant tout l'état de l'application, ou base de données cloud légère). *(Fait)*
 4. **⚪ Réalisme & Simulation de Match (Match-Sim) V2** : Ajouter un système de fautes réelles (personnelles et bonus), gestion des lancers-francs, et fatigue influençant la vitesse de pointe. → repris et élargi par l'audit 2026-06-11 (items 2 + 4 de la priorisation consolidée).
-5. **🟡 Éditeur de Scénario Graphique** *(en cours, juin 2026)* : éditeur nodal pour concevoir et visualiser graphiquement les branches de lecture réactives. **V1 livrée** (canvas arbre interactif + sidebar propriétés + aperçu PiP + persistance Playbook Library + filtrage par perspective joueur). Restant : extensions Phase L au travers de l'éditeur (arbres multi-niveaux, receveur dynamique).
+5. **🟡 Éditeur de Scénario Graphique** *(en cours, juin 2026)* : éditeur nodal pour concevoir et visualiser graphiquement les branches de lecture réactives. **V1 livrée** (canvas arbre interactif + sidebar propriétés + aperçu PiP + persistance Playbook Library + filtrage par perspective joueur). Arbres multi-niveaux livrés 2026-06-11 (`77ab9c5`). Restant : receveur dynamique, lectures réactives de niveau 2.
 
 ---
 
@@ -187,7 +216,7 @@ distribution de couvertures seedée (drop 70 % / blitz 30 %) pilotant à la fois
 rendu défensif et la branche lue.
 
 **Restant (extensions)** :
-- Arbres multi-niveaux (sous-branches récursives)
+- 🟢 Arbres multi-niveaux (sous-branches récursives) — livré 2026-06-11 (`77ab9c5`)
 - Receveur dynamique sur le drive-and-kick
 
 - Spec : [docs/superpowers/specs/2026-05-29-offense-lecture-reactive-design.md](docs/superpowers/specs/2026-05-29-offense-lecture-reactive-design.md)
@@ -218,7 +247,7 @@ spacing** (fill auto) et le **routage du ballon** (reversal / DHO). Axe motion
 - Specs : [continuity](docs/superpowers/specs/2026-06-02-continuity-motion-offense-design.md) · [auto-replacement](docs/superpowers/specs/2026-06-02-auto-replacement-design.md) · [ball-chain](docs/superpowers/specs/2026-06-02-ball-chain-design.md)
 - Plans : [continuity](docs/superpowers/plans/2026-06-02-continuity-motion-offense.md) · [auto-replacement](docs/superpowers/plans/2026-06-02-auto-replacement.md) · [ball-chain](docs/superpowers/plans/2026-06-02-ball-chain.md)
 
-## 🟠 Transition / fast-break (en cours, juin 2026)
+## 🟠 Transition / fast-break (en pause depuis juin 2026 — sous-projet 1 livré)
 
 Le dernier gros 🔴 de l'audit (IDEAS §3, ~25-30 % des possessions). L'offense
 gagne la **transition** : rebond → outlet → course.
@@ -692,7 +721,7 @@ travail" est rempli.
 | ~~**10**~~ | ~~**Compatibilité Tactile & Ergonomie (Zoom/Pan, hit-boxes, appui long)**~~ | 🟢 Livré | — | — | — |
 | ~~**11**~~ | ~~**Partage Collaboratif Simplifié (Base64 URL)**~~ | 🟢 Livré | — | — | — |
 | **12** | **Simulation Réaliste V2 (Fautes, lancers-francs, fatigue)** | ⚪ À faire — repris par l'audit 2026-06-11 (items 2+4) | 1.5j | 🔴 Élevé | 🔴 Critique (réévalué) |
-| **13** | **Éditeur de Scénario Graphique Nodal** | 🟡 V1 livrée (canvas + sidebar + PiP + persistance + filtre joueur) | 3j | 🔴 Élevé | 🟡 Moyen |
+| **13** | **Éditeur de Scénario Graphique Nodal** | 🟡 V1 + arbres multi-niveaux livrés (reste : receveur dynamique) | 3j | 🔴 Élevé | 🟡 Moyen |
 
 ### UX / Produit — Historique
 

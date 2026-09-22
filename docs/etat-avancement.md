@@ -1,5 +1,10 @@
 # État d'avancement du projet
 
+> ⚠️ **Archive — non tenue à jour depuis le 2026-05-18.** L'état et les priorités
+> actuels vivent dans [ROADMAP.md § Priorité actuelle](../ROADMAP.md) et
+> [PLAN-COACH.md](../PLAN-COACH.md) ; l'historique dans
+> [CHANGELOG.md](../CHANGELOG.md). Conservé pour les décisions passées.
+
 > Vue consolidée de **ce qui est fait**, **ce qui est en cours**, et **ce qui reste à faire**, pour ne rien oublier entre deux sessions de travail.
 >
 > Mise à jour : **2026-05-18 (Phase K)** — post-session B.3 / B.4 / D.1 / D.3 / D.5 / F.1 V1+V2 / F.2 V1+V2 / G.1-4 / J.1 / J.5 / J.6 / J.7 / A11 V1+V2+V3 / E.1 stage 2b V1 / **K.0→K.7 anomaly detection**.

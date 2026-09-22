@@ -1,3 +1,8 @@
+> ⚠️ **Archive — non tenue à jour depuis le 2026-05-11.** L'état et les priorités
+> actuels vivent dans [ROADMAP.md § Priorité actuelle](../ROADMAP.md) et
+> [PLAN-COACH.md](../PLAN-COACH.md) ; l'historique dans
+> [CHANGELOG.md](../CHANGELOG.md). Conservé pour les décisions passées.
+
 ## Idées en réserve (pour V2 / plus tard)
 
 Notes prises au fil de l'eau d'idées valides mais non prioritaires.

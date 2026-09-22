@@ -276,3 +276,24 @@ Ces changements doivent être préservés et distingués des commits de consolid
   protection du brouillon sur enchaînement. Suite complète : 2 392 réussis,
   seuls les 6 échecs congestion préexistants ; type-check : les 2 erreurs
   congestion préexistantes. Lot 2 restant : U06 (validation humaine terrain).
+
+
+- Construction pas à pas (hors lot initial, demandé après U05) : parcours coach
+  rejoué dans le navigateur (créer, dessiner une course, « + étape », passe,
+  annuler). Corrigés : étape vide dupliquée par « + étape » (temps mort de 4 s),
+  zone Outils écrasée à 27 px en 1024×768, cinq compteurs d'étapes divergents
+  (panneau, timeline, badge ▶, lecteur, présentation — puis fiches), passe
+  dessinée en premier jamais animée, passe dessinée sur l'étape k jouée pendant
+  k−1 → k. Règle retenue : ce qui est affiché sur l'étape k se joue pendant
+  k → k+1 (`stepActions.ts`) ; stockage et moteur de lecture inchangés
+  (seul export d'une constante dans `playbackTrajectory.ts`). Modèles : libellés
+  remontés sur l'étape de l'action. Guidage : bandeau sur système vierge,
+  panneau Étapes ouvert par défaut.
+  Vérification navigateur : course → + étape → passe (course 0–4 s, passe
+  4–8 s, ballon chez le passeur), Horns flare (3 étapes + position finale,
+  barre Système alignée), fiche imprimable. Tests : 31 modèles passés en revue
+  automatiquement. Suite complète : 2 466 réussis, seuls les 6 échecs
+  congestion préexistants ; type-check : les 2 erreurs congestion préexistantes.
+  Limite connue : les systèmes déjà enregistrés affichent leurs passes une
+  étape plus tôt (là où elles se jouent) ; des libellés écrits pour l'ancien
+  affichage peuvent être décalés d'une étape.

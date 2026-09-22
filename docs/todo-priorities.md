@@ -1,5 +1,12 @@
 # 📋 TODO — chantiers restants
 
+> ⚠️ **Archive — non tenue à jour depuis le 2026-06-02.** L'état et les priorités
+> actuels vivent dans [ROADMAP.md § Priorité actuelle](../ROADMAP.md) et
+> [PLAN-COACH.md](../PLAN-COACH.md) ; l'historique dans
+> [CHANGELOG.md](../CHANGELOG.md). Conservé pour les décisions passées.
+> La consigne « basket d'abord, UX repoussé » ci-dessous est remplacée
+> par « coaching d'abord ».
+
 > **Consigne globale 2026-05-15** : priorité **BASKET** d'abord. UX,
 > tests UI et mobile sont repoussés. On développe le moteur tactique
 > jusqu'au bout avant de polir l'interface.

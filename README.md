@@ -4,7 +4,7 @@ Simulateur tactique de basket-ball pour visualiser des systèmes offensifs et ob
 
 > Pas de backend, pas de compte, pas de tracking. Tu lances `npm run dev`, c'est joué.
 
-**Version actuelle : 0.8.0** (2026-05-10) — cycle **"lecture animée fidèle"** : trajectoires courbes (V-cut, L-cut, dribble curviligne via Shift+drag freehand, spline Catmull-Rom reparamétrée en longueur d'arc), suivi temps-réel des défenseurs sur les courbes (`followDefendersAtFrame`), `hedge` complet (D1 over the top + D5 show), regard auto distance-based (basculement ballon↔homme selon proximité), pause/reprise depuis l'instant t, dribble en wave Q-Bezier lisse, base de lecture ralentie à 2 s/étape. Voir [CHANGELOG.md](CHANGELOG.md). Précédente version : 0.7.0 (2026-05-09) — cycle "pictogramme + champ de vision + overrides manuels".
+**Version affichée : 0.18.0** (septembre 2026). Usage premier : **préparer, expliquer et présenter des systèmes à ses joueurs** (création pas à pas, modèles, présentation, fiches, séances d'entraînement). La simulation défensive et le match simulé restent disponibles en arrière-plan. Historique détaillé : [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -21,7 +21,7 @@ Autres commandes utiles :
 
 ```bash
 npm run type-check   # tsc --noEmit
-npm test             # Vitest — 302 tests sur la logique pure
+npm test             # Vitest — ~2 470 tests (moteur, transforms, composants)
 npm run test:watch   # Vitest en mode watch
 npm run build        # build de production statique
 ```
@@ -30,59 +30,31 @@ npm run build        # build de production statique
 
 ## Ce qu'on peut faire
 
-### Côté attaque (panneau gauche, orange)
+### Préparer un entraînement (niveau d'interface « Coach »)
 
-- Poser 5 attaquants et dessiner leur action via 4 conventions de tracé : **passe** (pointillés), **dribble** (zig-zag), **course** (ligne pleine), **écran** (T)
-- Construire un système en plusieurs **étapes** (keyframes), chacune avec son label, son porteur de balle, ses annotations
-- Charger un système depuis la **bibliothèque** : PNR central, Horns flare, Pindown coin, Spain PNR, UCLA cut, Floppy
-- Lire l'animation, **scrubber** dans la timeline pour voir les positions intermédiaires
+- **Créer un système** étape par étape : choisir une action (course, passe, dribble, écran, note), glisser depuis un joueur, puis « + étape » pour la suite. **Ce qui est dessiné sur une étape se joue pendant cette étape** — passes comprises (le ballon reste chez le passeur sur l'étape où la flèche est dessinée).
+- **Partir d'un modèle** : 31 systèmes classiques — sets (PNR central, Horns flare, Spain PNR, UCLA, Floppy, Hammer, Iverson, Stagger, PNR aile…), 17 remises en jeu BLOB/SLOB, 3 attaques de zone, exercice Philadelphia.
+- **Préparer une séance** : blocs chronométrés (systèmes, exercices, blocs libres), fiche imprimable, puis **déroulé guidé** (bloc précédent / suivant, minuteur, consignes, variantes).
+- **Présenter** : mode lecteur plein terrain, étape par étape (◀ / ▶, espace), masquage d'une équipe.
+- **Fiches systèmes** imprimables (PDF via le navigateur), **partage** par lien, export JSON / GIF / WebM, bibliothèque locale avec enregistrement et brouillon protégé.
+- Tablette : édition au doigt (barre tactile, cibles 44 px, appui long = clic droit).
 
-### Côté défense (panneau droit, bleu)
+### Défense
 
-- Bascule **homme à homme / zone** (4 layouts : 2-3, 1-3-1, 3-2, match-up)
-- 6 règles d'écran porteur (over / under / switch / hedge / drop / blitz) + 4 pour écrans non-porteur
-- 3 triggers d'aide globaux (drive / post-up / paint)
-- **Règles individuelles par défenseur** : intensité d'aide, priorité (raquette / homme / passe), comportement vs porteur (coller / bumper / contester / reculer / topside / baseline), stance hors-ballon (sag / derrière / 3/4 deny / fronting), navigation sur écran (override individuel)
-- 6 **presets défensifs** prêts à l'emploi : Drop coverage, Switch tout, Hedge & recover, Ice + drop, Fond de raquette, Pression all-court
-- Position de chaque défenseur **manuellement modifiable** par drag (override par étape, désactivable d'un clic-droit)
+- Homme à homme / zone (2-3, 1-3-1, 3-2, match-up), presse, junk (box-and-1), presets défensifs en tête du panneau.
+- Couvertures d'écran porteur et non-porteur, aides, règles individuelles par défenseur, placement manuel par étape.
 
-### Visualisation
+### Analyse et développement (niveaux « Analyse » / « Développement »)
 
-- **Métriques en temps réel** sous la timeline : couverture raquette, gap max, écart moyen, défenseurs en retard, intensité d'aide, ratio passes ouvertes
-- **Lignes de passe** colorées (ouverte / contestée / bloquée) depuis le porteur
-- **Lignes d'aide** : trait pointillé violet entre la position de marquage pure et la position d'aide effective
-- **Indicateurs d'écran** : cercle violet sur le poseur d'écran porteur, vert sur écran non-porteur
-- Bras stylisés FIBA + petit triangle d'orientation sur chaque défenseur
-- Toggle **terrain complet** (demi-terrain par défaut)
-
-### Export & persistance
-
-- **Playbook PDF** : grille de vignettes 1/2/3 colonnes, options défense / légende, via `window.print()` du navigateur
-- **Export / import JSON** complet
-- **Persistance localStorage automatique** (debounce 400ms)
+- Métriques en mètres et secondes, lignes de passe, champs de vision, triangles de vision défensive, lecture coach (diagnostics).
+- Lectures réactives (l'attaque choisit sa suite selon la couverture), continuité motion, éditeur nodal des variantes.
+- Match simulé (Play IA), paramètres physiques et outils de diagnostic.
 
 ---
 
-## Captures (pour info)
+## Interface
 
-L'interface est un layout 3 colonnes :
-
-```
-┌──────────────┬──────────────────────────────┬──────────────┐
-│              │                              │              │
-│   ATTAQUE    │           TERRAIN            │   DÉFENSE    │
-│   (orange)   │           (SVG)              │    (bleu)    │
-│              │                              │              │
-│  Outils      │                              │  Presets     │
-│  Bibliothèque│                              │  Système     │
-│  Étapes      │                              │  Triggers    │
-│  Lecture     │                              │  Écran porteur│
-│              │                              │  Écran nonP  │
-│              ├──────────────────────────────┤  Règles indiv│
-│              │   Timeline (scrubbing)       │  Visualisation│
-│              │   Métriques (pills colorées) │              │
-└──────────────┴──────────────────────────────┴──────────────┘
-```
+Barre latérale (entrées coach, vues, outils Attaque / Défense / Étapes / Scénario) à gauche, terrain au centre avec Annuler / Rétablir au-dessus et la timeline dessous. Sous 900 px : terrain pleine largeur en tête, outils dessous.
 
 ---
 
@@ -91,17 +63,16 @@ L'interface est un layout 3 colonnes :
 ```
 src/
 ├── app/                    # Next.js App Router (page.tsx)
-├── components/             # OffensePanel, DefensePanel, CourtView,
-│                          #   Timeline, MetricsBar, PlaybookView, ...
-├── hooks/useAppState.ts    # état central + tous les callbacks
+├── components/             # CourtView, StepsPanel, DefensePanel, Timeline,
+│                           #   PlaybookView, SessionsView, sidebar/, court/…
+├── hooks/                  # useAppState (état + historique), lecture, bibliothèque
 └── lib/
-    ├── data/               # court.ts, initial.ts, zones.ts,
-    │                       #   templates.ts, defensePresets.ts
-    ├── logic/              # MOTEUR PUR — pas de React :
-    │                       #   engine, manDefense, help, screens,
-    │                       #   triggers, zoneDefense, geometry,
-    │                       #   metrics
-    └── types/index.ts      # types stricts
+    ├── data/               # modèles (templates, remises en jeu, anti-zone,
+    │                       #   exercices), séances, bibliothèque, terrain
+    ├── logic/              # MOTEUR PUR — pas de React : défense, écrans,
+    │                       #   lecture (playback/), match/, numérotation des étapes
+    ├── state/transforms/   # transformations pures de l'état (testées sans React)
+    └── types/              # types stricts
 ```
 
 **Le moteur est pur**. `src/lib/logic/` ne dépend de rien (ni React, ni DOM). Tu lui passes l'état, il te rend les positions calculées. Conséquence : testable isolément, ré-utilisable côté serveur, et chaque modif d'un paramètre recalcule instantanément toutes les étapes.
@@ -141,7 +112,7 @@ Vision produit et chantiers à venir : [`ROADMAP.md`](ROADMAP.md). Historique de
 - **Override manuel par étape** — l'utilisateur peut imposer la position d'un défenseur sur une étape donnée (`Step.defenseOverrides`), le moteur la respecte.
 - **Switches persistés sur l'étape** où ils ont lieu, cumulés via `getMatchupsAt()`.
 - **Path-aware avoidance** — pendant l'animation, les défenseurs contournent les poseurs d'écran via une courbe Bezier (pas un push réactif), avec ralentissement au sommet.
-- **Solveur de collisions strict** — aucun défenseur ne se superpose à un autre joueur (sauf à son matched man).
+- **Aucune superposition de joueurs** — toutes les paires (coéquipiers, adversaires, défenseur sur son homme) gardent 34 px entre centres. Règle inviolable : [docs/PLAYER-CLEARANCE.md](docs/PLAYER-CLEARANCE.md).
 - **SVG natif plutôt que Canvas** — vectoriel, simple, lisible à l'export, performance largement suffisante.
 
 ---
@@ -157,4 +128,4 @@ Vision produit et chantiers à venir : [`ROADMAP.md`](ROADMAP.md). Historique de
 
 ## Statut
 
-Projet personnel en évolution — voir [`IDEAS.md`](IDEAS.md) pour le backlog priorisé. Contributions, retours et idées bienvenus via les issues.
+Projet personnel en évolution — priorités et chantiers ouverts dans [`ROADMAP.md`](ROADMAP.md) (section « Priorisation »), plan de consolidation en cours dans [`PLAN-COACH.md`](PLAN-COACH.md). Contributions, retours et idées bienvenus via les issues.

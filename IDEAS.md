@@ -2,6 +2,13 @@
 
 Notes de développement au fil de l'eau. Les items en haut sont les plus récents.
 
+> **Revue du 2026-09-22** : statuts vérifiés dans le code ; les items livrés
+> depuis ont été marqués ✅ / FAIT. L'ordre des priorités vit dans
+> [ROADMAP.md § Priorité actuelle](ROADMAP.md) (coaching d'abord). Vrais
+> ouverts listés ici : comparaison côte-à-côte, sélection / couleurs des
+> flèches, tests MultiTrackTimeline, modèles Princeton chin / Pistol, presets
+> de zone, pistes V4 poursuite, sprite V3, collaboration live.
+
 ---
 
 ## 🔎 Audit expert externe — 2026-05-29
@@ -48,9 +55,10 @@ Constats classés par impact. Le #1 a un plan dédié :
    ni bonus, ni lancers francs comme issue, ni faute à donner exploitée.
    `rebound.ts` ignore le box-out réel et la détente verticale (multiplieurs de
    profil hardcodés : rim-roller ×1.4, etc.).
-5. **🟠 Closeouts non explicites** vers les shooters (rampe distance → intensité
-   de contest) — seulement implicite via la qualité d'écran.
-6. **🟠 Spacing aux corners non incité**. `positionOffBall.ts` maximise les
+5. ✅ **Closeouts explicites** — anneau de qualité de closeout livré
+   2026-06-01 (#5).
+6. ✅ **Spacing aux corners** — incitation livrée 2026-06-01 (#6). Reste ⚪
+   l'optimum global ci-dessous. *Constat initial :* `positionOffBall.ts` maximise les
    distances par paires mais n'incite pas l'occupation des corners (priorité
    spacing #1 du basket moderne) ; optimisation gloutonne séquentielle, pas
    d'optimum global.
@@ -61,7 +69,7 @@ Constats classés par impact. Le #1 a un plan dédié :
      arrêter la pénétration) — *en cours, programme « défense vivante / drive »* :
      ✅ **2a livré (2026-06-03)** : cœur pur `evaluateDriveContainment` (course
      d'ETA → beaten/contained/walled) + couche playback `driveContainmentLayer`
-     + diagnostic coach (opt-in `driveContainmentEnabled`). ⚪ **2b.1 specé**
+     + diagnostic coach (opt-in `driveContainmentEnabled`). ✅ **2b.1 livré 2026-06-11**
      (issues du drive dans le match-sim : pull-up / kick-out / strip mid-drive,
      `docs/superpowers/specs/2026-06-03-drive-outcomes-matchsim-design.md`) →
      puis 2b.2 système de fautes → 2b.3 charge. `DRIVE_SUCCESS_RATE` n'existe
@@ -83,19 +91,17 @@ Constats classés par impact. Le #1 a un plan dédié :
   `HELP_BUSY_THRESHOLD` (0.5 vs 0.3) était en fait **deux seuils volontairement
   distincts** (un dig tolère plus d'engagement qu'un bump) : levée par 2 noms
   documentés + test verrou, pas d'unification (préserve le comportement).
-- **Fragilité de l'ordre des couches** : insérer une couche entre PnR et
-  screen-repel peut casser silencieusement les rotations. **Aucun test
-  d'intégration** « PnR + help coexistent » — seulement 3 tests de couches
-  isolées sur 14. Risque de régression #1. → ajouter des tests d'intégration
-  du pipeline.
+- ✅ **Tests d'intégration du pipeline** — couverts 2026-06-11 (`c581327`,
+  matrice des couches + « PnR + aide coexistent »).
 - ✅ **Duplication des générateurs offensifs** (DM.3 livré 2026-05-29) → helper
   `screenAndCut` dans `scriptedGenerators/helpers.ts` ; 6 générateurs
   (flare/curl/shuffle/pin-down/back-screen/cross-screen) réduits à des wrappers
   fournissant seulement leurs 4 spécificités (positions par défaut + libellés).
   Refacto bit-identique (golden snapshots + anti-flicker verts).
-- **God-objects** : `gameLoop.ts` (2080), `frameResolver.ts` (2001),
-  `DefensePanel.tsx` (1550), `useAppState.ts` (738, ~60 callbacks), prop drilling
-  de 40+ callbacks depuis `page.tsx` sans Context. Freine l'évolution UI.
+- **God-objects** (tailles au 2026-09-22) : ✅ `gameLoop.ts` découpé (336 l.) ;
+  ⚪ `frameResolver.ts` (1985, épicentre Règle 1bis), `DefensePanel.tsx` (1607),
+  `page.tsx` (1357, prop drilling de 40+ callbacks sans Context),
+  `useAppState.ts` (863).
 - ✅ **Logique « ball-side / weak-side » dé-dupliquée** (P0.1 livré 2026-07-01)
   → utilitaire partagé `logic/courtSides.ts` (sideWithTolerance / strictSide /
   binarySide / isWeakSide / isStrongSide), consommé par `help.ts`,
@@ -103,12 +109,12 @@ Constats classés par impact. Le #1 a un plan dédié :
   conservés). Refacto bit-identique, 2229 tests verts.
 
 ### 📋 Produit — manques qui limitent l'usage terrain
-- **Pas de roster nommé** : on reste sur O1-O5 / D1-D5, sans noms/profils réels.
-- **Pas de partage** : export JSON/GIF/WebM mais pas de lien partageable ni
-  visionneuse pour les joueurs.
-- **Pas de bouton export PDF playbook** (le CSS `@media print` existe pourtant).
-- **Pas de responsive/mobile** : inutilisable sur tablette en bord de terrain
-  (cf [docs/mobile-plan.md](docs/mobile-plan.md), repoussé).
+- ✅ **Roster nommé** (noms + numéros par système). Reste ⚪ un effectif
+  réutilisable d'un système à l'autre (coaching #6).
+- ✅ **Partage** par lien + mode lecteur (corrigé F05, 2026-09-22).
+- ✅ **Fiches systèmes** imprimables (vue dédiée + PDF navigateur).
+- ✅ **Tablette** : édition tactile U04 (2026-09-22). Reste l'essai sur
+  tablette physique (U06).
 
 ### Priorisation proposée
 1. **Offense lecture-réactive** (Phase L — plan écrit) — saut qualitatif majeur,
@@ -151,10 +157,9 @@ Pistes Sprite V3 (futures) :
 
 ### UI / overlays
 
-- ⚪ **Branche C — Overlay debug EJE/EJO** (`EJEOverlay.tsx`) : pur UI,
-  utile pour valider visuellement les calculs de spacing déjà livrés.
-- ⚪ **Numérotation des étapes sur le terrain** (cercles 1, 2, 3 sur les
-  joueurs qui bougent) — extension de `StepThumbnail.tsx` côté PDF.
+- ✅ **Overlay EJE/EJO** — livré sous le nom `TacticalMetricsOverlay`.
+- ✅ **Numérotation des actions** sur le terrain et les vignettes
+  (`ActionOrderBadges`).
 - ⚪ **Comparaison côte-à-côte** de 2 solutions tactiques.
 - ⚪ **Annotations richer** : couleurs personnalisables (texte libre est
   déjà livré).
@@ -162,8 +167,8 @@ Pistes Sprite V3 (futures) :
 
 ### Templates & contenu
 
-- ⚪ **Plus de templates offensifs** : Iverson, Hammer, PNR aile/step-up,
-  Princeton chin, Pistol, Stagger.
+- ✅ Iverson, Hammer, PNR aile, Stagger livrés (+ remises en jeu, anti-zone,
+  exercice). Reste ⚪ : Princeton chin, Pistol, PNR step-up.
 
 ### Réalisme déplacements / physique (futures pistes)
 
@@ -571,10 +576,10 @@ Branché dans `evaluateOffensiveOptions` de [offense.ts:177-215](src/lib/logic/o
 ### Auto-positionnement des attaquants hors-ballon (FAIT — branche B)
 Module [autoOffense/positionOffBall.ts](src/lib/logic/autoOffense/positionOffBall.ts) (160 lignes) — `computeOffBallPositions(off, carrier, hoop, profiles)` échantillonne 12 candidates par anneau-profil, score = `totalSpacing - pénalité_EJO`, argmax. Consommé par [useAppState.autoPositionOffBall](src/hooks/useAppState.ts:254) (mode édition) ET par [match/decisions/offBallMover.ts](src/lib/logic/match/decisions/offBallMover.ts) (Play IA). Push-out anti-overlap via `moveAttackerInState`. Tests : `autoOffense.test.ts`.
 
-### Overlay debug EJE / EJO (TODO — branche C, optionnel mais utile pour A et B)
+### Overlay debug EJE / EJO (FAIT — `TacticalMetricsOverlay`)
 Nouveau composant `EJEOverlay.tsx` rendu sur le SVG du terrain. Toggle dans le panneau Visualisation. Dessine : (a) hull EJE offensif en pointillé, (b) rectangle EJO ballon→panier, (c) badge texte coloré avec `evaluateSpacing(off).level`. Pas de modification du moteur — pur overlay UI. Utile pour valider visuellement la branche A déjà câblée.
 
-### Numérotation des étapes sur le terrain (vignettes playbook) — TODO
+### Numérotation des étapes sur le terrain (vignettes playbook) — FAIT (`ActionOrderBadges`)
 Petits ronds 1, 2, 3 sur les positions des joueurs dans chaque vignette PDF, pour voir l'ordre des actions sans avoir à comparer mentalement étape N et N+1. À implémenter dans `StepThumbnail.tsx` : tracer un petit cercle blanc avec un numéro à côté du joueur qui bouge entre cette étape et la précédente.
 
 ### Presets défensifs globaux (FAIT)
@@ -585,7 +590,7 @@ Petits ronds 1, 2, 3 sur les positions des joueurs dans chaque vignette PDF, pou
 ### Plus de templates offensifs (FAIT v2 — 6 templates)
 Ajoutés à la bibliothèque : Spain PNR (PNR + back-screen sur D5), UCLA cut (passe latérale + back-screen high post pour cut basket), Floppy (O2 sous le panier choisit son écran).
 
-Encore à ajouter : Iverson cut, Hammer action, PNR aile / step-up / step-back, Princeton chin, Pistol, Stagger.
+Depuis : Iverson cut, Hammer, PNR aile, Stagger ajoutés (FAIT). Encore à ajouter : step-up / step-back, Princeton chin, Pistol.
 
 ### Tests unitaires logique pure (FAIT — 79 tests)
 Vitest installé, 79 tests passants sur 7 modules :
@@ -696,7 +701,7 @@ Charger deux solutions tactiques du même set offensif et les jouer en parallèl
 
 ### Annotations richer (partiel)
 - Texte libre placé sur le terrain → FAIT (livré 2026-05-23, voir CHANGELOG)
-- Numérotation des actions (1. dribble, 2. écran, 3. coupe...) → TODO
+- Numérotation des actions (1. dribble, 2. écran, 3. coupe...) → FAIT (`ActionOrderBadges`)
 - Couleurs personnalisables par annotation → TODO
 
 ### Mode présentation (FAIT v1 + v2)
@@ -776,19 +781,17 @@ Toggle `fullCourt` dans le panneau visu. Quand activé :
 - ligne médiane explicite + cercle central plein (au lieu du demi-cercle pointillé)
 - clamps des positions joueurs étendus à `FULL_COURT_INNER_MAX_Y = 1060`
 
-Reste à faire pour vraiment l'exploiter :
+Depuis : sens d'attaque réglable (Paramètres, `attackingDirection`) et fast-break vers `HOOP_OPPOSITE` (FAIT). Notes d'origine :
 - Permettre à la défense d'avoir son propre panier (transition / fast break / contre-attaque). Actuellement `HOOP` est figé à (300, 75) et tout le calcul défensif se fait par rapport à ce panier unique.
 - Repositionner les défenseurs selon le sens du jeu (défense bas, défense haut).
 - Bouton "rotation 180°" pour basculer le sens d'attaque sans tout repositionner manuellement.
 
-### Sliders avec input numérique
-Actuellement uniquement curseurs pour distance/vit max/etc. Ajouter un input numérique en regard pour saisir la valeur précise.
+### Sliders avec input numérique (FAIT 2026-05-12)
 
-### Tooltips sur les règles
-"raquette" / "passlane" / "homme" : afficher au hover ce que ça veut dire concrètement.
+### Tooltips sur les règles (partiel)
+Aides « i » (`HelpTip`) dans les menus joueur, ouvrables au toucher (U04). À vérifier dans les règles individuelles du panneau Défense.
 
-### Drag avec snap optionnel
-Ctrl+drag pour snap à la grille (positions homepos des zones, ligne 3pt, blocs bas).
+### Drag avec snap optionnel (FAIT — Ctrl/⌘ ou bouton « Aimanter »)
 
 ### Mobile / tactile
 ✅ U04 (2026-09-22) : sous 900 px, terrain pleine largeur en tête, outils
@@ -814,7 +817,7 @@ Au lieu d'une fonction pure qui calcule la position cible, chaque défenseur a u
 Enregistrer un commentaire audio synchronisé avec la lecture. Pour expliquer une tactique en différé.
 
 ### Multi-utilisateur / collaboration
-Partage d'une simulation par URL, édition collaborative live. Backend nécessaire.
+Partage par URL : FAIT. Reste l'édition collaborative live (backend nécessaire).
 
 ### IA suggérant la défense optimale
 À partir d'un set offensif, proposer la meilleure réponse défensive (entraîner sur des datasets de matchs réels). Hors scope solo.

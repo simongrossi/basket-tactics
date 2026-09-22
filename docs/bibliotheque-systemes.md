@@ -2,18 +2,30 @@
 
 Format des templates et procédure pour en ajouter.
 
-## Templates fournis (v2)
+## Modèles fournis (31 au 2026-09-22)
 
-| ID | Nom | Étapes | Description |
-|----|-----|--------|-------------|
-| `pnr-central` | PNR central | 4 | Pick & roll au centre. O5 monte poser l'écran, O1 attaque, O5 plonge. |
-| `horns-flare` | Horns flare | 4 | Alignement Horns. O1 passe à O2 puis utilise un flare screen de O5 côté faible. |
-| `pindown-corner` | Pindown coin | 4 | O4 descend poser un pindown pour O2 au coin. O2 sort vers l'aile pour le tir. |
-| `spain-pnr` | Spain PNR | 4 | PNR central + back-screen de O4 sur le défenseur de O5 pour libérer le pivot. |
-| `ucla-cut` | UCLA cut | 3 | Passe latérale + back-screen high post pour cut basket de O1. |
-| `floppy` | Floppy | 3 | O2 sous le panier choisit son écran (gauche O4 ou droite O5) pour ressortir. |
+| Fichier | Contenu |
+|---|---|
+| [`templates.ts`](../src/lib/data/templates.ts) | 10 sets classiques (`CLASSIC_TEMPLATES` : PNR central, Horns flare, Pindown coin, Spain PNR, UCLA, Floppy, Hammer, Iverson, Stagger, PNR aile) + modèles du labo d'écrans (`LAB_TEMPLATES`, niveau Développement) |
+| [`inboundTemplates.ts`](../src/lib/data/inboundTemplates.ts) | 17 remises en jeu BLOB / SLOB |
+| [`antiZoneTemplates.ts`](../src/lib/data/antiZoneTemplates.ts) | 3 attaques de zone avec lectures |
+| [`drillScenarios.ts`](../src/lib/data/drillScenarios.ts) | Exercice Philadelphia |
 
-Définis dans [`src/lib/data/templates.ts`](../src/lib/data/templates.ts).
+## Convention d'écriture des étapes (important)
+
+Les modèles sont écrits « **l'étape décrit ce qui mène ici** » : le libellé de
+l'étape N et ses annotations (passe, déplacement dont `to` = position de
+l'étape) décrivent l'action jouée pendant N−1 → N ; l'étape 0 porte « Setup ».
+
+Au chargement (`loadTemplate`), l'app convertit vers la règle vue par le coach
+— **ce qui est affiché sur l'étape k se joue pendant k → k+1** — via
+[`stepActions.ts`](../src/lib/logic/stepActions.ts) : libellés remontés d'une
+étape (`toDepartureLabels`), passes et déplacements « arrivée » affichés sur
+l'étape de départ, écran tenu sur la dernière étape rattaché à l'étape
+précédente. Un nouveau modèle doit donc suivre la même convention que les
+existants. Garde-fou : `departureLabels.test.ts` exige, pour chaque modèle de
+coaching, des étapes numérotées ayant un libellé et au moins une action, puis
+une position finale.
 
 ## Format Template
 
@@ -125,18 +137,13 @@ const MY_ACTION: Template = {
 5. L'enregistrer dans le tableau exporté :
 
 ```typescript
-export const TEMPLATES: Template[] = [PNR_CENTRAL, HORNS_FLARE, PINDOWN_CORNER, MY_ACTION];
+export const CLASSIC_TEMPLATES: Template[] = [/* … */, MY_ACTION];
 ```
 
-## Templates à ajouter (backlog)
+## Modèles à ajouter (backlog)
 
-Voir [IDEAS.md](../IDEAS.md). Candidats :
-- **Spain PNR** : PNR central avec back-screen sur le défenseur du screener
-- **UCLA cut** : passe latérale + back-screen high post pour cut basket
-- **Iverson cut** : double écran top-of-key pour traverser
-- **Floppy** : option deux côtés, le coupeur choisit son écran
-- **Hammer action** : skip pass + back-screen baseline côté faible
-- **PNR aile / step-up / step-back** : variantes de pick & roll
+Voir [IDEAS.md](../IDEAS.md). Restent : PNR step-up / step-back, Princeton
+chin, Pistol ; presets de zone (2-3 avec trappes, 1-3-1, matchup).
 
 ## Tester un template
 

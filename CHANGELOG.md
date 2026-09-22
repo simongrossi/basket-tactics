@@ -6,6 +6,39 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Consolidation coach — construire un système étape par étape (2026-09-22)
+
+Parcours « créer → dessiner → + étape → corriger » repris en conditions
+réelles. Détail dans le journal de [PLAN-COACH.md](PLAN-COACH.md).
+
+- **« + étape » sans temps mort** : après un dessin, l'étape d'arrivée créée
+  automatiquement est réutilisée au lieu d'insérer une seconde étape vide
+  (4 s d'animation où rien ne bouge). Au milieu d'un système, l'étape est
+  insérée et les passes de l'étape en cours la suivent.
+- **Outils accessibles sur petit écran** : toute la barre latérale défile ; en
+  1024×768 la zone Attaque / Étapes ne faisait plus que 27 px.
+- **Guidage** : bandeau « Dessiner le système » (3 gestes) sur un système
+  vierge, panneau Étapes ouvert par défaut, état vide explicite.
+- **Une seule numérotation** (`stepNumbering.ts`) pour le panneau, la
+  timeline, le badge de lecture, le mode lecteur, la barre de présentation et
+  les fiches : « Placement de départ », « Étape i / N », « Position finale ».
+- **Ce qui est dessiné sur l'étape k se joue pendant k → k+1, passes
+  comprises** (`stepActions.ts`). Stockage et moteur inchangés (la passe reste
+  sur l'étape d'arrivée) ; terrain, panneau, fiches et numérotation regroupent
+  les actions par étape de départ. Ballon chez le passeur sur l'étape où la
+  flèche est dessinée ; porteur propagé aux étapes suivantes ; supprimer une
+  passe rend le ballon au passeur. Une passe dessinée en premier est animée
+  (avant : ballon téléporté, durée 0:00).
+- **Modèles** : libellés « ce qui mène ici » remontés sur l'étape de l'action
+  (chargement et recompilation de scénario), écrans tenus en fin de système
+  rattachés à la coupe qui les utilise, dernière étape défensive seule traitée
+  comme position finale. Garde-fou : les 31 modèles de coaching ont chaque étape
+  numérotée avec un libellé et une action.
+- Retrait de `realStepPosition` (remplacé par la numérotation commune).
+
+Suite : 2 466 tests verts ; seuls les 6 échecs du chantier congestion local
+(non commité) subsistent.
+
 ### Consolidation coach — lot 2 : U03 → U05 (2026-09-22)
 
 Suite du [plan de consolidation](PLAN-COACH.md) issu de
