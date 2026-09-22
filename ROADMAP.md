@@ -10,19 +10,21 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
 ## 🧭 Priorité actuelle (mise à jour 2026-09-22)
 
-**Coaching d'abord** : l'usage premier est de préparer, expliquer et présenter
-des systèmes aux joueurs. La simulation (fautes, transition, match simulé) passe
-après. Ordre de travail :
+Décision du user (22/09) : **finir d'abord le réalisme des déplacements et du
+placement défensifs**, puis l'axe coaching (le quiz est validé comme idée mais
+passe après). Ordre de travail :
 
-1. **Consolidation coach** ([PLAN-COACH.md](PLAN-COACH.md)) — lot 1 fiabilité
-   🟢, lot 2 usage coach 🟢 (U01→U05 + construction pas à pas du 22/09).
-   Reste : U06 essai avec des coachs sur tablette physique (humain).
+1. **Réalisme défensif** — [plan P3/P4](docs/plan-comportements-physiques.md) :
+   P3.3 congestion en trafic → P3.1 rampe d'accélération → P3.5 poursuite
+   anticipée (closeout) → P4.1 porteur qui frôle son écran → poursuite V4 en
+   lecture (fatigue, regard, anticipation — « Priorisation moteur » #9) ;
+   P4.3 / P4.4 à instruire séparément.
 2. **Axe coaching** (tableau § « Coaching — usage entraînement » ci-dessous) :
    quiz / lecture cachée → clés d'enseignement → fiche d'une page par système
    → effectif réutilisable → tableau blanc.
-3. **Réalisme validé** (PLAN-COACH lot 3, R01→R04) et physique défensive
-   ([plan P3/P4](docs/plan-comportements-physiques.md) : P3.3 congestion
-   — tests écrits, non commités —, P3.1, P3.5, P4.1).
+3. **Consolidation coach** ([PLAN-COACH.md](PLAN-COACH.md)) — lots 1 et 2 🟢 ;
+   reste U06 (essai coachs + tablette physique, humain) et le lot 3 réalisme
+   validé (R01→R04).
 4. **Moteur / simulation** : tableau « Priorisation moteur » plus bas (fautes,
    transition, match simulé V2, zone…).
 
