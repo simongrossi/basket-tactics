@@ -258,7 +258,13 @@ fatigue, gaze, latence pivot) mais ne tournent qu'en édition.
 
 ## P4 — Écrans avancés & long terme
 
-### P4.1 — Porteur shoulder-to-shoulder sur son écran 〔M〕
+### ✅ P4.1 — Porteur shoulder-to-shoulder sur son écran 〔M → S〕 (re-scopé 2026-09-22)
+
+> **Audit** : déjà obtenu. Sur PNR central, Spain PNR, PNR aile et Lab PnR
+> (profils legacy et réaliste), le porteur passe à 34,0 px du poseur
+> (= clearance, sprites au contact) grâce à l'évitement fidèle au tracé (F09)
+> et à la projection finale de séparation (F11). Garde-fou :
+> `p41CarrierShaveScreen.test.ts` (min ∈ [34, 40] px). Texte d'origine :
 
 Le porteur prend une courbe large autour du poseur au lieu de le
 raser — l'écran paraît inutile. Resserrer la Bezier attaquant côté
@@ -305,7 +311,7 @@ anti-récursion de SCREEN-ENGINE).
 
 Backlog restant réel :
 ✅ P3.3 congestion (2026-09-22) ──► ✅ P3.1-V1 rampe accélération (2026-09-22)
-──► ✅ P3.5 poursuite anticipée (2026-09-22) ──► P4.1 shoulder-to-shoulder
+──► ✅ P3.5 poursuite anticipée (2026-09-22) ──► ✅ P4.1 (déjà couvert, garde-fou 2026-09-22)
 P4.3 / P4.4 : à instruire séparément (risque écran / design multi-step)
 ```
 
