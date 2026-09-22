@@ -936,6 +936,8 @@ export type AttackerSpeedTier = 'elite' | 'standard' | 'lent';
 export type RealismProfile = 'realistic' | 'legacy';
 
 export interface AppState {
+  /** Identité locale du système ouvert ; exclue des copies et partages. */
+  librarySystemId?: string;
   steps: Step[];
   activeStep: number;
   realismProfile?: RealismProfile;

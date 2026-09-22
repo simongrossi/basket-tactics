@@ -35,4 +35,17 @@ describe('useAppState interactions', () => {
     });
     expect(result.current.state.steps[0].off.O1).toEqual(end);
   });
+  it('récupère le brouillon précédent après remplacement et rechargement', () => {
+    const { result, unmount } = renderHook(() => useAppState());
+    act(() => result.current.patch({ playerNames: { O1: 'Brouillon coach' } }));
+    act(() => result.current.resetAll());
+    expect(result.current.hasRecovery).toBe(true);
+    unmount();
+    const reopened = renderHook(() => useAppState());
+    expect(reopened.result.current.hasRecovery).toBe(true);
+    act(() => reopened.result.current.restoreDraft());
+    expect(reopened.result.current.state.playerNames?.O1).toBe('Brouillon coach');
+    reopened.unmount();
+  });
+
 });

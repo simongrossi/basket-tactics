@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeAppInitialState } from '../initial';
-import { applySavedSystem, snapshotFromAppState } from '../library';
+import { applySavedSystem, snapshotFromAppState, updateSavedSystem } from '../library';
 
 describe('contexte autonome des systèmes', () => {
   it('restitue un 3c3 avec son effectif, son terrain et sa physique après un autre système', () => {
@@ -26,5 +26,24 @@ describe('contexte autonome des systèmes', () => {
     expect(loaded.playerCount).toBe(5);
     expect(loaded.fullCourt).toBe(false);
     expect(loaded.secondsPerStep).toBeUndefined();
+  });
+});
+
+
+describe('mise à jour sans doublon', () => {
+  it('préserve identité, dossier, nom, tags et références des séances', () => {
+    const state = makeAppInitialState();
+    const saved = snapshotFromAppState(state, 'Sortie de pression', 'U15', ['transition']);
+    const library = { version: 1 as const, folders: [{ id: 'folder', name: 'U15',
+      createdAt: 1, systems: [saved] }] };
+    const changed = { ...state, playerCount: 3 as const, librarySystemId: saved.id };
+    const updated = updateSavedSystem(library, saved.id, changed);
+    expect(updated.folders[0].systems).toHaveLength(1);
+    expect(updated.folders[0].systems[0]).toMatchObject({ id: saved.id,
+      name: saved.name, description: 'U15', tags: ['transition'], createdAt: saved.createdAt });
+    expect(updated.folders[0].systems[0].settings?.playerCount).toBe(3);
+    expect(updated.folders[0].systems[0].settings).not.toHaveProperty('librarySystemId');
+    expect(library.folders[0].systems[0].settings?.playerCount).toBe(5);
+    expect(applySavedSystem(state, saved).librarySystemId).toBe(saved.id);
   });
 });

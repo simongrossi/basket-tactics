@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useLocalSave } from './useLocalSave';
 import type { AppState } from '@/lib/types';
 import {
   loadLibrary,
+  updateSavedSystem,
   saveLibrary,
   type UserLibrary,
   type SavedSystem,
@@ -57,16 +59,10 @@ export function useLibrary() {
     setHydrated(true);
   }, []);
 
-  // Persist debounced à chaque modification post-hydration.
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (!hydrated) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => saveLibrary(library), 250);
-    return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-    };
-  }, [library, hydrated]);
+  const saveStatus = useLocalSave(library, hydrated, saveLibrary);
+  const updateSystem = useCallback((id: string, state: AppState) => {
+    setLibrary((lib) => updateSavedSystem(lib, id, state));
+  }, []);
 
   const saveSystem = useCallback(
     (state: AppState, folderId: string, name: string, description?: string, tags?: string[]) => {
@@ -174,6 +170,8 @@ export function useLibrary() {
   return {
     library,
     hydrated,
+    saveStatus,
+    updateSystem,
     saveSystem,
     loadSystem,
     deleteSystem,

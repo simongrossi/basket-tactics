@@ -12,7 +12,7 @@ Ce document suit le travail effectif ; une case n'est cochée qu'après validati
 - [x] F04 Violation de possession à zéro ; préserver un tir réellement lâché à temps.
 - [x] F05 Partage : parser les paramètres, restituer le système et le mode lecteur.
 - [x] F06 Bibliothèque : conserver le contexte basket et les paramètres de simulation.
-- [ ] F07 Enregistrer un système existant ; statut de sauvegarde et protection du brouillon.
+- [x] F07 Enregistrer un système existant ; statut de sauvegarde et protection du brouillon.
 - [ ] F08 Horloge commune : durées d'étapes, lecture, ralenti, export et déplacements.
 - [ ] F09 Respecter timing et trajet de l'action lors des évitements.
 - [ ] F10 Calcul reproductible à un même instant, indépendamment de la fréquence d'affichage.
@@ -62,3 +62,17 @@ Ces changements doivent être préservés et distingués des commits de consolid
   Anciens systèmes : valeurs par défaut stables, indépendantes du système précédent.
   Validation : 120 tests ciblés passent ; le typage ne signale que les deux
   erreurs préexistantes du chantier congestion.
+
+- Troisième correctif : mise à jour d'un système sans changement d'identité,
+  identité conservée au rechargement, sauvegarde visible et erreurs signalées,
+  écriture avant fermeture, récupération du brouillon remplacé.
+  Vérification navigateur : création, mise à jour sans doublon et rechargement OK.
+  La confirmation native de chargement bloque l'outil navigateur ; récupération
+  vérifiée par test d'intégration (remplacement puis remontage du hook).
+  235 tests ciblés passent avant ajout du cas de récupération. Suite complète :
+  2 298 passent, 6 échecs congestion préexistants et un ancien test qui forçait
+  un tir au signal ; ce dernier est corrigé pour lâcher avant le signal (test repassé).
+
+- Validation finale de cette tranche : 2 299 tests passent (238 fichiers), en
+  excluant explicitement le test local de congestion inachevé. Les seuls diagnostics
+  TypeScript restent ses deux erreurs préexistantes. F08–F13 et les lots 2–3 restent ouverts.

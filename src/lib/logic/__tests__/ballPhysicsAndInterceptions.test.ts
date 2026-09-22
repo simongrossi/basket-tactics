@@ -14,6 +14,7 @@ import {
   MATCH_TICK_MS,
   type CarrierIntent,
 } from '../match/gameLoop';
+import { evaluateOffensiveOptions } from '../offense';
 import { TEMPLATES } from '@/lib/data/templates';
 
 function buildState(tplId: string): AppState {
@@ -206,38 +207,20 @@ describe('Physique du tir & rebonds (physicsReboundsEnabled)', () => {
 
     let state = createInitialMatchState(baseState, {
       seed: 42,
-      shotClockMs: MATCH_TICK_MS, // Provoquer un tir forcé immédiatement
+      shotClockMs: 2 * MATCH_TICK_MS, // Lâcher avant le signal
     });
 
-    // Forcer un tir raté pour générer un rebond
-    // On simule un tir à 0% de probabilité
-    const opts = {
-      awayScoreOverride: 0,
-    };
-    
     // Positionnons les joueurs
     state.off.O1 = { x: 200, y: 300 }; // Shooter
     state.off.O2 = { x: 280, y: 120 }; // Près du panier (x=300, y=75)
     state.defPos.D1 = makeDef({ x: 320, y: 120, matchedTo: 'O2' }); // Près du panier
 
-    // Résoudre le tir en passant un tick de shot clock
-    // Dans tickMatch, si le shotClockMs restant arrive à 0, un tir est forcé.
-    // Le taux de réussite est bas, donc probable miss.
-    let nextState = tickMatch(state, MATCH_TICK_MS, baseState);
-    expect(nextState.outcome).not.toBeNull();
-    
-    // Si c'est un tir réussi, on force un shot raté manuellement en modifiant l'outcome et en calculant la physique
-    if (nextState.outcome?.includes('made')) {
-      // essayons une autre seed pour avoir un tir raté
-      for (let seed = 0; seed < 20; seed++) {
-        state = createInitialMatchState(baseState, {
-          seed,
-          shotClockMs: MATCH_TICK_MS,
-        });
-        nextState = tickMatch(state, MATCH_TICK_MS, baseState);
-        if (nextState.outcome?.includes('missed')) break;
-      }
-    }
+    // Un tir décidé, lâché au prochain tick, explicitement raté :
+    // le test de rebond ne dépend pas d'une recherche de seed.
+    const shot = evaluateOffensiveOptions(state.off, state.defPos, state.carrier)
+      .find((action) => action.type === 'shoot')!;
+    state.intent = { kind: 'shoot', action: { ...shot, scoreProbability: 0 }, forced: true };
+    const nextState = tickMatch(state, MATCH_TICK_MS, baseState);
 
     expect(nextState.outcome).toContain('missed');
     expect(nextState.shotPhysicalTrajectory).toBeDefined();

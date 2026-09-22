@@ -46,6 +46,8 @@ export default function Page() {
   const app = useAppState();
   const lib = useLibrary();
   const sidebar = useSidebarState();
+  const currentSavedSystem = lib.library.folders.flatMap((f) => f.systems)
+    .find((system) => system.id === app.state.librarySystemId);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [playbackT, setPlaybackT] = useState<number | null>(null);
@@ -290,7 +292,7 @@ export default function Page() {
   });
 
   const handleExport = useCallback(() => {
-    const blob = new Blob([JSON.stringify(app.state, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ ...app.state, librarySystemId: undefined }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -315,7 +317,7 @@ export default function Page() {
       reader.onload = (ev) => {
         try {
           const data = JSON.parse(String(ev.target?.result)) as AppState;
-          app.importState(data);
+          app.importState({ ...data, librarySystemId: undefined });
         } catch {
           alert('JSON invalide');
         }
@@ -351,6 +353,27 @@ export default function Page() {
         color: '#e5e7eb',
       }}
     >
+      {!presentMode && !isPlayerMode && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, fontSize: 12 }}>
+          <strong>{currentSavedSystem?.name ?? 'Brouillon'}</strong>
+          <span role="status" style={{ color: app.saveStatus === 'error' || lib.saveStatus === 'error' ? '#fca5a5' : '#cbd5e1' }}>
+            {app.saveStatus === 'error' || lib.saveStatus === 'error'
+              ? 'Sauvegarde impossible — exportez votre travail'
+              : app.saveStatus === 'pending' || lib.saveStatus === 'pending'
+                ? 'Sauvegarde en cours…' : 'Brouillon conservé sur cet appareil'}
+          </span>
+          {currentSavedSystem && <button style={{ minHeight: 36, padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }}
+            onClick={() => lib.updateSystem(currentSavedSystem.id, app.state)}>
+            Enregistrer dans « {currentSavedSystem.name} »
+          </button>}
+          <button style={{ minHeight: 36, padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }} onClick={() => sidebar.setActiveView('library')}>
+            Enregistrer une copie…
+          </button>
+          {app.hasRecovery && <button style={{ minHeight: 36, padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }} onClick={app.restoreDraft}>
+            Retrouver le brouillon précédent
+          </button>}
+        </div>
+      )}
       <div
         className={presentMode || isPlayerMode ? 'layout-grid presenting' : 'layout-grid'}
         style={{
@@ -541,9 +564,10 @@ export default function Page() {
                 library={lib.library}
                 onLoadSavedSystem={(sys) => app.importState(lib.loadSystem(app.state, sys))}
                 onLoadTemplate={app.loadTemplate}
-                onSaveCurrent={(folderId, name, description, tags) =>
-                  lib.saveSystem(app.state, folderId, name, description, tags)
-                }
+                onSaveCurrent={(folderId, name, description, tags) => {
+                  const id = lib.saveSystem(app.state, folderId, name, description, tags);
+                  app.patch({ librarySystemId: id });
+                }}
                 onSetSystemTags={lib.setSystemTags}
                 onRenameSystem={lib.renameSystem}
                 onDeleteSystem={lib.deleteSystem}

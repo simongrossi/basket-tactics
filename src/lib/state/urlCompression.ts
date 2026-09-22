@@ -14,7 +14,7 @@ export async function createShareHash(state: AppState): Promise<string> {
  * Compresse un objet AppState en chaîne de caractères Base64url compressée avec l'algorithme Deflate.
  */
 export async function compressStateToUrl(state: AppState): Promise<string> {
-  const json = JSON.stringify(state);
+  const json = JSON.stringify({ ...state, librarySystemId: undefined });
   const stream = new Blob([json]).stream();
   const compressedStream = stream.pipeThrough(new CompressionStream('deflate'));
   const response = new Response(compressedStream);
@@ -57,7 +57,7 @@ export async function decompressStateFromUrl(payload: string): Promise<AppState 
     const parsed = JSON.parse(text) as AppState;
     // Utilisation d'importState pour normaliser, merger sur les valeurs par défaut
     // et garantir la compatibilité ascendante si le state sauvegardé est ancien
-    return importState(parsed);
+    return importState({ ...parsed, librarySystemId: undefined });
   } catch (err) {
     console.error('[urlCompression] Echec de décompression de l\'état URL :', err);
     return null;

@@ -10,6 +10,7 @@
 // CourtView, ContextMenu, …) consomment les mêmes noms de méthodes.
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useLocalSave } from './useLocalSave';
 import { useHistorizedState } from './useHistorizedState';
 import type {
   AppState,
@@ -42,7 +43,7 @@ import type { DefensePreset } from '@/lib/data/defensePresets';
 import type { DefenderProfile } from '@/lib/data/defenderProfiles';
 import { persistDetectedSwitchesThroughStep } from '@/lib/logic/engine';
 import { moveAttackerInState, moveDefenderInState } from '@/lib/logic/playerMove';
-import { loadFromStorage, saveToStorage, clearStorage } from '@/lib/state/persistence';
+import { loadFromStorage, saveToStorage, RECOVERY_KEY } from '@/lib/state/persistence';
 import { decompressStateFromUrl, parseSharedHash } from '@/lib/state/urlCompression';
 import { computeOffBallPositions } from '@/lib/logic/autoOffense';
 import { HOOP, HOOP_OPPOSITE } from '@/lib/data/court';
@@ -105,6 +106,7 @@ export function useAppState() {
     commitPlayerDrag,
   } = useHistorizedState(makeAppInitialState);
   const [hydrated, setHydrated] = useState(false);
+  const [hasRecovery, setHasRecovery] = useState(false);
 
   // Animation transitoire "Tout en auto réel" : positions de départ capturées
   // au clic + timestamp. Non persistée. Cf. clearAllDefenseOverridesActiveStepAnimated.
@@ -125,12 +127,21 @@ export function useAppState() {
   // Hydration : lit l'URL partagée ou le localStorage post-montage.
   useEffect(() => {
     async function init() {
+      setHasRecovery(loadFromStorage(RECOVERY_KEY) !== null);
       const share = parseSharedHash(window.location.hash);
       if (share.payload) {
         const payload = share.payload;
         const shared = await decompressStateFromUrl(payload);
         if (shared) {
-          setStateRaw(shared);
+          const previous = loadFromStorage();
+          if (previous && !saveToStorage(previous, RECOVERY_KEY)) {
+            alert('Le brouillon précédent ne peut pas être protégé. Libérez du stockage avant d’ouvrir ce lien.');
+            setStateRaw(previous);
+            setHydrated(true);
+            return;
+          }
+          if (previous) setHasRecovery(true);
+          setStateRaw({ ...shared, librarySystemId: undefined });
           // Nettoie le hash pour ne pas recharger à chaque refresh
           window.history.replaceState(null, '', window.location.pathname + window.location.search + (share.playerMode ? '#mode=player' : ''));
           setHydrated(true);
@@ -152,16 +163,19 @@ export function useAppState() {
     setStateRaw((cur) => persistDetectedSwitchesThroughStep(cur));
   }, [hydrated, state, setStateRaw]);
 
-  // Save debounced (400ms) — skip avant hydration pour ne pas écraser le persisté.
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (!hydrated) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => saveToStorage(state), 400);
-    return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-    };
-  }, [state, hydrated]);
+  const saveStatus = useLocalSave(state, hydrated, saveToStorage);
+  const protectDraft = useCallback(() => {
+    if (!saveToStorage(stateRef.current, RECOVERY_KEY)) {
+      alert('Le brouillon ne peut pas être protégé. Exportez-le avant de le remplacer.');
+      return false;
+    }
+    setHasRecovery(true);
+    return true;
+  }, [stateRef]);
+  const restoreDraft = useCallback(() => {
+    const previous = loadFromStorage(RECOVERY_KEY);
+    if (previous && protectDraft()) setStateWithHistory(previous);
+  }, [protectDraft, setStateWithHistory]);
 
   // ============================================================
   // Câblage des transforms → callbacks publics
@@ -584,17 +598,16 @@ export function useAppState() {
 
   // -- Reset / template / import / patch / playerCount --
   const resetAll = useCallback(() => {
-    clearStorage();
-    setStateWithHistory(coreTx.resetAll());
-  }, [setStateWithHistory]);
+    if (protectDraft()) setStateWithHistory(coreTx.resetAll());
+  }, [setStateWithHistory, protectDraft]);
 
   const loadTemplate = useCallback((template: Template) => {
-    setStateWithHistory((s) => coreTx.loadTemplate(s, template));
-  }, [setStateWithHistory]);
+    if (protectDraft()) setStateWithHistory((s) => coreTx.loadTemplate(s, template));
+  }, [setStateWithHistory, protectDraft]);
 
   const importState = useCallback((next: AppState) => {
-    setStateWithHistory(coreTx.importState(next));
-  }, [setStateWithHistory]);
+    if (protectDraft()) setStateWithHistory(coreTx.importState(next));
+  }, [setStateWithHistory, protectDraft]);
 
   const patch = useCallback((p: Partial<AppState>) => {
     setStateWithHistory((s) => coreTx.patch(s, p));
@@ -728,6 +741,9 @@ export function useAppState() {
 
   return {
     state,
+    saveStatus,
+    hasRecovery,
+    restoreDraft,
     undo,
     redo,
     setActiveStep,

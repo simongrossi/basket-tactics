@@ -30,6 +30,7 @@ export function setPlayerCount(s: AppState, count: PlayerCount): AppState {
 export function loadTemplate(s: AppState, template: Template): AppState {
   return {
     ...s,
+    librarySystemId: undefined,
     steps: reconcileMovementAnnotations(
       ensureAnnotationsForMovement(structuredClone(template.steps), s.playerCount)
     ),

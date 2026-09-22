@@ -32,7 +32,7 @@ const LIBRARY_STORAGE_KEY = 'basket-tactics-library-v1';
 export interface SavedSystem {
   /** Contexte autonome (v2) : effectif, sens de jeu, temps et paramètres du moteur.
    * Les anciens snapshots gardent leurs champs historiques ci-dessous. */
-  settings?: Omit<AppState, 'steps' | 'activeStep' | 'tool' | 'zoneEditMode'>;
+  settings?: Omit<AppState, 'steps' | 'activeStep' | 'tool' | 'zoneEditMode' | 'librarySystemId'>;
   id: string;
   name: string;
   description?: string;
@@ -162,12 +162,13 @@ export function loadLibrary(): UserLibrary {
   }
 }
 
-export function saveLibrary(lib: UserLibrary): void {
-  if (typeof window === 'undefined') return;
+export function saveLibrary(lib: UserLibrary): boolean {
+  if (typeof window === 'undefined') return false;
   try {
     window.localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(lib));
+    return true;
   } catch {
-    /* quota exceeded — ignore silently */
+    return false;
   }
 }
 
@@ -193,7 +194,7 @@ export function snapshotFromAppState(
   tags?: string[],
 ): SavedSystem {
   const now = Date.now();
-  const { steps: _steps, activeStep: _active, tool: _tool, zoneEditMode: _zoneEdit, ...settings } = structuredClone(state);
+  const { steps: _steps, activeStep: _active, tool: _tool, zoneEditMode: _zoneEdit, librarySystemId: _source, ...settings } = structuredClone(state);
   return {
     settings,
     id: uid('sys'),
@@ -261,6 +262,7 @@ export function applySavedSystem(state: AppState, sys: SavedSystem): AppState {
   return {
     ...makeInitialState(),
     ...structuredClone(sys.settings ?? {}),
+    librarySystemId: sys.id,
     tool: state.tool,
     zoneEditMode: false,
     steps: structuredClone(sys.steps),
@@ -504,3 +506,15 @@ export function renameDefensePreset(
 }
 
 export const __libraryStorageKey = LIBRARY_STORAGE_KEY;
+
+/** Remplace le contenu sans casser les références des séances, ni les métadonnées. */
+export function updateSavedSystem(lib: UserLibrary, id: string, state: AppState): UserLibrary {
+  return { ...lib, folders: lib.folders.map((folder) => ({
+    ...folder,
+    systems: folder.systems.map((system) => system.id !== id ? system : {
+      ...snapshotFromAppState(state, system.name, system.description, system.tags),
+      id: system.id,
+      createdAt: system.createdAt,
+    }),
+  })) };
+}

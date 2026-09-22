@@ -18,6 +18,7 @@ import {
 } from '@/lib/logic/migrateAnnotations';
 
 export const STORAGE_KEY = 'basket-tactics-state-v1';
+export const RECOVERY_KEY = 'basket-tactics-previous-draft-v1';
 
 /** Migration du profil de réalisme à l'ouverture.
  *
@@ -39,10 +40,10 @@ function migrateRealismProfile(parsed: Partial<AppState>): Partial<AppState> {
   return { ...rest, realismProfile: 'realistic' };
 }
 
-export function loadFromStorage(): AppState | null {
+export function loadFromStorage(key = STORAGE_KEY): AppState | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(key);
     if (!raw) return null;
     const parsed = migrateRealismProfile(JSON.parse(raw) as Partial<AppState>);
     const defaults = makeInitialState();
@@ -67,12 +68,13 @@ export function loadFromStorage(): AppState | null {
   }
 }
 
-export function saveToStorage(state: AppState): void {
-  if (typeof window === 'undefined') return;
+export function saveToStorage(state: AppState, key = STORAGE_KEY): boolean {
+  if (typeof window === 'undefined') return false;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    window.localStorage.setItem(key, JSON.stringify(state));
+    return true;
   } catch {
-    /* quota exceeded ou navigation privée — ignore */
+    return false;
   }
 }
 
