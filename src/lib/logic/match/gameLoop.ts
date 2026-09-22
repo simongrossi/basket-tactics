@@ -58,7 +58,6 @@ import {
   advanceDrive,
   advancePass,
   decideNextAction,
-  pickForcedShot,
 } from './gameLoop/carrierActions';
 import { resolveShot } from './gameLoop/shotResolution';
 
@@ -145,7 +144,7 @@ export function createInitialMatchState(
  *
  * Algorithme V1 :
  *   1. Si possession déjà terminée → no-op.
- *   2. Décrémente le shot clock. Si ≤ 0 → forced shot.
+ *   2. Décrémente le shot clock. Si ≤ 0 sans tir lâché → violation.
  *   3. Si intent courant en cours (drive/pass non terminé), continuer.
  *   4. Sinon, décider la prochaine action (réutilise `evaluateOffensiveOptions`
  *      + softmax pondéré par `creativity`).
@@ -236,19 +235,24 @@ export function tickMatch(
   next.off = advanced.off;
   next.offBallIntents = advanced.intents;
 
-  // Shot clock expiré : forced shot sur l'action shoot disponible (ou tir
-  // forcé à 0 % si rien d'utile).
-  // Phase 1.1 fix — Skip forced-shot pendant le stub away-possession :
-  // sinon le shotClockMs synchronisé à `remaining` déclenche un forced-shot
-  // sur les positions home (qui sont en BLOB après away score), tir à ~0%,
-  // au lieu du clean coinflip AWAY_SCORE_PROBABILITY de la terminal branch.
-  if (
-    next.shotClockMs === 0 &&
-    next.intent.kind !== 'shoot' &&
-    next.intent.kind !== 'away-possession'
-  ) {
-    const action = pickForcedShot(next, baseAppState);
-    return resolveShot(next, action, rng, true, baseAppState);
+  // Un intent « shoot » n'est pas un lâcher : il attend encore sa résolution.
+  // Les tirs déjà lâchés ont un outcome et passent par handleTransitionPause.
+  if (next.shotClockMs === 0 && next.intent.kind !== 'away-possession') {
+    next.outcome = 'turnover-clock';
+    next.score = 0;
+    next.intent = { kind: 'idle' };
+    next.eventLog.push({
+      possession: next.possession, clock: 0, actor: next.carrier,
+      type: 'turnover', label: 'Violation du temps de possession — ballon non lâché avant le signal',
+    });
+    next.teamStats = {
+      ...next.teamStats,
+      [next.attackingTeam]: {
+        ...next.teamStats[next.attackingTeam],
+        turnovers: next.teamStats[next.attackingTeam].turnovers + 1,
+      },
+    };
+    return next;
   }
 
   // E.1 V1 — possession adverse stubbée : on décrémente le clock,

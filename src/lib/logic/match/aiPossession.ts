@@ -21,6 +21,7 @@ export type AiPossessionOutcome =
   | 'shot-missed'
   | 'turnover-pass'
   | 'turnover-drive'
+  | 'turnover-clock'
   | 'forced-shot-made'
   | 'forced-shot-missed'
   | 'empty';

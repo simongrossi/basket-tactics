@@ -119,6 +119,7 @@ export function runHeadlessGameLoop(
     'shot-missed': 0,
     'turnover-pass': 0,
     'turnover-drive': 0,
+    'turnover-clock': 0,
     'forced-shot-made': 0,
     'forced-shot-missed': 0,
     empty: 0,
@@ -308,10 +309,10 @@ function buildReport(
 }
 
 /** Pour les consommateurs UI qui veulent caster `AiPossessionOutcome → PossessionOutcome`
- *  (ils partagent les mêmes clés sauf 'empty' qui est unique au live). */
+ *  (ils partagent les mêmes clés sauf les issues non modélisées par le simulateur). */
 export function liveOutcomeToSimulator(
   o: AiPossessionOutcome
 ): PossessionOutcome | null {
-  if (o === 'empty') return null;
+  if (o === 'empty' || o === 'turnover-clock') return null;
   return o;
 }

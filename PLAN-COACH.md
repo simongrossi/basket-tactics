@@ -9,9 +9,9 @@ Ce document suit le travail effectif ; une case n'est cochée qu'après validati
 - [x] F01 Géométrie 2/3 points partagée, coins et deux paniers ; profils de tir cohérents.
 - [x] F02 Diagnostics FIBA : pas de 3 secondes défensives ; bonus après quatre fautes.
 - [x] F03 Résultat de rebond unique de l'animation à la possession et aux statistiques.
-- [ ] F04 Violation de possession à zéro ; préserver un tir réellement lâché à temps.
+- [x] F04 Violation de possession à zéro ; préserver un tir réellement lâché à temps.
 - [x] F05 Partage : parser les paramètres, restituer le système et le mode lecteur.
-- [ ] F06 Bibliothèque : conserver le contexte basket et les paramètres de simulation.
+- [x] F06 Bibliothèque : conserver le contexte basket et les paramètres de simulation.
 - [ ] F07 Enregistrer un système existant ; statut de sauvegarde et protection du brouillon.
 - [ ] F08 Horloge commune : durées d'étapes, lecture, ralenti, export et déplacements.
 - [ ] F09 Respecter timing et trajet de l'action lors des évitements.
@@ -56,3 +56,9 @@ Ces changements doivent être préservés et distingués des commits de consolid
   paramètres de partage parsés séparément. 89 tests ciblés passent ; après mise à jour
   du test qui attendait à tort une violation FIBA, ses 6 cas passent également.
   Suite complète : seul le chantier congestion reste en échec après cette correction.
+
+- Deuxième correctif : violation au signal sans lâcher, tirs déjà lâchés préservés ;
+  les systèmes sauvegardent leur effectif, terrain, sens de jeu et réglages du moteur.
+  Anciens systèmes : valeurs par défaut stables, indépendantes du système précédent.
+  Validation : 120 tests ciblés passent ; le typage ne signale que les deux
+  erreurs préexistantes du chantier congestion.

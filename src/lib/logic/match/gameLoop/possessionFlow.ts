@@ -207,6 +207,7 @@ export function handleTransitionPause(
       next.outcome === 'forced-shot-made' ||
       next.outcome === 'turnover-pass' ||
       next.outcome === 'turnover-drive' ||
+      next.outcome === 'turnover-clock' ||
       next.pendingRebound?.type === 'defensive';
     if (willSwitchPossession) {
       // Panier OWN des ex-attaquants = celui qu'attaquerait l'équipe opposée.

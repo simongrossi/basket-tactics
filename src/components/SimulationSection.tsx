@@ -56,6 +56,7 @@ const AI_OUTCOME_LABELS: Record<AiPossessionOutcome, string> = {
   'shot-missed': 'tir raté',
   'turnover-pass': 'perte passe',
   'turnover-drive': 'perte drive',
+  'turnover-clock': 'violation chrono',
   'forced-shot-made': 'tir forcé marqué',
   'forced-shot-missed': 'tir forcé raté',
   empty: 'sans action',

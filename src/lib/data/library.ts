@@ -14,6 +14,7 @@ import type {
   ScenarioBranch,
   ContinuityLoop,
 } from '../types';
+import { makeInitialState } from './initial';
 
 /**
  * Bibliothèque utilisateur — gestion locale de systèmes sauvegardés
@@ -29,6 +30,9 @@ const LIBRARY_STORAGE_KEY = 'basket-tactics-library-v1';
 
 /** Snapshot complet d'un système : tactique + défense + profils. */
 export interface SavedSystem {
+  /** Contexte autonome (v2) : effectif, sens de jeu, temps et paramètres du moteur.
+   * Les anciens snapshots gardent leurs champs historiques ci-dessous. */
+  settings?: Omit<AppState, 'steps' | 'activeStep' | 'tool' | 'zoneEditMode'>;
   id: string;
   name: string;
   description?: string;
@@ -189,7 +193,9 @@ export function snapshotFromAppState(
   tags?: string[],
 ): SavedSystem {
   const now = Date.now();
+  const { steps: _steps, activeStep: _active, tool: _tool, zoneEditMode: _zoneEdit, ...settings } = structuredClone(state);
   return {
+    settings,
     id: uid('sys'),
     name,
     description,
@@ -253,13 +259,16 @@ export function setSystemTags(
 /** Applique un système sauvegardé sur un AppState (preserve activeStep + UI). */
 export function applySavedSystem(state: AppState, sys: SavedSystem): AppState {
   return {
-    ...state,
+    ...makeInitialState(),
+    ...structuredClone(sys.settings ?? {}),
+    tool: state.tool,
+    zoneEditMode: false,
     steps: structuredClone(sys.steps),
     activeStep: 0,
     defenseInitial: structuredClone(sys.defenseInitial),
     rules: structuredClone(sys.rules),
-    attackerHands: sys.attackerHands ? structuredClone(sys.attackerHands) : state.attackerHands,
-    attackerProfiles: sys.attackerProfiles ? structuredClone(sys.attackerProfiles) : state.attackerProfiles,
+    attackerHands: sys.attackerHands ? structuredClone(sys.attackerHands) : makeInitialState().attackerHands,
+    attackerProfiles: sys.attackerProfiles ? structuredClone(sys.attackerProfiles) : makeInitialState().attackerProfiles,
     defenseSystem: sys.defenseSystem,
     zoneConfig: structuredClone(sys.zoneConfig),
     screenRule: sys.screenRule,
@@ -268,8 +277,8 @@ export function applySavedSystem(state: AppState, sys: SavedSystem): AppState {
     defenseDistance: sys.defenseDistance,
     defenseMaxSpeed: sys.defenseMaxSpeed,
     triggers: { ...sys.triggers },
-    closeoutBoost: sys.closeoutBoost ?? state.closeoutBoost,
-    denyAggressiveness: sys.denyAggressiveness ?? state.denyAggressiveness,
+    closeoutBoost: sys.closeoutBoost ?? makeInitialState().closeoutBoost,
+    denyAggressiveness: sys.denyAggressiveness ?? makeInitialState().denyAggressiveness,
     scriptedActions: sys.scriptedActions ? structuredClone(sys.scriptedActions) : [],
     scenarioBranches: sys.scenarioBranches ? structuredClone(sys.scenarioBranches) : [],
     activeBranchId: sys.activeBranchId !== undefined ? sys.activeBranchId : null,

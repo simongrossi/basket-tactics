@@ -3,6 +3,8 @@
 // du replay via seed, intent persistant entre ticks.
 
 import { describe, it, expect } from 'vitest';
+import { evaluateOffensiveOptions } from '../../offense';
+import { getDefenseHoop } from '../../engine';
 import { TEMPLATES } from '@/lib/data/templates';
 import { makeInitialState } from '@/lib/data/initial';
 import type { AppState } from '@/lib/types';
@@ -21,6 +23,18 @@ function buildState(tplId: string): AppState {
     defenseInitial: tpl.defenseInitial,
     activeStep: 0,
   };
+}
+
+/** Tir déjà décidé, mais lâché par le tick suivant avant le signal. */
+function createShootingMatch(
+  base: AppState,
+  options: Parameters<typeof createInitialMatchState>[1] = {},
+) {
+  const state = createInitialMatchState(base, { ...options, shotClockMs: 2 * MATCH_TICK_MS });
+  const action = evaluateOffensiveOptions(state.off, state.defPos, state.carrier,
+    getDefenseHoop(base), base.attackerProfiles).find((a) => a.type === 'shoot')!;
+  state.intent = { kind: 'shoot', action, forced: true };
+  return state;
 }
 
 function runUntilEnd(
@@ -70,7 +84,7 @@ describe('gameLoop — tickMatch', () => {
     expect(state.possessionTimeMs).toBe(2 * MATCH_TICK_MS);
   });
 
-  it('termine en forced shot quand le shot clock arrive à 0', () => {
+  it('termine en violation quand le shot clock arrive à 0 sans lâcher', () => {
     const baseState = buildState('pnr-central');
     // On force un état avec un shot clock très court.
     let state = createInitialMatchState(baseState, {
@@ -78,10 +92,31 @@ describe('gameLoop — tickMatch', () => {
       shotClockMs: MATCH_TICK_MS, // 1 tick et c'est fini
     });
     state = tickMatch(state, MATCH_TICK_MS, baseState);
-    // Après ce tick le shot clock est à 0, forced shot doit s'enclencher.
+    // Aucun lâcher avant le signal : perte de balle, aucun tir compté.
     expect(state.shotClockMs).toBe(0);
     expect(state.outcome).not.toBeNull();
-    expect(['forced-shot-made', 'forced-shot-missed']).toContain(state.outcome);
+    expect(state.outcome).toBe('turnover-clock');
+    expect(state.teamStats.home.turnovers).toBe(1);
+    expect(state.teamStats.home.fgAttempted).toBe(0);
+  });
+
+  it('un tir seulement décidé au signal ne compte pas comme un lâcher', () => {
+    const base = buildState('pnr-central');
+    const state = createShootingMatch(base);
+    state.shotClockMs = MATCH_TICK_MS;
+    const next = tickMatch(state, MATCH_TICK_MS, base);
+    expect(next.outcome).toBe('turnover-clock');
+    expect(next.teamStats.home.fgAttempted).toBe(0);
+  });
+
+  it('préserve un tir lâché avant le signal pendant son animation', () => {
+    const base = buildState('pnr-central');
+    let state = tickMatch(createShootingMatch(base), MATCH_TICK_MS, base);
+    expect(state.teamStats.home.fgAttempted).toBe(1);
+    const outcome = state.outcome;
+    state = tickMatch(state, 2 * MATCH_TICK_MS, base);
+    expect(state.outcome).toBe(outcome);
+    expect(state.teamStats.home.turnovers).toBe(0);
   });
 
   it('produit une possession qui se termine avec un outcome', () => {
@@ -226,7 +261,7 @@ describe('gameLoop — B3b transition multi-possessions', () => {
   it('après outcome, la pause de transition tick sans changer score/outcome', () => {
     const baseState = buildState('pnr-central');
     // Force possession à se terminer en 1 tick via shotClock court.
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 13,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 2,
@@ -244,7 +279,7 @@ describe('gameLoop — B3b transition multi-possessions', () => {
 
   it('après la pause de transition, démarre une nouvelle possession (maxPossessions > 1)', () => {
     const baseState = buildState('pnr-central');
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 99,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 3,
@@ -257,6 +292,7 @@ describe('gameLoop — B3b transition multi-possessions', () => {
     // Pause transition = 1500ms = ~46 ticks à 30Hz. On boucle large.
     for (let i = 0; i < 60; i += 1) {
       state = tickMatch(state, MATCH_TICK_MS, baseState, opts);
+      if (state.outcome === null) break;
     }
     expect(state.outcome).toBeNull();
     expect(state.possession).toBeGreaterThanOrEqual(2);
@@ -265,7 +301,7 @@ describe('gameLoop — B3b transition multi-possessions', () => {
 
   it('rebond offensif sur missed shot quand reboundRate=1 conserve la possession', () => {
     const baseState = buildState('pnr-central');
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 17,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 3,
@@ -289,7 +325,7 @@ describe('gameLoop — B3b transition multi-possessions', () => {
 
   it("nouvelle possession après missed shot quand reboundRate=0 (jamais rebond off)", () => {
     const baseState = buildState('pnr-central');
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 21,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 3,
@@ -309,7 +345,7 @@ describe('gameLoop — B3b transition multi-possessions', () => {
 
   it("session se fige après maxPossessions atteint (no-op sur tick suivant)", () => {
     const baseState = buildState('pnr-central');
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 33,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 1,
@@ -437,7 +473,7 @@ describe('gameLoop — E.3 Rebond animé', () => {
 
   it("shotBallStartPos posé au moment de la résolution du tir", () => {
     const baseState = buildShootingState();
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 13,
       shotClockMs: MATCH_TICK_MS,
     });
@@ -455,7 +491,7 @@ describe('gameLoop — E.3 Rebond animé', () => {
 
   it("pendingRebound posé uniquement sur tir manqué (pas sur made)", () => {
     const baseState = buildShootingState();
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 13,
       shotClockMs: MATCH_TICK_MS,
     });
@@ -475,7 +511,7 @@ describe('gameLoop — E.3 Rebond animé', () => {
 
   it("ballPos est animé pendant la pause (déplacement progressif)", () => {
     const baseState = buildShootingState();
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 13,
       shotClockMs: MATCH_TICK_MS,
     });
@@ -495,7 +531,7 @@ describe('gameLoop — E.3 Rebond animé', () => {
 
   it("pendingRebound désarmé après transition complète", () => {
     const baseState = buildShootingState();
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 13,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 3,
@@ -503,7 +539,7 @@ describe('gameLoop — E.3 Rebond animé', () => {
     // Tick jusqu'à fin de pause + transition.
     for (let i = 0; i < 80; i += 1) {
       state = tickMatch(state, MATCH_TICK_MS, baseState, { offensiveReboundRate: 0 });
-      if (state.pendingRebound === null && state.shotBallStartPos === null && state.possession >= 2) break;
+      if (state.outcome === null && state.shotBallStartPos === null) break;
     }
     expect(state.pendingRebound).toBeNull();
     expect(state.shotBallStartPos).toBeNull();
@@ -514,7 +550,7 @@ describe('gameLoop — E.3 Rebond animé', () => {
     // bascule en away SI pendingRebound.type === 'defensive'.
     // On vérifie au moins que le rebond pré-calculé n'est pas re-roll.
     const baseState = buildShootingState();
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 17,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 3,
@@ -546,7 +582,7 @@ describe('gameLoop — E.1 V2 stage 2a 5 adversaires simulés', () => {
 
   it("awayPlayerPositions défini quand attackingTeam='away'", () => {
     const baseState = buildState('pnr-central');
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 17,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 5,
@@ -568,7 +604,7 @@ describe('gameLoop — E.1 V2 stage 2a 5 adversaires simulés', () => {
 
   it("positions initiales sont miroir vertical autour de y=540", () => {
     const baseState = buildState('pnr-central');
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 17,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 5,
@@ -592,7 +628,7 @@ describe('gameLoop — E.1 V2 stage 2a 5 adversaires simulés', () => {
 
   it("positions évoluent au cours de la phase (course vers panier)", () => {
     const baseState = buildState('pnr-central');
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 17,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 5,
@@ -618,7 +654,7 @@ describe('gameLoop — E.1 V2 stage 2a 5 adversaires simulés', () => {
 
   it("désarmé au retour en attackingTeam='home'", () => {
     const baseState = buildState('pnr-central');
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 17,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 5,
@@ -648,7 +684,7 @@ describe('gameLoop — E.1 V2 stage 1 ballon adverse animé', () => {
 
   it("awayBallPos défini quand attackingTeam === 'away'", () => {
     const baseState = buildState('pnr-central');
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 17,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 5,
@@ -671,7 +707,7 @@ describe('gameLoop — E.1 V2 stage 1 ballon adverse animé', () => {
 
   it("awayBallPos progresse au cours de la phase adverse", () => {
     const baseState = buildState('pnr-central');
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 17,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 5,
@@ -698,7 +734,7 @@ describe('gameLoop — E.1 V2 stage 1 ballon adverse animé', () => {
 
   it("awayBallPos désarmé quand retour en attackingTeam='home'", () => {
     const baseState = buildState('pnr-central');
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 17,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 5,
@@ -735,7 +771,7 @@ describe('gameLoop — Box-Out V2 animation', () => {
 
   it("boxOutTargets posés après un tir résolu (sur outcome shot-* ou forced-shot-*)", () => {
     const baseState = buildShootingState();
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 13,
       shotClockMs: MATCH_TICK_MS,
     });
@@ -755,7 +791,7 @@ describe('gameLoop — Box-Out V2 animation', () => {
 
   it("animation lerp les défenseurs progressivement vers les cibles", () => {
     const baseState = buildShootingState();
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 13,
       shotClockMs: MATCH_TICK_MS,
     });
@@ -783,7 +819,7 @@ describe('gameLoop — Box-Out V2 animation', () => {
 
   it("box-out désarmé après la pause de transition (boxOutTargets = null)", () => {
     const baseState = buildShootingState();
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 13,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 3,
@@ -791,7 +827,7 @@ describe('gameLoop — Box-Out V2 animation', () => {
     // Tick jusqu'à fin de pause + transition (1500 ms + marge).
     for (let i = 0; i < 80; i += 1) {
       state = tickMatch(state, MATCH_TICK_MS, baseState, { offensiveReboundRate: 0 });
-      if (state.boxOutTargets === null && state.possession >= 2) break;
+      if (state.outcome === null && state.boxOutTargets === null) break;
     }
     // À la fin de la transition, box-out désarmé.
     expect(state.boxOutTargets).toBeNull();
@@ -823,7 +859,7 @@ describe('gameLoop — E.1 V1 transition 2-way (home/away)', () => {
 
   it("après possession maison terminée, passe en attackingTeam='away' (E.1 V1)", () => {
     const baseState = buildState('pnr-central');
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 17,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 3,
@@ -846,7 +882,7 @@ describe('gameLoop — E.1 V1 transition 2-way (home/away)', () => {
 
   it("possession adverse stub : décrémente le clock et chaîne sur nouvelle possession maison", () => {
     const baseState = buildState('pnr-central');
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 21,
       shotClockMs: MATCH_TICK_MS,
       maxPossessions: 5,
@@ -897,7 +933,7 @@ describe('gameLoop — E.1 V1 transition 2-way (home/away)', () => {
 
   it("box-out : sur fin de possession (tir), les défenseurs sont entre leur homme et le panier", () => {
     const baseState = buildState('pnr-central');
-    let state = createInitialMatchState(baseState, {
+    let state = createShootingMatch(baseState, {
       seed: 77,
       shotClockMs: MATCH_TICK_MS,
     });
