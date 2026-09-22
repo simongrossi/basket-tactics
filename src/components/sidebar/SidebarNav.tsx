@@ -13,8 +13,8 @@ type Props = {
 
 const ITEMS: { view: SidebarView; icon: typeof Target; label: string }[] = [
   { view: 'court', icon: Target, label: 'Terrain' },
-  { view: 'scenariograph', icon: GitFork, label: 'Scénario Nodal' },
-  { view: 'playbook', icon: BookOpen, label: 'Playbook' },
+  { view: 'scenariograph', icon: GitFork, label: 'Enchaînements' },
+  { view: 'playbook', icon: BookOpen, label: 'Fiches systèmes' },
   { view: 'library', icon: Library, label: 'Bibliothèque' },
   { view: 'sessions', icon: CalendarDays, label: 'Séances' },
   { view: 'settings', icon: Settings, label: 'Paramètres' },
@@ -53,7 +53,7 @@ export function SidebarNav({ activeView, collapsed, onSelect }: Props) {
           le changement de contexte. */}
       <SidebarNavItem
         icon={Clapperboard}
-        label="Simulation"
+        label="Match simulé"
         active={false}
         collapsed={collapsed}
         onClick={() => {

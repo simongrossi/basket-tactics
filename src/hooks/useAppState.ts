@@ -598,7 +598,9 @@ export function useAppState() {
 
   // -- Reset / template / import / patch / playerCount --
   const resetAll = useCallback(() => {
-    if (protectDraft()) setStateWithHistory(coreTx.resetAll());
+    if (!protectDraft()) return false;
+    setStateWithHistory(coreTx.resetAll());
+    return true;
   }, [setStateWithHistory, protectDraft]);
 
   const loadTemplate = useCallback((template: Template) => {

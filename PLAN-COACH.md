@@ -28,7 +28,7 @@ contrôle visuel des systèmes et parcours réels de sauvegarde/partage.
 
 ## Lot 2 — Usage quotidien par un coach
 
-- [ ] U01 Entrées créer / modèle / séance ; presets et vocabulaire métier en premier.
+- [x] U01 Entrées créer / modèle / séance ; presets et vocabulaire métier en premier.
 - [ ] U02 Niveaux coach / analyse / développement ; unités mètres et secondes.
 - [ ] U03 Annuler/rétablir visibles ; raccourcis uniques selon vue, mode et focus.
 - [ ] U04 Édition tactile complète, cibles confortables, contraste et accessibilité.
@@ -174,3 +174,18 @@ Ces changements doivent être préservés et distingués des commits de consolid
   Validation F08 : 2 342 tests passent, dont tous les tests écran, overlap,
   userJson et screenLab. Seuls les 6 échecs et 2 erreurs TypeScript préexistants
   du chantier congestion subsistent.
+
+
+- U01 : accès persistants « Créer un système », « Partir d’un modèle » et
+  « Préparer une séance ». Les modèles ouvrent directement les systèmes
+  classiques ; créer utilise la protection du brouillon déjà existante.
+  Le choix d'un style défensif est placé avant les réglages détaillés.
+  Navigation renommée « Enchaînements », « Fiches systèmes », « Match simulé » ;
+  noms accessibles conservés lorsque la barre latérale est repliée.
+  Vérification navigateur : accès modèles et séances, retour terrain et présence
+  du choix de style en premier dans Défense. L'édition tactile complète et
+  l'adaptation aux petits écrans restent U04.
+  Validation U01 : suite complète à 2 342 tests réussis, puis test supplémentaire
+  de refus de création si la protection du brouillon échoue (3 tests du hook
+  repassés). Seuls les 6 échecs et 2 erreurs TypeScript congestion préexistants
+  subsistent. La création réussie quitte aussi le match live et la lecture.

@@ -15,6 +15,7 @@ export function SidebarNavItem({ icon: Icon, label, active = false, collapsed = 
   return (
     <button
       type="button"
+      aria-label={label}
       onClick={onClick}
       title={collapsed ? label : undefined}
       aria-current={active ? 'page' : undefined}

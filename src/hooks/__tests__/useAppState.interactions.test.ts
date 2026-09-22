@@ -38,7 +38,7 @@ describe('useAppState interactions', () => {
   it('récupère le brouillon précédent après remplacement et rechargement', () => {
     const { result, unmount } = renderHook(() => useAppState());
     act(() => result.current.patch({ playerNames: { O1: 'Brouillon coach' } }));
-    act(() => result.current.resetAll());
+    act(() => { expect(result.current.resetAll()).toBe(true); });
     expect(result.current.hasRecovery).toBe(true);
     unmount();
     const reopened = renderHook(() => useAppState());
@@ -46,6 +46,22 @@ describe('useAppState interactions', () => {
     act(() => reopened.result.current.restoreDraft());
     expect(reopened.result.current.state.playerNames?.O1).toBe('Brouillon coach');
     reopened.unmount();
+  });
+
+  it('refuse de créer un système si le brouillon ne peut pas être protégé', () => {
+    const { result, unmount } = renderHook(() => useAppState());
+    const before = result.current.state;
+    const storage = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('quota'); });
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    try {
+      act(() => { expect(result.current.resetAll()).toBe(false); });
+      expect(result.current.state).toBe(before);
+      expect(alert).toHaveBeenCalled();
+    } finally {
+      storage.mockRestore();
+      alert.mockRestore();
+      unmount();
+    }
   });
 
 });

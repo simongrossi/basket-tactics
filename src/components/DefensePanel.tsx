@@ -130,6 +130,38 @@ export function DefensePanel(props: DefensePanelProps) {
         </div>
       )}
 
+      <div style={{ marginBottom: 10 }}>
+        {/* Preset officiel (uniquement en mode individuelle — choix Q4) */}
+        {isMan && (
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <span style={{ fontSize: 10, color: '#cbd5e1', flex: '0 0 48px' }}>Style</span>
+            <select
+              value=""
+              onChange={(e) => {
+                const id = e.target.value;
+                if (!id) return;
+                const preset = DEFENSE_PRESETS.find((p) => p.id === id);
+                if (preset && confirm(`Appliquer "${preset.name}" ?\n\n${preset.description}`)) {
+                  props.onApplyDefensePreset(preset);
+                }
+                (e.target as HTMLSelectElement).value = '';
+              }}
+              style={{ flex: '1 1 0%', minWidth: 0, fontSize: 11, padding: '3px 4px' }}
+              aria-label="Style de défense"
+              title="Appliquer des consignes cohérentes de pression, d’aide et de défense sur écran"
+            >
+              <option value="">Choisir un style…</option>
+              {DEFENSE_PRESETS.map((p) => (
+                <option key={p.id} value={p.id} title={p.description}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+      </div>
+
       {/* ========================================================================
           PINNED 1 — Système de défense (la décision pivot)
           ====================================================================== */}
@@ -436,34 +468,6 @@ export function DefensePanel(props: DefensePanelProps) {
         icon="⚡"
         variant="pinned"
       >
-        {/* Preset officiel (uniquement en mode individuelle — choix Q4) */}
-        {isMan && (
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <span style={{ fontSize: 10, color: '#cbd5e1', flex: '0 0 48px' }}>preset</span>
-            <select
-              value=""
-              onChange={(e) => {
-                const id = e.target.value;
-                if (!id) return;
-                const preset = DEFENSE_PRESETS.find((p) => p.id === id);
-                if (preset && confirm(`Appliquer "${preset.name}" ?\n\n${preset.description}`)) {
-                  props.onApplyDefensePreset(preset);
-                }
-                (e.target as HTMLSelectElement).value = '';
-              }}
-              style={{ flex: '1 1 0%', minWidth: 0, fontSize: 11, padding: '3px 4px' }}
-              title="Applique un preset officiel : pousse rules + screen + triggers + B/C settings"
-            >
-              <option value="">— choisir un preset —</option>
-              {DEFENSE_PRESETS.map((p) => (
-                <option key={p.id} value={p.id} title={p.description}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
         {/* Consigne écran porteur (toujours visible, central pour démos) */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <span style={{ fontSize: 10, color: '#cbd5e1', flex: '0 0 48px' }}>écran</span>

@@ -14,6 +14,7 @@ import { StepsPanel } from '@/components/StepsPanel';
 import { ScenarioPanel } from '@/components/ScenarioPanel';
 import { ScenarioReader } from '@/components/ScenarioReader';
 import { DefensePanel } from '@/components/DefensePanel';
+import { CoachStartActions } from '@/components/sidebar/CoachStartActions';
 import { SidebarOverflowMenu } from '@/components/sidebar/SidebarOverflowMenu';
 import { ParametresPanel } from '@/components/ParametresPanel';
 import { LibraryModal } from '@/components/LibraryModal';
@@ -43,6 +44,7 @@ export default function Page() {
   const app = useAppState();
   const lib = useLibrary();
   const sidebar = useSidebarState();
+  const [libraryEntry, setLibraryEntry] = useState({ section: 'saved' as 'saved' | 'templates', key: 0 });
   const currentSavedSystem = lib.library.folders.flatMap((f) => f.systems)
     .find((system) => system.id === app.state.librarySystemId);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -357,9 +359,29 @@ export default function Page() {
       >
         {!presentMode && !isPlayerMode && (
           <Sidebar
+            startActions={<CoachStartActions
+              collapsed={sidebar.collapsed}
+              onCreate={() => {
+                if (!app.resetAll()) return;
+                matchLoop.stop();
+                setIsPlaying(false);
+                setScrubT(null);
+                setPlaybackT(null);
+                setIsPlayerMode(false);
+                sidebar.setActiveView('court');
+              }}
+              onTemplates={() => {
+                setLibraryEntry(entry => ({ section: 'templates', key: entry.key + 1 }));
+                sidebar.setActiveView('library');
+              }}
+              onSessions={() => sidebar.setActiveView('sessions')}
+            />}
             activeView={sidebar.activeView}
             collapsed={sidebar.collapsed}
-            onSelectView={sidebar.setActiveView}
+            onSelectView={(view) => {
+              if (view === 'library') setLibraryEntry(entry => ({ section: 'saved', key: entry.key + 1 }));
+              sidebar.setActiveView(view);
+            }}
             onToggleCollapse={sidebar.toggleCollapse}
             version="0.18.0"
             overflowMenu={
@@ -528,6 +550,8 @@ export default function Page() {
           {sidebar.activeView === 'library' && (
             <SidebarThemeProvider dark>
               <LibraryModal
+                key={libraryEntry.key}
+                initialSection={libraryEntry.section}
                 mode="inline"
                 hasWorkInProgress={
                   app.state.steps.length > 1 || app.state.steps[0].annotations.length > 0

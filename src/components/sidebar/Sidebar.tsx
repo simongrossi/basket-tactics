@@ -33,6 +33,7 @@ type Props = {
   toolGroups?: ToolGroup[];
   /** Slot pour le menu ⋯ d'actions globales (cf. SidebarOverflowMenu). */
   overflowMenu?: ReactNode;
+  startActions?: ReactNode;
 };
 
 export function Sidebar({
@@ -43,6 +44,7 @@ export function Sidebar({
   version,
   toolGroups,
   overflowMenu,
+  startActions,
 }: Props) {
   const hasTools = toolGroups != null && toolGroups.length > 0;
   const showTools = activeView === 'court' && hasTools;
@@ -229,6 +231,7 @@ export function Sidebar({
         {collapsed ? <Logo /> : <><Logo /><span style={{ marginLeft: 10 }}>basket-tactics</span></>}
       </div>
 
+      {startActions}
       <div style={{ padding: '10px 0 6px', flexShrink: 0 }}>
         <SidebarNav activeView={activeView} collapsed={collapsed} onSelect={onSelectView} />
       </div>

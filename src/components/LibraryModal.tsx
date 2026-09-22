@@ -12,6 +12,7 @@ const CLASSIC_FOLDER_ID = '__classic__';
 const LAB_FOLDER_ID = '__lab__';
 
 interface LibraryModalProps {
+  initialSection?: 'saved' | 'templates';
   hasWorkInProgress: boolean;
   library: UserLibrary;
   /** Charge un système (snapshot complet). */
@@ -49,7 +50,7 @@ export function LibraryModal(props: LibraryModalProps) {
   const inline = mode === 'inline';
 
   const [selectedFolderId, setSelectedFolderId] = useState<string>(
-    library.folders[0]?.id ?? CLASSIC_FOLDER_ID
+    props.initialSection === 'templates' ? CLASSIC_FOLDER_ID : library.folders[0]?.id ?? CLASSIC_FOLDER_ID
   );
   /** Filtre transverse par tag — quand non-null, prime sur `selectedFolderId`
    *  pour le rendu du pane de droite (affiche tous les systèmes matchant
