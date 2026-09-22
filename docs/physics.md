@@ -140,3 +140,20 @@ Conséquences :
 - Aucune documentation de la sémantique réelle (px/étape, valeurs en mètres).
 
 Maintenant : **un seul point d'entrée**, valeurs nommées, documentées, dérivées les unes des autres quand pertinent (`MIN_PLAYER_CLEARANCE_PX = 2 * PLAYER_RADIUS + 2`).
+
+
+## Calibration temporelle F08 (septembre 2026)
+
+Les réglages défensifs historiques en px/étape sont interprétés comme un budget
+pour une transition standard de 4 s. Pour une durée `dt`, le budget vaut
+`réglage × dt / 4`, avant les facteurs de profil, sprint et contact. `dt` vient
+de l'horloge commune (`fullStepToSeconds`) et donc de l'étape source. Les étapes
+interpolées subdivisent cette durée. L'accélération legacy utilise le temps
+écoulé, au lieu du nombre de positions sauvegardées ; les délais de perception
+et de pivot utilisent aussi `dt`.
+
+Le profil réaliste et les scénarios avec durée explicite repartent de la
+position réellement atteinte. Les anciens scénarios legacy sans timing explicite
+conservent leur modèle historique pour préserver les systèmes existants.
+Overrides manuels et contacts écran restent prioritaires ; le diagnostic F12
+signale les vitesses demandées excessives sans changer le dessin du coach.

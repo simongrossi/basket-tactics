@@ -13,9 +13,10 @@ Ce document suit le travail effectif ; une case n'est cochée qu'après validati
 - [x] F05 Partage : parser les paramètres, restituer le système et le mode lecteur.
 - [x] F06 Bibliothèque : conserver le contexte basket et les paramètres de simulation.
 - [x] F07 Enregistrer un système existant ; statut de sauvegarde et protection du brouillon.
-- [ ] F08 Horloge commune : durées d'étapes, lecture, ralenti, export et déplacements.
+- [x] F08 Horloge commune : durées d'étapes, lecture, ralenti, export et déplacements.
   Lecture et export corrigés : durées individuelles et interpolations respectées ;
-  changement de vitesse sans redémarrage. Reste : calibration temporelle des déplacements physiques.
+  changement de vitesse sans redémarrage. Budgets défensifs et délais physiques
+  calibrés sur la durée réelle de la transition source.
 - [x] F09 Respecter timing et trajet de l'action lors des évitements.
 - [x] F10 Calcul reproductible à un même instant, indépendamment de la fréquence d'affichage.
 - [x] F11 Séparation finale des joueurs, profil applicatif inclus, sans retour du flicker d'écran.
@@ -158,3 +159,18 @@ Ces changements doivent être préservés et distingués des commits de consolid
   de la frame via le hook en lecture/pause/reprise/export.
   Validation F13 : 2 338 tests passent ; seuls les 6 échecs et 2 erreurs
   TypeScript préexistants liés à la congestion subsistent.
+
+
+- F08 terminé : budget défensif proportionnel à la durée écoulée, avec 4 s
+  comme référence conservant le réglage standard. Les interpolations divisent
+  le temps disponible ; elles ne créent ni vitesse ni accélération gratuite.
+  Délais de perception/pivot calculés sur cette même durée source, cache invalidé
+  lors des changements de durée. Les scénarios temporisés et le profil réaliste
+  repartent de la position effectivement atteinte. Le mode legacy sans durée
+  explicite conserve ses cibles historiques et ses snapshots.
+  Les trajectoires offensives restent celles dessinées par le coach ; F12
+  signale une vitesse demandée excessive. Contacts imposés et overrides gardent
+  leur priorité : une simulation biomécanique complète reste le lot R03/R04.
+  Validation F08 : 2 342 tests passent, dont tous les tests écran, overlap,
+  userJson et screenLab. Seuls les 6 échecs et 2 erreurs TypeScript préexistants
+  du chantier congestion subsistent.

@@ -23,6 +23,7 @@ import type {
   DefenderPositions,
   Point,
 } from '../../types';
+import { DEFAULT_SECONDS_PER_STEP, fullStepToSeconds } from '../timecode';
 import { buildStep0DetectionPositions } from '../step0Detection';
 import { getZoneLayout, mirrorZoneLayout } from '../../data/zones';
 import { DEFAULT_CLOSEOUT_BOOST, MIN_PLAYER_CLEARANCE_PX } from '../../data/physics';
@@ -83,6 +84,9 @@ interface EffectiveDefenseCacheDeps {
   playerCount: AppState['playerCount'];
   defenseDistance: AppState['defenseDistance'];
   defenseMaxSpeed: AppState['defenseMaxSpeed'];
+  timedMovement: boolean;
+  elapsedSeconds: number;
+  transitionSeconds: number;
   screenRule: AppState['screenRule'];
   screenRadius: AppState['screenRadius'];
   dropDepth: AppState['dropDepth'];
@@ -92,6 +96,13 @@ interface EffectiveDefenseCacheDeps {
   attackingDirection: AppState['attackingDirection'];
   defenseScriptedDirectivesEnabled: AppState['defenseScriptedDirectivesEnabled'];
   defensiveRouting: AppState['defensiveRouting'];
+}
+
+/** Untimed legacy scenarios keep their historical target-to-target model.
+ * Authored timing and the application realistic profile use reached positions. */
+function usesTimedMovement(state: AppState): boolean {
+  return state.realismProfile === 'realistic' || !!state.realSpeedMode ||
+    state.secondsPerStep != null || state.steps.some(step => step.duration != null || step.isInterpolated);
 }
 
 interface EffectiveDefenseCacheEntry {
@@ -117,6 +128,9 @@ function effectiveDefenseDeps(state: AppState, stepIdx: number): EffectiveDefens
     playerCount: state.playerCount,
     defenseDistance: state.defenseDistance,
     defenseMaxSpeed: state.defenseMaxSpeed,
+    timedMovement: usesTimedMovement(state),
+    elapsedSeconds: fullStepToSeconds(state, stepIdx),
+    transitionSeconds: fullStepToSeconds(state, stepIdx) - fullStepToSeconds(state, stepIdx - 1),
     screenRule: state.screenRule,
     screenRadius: state.screenRadius,
     dropDepth: state.dropDepth,
@@ -162,6 +176,12 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
   const { positions: targets } = computeDefenseTargets(state, stepIdx);
   const defenderIds = getActiveDefenderIds(state.playerCount);
   const curStep = state.steps[stepIdx];
+  // Legacy speed settings are distances per standard (4 s) transition.
+  // Consume the elapsed source transition, including interpolated subdivisions.
+  const transitionSeconds = stepIdx > 0
+    ? fullStepToSeconds(state, stepIdx) - fullStepToSeconds(state, stepIdx - 1)
+    : DEFAULT_SECONDS_PER_STEP;
+  const durationScale = transitionSeconds / DEFAULT_SECONDS_PER_STEP;
   const curCarrier = activeBallCarrier(curStep, state.playerCount);
 
   const baseMaxSpeed = state.defenseSystem === 'zone'
@@ -205,7 +225,8 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
     }
   } else {
     prevTargets = computeDefenseTargets(state, stepIdx - 1, false).positions;
-    if (realism.footworkRulesEnabled) {
+    if (realism.footworkRulesEnabled || usesTimedMovement(state)) {
+      // A timed transition starts where the defender actually arrived.
       prevComputed = effectiveDefensePositions(state, stepIdx - 1);
       prevPositions = {} as DefenderPositions;
       for (const dId of defenderIds) {
@@ -216,20 +237,11 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
     }
   }
 
-  // G.3 — V1 : modèle linéaire simple. Au step N (= stepIdx), la vitesse
-  // effective du défenseur ne peut excéder `(N + 1) × accel`, plafonnée
-  // par maxSpeed individuelle (cf. clamp plus bas). Cela modélise une
-  // montée progressive depuis le repos sur les premiers steps.
-  //
-  // Approximation V1 : on suppose que tous les défenseurs partent au
-  // repos au step 0. Pour des cas plus fins (vitesse continue à travers
-  // un changement de direction, décélération), un V2 utilisera la vitesse
-  // réelle step→step (post-clamp), ce qui nécessite un cache cross-step.
-  // Au step N, le défenseur a eu N transitions pour accélérer depuis le
-  // repos. À stepIdx=1 (= 1ère transition), budget = 1 × accel ; à stepIdx=2,
-  // budget = 2 × accel ; etc. À stepIdx=0 (pas de clamp en aval), peu importe.
+  // G.3 — Legacy acceleration is a budget per standard transition squared.
+  // Use elapsed seconds rather than the number of inserted interpolation steps.
+  // This remains a from-rest approximation; full velocity integration is R03.
   const accelBudget = state.accelerationModelEnabled
-    ? ((state.defenderAcceleration ?? 75) * Math.max(1, stepIdx))
+    ? ((state.defenderAcceleration ?? 75) * (fullStepToSeconds(state, stepIdx) / DEFAULT_SECONDS_PER_STEP) * durationScale)
     : Infinity;
 
   const overrides = state.steps[stepIdx]?.defenseOverrides;
@@ -497,7 +509,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
       speedProfile === 'elite' ? 1.3 :
       speedProfile === 'lent' ? 0.7 : 1.0;
     const sprintMultiplier = curStep.sprintBoost ? 1.8 : 1.0;
-    const indivMaxSpeed = rawIndivMaxSpeed * profileMultiplier * sprintMultiplier;
+    const indivMaxSpeed = rawIndivMaxSpeed * profileMultiplier * sprintMultiplier * durationScale;
     const maxSpeed = closingOut ? indivMaxSpeed * closeoutBoost : indivMaxSpeed;
     // Pénalité de contact d'écran : un défenseur qui prend un écran perd du
     // temps à se dégager. La pénalité est modulée par la
@@ -568,7 +580,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
           const passCond = !hasPassTrigger || isPassBlind;
           const cutCond = !hasCutTrigger || isCutBlind;
           if (passCond && cutCond) {
-            const stepDurationSec = curStep.duration ?? state.secondsPerStep ?? 4;
+            const stepDurationSec = Math.max(0.001, transitionSeconds);
             latencyFraction = Math.min(1.0, 0.2 / stepDurationSec);
           }
         }
@@ -588,7 +600,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
             const pivotDiff = Math.abs(angleDiff(curMoveAngle, prevMoveAngle));
             if (pivotDiff > 90) {
               const pivotDelaySec = 0.15 + 0.15 * ((pivotDiff - 90) / 90);
-              const stepDurationSec = curStep.duration ?? state.secondsPerStep ?? 4;
+              const stepDurationSec = Math.max(0.001, transitionSeconds);
               pivotFraction = Math.min(1.0, pivotDelaySec / stepDurationSec);
             }
           }

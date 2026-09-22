@@ -258,3 +258,18 @@ describe('séparation finale de la timeline avec contacts écran', () => {
     });
   }
 });
+
+it('la calibration temporelle conserve la séparation aux durées courtes et longues', () => {
+  for (const duration of [0.25, 1, 4, 8]) {
+    const state = makeInitialState();
+    state.steps = [structuredClone(state.steps[0]), structuredClone(state.steps[0])];
+    state.steps[0].duration = duration;
+    state.steps[1].off.O1 = { x: 300, y: 240 };
+    const positions = [...Object.values(state.steps[1].off), ...Object.values(effectiveDefensePositions(state, 1))];
+    for (let i = 0; i < positions.length; i++) {
+      for (let j = i + 1; j < positions.length; j++) {
+        expect(distance(positions[i], positions[j])).toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.5);
+      }
+    }
+  }
+});
