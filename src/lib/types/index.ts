@@ -1051,6 +1051,10 @@ export interface AppState {
    *  weak-side approfondissent leur sag/split-line proportionnellement
    *  (pré-rotation d'aide). Default undefined = legacy. */
   weakSideShrinkEnabled?: boolean;
+  /** P3.3 — Pénalité de congestion : la vitesse max d'un défenseur baisse
+   *  avec le nombre de corps sur son trajet (cf. `congestionFactor`), en plus
+   *  de la friction de proximité. Default undefined = legacy. */
+  congestionPenaltyEnabled?: boolean;
   /** P2.1 — Jump the passing lane : pendant le vol d'une passe, un défenseur
    *  proche de la ligne passeur→receveur fait un pas dans la ligne
    *  (tentative de déflection) puis revient. Playback/scrub uniquement,

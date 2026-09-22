@@ -193,7 +193,7 @@ fatigue, gaze, latence pivot) mais ne tournent qu'en édition.
 > réaliste monte le slider vers 20-25. Repère : la friction de proximité
 > (`proximityFriction`, threshold 30 px) borne le comportement au contact.
 
-### 🟡 P3.3 — Pénalité de congestion en trafic 〔M〕 (RED écrit 2026-07-02)
+### ✅ P3.3 — Pénalité de congestion en trafic 〔M〕 (livré 2026-09-22)
 
 > **Re-scopé après audit** : `proximityFriction` couvre déjà le frôlement
 > (distance MIN au trajet, threshold 30 px, floor 0.6) — le manque réel
@@ -201,7 +201,12 @@ fatigue, gaze, latence pivot) mais ne tournent qu'en édition.
 > `congestionFactor(from, to, obstacles)` (compte des corps à < 55 px du
 > segment, pénalité dégressive, plancher 0.55), multiplié à la friction
 > dans speedConstraint Lever B, opt-in `congestionPenaltyEnabled`.
-> **Tests RED déjà écrits** : `__tests__/congestionPenalty.test.ts`.
+> **Livré 2026-09-22** : `geometry.ts :: congestionFactor` (rayon 55 px,
+> 1er corps laissé à `proximityFriction`, puis ×0.8 dégressif par corps,
+> plancher 0.55) multiplié à la friction du Lever B (`speedConstraint.ts`),
+> opt-in `congestionPenaltyEnabled` (case « ralenti dans la foule », niveau
+> Développement → Réglages globaux → Couvertures avancées). Tests :
+> `congestionPenalty.test.ts` (7 verts).
 
 ### ✅ P3.4 — Preset « Réalisme » groupant les flags physiques 〔S〕 (re-scopé 2026-07-02)
 
@@ -273,7 +278,7 @@ anti-récursion de SCREEN-ENGINE).
 ✅ P3.2 / ✅ P3.4 / ✅ P4.2          (re-scopes : déjà livrés ailleurs)
 
 Backlog restant réel :
-🟡 P3.3 congestion (tests RED prêts) ──► 🔄 P3.1-V1 rampe accélération
+✅ P3.3 congestion (2026-09-22) ──► 🔄 P3.1-V1 rampe accélération
 ──► 🔄 P3.5 lead pursuit closeout ──► P4.1 shoulder-to-shoulder
 P4.3 / P4.4 : à instruire séparément (risque écran / design multi-step)
 ```

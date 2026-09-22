@@ -613,6 +613,36 @@ export function proximityFriction(
 }
 
 /**
+ * P3.3 — Pénalité de congestion : traverser une foule coûte plus que frôler
+ * un seul joueur. Compte les corps à moins de `radius` du segment
+ * start→end ; le premier est laissé à `proximityFriction` (contact simple),
+ * chaque corps suivant réduit la vitesse de façon dégressive, avec un
+ * plancher (`floor`) : même une raquette pleine ne fige pas le défenseur.
+ * Retourne un multiplicateur de vitesse dans [floor, 1].
+ */
+export function congestionFactor(
+  start: Point,
+  end: Point,
+  bodies: Point[],
+  radius: number = 55,
+  floor: number = 0.55,
+  decay: number = 0.8,
+): number {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const len2 = dx * dx + dy * dy;
+  if (len2 < 0.0001 || bodies.length < 2) return 1;
+  let count = 0;
+  for (const b of bodies) {
+    const t = Math.max(0, Math.min(1, ((b.x - start.x) * dx + (b.y - start.y) * dy) / len2));
+    const d = Math.hypot(b.x - (start.x + dx * t), b.y - (start.y + dy * t));
+    if (d < radius) count++;
+  }
+  if (count <= 1) return 1;
+  return floor + (1 - floor) * Math.pow(decay, count - 1);
+}
+
+/**
  * Calcule un cluster (centre + rayon) à partir d'un noyau central et
  * d'éventuels obstacles voisins (à moins de `linkDist` du noyau).
  * Utile pour traiter "poseur d'écran + son défenseur" comme une seule

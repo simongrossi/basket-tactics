@@ -15,7 +15,7 @@ placement défensifs**, puis l'axe coaching (le quiz est validé comme idée mai
 passe après). Ordre de travail :
 
 1. **Réalisme défensif** — [plan P3/P4](docs/plan-comportements-physiques.md) :
-   P3.3 congestion en trafic → P3.1 rampe d'accélération → P3.5 poursuite
+   ✅ P3.3 congestion en trafic (2026-09-22) → P3.1 rampe d'accélération → P3.5 poursuite
    anticipée (closeout) → P4.1 porteur qui frôle son écran → poursuite V4 en
    lecture (fatigue, regard, anticipation — « Priorisation moteur » #9) ;
    P4.3 / P4.4 à instruire séparément.

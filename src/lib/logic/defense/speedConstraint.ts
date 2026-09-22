@@ -31,6 +31,7 @@ import { closeoutProfileBonus } from '../help';
 import {
   pathAroundScreensLength,
   proximityFriction,
+  congestionFactor,
   pushOutOfMany,
   resolvePlayerCollisions,
 } from '../geometry';
@@ -471,7 +472,10 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
     defenderIds.forEach((other) => {
       if (other !== dId) frictionObstacles.push(prevPositions[other]);
     });
-    const friction = proximityFriction(from, to, frictionObstacles);
+    // P3.3 (opt-in) — densité : chaque corps supplémentaire sur le trajet
+    // ralentit encore (traverser la raquette pleine ≠ frôler un joueur).
+    const friction = proximityFriction(from, to, frictionObstacles)
+      * (state.congestionPenaltyEnabled ? congestionFactor(from, to, frictionObstacles) : 1);
 
     // Closeout : le défenseur du nouveau porteur bénéficie d'un bump de vitesse.
     const closingOut = isCloseoutTransition && targets[dId].isCarrierDefender;

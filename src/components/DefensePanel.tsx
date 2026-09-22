@@ -899,6 +899,12 @@ export function DefensePanel(props: DefensePanelProps) {
                 title="Quand le porteur commence à gagner du terrain vers le panier (sous le seuil du trigger drive), les défenseurs côté faible approfondissent leur aide vers la raquette — pré-rotation avant l'aide active."
               />
               <CheckboxLine
+                checked={!!state.congestionPenaltyEnabled}
+                label="ralenti dans la foule (P3.3)"
+                onChange={(v) => props.onPatch({ congestionPenaltyEnabled: v })}
+                title="Un défenseur qui doit traverser plusieurs joueurs (raquette encombrée, trafic d'écrans) perd plus de vitesse que s'il en frôle un seul. Jamais figé : au pire ~55 % de sa vitesse."
+              />
+              <CheckboxLine
                 checked={!!state.jumpPassingLanesEnabled}
                 label="jump ligne de passe (P2.1)"
                 onChange={(v) => props.onPatch({ jumpPassingLanesEnabled: v })}

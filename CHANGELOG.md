@@ -6,6 +6,15 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Réalisme défensif — P3.3 congestion en trafic (2026-09-22)
+
+- `congestionFactor` : traverser plusieurs joueurs ralentit davantage qu'en
+  frôler un seul (dégressif, plancher 55 % de la vitesse). Multiplié à la
+  friction de proximité dans `speedConstraint`, opt-in
+  `congestionPenaltyEnabled` (niveau Développement → Couvertures avancées).
+- Suite complète verte : 2 472 / 2 472 (le chantier congestion était le seul
+  en échec depuis juillet).
+
 ### Consolidation coach — construire un système étape par étape (2026-09-22)
 
 Parcours « créer → dessiner → + étape → corriger » repris en conditions
