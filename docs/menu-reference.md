@@ -368,10 +368,11 @@ Drag un défenseur sur le terrain → bascule automatiquement en Manuel. Clic su
 Quatre chemins disponibles selon la situation :
 
 - **Clic-droit sur la flèche** sur le terrain → suppression directe de cette annotation (le plus rapide pour cibler une action visible)
+- **Au doigt** → bouton « Supprimer la dernière flèche » de la barre tactile du terrain (U04)
 - **Liste de l'étape active** dans le panneau Attaque → cliquer le `×` rouge à droite de la ligne
 - **La dernière annotation** → touche `Suppr` ou `Backspace` (raccourci global)
 - **Toutes les annotations d'un joueur** → clic-droit sur l'attaquant → "effacer ses annotations"
-- **Tout annuler** → `Ctrl/Cmd+Z` (undo)
+- **Tout annuler** → bouton « Annuler » au-dessus du terrain ou `Ctrl/Cmd+Z` (undo)
 
 ### Sur un attaquant (orange)
 

@@ -610,16 +610,12 @@ Clic-droit sur un attaquant ouvre un menu avec :
 Implémentation : variant `kind: 'attacker'` dans `ContextMenu.tsx`, fallback "joueur le plus proche du clic" dans `CourtView.onContextMenu` étendu aux attaquants. Tests : `screens.test.ts § detectScreen — forcedScreener` (3 cas).
 
 ### Raccourcis clavier (FAIT)
-Implémenté dans `hooks/useKeyboardShortcuts.ts` :
-- Espace : play/pause
-- ←/→ : étape précédente/suivante
-- M / P / D / R / E : outils (move / pass / dribble / cut / écran)
-- Suppr ou Backspace : supprime la dernière annotation de l'étape active
-
-Skip auto si focus dans input/textarea/select/contenteditable, ou si Ctrl/Cmd/Alt enfoncé. Doc : [docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md).
+Table unique `resolveShortcut` dans `hooks/useKeyboardShortcuts.ts` (U03,
+2026-09-22) : une action par touche selon vue, mode et focus ; équivalents
+tactiles dans la barre du terrain (U04). Doc : [docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md).
 
 ### Undo / Redo (FAIT)
-Pile undo/redo extraite dans [useHistorizedState](src/hooks/useHistorizedState.ts) (refacto A5 2026-05-24, commit `d153e75`). 50 entrées max, Ctrl+Z / Ctrl+Y, drag coalescing (1 entrée par geste), `setStateRaw` pour les effets internes qui ne doivent pas pousser l'historique.
+Pile undo/redo extraite dans [useHistorizedState](src/hooks/useHistorizedState.ts) (refacto A5 2026-05-24, commit `d153e75`). 50 entrées max, Ctrl+Z / Ctrl+Y, drag coalescing (1 entrée par geste), `setStateRaw` pour les effets internes qui ne doivent pas pousser l'historique. U03 (2026-09-22) : `canUndo` / `canRedo` + boutons visibles ; `setActiveStep` hors historique.
 
 ---
 
@@ -795,13 +791,14 @@ Actuellement uniquement curseurs pour distance/vit max/etc. Ajouter un input num
 Ctrl+drag pour snap à la grille (positions homepos des zones, ligne 3pt, blocs bas).
 
 ### Mobile / tactile
-PointerEvents fonctionnent mais la sidebar cache la moitié de l'écran sur petit écran. Layout responsive à revoir.
+✅ U04 (2026-09-22) : sous 900 px, terrain pleine largeur en tête, outils
+dessous ; barre tactile pour les gestes à modificateur ; commandes 44 px au
+doigt. Reste : essai sur tablette physique (U06), portage natif
+([docs/mobile-plan.md](docs/mobile-plan.md)).
 
 ### Raccourcis clavier
-- Espace : play/pause
-- Flèches : changer d'étape
-- M / P / D / R / E : changer d'outil
-- Suppr : supprimer l'annotation sélectionnée
+✅ Voir [docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md). Reste :
+`Suppr` sur une flèche **sélectionnée** (aujourd'hui : la dernière).
 
 ### Sélection d'annotation
 Cliquer sur une flèche existante pour la sélectionner et la modifier/supprimer.

@@ -6,6 +6,12 @@
 > l'analyse plus tard.
 >
 > Référencé depuis [ROADMAP.md](../ROADMAP.md).
+>
+> **Mise à jour 2026-09-22 (U04)** : une partie de la phase 3 est faite côté
+> web — `touch-action: none` sur le terrain, appui long, pinch-zoom, barre
+> tactile pour les gestes à modificateur (sélection multiple / lasso, tracé
+> libre, aimantation), commandes 44 px sous `pointer: coarse`, disposition
+> une colonne sous 900 px. Reste à valider sur appareil réel (U06).
 
 ---
 

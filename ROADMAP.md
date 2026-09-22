@@ -132,7 +132,7 @@ identifiés à l'audit coaching, avec statut :
 |---|---|---|---|
 | 1 | **Mode présentation des systèmes + révélation pas-à-pas** — grand terrain, zéro chrome d'édition, télécommande « étape suivante » pour dérouler le set phase par phase en parlant (tablette/TV) | 🟢 **livré** (`f5bb97a`) | `PresentationBar` + `realSteps.ts` : ◀/▶ étapes réelles, lecture, clavier ←/→/Espace, timeline masquée, entrée en lecteur force la vue terrain. Brique `masquage d'équipe` (`showDefenders`/`showAttackers`, `594bc4e`) incluse |
 | 2 | **Mode quiz / lecture cachée** — montrer la situation, masquer la branche de lecture, « si drop, tu fais quoi ? », puis révéler. Entraînement à la décision | ⚪ **prochain** | Quasi gratuit : réutilise les arbres de lecture multi-niveaux (`scenarioBranches` + `parentBranchId`, `77ab9c5`). Très forte valeur pédagogique, unique |
-| 3 | **Planification de séance / drills** — échauffement → exercice → situation → scrimmage, avec durées | 🟢 **livré** (`23901ec`, `3019aa5`) | Vue Séances + `practiceSessions.ts` : agenda de blocs chronométrés (systèmes biblio + blocs libres), total auto, fiche imprimable + déroulé interactif « Ouvrir ». Reste possible : éditeur de drills dédié (dessins distincts des systèmes) |
+| 3 | **Planification de séance / drills** — échauffement → exercice → situation → scrimmage, avec durées | 🟢 **livré** (`23901ec`, `3019aa5`) | Vue Séances + `practiceSessions.ts` : agenda de blocs chronométrés (systèmes biblio + blocs libres), total auto, fiche imprimable + déroulé guidé (U05, 2026-09-22 : bloc précédent/suivant, minuteur, consignes, variantes, reprise, brouillon restauré). Reste possible : éditeur de drills dédié (dessins distincts des systèmes) |
 | 4 | **Fiches imprimables propres (handouts joueur)** — une page par système (diagramme + clés + consignes) à donner/afficher | ⚪ | `window.print()` actuel sort les vignettes Playbook + la fiche de séance, mais pas un handout d'une page par système. Synergie avec #5 |
 | 5 | **Clés d'enseignement structurées par étape** — points clés / erreurs fréquentes / timing attachés au système, affichés en présentation | ⚪ | Aujourd'hui `Step.label` + notes texte libres seulement. Donnerait du contenu à #1 (présentation) et #4 (handouts) |
 | 6 | **Roster réel réutilisable** — effectif d'équipe défini une fois (postes, main forte), appliqué à n'importe quel template | ⚪ | Noms/numéros aujourd'hui par-scénario (`playerNames`/`playerNumbers`). Personnaliserait les systèmes aux vrais joueurs |
@@ -578,17 +578,15 @@ frappe, clamp + snap au blur/Enter, Escape annule. Tous les sliders du
 moteur en bénéficient sans modification côté caller. 678 tests verts.
 
 #### 🟢 Raccourcis clavier
-- `Espace` : play/pause
-- `←/→` : étape précédente/suivante
-- `M / P / D / R / E` : changement d'outil (move / pass / dribble / cut / écran)
-- `Suppr` ou `Backspace` : supprimer la dernière annotation de l'étape active
-
-Implémenté dans `hooks/useKeyboardShortcuts.ts`. Skip auto si le focus est dans un input/textarea/select/contenteditable, ou si une modif (Ctrl/Cmd/Alt) est enfoncée.
+Table unique `resolveShortcut` dans `hooks/useKeyboardShortcuts.ts` (U03,
+2026-09-22) : une touche = une action selon la vue, le mode (édition /
+lecteur / présentation) et le focus. Référence complète, y compris les
+équivalents tactiles : [docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md).
 
 #### 🟢 Snap-to-grid (livré 2026-05-12)
 Module pur `lib/logic/snapToGrid.ts` + overlay visuel
 `court/SnapGuideOverlay.tsx`. Activé pendant le drag d'un joueur avec
-**Ctrl** (PC) ou **Cmd** (Mac). 9 cibles : médiane, 4 bords raquette,
+**Ctrl** (PC) ou **Cmd** (Mac), ou au doigt via le bouton **Aimanter** (U04). 9 cibles : médiane, 4 bords raquette,
 LF, arc 3pts, 2 blocs bas. Seuil 8 px. Mode fullCourt adapté via
 `HOOP_OPPOSITE`. 11 tests. **699 tests verts**.
 
@@ -611,13 +609,13 @@ marqueur rouge sur step actif, clic = navigation. État replié par défaut
 ### Édition avancée
 
 #### 🟢 Undo / Redo (v1)
-Implémenté dans `useAppState` : pile `historyRef` (past/future) cap à 50, wrapper `setStateWithHistory` qui pousse l'état précédent à chaque mutation utilisateur. `undo` / `redo` exposés. Raccourcis `Ctrl/Cmd+Z` (undo) et `Ctrl/Cmd+Shift+Z` ou `Ctrl/Cmd+Y` (redo) câblés dans `useKeyboardShortcuts`.
+Implémenté dans `useAppState` : pile `historyRef` (past/future) cap à 50, wrapper `setStateWithHistory` qui pousse l'état précédent à chaque mutation utilisateur. `undo` / `redo` exposés. Raccourcis `Ctrl/Cmd+Z` (undo) et `Ctrl/Cmd+Shift+Z` ou `Ctrl/Cmd+Y` (redo) câblés dans `useKeyboardShortcuts`. U03 (2026-09-22) : boutons Annuler / Rétablir visibles, navigation d'étapes hors historique.
 
 🟢 **v2 livré** : coalescing pendant le drag via `commitCoalescedHistory` + `dragHistoryAnchorRef` dans [`appStateHistory.ts`](src/lib/logic/appStateHistory.ts). Un drag continu = **1 seule entrée** dans la pile undo (snapshot pris au `beginPlayerDrag`, push différé au `commitPlayerDrag`). Réutilisé par la sélection multiple (#4) pour qu'un drag groupé soit aussi une seule entrée.
 
 #### 🟢 Sélection multiple (V1 livré 2026-05-12)
 State éphémère `selectedDefenders: Set<DefenderId>` dans CourtView.
-Shift+clic = toggle, Shift+drag dans le vide = marquee, Esc = clear,
+Shift+clic = toggle, Shift+drag dans le vide = marquee, Esc = clear (au doigt : bouton **Sélection multiple** / **Désélectionner**, U04),
 clic sur défenseur sélectionné = drag groupé (delta appliqué à tous,
 1 entrée undo via le pattern beginPlayerDrag/DuringDrag/commitPlayerDrag
 existant). Halo cyan + mini panneau info. 699 tests verts. **V2** : édition

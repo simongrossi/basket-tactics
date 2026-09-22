@@ -6,6 +6,36 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Consolidation coach — lot 2 : U03 → U05 (2026-09-22)
+
+Suite du [plan de consolidation](PLAN-COACH.md) issu de
+l'[audit UX du 22 septembre](AUDIT-UX-BASKET.md). Détail et validations par
+item dans le journal de `PLAN-COACH.md`.
+
+- **U03 — Annuler / Rétablir et raccourcis** : boutons Annuler / Rétablir
+  visibles au-dessus du terrain (`canUndo` / `canRedo` réactifs). Naviguer entre
+  étapes ne remplit plus l'historique. Un seul gestionnaire clavier
+  (`resolveShortcut`) remplace les gestionnaires concurrents des flèches
+  (éditeur, lecteur, timeline) et d'Espace : une touche = une action selon la
+  vue, le mode et le focus ; rien hors terrain, dans un champ ou sous une
+  modale. Espace au relâchement (maintenu + glisser = déplacer la vue).
+  Référence : [docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md).
+- **U04 — Édition tactile, cibles, contraste** : barre tactile du terrain
+  (sélection multiple, aimanter, tracé libre, supprimer la dernière flèche,
+  annuler la passe, désélectionner). Cibles 36 px à la souris, 44 px au doigt
+  (`pointer: coarse`), noms accessibles sur les boutons icône, aides « i »
+  ouvertes au toucher, actions de fiches bibliothèque sans survol. Petits
+  écrans : terrain pleine largeur en tête. Audit de contraste WCAG corrigé
+  (puce narrative, noms de modèles, fiche imprimable, boutons pleins).
+- **U05 — Déroulé de séance** : barre de déroulé (bloc n/N, précédent /
+  suivant, minuteur, consignes, variantes du système, retour au plan) ;
+  carte de consignes pour les blocs libres ; déroulé persistant et bandeau de
+  reprise dans Séances. Enchaîner les blocs n'écrase plus la copie de
+  récupération du brouillon ; « Terminer » restaure le brouillon d'avant.
+
+Suite : 2 392 tests verts ; seuls les 6 échecs du chantier congestion local
+(non commité) subsistent.
+
 ### Comportements physiques défensifs — plan P0→P2 (2026-07-01/02)
 
 Exécution des phases P0 à P2 du plan priorisé
