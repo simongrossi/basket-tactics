@@ -615,9 +615,11 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                 onClick={(e) => { e.stopPropagation(); props.onDeleteAction(action.id); }}
                 style={{
                   border: 'none', background: 'transparent', cursor: 'pointer',
-                  fontSize: 13, color: '#dc2626', padding: '2px 6px',
+                  fontSize: 13, color: '#f87171', padding: '2px 6px',
                 }}
                 title="Supprimer"
+                aria-label={`Supprimer l’action ${action.label || def.label}`}
+                className="bt-touch"
               >✕</button>
             </div>
             <div style={{ fontSize: 11, color: '#cbd5e1', padding: '0 10px 8px 28px' }}>
@@ -1247,18 +1249,32 @@ function BranchTab({
       }}
       title={isReactive
         ? `Lecture réactive (${chips!.join(', ')}). Clic = épingler manuellement.`
-        : (onRename ? 'Double-clic pour renommer' : undefined)}
+        : (onRename ? 'Double-clic ou ✎ pour renommer' : undefined)}
     >
       {isReactive && <span style={{ fontSize: 9 }}>🤖</span>}
       <span>{label}</span>
+      {onRename && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onRename(); }}
+          style={{
+            border: 'none', background: 'transparent', cursor: 'pointer',
+            fontSize: 12, color: active ? '#fff' : '#fdba74', padding: '0 4px', lineHeight: 1,
+          }}
+          title="Renommer la variante"
+          aria-label={`Renommer la variante ${label}`}
+        >✎</button>
+      )}
       {onDelete && (
         <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
           style={{
             border: 'none', background: 'transparent', cursor: 'pointer',
-            fontSize: 11, color: active ? '#fff' : '#dc2626', padding: 0, lineHeight: 1,
+            fontSize: 13, color: active ? '#fff' : '#f87171', padding: '0 4px', lineHeight: 1,
           }}
           title="Supprimer la variante"
+          aria-label={`Supprimer la variante ${label}`}
         >×</button>
       )}
     </div>

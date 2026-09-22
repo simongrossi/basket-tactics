@@ -153,6 +153,7 @@ export default function SimulationPage() {
             <MiniBoxScore matchState={matchLoop.matchState} />
           )}
           <CourtView
+            readOnly
             state={app.state}
             onMoveAttacker={noopWithArgs}
             onMoveDefender={noopWithArgs}

@@ -20,7 +20,7 @@ export const SIDEBAR = {
   widthExpanded: 240,
   widthCollapsed: 56,
   // Tailles
-  itemHeight: 34,
+  itemHeight: 36,
   iconSize: 17,
   sectionGap: 12,
   paddingX: 10,

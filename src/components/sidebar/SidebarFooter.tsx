@@ -37,8 +37,8 @@ export function SidebarFooter({ collapsed, onToggleCollapse, version, overflowMe
         title={collapsed ? 'Déplier la sidebar' : 'Replier la sidebar'}
         aria-label={collapsed ? 'Déplier la sidebar' : 'Replier la sidebar'}
         style={{
-          width: 28,
-          height: 28,
+          width: 36,
+          height: 36,
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',

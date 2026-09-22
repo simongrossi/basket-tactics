@@ -2,7 +2,6 @@
 
 import type { OffensiveScriptedAction, ScriptedAction } from '@/lib/types';
 import { SCRIPTED_ACTIONS_CATALOG } from '@/lib/data/scriptedActionsCatalog';
-import { COLORS } from './ui';
 
 interface ScenarioReaderProps {
   scriptedActions: ScriptedAction[];
@@ -14,7 +13,6 @@ interface ScenarioReaderProps {
 }
 
 export function ScenarioReader({ scriptedActions, activeStep, stepToActionId }: ScenarioReaderProps) {
-  const c = COLORS.offense;
   // Phase 3 défense scriptable : la lecture FR ne couvre pour l'instant que
   // les actions offensives (la défensive sera intégrée Task 6+).
   const offensiveActions = scriptedActions.filter(
@@ -27,8 +25,10 @@ export function ScenarioReader({ scriptedActions, activeStep, stepToActionId }: 
   return (
     <div
       style={{
-        background: '#fff',
-        border: `1px solid ${c.border}`,
+        // U04 — thème sombre explicite (contraste ≥ 4,5:1), sans dépendre
+        // des remappages CSS de la colonne centrale.
+        background: '#262a32',
+        border: '1px solid #343b47',
         borderRadius: 8,
         padding: '8px 12px',
         display: 'flex',
@@ -39,7 +39,7 @@ export function ScenarioReader({ scriptedActions, activeStep, stepToActionId }: 
         lineHeight: 1.4,
       }}
     >
-      <span style={{ fontSize: 11, fontWeight: 700, color: c.accentText, marginRight: 4 }}>
+      <span style={{ fontSize: 11, fontWeight: 700, color: '#fdba74', marginRight: 4 }}>
         Système :
       </span>
       {offensiveActions.map((action, idx) => {
@@ -52,13 +52,13 @@ export function ScenarioReader({ scriptedActions, activeStep, stepToActionId }: 
             style={{
               padding: '2px 8px',
               borderRadius: 4,
-              background: isActive ? c.bgSubtle : '#f8fafc',
-              border: `1px solid ${isActive ? c.accent : c.border}`,
+              background: isActive ? 'rgba(216, 90, 48, 0.22)' : '#1f242c',
+              border: `1px solid ${isActive ? '#fb923c' : '#3b4452'}`,
               fontWeight: isActive ? 600 : 400,
-              color: isActive ? c.accentText : '#334155',
+              color: isActive ? '#fed7aa' : '#e5e7eb',
             }}
           >
-            <span style={{ fontWeight: 700, marginRight: 4, color: c.accent }}>{idx + 1}.</span>
+            <span style={{ fontWeight: 700, marginRight: 4, color: '#fdba74' }}>{idx + 1}.</span>
             {text}
           </span>
         );

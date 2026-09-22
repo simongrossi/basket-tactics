@@ -329,14 +329,14 @@ export default function Page() {
               : app.saveStatus === 'pending' || lib.saveStatus === 'pending'
                 ? 'Sauvegarde en cours…' : 'Brouillon conservé sur cet appareil'}
           </span>
-          {currentSavedSystem && <button style={{ minHeight: 36, padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }}
+          {currentSavedSystem && <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }}
             onClick={() => lib.updateSystem(currentSavedSystem.id, app.state)}>
             Enregistrer dans « {currentSavedSystem.name} »
           </button>}
-          <button style={{ minHeight: 36, padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }} onClick={() => sidebar.setActiveView('library')}>
+          <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }} onClick={() => sidebar.setActiveView('library')}>
             Enregistrer une copie…
           </button>
-          {app.hasRecovery && <button style={{ minHeight: 36, padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }} onClick={app.restoreDraft}>
+          {app.hasRecovery && <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }} onClick={app.restoreDraft}>
             Retrouver le brouillon précédent
           </button>}
         </div>
@@ -781,6 +781,7 @@ export default function Page() {
               <button
                 onClick={() => setShowMultiTrack((v) => !v)}
                 title={showMultiTrack ? 'Masquer les pistes joueurs' : 'Afficher les pistes joueurs (multi-track)'}
+                className="bt-touch"
                 style={{
                   padding: '6px 10px',
                   fontSize: 12,
@@ -1149,6 +1150,23 @@ export default function Page() {
         .inline-view-scope [style*="color: #1f2937"] {
           color: #e5e5e5 !important;
         }
+        /* U04 — textes d'accent prévus pour fond clair : éclaircis sur fond
+           sombre (contraste ≥ 4,5:1). */
+        .inline-view-scope [style*="color: rgb(124, 45, 18)"],
+        .inline-view-scope [style*="color: rgb(146, 64, 14)"] {
+          color: #fdba74 !important;
+        }
+        .inline-view-scope [style*="color: rgb(30, 58, 138)"],
+        .inline-view-scope [style*="color: rgb(30, 64, 175)"] {
+          color: #93c5fd !important;
+        }
+        .inline-view-scope [style*="color: rgb(91, 33, 182)"],
+        .inline-view-scope [style*="color: rgb(124, 58, 237)"] {
+          color: #c4b5fd !important;
+        }
+        .inline-view-scope [style*="color: rgb(153, 27, 27)"] {
+          color: #fca5a5 !important;
+        }
         .inline-view-scope [style*="border: 1px solid rgb(254, 215, 170)"],
         .inline-view-scope [style*="border: 1px solid #fed7aa"],
         .inline-view-scope [style*="border: 1px solid rgb(191, 219, 254)"],
@@ -1171,6 +1189,16 @@ export default function Page() {
         .inline-view-scope [style*="border-bottom: 1px solid #bfdbfe"] {
           border-color: #2a2d35 !important;
         }
+        /* U04 — la fiche imprimable reste une feuille blanche : aperçu
+           fidèle à l'impression, textes foncés lisibles. */
+        /* Classe répétée : doit l'emporter sur les :not() des règles ci-dessus. */
+        .inline-view-scope .playbook-print.playbook-print.playbook-print,
+        .inline-view-scope .playbook-print.playbook-print [style*="rgb(255, 255, 255)"] {
+          background: #fff !important;
+        }
+        .inline-view-scope .playbook-print.playbook-print [style*="color: rgb(71, 85, 105)"] {
+          color: #475569 !important;
+        }
         .side-col {
           display: flex;
           flex-direction: column;
@@ -1187,7 +1215,12 @@ export default function Page() {
         }
         @media (max-width: 900px) {
           main { height: auto !important; max-height: none !important; overflow: auto !important; }
-          .layout-grid { grid-template-columns: 1fr; grid-template-rows: auto; }
+          /* U04 — même spécificité que la règle 1100 px, sinon la barre
+             latérale garde sa colonne et écrase le terrain. Terrain d'abord,
+             outils et vues en dessous. */
+          .layout-grid,
+          .layout-grid:not(.presenting) { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
+          .layout-grid:not(.presenting) > .center-col { order: -1; }
           .side-col { flex-direction: row; flex-wrap: wrap; }
         }
       `,
@@ -1211,8 +1244,9 @@ function HistoryButton({ label, shortcut, disabled, onClick, icon }: {
       onClick={onClick}
       disabled={disabled}
       title={`${label} (${shortcut})`}
+      className="bt-touch"
       style={{
-        minHeight: 36, minWidth: 36, padding: '4px 10px',
+        padding: '4px 10px',
         display: 'inline-flex', alignItems: 'center', gap: 6,
         border: '1px solid #64748b', borderRadius: 6,
         background: '#29313e', color: '#f8fafc',

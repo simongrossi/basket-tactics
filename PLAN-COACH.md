@@ -31,7 +31,7 @@ contrôle visuel des systèmes et parcours réels de sauvegarde/partage.
 - [x] U01 Entrées créer / modèle / séance ; presets et vocabulaire métier en premier.
 - [x] U02 Niveaux coach / analyse / développement ; unités mètres et secondes.
 - [x] U03 Annuler/rétablir visibles ; raccourcis uniques selon vue, mode et focus.
-- [ ] U04 Édition tactile complète, cibles confortables, contraste et accessibilité.
+- [x] U04 Édition tactile complète, cibles confortables, contraste et accessibilité.
 - [ ] U05 Déroulé de séance : contexte conservé, retour, blocs précédent/suivant, minuteur.
 - [ ] U06 Vérification terrain avec coachs et tablette physique (validation humaine à organiser).
 
@@ -224,3 +224,31 @@ Ces changements doivent être préservés et distingués des commits de consolid
   Vérification navigateur : glisser → Annuler actif, Ctrl+Z puis Rétablir au clic.
   Suite complète : 2 366 réussis, seuls les 6 échecs congestion préexistants ;
   type-check : les 2 erreurs congestion préexistantes. Prochaine priorité : U04.
+
+
+- U04 : barre tactile sur le terrain (édition uniquement) donnant un bouton à
+  chaque geste qui exigeait une touche : « Sélection multiple » (Maj : toucher
+  des défenseurs, lasso sur le vide), « Aimanter » (Ctrl/⌘), « Tracé libre »
+  (Maj, dribble/course/écran), « Supprimer la dernière flèche » (Suppr/clic
+  droit), « Annuler la passe » (Échap) et « Désélectionner ». Masquée en
+  lecture, en mode lecteur et sur la page Simulation. Les aides « i » des menus
+  joueur s'ouvrent au toucher ; renommer une variante et gérer les fiches de la
+  bibliothèque (renommer, déplacer, supprimer) ne dépendent plus du survol ni du
+  double-clic. Cibles : 36 px minimum à la souris sur les commandes d'édition,
+  44 px pour toutes les commandes au doigt (`pointer: coarse`), cases à cocher
+  24 px. Noms accessibles sur les boutons icône (lecture, arrêt, images, zoom,
+  suppressions). Petits écrans (≤ 900 px) : la règle une colonne perdait en
+  spécificité face à celle de 1100 px — terrain pleine largeur en tête, outils
+  et vues dessous ; barre tactile en haut du terrain pour rester visible.
+  Contraste (audit automatique WCAG 4,5:1 sur toutes les vues) : puce narrative
+  du système réécrite en thème sombre (1,18 → > 7), noms des modèles de la
+  bibliothèque (1,54 → 9), fiche imprimable restée blanche (titre 1,24 → 17),
+  outil actif et boutons primaires sur orange/bleu foncés (3,9 → 5,2), croix de
+  suppression et numéros d'actions éclaircis. Plus aucun texte sous le seuil
+  hormis un dégradé décoratif du mode démo (≥ 4,4).
+  Vérification navigateur : bureau 1440, tablette 767×1024 et téléphone 375 en
+  émulation tactile (toutes commandes ≥ 44 px, appui long → menu joueur).
+  Tests : 8 nouveaux (aimanter, sélection, tracé libre, suppression, passe en
+  attente, visibilité). Suite complète : 2 374 réussis, seuls les 6 échecs
+  congestion préexistants ; type-check : les 2 erreurs congestion préexistantes.
+  Reste hors code : essai sur tablette physique (U06). Prochaine priorité : U05.

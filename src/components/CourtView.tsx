@@ -77,6 +77,8 @@ import { SnapGuideOverlay } from './court/SnapGuideOverlay';
 import { DetectionBadgesOverlay } from './court/DetectionBadgesOverlay';
 import { TextNotesLayer } from './court/TextNotesLayer';
 import { TextNotePopup } from './court/TextNotePopup';
+import { CourtTouchBar } from './court/CourtTouchBar';
+import type { StickyModifiers } from '@/hooks/useCourtPointerHandlers';
 import type { CoachDiagnostic } from '@/lib/logic/coachDiagnostics';
 
 interface CourtViewProps {
@@ -144,6 +146,8 @@ interface CourtViewProps {
    *  le SVG live pendant l'export. */
   externalSvgRef?: React.MutableRefObject<SVGSVGElement | null>;
   isPlayerMode?: boolean;
+  /** Terrain de consultation (page Simulation) : pas de commandes d'édition. */
+  readOnly?: boolean;
 }
 
 export function CourtView(props: CourtViewProps) {
@@ -155,6 +159,8 @@ export function CourtView(props: CourtViewProps) {
   const [spacePressed, setSpacePressed] = useState(false);
   const [zoneRegionMenu, setZoneRegionMenu] = useState<ZoneRegionMenuState | null>(null);
   const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null);
+  // U04 — modificateurs activés au doigt depuis la barre tactile.
+  const [stickyModifiers, setStickyModifiers] = useState<StickyModifiers>({});
 
   // #4 — Sélection multiple de défenseurs. State éphémère (UI), pas dans
   // AppState (pas de persistance, pas d'undo individuel).
@@ -272,7 +278,7 @@ export function CourtView(props: CourtViewProps) {
     state.steps[state.activeStep]?.textNotes ?? [];
 
   // Pointer/drag + tracé d'annotation + marquee.
-  const { pending, snapTarget, marquee, pendingAutoSourceId, svgPoint, onPointerDown, onPointerMove, onPointerUp } =
+  const { pending, snapTarget, marquee, pendingAutoSourceId, cancelPendingAuto, svgPoint, onPointerDown, onPointerMove, onPointerUp } =
     useCourtPointerHandlers({
       state,
       svgRef,
@@ -330,6 +336,7 @@ export function CourtView(props: CourtViewProps) {
       transform,
       onTransformChange: setTransform,
       spacePressed,
+      stickyModifiers,
       contentRef,
     });
 
@@ -1052,7 +1059,7 @@ export function CourtView(props: CourtViewProps) {
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
           }}
         >
-          passe auto depuis <b>{pendingAutoSourceId}</b> — clique le receveur (Esc pour annuler)
+          passe auto depuis <b>{pendingAutoSourceId}</b> — touchez le receveur
         </div>
       )}
 
@@ -1078,16 +1085,18 @@ export function CourtView(props: CourtViewProps) {
           <span>🔗 {selectedDefenders.size} défenseur{selectedDefenders.size > 1 ? 's' : ''} sélectionné{selectedDefenders.size > 1 ? 's' : ''}</span>
           <button
             onClick={clearDefenderSelection}
+            className="bt-touch"
+            aria-label="Vider la sélection"
             style={{
               border: 'none',
               background: 'rgba(255,255,255,0.25)',
               color: '#fff',
-              fontSize: 10,
+              fontSize: 12,
               padding: '2px 6px',
-              borderRadius: 3,
+              borderRadius: 4,
               cursor: 'pointer',
             }}
-            title="Vider la sélection (Esc)"
+            title="Vider la sélection (Échap)"
           >
             ✕
           </button>
@@ -1160,6 +1169,23 @@ export function CourtView(props: CourtViewProps) {
         onSetPlayerNumber={props.onSetPlayerNumber}
       />
 
+      {!props.isPlaying && !props.isPlayerMode && !props.readOnly && (
+        <CourtTouchBar
+          tool={state.tool}
+          modifiers={stickyModifiers}
+          onChangeModifiers={setStickyModifiers}
+          annotationCount={state.steps[state.activeStep]?.annotations.length ?? 0}
+          onDeleteLastAnnotation={() => {
+            const count = state.steps[state.activeStep]?.annotations.length ?? 0;
+            if (count > 0) props.onDeleteAnnotation(count - 1);
+          }}
+          pendingAutoSourceId={pendingAutoSourceId}
+          onCancelPendingAuto={cancelPendingAuto}
+          selectedDefenders={selectedDefenders}
+          onClearSelection={clearDefenderSelection}
+        />
+      )}
+
       {/* Floating Zoom Controls */}
       <div
         style={{
@@ -1185,8 +1211,8 @@ export function CourtView(props: CourtViewProps) {
           onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
           style={{
-            width: 32,
-            height: 32,
+            width: 36,
+            height: 36,
             borderRadius: 6,
             border: 'none',
             background: 'rgba(255, 255, 255, 0.1)',
@@ -1200,6 +1226,8 @@ export function CourtView(props: CourtViewProps) {
             transition: 'background 0.2s',
           }}
           title="Zoomer (+)"
+          aria-label="Zoomer"
+          className="bt-touch"
         >
           ＋
         </button>
@@ -1208,8 +1236,8 @@ export function CourtView(props: CourtViewProps) {
           onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
           style={{
-            width: 32,
-            height: 32,
+            width: 36,
+            height: 36,
             borderRadius: 6,
             border: 'none',
             background: 'rgba(255, 255, 255, 0.1)',
@@ -1223,6 +1251,8 @@ export function CourtView(props: CourtViewProps) {
             transition: 'background 0.2s',
           }}
           title="Dézoomer (-)"
+          aria-label="Dézoomer"
+          className="bt-touch"
         >
           －
         </button>
@@ -1231,8 +1261,8 @@ export function CourtView(props: CourtViewProps) {
           onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
           style={{
-            width: 32,
-            height: 32,
+            width: 36,
+            height: 36,
             borderRadius: 6,
             border: 'none',
             background: 'rgba(255, 255, 255, 0.1)',
@@ -1245,7 +1275,9 @@ export function CourtView(props: CourtViewProps) {
             justifyContent: 'center',
             transition: 'background 0.2s',
           }}
-          title="Réinitialiser"
+          title="Réinitialiser le zoom"
+          aria-label="Réinitialiser le zoom"
+          className="bt-touch"
         >
           RESET
         </button>

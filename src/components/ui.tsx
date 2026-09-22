@@ -13,6 +13,8 @@ export const COLORS = {
     accent: '#D85A30',
     accentDark: '#9a3412',
     accentText: '#7c2d12',
+    /** Fond plein sous texte blanc (contraste ≥ 4,5:1), U04. */
+    accentStrong: '#c2410c',
   },
   defense: {
     bg: '#eff6ff',
@@ -21,6 +23,8 @@ export const COLORS = {
     accent: '#378ADD',
     accentDark: '#1e40af',
     accentText: '#1e3a8a',
+    /** Fond plein sous texte blanc (contraste ≥ 4,5:1), U04. */
+    accentStrong: '#1d6ec2',
   },
   neutral: {
     bg: '#fafaf9',

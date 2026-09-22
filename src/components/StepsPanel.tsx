@@ -355,7 +355,7 @@ export function StepsPanel(props: StepsPanelProps) {
                             border: '1px solid #fed7aa',
                           }}
                         >
-                          <span style={{ color: c.accent, fontWeight: 700, minWidth: 12, textAlign: 'center' }}>
+                          <span style={{ color: '#fdba74', fontWeight: 700, minWidth: 12, textAlign: 'center' }}>
                             {ai + 1}
                           </span>
                           <span style={{ fontSize: 11 }}>{meta.symbol}</span>
@@ -369,10 +369,12 @@ export function StepsPanel(props: StepsPanelProps) {
                               props.onDeleteAnnotation(index);
                             }}
                             title="Supprimer cette action"
+                            aria-label={`Supprimer l’action ${meta.label} de ${a.fromId}`}
+                            className="bt-touch"
                             style={{
                               border: 'none',
                               background: 'transparent',
-                              color: '#dc2626',
+                              color: '#f87171',
                               cursor: 'pointer',
                               fontSize: 13,
                               fontWeight: 700,
@@ -381,7 +383,7 @@ export function StepsPanel(props: StepsPanelProps) {
                               borderRadius: 3,
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.background = '#fee2e2';
+                              e.currentTarget.style.background = 'rgba(248, 113, 113, 0.15)';
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.background = 'transparent';

@@ -50,6 +50,8 @@ export function CoachDiagnosticsOverlay({ diagnostics }: Props) {
           type="button"
           onClick={() => setOpen(true)}
           title="Lecture coach"
+          aria-label="Ouvrir la lecture coach"
+          className="bt-touch"
           style={{
             display: 'inline-flex',
             alignItems: 'center',

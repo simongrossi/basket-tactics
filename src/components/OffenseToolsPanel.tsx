@@ -97,13 +97,14 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
                 onClick={() => props.onSetTool(t.value)}
                 title={`Outil ${t.label} (touche ${shortcutKeyFor(t.value)})`}
                 aria-pressed={active}
+                className="bt-touch"
                 style={{
                   flex: '1 0 calc(33% - 4px)',
                   fontSize: 11,
                   padding: '6px 6px',
                   borderRadius: 6,
                   border: `1px solid ${active ? c.accent : idleBorder}`,
-                  background: active ? c.accent : idleBg,
+                  background: active ? '#c2410c' : idleBg,
                   color: active ? '#fff' : idleText,
                   cursor: 'pointer',
                   fontWeight: 500,

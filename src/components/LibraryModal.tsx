@@ -465,8 +465,8 @@ export function LibraryModal(props: LibraryModalProps) {
                       onClick={() => setShowSaveDialog(true)}
                       style={
                         inline
-                          ? darkPrimaryBtn(c.accent)
-                          : smallBtn(c.accent, '#fff')
+                          ? darkPrimaryBtn(c.accentStrong)
+                          : smallBtn(c.accentStrong, '#fff')
                       }
                     >
                       + sauvegarder l'état courant
@@ -925,7 +925,7 @@ function SystemCard({
         }}
         title={`Charger ${system.name}`}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 116 }}>
           <div
             style={{
               width: 26, height: 26, borderRadius: 6, background: accent,
@@ -944,7 +944,7 @@ function SystemCard({
             {system.description}
           </div>
         )}
-        <div style={{ fontSize: 9, color: '#a8a29e' }}>
+        <div style={{ fontSize: 10, color: '#78716c' }}>
           {system.defenseSystem === 'zone' ? `zone ${system.zoneConfig.type.replace('zone-', '')}` : 'individuelle'} ·
           {' '}sauvegardé {new Date(system.updatedAt).toLocaleDateString('fr-FR')}
         </div>
@@ -958,12 +958,14 @@ function SystemCard({
           compact
         />
       </div>
-      {hover && (
+      {/* U04 — actions toujours visibles : le survol n'existe pas au doigt. */}
         <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 2, background: '#fff', padding: 2, borderRadius: 4, border: `1px solid ${border}` }}>
           <button
             onClick={onRename}
             title="Renommer"
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 11, padding: 2 }}
+            aria-label={`Renommer ${system.name}`}
+            className="bt-touch"
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 14, padding: 2 }}
           >
             ✎
           </button>
@@ -975,7 +977,9 @@ function SystemCard({
               }}
               defaultValue=""
               title="Déplacer vers"
-              style={{ border: 'none', background: 'transparent', fontSize: 11, cursor: 'pointer' }}
+              aria-label={`Déplacer ${system.name} vers un autre dossier`}
+              className="bt-touch"
+              style={{ border: 'none', background: 'transparent', fontSize: 14, cursor: 'pointer' }}
             >
               <option value="" disabled>↪</option>
               {otherFolders.map((f) => (
@@ -986,12 +990,13 @@ function SystemCard({
           <button
             onClick={onDelete}
             title="Supprimer"
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 11, padding: 2, color: '#dc2626' }}
+            aria-label={`Supprimer ${system.name}`}
+            className="bt-touch"
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 14, padding: 2, color: '#dc2626' }}
           >
             🗑
           </button>
         </div>
-      )}
     </div>
   );
 }

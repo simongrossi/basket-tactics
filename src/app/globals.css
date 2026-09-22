@@ -230,7 +230,7 @@ textarea {
 }
 
 .bt-context-help:hover::after,
-.bt-context-help:focus-visible::after {
+.bt-context-help:focus::after {
   opacity: 1;
   transform: translateY(0);
 }
@@ -276,4 +276,72 @@ input::placeholder,
 textarea::placeholder {
   color: var(--bt-text-dim);
   opacity: 1;
+}
+
+/* U04 — cibles tactiles : 36 px à la souris, 44 px au doigt. */
+.bt-touch {
+  min-width: 36px;
+  min-height: 36px;
+}
+
+@media (pointer: coarse) {
+  .bt-touch {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Au doigt, toutes les commandes de l'application restent confortables,
+     panneaux compacts compris ; la souris garde la densité actuelle. */
+  main button,
+  main select,
+  main input[type='text'],
+  main input[type='number'],
+  main input[type='search'],
+  main input[type='range'] {
+    min-height: 44px;
+  }
+
+  main input[type='checkbox'] {
+    width: 24px;
+    height: 24px;
+    flex-basis: 24px;
+  }
+
+  /* Aides contextuelles : ouvertes en touchant l'icône (focus). */
+  .bt-context-help {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+.bt-court-touchbar {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  right: 72px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.bt-touchbar-btn {
+  pointer-events: auto;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(30, 41, 59, 0.9);
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.bt-touchbar-btn[aria-pressed='true'] {
+  background: #d85a30;
+  border-color: #fdba74;
+  color: #fff;
 }

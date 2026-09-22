@@ -163,8 +163,8 @@ export function SidebarOverflowMenu({
         title="Actions globales"
         aria-label="Actions globales"
         style={{
-          width: 28,
-          height: 28,
+          width: 36,
+          height: 36,
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',

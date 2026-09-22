@@ -88,7 +88,17 @@ interface UseCourtPointerHandlersOptions {
   transform: { scale: number; x: number; y: number };
   onTransformChange: (t: { scale: number; x: number; y: number }) => void;
   spacePressed?: boolean;
+  /** U04 — équivalents tactiles des touches modificatrices, activés depuis
+   *  la barre du terrain : tracé libre (Maj), aimantation (Ctrl/⌘),
+   *  sélection multiple (Maj en outil déplacer). */
+  stickyModifiers?: StickyModifiers;
   contentRef: React.RefObject<SVGGElement | null>;
+}
+
+export interface StickyModifiers {
+  freehand?: boolean;
+  snap?: boolean;
+  multiSelect?: boolean;
 }
 
 export interface MarqueeRect {
@@ -113,6 +123,8 @@ export interface UseCourtPointerHandlersResult {
    *  la création auto. CourtView l'utilise pour afficher un halo sur le joueur
    *  source. Null si pas en attente. */
   pendingAutoSourceId: AttackerId | null;
+  /** Abandonne la passe auto en attente (bouton tactile, équivalent d'Échap). */
+  cancelPendingAuto: () => void;
   /** Helper pour convertir un événement clavier/souris en point SVG.
    *  Exposé pour permettre au caller de l'utiliser dans d'autres handlers
    *  (ex. context menu). */
@@ -153,8 +165,12 @@ export function useCourtPointerHandlers(
     transform,
     onTransformChange,
     spacePressed,
+    stickyModifiers,
     contentRef,
   } = opts;
+  const stickyFreehand = !!stickyModifiers?.freehand;
+  const stickySnap = !!stickyModifiers?.snap;
+  const stickyMulti = !!stickyModifiers?.multiSelect;
 
   const [dragging, setDragging] = useState<{ id: PlayerId; isDef: boolean } | null>(null);
   const dragMoveRef = useRef<{ id: PlayerId; isDef: boolean; x: number; y: number } | null>(null);
@@ -356,7 +372,7 @@ export function useCourtPointerHandlers(
       const isPanTrigger =
         spacePressed ||
         e.button === 1 ||
-        (state.tool === 'move' && !id && !e.shiftKey);
+        (state.tool === 'move' && !id && !e.shiftKey && !stickyMulti);
 
       if (isPanTrigger) {
         panStartRef.current = {
@@ -417,7 +433,7 @@ export function useCourtPointerHandlers(
 
         // #4 — Sélection multiple (mode move uniquement, ne conflicte pas
         // avec le Shift+freehand des autres tools).
-        if (e.shiftKey) {
+        if (e.shiftKey || stickyMulti) {
           // Shift+clic sur défenseur → toggle sélection, pas de drag.
           if (id && id.startsWith('D') && onToggleDefenderSelection) {
             onToggleDefenderSelection(id as DefenderId);
@@ -519,7 +535,7 @@ export function useCourtPointerHandlers(
       // Shift+drag = tracé freehand : on enregistre la trajectoire de la souris
       // pour produire une annotation avec waypoints (V-cut, L-cut, courbe libre).
       // Pas applicable à `pass` (la passe reste rectiligne par convention).
-      const freehand = e.shiftKey && state.tool !== 'pass';
+      const freehand = (e.shiftKey || stickyFreehand) && state.tool !== 'pass';
       setPending({
         type: state.tool,
         fromId: fromId as AttackerId,
@@ -529,7 +545,7 @@ export function useCourtPointerHandlers(
       });
       svgRef.current?.setPointerCapture(e.pointerId);
     },
-    [findPlayerAt, frameOff, isPlaying, isPlayerMode, onAddAnnotation, onBeginPlayerDrag, onClearContextMenu, onClearDefenderSelection, onTextToolClick, onToggleDefenderSelection, pendingAutoSourceId, selectedDefenders, state, svgPoint, svgRef, textNotes]
+    [findPlayerAt, frameOff, isPlaying, isPlayerMode, onAddAnnotation, onBeginPlayerDrag, onClearContextMenu, onClearDefenderSelection, onTextToolClick, onToggleDefenderSelection, pendingAutoSourceId, selectedDefenders, state, stickyFreehand, stickyMulti, svgPoint, svgRef, textNotes]
   );
 
   const onPointerMove = useCallback(
@@ -607,7 +623,7 @@ export function useCourtPointerHandlers(
         // #2 — Snap-to-grid : si Ctrl (PC) ou Cmd (Mac) est enfoncé pendant
         // le drag, magnétiser aux lignes clés du terrain (3pts, raquette,
         // blocs bas, ligne médiane). Visuel de feedback via snapTarget.
-        if (e.ctrlKey || e.metaKey) {
+        if (e.ctrlKey || e.metaKey || stickySnap) {
           const hoop = state.attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP;
           const snap = snapToGrid({ x, y }, 8, hoop);
           x = snap.point.x;
@@ -658,7 +674,7 @@ export function useCourtPointerHandlers(
         }
       }
     },
-    [dragging, findPlayerAt, pending, queueDragMove, snapTarget, state.attackingDirection, state.fullCourt, state.tool, svgPoint]
+    [dragging, findPlayerAt, pending, queueDragMove, snapTarget, state.attackingDirection, state.fullCourt, state.tool, stickySnap, svgPoint]
   );
 
   const onPointerUp = useCallback(
@@ -716,7 +732,7 @@ export function useCourtPointerHandlers(
         let x = clamp(pt.x, COURT.marginX, COURT.innerMaxX);
         let y = clamp(pt.y, COURT.marginY, maxY);
         // Snap final au release si Ctrl/Cmd encore enfoncé.
-        if (e.ctrlKey || e.metaKey) {
+        if (e.ctrlKey || e.metaKey || stickySnap) {
           const hoop = state.attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP;
           const snap = snapToGrid({ x, y }, 8, hoop);
           x = snap.point.x;
@@ -805,9 +821,12 @@ export function useCourtPointerHandlers(
       state.playerCount,
       state.steps,
       state.tool,
+      stickySnap,
       svgPoint,
     ]
   );
+
+  const cancelPendingAuto = useCallback(() => setPendingAutoSourceId(null), []);
 
   return {
     pending,
@@ -815,6 +834,7 @@ export function useCourtPointerHandlers(
     snapTarget,
     marquee,
     pendingAutoSourceId,
+    cancelPendingAuto,
     svgPoint,
     onPointerDown,
     onPointerMove,

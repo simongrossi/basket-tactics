@@ -253,6 +253,9 @@ export function Timeline({
           <>
             <button
               onClick={onPlayToggle}
+              className="bt-touch"
+              aria-label={isPlaying ? 'Pause' : 'Lecture'}
+              title={isPlaying ? 'Pause (Espace)' : 'Lecture (Espace)'}
               style={{
                 fontSize: 12,
                 padding: '4px 10px',
@@ -270,6 +273,9 @@ export function Timeline({
             </button>
             <button
               onClick={onStop}
+              className="bt-touch"
+              aria-label="Arrêter et revenir au début"
+              title="Arrêter et revenir au début"
               style={{
                 fontSize: 12,
                 padding: '4px 10px',
@@ -288,6 +294,8 @@ export function Timeline({
             <button
               onClick={() => goCoarseFrame(-1)}
               disabled={isPlaying || displayT <= 0}
+              className="bt-touch"
+              aria-label="Reculer d’un dixième de transition"
               title={`Reculer 1/10 de transition (${SHORTCUT_LABELS.coarseBack})`}
               style={{
                 fontSize: 11,
@@ -306,6 +314,8 @@ export function Timeline({
             <button
               onClick={() => goFineFrame(-1)}
               disabled={isPlaying || currentFineIdx <= 0}
+              className="bt-touch"
+              aria-label="Reculer d’une image"
               title={`Reculer d’une image (1/60 de transition, touche ${SHORTCUT_LABELS.fineBack})`}
               style={{
                 fontSize: 11,
@@ -337,6 +347,8 @@ export function Timeline({
             <button
               onClick={() => goFineFrame(1)}
               disabled={isPlaying || currentFineIdx >= totalFineFrames}
+              className="bt-touch"
+              aria-label="Avancer d’une image"
               title={`Avancer d’une image (1/60 de transition, touche ${SHORTCUT_LABELS.fineForward})`}
               style={{
                 fontSize: 11,
@@ -355,6 +367,8 @@ export function Timeline({
             <button
               onClick={() => goCoarseFrame(1)}
               disabled={isPlaying || displayT >= totalT}
+              className="bt-touch"
+              aria-label="Avancer d’un dixième de transition"
               title={`Avancer 1/10 de transition (${SHORTCUT_LABELS.coarseForward})`}
               style={{
                 fontSize: 11,
@@ -384,6 +398,7 @@ export function Timeline({
               value={playbackSpeed}
               onChange={(e) => onSetPlaybackSpeed?.(parseFloat(e.target.value))}
               title={`vitesse : ${playbackSpeed!.toFixed(1)}×`}
+              aria-label="Vitesse de lecture"
               style={{ width: 70 }}
             />
             <span style={{ fontSize: 10, minWidth: 28, textAlign: 'right', color: TIMELINE_UI.muted }}>
