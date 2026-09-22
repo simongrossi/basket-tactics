@@ -844,7 +844,7 @@ export default function Page() {
             <ScenarioReader
               scriptedActions={app.state.scriptedActions ?? []}
               activeStep={app.state.activeStep}
-              stepToActionId={app.state.steps.map((s) => s.generatedBy)}
+              stepToActionId={app.state.steps.map((_, i, all) => all[i + 1]?.generatedBy)}
             />
           )}
           {!isPlayerMode && (

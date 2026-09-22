@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { Annotation, AppState } from '@/lib/types';
 import { makeInitialState, makeStep } from '@/lib/data/initial';
 import * as annoTx from '../transforms/annotationTransforms';
+import * as stepTx from '../transforms/stepTransforms';
 
 function cutAnno(fromId: 'O1' | 'O2' | 'O3', to: { x: number; y: number }): Annotation {
   return { type: 'cut', fromId, toId: null, from: { x: 0, y: 0 }, to };
@@ -29,36 +30,60 @@ describe('annotationTransforms', () => {
       expect(s1.steps[s1.activeStep].annotations[0].fromId).toBe('O1');
     });
 
-    it("une passe propage ballCarrier au step actif", () => {
-      const s0 = makeInitialState();
-      const pass: Annotation = {
-        type: 'pass',
-        fromId: 'O1',
-        toId: 'O3',
-        from: { x: 300, y: 470 },
-        to: { x: 470, y: 380 },
-      };
-      const s1 = annoTx.addAnnotation(s0, pass);
-      expect(s1.steps[s1.activeStep].ballCarrier).toBe('O3');
-    });
-
-    // Parcours coach : une passe dessinée en premier doit être animée. Le
-    // moteur anime une passe pendant la transition qui MÈNE à l'étape qui
-    // la porte ; à l'étape 0 aucune transition ne précède.
-    it("passe sur le placement de départ : créée sur l'étape suivante, animée", () => {
+    // Règle coach : ce qui est dessiné sur l'étape k se joue k → k+1. La
+    // passe est stockée sur l'étape d'arrivée (contrat moteur) ; le ballon
+    // reste au passeur sur l'étape où la flèche est dessinée.
+    it("passe dessinée sur l'étape active : stockée sur l'arrivée, ballon au passeur", () => {
       const s0 = makeInitialState();
       const pass: Annotation = {
         type: 'pass', fromId: 'O1', toId: 'O3',
-        from: s0.steps[0].off.O1, to: s0.steps[0].off.O3,
+        from: { x: 300, y: 470 }, to: { x: 470, y: 380 },
       };
       const s1 = annoTx.addAnnotation(s0, pass);
+      expect(s1.activeStep).toBe(0);
       expect(s1.steps).toHaveLength(2);
-      expect(s1.steps[0].annotations).toHaveLength(0);
       expect(s1.steps[0].ballCarrier).toBe('O1');
+      expect(s1.steps[0].annotations).toHaveLength(0);
       expect(s1.steps[1].annotations[0]).toMatchObject({ type: 'pass', fromId: 'O1', toId: 'O3' });
       expect(s1.steps[1].ballCarrier).toBe('O3');
       expect(s1.steps[1].off).toEqual(s0.steps[0].off);
-      expect(s1.activeStep).toBe(1);
+    });
+
+    it("course, + étape, passe : la passe se joue APRÈS la course", () => {
+      const s0 = makeInitialState();
+      const cut = annoTx.addAnnotation(s0, {
+        type: 'cut', fromId: 'O2', toId: null, from: s0.steps[0].off.O2, to: { x: 60, y: 520 },
+      });
+      const onResult = stepTx.addStep(cut);
+      expect(onResult.activeStep).toBe(1);
+      const s1 = annoTx.addAnnotation(onResult, {
+        type: 'pass', fromId: 'O1', toId: 'O2', from: onResult.steps[1].off.O1, to: { x: 60, y: 520 },
+      });
+      expect(s1.steps).toHaveLength(3);
+      expect(s1.steps[1].annotations).toHaveLength(0);
+      expect(s1.steps[1].ballCarrier).toBe('O1');
+      expect(s1.steps[2].annotations.map((a) => a.type)).toEqual(['pass']);
+      expect(s1.steps[2].ballCarrier).toBe('O2');
+    });
+
+    it("passe au milieu : le nouveau porteur est propagé aux étapes suivantes", () => {
+      const s0 = makeInitialState();
+      const off = s0.steps[0].off;
+      const three = { ...s0, steps: [s0.steps[0], makeStep({ ...off }, 'O1', []), makeStep({ ...off }, 'O1', [])] };
+      const s1 = annoTx.addAnnotation(three, {
+        type: 'pass', fromId: 'O1', toId: 'O3', from: off.O1, to: off.O3,
+      });
+      expect(s1.steps.map((st) => st.ballCarrier)).toEqual(['O1', 'O3', 'O3']);
+    });
+
+    it("supprimer une passe rend le ballon au passeur et retire l'étape devenue inutile", () => {
+      const s0 = makeInitialState();
+      const s1 = annoTx.addAnnotation(s0, {
+        type: 'pass', fromId: 'O1', toId: 'O3', from: s0.steps[0].off.O1, to: s0.steps[0].off.O3,
+      });
+      const s2 = annoTx.deleteLastAnnotation(s1);
+      expect(s2.steps).toHaveLength(1);
+      expect(s2.steps[0].ballCarrier).toBe('O1');
     });
 
     it("passe sur l'étape 0 après une course : jouée pendant la course", () => {

@@ -253,6 +253,14 @@ Pour chaque défenseur, à chaque étape :
 
 Le flag `isScreening: true` est posé à `t ≥ 0.5` pour `screen` — propagé à `Player.tsx` pour activer la posture d'écran (orientation perpendiculaire, regard vers le défenseur du porteur).
 
+#### Stockage des actions vs étape vue par le coach (`stepActions.ts`)
+
+Le stockage suit le contrat du moteur : une course / un dribble / un écran est sur l'étape de **départ** (jouée `k → k+1`) ; une **passe** est sur l'étape d'**arrivée** (celle où le receveur a le ballon, cf. `frameResolver`). Les modèles fournis décrivent en plus certains déplacements sur leur étape d'arrivée (ignorés par la lecture comme « périmés »).
+
+Côté coach, une seule règle : **ce qui est affiché sur l'étape `k` se joue pendant `k → k+1`**. [`stepActions.ts`](../src/lib/logic/stepActions.ts) (`actionsOfStep`) regroupe ces actions — passes stockées sur `k+1` comprises — pour le terrain, le panneau Étapes, les fiches et la numérotation ([`stepNumbering.ts`](../src/lib/logic/stepNumbering.ts)). Toute nouvelle vue qui liste ou dessine les actions d'une étape doit passer par `actionsOfStep`, jamais par `step.annotations` directement. Pour éditer / supprimer, utiliser le `stepIdx` + `index` de stockage renvoyés.
+
+Dessiner une passe sur `k` la stocke sur `k+1` (créée si besoin) et propage le nouveau porteur aux étapes suivantes ; la supprimer rend le ballon au passeur. Au chargement d'un modèle, les libellés « ce qui mène ici » sont remontés d'une étape (`toDepartureLabels`), idem pour les étapes compilées depuis un scénario.
+
 #### Suivi temps-réel des défenseurs (`followDefendersAtFrame`)
 
 Sans cet override, l'interpolation défensive entre les positions calculées aux étapes A et B serait **strictement linéaire** — le défenseur prendrait la corde des arcs offensifs. La fonction réécrit la position de marquage de chaque défenseur en marquage individuel à chaque frame :

@@ -9,6 +9,7 @@
 
 import type { Step } from '@/lib/types';
 import { isBlankStep } from './stepMutations';
+import { actionsOfStep } from './stepActions';
 
 export interface StepRow {
   step: Step;
@@ -29,6 +30,24 @@ export interface StepCounter {
   rowIndex: number | null;
 }
 
+/** Étape sans rien à montrer au coach : aucune action ne PART d'elle
+ *  (cf. stepActions) et aucun réglage d'étape. */
+export function isDisplayBlankStep(
+  steps: Step[],
+  index: number,
+  opts: { ignoreDefense?: boolean } = {},
+): boolean {
+  const actions = actionsOfStep(steps, index).map((a) => a.annotation);
+  const step = { ...steps[index], annotations: actions };
+  if (opts.ignoreDefense) {
+    delete step.defenseOverrides;
+    delete step.forcedScreener;
+    delete step.manualOverride;
+    delete step.generatedBy;
+  }
+  return isBlankStep(step);
+}
+
 export function getVisibleStepRows(steps: Step[]): StepRow[] {
   const realSteps = steps
     .map((step, index) => ({ step, index }))
@@ -36,13 +55,18 @@ export function getVisibleStepRows(steps: Step[]): StepRow[] {
 
   const rows: StepRow[] = [];
   realSteps.forEach(({ step, index }, realIdx) => {
-    const blank = isBlankStep(step);
+    const blank = isDisplayBlankStep(steps, index);
     if (realSteps.length === 1 && blank) return;
 
-    const previous = realSteps[realIdx - 1]?.step;
+    const previous = realSteps[realIdx - 1];
     const isInitialSetup = realIdx === 0 && blank;
+    // Position finale : dernière étape sans libellé ni contexte de jeu. Un
+    // placement défensif seul n'en fait pas une étape (il est atteint
+    // pendant la transition qui y mène).
     const isTrailingActionResult =
-      realIdx === realSteps.length - 1 && blank && !!previous && previous.annotations.length > 0;
+      realIdx === realSteps.length - 1 && !!previous
+      && isDisplayBlankStep(steps, index, { ignoreDefense: true })
+      && actionsOfStep(steps, previous.index).length > 0;
 
     if (isInitialSetup || isTrailingActionResult) return;
     rows.push({ step, index, number: rows.length + 1 });
@@ -62,13 +86,7 @@ export function stepCounterAt(steps: Step[], t: number): StepCounter {
   const last = Math.max(0, steps.length - 1);
   const idx = Math.max(0, Math.min(last, Math.floor(t + 1e-6)));
 
-  if (total === 0) return { kind: 'setup', current: 0, total, rowIndex: null };
-  if (idx < rows[0].index) {
-    // En transition vers la 1re étape numérotée depuis le placement : ce
-    // sont ses actions qui jouent (ex. passe, stockée sur l'étape d'arrivée).
-    if (t > idx + 1e-6 && idx + 1 === rows[0].index) {
-      return { kind: 'step', current: 1, total, rowIndex: rows[0].index };
-    }
+  if (total === 0 || idx < rows[0].index) {
     return { kind: 'setup', current: 0, total, rowIndex: null };
   }
   let row = rows[0];

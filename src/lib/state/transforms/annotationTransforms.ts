@@ -24,6 +24,8 @@ import {
   upsertPassAnnotation,
   removeAnnotation as removeAnnotationFromSteps,
 } from '@/lib/logic/stepMutations';
+import { isBlankStep } from '@/lib/logic/stepMutations';
+import { actionsOfStep } from '@/lib/logic/stepActions';
 
 const MOVEMENT_TYPES: AnnotationType[] = ['cut', 'dribble', 'screen'];
 const MOVEMENT_TYPE_SET = new Set<AnnotationType>(MOVEMENT_TYPES);
@@ -50,8 +52,14 @@ function withDrawTiming(
   const localT = fullT == null ? 0 : fullT - segmentIdx;
 
   if (annotation.type === 'pass') {
-    if (fullT == null || segmentIdx + 1 >= s.steps.length) {
-      return { stepIdx: fallbackStepIdx, annotation };
+    // Une passe est stockée sur l'étape d'ARRIVÉE (contrat moteur) : dessinée
+    // sur l'étape k, elle se joue k → k+1, comme une course dessinée sur k.
+    // L'étape k+1 est créée par addAnnotation si elle n'existe pas.
+    if (fullT == null) {
+      if (timingAnchor === 'end' && fallbackStepIdx > 0) {
+        return { stepIdx: fallbackStepIdx, annotation };
+      }
+      return { stepIdx: fallbackStepIdx + 1, annotation };
     }
     if (timingAnchor === 'end') {
       if (fullT > TIMING_EPSILON && localT <= TIMING_EPSILON) {
@@ -130,38 +138,79 @@ export function addAnnotation(
   annotation: Annotation,
   options?: AddAnnotationOptions,
 ): AppState {
-  let placement = withDrawTiming(s, annotation, options);
-  let base = s.steps;
-  let activeStep = s.activeStep;
-  // Une passe s'anime pendant la transition qui mène à l'étape qui la porte.
-  // Posée sur l'étape 0, elle ne serait jamais jouée (ballon téléporté) :
-  // on la place sur l'étape suivante, créée depuis l'étape 0 si besoin, et
-  // on s'y rend pour que la flèche reste visible.
-  if (placement.annotation.type === 'pass' && placement.stepIdx === 0) {
-    if (base.length === 1) {
-      const first = base[0];
-      base = [...base, { off: { ...first.off }, ballCarrier: first.ballCarrier, annotations: [] }];
-    }
-    placement = { ...placement, stepIdx: 1 };
-    activeStep = 1;
-  }
+  const placement = withDrawTiming(s, annotation, options);
   let steps: Step[];
   if (placement.annotation.type === 'pass') {
+    let base = s.steps;
+    if (placement.stepIdx >= base.length) {
+      const last = base[base.length - 1];
+      base = [...base, { off: { ...last.off }, ballCarrier: last.ballCarrier, annotations: [] }];
+    }
     steps = upsertPassAnnotation(base, placement.stepIdx, placement.annotation);
     if (placement.annotation.toId) {
-      steps = steps.map((st, i) =>
-        i === placement.stepIdx ? { ...st, ballCarrier: placement.annotation.toId! } : st
-      );
+      steps = setCarrierFrom(steps, placement.stepIdx, placement.annotation.toId);
     }
   } else {
-    steps = upsertMovementAnnotation(base, placement.stepIdx, placement.annotation);
+    steps = upsertMovementAnnotation(s.steps, placement.stepIdx, placement.annotation);
   }
   if (placement.stepIdx > 0 && steps[placement.stepIdx].generatedBy) {
     const next = [...steps];
     next[placement.stepIdx] = { ...next[placement.stepIdx], manualOverride: true };
-    return { ...s, steps: next, activeStep };
+    return { ...s, steps: next };
   }
-  return { ...s, steps, activeStep };
+  return { ...s, steps };
+}
+
+/**
+ * Porteur de `steps[from]` = `carrier`, propagé aux étapes suivantes qui
+ * avaient le même porteur, jusqu'à la prochaine passe. Sans ça, le ballon
+ * revient au passeur à l'étape d'après sans passe dessinée.
+ */
+function setCarrierFrom(steps: Step[], from: number, carrier: AttackerId): Step[] {
+  const previous = steps[from]?.ballCarrier;
+  if (!previous || previous === carrier) {
+    return steps.map((st, i) => (i === from ? { ...st, ballCarrier: carrier } : st));
+  }
+  const out = [...steps];
+  out[from] = { ...out[from], ballCarrier: carrier };
+  for (let m = from + 1; m < out.length; m++) {
+    if (out[m].ballCarrier !== previous) break;
+    if (out[m].annotations.some((a) => a.type === 'pass')) break;
+    out[m] = { ...out[m], ballCarrier: carrier };
+  }
+  return out;
+}
+
+/** Retire la dernière étape tant qu'elle ne sert plus à rien : vide, mêmes
+ *  positions et même porteur que l'étape précédente, qui n'a pas d'action. */
+function trimDeadTrailingSteps(s: AppState, steps: Step[]): AppState {
+  const out = [...steps];
+  while (out.length > 1) {
+    const last = out[out.length - 1];
+    const prev = out[out.length - 2];
+    const samePositions = (Object.keys(last.off) as AttackerId[]).every((id) =>
+      prev.off[id] && last.off[id].x === prev.off[id].x && last.off[id].y === prev.off[id].y);
+    if (!isBlankStep(last) || !samePositions || last.ballCarrier !== prev.ballCarrier) break;
+    if (actionsOfStep(out, out.length - 2).length > 0) break;
+    out.pop();
+  }
+  return { ...s, steps: out, activeStep: Math.min(s.activeStep, out.length - 1) };
+}
+
+/** Supprime une annotation stockée sur `stepIdx`. Une passe supprimée rend
+ *  le ballon au porteur de l'étape précédente. */
+function removeAt(s: AppState, stepIdx: number, idx: number): AppState {
+  const step = s.steps[stepIdx];
+  if (!step || idx < 0 || idx >= step.annotations.length) return s;
+  const removed = step.annotations[idx];
+  let steps = removeAnnotationFromSteps(s.steps, stepIdx, idx);
+  const stillPassed = steps[stepIdx].annotations.some((a) => a.type === 'pass');
+  if (removed.type === 'pass' && removed.toId && !stillPassed
+      && steps[stepIdx].ballCarrier === removed.toId) {
+    const back = steps[stepIdx - 1]?.ballCarrier ?? removed.fromId;
+    steps = setCarrierFrom(steps, stepIdx, back);
+  }
+  return trimDeadTrailingSteps(s, steps);
 }
 
 export function setForcedScreener(s: AppState, oId: AttackerId | null): AppState {
@@ -173,32 +222,25 @@ export function setForcedScreener(s: AppState, oId: AttackerId | null): AppState
   return { ...s, steps };
 }
 
+/** Efface les actions du joueur visibles sur l'étape active (y compris
+ *  ses passes, stockées sur l'étape suivante). */
 export function clearAnnotationsFor(s: AppState, oId: AttackerId): AppState {
-  let steps = s.steps;
-  const cur = steps[s.activeStep];
-  if (!cur) return s;
-  const indices = cur.annotations
-    .map((a, i) => (a.fromId === oId ? i : -1))
-    .filter((i) => i >= 0)
-    .reverse();
-  for (const idx of indices) {
-    steps = removeAnnotationFromSteps(steps, s.activeStep, idx);
-  }
-  return { ...s, steps };
+  const targets = actionsOfStep(s.steps, s.activeStep)
+    .filter(({ annotation }) => annotation.fromId === oId)
+    .sort((a, b) => b.stepIdx - a.stepIdx || b.index - a.index);
+  return targets.reduce((acc, t) => removeAt(acc, t.stepIdx, t.index), s);
 }
 
+/** « Supprimer la dernière flèche » de l'étape active. */
 export function deleteLastAnnotation(s: AppState): AppState {
-  const cur = s.steps[s.activeStep];
-  if (!cur || cur.annotations.length === 0) return s;
-  const steps = removeAnnotationFromSteps(s.steps, s.activeStep, cur.annotations.length - 1);
-  return { ...s, steps };
+  const actions = actionsOfStep(s.steps, s.activeStep);
+  const last = actions[actions.length - 1];
+  return last ? removeAt(s, last.stepIdx, last.index) : s;
 }
 
-export function deleteAnnotation(s: AppState, idx: number): AppState {
-  const cur = s.steps[s.activeStep];
-  if (!cur || idx < 0 || idx >= cur.annotations.length) return s;
-  const steps = removeAnnotationFromSteps(s.steps, s.activeStep, idx);
-  return { ...s, steps };
+/** Supprime l'annotation `idx` stockée sur `stepIdx` (étape active par défaut). */
+export function deleteAnnotation(s: AppState, idx: number, stepIdx: number = s.activeStep): AppState {
+  return removeAt(s, stepIdx, idx);
 }
 
 /** Édite les bornes temporelles tStart/tEnd d'une annotation de mouvement.

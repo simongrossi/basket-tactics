@@ -144,7 +144,26 @@ describe('CourtView — barre tactile (U04)', () => {
     };
     const { props } = renderCourt('move', { state });
     fireEvent.click(screen.getByRole('button', { name: 'Supprimer la dernière flèche' }));
-    expect(props.onDeleteAnnotation).toHaveBeenCalledWith(1);
+    expect(props.onDeleteAnnotation).toHaveBeenCalledWith(1, 0);
+  });
+
+  it('Supprimer la dernière flèche vise une passe stockée sur l’étape d’arrivée', () => {
+    const base = makeInitialState();
+    const off = base.steps[0].off;
+    const state: AppState = {
+      ...base,
+      tool: 'move',
+      activeStep: 0,
+      steps: [
+        { ...base.steps[0], annotations: [] },
+        { off: { ...off }, ballCarrier: 'O3', annotations: [
+          { type: 'pass', fromId: 'O1', toId: 'O3', from: off.O1, to: off.O3 } as Annotation,
+        ] },
+      ],
+    };
+    const { props } = renderCourt('move', { state });
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer la dernière flèche' }));
+    expect(props.onDeleteAnnotation).toHaveBeenCalledWith(0, 1);
   });
 
   it('une passe en attente s’annule d’un bouton (équivalent Échap)', () => {

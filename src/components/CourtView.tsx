@@ -1,6 +1,7 @@
 'use client';
 
 import { formatStepCounter, stepCounterAt } from '@/lib/logic/stepNumbering';
+import { actionsOfStep, isArrivalMovement } from '@/lib/logic/stepActions';
 import { useInterfaceLevel } from './interface/InterfaceLevel';
 
 // Composant principal du terrain. Rôle :
@@ -110,7 +111,8 @@ interface CourtViewProps {
   onSetAttackerOrientation: (oId: AttackerId, patch: { body?: number | undefined; gaze?: number | undefined }) => void;
   onSetZoneOverride: (regionId: string, override: Partial<import('@/lib/types').ZoneRegionOverride>) => void;
   onClearZoneOverride: (regionId: string) => void;
-  onDeleteAnnotation: (idx: number) => void;
+  /** Supprime l'annotation `idx` stockée sur `stepIdx` (étape active par défaut). */
+  onDeleteAnnotation: (idx: number, stepIdx?: number) => void;
   onSetAnnotationFrom: (stepIdx: number, annoIdx: number, point: { x: number; y: number }) => void;
   onSetAnnotationTo: (stepIdx: number, annoIdx: number, point: { x: number; y: number }) => void;
   onSetAnnotationWaypoint: (stepIdx: number, annoIdx: number, wpIdx: number, point: { x: number; y: number }) => void;
@@ -349,9 +351,13 @@ export function CourtView(props: CourtViewProps) {
   const onContextMenu = (e: React.MouseEvent) => {
     const annotationG = (e.target as Element).closest('g[data-annotation-idx]');
     const annoIdxStr = annotationG?.getAttribute('data-annotation-idx');
+    const annoStepStr = annotationG?.getAttribute('data-annotation-step');
     if (annoIdxStr !== null && annoIdxStr !== undefined) {
       e.preventDefault();
-      props.onDeleteAnnotation(parseInt(annoIdxStr, 10));
+      props.onDeleteAnnotation(
+        parseInt(annoIdxStr, 10),
+        annoStepStr != null ? parseInt(annoStepStr, 10) : undefined,
+      );
       return;
     }
 
@@ -882,14 +888,15 @@ export function CourtView(props: CourtViewProps) {
 
         {/* ---- Annotations + preview ---- */}
         <g>
-          {state.steps[frame.stepIdx]?.annotations
-            .map((annotation, index) => ({ annotation, index }))
+          {/* Actions qui partent de l'étape affichée (passes comprises, bien
+              que stockées sur l'étape d'arrivée) — cf. stepActions. */}
+          {actionsOfStep(state.steps, frame.stepIdx)
             .filter(({ annotation }) =>
               isActiveAttacker(annotation.fromId, state.playerCount) &&
               (!annotation.toId || isActiveAttacker(annotation.toId, state.playerCount))
             )
-            .map(({ annotation: a, index }) => (
-              <g key={index} data-annotation-idx={index} style={{ cursor: 'context-menu' }}>
+            .map(({ annotation: a, index, stepIdx: annoStep }) => (
+              <g key={`${annoStep}-${index}`} data-annotation-idx={index} data-annotation-step={annoStep} style={{ cursor: 'context-menu' }}>
                 <AnnotationView annotation={a} />
                 {/* Hit-test invisible : élargit la zone de clic-droit pour
                     la suppression depuis le terrain. */}
@@ -913,6 +920,7 @@ export function CourtView(props: CourtViewProps) {
         {!props.isPlaying && state.steps[frame.stepIdx] && (
           <AnnotationHandles
             annotations={state.steps[frame.stepIdx].annotations}
+            isHidden={(a) => isArrivalMovement(state.steps[frame.stepIdx], a)}
             svgPoint={svgPoint}
             onCommitFrom={(annoIdx, p) => props.onSetAnnotationFrom(frame.stepIdx, annoIdx, p)}
             onCommitTo={(annoIdx, p) => props.onSetAnnotationTo(frame.stepIdx, annoIdx, p)}
@@ -971,10 +979,10 @@ export function CourtView(props: CourtViewProps) {
                 ...step,
                 off: frame.off,
                 ballCarrier: frame.carrier,
-                annotations: step.annotations.filter(
-                  (a) => isActiveAttacker(a.fromId, state.playerCount) &&
-                    (!a.toId || isActiveAttacker(a.toId, state.playerCount))
-                ),
+                annotations: actionsOfStep(state.steps, state.activeStep)
+                  .map(({ annotation }) => annotation)
+                  .filter((a) => isActiveAttacker(a.fromId, state.playerCount) &&
+                    (!a.toId || isActiveAttacker(a.toId, state.playerCount))),
               }}
             />
           );
@@ -1181,10 +1189,11 @@ export function CourtView(props: CourtViewProps) {
           tool={state.tool}
           modifiers={stickyModifiers}
           onChangeModifiers={setStickyModifiers}
-          annotationCount={state.steps[state.activeStep]?.annotations.length ?? 0}
+          annotationCount={actionsOfStep(state.steps, state.activeStep).length}
           onDeleteLastAnnotation={() => {
-            const count = state.steps[state.activeStep]?.annotations.length ?? 0;
-            if (count > 0) props.onDeleteAnnotation(count - 1);
+            const actions = actionsOfStep(state.steps, state.activeStep);
+            const last = actions[actions.length - 1];
+            if (last) props.onDeleteAnnotation(last.index, last.stepIdx);
           }}
           pendingAutoSourceId={pendingAutoSourceId}
           onCancelPendingAuto={cancelPendingAuto}

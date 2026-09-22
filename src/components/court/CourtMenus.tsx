@@ -8,6 +8,7 @@
 // callbacks de mutation viennent du parent. La fermeture (`onClose`) est
 // elle aussi déléguée pour pouvoir remettre `null` dans le state du parent.
 
+import { actionsOfStep } from '@/lib/logic/stepActions';
 import type {
   Annotation,
   AppState,
@@ -129,7 +130,7 @@ export function CourtMenus(props: CourtMenusProps) {
             y={ctxMenu.y}
             isCarrier={cur ? activeBallCarrier(cur, state.playerCount) === oId : false}
             isForcedScreener={cur?.forcedScreener === oId}
-            hasAnnotations={(cur?.annotations ?? []).some((a) => a.fromId === oId)}
+            hasAnnotations={actionsOfStep(state.steps, state.activeStep).some(({ annotation }) => annotation.fromId === oId)}
             dominantHand={state.attackerHands?.[oId] ?? 'right'}
             offensiveProfile={state.attackerProfiles?.[oId] ?? 'creator'}
             tool={state.tool}

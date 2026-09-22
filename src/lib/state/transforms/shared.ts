@@ -9,6 +9,7 @@
 //    branche active si elle existe, sinon sur `mainActions`. Évite de
 //    dupliquer cette logique dans chaque transform branch-aware.
 
+import { toDepartureLabelsForGenerated } from '@/lib/logic/stepActions';
 import type { AppState, ScriptedAction } from '@/lib/types';
 import { compileScenario } from '@/lib/logic/compileScenario';
 import { selectReactiveBranch } from '@/lib/logic/reads/selectReactiveBranch';
@@ -69,7 +70,7 @@ export function recompileScenarioSteps(state: AppState): AppState {
   // réactive active sans override manuel). Null si manuel ou chemin principal.
   const resolvedReadBranchId =
     !state.activeBranchId && activeBranch?.trigger ? activeBranch.id : null;
-  return { ...state, steps: newSteps, activeStep, resolvedReadBranchId };
+  return { ...state, steps: toDepartureLabelsForGenerated(newSteps), activeStep, resolvedReadBranchId };
 }
 
 export function mutateActionsScope(

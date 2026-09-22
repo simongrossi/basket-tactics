@@ -1,5 +1,7 @@
 'use client';
 
+import { actionsOfStep } from '@/lib/logic/stepActions';
+import { formatStepCounter, getVisibleStepRows, stepCounterAt } from '@/lib/logic/stepNumbering';
 import { useState, useMemo } from 'react';
 import type { AppState, ScenarioBranch, Step } from '@/lib/types';
 import { StepThumbnail } from './StepThumbnail';
@@ -51,6 +53,7 @@ export function PlaybookView({ state, title, onClose, mode = 'modal' }: Playbook
   }, [includeBranches, state.scenarioBranches, state.scriptedActions, state.steps, state.playerCount]);
 
   const mainSteps = state.steps.filter((s) => !s.isInterpolated);
+  const numberedCount = getVisibleStepRows(state.steps).length;
 
   return (
     <>
@@ -194,7 +197,7 @@ export function PlaybookView({ state, title, onClose, mode = 'modal' }: Playbook
         >
           <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 4, color: '#0f172a' }}>{docTitle}</h1>
           <div style={{ fontSize: 11, color: '#64748b', marginBottom: 18 }}>
-            {mainSteps.length} étape{mainSteps.length > 1 ? 's' : ''} · système{' '}
+            {numberedCount} étape{numberedCount > 1 ? 's' : ''} · système{' '}
             {state.defenseSystem === 'zone' ? `zone ${state.zoneConfig.type}` : 'homme à homme'}
             {state.defenseSystem === 'man' && ` · écran porteur : ${state.screenRule}`}
           </div>
@@ -226,13 +229,13 @@ export function PlaybookView({ state, title, onClose, mode = 'modal' }: Playbook
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
                     <span style={{ fontSize: 12, fontWeight: 600, color: '#0f172a' }}>
-                      Étape {i + 1}
+                      {formatStepCounter(stepCounterAt(state.steps, realIdx))}
                       {step.label ? ` — ${step.label}` : ''}
                     </span>
                     <span style={{ fontSize: 10, color: '#64748b' }}>porteur : {step.ballCarrier}</span>
                   </div>
                   <StepThumbnail state={state} stepIdx={realIdx} showDefense={showDefense} />
-                  <StepAnnotationsRecap step={step} stepIdxReal={i} state={state} />
+                  <StepAnnotationsRecap step={step} steps={state.steps} stepIdx={realIdx} stepIdxReal={i} state={state} />
                 </div>
               );
             })}
@@ -263,7 +266,7 @@ export function PlaybookView({ state, title, onClose, mode = 'modal' }: Playbook
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: '#0f172a' }}>
-                        Étape {i + 1}
+                        {formatStepCounter(stepCounterAt(bSteps, i))}
                         {step.label ? ` — ${step.label}` : ''}
                       </span>
                       <span style={{ fontSize: 10, color: '#64748b' }}>porteur : {step.ballCarrier}</span>
@@ -273,7 +276,7 @@ export function PlaybookView({ state, title, onClose, mode = 'modal' }: Playbook
                       stepIdx={i}
                       showDefense={showDefense}
                     />
-                    <StepAnnotationsRecap step={step} stepIdxReal={i} state={state} />
+                    <StepAnnotationsRecap step={step} steps={bSteps} stepIdx={i} stepIdxReal={i} state={state} />
                   </div>
                 ))}
               </div>
@@ -330,15 +333,20 @@ export function PlaybookView({ state, title, onClose, mode = 'modal' }: Playbook
  * se chevauchent (le visuel seul ne suffit pas).
  */
 function StepAnnotationsRecap({
-  step,
+  steps,
+  stepIdx,
   stepIdxReal,
   state,
 }: {
   step: Step;
+  /** Étapes où chercher les actions qui partent de `stepIdx` (passes
+   *  stockées sur l'étape suivante comprises). */
+  steps: Step[];
+  stepIdx: number;
   stepIdxReal: number;
   state: AppState;
 }) {
-  const movement = step.annotations.filter(
+  const movement = actionsOfStep(steps, stepIdx).map(({ annotation }) => annotation).filter(
     (a) => a.type === 'cut' || a.type === 'dribble' || a.type === 'screen' || a.type === 'pass'
   );
   if (movement.length === 0) return null;

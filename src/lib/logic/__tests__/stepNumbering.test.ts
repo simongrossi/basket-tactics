@@ -56,13 +56,26 @@ describe('stepNumbering', () => {
     expect(formatStepCounter(stepCounterAt(steps, 2))).toBe('Position finale');
   });
 
-  it('passe en premier : la transition depuis le placement est l\'étape 1', () => {
+  it('passe en premier : étape 1 puis position finale, comme une course', () => {
     const s0 = makeInitialState();
     const s = addAnnotation(s0, {
       type: 'pass', fromId: 'O1', toId: 'O2', from: s0.steps[0].off.O1, to: s0.steps[0].off.O2,
     });
-    expect(label(s, 0)).toBe('Placement de départ');
+    expect(getVisibleStepRows(s.steps)).toHaveLength(1);
+    expect(label(s, 0)).toBe('Étape 1 / 1');
     expect(label(s, 0.5)).toBe('Étape 1 / 1');
-    expect(label(s, 1)).toBe('Étape 1 / 1');
+    expect(label(s, 1)).toBe('Position finale');
+  });
+
+  it('course puis passe : 2 étapes, la passe est l\'étape 2', () => {
+    const s0 = makeInitialState();
+    const a = addAnnotation(s0, cut(s0, 'O2', { x: 60, y: 520 }));
+    const b = addStep(a);
+    const s = addAnnotation(b, {
+      type: 'pass', fromId: 'O1', toId: 'O2', from: b.steps[1].off.O1, to: { x: 60, y: 520 },
+    });
+    expect(getVisibleStepRows(s.steps).map((r) => r.index)).toEqual([0, 1]);
+    expect(label(s, 1.5)).toBe('Étape 2 / 2');
+    expect(label(s, 2)).toBe('Position finale');
   });
 });

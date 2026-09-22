@@ -2,6 +2,7 @@
 // Toutes pures (la persistance localStorage est gérée par le hook qui appelle
 // ces transforms).
 
+import { hasArrivalActions, toDepartureLabels } from '@/lib/logic/stepActions';
 import type { AppState, PlayerCount, PlayerId, Tool } from '@/lib/types';
 import { migrateScriptedActions } from '@/lib/logic/scriptedActionMigration';
 import { makeInitialState } from '@/lib/data/initial';
@@ -28,11 +29,15 @@ export function setPlayerCount(s: AppState, count: PlayerCount): AppState {
 }
 
 export function loadTemplate(s: AppState, template: Template): AppState {
+  const raw = structuredClone(template.steps);
+  // Modèles écrits « étape = ce qui mène ici » : libellés remontés sur
+  // l'étape où l'action se voit et se joue (cf. stepActions).
+  const labelled = hasArrivalActions(raw) ? toDepartureLabels(raw) : raw;
   return {
     ...s,
     librarySystemId: undefined,
     steps: reconcileMovementAnnotations(
-      ensureAnnotationsForMovement(structuredClone(template.steps), s.playerCount)
+      ensureAnnotationsForMovement(labelled, s.playerCount)
     ),
     activeStep: 0,
     defenseInitial: structuredClone(template.defenseInitial),

@@ -379,8 +379,8 @@ export function useAppState() {
     setStateWithHistory(annotationTx.deleteLastAnnotation);
   }, [setStateWithHistory]);
 
-  const deleteAnnotation = useCallback((idx: number) => {
-    setStateWithHistory((s) => annotationTx.deleteAnnotation(s, idx));
+  const deleteAnnotation = useCallback((idx: number, stepIdx?: number) => {
+    setStateWithHistory((s) => annotationTx.deleteAnnotation(s, idx, stepIdx));
   }, [setStateWithHistory]);
 
   const setAnnotationTiming = useCallback(

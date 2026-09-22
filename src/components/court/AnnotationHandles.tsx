@@ -35,6 +35,8 @@ interface AnnotationHandlesProps {
   onCommitFrom: (annoIdx: number, p: Point) => void;
   onCommitTo: (annoIdx: number, p: Point) => void;
   onCommitWaypoint: (annoIdx: number, wpIdx: number, p: Point) => void;
+  /** Annotations stockées ici mais affichées sur une autre étape (arrivées). */
+  isHidden?: (a: Annotation) => boolean;
 }
 
 const HANDLE_R = 6;
@@ -79,7 +81,7 @@ export function AnnotationHandles(props: AnnotationHandlesProps) {
   return (
     <g aria-label="annotation-handles">
       {annotations.map((a, annoIdx) => {
-        if (!isMovement(a)) return null;
+        if (!isMovement(a) || props.isHidden?.(a)) return null;
         const dragging = drag?.annoIdx === annoIdx ? drag : null;
         const from = dragging?.kind === 'from' && previewPoint ? previewPoint : a.from;
         const to = dragging?.kind === 'to' && previewPoint ? previewPoint : a.to;

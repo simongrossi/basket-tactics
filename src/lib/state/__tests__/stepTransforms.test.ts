@@ -105,6 +105,27 @@ describe('stepTransforms', () => {
       expect(s1.steps[1].off.O2).toEqual({ x: 200, y: 100 });
     });
 
+    it("insertion au milieu : la passe de l'étape k reste jouée juste après k", () => {
+      const s0 = makeInitialState();
+      const off = s0.steps[0].off;
+      // Étape 0 : passe O1 → O3 (stockée sur 1) ; étape 1 : course O2.
+      const passed = annotationTx.addAnnotation(s0, {
+        type: 'pass', fromId: 'O1', toId: 'O3', from: off.O1, to: off.O3,
+      });
+      const onStep1 = stepTx.setActiveStep(passed, 1);
+      const withCut = annotationTx.addAnnotation(onStep1, {
+        type: 'cut', fromId: 'O2', toId: null, from: off.O2, to: { x: 60, y: 520 },
+      });
+      const s1 = stepTx.addStep(stepTx.setActiveStep(withCut, 0));
+      expect(s1.activeStep).toBe(1);
+      expect(s1.steps).toHaveLength(4);
+      // La passe arrive sur la nouvelle étape 1 (jouée 0 → 1).
+      expect(s1.steps[1].annotations.map((a) => a.type)).toEqual(['pass']);
+      expect(s1.steps[1].ballCarrier).toBe('O3');
+      // La course reste sur son étape, décalée en 2.
+      expect(s1.steps[2].annotations.map((a) => a.type)).toEqual(['cut']);
+    });
+
     it("insère quand l'étape suivante contient déjà des actions", () => {
       const s0 = makeInitialState();
       const cutO2 = annotationTx.addAnnotation(s0, {

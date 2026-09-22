@@ -10,7 +10,8 @@ import type {
   Step,
 } from '@/lib/types';
 import { makeStep } from '@/lib/data/initial';
-import { isBlankStep } from '@/lib/logic/stepMutations';
+import { actionsOfStep } from '@/lib/logic/stepActions';
+import { isDisplayBlankStep } from '@/lib/logic/stepNumbering';
 import {
   buildFreeThrowSetup,
   buildFreeThrowReboundSetup,
@@ -28,37 +29,50 @@ export function setActiveStep(s: AppState, idx: number): AppState {
   return { ...s, activeStep: Math.max(0, Math.min(s.steps.length - 1, idx)) };
 }
 
-/** Ajoute une nouvelle étape juste après l'active. Propage les destinations
- *  des annotations de mouvement (cut/screen/dribble) de l'étape courante aux
- *  positions de la nouvelle, et propage le receveur d'une passe au porteur.
+/** « + étape » : donne au coach une étape vide juste après l'active, pour
+ *  dessiner l'action suivante.
  *
- *  Si l'étape suivante est la dernière et qu'elle est vide (étape résultat
- *  créée automatiquement par le dessin), on s'y place au lieu d'insérer une
- *  seconde étape identique, qui produirait un temps mort à la lecture. */
+ *  - Pas d'étape suivante : on en crée une, positions après les déplacements
+ *    de l'étape active.
+ *  - Étape suivante = dernière et sans action propre (position finale créée
+ *    par le dessin) : on s'y place, sinon on créerait un temps mort.
+ *  - Sinon on insère. Les passes et arrivées stockées sur l'étape suivante
+ *    appartiennent à l'étape active (cf. stepActions) : elles passent sur
+ *    l'étape insérée pour rester jouées juste après l'étape active. */
 export function addStep(s: AppState): AppState {
-  const cur = s.steps[s.activeStep];
-  const newOff = { ...cur.off };
-  cur.annotations.forEach((anno) => {
-    if (anno.type === 'cut' || anno.type === 'screen' || anno.type === 'dribble') {
-      const id = anno.fromId as AttackerId;
-      if (id in newOff && anno.to) {
-        newOff[id] = { x: anno.to.x, y: anno.to.y };
+  const k = s.activeStep;
+  const cur = s.steps[k];
+  const next = s.steps[k + 1];
+
+  if (!next) {
+    const newOff = { ...cur.off };
+    cur.annotations.forEach((anno) => {
+      if (anno.type === 'cut' || anno.type === 'screen' || anno.type === 'dribble') {
+        const id = anno.fromId as AttackerId;
+        if (id in newOff && anno.to) newOff[id] = { x: anno.to.x, y: anno.to.y };
       }
-    }
-  });
-  const passAnno = cur.annotations.find((a) => a.type === 'pass' && a.toId);
-  const newCarrier = passAnno?.toId ?? cur.ballCarrier;
-  const nextIdx = s.activeStep + 1;
-  const next = s.steps[nextIdx];
-  if (next && nextIdx === s.steps.length - 1 && !next.isInterpolated && isBlankStep(next)) {
-    const steps = [...s.steps];
-    steps[nextIdx] = { ...next, off: { ...next.off, ...newOff }, ballCarrier: newCarrier };
-    return { ...s, steps, activeStep: nextIdx };
+    });
+    // Donnée héritée : passe stockée sur l'étape active elle-même.
+    const passAnno = cur.annotations.find((a) => a.type === 'pass' && a.toId);
+    const newCarrier = passAnno?.toId ?? cur.ballCarrier;
+    return { ...s, steps: [...s.steps, makeStep(newOff, newCarrier, [])], activeStep: k + 1 };
   }
-  const newStep = makeStep(newOff, newCarrier, []);
+
+  if (k + 1 === s.steps.length - 1 && !next.isInterpolated && isDisplayBlankStep(s.steps, k + 1)) {
+    return { ...s, activeStep: k + 1 };
+  }
+
+  const belongsToCur = actionsOfStep(s.steps, k).filter((a) => a.stepIdx === k + 1);
+  const moved = new Set(belongsToCur.map((a) => a.index));
+  const inserted: Step = {
+    off: { ...next.off },
+    ballCarrier: next.ballCarrier,
+    annotations: belongsToCur.map((a) => a.annotation),
+  };
+  const remaining: Step = { ...next, annotations: next.annotations.filter((_, i) => !moved.has(i)) };
   const steps = [...s.steps];
-  steps.splice(s.activeStep + 1, 0, newStep);
-  return { ...s, steps, activeStep: s.activeStep + 1 };
+  steps.splice(k + 1, 1, inserted, remaining);
+  return { ...s, steps, activeStep: k + 1 };
 }
 
 export function duplicateStep(s: AppState): AppState {

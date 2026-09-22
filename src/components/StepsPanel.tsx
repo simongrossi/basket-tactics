@@ -3,6 +3,7 @@
 import { Plus, Copy, Trash2 } from 'lucide-react';
 import type { AppState, AttackerId, InboundDefenseMode, InboundSide } from '@/lib/types';
 import { activeBallCarrier, getActiveAttackerIds, isActiveAttacker } from '@/lib/logic/players';
+import { actionsOfStep } from '@/lib/logic/stepActions';
 import { getVisibleStepRows as getVisibleStepRowsOf, stepCounterAt, type StepRow } from '@/lib/logic/stepNumbering';
 import { Panel, Section, Button, COLORS } from './ui';
 
@@ -32,7 +33,7 @@ interface StepsPanelProps {
    *  couloirs vers HOOP_OPPOSITE, full-court). Visible sur un rebond défensif. */
   onAddFastBreakSteps?: (options?: { sourceStepIdx?: number }) => void;
   onSetBallCarrier: (carrier: AttackerId) => void;
-  onDeleteAnnotation: (idx: number) => void;
+  onDeleteAnnotation: (idx: number, stepIdx?: number) => void;
   onToggleAnnotationSprint?: (stepIdx: number, annoIdx: number) => void;
   onSetAnnotationFlipSide: (stepIdx: number, annIdx: number, side: 'left' | 'right' | undefined) => void;
   onAddFeinte: (stepIdx: number, annIdx: number, t: number) => void;
@@ -119,8 +120,9 @@ export function StepsPanel(props: StepsPanelProps) {
           ) : visibleStepRows.map(({ step: s, index: i, number }) => {
             const isActive = i === state.activeStep;
             const carrier = activeBallCarrier(s, state.playerCount);
-            const visibleAnnotations = s.annotations
-              .map((annotation, index) => ({ annotation, index }))
+            // Actions qui partent de cette étape (passes stockées sur la
+            // suivante comprises) — même règle que le terrain.
+            const visibleAnnotations = actionsOfStep(state.steps, i)
               .filter(({ annotation }) =>
                 isActiveAttacker(annotation.fromId, state.playerCount) &&
                 (!annotation.toId || isActiveAttacker(annotation.toId, state.playerCount))
@@ -301,7 +303,7 @@ export function StepsPanel(props: StepsPanelProps) {
                 {/* Liste des annotations supprimables — visible seulement sur l'étape active */}
                 {isActive && visibleAnnotations.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4 }}>
-                    {visibleAnnotations.map(({ annotation: a, index }, ai) => {
+                    {visibleAnnotations.map(({ annotation: a, index, stepIdx: annoStep }, ai) => {
                       const meta = ANNOTATION_LABELS[a.type];
                       return (
                         <div key={ai} style={{ display: 'flex', flexDirection: 'column' }}>
@@ -329,7 +331,7 @@ export function StepsPanel(props: StepsPanelProps) {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              props.onDeleteAnnotation(index);
+                              props.onDeleteAnnotation(index, annoStep);
                             }}
                             title="Supprimer cette action"
                             aria-label={`Supprimer l’action ${meta.label} de ${a.fromId}`}
@@ -382,7 +384,7 @@ export function StepsPanel(props: StepsPanelProps) {
                                 <input
                                   type="checkbox"
                                   checked={!!a.sprint}
-                                  onChange={() => props.onToggleAnnotationSprint?.(i, index)}
+                                  onChange={() => props.onToggleAnnotationSprint?.(annoStep, index)}
                                   style={{ width: 11, height: 11 }}
                                 />
                                 sprint offensif (60% temps)
@@ -398,7 +400,7 @@ export function StepsPanel(props: StepsPanelProps) {
                                     onChange={(e) => {
                                       const v = e.target.value;
                                       props.onSetAnnotationFlipSide(
-                                        i, index,
+                                        annoStep, index,
                                         v === 'none' ? undefined : (v as 'left' | 'right'),
                                       );
                                     }}
@@ -423,7 +425,7 @@ export function StepsPanel(props: StepsPanelProps) {
                                     step={0.05}
                                     value={tF}
                                     onChange={(e) =>
-                                      props.onUpdateFeinte(i, index, fi, parseFloat(e.target.value))
+                                      props.onUpdateFeinte(annoStep, index, fi, parseFloat(e.target.value))
                                     }
                                     style={{ flex: 1 }}
                                     title={`Position de la feinte : ${(tF * 100).toFixed(0)}% de l'arc`}
@@ -432,7 +434,7 @@ export function StepsPanel(props: StepsPanelProps) {
                                     {(tF * 100).toFixed(0)}%
                                   </span>
                                   <button
-                                    onClick={() => props.onRemoveFeinte(i, index, fi)}
+                                    onClick={() => props.onRemoveFeinte(annoStep, index, fi)}
                                     title="Supprimer cette feinte"
                                     style={{
                                       border: 'none',
@@ -449,7 +451,7 @@ export function StepsPanel(props: StepsPanelProps) {
                                 </div>
                               ))}
                               <button
-                                onClick={() => props.onAddFeinte(i, index, 0.5)}
+                                onClick={() => props.onAddFeinte(annoStep, index, 0.5)}
                                 title="Ajouter une feinte à la moitié de l'arc"
                                 style={{
                                   alignSelf: 'flex-start',

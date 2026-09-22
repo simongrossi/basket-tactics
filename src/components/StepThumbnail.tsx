@@ -1,5 +1,6 @@
 'use client';
 
+import { actionsOfStep } from '@/lib/logic/stepActions';
 import type {
   AppState,
   AttackerId,
@@ -38,7 +39,8 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
   if (!step) return null;
   const off = activeOffense(step.off, state.playerCount);
   const carrier = activeBallCarrier(step, state.playerCount);
-  const visibleAnnotations = step.annotations.filter(
+  // Actions qui partent de l'étape (le ballon est encore chez le passeur).
+  const visibleAnnotations = actionsOfStep(state.steps, stepIdx).map(({ annotation }) => annotation).filter(
     (a) => isActiveAttacker(a.fromId, state.playerCount) && (!a.toId || isActiveAttacker(a.toId, state.playerCount))
   );
   const defPos: ComputedDefense = showDefense

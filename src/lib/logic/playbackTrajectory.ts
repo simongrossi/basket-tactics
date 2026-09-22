@@ -24,7 +24,7 @@ const SCREEN_SET_FRACTION = 0.35;
  * au-delà). On détecte ce cas par `|cur.off - ann.to| ≤ tolérance` et on
  * ignore l'annotation.
  */
-const ANNOTATION_STALE_TO_TOLERANCE_PX = 2;
+export const ANNOTATION_STALE_TO_TOLERANCE_PX = 2;
 
 function annotationPolyline(ann: Annotation): Point[] {
   return ann.waypoints && ann.waypoints.length > 0
