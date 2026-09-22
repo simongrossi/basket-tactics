@@ -156,7 +156,21 @@ un pied dans la raquette — pas juste un sag proportionnel.
 
 ## P3 — Réalisme du mouvement (gains visuels, chantiers plus lourds)
 
-### 🔄 P3.1 — Inertie défenseur en playback 〔L → M〕 (re-scopé 2026-07-02)
+### ✅ P3.1-V1 — Rampe d'accélération défenseur en playback 〔M〕 (livré 2026-09-22)
+
+> **Livré** : `frameResolver :: applyDefenderMotionInertia` borne, à chaque
+> sous-pas canonique, la vitesse à `v_prev + a·dt` (a = 4,5 m/s² par défaut,
+> `defenderPlaybackAcceleration`), départ à l'arrêt compris. Vitesse mémorisée
+> en px/s (`motionMemory.speedPxPerSec`) grâce à l'instant `t` des frames →
+> indépendant de la durée des étapes. Opt-in `defenderPlaybackAccelerationEnabled`
+> (case « départ progressif en lecture »). Mêmes exclusions que l'inertie
+> (contact d'écran, overrides) ; collisions résolues en aval. Mesure : D5 du
+> PNR central jusqu'à 1,8 m de retard au départ du repli, rattrapé ; ≤ 0,18 m
+> en fin de lecture. Tests : `p31DefenderAccelerationRamp.test.ts` (dont
+> séparation 34 px et sauts ≤ 18 px sur 6 modèles). Reste V2 : freinage
+> (décélération), footwork, fatigue/regard en lecture (ROADMAP #9).
+
+### Historique — P3.1 inertie défenseur en playback (re-scopé 2026-07-02)
 
 > **Audit** : l'inertie de virage existe déjà et est active par défaut en
 > playback — `applyDefenderMotionInertia` (frameResolver) : mémoire de
@@ -278,7 +292,7 @@ anti-récursion de SCREEN-ENGINE).
 ✅ P3.2 / ✅ P3.4 / ✅ P4.2          (re-scopes : déjà livrés ailleurs)
 
 Backlog restant réel :
-✅ P3.3 congestion (2026-09-22) ──► 🔄 P3.1-V1 rampe accélération
+✅ P3.3 congestion (2026-09-22) ──► ✅ P3.1-V1 rampe accélération (2026-09-22)
 ──► 🔄 P3.5 lead pursuit closeout ──► P4.1 shoulder-to-shoulder
 P4.3 / P4.4 : à instruire séparément (risque écran / design multi-step)
 ```

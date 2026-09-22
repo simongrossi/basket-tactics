@@ -6,6 +6,16 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Réalisme défensif — P3.1 départ progressif en lecture (2026-09-22)
+
+- Pendant la lecture, un défenseur ne peut gagner que `a × dt` de vitesse par
+  sous-pas (4,5 m/s² par défaut) : fini le départ à pleine vitesse depuis
+  l'arrêt. Vitesse mémorisée en px/s (instant `t` sur chaque frame), donc
+  indépendante de la durée des étapes. Opt-in
+  `defenderPlaybackAccelerationEnabled`, hors contact d'écran et placements
+  manuels. Séparation 34 px et sauts ≤ 18 px vérifiés sur 6 modèles ;
+  suite 2 476 / 2 476, dont écran / overlap / userJson / screenLab.
+
 ### Réalisme défensif — P3.3 congestion en trafic (2026-09-22)
 
 - `congestionFactor` : traverser plusieurs joueurs ralentit davantage qu'en

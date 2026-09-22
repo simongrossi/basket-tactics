@@ -55,6 +55,7 @@ import { resolveRealismFlags } from '../realismProfile';
 import {
   PLAYER_MIN_CLEARANCE_PX,
   PLAYER_OBSTACLE_RADIUS_PX,
+  PX_PER_M,
 } from '@/lib/data/court';
 import {
   carrierApexSlownessFromQuality,
@@ -201,11 +202,16 @@ export interface DefenderMotionMemoryEntry {
   velocity: Point;
   turnDeg: number;
   inertia: number;
+  /** P3.1 — vitesse réelle (px/s) sur le dernier sous-pas, indépendante de
+   *  la durée d'étape. Absente si l'intervalle de temps est inconnu. */
+  speedPxPerSec?: number;
 }
 
 export type DefenderMotionMemory = Partial<Record<DefenderId, DefenderMotionMemoryEntry>>;
 
 export interface PlaybackFrame {
+  /** Instant de la frame (index d'étape fractionnaire, clampé). */
+  t?: number;
   off: AttackerPositions;
   defPos: ComputedDefense;
   carrier: AttackerId;
@@ -267,6 +273,11 @@ export interface ResolveDeterministicScrubOptions extends ResolveFrameOptions {
  * La calibration en mètres/seconde relève des contraintes de durée (F12). */
 const MAX_DEFENDER_JUMP_PX = 9;
 const MAX_ATTACKER_JUMP_PX = 9;
+
+/** P3.1 — accélération par défaut d'un défenseur depuis l'arrêt (m/s²) :
+ *  ~6 m/s atteints en ~1,3 s. Ordre de grandeur des premiers appuis d'un
+ *  joueur de basket (3-6 m/s²). */
+const DEFAULT_DEFENDER_PLAYBACK_ACCELERATION = 4.5;
 
 /** Démarre l'inertie quand le défenseur change fortement de direction.
  *  cos(70°) ≈ 0.34 : sous ce seuil, le virage devient visible à l'oeil. */
@@ -1159,6 +1170,10 @@ export function resolveFrameAt(
     8,
     screenLockedDefenders
   );
+  // Durée réelle écoulée depuis la frame précédente (P3.1).
+  const motionDtSec = options.prevFrame?.t != null && clamped > options.prevFrame.t
+    ? (clamped - options.prevFrame.t) * getStepDurationSeconds(state, idxA)
+    : undefined;
   const motionResult = options.prevFrame
     ? applyDefenderMotionInertia({
         state,
@@ -1169,6 +1184,7 @@ export function resolveFrameAt(
         defenderIds,
         lockedDefenders: screenLockedDefenders,
         decisions,
+        dtSec: motionDtSec,
       })
     : undefined;
   if (motionResult?.applied) {
@@ -1278,7 +1294,7 @@ export function resolveFrameAt(
     });
   }
   const nextMotionMemory = options.prevFrame
-    ? buildDefenderMotionMemory(defPos, options.prevFrame, defenderIds, motionResult?.stats)
+    ? buildDefenderMotionMemory(defPos, options.prevFrame, defenderIds, motionResult?.stats, motionDtSec)
     : undefined;
   recomputeDefenseFrameOrientations(state, off, carrier, defPos, defA);
   profiler?.lap('rateLimiter');
@@ -1330,6 +1346,7 @@ export function resolveFrameAt(
   const profile = profiler?.finish();
 
   return {
+    t: clamped,
     off,
     defPos,
     carrier,
@@ -1486,13 +1503,37 @@ function applyDefenderMotionInertia(params: {
   defenderIds: DefenderId[];
   lockedDefenders: ReadonlySet<DefenderId>;
   decisions: Partial<Record<DefenderId, FrameDecision>> | null;
+  /** Durée réelle depuis `prevFrame` (s) ; requise par la rampe P3.1. */
+  dtSec?: number;
 }): DefenderMotionInertiaResult {
   const stats: Partial<Record<DefenderId, DefenderMotionStat>> = {};
   let applied = false;
+  const rampAccel = params.state.defenderPlaybackAccelerationEnabled && params.dtSec && params.dtSec > 0
+    ? (params.state.defenderPlaybackAcceleration ?? DEFAULT_DEFENDER_PLAYBACK_ACCELERATION) * PX_PER_M
+    : 0;
   params.defenderIds.forEach((id) => {
     const prev = params.prevFrame.defPos[id];
     const current = params.defPos[id];
     if (!prev || !current) return;
+
+    // P3.1 (opt-in) — rampe d'accélération : la vitesse ne peut croître que
+    // de `a × dt` par rapport au sous-pas précédent (départ à l'arrêt
+    // compris). Le retard pris se rattrape sur les sous-pas suivants.
+    if (rampAccel > 0 && !shouldSkipDefenderMotionInertia(
+      params.state, params.idxA, params.idxB, id, current, params.lockedDefenders,
+    )) {
+      const dt = params.dtSec!;
+      const previousSpeed = params.prevFrame.motionMemory?.[id]?.speedPxPerSec ?? 0;
+      const maxDist = (previousSpeed + rampAccel * dt) * dt;
+      const dx = current.x - prev.x;
+      const dy = current.y - prev.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > maxDist + 1e-6) {
+        current.x = prev.x + (dx / dist) * maxDist;
+        current.y = prev.y + (dy / dist) * maxDist;
+        applied = true;
+      }
+    }
 
     const previousVelocity = params.prevFrame.motionMemory?.[id]?.velocity;
     if (!previousVelocity) return;
@@ -1566,7 +1607,8 @@ function buildDefenderMotionMemory(
   defPos: ComputedDefense,
   prevFrame: PlaybackFrame,
   defenderIds: DefenderId[],
-  stats: Partial<Record<DefenderId, DefenderMotionStat>> | undefined
+  stats: Partial<Record<DefenderId, DefenderMotionStat>> | undefined,
+  dtSec?: number,
 ): DefenderMotionMemory {
   const out: DefenderMotionMemory = {};
   defenderIds.forEach((id) => {
@@ -1574,10 +1616,12 @@ function buildDefenderMotionMemory(
     const current = defPos[id];
     if (!prev || !current) return;
     const stat = stats?.[id];
+    const velocity = { x: current.x - prev.x, y: current.y - prev.y };
     out[id] = {
-      velocity: { x: current.x - prev.x, y: current.y - prev.y },
+      velocity,
       turnDeg: stat?.turnDeg ?? 0,
       inertia: stat?.inertia ?? 0,
+      ...(dtSec && dtSec > 0 ? { speedPxPerSec: Math.hypot(velocity.x, velocity.y) / dtSec } : {}),
     };
   });
   return out;

@@ -1055,6 +1055,13 @@ export interface AppState {
    *  avec le nombre de corps sur son trajet (cf. `congestionFactor`), en plus
    *  de la friction de proximité. Default undefined = legacy. */
   congestionPenaltyEnabled?: boolean;
+  /** P3.1 — Rampe d'accélération des défenseurs en LECTURE : à chaque
+   *  sous-pas, la vitesse ne croît que de `defenderPlaybackAcceleration`
+   *  (m/s²) × dt ; un défenseur à l'arrêt ne part plus à pleine vitesse.
+   *  Hors contact d'écran et placements manuels. Default undefined = legacy. */
+  defenderPlaybackAccelerationEnabled?: boolean;
+  /** P3.1 — Accélération (m/s²), défaut 4,5. */
+  defenderPlaybackAcceleration?: number;
   /** P2.1 — Jump the passing lane : pendant le vol d'une passe, un défenseur
    *  proche de la ligne passeur→receveur fait un pas dans la ligne
    *  (tentative de déflection) puis revient. Playback/scrub uniquement,

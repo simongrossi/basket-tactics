@@ -905,6 +905,12 @@ export function DefensePanel(props: DefensePanelProps) {
                 title="Un défenseur qui doit traverser plusieurs joueurs (raquette encombrée, trafic d'écrans) perd plus de vitesse que s'il en frôle un seul. Jamais figé : au pire ~55 % de sa vitesse."
               />
               <CheckboxLine
+                checked={!!state.defenderPlaybackAccelerationEnabled}
+                label="départ progressif en lecture (P3.1)"
+                onChange={(v) => props.onPatch({ defenderPlaybackAccelerationEnabled: v })}
+                title="Pendant la lecture animée, un défenseur à l'arrêt accélère progressivement (≈ 4,5 m/s², environ 6 m/s atteints en 1,3 s) au lieu de partir instantanément à pleine vitesse. Hors contact d'écran et placements manuels."
+              />
+              <CheckboxLine
                 checked={!!state.jumpPassingLanesEnabled}
                 label="jump ligne de passe (P2.1)"
                 onChange={(v) => props.onPatch({ jumpPassingLanesEnabled: v })}
