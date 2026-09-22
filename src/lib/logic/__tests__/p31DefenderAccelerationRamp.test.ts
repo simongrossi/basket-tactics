@@ -51,7 +51,8 @@ describe('P3.1 — rampe d’accélération des défenseurs (lecture)', () => {
   it('depuis l’arrêt, D1 accélère progressivement (pas de vitesse max au 1er sous-pas)', () => {
     const state = sprintState(true);
     const dt = getStepDurationSeconds(state, 0) / SUBSTEPS;
-    const accelPx = 4.5 * PX_PER_M; // défaut 4,5 m/s²
+    // défaut 4,5 m/s², au plus ×1,2 si le défenseur voit son homme (V4).
+    const accelPx = 4.5 * 1.2 * PX_PER_M;
     const steps = substepDisplacements(state, 'D1', 8);
     // Sous-pas k : au plus la vitesse acquise après k × dt, plus une marge
     // pour la résolution de collisions en aval.
@@ -97,5 +98,13 @@ describe('P3.1 — rampe d’accélération des défenseurs (lecture)', () => {
         previous = frame;
       }
     }
+  });
+
+  it('poursuite V4 : un défenseur élite démarre plus vite qu’un défenseur lent', () => {
+    const run = (profile: 'elite' | 'lent') => {
+      const state = { ...sprintState(true), defenderSpeedProfiles: { D1: profile } };
+      return substepDisplacements(state, 'D1', 10).reduce((a, b) => a + b, 0);
+    };
+    expect(run('elite')).toBeGreaterThan(run('lent') * 1.3);
   });
 });

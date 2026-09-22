@@ -168,7 +168,15 @@ un pied dans la raquette — pas juste un sag proportionnel.
 > PNR central jusqu'à 1,8 m de retard au départ du repli, rattrapé ; ≤ 0,18 m
 > en fin de lecture. Tests : `p31DefenderAccelerationRamp.test.ts` (dont
 > séparation 34 px et sauts ≤ 18 px sur 6 modèles). Reste V2 : freinage
-> (décélération), footwork, fatigue/regard en lecture (ROADMAP #9).
+> (décélération).
+>
+> **V2 livrée le même jour (poursuite V4 en lecture, ROADMAP #9)** :
+> `defense/pursuitModulators.ts` module l'accélération de la rampe comme la
+> poursuite au drag — profil (élite ×1,3 / lent ×0,7), appuis (pas chassés
+> ×0,7, recul ×0,6), regard (homme vu ×1,2, dans le dos ×0,7). Fatigue non
+> reprise (seuil du drag ≈ 8 m atteint par tous en une possession ; relève du
+> match simulé). Latence de pivot non reprise : couverte par l'inertie de
+> virage existante.
 
 ### Historique — P3.1 inertie défenseur en playback (re-scopé 2026-07-02)
 

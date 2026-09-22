@@ -908,7 +908,7 @@ export function DefensePanel(props: DefensePanelProps) {
                 checked={!!state.defenderPlaybackAccelerationEnabled}
                 label="départ progressif en lecture (P3.1)"
                 onChange={(v) => props.onPatch({ defenderPlaybackAccelerationEnabled: v })}
-                title="Pendant la lecture animée, un défenseur à l'arrêt accélère progressivement (≈ 4,5 m/s², environ 6 m/s atteints en 1,3 s) au lieu de partir instantanément à pleine vitesse. Hors contact d'écran et placements manuels."
+                title="Pendant la lecture animée, un défenseur à l'arrêt accélère progressivement (≈ 4,5 m/s², environ 6 m/s atteints en 1,3 s) au lieu de partir instantanément à pleine vitesse. L'accélération dépend du profil (élite / lent), des appuis (avancer, pas chassés, reculer) et du regard (voit-il son homme partir ?). Hors contact d'écran et placements manuels."
               />
               <CheckboxLine
                 checked={!!state.defenderLeadPursuitEnabled}

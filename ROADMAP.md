@@ -16,8 +16,8 @@ passe après). Ordre de travail :
 
 1. **Réalisme défensif** — [plan P3/P4](docs/plan-comportements-physiques.md) :
    ✅ P3.3 congestion en trafic (2026-09-22) → ✅ P3.1 rampe d'accélération (2026-09-22) → ✅ P3.5 poursuite
-   anticipée (2026-09-22) → ✅ P4.1 porteur qui frôle son écran (déjà couvert, verrouillé 2026-09-22) → poursuite V4 en
-   lecture (fatigue, regard, anticipation — « Priorisation moteur » #9) ;
+   anticipée (2026-09-22) → ✅ P4.1 porteur qui frôle son écran (déjà couvert, verrouillé 2026-09-22) → ✅ poursuite V4 en
+   lecture (profil, appuis, regard — 2026-09-22 ; fatigue laissée au match simulé) ;
    P4.3 / P4.4 à instruire séparément.
 2. **Axe coaching** (tableau § « Coaching — usage entraînement » ci-dessous) :
    quiz / lecture cachée → clés d'enseignement → fiche d'une page par système
@@ -185,7 +185,7 @@ remontés sur l'étape de l'action). Détail : CHANGELOG et PLAN-COACH.
 | 6 | Extensions Phase L — multi-niveaux ✅ (2026-06-11, sous-branches récursives) · receveur dynamique ⚪ | 🟡 | 0.5-1j restant | 🟠 synergie travail actuel |
 | 7 | Game management fin de match (2-for-1, faute à +3…) | ⚪ | 1j | 🟠 |
 | 8 | Rebond réaliste + crash vs repli (recouvre A11 V3) | ⚪ | 1-2j | 🟠 |
-| 9 | Poursuite défenseur V4 en playback | ⚪ | 1j | 🟠 qualité visuelle lecture |
+| 9 | Poursuite défenseur V4 en playback — 🟢 livrée 2026-09-22 (profil, appuis, regard sur la rampe P3.1 ; fatigue → match simulé) | 🟢 | — | 🟠 qualité visuelle lecture |
 | 10 | Latéralité fonctionnelle · boxscore · comparaison côte-à-côte | ⚪ | ponctuel | 🟡 |
 
 ---

@@ -6,6 +6,16 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Réalisme défensif — poursuite V4 en lecture + P4.1 verrouillé (2026-09-22)
+
+- Le départ progressif (P3.1) tient compte du profil athlétique (élite ×1,3,
+  lent ×0,7), des appuis (pas chassés ×0,7, recul ×0,6) et du regard (homme
+  vu ×1,2, dans le dos ×0,7), comme la poursuite au drag
+  (`defense/pursuitModulators.ts`). Fatigue volontairement non reprise.
+- P4.1 (porteur qui frôle son écran) : déjà obtenu (34 px du poseur sur les
+  PNR des modèles) ; garde-fou `p41CarrierShaveScreen.test.ts`.
+- Suite 2 492 / 2 492.
+
 ### Réalisme défensif — P3.5 poursuite anticipée (2026-09-22)
 
 - Un défenseur freiné par le départ progressif coupe l'angle vers le point de

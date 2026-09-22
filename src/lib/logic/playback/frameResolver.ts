@@ -46,6 +46,7 @@ import { getStepDurationSeconds } from '../timecode';
 import { resolveAnnotationTiming } from '../annotationTiming';
 import { activeBallCarrier, activeOffense } from '../players';
 import { avoidAttackerRoute } from './attackerRouteAvoidance';
+import { headingDeg, pursuitAccelerationMultiplier } from '../defense/pursuitModulators';
 import { attackerTrajectoryAt, type MovementType } from '../playbackTrajectory';
 import { lerpAngleDeg } from '../angles';
 import { buildStep0DetectionPositions } from '../step0Detection';
@@ -1530,10 +1531,20 @@ function applyDefenderMotionInertia(params: {
     )) {
       const dt = params.dtSec!;
       const previousSpeed = params.prevFrame.motionMemory?.[id]?.speedPxPerSec ?? 0;
-      const maxDist = (previousSpeed + rampAccel * dt) * dt;
       const dx = current.x - prev.x;
       const dy = current.y - prev.y;
       const dist = Math.hypot(dx, dy);
+      // Poursuite V4 : profil athlétique, appuis (avancer / chasser /
+      // reculer) et lecture du regard modulent l'accélération.
+      const man = params.off[current.matchedTo];
+      const accel = rampAccel * pursuitAccelerationMultiplier({
+        profile: params.state.defenderSpeedProfiles?.[id],
+        moveDeg: dist > 1e-6 ? headingDeg(dx, dy) : undefined,
+        bodyDeg: prev.orientation,
+        gazeDeg: prev.gazeOrientation,
+        toManDeg: man ? headingDeg(man.x - prev.x, man.y - prev.y) : undefined,
+      });
+      const maxDist = (previousSpeed + accel * dt) * dt;
       if (dist > maxDist + 1e-6) {
         let dir = { x: dx / dist, y: dy / dist };
         // P3.5 (opt-in) — poursuite anticipée : en retard, viser le point de
@@ -1543,7 +1554,7 @@ function applyDefenderMotionInertia(params: {
         const manNow = params.state.defenderLeadPursuitEnabled ? params.off[current.matchedTo] : undefined;
         const manPrev = params.prevFrame.off[current.matchedTo];
         if (manNow && manPrev) {
-          const reach = previousSpeed + rampAccel * dt;
+          const reach = previousSpeed + accel * dt;
           const tau = Math.min(DEFENDER_LEAD_PURSUIT_MAX_SEC, dist / Math.max(reach, 1));
           const lead = {
             x: current.x + ((manNow.x - manPrev.x) / dt) * tau,
