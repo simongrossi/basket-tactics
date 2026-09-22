@@ -130,24 +130,38 @@ export function addAnnotation(
   annotation: Annotation,
   options?: AddAnnotationOptions,
 ): AppState {
-  const placement = withDrawTiming(s, annotation, options);
+  let placement = withDrawTiming(s, annotation, options);
+  let base = s.steps;
+  let activeStep = s.activeStep;
+  // Une passe s'anime pendant la transition qui mène à l'étape qui la porte.
+  // Posée sur l'étape 0, elle ne serait jamais jouée (ballon téléporté) :
+  // on la place sur l'étape suivante, créée depuis l'étape 0 si besoin, et
+  // on s'y rend pour que la flèche reste visible.
+  if (placement.annotation.type === 'pass' && placement.stepIdx === 0) {
+    if (base.length === 1) {
+      const first = base[0];
+      base = [...base, { off: { ...first.off }, ballCarrier: first.ballCarrier, annotations: [] }];
+    }
+    placement = { ...placement, stepIdx: 1 };
+    activeStep = 1;
+  }
   let steps: Step[];
   if (placement.annotation.type === 'pass') {
-    steps = upsertPassAnnotation(s.steps, placement.stepIdx, placement.annotation);
+    steps = upsertPassAnnotation(base, placement.stepIdx, placement.annotation);
     if (placement.annotation.toId) {
       steps = steps.map((st, i) =>
         i === placement.stepIdx ? { ...st, ballCarrier: placement.annotation.toId! } : st
       );
     }
   } else {
-    steps = upsertMovementAnnotation(s.steps, placement.stepIdx, placement.annotation);
+    steps = upsertMovementAnnotation(base, placement.stepIdx, placement.annotation);
   }
   if (placement.stepIdx > 0 && steps[placement.stepIdx].generatedBy) {
     const next = [...steps];
     next[placement.stepIdx] = { ...next[placement.stepIdx], manualOverride: true };
-    return { ...s, steps: next };
+    return { ...s, steps: next, activeStep };
   }
-  return { ...s, steps };
+  return { ...s, steps, activeStep };
 }
 
 export function setForcedScreener(s: AppState, oId: AttackerId | null): AppState {

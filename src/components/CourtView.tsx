@@ -1,5 +1,6 @@
 'use client';
 
+import { formatStepCounter, stepCounterAt } from '@/lib/logic/stepNumbering';
 import { useInterfaceLevel } from './interface/InterfaceLevel';
 
 // Composant principal du terrain. Rôle :
@@ -122,6 +123,8 @@ interface CourtViewProps {
   onUpdateTextNote: (stepIdx: number, noteIdx: number, text: string) => void;
   onRemoveTextNote: (stepIdx: number, noteIdx: number) => void;
   isPlaying: boolean;
+  /** Position de lecture (index d'étape fractionnaire) pour le badge ▶. */
+  playbackT?: number | null;
   playbackSpeed: number;
   onPlaybackEnd?: () => void;
   onPlaybackTick?: (t: number) => void;
@@ -1136,8 +1139,12 @@ export function CourtView(props: CourtViewProps) {
         >
           <span>▶</span>
           <span>
-            étape {frame.stepIdx + 1} / {state.steps.length}
-            {state.steps[frame.stepIdx]?.label ? ` — ${state.steps[frame.stepIdx].label}` : ''}
+            {(() => {
+              // Même numérotation que le panneau Étapes et la timeline.
+              const counter = stepCounterAt(state.steps, props.playbackT ?? frame.stepIdx);
+              const label = counter.rowIndex != null ? state.steps[counter.rowIndex]?.label : undefined;
+              return `${formatStepCounter(counter)}${label ? ` — ${label}` : ''}`;
+            })()}
           </span>
         </div>
       )}

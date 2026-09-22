@@ -62,7 +62,13 @@ export function stepCounterAt(steps: Step[], t: number): StepCounter {
   const last = Math.max(0, steps.length - 1);
   const idx = Math.max(0, Math.min(last, Math.floor(t + 1e-6)));
 
-  if (total === 0 || idx < rows[0].index) {
+  if (total === 0) return { kind: 'setup', current: 0, total, rowIndex: null };
+  if (idx < rows[0].index) {
+    // En transition vers la 1re étape numérotée depuis le placement : ce
+    // sont ses actions qui jouent (ex. passe, stockée sur l'étape d'arrivée).
+    if (t > idx + 1e-6 && idx + 1 === rows[0].index) {
+      return { kind: 'step', current: 1, total, rowIndex: rows[0].index };
+    }
     return { kind: 'setup', current: 0, total, rowIndex: null };
   }
   let row = rows[0];

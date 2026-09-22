@@ -42,6 +42,40 @@ describe('annotationTransforms', () => {
       expect(s1.steps[s1.activeStep].ballCarrier).toBe('O3');
     });
 
+    // Parcours coach : une passe dessinée en premier doit être animée. Le
+    // moteur anime une passe pendant la transition qui MÈNE à l'étape qui
+    // la porte ; à l'étape 0 aucune transition ne précède.
+    it("passe sur le placement de départ : créée sur l'étape suivante, animée", () => {
+      const s0 = makeInitialState();
+      const pass: Annotation = {
+        type: 'pass', fromId: 'O1', toId: 'O3',
+        from: s0.steps[0].off.O1, to: s0.steps[0].off.O3,
+      };
+      const s1 = annoTx.addAnnotation(s0, pass);
+      expect(s1.steps).toHaveLength(2);
+      expect(s1.steps[0].annotations).toHaveLength(0);
+      expect(s1.steps[0].ballCarrier).toBe('O1');
+      expect(s1.steps[1].annotations[0]).toMatchObject({ type: 'pass', fromId: 'O1', toId: 'O3' });
+      expect(s1.steps[1].ballCarrier).toBe('O3');
+      expect(s1.steps[1].off).toEqual(s0.steps[0].off);
+      expect(s1.activeStep).toBe(1);
+    });
+
+    it("passe sur l'étape 0 après une course : jouée pendant la course", () => {
+      const s0 = makeInitialState();
+      const withCut = annoTx.addAnnotation(s0, {
+        type: 'cut', fromId: 'O3', toId: null, from: s0.steps[0].off.O3, to: { x: 400, y: 200 },
+      });
+      const s1 = annoTx.addAnnotation(withCut, {
+        type: 'pass', fromId: 'O1', toId: 'O3', from: s0.steps[0].off.O1, to: { x: 400, y: 200 },
+      });
+      expect(s1.steps).toHaveLength(2);
+      expect(s1.steps[0].ballCarrier).toBe('O1');
+      expect(s1.steps[0].annotations.map((a) => a.type)).toEqual(['cut']);
+      expect(s1.steps[1].annotations.map((a) => a.type)).toEqual(['pass']);
+      expect(s1.steps[1].ballCarrier).toBe('O3');
+    });
+
     it("mode début sur une passe scrubée : la passe part au moment courant et arrive au step suivant", () => {
       const s0 = stateWithTwoSteps();
       const pass: Annotation = {

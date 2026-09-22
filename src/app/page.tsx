@@ -809,6 +809,7 @@ export default function Page() {
               onSetTool={app.setTool}
               onSetActionTimingAnchor={handleSetActionTimingAnchor}
               isPlaying={isPlaying}
+              playbackT={playbackT}
               playbackSpeed={playbackSpeed}
               scrubT={scrubT}
               playbackStartT={playbackStartT}
