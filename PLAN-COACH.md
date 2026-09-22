@@ -30,7 +30,7 @@ contrôle visuel des systèmes et parcours réels de sauvegarde/partage.
 
 - [x] U01 Entrées créer / modèle / séance ; presets et vocabulaire métier en premier.
 - [x] U02 Niveaux coach / analyse / développement ; unités mètres et secondes.
-- [ ] U03 Annuler/rétablir visibles ; raccourcis uniques selon vue, mode et focus.
+- [x] U03 Annuler/rétablir visibles ; raccourcis uniques selon vue, mode et focus.
 - [ ] U04 Édition tactile complète, cibles confortables, contraste et accessibilité.
 - [ ] U05 Déroulé de séance : contexte conservé, retour, blocs précédent/suivant, minuteur.
 - [ ] U06 Vérification terrain avec coachs et tablette physique (validation humaine à organiser).
@@ -207,3 +207,20 @@ Ces changements doivent être préservés et distingués des commits de consolid
   de mutation du système/historique et conversion des unités. Suite complète :
   2 347 réussis, seuls les 6 échecs congestion préexistants ; type-check :
   les 2 erreurs congestion préexistantes. Prochaine priorité : U03.
+
+
+- U03 : boutons « Annuler » / « Rétablir » visibles au-dessus du terrain
+  (cibles 36 px, désactivés quand la pile est vide ou pendant la lecture,
+  infobulles avec raccourci). Naviguer entre étapes ne remplit plus
+  l’historique : Annuler revient sur la dernière vraie modification.
+  Un seul gestionnaire clavier (`resolveShortcut`) remplace les trois
+  gestionnaires de flèches et les deux d’Espace : ←/→ = étape (étapes réelles
+  en lecteur/présentation), Maj+←/→ = 1/10 de transition, `,`/`.` = image
+  fine, PageUp/PageDown en présentation, Échap quitte la présentation.
+  Espace = lecture/pause au relâchement ; maintenu + glisser = déplacer la vue.
+  Aucun raccourci hors terrain, dans un champ, ou avec une fenêtre modale
+  ouverte (modales désormais `role="dialog"` / `aria-modal`) ; un bouton
+  focus garde Espace. Outils : touche indiquée dans l’infobulle.
+  Vérification navigateur : glisser → Annuler actif, Ctrl+Z puis Rétablir au clic.
+  Suite complète : 2 366 réussis, seuls les 6 échecs congestion préexistants ;
+  type-check : les 2 erreurs congestion préexistantes. Prochaine priorité : U04.

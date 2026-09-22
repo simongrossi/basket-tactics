@@ -1,7 +1,8 @@
 'use client';
 
 import { InterfaceGate, useInterfaceLevel } from './interface/InterfaceLevel';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback } from 'react';
+import { SHORTCUT_LABELS } from '@/hooks/useKeyboardShortcuts';
 import type { AppState } from '@/lib/types';
 import {
   formatClock,
@@ -114,26 +115,8 @@ export function Timeline({
     onScrub?.(next);
   }, [displayT, totalT, onScrub]);
 
-  // Raccourcis clavier ← / → (fine, +1/-1) et Shift+← / Shift+→ (coarse).
-  // Désactivés si focus sur un input ou si la lecture est en cours.
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (isPlaying) return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        if (e.shiftKey) goCoarseFrame(-1);
-        else goFineFrame(-1);
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        if (e.shiftKey) goCoarseFrame(1);
-        else goFineFrame(1);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [isPlaying, goFineFrame, goCoarseFrame]);
+  // Raccourcis clavier : gérés par useKeyboardShortcuts (U03), un seul
+  // gestionnaire pour toutes les vues — voir SHORTCUT_LABELS.
   const ratio = total > 1 ? displayT / (total - 1) : 0;
   const currentStepIdx = Math.round(displayT);
   const currentStep = state.steps[currentStepIdx];
@@ -305,7 +288,7 @@ export function Timeline({
             <button
               onClick={() => goCoarseFrame(-1)}
               disabled={isPlaying || displayT <= 0}
-              title="Reculer 1/10 de transition (Shift+←)"
+              title={`Reculer 1/10 de transition (${SHORTCUT_LABELS.coarseBack})`}
               style={{
                 fontSize: 11,
                 padding: '4px 5px',
@@ -323,7 +306,7 @@ export function Timeline({
             <button
               onClick={() => goFineFrame(-1)}
               disabled={isPlaying || currentFineIdx <= 0}
-              title="Reculer un frame (1/60 de transition, ←)"
+              title={`Reculer d’une image (1/60 de transition, touche ${SHORTCUT_LABELS.fineBack})`}
               style={{
                 fontSize: 11,
                 padding: '4px 6px',
@@ -339,7 +322,7 @@ export function Timeline({
               ◀
             </button>
             <span
-              title="Frame fine courante / total (résolution 1/60 step). ←/→ clavier pour avancer fin, Shift+←/→ pour avancer grossier."
+              title={`Instant courant. ←/→ : étape ; ${SHORTCUT_LABELS.coarseBack}/${SHORTCUT_LABELS.coarseForward} : 1/10 de transition ; ${SHORTCUT_LABELS.fineBack} / ${SHORTCUT_LABELS.fineForward} : image fine.`}
               style={{
                 fontSize: 10,
                 color: TIMELINE_UI.muted,
@@ -354,7 +337,7 @@ export function Timeline({
             <button
               onClick={() => goFineFrame(1)}
               disabled={isPlaying || currentFineIdx >= totalFineFrames}
-              title="Avancer un frame (1/60 de transition, →)"
+              title={`Avancer d’une image (1/60 de transition, touche ${SHORTCUT_LABELS.fineForward})`}
               style={{
                 fontSize: 11,
                 padding: '4px 6px',
@@ -372,7 +355,7 @@ export function Timeline({
             <button
               onClick={() => goCoarseFrame(1)}
               disabled={isPlaying || displayT >= totalT}
-              title="Avancer 1/10 de transition (Shift+→)"
+              title={`Avancer 1/10 de transition (${SHORTCUT_LABELS.coarseForward})`}
               style={{
                 fontSize: 11,
                 padding: '4px 5px',

@@ -3,6 +3,7 @@
 import type { ActionTimingAnchor, Tool } from '@/lib/types';
 import { Panel, Section, COLORS } from './ui';
 import { useSidebarTheme, DARK_PANEL } from './sidebar/SidebarThemeContext';
+import { TOOL_KEYS } from '@/hooks/useKeyboardShortcuts';
 
 interface OffenseToolsPanelProps {
   tool: Tool;
@@ -10,6 +11,9 @@ interface OffenseToolsPanelProps {
   actionTimingAnchor?: ActionTimingAnchor;
   onSetActionTimingAnchor?: (mode: ActionTimingAnchor) => void;
 }
+
+const shortcutKeyFor = (tool: Tool): string =>
+  (Object.keys(TOOL_KEYS).find((k) => TOOL_KEYS[k] === tool) ?? '').toUpperCase();
 
 const TOOLS: { value: Tool; label: string }[] = [
   { value: 'move', label: 'déplacer' },
@@ -91,6 +95,8 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
               <button
                 key={t.value}
                 onClick={() => props.onSetTool(t.value)}
+                title={`Outil ${t.label} (touche ${shortcutKeyFor(t.value)})`}
+                aria-pressed={active}
                 style={{
                   flex: '1 0 calc(33% - 4px)',
                   fontSize: 11,

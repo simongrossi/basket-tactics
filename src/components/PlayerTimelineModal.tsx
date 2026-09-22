@@ -334,6 +334,8 @@ function LegendChip({ activity }: { activity: keyof typeof ACTIVITY_COLORS }) {
 function Backdrop({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       onClick={onClose}
       style={{
         position: 'fixed',

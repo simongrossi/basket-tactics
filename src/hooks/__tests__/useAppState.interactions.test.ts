@@ -35,6 +35,47 @@ describe('useAppState interactions', () => {
     });
     expect(result.current.state.steps[0].off.O1).toEqual(end);
   });
+  it('U03 — canUndo/canRedo suivent la pile, y compris après un drag coalescé', () => {
+    const { result } = renderHook(() => useAppState());
+    expect(result.current.canUndo).toBe(false);
+    expect(result.current.canRedo).toBe(false);
+
+    act(() => {
+      result.current.beginPlayerDrag();
+      result.current.moveAttackerDuringDrag('O1', 320, 450);
+      result.current.commitPlayerDrag();
+    });
+    expect(result.current.canUndo).toBe(true);
+
+    act(() => result.current.undo());
+    expect(result.current.canUndo).toBe(false);
+    expect(result.current.canRedo).toBe(true);
+
+    act(() => result.current.redo());
+    expect(result.current.canUndo).toBe(true);
+    expect(result.current.canRedo).toBe(false);
+  });
+
+  it('U03 — naviguer entre étapes ne remplit pas l’historique', () => {
+    const { result } = renderHook(() => useAppState());
+    act(() => result.current.addStep());
+    const edited = result.current.state;
+    act(() => result.current.setActiveStep(0));
+    act(() => result.current.setActiveStep(1));
+    act(() => result.current.setActiveStep(0));
+    // Annuler revient sur la vraie modification (l'ajout d'étape).
+    act(() => result.current.undo());
+    expect(result.current.state.steps).toHaveLength(edited.steps.length - 1);
+    expect(result.current.canUndo).toBe(false);
+  });
+
+  it('U03 — sélectionner l’étape déjà active ne change pas l’état', () => {
+    const { result } = renderHook(() => useAppState());
+    const before = result.current.state;
+    act(() => result.current.setActiveStep(before.activeStep));
+    expect(result.current.state).toBe(before);
+  });
+
   it('récupère le brouillon précédent après remplacement et rechargement', () => {
     const { result, unmount } = renderHook(() => useAppState());
     act(() => result.current.patch({ playerNames: { O1: 'Brouillon coach' } }));

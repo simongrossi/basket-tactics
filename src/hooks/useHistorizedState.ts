@@ -15,7 +15,7 @@
 //    pendant un drag pour ne créer qu'une seule entrée d'historique par
 //    geste utilisateur (sinon le drag pollue le past avec 60 entrées).
 
-import { useCallback, useRef, useState, type MutableRefObject } from 'react';
+import { useCallback, useReducer, useRef, useState, type MutableRefObject } from 'react';
 import type { AppState } from '@/lib/types';
 import {
   commitCoalescedHistory,
@@ -34,6 +34,9 @@ export interface HistorizedState {
   setStateWithHistory: (updater: Updater) => void;
   undo: () => void;
   redo: () => void;
+  /** Vrai s'il existe une modification à annuler / rétablir (boutons visibles). */
+  canUndo: boolean;
+  canRedo: boolean;
   beginPlayerDrag: () => void;
   commitPlayerDrag: () => void;
 }
@@ -47,6 +50,9 @@ export function useHistorizedState(initializer: () => AppState): HistorizedState
   const historyRef = useRef<AppStateHistory>({ past: [], future: [] });
   // Anchor du drag : capture l'état AVANT le geste pour collapse en 1 entrée.
   const dragHistoryAnchorRef = useRef<AppState | null>(null);
+  // La pile vit dans un ref : ce compteur force le rendu qui relit
+  // canUndo/canRedo (un commit de drag ne change pas l'état lui-même).
+  const [, bumpHistory] = useReducer((n: number) => n + 1, 0);
 
   const setStateRaw = useCallback((updater: Updater) => {
     setState(updater);
@@ -59,6 +65,7 @@ export function useHistorizedState(initializer: () => AppState): HistorizedState
       pushHistorySnapshot(historyRef.current, prev);
       return next;
     });
+    bumpHistory();
   }, []);
 
   const beginPlayerDrag = useCallback(() => {
@@ -75,14 +82,17 @@ export function useHistorizedState(initializer: () => AppState): HistorizedState
       commitCoalescedHistory(historyRef.current, anchor, cur);
       return cur;
     });
+    bumpHistory();
   }, []);
 
   const undo = useCallback(() => {
     setState((cur) => undoFromHistory(historyRef.current, cur));
+    bumpHistory();
   }, []);
 
   const redo = useCallback(() => {
     setState((cur) => redoFromHistory(historyRef.current, cur));
+    bumpHistory();
   }, []);
 
   return {
@@ -92,6 +102,8 @@ export function useHistorizedState(initializer: () => AppState): HistorizedState
     setStateWithHistory,
     undo,
     redo,
+    canUndo: historyRef.current.past.length > 0,
+    canRedo: historyRef.current.future.length > 0,
     beginPlayerDrag,
     commitPlayerDrag,
   };

@@ -102,6 +102,8 @@ export function useAppState() {
     setStateWithHistory,
     undo,
     redo,
+    canUndo,
+    canRedo,
     beginPlayerDrag,
     commitPlayerDrag,
   } = useHistorizedState(makeAppInitialState);
@@ -182,9 +184,14 @@ export function useAppState() {
   // ============================================================
 
   // -- Steps --
+  // Naviguer n'est pas modifier : hors historique, sinon « Annuler » se
+  // contenterait de revenir à l'étape consultée avant la vraie correction.
   const setActiveStep = useCallback((idx: number) => {
-    setStateWithHistory((s) => stepTx.setActiveStep(s, idx));
-  }, [setStateWithHistory]);
+    setStateRaw((s) => {
+      const next = stepTx.setActiveStep(s, idx);
+      return next.activeStep === s.activeStep ? s : next;
+    });
+  }, [setStateRaw]);
 
   const addStep = useCallback(() => {
     setStateWithHistory(stepTx.addStep);
@@ -748,6 +755,8 @@ export function useAppState() {
     restoreDraft,
     undo,
     redo,
+    canUndo,
+    canRedo,
     setActiveStep,
     addStep,
     duplicateStep,

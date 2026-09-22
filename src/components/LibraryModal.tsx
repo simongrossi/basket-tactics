@@ -137,6 +137,8 @@ export function LibraryModal(props: LibraryModalProps) {
 
   return (
     <div
+      role={inline ? undefined : 'dialog'}
+      aria-modal={inline ? undefined : true}
       onClick={inline ? undefined : onClose}
       style={
         inline
@@ -1004,6 +1006,8 @@ function RenameDialog({
   const [value, setValue] = useState(current);
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       onClick={onCancel}
       style={{
         position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.7)',
@@ -1061,6 +1065,8 @@ function SaveDialog({
   };
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       onClick={onCancel}
       style={{
         position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.7)',

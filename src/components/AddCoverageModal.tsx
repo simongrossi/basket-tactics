@@ -35,6 +35,8 @@ export function AddCoverageModal({ onClose, onPick }: AddCoverageModalProps) {
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,

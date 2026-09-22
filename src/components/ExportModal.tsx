@@ -90,6 +90,8 @@ export function ExportModal({ state, svgRef, setExportT, onClose }: Props) {
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       style={{
         position: 'fixed', inset: 0, zIndex: 1100,
         background: 'rgba(0,0,0,0.55)',

@@ -3,12 +3,12 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useAppState } from '@/hooks/useAppState';
 import { useLibrary } from '@/hooks/useLibrary';
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { SHORTCUT_LABELS, scrubTarget, useKeyboardShortcuts, type ShortcutMode } from '@/hooks/useKeyboardShortcuts';
 import { useMatchLoop } from '@/hooks/useMatchLoop';
 import { useSidebarState } from '@/hooks/useSidebarState';
 import { Sidebar, type ToolGroup } from '@/components/sidebar/Sidebar';
 import { SIDEBAR } from '@/components/sidebar/tokens';
-import { Swords, Shield, ListOrdered, GitBranch } from 'lucide-react';
+import { Swords, Shield, ListOrdered, GitBranch, Undo2, Redo2 } from 'lucide-react';
 import { OffenseToolsPanel } from '@/components/OffenseToolsPanel';
 import { StepsPanel } from '@/components/StepsPanel';
 import { ScenarioPanel } from '@/components/ScenarioPanel';
@@ -189,20 +189,6 @@ export default function Page() {
     }
   }, [isPlaying, playbackT, scrubT, app.state.steps.length]);
 
-  // Échap quitte le mode présentation (cas où le plein écran natif n'a pas
-  // été accordé : le fullscreenchange ci-dessous ne se déclenche alors pas).
-  useEffect(() => {
-    if (!presentMode) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setPresentMode(false);
-        exitNativeFullscreen();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [presentMode, exitNativeFullscreen]);
-
   // A.2 — si l'utilisateur quitte le plein écran natif (Échap navigateur,
   // F11, geste système), on sort aussi du mode présentation pour rester
   // cohérent avec l'état affiché.
@@ -214,33 +200,6 @@ export default function Page() {
     document.addEventListener('fullscreenchange', handler);
     return () => document.removeEventListener('fullscreenchange', handler);
   }, []);
-
-  // Coaching #1 — navigation clavier de la présentation pas-à-pas (mode
-  // lecteur). ←/→ ou PageUp/PageDown (télécommande de présentation) changent
-  // d'étape réelle ; Espace lance/arrête la lecture animée. Ignoré pendant la
-  // lecture (sauf Espace) et si la cible est un champ de saisie.
-  useEffect(() => {
-    if (!isPlayerMode) return;
-    const handler = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement | null;
-      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
-      if (e.key === ' ' || e.key === 'Spacebar') {
-        e.preventDefault();
-        handlePlayToggle();
-        return;
-      }
-      if (isPlaying) return;
-      if (e.key === 'ArrowRight' || e.key === 'PageDown') {
-        e.preventDefault();
-        app.setActiveStep(nextRealStepIndex(app.state.steps, app.state.activeStep));
-      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-        e.preventDefault();
-        app.setActiveStep(prevRealStepIndex(app.state.steps, app.state.activeStep));
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [isPlayerMode, isPlaying, handlePlayToggle, app]);
 
   // Détection du mode lecteur depuis l'URL (hash ou query string)
   useEffect(() => {
@@ -255,14 +214,42 @@ export default function Page() {
     }
   }, []);
 
+  // U03 — un seul gestionnaire clavier : une touche = une action selon la
+  // vue (terrain uniquement), le mode (édition / lecteur / présentation),
+  // la lecture en cours et le focus. Voir resolveShortcut.
+  const shortcutMode: ShortcutMode = presentMode ? 'present' : isPlayerMode ? 'player' : 'edit';
   useKeyboardShortcuts({
-    onPlayPause: handlePlayToggle,
-    onPrevStep: () => app.setActiveStep(app.state.activeStep - 1),
-    onNextStep: () => app.setActiveStep(app.state.activeStep + 1),
-    onSetTool: isPlayerMode ? () => {} : app.setTool,
-    onDeleteLastAnnotation: isPlayerMode ? () => {} : app.deleteLastAnnotation,
-    onUndo: isPlayerMode ? () => {} : app.undo,
-    onRedo: isPlayerMode ? () => {} : app.redo,
+    courtVisible: sidebar.activeView === 'court',
+    mode: shortcutMode,
+    isPlaying,
+    onAction: (action) => {
+      switch (action.type) {
+        case 'undo': app.undo(); break;
+        case 'redo': app.redo(); break;
+        case 'playPause': handlePlayToggle(); break;
+        case 'step':
+          if (shortcutMode === 'edit') {
+            setScrubT(null);
+            app.setActiveStep(app.state.activeStep + action.delta);
+          } else {
+            app.setActiveStep(action.delta > 0
+              ? nextRealStepIndex(app.state.steps, app.state.activeStep)
+              : prevRealStepIndex(app.state.steps, app.state.activeStep));
+          }
+          break;
+        case 'scrub': {
+          const totalT = Math.max(0, app.state.steps.length - 1);
+          setScrubT(scrubTarget(scrubT ?? playbackT ?? app.state.activeStep, action.delta, action.resolution, totalT));
+          break;
+        }
+        case 'tool': app.setTool(action.tool); break;
+        case 'deleteLastAnnotation': app.deleteLastAnnotation(); break;
+        case 'exitPresent':
+          setPresentMode(false);
+          exitNativeFullscreen();
+          break;
+      }
+    },
   });
 
   const handleExport = useCallback(() => {
@@ -329,6 +316,12 @@ export default function Page() {
     >
       {!presentMode && !isPlayerMode && (
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, fontSize: 12 }}>
+          {sidebar.activeView === 'court' && (
+            <div role="group" aria-label="Historique des modifications" style={{ display: 'flex', gap: 6 }}>
+              <HistoryButton label="Annuler" shortcut={SHORTCUT_LABELS.undo} disabled={!app.canUndo || isPlaying} onClick={app.undo} icon={<Undo2 size={16} aria-hidden />} />
+              <HistoryButton label="Rétablir" shortcut={SHORTCUT_LABELS.redo} disabled={!app.canRedo || isPlaying} onClick={app.redo} icon={<Redo2 size={16} aria-hidden />} />
+            </div>
+          )}
           <strong>{currentSavedSystem?.name ?? 'Brouillon'}</strong>
           <span role="status" style={{ color: app.saveStatus === 'error' || lib.saveStatus === 'error' ? '#fca5a5' : '#cbd5e1' }}>
             {app.saveStatus === 'error' || lib.saveStatus === 'error'
@@ -1201,5 +1194,34 @@ export default function Page() {
         }}
       />
     </main>
+  );
+}
+
+/** U03 — Annuler / Rétablir visibles, utilisables au doigt (cible ≥ 36 px). */
+function HistoryButton({ label, shortcut, disabled, onClick, icon }: {
+  label: string;
+  shortcut: string;
+  disabled: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={`${label} (${shortcut})`}
+      style={{
+        minHeight: 36, minWidth: 36, padding: '4px 10px',
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        border: '1px solid #64748b', borderRadius: 6,
+        background: '#29313e', color: '#f8fafc',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.45 : 1,
+      }}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
   );
 }
