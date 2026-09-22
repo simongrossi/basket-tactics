@@ -310,13 +310,20 @@ La mémoire ne peut stabiliser qu'un contact identique (`contactKey`
 égale). Elle ne peut pas transformer un nouveau contact en ancien
 contact.
 
-✅ **Scrub déterministe avec mémoire synthétique** :
-`resolveFrameAtDeterministicScrub()` reconstruit une mini-lecture depuis
-le début de la timeline jusqu'au `t` demandé, en chaînant `prevFrame`.
-Chaque appel reste reproductible, y compris aux frontières de segment,
-mais le scrub bénéficie des mêmes stabilisateurs anti-saut que le
-playback continu. Le hook `useCourtFrame` doit utiliser ce resolver pour
-la timeline.
+✅ **Lecture, scrub et export avec mémoire synthétique commune** :
+`resolveTimelineFrame()` reconstruit une séquence canonique de 60 sous-pas
+par étape, indépendante des FPS du navigateur et de la vitesse de lecture.
+Le hook `useCourtFrame` utilise ce point d'entrée pour les trois modes.
+Seules les frames sur cette grille alimentent la mémoire : demander une
+frame intermédiaire ou revenir en arrière ne change pas les calculs suivants.
+L'easing est appliqué une seule fois dans le resolver bas niveau.
+
+Le cache est borné à quatre états et quatre variantes diagnostiques par état.
+Chaque entrée possède un snapshot isolé ; toute modification du contenu de
+l'état invalide la séquence. Les frames retournées sont en lecture seule.
+`resolveFrameAtDeterministicScrub()` reste disponible pour les tests historiques
+qui choisissent explicitement une résolution synthétique. Son paramètre `fps`
+désigne des sous-pas par étape, jamais la fréquence d'affichage du navigateur.
 
 ✅ **Route explicite** : chaque `FrameDecision` expose `routeKind`
 (`over`, `under`, `hedge`, `chase`, `top-lock`, etc.). Le debug écran
@@ -682,7 +689,7 @@ qui s'allume/s'éteint, Bezier qui flip de côté, adhesion qui change de
 blend, curveAroundObstacle dont le cluster bouge).
 
 **Fix** : `resolveFrameAt` accepte un `options.prevFrame` ; quand fourni
-(= playback en cours, passé via `useCourtFrame::prevFrameRef`), un
+(= sous-pas précédent de la reconstruction canonique), un
 **rate limiter** clamp le delta inter-frame à :
 - `MAX_DEFENDER_JUMP_PX = 18` (couche 5.b)
 - `MAX_ATTACKER_JUMP_PX = 18` (couche 1.c, après le solveur anti-superposition)
@@ -703,8 +710,9 @@ Un cut basket réel à 7 m/s ≈ 4.4 px/frame, largement sous le seuil.
   Le scrub (sans prevFrame) et l'engine pur (`computeDefenseTargets`)
   restent inchangés. Garantit que les invariants step-by-step ne sont
   pas affectés.
-- ✅ Le reset de `prevFrameRef` quand `isPlaying` redémarre — sinon
-  un saut résiduel de la précédente lecture serait propagé.
+- ✅ La mémoire provient uniquement de la séquence synthétique canonique,
+  jamais de la dernière frame affichée. Pause, reprise et export partagent
+  donc le même résultat, même si des images ont été sautées.
 
 **À INTERDIRE** :
 - ❌ Ne pas augmenter le seuil au-dessus de ~20 sans mesurer l'impact

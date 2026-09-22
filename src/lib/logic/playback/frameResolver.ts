@@ -256,7 +256,7 @@ export interface ResolveFrameOptions {
 
 export interface ResolveDeterministicScrubOptions extends ResolveFrameOptions {
   /** Résolution synthétique utilisée pour reconstruire la mémoire de lecture
-   *  depuis le début du segment courant. 60 = équivalent playback 60 fps. */
+   *  depuis le début du scénario. 60 sous-pas par étape ; pas des FPS réels. */
   fps?: number;
 }
 
@@ -302,12 +302,25 @@ interface SegmentScreenCacheEntry {
 
 const segmentScreenCache = new WeakMap<AppState, Map<string, SegmentScreenCacheEntry>>();
 
-/**
- * Version scrub déterministe : au lieu de résoudre `t` isolément, reconstruit
- * les frames du début du segment courant (`floor(t)`) jusqu'à `t` en chaînant
- * `prevFrame`. Le résultat est reproductible à chaque appel, mais bénéficie
- * des mêmes stabilisateurs que le playback continu.
- */
+/** Cache borné : l'historique undo ne doit pas retenir toutes les frames calculées. */
+const timelineCaches = new Map<AppState, {
+  signature: string;
+  snapshot: AppState;
+  variants: Map<string, PlaybackFrame[]>;
+}>();
+
+/** Point d'entrée applicatif commun : 60 sous-pas par étape, indépendants
+ * de la fréquence d'affichage, de la vitesse de lecture et de l'ordre des appels. */
+export function resolveTimelineFrame(
+  state: AppState, t: number, options: ResolveFrameOptions = {},
+): PlaybackFrame | null {
+  return resolveFrameAtDeterministicScrub(state, t, { ...options, fps: 60 });
+}
+
+/** Reconstruction canonique avec mémoire synthétique. Seules les frames
+ * sur la grille sont mémorisées ; une requête intermédiaire ne change jamais
+ * l'historique utilisé par les requêtes suivantes. Le paramètre fps historique
+ * désigne des sous-pas par étape, pas les FPS du navigateur. */
 export function resolveFrameAtDeterministicScrub(
   state: AppState,
   t: number,
@@ -315,64 +328,42 @@ export function resolveFrameAtDeterministicScrub(
 ): PlaybackFrame | null {
   const totalSteps = state.steps.length - 1;
   if (totalSteps <= 0) return null;
-
   const clamped = Math.max(0, Math.min(totalSteps, t));
-  const idxA = Math.floor(clamped);
-  // D.1 — easing visuel appliqué au localT. Default 'linear' = identité.
-  const localT = applyEasing(clamped - idxA, state.movementEasing);
-  const fps = Math.max(1, Math.round(options.fps ?? 60));
-  const { fps: _fps, ...baseOptions } = options;
-
-  if (localT <= 0.000001) {
-    if (idxA <= 0) return resolveFrameAt(state, clamped, baseOptions);
-    return resolveDeterministicSegment(state, idxA - 1, 1, fps, baseOptions);
+  const fps = Number.isFinite(options.fps) ? Math.max(1, Math.round(options.fps!)) : 60;
+  const { fps: _fps, stepIdx, prevFrame: _externalPrevious, ...baseOptions } = options;
+  // L'easing appartient à resolveFrameAt : ne pas l'appliquer deux fois.
+  const wholeFrames = Math.floor(clamped * fps + 1e-9);
+  const signature = JSON.stringify(state);
+  let cache = timelineCaches.get(state);
+  if (!cache || cache.signature !== signature) {
+    cache = { signature, snapshot: structuredClone(state), variants: new Map() };
   }
-
-  return resolveDeterministicSegment(state, idxA, localT, fps, baseOptions);
-}
-
-function resolveDeterministicSegment(
-  state: AppState,
-  idxA: number,
-  localT: number,
-  fps: number,
-  baseOptions: ResolveFrameOptions
-): PlaybackFrame | null {
-  const stepIdx = baseOptions.stepIdx;
-  const startT = idxA;
-  let prevFrame = idxA > 0
-    ? resolveDeterministicSegment(state, idxA - 1, 1, fps, baseOptions)
-    : resolveFrameAt(state, startT, {
-        ...baseOptions,
-        stepIdx,
-      });
-  if (!prevFrame) return null;
-  if (localT <= 0.000001) return prevFrame;
-
-  const wholeFrames = Math.floor(localT * fps + 1e-9);
-  for (let i = 1; i <= wholeFrames; i++) {
-    const sampleLocalT = i / fps;
-    const sampleT = idxA + sampleLocalT;
-    const frame = resolveFrameAt(state, sampleT, {
-      ...baseOptions,
-      stepIdx,
-      prevFrame,
-    });
-    if (!frame) return prevFrame;
-    prevFrame = frame;
+  timelineCaches.delete(state);
+  timelineCaches.set(state, cache);
+  if (timelineCaches.size > 4) timelineCaches.delete(timelineCaches.keys().next().value!);
+  const key = `${fps}:${!!options.collectDecisions}:${!!options.profile}`;
+  let frames = options.disableSegmentCache ? undefined : cache.variants.get(key);
+  if (!frames) {
+    const first = resolveFrameAt(cache.snapshot, 0, baseOptions);
+    if (!first) return null;
+    frames = [first];
+    if (!options.disableSegmentCache) {
+      if (cache.variants.size >= 4) cache.variants.delete(cache.variants.keys().next().value!);
+      cache.variants.set(key, frames);
+    }
   }
-
-  if (Math.abs(wholeFrames / fps - localT) > 0.000001) {
-    const frame = resolveFrameAt(state, idxA + localT, {
-      ...baseOptions,
-      stepIdx,
-      prevFrame,
-    });
-    if (!frame) return prevFrame;
-    prevFrame = frame;
+  for (let i = frames.length; i <= wholeFrames; i++) {
+    const frame = resolveFrameAt(cache.snapshot, i / fps, { ...baseOptions, prevFrame: frames[i - 1] });
+    if (!frame) return null;
+    frames.push(frame);
   }
-
-  return prevFrame;
+  const previous = frames[wholeFrames];
+  const frame = Math.abs(wholeFrames / fps - clamped) <= 1e-9
+    ? previous
+    : resolveFrameAt(cache.snapshot, clamped, { ...baseOptions, prevFrame: previous });
+  if (!frame) return null;
+  // Le numéro affiché peut être arrondi en scrub sans contaminer le cache.
+  return { ...frame, stepIdx: stepIdx ?? frame.stepIdx };
 }
 
 /**

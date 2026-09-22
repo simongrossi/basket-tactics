@@ -30,8 +30,7 @@ import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
 import { activeBallCarrier, activeOffense } from '@/lib/logic/players';
 import { buildStep0DetectionPositions } from '@/lib/logic/step0Detection';
 import {
-  resolveFrameAt,
-  resolveFrameAtDeterministicScrub,
+  resolveTimelineFrame,
   type PlaybackFrame,
 } from '@/lib/logic/playback/frameResolver';
 import { computeAttackerThreats } from '@/lib/logic/threats';
@@ -82,31 +81,17 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
   const [playFrame, setPlayFrame] = useState<PlaybackFrame | null>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
-  // Référence vers la frame PRÉCÉDENTE pour le rate limiter défenseurs
-  // (cf. resolveFrameAt options.prevFrame). Permet de clamper les sauts
-  // mid-segment causés par changements d'état d'écran. Réinitialisée
-  // quand le playback redémarre.
-  const prevFrameRef = useRef<PlaybackFrame | null>(null);
-
   const handleTick = useCallback((t: number) => {
     const cur = stateRef.current;
     const totalSteps = cur.steps.length - 1;
     if (totalSteps <= 0) return;
-    if (t >= totalSteps) {
-      setPlayFrame(null);
-      prevFrameRef.current = null;
-      onPlaybackTick?.(totalSteps);
-      return;
-    }
     onPlaybackTick?.(t);
-    const frame = resolveFrameAt(cur, t, {
-      prevFrame: prevFrameRef.current ?? undefined,
+    const frame = resolveTimelineFrame(cur, t, {
       collectDecisions: !!cur.showScreenDebug || !!cur.showPlayerDebug,
       profile: !!cur.showProfileOverlay,
     });
     if (frame) {
       setPlayFrame(frame);
-      prevFrameRef.current = frame;
     }
     // onPlaybackTick volontairement hors deps : on lit stateRef, et changer
     // d'identité de callback ne doit pas re-créer la boucle d'animation.
@@ -128,7 +113,6 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
   useEffect(() => {
     if (!isPlaying) {
       setPlayFrame(null);
-      prevFrameRef.current = null;
     }
   }, [isPlaying]);
 
@@ -179,14 +163,14 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
   // J.1 — Parité scrub ↔ playback : on aligne les options de diagnostic
   // (collectDecisions, profile) entre les deux appels pour que les overlays
   // J.5/J.7 marchent aussi en scrub. La parité positionnelle est garantie
-  // par resolveFrameAtDeterministicScrub qui reconstruit la mémoire depuis
-  // le début du segment (cf. SCREEN-ENGINE.md).
+  // par resolveTimelineFrame qui reconstruit la mémoire depuis
+  // le début de la timeline (cf. SCREEN-ENGINE.md).
   const scrubFrame = useMemo<PlaybackFrame | null>(() => {
     if (scrubT == null) return null;
     const totalSteps = state.steps.length - 1;
     if (totalSteps <= 0) return null;
     const t = Math.max(0, Math.min(totalSteps, scrubT));
-    return resolveFrameAtDeterministicScrub(state, t, {
+    return resolveTimelineFrame(state, t, {
       stepIdx: Math.round(t),
       collectDecisions: !!state.showScreenDebug || !!state.showPlayerDebug,
       profile: !!state.showProfileOverlay,
@@ -442,14 +426,14 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     };
   }, [liveMatchState, state]);
 
-  // E.2 — Frame d'export : mémoïsée sur exportT + state, sans mémoire de
-  // playback (déterministe par t). Prime sur toutes les autres sources.
+  // Frame d'export : même mémoire synthétique que lecture et scrub.
+  // Mémoïsée sur exportT + state, prioritaire sur les autres sources.
   const exportFrame = useMemo(() => {
     if (exportT == null) return null;
     const totalSteps = state.steps.length - 1;
     if (totalSteps <= 0) return null;
     const t = Math.max(0, Math.min(totalSteps, exportT));
-    return resolveFrameAt(state, t);
+    return resolveTimelineFrame(state, t);
   }, [exportT, state]);
 
   // Priorité : export > matchLive > playback > scrub > release animation > static.

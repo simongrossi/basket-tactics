@@ -208,12 +208,12 @@ export default function Page() {
     } else {
       // Reprend la lecture : si scrubT existe (pause précédente), reprendre
       // depuis cet instant t ; sinon (depuis idle), démarrer du début.
-      setPlaybackStartT(scrubT ?? 0);
+      setPlaybackStartT(scrubT != null && scrubT < app.state.steps.length - 1 ? scrubT : 0);
       setScrubT(null);
       setPlaybackT(null);
       setIsPlaying(true);
     }
-  }, [isPlaying, playbackT, scrubT]);
+  }, [isPlaying, playbackT, scrubT, app.state.steps.length]);
 
   // Échap quitte le mode présentation (cas où le plein écran natif n'a pas
   // été accordé : le fullscreenchange ci-dessous ne se déclenche alors pas).
@@ -736,6 +736,7 @@ export default function Page() {
                 setIsPlaying(false);
                 setPlaybackT(null);
                 setPlaybackStartT(0);
+                setScrubT(app.state.steps.length - 1);
                 app.setActiveStep(app.state.steps.length - 1);
               }}
               defenseReleaseTransition={app.defenseReleaseTransition}

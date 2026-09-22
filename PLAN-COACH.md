@@ -17,7 +17,7 @@ Ce document suit le travail effectif ; une case n'est cochée qu'après validati
   Lecture et export corrigés : durées individuelles et interpolations respectées ;
   changement de vitesse sans redémarrage. Reste : calibration temporelle des déplacements physiques.
 - [x] F09 Respecter timing et trajet de l'action lors des évitements.
-- [ ] F10 Calcul reproductible à un même instant, indépendamment de la fréquence d'affichage.
+- [x] F10 Calcul reproductible à un même instant, indépendamment de la fréquence d'affichage.
 - [ ] F11 Séparation finale des joueurs, profil applicatif inclus, sans retour du flicker d'écran.
 - [ ] F12 Garantir les contraintes athlétiques ou signaler une durée impossible.
 - [ ] F13 Conseils et métriques synchronisés avec l'image et le panier attaqué.
@@ -98,3 +98,15 @@ Ces changements doivent être préservés et distingués des commits de consolid
   overlaps et scénarios utilisateur ; seuls les 6 échecs congestion préexistants
   subsistent. Un cas supplémentaire de spline débordante passe ensuite (9 tests
   ciblés au total). TypeScript : uniquement les 2 erreurs congestion préexistantes.
+
+- F10 terminé : lecture, pause/scrub et export passent par un même resolver
+  à mémoire synthétique (60 sous-pas par étape, indépendants des FPS affichés).
+  Reconstruction incrémentale mise en cache ; les requêtes intermédiaires ne
+  modifient pas la séquence. Cache borné et invalidé à chaque édition du système.
+  Easing appliqué une seule fois. La fin de lecture conserve la frame finale
+  de cette séquence ; une nouvelle lecture repart du début.
+  Tests : parité à 24/30/60/144 Hz, retours arrière, sauts d'images, easing,
+  invalidation après édition, options diagnostiques, performance du cache et
+  intégration du hook lecture/pause/reprise/export.
+  Validation complète : 2 322 tests passent (244 fichiers). Seuls les 6 échecs
+  et 2 erreurs TypeScript préexistants du chantier local congestion subsistent.
