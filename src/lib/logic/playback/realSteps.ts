@@ -17,24 +17,6 @@ export function realStepIndices(steps: Step[]): number[] {
   return out;
 }
 
-/** Position 1-based de `activeStep` parmi les étapes réelles + total.
- *  Si `activeStep` tombe sur une étape interpolée, on rattache à la dernière
- *  étape réelle ≤ activeStep. `current` vaut 0 si aucune réelle. */
-export function realStepPosition(
-  steps: Step[],
-  activeStep: number
-): { current: number; total: number } {
-  const reals = realStepIndices(steps);
-  if (reals.length === 0) return { current: 0, total: 0 };
-  // Dernière étape réelle dont l'index ≤ activeStep.
-  let pos = 0;
-  for (let k = 0; k < reals.length; k++) {
-    if (reals[k] <= activeStep) pos = k;
-    else break;
-  }
-  return { current: pos + 1, total: reals.length };
-}
-
 /** Index de l'étape réelle SUIVANTE strictement après `activeStep`.
  *  Si déjà sur/après la dernière réelle → retourne la dernière réelle
  *  (clamp, pas de wrap). Retourne `activeStep` si aucune réelle. */

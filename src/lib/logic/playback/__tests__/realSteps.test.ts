@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import type { Step } from '../../../types';
 import {
   realStepIndices,
-  realStepPosition,
   nextRealStepIndex,
   prevRealStepIndex,
   isOnFirstRealStep,
@@ -31,22 +30,6 @@ describe('realStepIndices', () => {
   });
   it('liste vide → []', () => {
     expect(realStepIndices([])).toEqual([]);
-  });
-});
-
-describe('realStepPosition', () => {
-  it('sur une étape réelle : position 1-based correcte', () => {
-    expect(realStepPosition(mixed, 0)).toEqual({ current: 1, total: 3 });
-    expect(realStepPosition(mixed, 3)).toEqual({ current: 2, total: 3 });
-    expect(realStepPosition(mixed, 5)).toEqual({ current: 3, total: 3 });
-  });
-  it('sur une étape interpolée : rattache à la dernière réelle ≤ activeStep', () => {
-    expect(realStepPosition(mixed, 1)).toEqual({ current: 1, total: 3 });
-    expect(realStepPosition(mixed, 2)).toEqual({ current: 1, total: 3 });
-    expect(realStepPosition(mixed, 4)).toEqual({ current: 2, total: 3 });
-  });
-  it('aucune réelle → current 0', () => {
-    expect(realStepPosition(makeSteps(['i', 'i']), 0)).toEqual({ current: 0, total: 0 });
   });
 });
 
