@@ -1,12 +1,10 @@
 // Timecode — Étape 13. Convertit un index d'étape (full ou real) en secondes
 // puis formate en horloge MM:SS ou en shot clock (secondes restantes sur 24).
 //
-// Le moteur reste step-based : ces utilitaires sont uniquement pour l'AFFICHAGE.
-// Pendant la lecture, on multiplie l'index courant par `secondsPerStep` pour
-// obtenir l'horloge "in-universe", indépendamment de la vitesse de lecture.
+// Horloge commune à l'affichage, la lecture et l'export.
 
 import type { AppState } from '../types';
-import { countRealSteps } from './playerTracks';
+import { realStepIndices } from './playback/realSteps';
 
 export const DEFAULT_SECONDS_PER_STEP = 4;
 export const DEFAULT_POSSESSION_SECONDS = 24;
@@ -187,4 +185,32 @@ export function totalDurationSeconds(state: AppState): number {
     total += getStepDurationSeconds(state, realIndices[k]);
   }
   return total;
+}
+
+/** Temps du renderer (indices incluant les interpolations) → secondes.
+ * Les étapes interpolées subdivisent la durée, elles n'en ajoutent pas. */
+export function fullStepToSeconds(state: AppState, fullT: number): number {
+  const indices = realStepIndices(state.steps);
+  let seconds = 0;
+  for (let k = 0; k < indices.length - 1; k++) {
+    const start = indices[k];
+    const end = indices[k + 1];
+    const duration = getStepDurationSeconds(state, start);
+    if (fullT <= end) return seconds + duration * Math.max(0, (fullT - start) / (end - start));
+    seconds += duration;
+  }
+  return seconds;
+}
+
+/** Inverse de fullStepToSeconds, borné aux étapes du scénario. */
+export function secondsToFullStep(state: AppState, elapsed: number): number {
+  const indices = realStepIndices(state.steps);
+  let remaining = Math.max(0, elapsed);
+  for (let k = 0; k < indices.length - 1; k++) {
+    const start = indices[k];
+    const duration = getStepDurationSeconds(state, start);
+    if (remaining < duration) return start + (indices[k + 1] - start) * remaining / duration;
+    remaining -= duration;
+  }
+  return indices[indices.length - 1] ?? 0;
 }

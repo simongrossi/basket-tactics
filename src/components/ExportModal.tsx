@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import type { AppState } from '@/lib/types';
 import { COURT, FULL_COURT_HEIGHT } from '@/lib/data/court';
-import { totalDurationSeconds } from '@/lib/logic/timecode';
+import { totalDurationSeconds, secondsToFullStep } from '@/lib/logic/timecode';
 import { captureFrames, ExportAbortedError } from '@/lib/exporters/captureFrames';
 import { encodeGif } from '@/lib/exporters/encodeGif';
 import { encodeWebm } from '@/lib/exporters/encodeWebm';
@@ -45,6 +45,7 @@ export function ExportModal({ state, svgRef, setExportT, onClose }: Props) {
         svgRef,
         setExportT,
         totalSeconds,
+        stepAtSeconds: (seconds) => secondsToFullStep(state, seconds),
         lastStepIdx,
         width,
         height,

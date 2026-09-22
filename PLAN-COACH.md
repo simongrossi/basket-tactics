@@ -14,6 +14,8 @@ Ce document suit le travail effectif ; une case n'est cochée qu'après validati
 - [x] F06 Bibliothèque : conserver le contexte basket et les paramètres de simulation.
 - [x] F07 Enregistrer un système existant ; statut de sauvegarde et protection du brouillon.
 - [ ] F08 Horloge commune : durées d'étapes, lecture, ralenti, export et déplacements.
+  Lecture et export corrigés : durées individuelles et interpolations respectées ;
+  changement de vitesse sans redémarrage. Reste : calibration temporelle des déplacements physiques.
 - [ ] F09 Respecter timing et trajet de l'action lors des évitements.
 - [ ] F10 Calcul reproductible à un même instant, indépendamment de la fréquence d'affichage.
 - [ ] F11 Séparation finale des joueurs, profil applicatif inclus, sans retour du flicker d'écran.
@@ -76,3 +78,11 @@ Ces changements doivent être préservés et distingués des commits de consolid
 - Validation finale de cette tranche : 2 299 tests passent (238 fichiers), en
   excluant explicitement le test local de congestion inachevé. Les seuls diagnostics
   TypeScript restent ses deux erreurs préexistantes. F08–F13 et les lots 2–3 restent ouverts.
+
+- Correction courte F08 : lecture et export utilisent les durées réelles des étapes.
+  Les étapes interpolées subdivisent la durée sans l'allonger. La reprise et les
+  changements de vitesse conservent la position atteinte. Export échantillonné
+  en secondes à fréquence constante, y compris avec des durées différentes.
+  Validation : 57 tests ciblés passent (horloge, pause/reprise, vitesse, capture
+  d'export). Les deux erreurs TypeScript du test local congestion restent préexistantes.
+  Pas de modification des trajectoires ou du solveur physique dans cette tranche.

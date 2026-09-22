@@ -114,6 +114,7 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
   }, []);
 
   usePlaybackAnimation({
+    state,
     isPlaying,
     speed: playbackSpeed,
     totalSteps: state.steps.length - 1,

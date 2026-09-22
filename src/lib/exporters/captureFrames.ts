@@ -10,6 +10,8 @@ export interface CaptureOptions {
   svgRef: { current: SVGSVGElement | null };
   setExportT: (t: number | null) => void;
   totalSeconds: number;
+  /** Conversion des secondes en position renderer pour les durées variables. */
+  stepAtSeconds?: (seconds: number) => number;
   lastStepIdx: number;
   width: number;
   height: number;
@@ -56,7 +58,7 @@ export async function* captureFrames(
   try {
     for (let i = 0; i < frameCount; i++) {
       if (signal?.aborted) throw new ExportAbortedError();
-      const t = i * dt;
+      const t = opts.stepAtSeconds ? opts.stepAtSeconds(i / Math.max(1, fps)) : i * dt;
       setExportT(t);
       await waitForRender();
       if (signal?.aborted) throw new ExportAbortedError();
