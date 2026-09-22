@@ -911,6 +911,12 @@ export function DefensePanel(props: DefensePanelProps) {
                 title="Pendant la lecture animée, un défenseur à l'arrêt accélère progressivement (≈ 4,5 m/s², environ 6 m/s atteints en 1,3 s) au lieu de partir instantanément à pleine vitesse. Hors contact d'écran et placements manuels."
               />
               <CheckboxLine
+                checked={!!state.defenderLeadPursuitEnabled}
+                label="poursuite anticipée (P3.5)"
+                onChange={(v) => props.onPatch({ defenderLeadPursuitEnabled: v })}
+                title="Avec le départ progressif : un défenseur en retard coupe l'angle vers le point de rencontre avec son homme (surtout quand celui-ci change de direction) au lieu de courir derrière lui."
+              />
+              <CheckboxLine
                 checked={!!state.jumpPassingLanesEnabled}
                 label="jump ligne de passe (P2.1)"
                 onChange={(v) => props.onPatch({ jumpPassingLanesEnabled: v })}

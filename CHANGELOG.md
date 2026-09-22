@@ -6,6 +6,14 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Réalisme défensif — P3.5 poursuite anticipée (2026-09-22)
+
+- Un défenseur freiné par le départ progressif coupe l'angle vers le point de
+  rencontre avec son homme (vitesse de l'homme × temps de rattrapage, ≤ 0,6 s)
+  au lieu de courir derrière lui ; sans retard, aucun changement. Opt-in
+  `defenderLeadPursuitEnabled`. Coupe en L : retard moyen après le virage
+  0,71 → 0,61 m. Suite 2 480 / 2 480.
+
 ### Réalisme défensif — P3.1 départ progressif en lecture (2026-09-22)
 
 - Pendant la lecture, un défenseur ne peut gagner que `a × dt` de vitesse par

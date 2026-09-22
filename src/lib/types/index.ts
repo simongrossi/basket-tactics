@@ -1062,6 +1062,11 @@ export interface AppState {
   defenderPlaybackAccelerationEnabled?: boolean;
   /** P3.1 — Accélération (m/s²), défaut 4,5. */
   defenderPlaybackAcceleration?: number;
+  /** P3.5 — Poursuite anticipée : un défenseur freiné par la rampe P3.1
+   *  vise le point de rencontre avec son homme (vitesse de l'homme × temps
+   *  de rattrapage, ≤ 0,6 s) au lieu de sa place actuelle. Sans effet si la
+   *  rampe est désactivée. Default undefined = legacy. */
+  defenderLeadPursuitEnabled?: boolean;
   /** P2.1 — Jump the passing lane : pendant le vol d'une passe, un défenseur
    *  proche de la ligne passeur→receveur fait un pas dans la ligne
    *  (tentative de déflection) puis revient. Playback/scrub uniquement,

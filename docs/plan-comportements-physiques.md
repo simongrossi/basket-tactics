@@ -233,7 +233,19 @@ fatigue, gaze, latence pivot) mais ne tournent qu'en édition.
 > Les flags RNG (rebonds, interceptions, dribble) restent volontairement
 > hors preset (scope cinématique déterministe).
 
-### 🔄 P3.5 — Lead pursuit (anticipation de trajectoire) 〔M-L → M〕 (re-scopé 2026-07-02)
+### ✅ P3.5 — Poursuite anticipée en lecture 〔M〕 (livré 2026-09-22)
+
+> **Livré** : dans le bloc de la rampe P3.1 (`applyDefenderMotionInertia`),
+> quand un défenseur ne peut pas atteindre sa place ce sous-pas, il vise le
+> point de rencontre : place idéale + vitesse de son homme × temps de
+> rattrapage (≤ 0,6 s). Sans retard, rien ne change (pas de défenseur placé
+> devant son homme). Opt-in `defenderLeadPursuitEnabled`, effet seulement avec
+> la rampe. Mesure (coupe en L, D2 parti de l'arrêt) : retard moyen après le
+> changement de direction 0,71 → 0,61 m ; retard max inchangé (ligne droite).
+> Effet modeste mais juste. Le cas « closeout sur un receveur en mouvement »
+> est couvert par le même mécanisme. Tests : `p35LeadPursuit.test.ts`.
+
+### Historique — P3.5 lead pursuit (re-scopé 2026-07-02)
 
 > **Audit** : l'interception existe déjà pour la **recovery post-écran**
 > — `recoveryTarget` (screenPhysics.ts) combine lookahead (projection de
@@ -293,7 +305,7 @@ anti-récursion de SCREEN-ENGINE).
 
 Backlog restant réel :
 ✅ P3.3 congestion (2026-09-22) ──► ✅ P3.1-V1 rampe accélération (2026-09-22)
-──► 🔄 P3.5 lead pursuit closeout ──► P4.1 shoulder-to-shoulder
+──► ✅ P3.5 poursuite anticipée (2026-09-22) ──► P4.1 shoulder-to-shoulder
 P4.3 / P4.4 : à instruire séparément (risque écran / design multi-step)
 ```
 

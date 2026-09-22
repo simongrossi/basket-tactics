@@ -278,6 +278,9 @@ const MAX_ATTACKER_JUMP_PX = 9;
  *  ~6 m/s atteints en ~1,3 s. Ordre de grandeur des premiers appuis d'un
  *  joueur de basket (3-6 m/s²). */
 const DEFAULT_DEFENDER_PLAYBACK_ACCELERATION = 4.5;
+/** P3.5 — horizon maximal d'anticipation (s) : au-delà, viser si loin devant
+ *  l'homme devient un pari, pas une lecture. */
+const DEFENDER_LEAD_PURSUIT_MAX_SEC = 0.6;
 
 /** Démarre l'inertie quand le défenseur change fortement de direction.
  *  cos(70°) ≈ 0.34 : sous ce seuil, le virage devient visible à l'oeil. */
@@ -1185,6 +1188,7 @@ export function resolveFrameAt(
         lockedDefenders: screenLockedDefenders,
         decisions,
         dtSec: motionDtSec,
+        off,
       })
     : undefined;
   if (motionResult?.applied) {
@@ -1505,6 +1509,8 @@ function applyDefenderMotionInertia(params: {
   decisions: Partial<Record<DefenderId, FrameDecision>> | null;
   /** Durée réelle depuis `prevFrame` (s) ; requise par la rampe P3.1. */
   dtSec?: number;
+  /** Attaquants de la frame courante (vitesse de l'homme, P3.5). */
+  off: AttackerPositions;
 }): DefenderMotionInertiaResult {
   const stats: Partial<Record<DefenderId, DefenderMotionStat>> = {};
   let applied = false;
@@ -1529,8 +1535,27 @@ function applyDefenderMotionInertia(params: {
       const dy = current.y - prev.y;
       const dist = Math.hypot(dx, dy);
       if (dist > maxDist + 1e-6) {
-        current.x = prev.x + (dx / dist) * maxDist;
-        current.y = prev.y + (dy / dist) * maxDist;
+        let dir = { x: dx / dist, y: dy / dist };
+        // P3.5 (opt-in) — poursuite anticipée : en retard, viser le point de
+        // rencontre (place idéale + vitesse de l'homme × temps de rattrapage,
+        // plafonné) plutôt que la place actuelle — couper l'angle au lieu de
+        // courir derrière. Sans retard, ce bloc n'est pas atteint.
+        const manNow = params.state.defenderLeadPursuitEnabled ? params.off[current.matchedTo] : undefined;
+        const manPrev = params.prevFrame.off[current.matchedTo];
+        if (manNow && manPrev) {
+          const reach = previousSpeed + rampAccel * dt;
+          const tau = Math.min(DEFENDER_LEAD_PURSUIT_MAX_SEC, dist / Math.max(reach, 1));
+          const lead = {
+            x: current.x + ((manNow.x - manPrev.x) / dt) * tau,
+            y: current.y + ((manNow.y - manPrev.y) / dt) * tau,
+          };
+          const lx = lead.x - prev.x;
+          const ly = lead.y - prev.y;
+          const ll = Math.hypot(lx, ly);
+          if (ll > 1e-6) dir = { x: lx / ll, y: ly / ll };
+        }
+        current.x = prev.x + dir.x * maxDist;
+        current.y = prev.y + dir.y * maxDist;
         applied = true;
       }
     }
