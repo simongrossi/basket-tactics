@@ -610,12 +610,19 @@ export function useAppState() {
     return true;
   }, [setStateWithHistory, protectDraft]);
 
-  const loadTemplate = useCallback((template: Template) => {
-    if (protectDraft()) setStateWithHistory((s) => coreTx.loadTemplate(s, template));
+  // `keepRecovery` : le brouillon est déjà protégé (déroulé de séance, U05).
+  // Enchaîner les blocs ne doit pas écraser l'unique copie de récupération
+  // avec le système du bloc précédent.
+  const loadTemplate = useCallback((template: Template, options?: { keepRecovery?: boolean }) => {
+    if (!options?.keepRecovery && !protectDraft()) return false;
+    setStateWithHistory((s) => coreTx.loadTemplate(s, template));
+    return true;
   }, [setStateWithHistory, protectDraft]);
 
-  const importState = useCallback((next: AppState) => {
-    if (protectDraft()) setStateWithHistory(coreTx.importState(next));
+  const importState = useCallback((next: AppState, options?: { keepRecovery?: boolean }) => {
+    if (!options?.keepRecovery && !protectDraft()) return false;
+    setStateWithHistory(coreTx.importState(next));
+    return true;
   }, [setStateWithHistory, protectDraft]);
 
   const patch = useCallback((p: Partial<AppState>) => {

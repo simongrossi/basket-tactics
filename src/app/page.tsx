@@ -40,6 +40,10 @@ import type { DisplayedCourtFrame } from '@/hooks/useCourtFrame';
 import type { ActionTimingAnchor, AddAnnotationOptions, Annotation, AppState, Step } from '@/lib/types';
 import { createShareHash } from '@/lib/state/urlCompression';
 import { findTemplate } from '@/lib/data/templates';
+import { getSessions, type PracticeSession } from '@/lib/data/practiceSessions';
+import { blockVisual, isTimerRunning, pauseTimer, reconcileRun, resetTimer, startRun, startTimer } from '@/lib/data/sessionRun';
+import { useSessionRun } from '@/hooks/useSessionRun';
+import { SessionBlockCard, SessionRunBar } from '@/components/SessionRunBar';
 
 export default function Page() {
   const app = useAppState();
@@ -120,27 +124,85 @@ export default function Page() {
     matchLoop.start({ maxPossessions: 10 });
   }, [handleEnterFullscreenMatch, matchLoop]);
 
-  // Coaching #3 — déroulé interactif d'une séance : ouvrir un système d'un
-  // bloc charge ce système dans le terrain et bascule en mode présentation
-  // (lecteur) pour l'expliquer aux joueurs. Retour aux séances via la sidebar
-  // (sortie du mode lecteur).
-  const handleOpenSessionSystem = useCallback((systemId: string) => {
-    const sys = lib.library.folders
-      .flatMap((f) => f.systems)
-      .find((s) => s.id === systemId);
-    if (!sys) return;
-    app.importState(lib.loadSystem(app.state, sys));
-    sidebar.setActiveView('court');
-    setIsPlayerMode(true);
-  }, [lib, app, sidebar]);
+  // U05 — déroulé de séance : la séance et le bloc en cours restent connus
+  // de la page (et persistés) pendant qu'on montre les blocs sur le terrain.
+  // Le brouillon du coach n'est mis de côté qu'une fois, au premier bloc
+  // chargé, puis restauré en fin de déroulé.
+  const sessionRunState = useSessionRun();
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const sessions = useMemo(() => getSessions(lib.library), [lib.library]);
+  const sessionRun = lib.hydrated && sessionRunState.hydrated
+    ? reconcileRun(sessionRunState.run, sessions)
+    : null;
+  const runSession = sessionRun ? sessions.find((s) => s.id === sessionRun.sessionId) ?? null : null;
+  const runBlock = runSession && sessionRun ? runSession.blocks[sessionRun.blockIndex] ?? null : null;
+  const runBlockVisual = runBlock
+    ? blockVisual(runBlock, (id) => lib.library.folders.some((f) => f.systems.some((sys) => sys.id === id)))
+    : null;
+  useEffect(() => {
+    if (!lib.hydrated || !sessionRunState.hydrated) return;
+    if (sessionRun !== sessionRunState.run) sessionRunState.setRun(sessionRun);
+  }, [lib.hydrated, sessionRun, sessionRunState]);
 
-  const handleVisualizeDrillTemplate = useCallback((templateId: string) => {
-    const template = findTemplate(templateId);
-    if (!template) return;
-    app.loadTemplate(template);
+  /** Charge le visuel d'un bloc. Retourne le nouvel état de protection du
+   *  brouillon, ou null si le chargement a été refusé. */
+  const showSessionBlock = useCallback((session: PracticeSession, index: number, draftProtected: boolean): boolean | null => {
+    const block = session.blocks[index];
+    if (!block) return null;
+    const visual = blockVisual(block, (id) => lib.library.folders.some((f) => f.systems.some((sys) => sys.id === id)));
+    setIsPlaying(false);
+    setScrubT(null);
+    setPlaybackT(null);
+    if (visual.kind === 'system') {
+      const sys = lib.library.folders.flatMap((f) => f.systems).find((x) => x.id === visual.systemId)!;
+      return app.importState(lib.loadSystem(app.state, sys), { keepRecovery: draftProtected }) ? true : null;
+    }
+    if (visual.kind === 'template') {
+      const template = findTemplate(visual.templateId);
+      if (!template) return draftProtected;
+      return app.loadTemplate(template, { keepRecovery: draftProtected }) ? true : null;
+    }
+    return draftProtected;
+  }, [lib, app]);
+
+  const handleRunSessionBlock = useCallback((sessionId: string, index: number, enterPlayer = true) => {
+    const session = sessions.find((x) => x.id === sessionId);
+    if (!session || session.blocks.length === 0) return;
+    const idx = Math.max(0, Math.min(session.blocks.length - 1, index));
+    const protectedDraft = showSessionBlock(session, idx, sessionRun?.draftProtected ?? false);
+    if (protectedDraft === null) return;
+    sessionRunState.setRun({ ...startRun(sessionId, idx), draftProtected: protectedDraft });
+    setSelectedSessionId(sessionId);
+    sidebar.setActiveView('court');
+    if (enterPlayer) setIsPlayerMode(true);
+  }, [sessions, showSessionBlock, sessionRun, sessionRunState, sidebar]);
+
+  const handleResumeSessionRun = useCallback(() => {
+    if (!sessionRun || !runSession) return;
+    // Recharge le bloc (l'état du terrain a pu changer entre-temps) sans
+    // toucher au minuteur.
+    const protectedDraft = showSessionBlock(runSession, sessionRun.blockIndex, sessionRun.draftProtected);
+    if (protectedDraft === null) return;
+    sessionRunState.setRun({ ...sessionRun, draftProtected: protectedDraft });
     sidebar.setActiveView('court');
     setIsPlayerMode(true);
-  }, [app, sidebar]);
+  }, [sessionRun, runSession, showSessionBlock, sessionRunState, sidebar]);
+
+  const handleBackToSession = useCallback(() => {
+    setIsPlaying(false);
+    setIsPlayerMode(false);
+    if (sessionRun) setSelectedSessionId(sessionRun.sessionId);
+    sidebar.setActiveView('sessions');
+  }, [sessionRun, sidebar]);
+
+  const handleEndSessionRun = useCallback(() => {
+    if (sessionRun?.draftProtected) app.restoreDraft();
+    if (sessionRun) setSelectedSessionId(sessionRun.sessionId);
+    sessionRunState.setRun(null);
+    setIsPlaying(false);
+    setIsPlayerMode(false);
+    sidebar.setActiveView('sessions');
+  }, [sessionRun, app, sessionRunState, sidebar]);
 
   const [displayedCourt, setDisplayedCourt] = useState<DisplayedCourtFrame | null>(null);
   const analysis = useMemo(() => {
@@ -531,7 +593,7 @@ export default function Page() {
           />
         )}
 
-        <div className={`center-col${sidebar.activeView !== 'court' ? ' center-col-view inline-view-scope' : ''}`}>
+        <div className={`center-col${sidebar.activeView !== 'court' ? ' center-col-view inline-view-scope' : sessionRun ? ' has-session-run' : ''}`}>
           {sidebar.activeView === 'playbook' && (
             <SidebarThemeProvider dark>
               <PlaybookView
@@ -604,8 +666,12 @@ export default function Page() {
                 onUpdateSession={lib.updateSession}
                 onDeleteSession={lib.deleteSession}
                 onDuplicateSession={lib.duplicateSession}
-                onOpenSystem={handleOpenSessionSystem}
-                onVisualizeTemplate={handleVisualizeDrillTemplate}
+                selectedSessionId={selectedSessionId}
+                onSelectSession={setSelectedSessionId}
+                onRunBlock={handleRunSessionBlock}
+                activeRun={sessionRun}
+                onResumeRun={handleResumeSessionRun}
+                onEndRun={handleEndSessionRun}
               />
             </SidebarThemeProvider>
           )}
@@ -630,7 +696,30 @@ export default function Page() {
           )}
           {sidebar.activeView === 'court' && (
           <>
+          {sessionRun && runSession && (
+            <SessionRunBar
+              session={runSession}
+              run={sessionRun}
+              now={sessionRunState.now}
+              branches={runBlockVisual?.kind === 'none' ? [] : app.state.scenarioBranches ?? []}
+              activeBranchId={app.state.activeBranchId ?? null}
+              onSetActiveBranch={app.setActiveBranch}
+              onGoToBlock={(idx) => handleRunSessionBlock(sessionRun.sessionId, idx, isPlayerMode)}
+              onToggleTimer={() => sessionRunState.setRun((r) => r && {
+                ...r,
+                timer: isTimerRunning(r.timer) ? pauseTimer(r.timer, Date.now()) : startTimer(r.timer, Date.now()),
+              })}
+              onResetTimer={() => sessionRunState.setRun((r) => r && { ...r, timer: resetTimer() })}
+              onBackToSession={handleBackToSession}
+              onEnd={handleEndSessionRun}
+            />
+          )}
           <div style={{ position: 'relative', minHeight: 0, overflow: 'hidden', display: 'grid' }}>
+            {runBlock && runBlockVisual?.kind === 'none' && (
+              <div style={{ position: 'absolute', inset: 0, zIndex: 60, display: 'grid' }}>
+                <SessionBlockCard title={runBlock.title} notes={runBlock.notes} durationMin={runBlock.durationMin} />
+              </div>
+            )}
             {isPlayerMode && (
               <div className="player-header">
                 <div className="player-brand">
@@ -971,6 +1060,10 @@ export default function Page() {
           min-width: 0;
           min-height: 0;
           overflow: hidden;
+        }
+        /* U05 — barre de déroulé au-dessus du terrain. */
+        .center-col.has-session-run {
+          grid-template-rows: auto minmax(0, 1fr) auto auto;
         }
         .center-col.center-col-view {
           /* Vues routées (Playbook, Bibliothèque, Paramètres) : une seule

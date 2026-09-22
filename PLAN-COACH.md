@@ -32,7 +32,7 @@ contrôle visuel des systèmes et parcours réels de sauvegarde/partage.
 - [x] U02 Niveaux coach / analyse / développement ; unités mètres et secondes.
 - [x] U03 Annuler/rétablir visibles ; raccourcis uniques selon vue, mode et focus.
 - [x] U04 Édition tactile complète, cibles confortables, contraste et accessibilité.
-- [ ] U05 Déroulé de séance : contexte conservé, retour, blocs précédent/suivant, minuteur.
+- [x] U05 Déroulé de séance : contexte conservé, retour, blocs précédent/suivant, minuteur.
 - [ ] U06 Vérification terrain avec coachs et tablette physique (validation humaine à organiser).
 
 ## Lot 3 — Réalisme validé
@@ -252,3 +252,27 @@ Ces changements doivent être préservés et distingués des commits de consolid
   attente, visibilité). Suite complète : 2 374 réussis, seuls les 6 échecs
   congestion préexistants ; type-check : les 2 erreurs congestion préexistantes.
   Reste hors code : essai sur tablette physique (U06). Prochaine priorité : U05.
+
+
+- U05 : « Dérouler la séance » (ou depuis un bloc) ouvre le terrain en mode
+  lecteur avec une barre de déroulé : séance et bloc n/N, Précédent / Suivant,
+  minuteur du bloc (départ, pause, remise à zéro, dépassement en +mm:ss),
+  consignes repliables, choix de variante du système (sous-variantes libellées
+  par leur chemin, « Lecture auto » si variantes réactives) et « Ma séance ».
+  Un bloc libre sans visuel affiche une carte titre + consignes au lieu du
+  système du bloc précédent ; un bloc système orphelin aussi. Contexte
+  conservé : séance sélectionnée tenue par la page, déroulé (bloc, minuteur)
+  persisté et recalé si des blocs sont supprimés ; bandeau « Déroulé en cours ·
+  Reprendre / Terminer » dans la vue Séances. Défaut corrigé : chaque bloc
+  ouvert écrasait l'unique copie de récupération du brouillon ; elle n'est
+  désormais prise qu'au premier bloc chargé et « Terminer » restaure le
+  brouillon d'avant la séance. La navigation d'étapes du lecteur reste
+  indépendante des blocs.
+  Vérification navigateur : séance de 5 blocs (libre, 3 anti-zones à variantes,
+  Philadelphia) déroulée de bout en bout, variantes changées sur chaque système,
+  aller-retour vers le plan, rechargement en cours de déroulé (même bloc),
+  fin → brouillon PNR central retrouvé intact. Tests : module pur (minuteur,
+  recalage, persistance, visuel de bloc), barre (bornes, minuteur, variantes),
+  protection du brouillon sur enchaînement. Suite complète : 2 392 réussis,
+  seuls les 6 échecs congestion préexistants ; type-check : les 2 erreurs
+  congestion préexistantes. Lot 2 restant : U06 (validation humaine terrain).

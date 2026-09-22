@@ -35,10 +35,15 @@ interface SessionsViewProps {
   onUpdateSession: (session: PracticeSession) => void;
   onDeleteSession: (id: string) => void;
   onDuplicateSession: (id: string) => void;
-  /** Déroulé interactif : charge le système dans le terrain (mode présentation). */
-  onOpenSystem: (systemId: string) => void;
-  /** Visualise un scénario intégré (drill) : charge le Template dans le terrain. */
-  onVisualizeTemplate: (templateId: string) => void;
+  /** U05 — séance sélectionnée, conservée par la page entre les vues. */
+  selectedSessionId: string | null;
+  onSelectSession: (id: string | null) => void;
+  /** Déroulé : ouvre la séance sur le terrain à partir du bloc donné. */
+  onRunBlock: (sessionId: string, blockIndex: number) => void;
+  /** Déroulé en cours (null si aucun) : bandeau Reprendre / Terminer. */
+  activeRun: { sessionId: string; blockIndex: number } | null;
+  onResumeRun: () => void;
+  onEndRun: () => void;
 }
 
 const C = {
@@ -65,11 +70,19 @@ export function SessionsView({
   onUpdateSession,
   onDeleteSession,
   onDuplicateSession,
-  onOpenSystem,
-  onVisualizeTemplate,
+  selectedSessionId,
+  onSelectSession,
+  onRunBlock,
+  activeRun,
+  onResumeRun,
+  onEndRun,
 }: SessionsViewProps) {
   const sessions = getSessions(library);
-  const [selectedId, setSelectedId] = useState<string | null>(sessions[0]?.id ?? null);
+  const selectedId = sessions.some((s) => s.id === selectedSessionId)
+    ? selectedSessionId
+    : sessions[0]?.id ?? null;
+  const setSelectedId = onSelectSession;
+  const runSession = activeRun ? sessions.find((s) => s.id === activeRun.sessionId) : undefined;
   const [showSystemPicker, setShowSystemPicker] = useState(false);
   const [showDrillPicker, setShowDrillPicker] = useState(false);
   const [hoveredSessionId, setHoveredSessionId] = useState<string | null>(null);
@@ -158,6 +171,16 @@ export function SessionsView({
 
       {/* ===== Éditeur / fiche (droite) ===== */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
+        {activeRun && runSession && (
+          <div className="session-no-print" role="status" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, margin: '16px 24px 0', padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.accent}`, background: C.accentBg, fontSize: 13 }}>
+            <span style={{ flex: 1, minWidth: 180 }}>
+              Déroulé en cours : <strong>{runSession.name}</strong>, bloc {activeRun.blockIndex + 1}/{runSession.blocks.length}
+              {runSession.blocks[activeRun.blockIndex] ? ` — ${runSession.blocks[activeRun.blockIndex].title}` : ''}
+            </span>
+            <button onClick={onResumeRun} className="session-btn-primary bt-touch" style={btnBase}><Play size={14} /> Reprendre</button>
+            <button onClick={onEndRun} className="session-btn-ghost bt-touch" style={btnBase}>Terminer le déroulé</button>
+          </div>
+        )}
         {!selected ? (
           <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.textDim, fontSize: 13 }}>
             Sélectionne ou crée une séance.
@@ -173,13 +196,16 @@ export function SessionsView({
             setShowDrillPicker={setShowDrillPicker}
             onPatchSession={patchSession}
             onUpdateSession={onUpdateSession}
-            onDeleteSession={(id) => { onDeleteSession(id); setSelectedId(null); }}
+            onDeleteSession={(id) => {
+              if (activeRun?.sessionId === id) onEndRun();
+              onDeleteSession(id);
+              setSelectedId(null);
+            }}
             onDuplicateSession={onDuplicateSession}
             onAddFree={handleAddFree}
             onAddSystem={handleAddSystem}
             onAddDrill={handleAddDrill}
-            onOpenSystem={onOpenSystem}
-            onVisualizeTemplate={onVisualizeTemplate}
+            onRunBlock={(idx) => onRunBlock(selected.id, idx)}
           />
         )}
       </div>
@@ -318,7 +344,7 @@ function SessionEditor({
   session, library, allSystems, showSystemPicker, setShowSystemPicker,
   showDrillPicker, setShowDrillPicker,
   onPatchSession, onUpdateSession, onDeleteSession, onDuplicateSession,
-  onAddFree, onAddSystem, onAddDrill, onOpenSystem, onVisualizeTemplate,
+  onAddFree, onAddSystem, onAddDrill, onRunBlock,
 }: {
   session: PracticeSession;
   library: UserLibrary;
@@ -334,8 +360,7 @@ function SessionEditor({
   onAddFree: () => void;
   onAddSystem: (sys: SavedSystem) => void;
   onAddDrill: (drill: DrillTemplate) => void;
-  onOpenSystem: (systemId: string) => void;
-  onVisualizeTemplate: (templateId: string) => void;
+  onRunBlock: (blockIndex: number) => void;
 }) {
   const total = sessionTotalMinutes(session);
 
@@ -343,6 +368,15 @@ function SessionEditor({
     <div style={{ padding: 24, maxWidth: 880, margin: '0 auto' }}>
       {/* Barre d'actions (non imprimée) */}
       <div className="session-no-print" style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginBottom: 16, flexWrap: 'wrap' }}>
+        <button
+          onClick={() => onRunBlock(0)}
+          disabled={session.blocks.length === 0}
+          className="session-btn-primary bt-touch"
+          style={{ ...btnBase, marginRight: 'auto', opacity: session.blocks.length === 0 ? 0.5 : 1 }}
+          title="Montrer la séance bloc par bloc sur le terrain, avec minuteur et consignes"
+        >
+          <Play size={14} /> Dérouler la séance
+        </button>
         <button onClick={() => window.print()} className="session-btn-ghost" style={btnBase}><Printer size={14} /> Imprimer</button>
         <button onClick={() => onDuplicateSession(session.id)} className="session-btn-ghost" style={btnBase}><Copy size={14} /> Dupliquer</button>
         <button
@@ -414,8 +448,8 @@ function SessionEditor({
               onUpdate={(patch) => onUpdateSession(updateBlock(session, block.id, patch))}
               onDelete={() => onUpdateSession(deleteBlock(session, block.id))}
               onMove={(dir) => onUpdateSession(moveBlock(session, block.id, dir))}
-              onOpen={() => block.systemId && onOpenSystem(block.systemId)}
-              onVisualize={() => block.templateId && onVisualizeTemplate(block.templateId)}
+              onOpen={() => onRunBlock(idx)}
+              onVisualize={() => onRunBlock(idx)}
             />
           ))}
         </div>
@@ -569,12 +603,12 @@ function BlockRow({
       {/* Actions */}
       <div className="session-no-print" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {isSystem && (
-          <button onClick={onOpen} disabled={orphan} className="session-btn-open" style={{ ...btnBase, opacity: orphan ? 0.4 : 1, cursor: orphan ? 'not-allowed' : 'pointer', padding: '6px 10px' }} title="Ouvrir dans le terrain (présentation)">
+          <button onClick={onOpen} disabled={orphan} className="session-btn-open" style={{ ...btnBase, opacity: orphan ? 0.4 : 1, cursor: orphan ? 'not-allowed' : 'pointer', padding: '6px 10px' }} title="Dérouler la séance à partir de ce bloc">
             <Play size={13} /> Ouvrir
           </button>
         )}
         {hasVisual && (
-          <button onClick={onVisualize} className="session-btn-open" style={{ ...btnBase, padding: '6px 10px' }} title="Visualiser l'exercice sur le terrain (présentation)">
+          <button onClick={onVisualize} className="session-btn-open" style={{ ...btnBase, padding: '6px 10px' }} title="Dérouler la séance à partir de cet exercice">
             <Play size={13} /> Visualiser
           </button>
         )}

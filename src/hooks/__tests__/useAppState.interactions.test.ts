@@ -76,6 +76,20 @@ describe('useAppState interactions', () => {
     expect(result.current.state).toBe(before);
   });
 
+  it('U05 — enchaîner des blocs de séance garde le brouillon d’origine récupérable', () => {
+    const { result } = renderHook(() => useAppState());
+    act(() => result.current.patch({ playerNames: { O1: 'Brouillon coach' } }));
+    const blockA = { ...result.current.state, playerNames: { O1: 'Bloc A' } };
+    const blockB = { ...result.current.state, playerNames: { O1: 'Bloc B' } };
+
+    act(() => { expect(result.current.importState(blockA)).toBe(true); });
+    act(() => { expect(result.current.importState(blockB, { keepRecovery: true })).toBe(true); });
+    expect(result.current.state.playerNames?.O1).toBe('Bloc B');
+
+    act(() => result.current.restoreDraft());
+    expect(result.current.state.playerNames?.O1).toBe('Brouillon coach');
+  });
+
   it('récupère le brouillon précédent après remplacement et rechargement', () => {
     const { result, unmount } = renderHook(() => useAppState());
     act(() => result.current.patch({ playerNames: { O1: 'Brouillon coach' } }));

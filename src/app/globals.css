@@ -345,3 +345,143 @@ textarea::placeholder {
   border-color: #fdba74;
   color: #fff;
 }
+
+/* U05 — déroulé de séance. */
+.bt-session-run {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #4c3d78;
+  border-radius: 10px;
+  background: #1f1b2e;
+  color: #f3f4f6;
+}
+
+.bt-session-run-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.bt-run-title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 180px;
+}
+
+.bt-run-title strong {
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bt-run-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  color: #c4b5fd;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bt-run-nav,
+.bt-run-timer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bt-run-btn,
+.bt-run-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid #5b4b8a;
+  border-radius: 8px;
+  background: #2b2540;
+  color: #f3f4f6;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bt-run-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bt-run-chip[aria-pressed='true'] {
+  background: #6d28d9;
+  border-color: #c4b5fd;
+  color: #fff;
+}
+
+.bt-run-clock {
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.bt-run-clock-total {
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.bt-run-timer.is-over .bt-run-clock {
+  color: #fca5a5;
+}
+
+.bt-run-notes {
+  font-size: 13px;
+  line-height: 1.45;
+  color: #e5e7eb;
+}
+
+.bt-run-notes p {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+}
+
+.bt-run-notes-toggle {
+  border: none;
+  background: transparent;
+  color: #c4b5fd;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0;
+  cursor: pointer;
+}
+
+.bt-session-block-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  min-height: 320px;
+  padding: 32px;
+  border-radius: 12px;
+  border: 1px solid #4c3d78;
+  background: #1f1b2e;
+  color: #f3f4f6;
+}
+
+.bt-session-block-card h2 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.bt-session-block-card p {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.bt-run-muted {
+  color: #cbd5e1;
+}
