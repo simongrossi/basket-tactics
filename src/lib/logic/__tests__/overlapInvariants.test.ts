@@ -199,3 +199,28 @@ describe('fast-break — invariant clearance', () => {
         );
   });
 });
+
+
+it('évitement temporisé : le cutter reste séparé du poseur pendant sa fenêtre', async () => {
+  const { resolveFrameAt } = await import('../playback/frameResolver');
+  const base = makeInitialState();
+  const off = { O1: { x: 80, y: 430 }, O2: { x: 80, y: 80 }, O3: { x: 520, y: 80 },
+    O4: { x: 300, y: 150 }, O5: { x: 300, y: 430 } };
+  const defense = { D1: { x: 80, y: 200 }, D2: { x: 180, y: 200 },
+    D3: { x: 420, y: 200 }, D4: { x: 520, y: 200 }, D5: { x: 300, y: 260 } };
+  const to = { x: 520, y: 430 };
+  const state: AppState = { ...base, defenseInitial: defense, steps: [
+    { off, ballCarrier: 'O1', defenseOverrides: defense,
+      annotations: [{ type: 'cut', fromId: 'O1', toId: null, from: off.O1, to, tStart: 0.3, tEnd: 0.8 }] },
+    { off: { ...off, O1: to }, ballCarrier: 'O1', annotations: [], defenseOverrides: defense },
+  ] };
+  for (let f = 0; f <= 60; f++) {
+    const frame = resolveFrameAt(state, f / 60)!;
+    const positions = [...Object.values(frame.off), ...Object.values(frame.defPos)];
+    for (let i = 0; i < positions.length; i++) {
+      for (let j = i + 1; j < positions.length; j++) {
+        expect(distance(positions[i], positions[j])).toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.5);
+      }
+    }
+  }
+});

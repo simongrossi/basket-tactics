@@ -38,6 +38,8 @@ export interface PlaybackTrajectory {
   position: Point;
   movementType: MovementType;
   isScreening: boolean;
+  /** Route sélectionnée et progression après timing, sprint et profil de vitesse. */
+  route?: { path: Point[]; progress: number };
 }
 
 const MOVEMENT_TYPES = new Set<AnnotationType>(['cut', 'dribble', 'screen']);
@@ -64,7 +66,7 @@ function lerp(a: Point, b: Point, t: number): Point {
  * le segment vers Step[stepIdx+1] à `localT ∈ [0, 1]`.
  *
  * Trajectoires :
- * - aucune annotation de mouvement → idle (position constante).
+ * - aucune annotation de mouvement → idle (interpolation entre étapes).
  * - `cut` → ligne droite from → to.
  * - `dribble` → ligne droite from → to (la wave est purement visuelle, côté schéma).
  * - `screen` → arrive vite à `to`, puis reste planté ; isScreening=true dès que le poseur est fixé.
@@ -76,7 +78,7 @@ function lerp(a: Point, b: Point, t: number): Point {
  * [0, 0.4], un dribble plus long [0.3, 1.0], etc.).
  *
  * NB : aucune logique d'évitement d'obstacles ici. CourtView l'applique en
- * couche pour `cut` uniquement.
+ * couche pour cut / dribble / idle, en utilisant la route et sa progression.
  */
 /** Phy.O — Options pour le remap par profil de vitesse. Construites par
  *  le caller à partir de `state` ; absent ou `enabled: false` → legacy. */
@@ -231,7 +233,8 @@ export function attackerTrajectoryAt(
   }
 
   if (candidates.length === 0) {
-    return { position: idleAt(Math.max(0, Math.min(1, localT))), movementType: 'idle', isScreening: false };
+    return { position: idleAt(Math.max(0, Math.min(1, localT))), movementType: 'idle', isScreening: false,
+      route: { path: [idleStart, idleEnd ?? idleStart], progress: Math.max(0, Math.min(1, localT)) } };
   }
 
   const active = candidates
@@ -265,6 +268,8 @@ export function attackerTrajectoryAt(
   const hasWaypoints = !!ann.waypoints && ann.waypoints.length > 0;
   if (ann.type === 'cut') {
     let position: Point;
+    let routePath = annotationPolyline(ann);
+    let routeProgress = actionT;
     if (hasWaypoints) {
       let path = annotationPolyline(ann);
       // Phy.O V3 V2 — choix de côté du cut : si le défenseur matché est du côté
@@ -295,6 +300,8 @@ export function attackerTrajectoryAt(
           flipApplied,
         ).remap(actionT);
       }
+      routePath = path;
+      routeProgress = s;
       position = samplePolyline(path, s);
 
       // Moment/Centrifugal Drift
@@ -346,10 +353,12 @@ export function attackerTrajectoryAt(
     } else {
       position = lerp(ann.from, ann.to, actionT);
     }
-    return { position, movementType: 'cut', isScreening: false };
+    return { position, movementType: 'cut', isScreening: false, route: { path: routePath, progress: routeProgress } };
   }
   if (ann.type === 'dribble') {
     let position: Point;
+    let routePath = annotationPolyline(ann);
+    let routeProgress = actionT;
     if (hasWaypoints) {
       const path = annotationPolyline(ann);
       let s = actionT;
@@ -369,6 +378,8 @@ export function attackerTrajectoryAt(
           endAtStandstill,
         ).remap(actionT);
       }
+      routePath = path;
+      routeProgress = s;
       position = samplePolyline(path, s);
 
       // Moment/Centrifugal Drift
@@ -420,7 +431,7 @@ export function attackerTrajectoryAt(
     } else {
       position = lerp(ann.from, ann.to, actionT);
     }
-    return { position, movementType: 'dribble', isScreening: false };
+    return { position, movementType: 'dribble', isScreening: false, route: { path: routePath, progress: routeProgress } };
   }
   if (ann.type === 'screen') {
     if (actionT < SCREEN_SET_FRACTION) {
@@ -432,5 +443,6 @@ export function attackerTrajectoryAt(
     }
     return { position: { ...ann.to }, movementType: 'screen', isScreening: true };
   }
-  return { position: idleAt(Math.max(0, Math.min(1, localT))), movementType: 'idle', isScreening: false };
+  return { position: idleAt(Math.max(0, Math.min(1, localT))), movementType: 'idle', isScreening: false,
+      route: { path: [idleStart, idleEnd ?? idleStart], progress: Math.max(0, Math.min(1, localT)) } };
 }

@@ -45,6 +45,7 @@ import { applyPathAwareInterpolation } from './pathAwareInterpolation';
 import { getStepDurationSeconds } from '../timecode';
 import { resolveAnnotationTiming } from '../annotationTiming';
 import { activeBallCarrier, activeOffense } from '../players';
+import { avoidAttackerRoute } from './attackerRouteAvoidance';
 import { attackerTrajectoryAt, type MovementType } from '../playbackTrajectory';
 import { lerpAngleDeg } from '../angles';
 import { buildStep0DetectionPositions } from '../step0Detection';
@@ -409,7 +410,7 @@ export function resolveFrameAt(
 
   // ---------------------------------------------------------------------
   // 1. Positions attaquants — trajectoire pilotée par les annotations,
-  //    avec évitement d'obstacles uniquement pour cut/idle.
+  //    avec évitement d'obstacles pour cut/idle/dribble.
   // ---------------------------------------------------------------------
   const off = {} as AttackerPositions;
   const attackerMovementType: Partial<Record<AttackerId, MovementType>> = {};
@@ -499,9 +500,11 @@ export function resolveFrameAt(
     // snap. Le `screen` movementType reste exclu : le poseur DOIT atteindre
     // sa position de pose, pas l'éviter.
     if (
-      traj.movementType === 'cut' ||
-      traj.movementType === 'idle' ||
-      traj.movementType === 'dribble'
+      traj.route && traj.route.progress > 0 && traj.route.progress < 1 && (
+        traj.movementType === 'cut' ||
+        traj.movementType === 'idle' ||
+        traj.movementType === 'dribble'
+      )
     ) {
       if (state.cvtOffensiveEnabled) {
         // CVT offensif — accumulateur de forces `repel` depuis tous les
@@ -540,10 +543,7 @@ export function resolveFrameAt(
             defenderToSkip: 'D1' as DefenderId,
           });
         });
-        const blocking = pickBlockingCluster(offA[id], offB[id], obstacles);
-        if (blocking) {
-          p = curveAroundObstacle(offA[id], offB[id], blocking.center, blocking.radius, localT);
-        }
+        p = avoidAttackerRoute(p, traj.route.path, traj.route.progress, obstacles);
       }
     }
 

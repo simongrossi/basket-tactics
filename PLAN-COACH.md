@@ -16,7 +16,7 @@ Ce document suit le travail effectif ; une case n'est cochée qu'après validati
 - [ ] F08 Horloge commune : durées d'étapes, lecture, ralenti, export et déplacements.
   Lecture et export corrigés : durées individuelles et interpolations respectées ;
   changement de vitesse sans redémarrage. Reste : calibration temporelle des déplacements physiques.
-- [ ] F09 Respecter timing et trajet de l'action lors des évitements.
+- [x] F09 Respecter timing et trajet de l'action lors des évitements.
 - [ ] F10 Calcul reproductible à un même instant, indépendamment de la fréquence d'affichage.
 - [ ] F11 Séparation finale des joueurs, profil applicatif inclus, sans retour du flicker d'écran.
 - [ ] F12 Garantir les contraintes athlétiques ou signaler une durée impossible.
@@ -86,3 +86,15 @@ Ces changements doivent être préservés et distingués des commits de consolid
   Validation : 57 tests ciblés passent (horloge, pause/reprise, vitesse, capture
   d'export). Les deux erreurs TypeScript du test local congestion restent préexistantes.
   Pas de modification des trajectoires ou du solveur physique dans cette tranche.
+
+- F09 terminé : l'évitement utilise la route sélectionnée et la progression de
+  l'action (départ différé, timing absolu, sprint et profil de vitesse), au lieu
+  de remplacer le mouvement par une courbe entre les étapes. Les points de
+  passage bornent chaque portion corrigée ; les portions libres sont conservées.
+  Les splines qui débordent de leur corde sont également prises en compte.
+  Avant le départ et après l'arrivée, aucune déviation anticipative n'est ajoutée.
+  Les solveurs de collision restent prioritaires si un point demandé est occupé.
+  Validation : 2 315 tests passent dans la suite complète, incluant les écrans,
+  overlaps et scénarios utilisateur ; seuls les 6 échecs congestion préexistants
+  subsistent. Un cas supplémentaire de spline débordante passe ensuite (9 tests
+  ciblés au total). TypeScript : uniquement les 2 erreurs congestion préexistantes.

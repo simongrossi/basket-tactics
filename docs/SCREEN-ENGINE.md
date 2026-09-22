@@ -205,6 +205,13 @@ au boundary final (bug f435/436 = jusqu'à 141 px).
 pas pour `screen` (le poseur DOIT atteindre sa position de pose, pas
 l'éviter).
 
+✅ **Évitement offensif fidèle au tracé et au timing** : consommer la `route`
+(path + progression après remap) retournée par `attackerTrajectoryAt`. Ne pas
+remplacer ce résultat par une courbe `offA → offB` au temps global du segment.
+`avoidAttackerRoute` corrige la portion entre deux points de passage ; les
+solveurs de collision restent appliqués en aval. Les déviations anticipatives
+sont désactivées avant le départ et après l'arrivée, y compris en mode CVT.
+
 ✅ **Poseur set = obstacle solide** : dès que `attackerIsScreening[id]`
 est true, le poseur ne passe plus dans le solveur attaquant↔attaquant
 et n'est plus clampé par le rate limiter attaquant. Il reste exactement
