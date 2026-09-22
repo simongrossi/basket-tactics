@@ -9,6 +9,7 @@
 // amont (WeakMap cache sur l'AppState), donc OK tant que `state` est stable
 // entre renders. Si lenteur ressentie, ajouter `useMemo` ici sur `[state]`.
 
+import { formatDistance } from '@/lib/logic/displayUnits';
 import { useMemo, useState } from 'react';
 import { LineChart, X } from 'lucide-react';
 import type { AppState } from '@/lib/types';
@@ -27,17 +28,17 @@ interface MetricsChartProps {
 
 const METRIC_LABELS: Record<MetricKey, { label: string; description: string; format: (v: number) => string }> = {
   maxGap: {
-    label: 'gap max',
-    description: "Distance au défenseur le plus proche pour l'attaquant le plus libre (px). Pic = danger.",
-    format: (v) => `${Math.round(v)}px`,
+    label: 'écart max',
+    description: "Distance au défenseur le plus proche pour l'attaquant le plus libre (m). Pic = danger.",
+    format: formatDistance,
   },
   paintCoverage: {
     label: 'raquette',
-    description: 'Nombre de défenseurs à < 100px du panier. Pic = raquette protégée.',
+    description: `Nombre de défenseurs à moins de ${formatDistance(100)} du panier. Pic = raquette protégée.`,
     format: (v) => String(Math.round(v)),
   },
   lateCount: {
-    label: 'late',
+    label: 'en retard',
     description: "Nombre de défenseurs en retard (clamp vitesse). Pic = défense débordée.",
     format: (v) => String(Math.round(v)),
   },

@@ -1,5 +1,7 @@
 'use client';
 
+import { useInterfaceLevel } from './interface/InterfaceLevel';
+
 import { useEffect, useId, useRef, useState } from 'react';
 import { CLASSIC_TEMPLATES, LAB_TEMPLATES, type Template } from '@/lib/data/templates';
 import type { UserLibrary, SavedSystem, SavedFolder } from '@/lib/data/library';
@@ -48,6 +50,8 @@ export function LibraryModal(props: LibraryModalProps) {
     mode = 'modal',
   } = props;
   const inline = mode === 'inline';
+  const { development } = useInterfaceLevel();
+  const visibleLabTemplates = development ? LAB_TEMPLATES : [];
 
   const [selectedFolderId, setSelectedFolderId] = useState<string>(
     props.initialSection === 'templates' ? CLASSIC_FOLDER_ID : library.folders[0]?.id ?? CLASSIC_FOLDER_ID
@@ -76,8 +80,8 @@ export function LibraryModal(props: LibraryModalProps) {
   }, [onClose, renameTarget, showSaveDialog]);
 
   // Données du dossier sélectionné.
-  const isClassic = selectedFolderId === CLASSIC_FOLDER_ID;
-  const isLab = selectedFolderId === LAB_FOLDER_ID;
+  const isClassic = selectedFolderId === CLASSIC_FOLDER_ID || (!development && selectedFolderId === LAB_FOLDER_ID);
+  const isLab = development && selectedFolderId === LAB_FOLDER_ID;
   const isReadOnlyFolder = isClassic || isLab;
   const templatesForFolder = isClassic ? CLASSIC_TEMPLATES : isLab ? LAB_TEMPLATES : [];
   const userFolder = library.folders.find((f) => f.id === selectedFolderId) ?? null;
@@ -86,7 +90,7 @@ export function LibraryModal(props: LibraryModalProps) {
   // éditeurs de TagEditor et la sidebar Catégories).
   const allTagSuggestions = collectTagCounts([
     ...CLASSIC_TEMPLATES,
-    ...LAB_TEMPLATES,
+    ...visibleLabTemplates,
     ...library.folders.flatMap((f) => f.systems),
   ]).map((t) => t.tag);
 
@@ -213,15 +217,15 @@ export function LibraryModal(props: LibraryModalProps) {
             <FolderRow
               label={`📦 Systèmes classiques`}
               count={CLASSIC_TEMPLATES.length}
-              active={selectedTag === null && selectedFolderId === CLASSIC_FOLDER_ID}
+              active={selectedTag === null && isClassic}
               onClick={() => { setSelectedTag(null); setSelectedFolderId(CLASSIC_FOLDER_ID); }}
             />
-            <FolderRow
+            {development && <FolderRow
               label={`🧪 Lab dev`}
               count={LAB_TEMPLATES.length}
               active={selectedTag === null && selectedFolderId === LAB_FOLDER_ID}
               onClick={() => { setSelectedTag(null); setSelectedFolderId(LAB_FOLDER_ID); }}
-            />
+            />}
             <div style={{ fontSize: 9, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 8, marginBottom: 2, paddingLeft: 4 }}>
               Mes dossiers
             </div>
@@ -255,7 +259,7 @@ export function LibraryModal(props: LibraryModalProps) {
             {(() => {
               const allSystems = [
                 ...CLASSIC_TEMPLATES,
-                ...LAB_TEMPLATES,
+                ...visibleLabTemplates,
                 ...library.folders.flatMap((f) => f.systems),
               ];
               const tags = collectTagCounts(allSystems);
@@ -305,7 +309,7 @@ export function LibraryModal(props: LibraryModalProps) {
             {selectedTag ? (
               (() => {
                 // Mode filtre par tag — mélange templates + user systems.
-                const matchingTemplates = [...CLASSIC_TEMPLATES, ...LAB_TEMPLATES].filter(
+                const matchingTemplates = [...CLASSIC_TEMPLATES, ...visibleLabTemplates].filter(
                   (t) => t.tags?.includes(selectedTag),
                 );
                 const matchingUserSystems = library.folders.flatMap((f) =>

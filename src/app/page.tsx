@@ -30,6 +30,7 @@ import { PlaybookView } from '@/components/PlaybookView';
 import { PlayerTimelineModal } from '@/components/PlayerTimelineModal';
 import { MultiTrackTimeline } from '@/components/MultiTrackTimeline';
 import { ScenarioGraphView } from '@/components/scenariograph/ScenarioGraphView';
+import { InterfaceGate } from '@/components/interface/InterfaceLevel';
 import { MetricsBar } from '@/components/MetricsBar';
 import { MetricsChart } from '@/components/MetricsChart';
 import { CoachDiagnosticsOverlay } from '@/components/CoachDiagnosticsOverlay';
@@ -826,13 +827,13 @@ export default function Page() {
               onSetQuality={app.setAnnotationQuality}
             />
           )}
-          {metrics && !isPlayerMode && <MetricsBar metrics={metrics} bestAction={bestAction} screenAction={screenAction} />}
+          {metrics && !isPlayerMode && <MetricsBar playerCount={app.state.playerCount} metrics={metrics} bestAction={bestAction} screenAction={screenAction} />}
           {!isPlayerMode && (
-            <MetricsChart
+            <InterfaceGate min="analysis"><MetricsChart
               state={app.state}
               activeStep={app.state.activeStep}
               onSetActiveStep={app.setActiveStep}
-            />
+            /></InterfaceGate>
           )}
           </>
           )}

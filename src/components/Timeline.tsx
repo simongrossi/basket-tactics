@@ -1,9 +1,11 @@
 'use client';
 
+import { InterfaceGate, useInterfaceLevel } from './interface/InterfaceLevel';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { AppState } from '@/lib/types';
 import {
   formatClock,
+  fullStepToSeconds,
   formatShotClock,
   isShotClockViolationAt,
   realStepToSeconds,
@@ -41,10 +43,8 @@ interface TimelineProps {
   onSetPlaybackSpeed?: (s: number) => void;
 }
 
-/** Résolutions de navigation frame-by-frame. Au plus fin (60), chaque clic
- *  correspond à un frame d'animation (~16ms à vitesse 1×, équivalent au tick
- *  de playback). Au plus large (10), on saute par 1/10 de step pour avancer
- *  vite. Raccourcis clavier ←/→ utilisent le mode fin par défaut. */
+/** Navigation par fractions de transition. La durée réelle de chaque pas
+ * dépend de la durée de cette transition ; ce n'est pas une cadence vidéo. */
 const SUBFRAMES_FINE = 60;
 const SUBFRAMES_COARSE = 10;
 
@@ -59,6 +59,7 @@ export function Timeline({
   state, onSetActiveStep, onScrub, isPlaying, scrubT, playbackT,
   onPlayToggle, onStop, playbackSpeed, onSetPlaybackSpeed,
 }: TimelineProps) {
+  const { development } = useInterfaceLevel();
   const trackRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const total = state.steps.length;
@@ -300,14 +301,11 @@ export function Timeline({
             >
               ■
             </button>
-            {/* Navigation frame-by-frame pour debug visuel fin.
-                ⏪/⏩ : 1/10 de step (coarse, ~100ms à 1×). Aussi Shift+←/→.
-                ◀/▶ : 1/60 de step (fine, ~16ms à 1×, = un frame d'animation).
-                Aussi ←/→ au clavier. */}
+            <InterfaceGate min="analysis">
             <button
               onClick={() => goCoarseFrame(-1)}
               disabled={isPlaying || displayT <= 0}
-              title="Reculer 1/10 step (Shift+←)"
+              title="Reculer 1/10 de transition (Shift+←)"
               style={{
                 fontSize: 11,
                 padding: '4px 5px',
@@ -325,7 +323,7 @@ export function Timeline({
             <button
               onClick={() => goFineFrame(-1)}
               disabled={isPlaying || currentFineIdx <= 0}
-              title="Reculer un frame (1/60 step ≈ 16ms, ←)"
+              title="Reculer un frame (1/60 de transition, ←)"
               style={{
                 fontSize: 11,
                 padding: '4px 6px',
@@ -351,12 +349,12 @@ export function Timeline({
                 flex: '0 0 auto',
               }}
             >
-              f{currentFineIdx}/{totalFineFrames}
+              {development ? `f${currentFineIdx}/${totalFineFrames}` : `${fullStepToSeconds(state, displayT).toFixed(2)} s`}
             </span>
             <button
               onClick={() => goFineFrame(1)}
               disabled={isPlaying || currentFineIdx >= totalFineFrames}
-              title="Avancer un frame (1/60 step ≈ 16ms, →)"
+              title="Avancer un frame (1/60 de transition, →)"
               style={{
                 fontSize: 11,
                 padding: '4px 6px',
@@ -374,7 +372,7 @@ export function Timeline({
             <button
               onClick={() => goCoarseFrame(1)}
               disabled={isPlaying || displayT >= totalT}
-              title="Avancer 1/10 step (Shift+→)"
+              title="Avancer 1/10 de transition (Shift+→)"
               style={{
                 fontSize: 11,
                 padding: '4px 5px',
@@ -389,6 +387,7 @@ export function Timeline({
             >
               ⏩
             </button>
+            </InterfaceGate>
           </>
         )}
         {trackEl}

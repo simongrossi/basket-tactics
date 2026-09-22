@@ -1,4 +1,5 @@
 import './globals.css';
+import { InterfaceLevelProvider } from '@/components/interface/InterfaceLevel';
 
 export const metadata = {
   title: 'Basket Tactics',
@@ -15,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           QUE sur ce nœud — les divergences plus profondes restent
           détectées normalement. */}
       <body suppressHydrationWarning style={{ margin: 0, fontFamily: 'system-ui, sans-serif', background: '#171a20' }}>
-        {children}
+        <InterfaceLevelProvider>{children}</InterfaceLevelProvider>
       </body>
     </html>
   );

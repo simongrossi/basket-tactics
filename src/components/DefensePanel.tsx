@@ -1,5 +1,9 @@
 'use client';
 
+import { InterfaceGate, useInterfaceLevel } from './interface/InterfaceLevel';
+import { PX_PER_M } from '@/lib/data/court';
+import { movementBudgetToMps, mpsToMovementBudget } from '@/lib/logic/displayUnits';
+
 import { useState } from 'react';
 import type {
   AppState,
@@ -73,6 +77,7 @@ interface DefensePanelProps {
 
 export function DefensePanel(props: DefensePanelProps) {
   const { state } = props;
+  const { analysis } = useInterfaceLevel();
   const c = COLORS.defense;
   const isMan = state.defenseSystem === 'man';
   const defenderIds = getActiveDefenderIds(state.playerCount);
@@ -355,7 +360,7 @@ export function DefensePanel(props: DefensePanelProps) {
                     <br />
                     <strong>V2 trap dynamique</strong> : quand le porteur franchit la
                     médiane (côté offense), les 2 défenseurs les plus proches
-                    sautent dessus (+35 px vers le porteur).
+                    sautent dessus (environ 0,9 m vers le porteur).
                     <br />
                     Retreat progressive si press cassée : reportée V2.5.
                   </>
@@ -593,7 +598,7 @@ export function DefensePanel(props: DefensePanelProps) {
       {/* ========================================================================
           NEUTRAL — Réglages globaux (sliders + écrans fins + couvertures avancées)
           ====================================================================== */}
-      {isMan && (
+      {isMan && analysis && (
         <AccordionSection
           id="defense-global-settings"
           theme="defense"
@@ -606,22 +611,22 @@ export function DefensePanel(props: DefensePanelProps) {
             Paramètres de marquage qui s'appliquent à toute l'équipe par défaut.
           </div>
           <Slider
-            label="distance"
-            min={15}
-            max={150}
-            step={5}
-            value={state.defenseDistance}
-            onChange={(v) => props.onPatch({ defenseDistance: v })}
-            title="Distance par défaut entre chaque défenseur et son attaquant marqué (px). 15 = hard deny (~0.4 m), 40 = standard (1.1 m, défaut), 100 = sag (2.7 m), 150 = deep help weak-side (4 m). La valeur effective est clampée à PLAYER_MIN_CLEARANCE_PX (34 px) côté moteur. Override-able par défenseur via clic-droit."
+            label="distance (m)"
+            min={15 / PX_PER_M}
+            max={150 / PX_PER_M}
+            step={0.01}
+            value={state.defenseDistance / PX_PER_M}
+            onChange={(v) => { if (v !== Number((state.defenseDistance / PX_PER_M).toFixed(2))) props.onPatch({ defenseDistance: Math.max(15, Math.min(150, v * PX_PER_M)) }); }}
+            title="Distance de marquage en mètres : environ 1,1 m par défaut, 2,7 m pour laisser davantage d’espace. La séparation physique entre joueurs reste prioritaire."
           />
           <Slider
-            label="vit. max"
-            min={40}
-            max={200}
-            step={5}
-            value={state.defenseMaxSpeed}
-            onChange={(v) => props.onPatch({ defenseMaxSpeed: v })}
-            title="Distance maximale parcourue entre deux étapes (px). Modélise la réalité physique."
+            label="vit. (m/s)"
+            min={movementBudgetToMps(40)}
+            max={movementBudgetToMps(200)}
+            step={0.01}
+            value={movementBudgetToMps(state.defenseMaxSpeed)}
+            onChange={(v) => { if (v !== Number(movementBudgetToMps(state.defenseMaxSpeed).toFixed(2))) props.onPatch({ defenseMaxSpeed: Math.max(40, Math.min(200, mpsToMovementBudget(v))) }); }}
+            title="Budget de déplacement ramené à une seconde (transition de référence : 4 s). Les multiplicateurs de closeout et de profil peuvent modifier la vitesse effective."
           />
           <Slider
             label="closeout ×"
@@ -641,6 +646,7 @@ export function DefensePanel(props: DefensePanelProps) {
             onChange={(v) => props.onPatch({ denyAggressiveness: v })}
             title="Force globale du marquage en avant côté ballon."
           />
+          <InterfaceGate min="development">
           <Slider
             label="CVT amorti px"
             min={4}
@@ -1054,11 +1060,12 @@ export function DefensePanel(props: DefensePanelProps) {
               )}
             </div>
           </details>
+          </InterfaceGate>
         </AccordionSection>
       )}
 
       {/* En mode zone, réglages globaux marquage uniquement (sans écrans/couvertures détaillées) */}
-      {!isMan && (
+      {!isMan && analysis && (
         <AccordionSection
           id="defense-global-settings-zone"
           theme="defense"
@@ -1068,12 +1075,12 @@ export function DefensePanel(props: DefensePanelProps) {
           defaultOpen={false}
         >
           <Slider
-            label="vit. max"
-            min={40}
-            max={200}
-            step={5}
-            value={state.defenseMaxSpeed}
-            onChange={(v) => props.onPatch({ defenseMaxSpeed: v })}
+            label="vit. (m/s)"
+            min={movementBudgetToMps(40)}
+            max={movementBudgetToMps(200)}
+            step={0.01}
+            value={movementBudgetToMps(state.defenseMaxSpeed)}
+            onChange={(v) => { if (v !== Number(movementBudgetToMps(state.defenseMaxSpeed).toFixed(2))) props.onPatch({ defenseMaxSpeed: Math.max(40, Math.min(200, mpsToMovementBudget(v))) }); }}
           />
           <Slider
             label="closeout ×"

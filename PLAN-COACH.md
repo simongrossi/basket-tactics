@@ -29,7 +29,7 @@ contrôle visuel des systèmes et parcours réels de sauvegarde/partage.
 ## Lot 2 — Usage quotidien par un coach
 
 - [x] U01 Entrées créer / modèle / séance ; presets et vocabulaire métier en premier.
-- [ ] U02 Niveaux coach / analyse / développement ; unités mètres et secondes.
+- [x] U02 Niveaux coach / analyse / développement ; unités mètres et secondes.
 - [ ] U03 Annuler/rétablir visibles ; raccourcis uniques selon vue, mode et focus.
 - [ ] U04 Édition tactile complète, cibles confortables, contraste et accessibilité.
 - [ ] U05 Déroulé de séance : contexte conservé, retour, blocs précédent/suivant, minuteur.
@@ -189,3 +189,21 @@ Ces changements doivent être préservés et distingués des commits de consolid
   de refus de création si la protection du brouillon échoue (3 tests du hook
   repassés). Seuls les 6 échecs et 2 erreurs TypeScript congestion préexistants
   subsistent. La création réussie quitte aussi le match live et la lecture.
+
+
+- U02 : préférence d’interface Coach / Analyse / Développement persistée
+  séparément du système, accessible dans la barre latérale et les paramètres.
+  Coach conserve préparation, consignes et lecture coach ; Analyse ajoute les
+  mesures avancées, champs de vision, graphiques et réglages globaux ;
+  Développement expose les diagnostics, paramètres expérimentaux et modèles Lab.
+  Les overlays sont masqués effectivement sans modifier les flags du système
+  ni sa physique. Les modèles Lab disparaissent aussi des filtres par catégorie.
+  Distances des métriques en mètres, réglages globaux en mètres et m/s
+  (budget historique ramené à la transition de référence de 4 s), navigation fine
+  en secondes réelles ; indices de frames réservés au développement.
+  Le compteur de protection de raquette respecte le nombre de joueurs actifs.
+  Vérification navigateur : trois niveaux, unités, retour Lab → Coach, paramètres
+  et lisibilité du sélecteur. Tests : persistance, stockage indisponible, absence
+  de mutation du système/historique et conversion des unités. Suite complète :
+  2 347 réussis, seuls les 6 échecs congestion préexistants ; type-check :
+  les 2 erreurs congestion préexistantes. Prochaine priorité : U03.

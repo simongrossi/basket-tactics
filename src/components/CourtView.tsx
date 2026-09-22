@@ -1,5 +1,7 @@
 'use client';
 
+import { useInterfaceLevel } from './interface/InterfaceLevel';
+
 // Composant principal du terrain. Rôle :
 //
 //  1. Conteneur SVG + viewBox (fullCourt ou half)
@@ -145,6 +147,7 @@ interface CourtViewProps {
 }
 
 export function CourtView(props: CourtViewProps) {
+  const { analysis, development } = useInterfaceLevel();
   const { state } = props;
   const svgRef = useRef<SVGSVGElement>(null);
   const contentRef = useRef<SVGGElement>(null);
@@ -552,13 +555,13 @@ export function CourtView(props: CourtViewProps) {
           defPos={frame.defPos}
           off={frame.off}
           fullCourt={state.fullCourt}
-          show={!!state.showHeatmap}
+          show={analysis && !!state.showHeatmap}
         />
         {/* Champs de vision joueurs — activables individuellement par défenseur
             via clic-droit (rule.showFieldOfView), OU globalement sur tous les
             joueurs (défenseurs + attaquants) via le toggle Paramètres
             (state.showFieldOfViewAll). Heatmap croisée par superposition. */}
-        <FieldOfViewOverlay
+        {analysis && <FieldOfViewOverlay
           defPos={frame.defPos}
           off={frame.off}
           attVisuals={frame.attVisuals}
@@ -566,11 +569,11 @@ export function CourtView(props: CourtViewProps) {
           showAll={!!state.showFieldOfViewAll}
           showAllDefenders={!!state.showFieldOfViewAllDefenders}
           showAllAttackers={!!state.showFieldOfViewAllAttackers}
-        />
+        />}
         <HelpLines off={frame.off} defPos={frame.defPos} defenseDistance={state.defenseDistance} show={state.showHelpLines} />
         {/* Anneaux de menace — rendus AVANT les sprites pour que les icônes
             joueur passent par-dessus l'anneau (visuel plus propre). */}
-        {threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="rings" />}
+        {analysis && threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="rings" />}
         {state.showGhosts && state.activeStep > 0 && !props.isPlaying && props.scrubT == null && (
           <GhostLayer state={state} stepIdx={state.activeStep - 1} currentStepIdx={state.activeStep} />
         )}
@@ -858,8 +861,8 @@ export function CourtView(props: CourtViewProps) {
         )}
         {/* Badges % de menace + flèche meilleure action — rendus APRÈS les
             joueurs pour passer AU-DESSUS des icônes (~17px de rayon). */}
-        {threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="badges" />}
-        {state.showBestAction && (() => {
+        {analysis && threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="badges" />}
+        {analysis && state.showBestAction && (() => {
           const carrier = frame.carrier;
           const actions = evaluateOffensiveOptions(frame.off, frame.defPos, carrier, undefined, state.attackerProfiles);
           const best = bestOffensiveAction(actions);
@@ -921,13 +924,13 @@ export function CourtView(props: CourtViewProps) {
           off={frame.off}
           carrier={frame.carrier}
           hoop={state.attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP}
-          show={!!state.showTacticalMetrics}
+          show={analysis && !!state.showTacticalMetrics}
         />
-        {state.showHelpDebug && <HelpDebugOverlay defPos={frame.defPos} />}
-        {state.showDefenseTriangles && (
+        {development && state.showHelpDebug && <HelpDebugOverlay defPos={frame.defPos} />}
+        {analysis && state.showDefenseTriangles && (
           <DefenseTriangleOverlay defPos={frame.defPos} off={frame.off} carrier={frame.carrier} />
         )}
-        {state.showScreenDebug && (
+        {development && state.showScreenDebug && (
           <ScreenDebugOverlay
             off={frame.off}
             defPos={frame.defPos}
@@ -967,7 +970,7 @@ export function CourtView(props: CourtViewProps) {
           );
         })()}
         <Ball pos={frame.ballPos} inFlight={frame.ballInFlight} />
-        {threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="badges" />}
+        {analysis && threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="badges" />}
 
         {/* #4 — Rectangle de sélection (marquee) pendant Shift+drag dans le vide. */}
         {marquee && (
@@ -1091,15 +1094,15 @@ export function CourtView(props: CourtViewProps) {
         </div>
       )}
 
-      {state.showScreenDebug && (
+      {development && state.showScreenDebug && (
         <ScreenPlayerDebugPanel frame={frame} selectedDefenders={selectedDefenders} />
       )}
 
-      {state.showPlayerDebug && (
+      {development && state.showPlayerDebug && (
         <PlayerDebugTable frame={frame} visible />
       )}
 
-      {state.showProfileOverlay && (
+      {development && state.showProfileOverlay && (
         <FrameProfileOverlay frame={frame} visible />
       )}
 

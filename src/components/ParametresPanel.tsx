@@ -1,5 +1,6 @@
 'use client';
 
+import { InterfaceGate, InterfaceLevelSelector } from './interface/InterfaceLevel';
 import { useId, type CSSProperties, type ReactNode } from 'react';
 import type { AppState, PlayerCount, PlayerId } from '@/lib/types';
 import { PLAYER_COUNT_OPTIONS } from '@/lib/logic/players';
@@ -126,6 +127,7 @@ export function ParametresPanel({
   const realism = resolveRealismFlags(state);
   return (
     <Panel theme="defense" title="⚙ Paramètres">
+      <InterfaceLevelSelector />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
         <SettingsSection title="Format de jeu">
           <ControlGroup title="Joueurs actifs" accent={UI.accent}>
@@ -143,12 +145,12 @@ export function ParametresPanel({
           </ControlGroup>
         </SettingsSection>
 
-        <SettingsSection title="Timecode">
+        <SettingsSection title="Durées">
           <ControlGroup title="Rythme" accent={UI.cyan}>
             <div style={compactGridStyle}>
               <NumberField
                 label="s / étape"
-                title="Durée d'une étape en secondes. Affecte uniquement l'horloge et le shot clock — le moteur reste step-based."
+                title="Durée d'une étape en secondes. Utilisée par la lecture, l’export, les déplacements défensifs et le chronomètre."
               >
                 <input
                   type="number"
@@ -178,15 +180,15 @@ export function ParametresPanel({
             <div style={{ marginTop: 8 }}>
               <CheckboxLine
                 checked={!!state.realSpeedMode}
-                label="Mode Sprint NBA (Vitesse réelle)"
+                label="Transitions rapides (0,5 s par défaut)"
                 onChange={(v) => onPatch({ realSpeedMode: v })}
-                title="Passe de la vitesse d'explication tactique (2s par étape) à la vitesse réelle du match (0.5s par étape)."
+                title="Utilise 0,5 s par transition si aucune durée individuelle ou globale n’est définie. Le ralenti reste un réglage de lecture séparé."
               />
             </div>
           </ControlGroup>
         </SettingsSection>
 
-        <SettingsSection title="Roster & Effectif">
+        <SettingsSection title="Effectif">
           <ControlGroup title="Noms & Numéros" accent={UI.orange}>
             <div style={{ marginBottom: 4 }}>
               <CheckboxLine
@@ -414,30 +416,30 @@ export function ParametresPanel({
               sample="line" color={UI.amber}
               onChange={(v) => onPatch({ showCoachDiagnostics: v })}
             />
-            <ToggleCard
+            <InterfaceGate min="analysis"><ToggleCard
               checked={!!state.showThreats}
               label="menace attaquants"
               sample="ring-solid" color={UI.green}
               onChange={(v) => onPatch({ showThreats: v })}
-            />
-            <ToggleCard
+            /></InterfaceGate>
+            <InterfaceGate min="analysis"><ToggleCard
               checked={!!state.showBestAction}
               label="meilleure action"
               sample="ring-solid" color={UI.amber}
               onChange={(v) => onPatch({ showBestAction: v })}
-            />
-            <ToggleCard
+            /></InterfaceGate>
+            <InterfaceGate min="analysis"><ToggleCard
               checked={!!state.showTacticalMetrics}
               label="EJE / EJO"
               sample="dashed" color={UI.green}
               onChange={(v) => onPatch({ showTacticalMetrics: v })}
-            />
-            <ToggleCard
+            /></InterfaceGate>
+            <InterfaceGate min="analysis"><ToggleCard
               checked={!!state.showHeatmap}
               label="heatmap zones"
               sample="gradient" color={UI.green}
               onChange={(v) => onPatch({ showHeatmap: v })}
-            />
+            /></InterfaceGate>
           </ToggleGroup>
 
           <ToggleGroup title="Terrain & champs" accent={UI.cyan}>
@@ -447,36 +449,36 @@ export function ParametresPanel({
               sample="court" color={UI.accent}
               onChange={(v) => onPatch({ fullCourt: v })}
             />
-            <ToggleCard
+            <InterfaceGate min="analysis"><ToggleCard
               checked={!!state.showFieldOfViewAll}
               label="champ vision (tous)"
               sample="circle" color="#94a3b8"
               onChange={(v) => onPatch({ showFieldOfViewAll: v })}
-            />
-            <ToggleCard
+            /></InterfaceGate>
+            <InterfaceGate min="analysis"><ToggleCard
               checked={!!state.showFieldOfViewAllDefenders}
               label="champ vision défenseurs"
               sample="circle" color={UI.cyan}
               onChange={(v) => onPatch({ showFieldOfViewAllDefenders: v })}
-            />
-            <ToggleCard
+            /></InterfaceGate>
+            <InterfaceGate min="analysis"><ToggleCard
               checked={!!state.showFieldOfViewAllAttackers}
               label="champ vision attaquants"
               sample="circle" color={UI.orange}
               onChange={(v) => onPatch({ showFieldOfViewAllAttackers: v })}
-            />
-            <ToggleCard
+            /></InterfaceGate>
+            <InterfaceGate min="development"><ToggleCard
               checked={!!state.showHelpDebug}
               label="debug aide"
               sample="dashed" color={UI.violet}
               onChange={(v) => onPatch({ showHelpDebug: v })}
-            />
-            <ToggleCard
+            /></InterfaceGate>
+            <InterfaceGate min="analysis"><ToggleCard
               checked={!!state.showDefenseTriangles}
               label="triangles vision défense"
               sample="dashed" color={UI.green}
               onChange={(v) => onPatch({ showDefenseTriangles: v })}
-            />
+            /></InterfaceGate>
           </ToggleGroup>
         </div>
 
@@ -502,7 +504,7 @@ export function ParametresPanel({
         </div>
       </SettingsSection>
 
-      <SettingsSection title="Indicateurs auto">
+      <SettingsSection title="Indicateurs auto" min="analysis">
         <div style={categoryGridStyle}>
           <ToggleGroup title="Écrans & switches" accent={UI.violet}>
             <ToggleCard
@@ -517,30 +519,30 @@ export function ParametresPanel({
               sample="circle" color={UI.violet}
               onChange={(v) => onPatch({ showScreenIndicators: v })}
             />
-            <ToggleCard
+            <InterfaceGate min="development"><ToggleCard
               checked={!!state.showScreenDebug}
               label="debug écran"
               sample="circle-dashed" color={UI.red}
               onChange={(v) => onPatch({ showScreenDebug: v })}
-            />
-            <ToggleCard
+            /></InterfaceGate>
+            <InterfaceGate min="development"><ToggleCard
               checked={!!state.showPlayerDebug}
               label="debug joueur"
               sample="circle-dashed" color={UI.violet}
               onChange={(v) => onPatch({ showPlayerDebug: v })}
-            />
-            <ToggleCard
+            /></InterfaceGate>
+            <InterfaceGate min="development"><ToggleCard
               checked={!!state.showProfileOverlay}
               label="profile (J.5)"
               sample="circle-dashed" color={UI.amber}
               onChange={(v) => onPatch({ showProfileOverlay: v })}
-            />
-            <ToggleCard
+            /></InterfaceGate>
+            <InterfaceGate min="development"><ToggleCard
               checked={!!state.anomalyDetectionEnabled}
               label="anomalies (K)"
               sample="circle-dashed" color={UI.red}
               onChange={(v) => onPatch({ anomalyDetectionEnabled: v })}
-            />
+            /></InterfaceGate>
             <ToggleCard
               checked={state.showStateRings !== false}
               label="anneaux déf."
@@ -611,7 +613,7 @@ export function ParametresPanel({
         </div>
       </SettingsSection>
 
-      <SettingsSection title="Physique & Biomécanique">
+      <SettingsSection title="Physique & Biomécanique" min="development">
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0' }}>Profil de réalisme</span>
@@ -763,7 +765,7 @@ export function ParametresPanel({
         </div>
       </SettingsSection>
 
-      <SettingsSection title="Physique du ballon & tirs">
+      <SettingsSection title="Physique du ballon & tirs" min="development">
         <div style={{ display: 'grid', gap: 8 }}>
           <CheckboxLine
             checked={!!state.activeInterceptionsEnabled}
@@ -789,12 +791,12 @@ export function ParametresPanel({
   );
 }
 
-function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
+function SettingsSection({ title, children, min = 'coach' }: { title: string; children: ReactNode; min?: 'coach' | 'analysis' | 'development' }) {
   return (
-    <section style={sectionStyle}>
+    <InterfaceGate min={min}><section style={sectionStyle}>
       <div style={sectionTitleStyle}>{title}</div>
       {children}
-    </section>
+    </section></InterfaceGate>
   );
 }
 

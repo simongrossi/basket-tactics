@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDistance } from '@/lib/logic/displayUnits';
+import { useInterfaceLevel } from './interface/InterfaceLevel';
 import type { DefensiveMetrics } from '@/lib/logic/metrics';
 import type { OffensiveAction } from '@/lib/logic/offense';
 import type { DetectedScreenAction } from '@/lib/logic/screenAction';
@@ -7,6 +9,7 @@ import { screenActionLabel } from '@/lib/logic/screenAction';
 
 interface MetricsBarProps {
   metrics: DefensiveMetrics;
+  playerCount?: number;
   /** Meilleure action offensive (Phase B). Affichée comme pill à droite. */
   bestAction?: OffensiveAction | null;
   /** Action PnR détectée à l'étape courante (P0). Pill informative entre
@@ -26,7 +29,8 @@ const BAR_UI = {
   textDim: '#94a3b8',
 } as const;
 
-export function MetricsBar({ metrics, bestAction, screenAction }: MetricsBarProps) {
+export function MetricsBar({ metrics, bestAction, screenAction, playerCount = 5 }: MetricsBarProps) {
+  const { analysis } = useInterfaceLevel();
   return (
     <div
       style={{
@@ -43,23 +47,23 @@ export function MetricsBar({ metrics, bestAction, screenAction }: MetricsBarProp
     >
       <Pill
         label="raquette"
-        value={`${metrics.paintCoverage}/5`}
+        value={`${metrics.paintCoverage}/${playerCount}`}
         tone={metrics.paintCoverage >= 2 ? 'good' : metrics.paintCoverage === 0 ? 'bad' : 'warn'}
-        title="Défenseurs à moins de 100px du panier"
+        title={`Défenseurs à moins de ${formatDistance(100)} du panier`}
       />
       <Pill
-        label="gap max"
-        value={`${metrics.maxGap}px`}
+        label="écart max"
+        value={formatDistance(metrics.maxGap)}
         tone={metrics.maxGap < 50 ? 'good' : metrics.maxGap < 100 ? 'warn' : 'bad'}
         title={
           metrics.mostFreeAttacker
-            ? `Attaquant le plus libre : ${metrics.mostFreeAttacker} (${metrics.maxGap}px du défenseur le plus proche)`
+            ? `Attaquant le plus libre : ${metrics.mostFreeAttacker} (${formatDistance(metrics.maxGap)} du défenseur le plus proche)`
             : 'Attaquant le plus libre'
         }
       />
       <Pill
         label="écart moy"
-        value={`${metrics.avgDefenseDist}px`}
+        value={formatDistance(metrics.avgDefenseDist)}
         tone="neutral"
         title="Écart moyen défenseur ↔ son attaquant marqué"
       />
@@ -69,12 +73,14 @@ export function MetricsBar({ metrics, bestAction, screenAction }: MetricsBarProp
         tone={metrics.lateCount === 0 ? 'good' : metrics.lateCount === 1 ? 'warn' : 'bad'}
         title="Défenseurs n'ayant pas pu atteindre leur cible (rouge sur le terrain)"
       />
+      {analysis && (
       <Pill
         label="aide"
         value={metrics.helpFactorTotal.toFixed(2)}
         tone="neutral"
         title="Somme des helpFactor (intensité d'aide globale)"
       />
+      )}
       <Pill
         label="passes"
         value={`${metrics.openPasses}/${metrics.openPasses + metrics.contestedPasses + metrics.blockedPasses}`}
@@ -95,7 +101,7 @@ export function MetricsBar({ metrics, bestAction, screenAction }: MetricsBarProp
           title={`${screenAction.reason} · confiance ${Math.round(screenAction.confidence * 100)}%`}
         />
       )}
-      {bestAction && (
+      {analysis && bestAction && (
         <Pill
           label="meilleure action"
           value={`${ACTION_LABELS[bestAction.type]}${bestAction.targetId ? ' ' + bestAction.targetId : ''} · ${bestAction.expectedPoints.toFixed(2)} pts`}

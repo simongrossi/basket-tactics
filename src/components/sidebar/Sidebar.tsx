@@ -1,5 +1,6 @@
 'use client';
 
+import { InterfaceLevelSelector } from '../interface/InterfaceLevel';
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import type { SidebarView } from '@/hooks/useSidebarState';
@@ -231,6 +232,7 @@ export function Sidebar({
         {collapsed ? <Logo /> : <><Logo /><span style={{ marginLeft: 10 }}>basket-tactics</span></>}
       </div>
 
+      <InterfaceLevelSelector compact={collapsed} />
       {startActions}
       <div style={{ padding: '10px 0 6px', flexShrink: 0 }}>
         <SidebarNav activeView={activeView} collapsed={collapsed} onSelect={onSelectView} />
