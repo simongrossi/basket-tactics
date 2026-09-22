@@ -8,7 +8,7 @@ Vision produit forward-looking.
 
 Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
-## 🧭 Priorité actuelle (mise à jour 2026-09-22)
+## 🧭 Priorité actuelle (mise à jour 2026-09-23)
 
 Décision du user (22/09) : **finir d'abord le réalisme des déplacements et du
 placement défensifs**, puis l'axe coaching (le quiz est validé comme idée mais
@@ -27,6 +27,12 @@ passe après). Ordre de travail :
    validé (R01→R04).
 4. **Moteur / simulation** : tableau « Priorisation moteur » plus bas (fautes,
    transition, match simulé V2, zone…).
+
+Complément livré le 23/09 : continuité des défenseurs pendant et après le
+déplacement manuel, correction du saut de D5 en zone 2-1-2, déplacements groupés
+depuis les positions affichées et codes de situation/animation/gestes.
+Les captures `BTG1` permettent de transmettre une séquence de bug à analyser ;
+elles ne remplacent pas la validation humaine U06 ou R04.
 
 ## 🔎 Audit expert basket — 2026-06-11 (consolidation)
 
@@ -101,11 +107,11 @@ match-sim crédible, attaque de zone.
    seul roller, pas de re-scram en cascade, tag du roller sans contact.
    À ranger derrière le chantier fautes (le contact en est le
    prérequis).
-9. **Poursuite défenseur V4 en playback.** Fatigue, lecture du regard et
-   anticipation variable ne vivent qu'en édition (drag attaquant). En
-   playback, seul le legacy `footworkRulesEnabled` est actif — la
-   lecture animée est moins « vivante » que l'édition, alors que c'est
-   elle qu'on montre aux joueurs.
+9. **Poursuite défenseur V4 en playback — livrée le 22/09.** Le profil,
+   les appuis et le regard modulent la rampe d’accélération ; la fatigue
+   n’est pas reprise dans la lecture des étapes. Depuis le 23/09, le
+   déplacement manuel conserve également sa continuité au relâchement,
+   même lorsque les modulations d’appuis et de fatigue sont désactivées.
 
 ### 🟡 Mineurs / opportunités
 
@@ -667,6 +673,15 @@ sort aussi du mode présentation.
 ---
 
 ## 3. Produit (export & partage)
+
+### 🟢 Codes de situation, animation et gestes — livrés 2026-09-23
+
+`BT1` partage la situation et l’image de diagnostic ; `BTA1` lance les étapes
+avec leurs durées, la vitesse et le départ choisis ; `BTG1` partage une capture
+des gestes manuels et des positions affichées (60 s, 20 images/s maximum).
+Copie/collage, pause et curseur de relecture sont disponibles. La capture se
+conserve en copiant son code ; la relecture des gestes laisse le brouillon
+intact. Voir [le guide et le format](docs/SITUATION-CODE.md).
 
 ### 🟢 Export vidéo / GIF — livré 2026-05-23
 **Quoi.** Capturer l'animation fluide du système (lecture complète) en GIF ou vidéo MP4 téléchargeable. Permet de partager sur Slack/WhatsApp/X sans demander à quelqu'un d'ouvrir l'app.
@@ -2010,5 +2025,4 @@ Pilier physique opt-in : **15 items livrés sur 15**. Sections 1, 2, 3, 4, 5 tou
 - 🟢 **Timeline multi-pistes désynchronisée** — livré incrémentalement avant la roadmap physique (Étape 10 + B.4) puis consolidé. Annotations portent `tStart`/`tEnd` (fractions) et `tStartAbs`/`tEndAbs` (secondes absolues). Moteur `playbackTrajectory` fait du lookback `[stepIdx, stepIdx+1]` → supporte `tStart < 0` et `tEnd > 1` (annotations qui débordent sur le step adjacent). Transform `setAnnotationTiming` autorise `[-1, 2]` selon steps présents. UI [MultiTrackTimeline](src/components/MultiTrackTimeline.tsx) : drag des poignées laisse ratio sortir `[-1, 2]`, segment rendu en `overflow: visible` avec mise en évidence (`boxShadow`) quand l'annotation déborde. Couverture tests : `b4AnnotationTiming` (intra-step async), `playbackTrajectory` (cross-step 1 actor), `timelineMultiTrack` (matrice combinée 3 acteurs + overflow + indépendance).
    - V2 possible : snap-to-other-annotation à l'édition (confort UX), tests rendu MultiTrackTimeline.
 - 🟢 **Repli défensif (transition)** — livré `3fabd8c` via `defensiveTransitionEnabled` : pendant `TRANSITION_PAUSE_MS`, les ex-attaquants amorcent leur retraite vers leur panier OWN quand la possession va basculer (shot-made / turnover / rebond défensif). 3 px/tick, freeze à <80 px du panier, filet Rule 1. La partie "surveillance du ballon" via gaze orientation reste à faire en V2.
-
 

@@ -15,6 +15,7 @@ Cette documentation couvre tous les aspects du projet, de l'architecture à la s
 | [physics.md](physics.md) | Constantes physiques centralisées (`data/physics.ts`) avec sémantique en mètres réels et guide de tuning |
 | [logique-defensive.md](logique-defensive.md) | Comment le moteur calcule les positions des défenseurs (vue pipeline détaillée) |
 | [orientation-anti-teleport.md](orientation-anti-teleport.md) | Orientation calculée des joueurs, anti-téléportation, fixes top-lock / paint helper / écrans fantômes |
+| [SITUATION-CODE.md](SITUATION-CODE.md) | Partager une situation (`BT1`), une animation (`BTA1`) ou des gestes enregistrés (`BTG1`) |
 | [../CHANGELOG.md](../CHANGELOG.md) | Historique des évolutions de comportement, structuré par milestones |
 | [simulation.md](simulation.md) | Modèle de menace, EV des actions, Monte Carlo possessions (PPP/eFG%) |
 | [ui-design.md](ui-design.md) | Choix visuels, layout 3 colonnes, codes couleur, conventions de tracé |

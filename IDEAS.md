@@ -188,21 +188,24 @@ Pistes Sprite V3 (futures) :
 - ✅ **Anticipation IA défensive variable** (V3 livré 2026-05-25) :
   modulation du cap de vitesse défenseur par `defenderSpeedProfiles`
   (elite ×1.3, lent ×0.7) ET par lecture du regard (cône <60° ×1.2,
-  hors cône >120° ×0.7). Pendant drag attaquant uniquement pour
-  l'instant.
+  hors cône >120° ×0.7). Profil et regard repris dans la rampe
+  d’accélération du playback le 2026-09-22 ; fatigue réservée au drag.
 - ✅ **Inertie défenseur sur drag attaquant** (livré 2026-05-25, étendu
-  à la poursuite continue 2026-05-25). Flag `defenderDragInertiaEnabled`
-  pilote un rAF loop dans `useCourtFrame` avec cap vitesse (V1) +
-  footwork dynamique (V2) + intelligence/fatigue (V3). Cf.
+  à la poursuite continue 2026-05-25, continuité corrigée le 2026-09-23).
+  Le suivi à vitesse limitée est toujours actif pendant et après le drag,
+  jusqu’à convergence. `defenderDragInertiaEnabled` ajoute seulement les
+  modulations d’appuis, regard et fatigue. Cf.
   [docs/physics.md § Poursuite défenseur](docs/physics.md).
+- ✅ **Transmettre les bugs de position par code** (2026-09-23) : `BT1`
+  situation, `BTA1` animation des étapes, `BTG1` gestes et positions affichées.
+  Capture limitée à 60 s, relecture avec pause et curseur ;
+  [guide](docs/SITUATION-CODE.md).
 
 ### Pistes V4 (poursuite défenseur)
 
-- ⚪ **Étendre la poursuite à playback step→step** : le mécanisme V1+V2+V3
-  ne vit qu'en mode édition (drag attaquant). En playback, seul le
-  `footworkRulesEnabled` legacy de `speedConstraint.ts` est actif.
-  Faire vivre fatigueRef + lecture du regard pendant playback
-  doublerait l'effet.
+- ✅ **Étendre les modulations de poursuite à playback step→step**
+  (2026-09-22) : profil, appuis et regard intégrés à la rampe d’accélération
+  P3.1. La fatigue cumulée n’y est pas portée ; elle reste un sujet distinct.
 - ⚪ **Anticipation variable selon le rythme de mouvement** : si
   l'attaquant bouge lentement (signal "il prépare"), latence anticipation
   réduite ; si saccadé (signal "il feinte"), latence amplifiée.

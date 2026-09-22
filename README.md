@@ -21,7 +21,7 @@ Autres commandes utiles :
 
 ```bash
 npm run type-check   # tsc --noEmit
-npm test             # Vitest — ~2 470 tests (moteur, transforms, composants)
+npm test             # Vitest — moteur, transforms, hooks et composants
 npm run test:watch   # Vitest en mode watch
 npm run build        # build de production statique
 ```
@@ -37,6 +37,8 @@ npm run build        # build de production statique
 - **Préparer une séance** : blocs chronométrés (systèmes, exercices, blocs libres), fiche imprimable, puis **déroulé guidé** (bloc précédent / suivant, minuteur, consignes, variantes).
 - **Présenter** : mode lecteur plein terrain, étape par étape (◀ / ▶, espace), masquage d'une équipe.
 - **Fiches systèmes** imprimables (PDF via le navigateur), **partage** par lien, export JSON / GIF / WebM, bibliothèque locale avec enregistrement et brouillon protégé.
+- **Partager par code** : situation `BT1`, animation des étapes `BTA1`, ou gestes manuels `BTG1`. Les commandes de copie/import sont dans **Actions globales (…)** ; l’enregistrement des gestes démarre au-dessus du terrain. Capture jusqu’à 60 s, puis relecture avec pause et curseur. [Mode d’emploi](docs/SITUATION-CODE.md).
+- **Déplacer sans saut au relâchement** : les défenseurs poursuivent leur cible depuis leur position affichée, avec une vitesse limitée. Le guidage « Dessiner le système » peut être fermé et ce choix est mémorisé sur l’appareil.
 - Tablette : édition au doigt (barre tactile, cibles 44 px, appui long = clic droit).
 
 ### Défense
@@ -96,6 +98,7 @@ Toute la doc technique vit dans [`docs/`](docs/) :
 | [`docs/menu-reference.md`](docs/menu-reference.md) | Référence exhaustive de chaque réglage de l'interface |
 | [`docs/bibliotheque-systemes.md`](docs/bibliotheque-systemes.md) | Format des templates, comment en ajouter |
 | [`docs/export-pdf.md`](docs/export-pdf.md) | Comment fonctionne l'export PDF |
+| [`docs/SITUATION-CODE.md`](docs/SITUATION-CODE.md) | Codes de situation, animations et enregistrements des gestes ; diagnostic de positions |
 | [`docs/testing.md`](docs/testing.md) | Stack Vitest, couverture des tests, conventions |
 | [`docs/keyboard-shortcuts.md`](docs/keyboard-shortcuts.md) | Référence des raccourcis clavier |
 
@@ -108,7 +111,7 @@ Vision produit et chantiers à venir : [`ROADMAP.md`](ROADMAP.md). Historique de
 ## Décisions structurantes
 
 - **Moteur pur** (`lib/logic/`) — aucune dépendance React, testable et réutilisable.
-- **Positions défensives calculées, pas stockées** — seules les positions offensives par étape sont persistées. La défense est recomputée à chaque frame depuis l'état.
+- **Défense automatique calculée** — le système garde les placements initiaux et les overrides explicites. Les codes `BTG1` conservent aussi les positions affichées pour une relecture de diagnostic ; elles ne deviennent pas des overrides du brouillon.
 - **Override manuel par étape** — l'utilisateur peut imposer la position d'un défenseur sur une étape donnée (`Step.defenseOverrides`), le moteur la respecte.
 - **Switches persistés sur l'étape** où ils ont lieu, cumulés via `getMatchupsAt()`.
 - **Path-aware avoidance** — pendant l'animation, les défenseurs contournent les poseurs d'écran via une courbe Bezier (pas un push réactif), avec ralentissement au sommet.

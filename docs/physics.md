@@ -64,7 +64,7 @@ Ces valeurs sont **sous-réelles** (un sprint NBA atteint 9 m/s ; le moteur tour
 
 ## Physique opt-in (V1 livrée mai 2026)
 
-Au-delà des constantes ci-dessus, le moteur expose **12 flags physiques opt-in** dans `AppState`. Tous default `false` → comportement legacy strictement préservé. UI : Paramètres → "Physique & Biomécanique" / "Physique du ballon & tirs". Voir [ROADMAP.md § Réalisme physique](../ROADMAP.md) pour le détail item par item.
+Au-delà des constantes ci-dessus, le lot V1 a introduit les **12 flags physiques opt-in** ci-dessous dans `AppState`, avec un défaut `false`. UI : Paramètres → "Physique & Biomécanique" / "Physique du ballon & tirs". Voir [ROADMAP.md § Réalisme physique](../ROADMAP.md) pour le détail item par item. Depuis la correction de septembre 2026, la continuité défensive pendant un geste d'édition est systématique : seul l'ajout des appuis, du regard et de la fatigue reste commandé par `defenderDragInertiaEnabled`.
 
 | Flag | Default | Effet | Câblage principal |
 |---|---|---|---|
@@ -79,36 +79,63 @@ Au-delà des constantes ci-dessus, le moteur expose **12 flags physiques opt-in*
 | `screenStiffnessEnabled` + `screenStiffness` | false / 1.5 | Amplifie la pénalité écran existante (multiplicateur 1.0–3.0, borne basse 0.08) | `defense/speedConstraint.ts` |
 | `physicalContactBattlesEnabled` | false | Luttes de force en box-out : poussée vectorielle attaquant↔défenseur, rayon 40 px, force 5 px/frame | `match/gameLoop.ts` |
 | `defensiveTransitionEnabled` | false | Repli défensif : ex-attaquants courent vers leur panier OWN pendant la pause de transition (shot-made / turnover / rebond défensif) | `match/gameLoop.ts` |
-| `defenderDragInertiaEnabled` | false | Poursuite défenseur dynamique pendant drag attaquant (édition). Cap vitesse + footwork dynamique (V2) + intelligence/fatigue (V3) | `useAppState`, `useCourtFrame` (rAF loop) |
+| `defenderDragInertiaEnabled` | false | Appuis, regard, fatigue et latence de pivot pendant le drag attaquant. La poursuite et son cap de vitesse restent actifs sans ce flag. | `useAppState`, `useCourtFrame` (rAF loop) |
 
 L'annotation `cut`/`dribble` accepte aussi un flag `sprint?: boolean` (mouvement condensé sur 60 % du temps de l'étape — toggle dans StepsPanel).
 
-### Poursuite défenseur (`defenderDragInertiaEnabled`) — détail
+### Poursuite défenseur pendant les gestes d'édition
 
-Le flag pilote un mécanisme propre :
-1. **`useAppState`** maintient un état transient `defenderPursuit: { snapshot, active, startedAtMs }`.
-2. Au démarrage d'un drag attaquant, `beginDefenderPursuit()` capture les positions auto courantes des défenseurs (snapshot).
-3. **`useCourtFrame`** run un rAF loop tant que `pursuit.active === true` :
-   - À chaque tick (dt ≈ 16 ms), recalcule la cible auto via `effectiveDefensePositions`.
-   - Pour chaque défenseur, calcule un `effectiveMaxPxPerMs = baseMaxPxPerMs × profileMult × footworkMult × fatigueMult × gazeMult`.
-   - Déplacement = `min(distance_to_target, effectiveMaxPxPerMs × dt)`.
-4. À `endDefenderPursuit()` (commitPlayerDrag attaquant), le rAF loop s'arrête après ~500 ms (ease-out final).
+La poursuite est toujours active lors du déplacement manuel d'un attaquant :
+
+1. **`useAppState`** maintient un état transitoire `defenderPursuit: { snapshot, active, startedAtMs, stepIndex }`.
+2. Au démarrage, `beginDefenderPursuit(displayed)` capture les positions réellement affichées. Un nouveau drag pendant le rattrapage reprend à ces positions ; les cibles auto servent de repli si aucune position affichée n'est fournie.
+3. **`useCourtFrame`** anime les positions par `requestAnimationFrame`. À chaque tick, il recalcule les cibles via `effectiveDefensePositions` et avance de `min(distance_to_target, effectiveMaxPxPerMs × dt)` vers chacune d'elles.
+4. Au relâchement, `active` devient `false`, mais les positions et la boucle sont conservées jusqu'à l'arrivée aux cibles. `onDefenderPursuitSettled` termine alors la poursuite. Un changement d'étape la termine aussi, sans appliquer le mouvement à la nouvelle étape.
+
+La base de vitesse pendant ce geste est :
+
+```text
+stepDurationMs = getStepDurationSeconds(state, activeStep) × 1000
+baseMaxPxPerMs = max(0, rule.maxSpeed ?? state.defenseMaxSpeed) / max(100, stepDurationMs)
+dt = clamp(now - lastTick, 0, 50)  // millisecondes
+effectiveMaxPxPerMs = baseMaxPxPerMs × profileMult × footworkMult × fatigueMult × gazeMult
+```
+
+Le plafond de 50 ms empêche un onglet suspendu de rattraper plusieurs secondes
+en une seule image. Il n'existe plus de snap quand la cible dépasse 200 px,
+ni de retour au snapshot initial, ni d'arrêt arbitraire après 500 ms.
 
 **Modulateurs** (calculés par défenseur, par tick) :
-- `profileMult` : `defenderSpeedProfiles[id]` → elite ×1.3, lent ×0.7, standard ×1.0.
-- `footworkMult` (V2, active si `footworkRulesEnabled`) :
+- `profileMult`, toujours appliqué : `defenderSpeedProfiles[id]` → elite ×1.3, lent ×0.7, standard ×1.0.
+- `footworkMult` (V2, si `defenderDragInertiaEnabled` et les règles d'appuis résolues par le profil de réalisme sont actives) :
   - Course arrière (direction défenseur >90° de son orientation) : ×0.6
   - Course latérale (60-90°) : ×0.7
-- `fatigueMult` (V3) : compteur `fatigueRef` accumule la distance parcourue. >300 px → ×0.7.
-- `gazeMult` (V3, active si `footworkRulesEnabled`) :
+- `fatigueMult` (V3, si `defenderDragInertiaEnabled`) : compteur `fatigueRef` accumule la distance parcourue dans la poursuite. >300 px → ×0.7.
+- `gazeMult` (V3, mêmes conditions que `footworkMult`) :
   - Attaquant dans cône de regard (<60°) : ×1.2 (mieux placé)
   - Hors cône (>120°) : ×0.7 (pris à contre-pied)
 
-**Latence pivot plant-and-cut (V2)** : changement de direction attaquant >90° entre 2 frames → `pivotLatencyRef[id] += 150 ms`. Pendant cette latence, le défenseur ne bouge pas.
+**Latence pivot plant-and-cut (V2)**, sous les mêmes conditions que les appuis : changement de direction attaquant >90° entre deux frames → `pivotLatencyRef[id] += 150 ms`. Pendant cette latence, le défenseur ne bouge pas.
 
-**Décrochage (V3)** : si l'écart défenseur ↔ cible dépasse 200 px, le défenseur "abandonne" la poursuite exacte. Snap à `cible - 200 px` (route directe), l'écart résiduel accumulé en fatigue.
+Sans l'option **Appuis et fatigue pendant le déplacement**, ces trois
+modulateurs valent 1 et la latence de pivot reste inactive. Le cap de vitesse
+et le profil de mobilité demeurent appliqués.
 
-Le calcul vit dans `useCourtFrame.ts` (rAF loop). Le rendu se fait via `pursuitFrame` qui substitue `livePositionsRef` dans `staticFrame.defPos`. Position dans la chain de frames : `exportFrame ?? liveMatchFrame ?? playFrame ?? scrubFrame ?? pursuitFrame ?? releaseFrame ?? staticFrame`.
+Le calcul vit dans [`useCourtFrame.ts`](../src/hooks/useCourtFrame.ts).
+`pursuitFrame` substitue les positions animées dans `staticFrame.defPos`.
+Ordre de priorité : `recordedPlaybackFrame ?? exportFrame ?? liveMatchFrame ?? playFrame ?? scrubFrame ?? pursuitFrame ?? releaseFrame ?? staticFrame`.
+
+La première source est la [relecture d'un code de gestes `BTG1`](SITUATION-CODE.md#enregistrer-et-transmettre-des-gestes-manuels) : elle utilise directement les coordonnées enregistrées, sans nouvelle simulation ni lissage entre échantillons. Les traces permettent de comparer une demande de mouvement à sa réponse affichée, notamment pour diagnostiquer un saut de D5.
+
+Les déplacements groupés de défenseurs partent également des positions
+affichées, pour le joueur de référence comme pour ses coéquipiers. Ils posent
+des placements manuels ; le mécanisme de poursuite décrit ici concerne les
+réactions défensives au déplacement d'un attaquant.
+
+Régressions : [`useCourtFrame.pursuit.test.tsx`](../src/hooks/__tests__/useCourtFrame.pursuit.test.tsx),
+[`useAppState.pursuit.test.tsx`](../src/hooks/__tests__/useAppState.pursuit.test.tsx),
+[`useCourtFrame.recorded.test.tsx`](../src/hooks/__tests__/useCourtFrame.recorded.test.tsx)
+et [`CourtView.recorded.test.tsx`](../src/components/__tests__/CourtView.recorded.test.tsx).
 
 **Types étendus :**
 - `Point` gagne `z?: number` pour la 3D du ballon (parabole tir, parabole passe, hauteur dribble).

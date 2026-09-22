@@ -52,6 +52,21 @@ Ces changements doivent être préservés et distingués des commits de consolid
 
 ## Journal
 
+- 2026-09-23 — retours sur le terrain : fermeture mémorisée du guidage,
+  poursuite défensive continue au déplacement et au relâchement, correction
+  du saut D5 en zone 2-1-2 et des origines de déplacement groupé. Partage
+  de situations (`BT1`), animations (`BTA1`) et gestes enregistrés (`BTG1`,
+  60 s maximum, jusqu’à 20 images/s). Le code des gestes garde la demande de
+  mouvement et les positions affichées, avec relecture protégée contre les
+  modifications du brouillon. Vérification navigateur : capture O1, arrêt,
+  copie du code, relecture au curseur, import et retour au terrain.
+  Guide : [SITUATION-CODE.md](docs/SITUATION-CODE.md).
+  Le travail préexistant de séances locales (`library.ts`,
+  `librarySessions.test.ts`) est inclus dans la publication demandée :
+  séance Transition & Tir et rattachement du modèle Philadelphia.
+  Validation complète : 2 648 tests passent dans 271 fichiers ; typage et
+  build de production réussis. U06 reste une validation humaine à organiser.
+
 - 2026-09-22 : audit intégral ajouté à la racine ; plan créé ; lot 1 commencé.
 
 - Premier correctif : géométrie 2/3 points (coins et deux paniers), modèle de tir partagé,

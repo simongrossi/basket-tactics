@@ -282,7 +282,7 @@ followDefendersAtFrame(defPos, off, ballCarrier, state, idxA, idxB):
 |---|---|
 | `slot.x`, `slot.y` (position de marquage de base) | `helpFactor`, `helpAim`, `closingOut`, `denying`, `isCarrierDefender`, `matchedTo`, `pnrRole` (calculés aux étapes A/B et interpolés) |
 
-Appelée dans `CourtView.tsx` (playFrame ligne ~308 et scrubFrame ligne ~516) **avant** `resolvePlayerCollisions` et `recomputeDefenseFrameOrientations` — l'ordre garantit que :
+Appelée dans [`playback/frameResolver.ts`](../src/lib/logic/playback/frameResolver.ts), partagé par lecture et scrub, **avant** `resolvePlayerCollisions` et `recomputeDefenseFrameOrientations` — l'ordre garantit que :
 1. La cible "follow" est posée
 2. Les collisions résolues sur les nouvelles positions
 3. Le triangle d'orientation est recalculé depuis la position finale
@@ -290,6 +290,33 @@ Appelée dans `CourtView.tsx` (playFrame ligne ~308 et scrubFrame ligne ~516) **
 ### Pourquoi `defenseOverrides` est respecté
 
 Quand l'utilisateur drag un défenseur sur une étape, sa position est imposée via `defenseOverrides[stepIdx][dId]`. `effectiveDefensePositions` lit cet override en priorité. Pour rester cohérent, `followDefendersAtFrame` **skip ce défenseur** si un override est posé sur l'étape A ou B du segment courant — l'interpolation linéaire entre override et l'autre extrémité reste active. Le placement manuel a ainsi toujours préséance sur le follow auto.
+
+### Continuité pendant les gestes d'édition
+
+En édition, [`useCourtFrame`](../src/hooks/useCourtFrame.ts) gère la poursuite
+des défenseurs lorsqu'un attaquant est déplacé à la souris ou au doigt.
+La poursuite démarre aux positions affichées et borne chaque déplacement
+par la vitesse du défenseur et le temps écoulé. Le relâchement conserve ces
+positions et laisse le rattrapage se terminer jusqu'à la cible, même au-delà
+de 500 ms ou pour une cible distante de plus de 200 px. Un nouveau geste
+reprend aux positions visibles ; un changement d'étape termine la poursuite
+de l'ancienne étape.
+
+Cette continuité reste active sans `defenderDragInertiaEnabled`. L'option
+**Appuis et fatigue pendant le déplacement** ajoute les modulateurs d'appuis,
+de regard et de fatigue. Le profil de vitesse reste appliqué dans les deux
+cas. Le budget par tick, les unités et les conditions sont documentés dans
+[physics.md](physics.md#poursuite-défenseur-pendant-les-gestes-dédition).
+
+Le déplacement groupé de défenseurs utilise également les positions affichées
+pour son point de référence et les autres membres du groupe, puis enregistre
+les nouveaux placements manuels. Les anciens ancrages ne servent que de
+repli si aucune position affichée n'est disponible.
+
+Pour diagnostiquer une divergence entre geste et réaction, le [code de gestes
+`BTG1`](SITUATION-CODE.md#enregistrer-et-transmettre-des-gestes-manuels) conserve
+les entrées et les positions affichées horodatées. La relecture ne recalcule
+pas les coordonnées défensives et ne crée pas d'overrides dans le système.
 
 ### Approximation ball ≈ carrier
 
@@ -486,9 +513,16 @@ Avant : priority='man' → `aim = manPos` → aucun mouvement même avec helpPct
 
 Si **un seul** trigger est activé ET la config user le permet, `triggers.any === true`.
 
-## Défense de zone — moteur ownership continu
+## Défense de zone — claims continus et missions tactiques
 
-Pipeline 100% continu, **sans seuil binaire** (plus de `pointInPolygon` qui flippe la priorité, plus de hand-off threshold, plus de `applyZoneRotation` qui réécrit la cible). Trois étapes :
+Les claims géométriques utilisent la distance aux ancrages, plutôt que
+l'appartenance binaire aux polygones. Leurs parts normalisées donnent une
+transition progressive de responsabilité. Le moteur complet conserve
+cependant des décisions discrètes : choix de l'attaquant primaire,
+désignation des missions et seuils d'engagement. Une cible tactique peut donc
+changer brusquement ; la poursuite décrite ci-dessus borne le déplacement
+affiché pendant un geste. Le calcul de base suit trois étapes, auxquelles
+s'ajoutent les boosts et biais des [réflexes avancés](#réflexes-défensifs-avancés-étapes-2-4) :
 
 ```
 computeZoneTargets(off, carrier, layout, config, defenseDistance)
@@ -518,12 +552,12 @@ computeZoneTargets(off, carrier, layout, config, defenseDistance)
           position = lerp(homeShifted, tracked, engagement)
 ```
 
-### Pourquoi c'est continu
+### Portée de la continuité
 
-- Quand un attaquant traverse une bordure de polygone, sa proximité aux homePos varie de quelques pixels → claims des défenseurs varient continûment → ownership glisse → engagement n'a pas de saut.
-- 50/50 contesté donne naturellement engagement = 0.5 → défenseur reste à mi-chemin (pas de téléportation).
-- Hand-off émerge tout seul : quand A se rapproche de D₂ et s'éloigne de D₁, l'ownership de A bascule progressivement de D₁ vers D₂. Pas de seuil dur.
-- Surcharge gérée par compétition d'ownership : si 2 attaquants partagent la même zone, les défenseurs voisins se distribuent. Pas besoin d'`applyZoneRotation`.
+- Traverser une bordure de polygone ne change pas directement le responsable : `pointInPolygon` reste utilisé pour la visualisation de couverture, pas pour les claims.
+- À ancrages et missions inchangés, la proximité gaussienne et les parts d'ownership varient continûment. Une part de 0,5 place la cible à mi-chemin du home et du point de tracking avant les modulateurs d'engagement.
+- Le choix du `primary` par maximum et les seuils des missions peuvent encore changer la cible. Les tests doivent distinguer cette cible de la position effectivement affichée, qui suit sa limite de vitesse pendant le drag.
+- Le cas D5 en zone 2-1-2 venait d'une affectation de passe ensuite abandonnée : il est corrigé avant le calcul des claims, comme décrit ci-dessous.
 
 ### Paramètres tactiques par type ([zoneDefense.ts:99-147](../src/lib/logic/zoneDefense.ts))
 
@@ -643,7 +677,9 @@ En claim loop : `rimMult = 1+3*urgency*rimProtectionFactor` sur la claim du couv
 Détection systématique des **lignes de passe ouvertes** depuis le porteur vers ses coéquipiers :
 
 ```
-detectOpenPassThreats(off, carrier, hoop, defPositions, unavailable, matchups?)
+detectOpenPassThreats(off, carrier, hoop, defPositions, unavailable, matchups?, coveredReceivers?)
+  │
+  ├── exclure les receveurs déjà couverts AVANT de réserver les défenseurs
   │
   ├── pour chaque attaquant A non-porteur, passLen > 80 px:
   │     trouve le défenseur disponible le plus proche du segment carrier→A
@@ -660,10 +696,19 @@ detectOpenPassThreats(off, carrier, hoop, defPositions, unavailable, matchups?)
 En claim loop : `passDenialMult = 1+2×urgency×passDenialFactor` sur la claim du couvreur au receveur. Bias homePos : 50% × urgency × factor vers le point d'interception (mi-segment carrier→receveur).
 
 **Filtres** :
-- Skip les receveurs déjà couverts par `designatedCoverer` ou `rimProtectorByThreat` (évite que deux défenseurs convergent sur le même attaquant pour des raisons différentes).
+- Les receveurs déjà couverts par `designatedCoverer` ou `rimProtectorByThreat` sont passés à `coveredReceivers` et retirés avant toute désignation. Ils ne peuvent donc pas réserver un défenseur nécessaire à une autre ligne de passe.
 - L'`unavailable` set inclut tous les défenseurs déjà désignés ailleurs (high-post, baseline, ball-pressure, rim) — empêche un défenseur de cumuler deux missions.
 
 Le bénéfice basket : sur une scène équilibrée, les défenseurs trackent activement leurs matchups via la pression sur les lignes de passe, au lieu de rester en formation passive.
+
+**Régression D5 en zone 2-1-2** : avec O4 et O5 déjà couverts dans les corners,
+un déplacement de O1 de `(191,468)` à `(190,468)` ouvrait tout juste la ligne
+O1→O5 au seuil de 60 px. L'ancienne affectation réservait D2 pour O5, puis
+ignorait cette mission trop tard : D2 perdait sa couverture de O2, et les
+claims recalculés déplaçaient la cible de D5 d'environ 73 px (près de 2 m).
+Le filtrage en amont garde ces responsabilités stables. Le scénario
+reconstitué depuis les captures est conservé dans
+[`zoneDefenseContinuity.test.ts`](../src/lib/logic/__tests__/zoneDefenseContinuity.test.ts).
 
 ### Détection de cuts ([threatResolution.ts > detectCuts](../src/lib/logic/threatResolution.ts))
 

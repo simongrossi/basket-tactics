@@ -1,16 +1,24 @@
 # Modèle de données
 
-Tous les types vivent dans [`src/lib/types/index.ts`](../src/lib/types/index.ts).
+Les types du système vivent dans [`src/lib/types/index.ts`](../src/lib/types/index.ts).
+Les enveloppes de partage et les traces de gestes sont définies respectivement
+dans [`situationCode.ts`](../src/lib/state/situationCode.ts) et
+[`manualGestures.ts`](../src/lib/state/manualGestures.ts).
 
 ## AppState
 
-État global unique de l'application. Sérialisé tel quel en JSON pour l'export et le localStorage.
+État éditable du système, sauvegardé dans le brouillon local. Les exports et
+codes de partage retirent l’identité locale `librarySystemId`. La lecture,
+la poursuite défensive temporaire et les traces de gestes sont gérées à part.
+L’extrait suivant présente les principaux champs ; le type source fait référence.
 
 ```typescript
 interface AppState {
+  librarySystemId?: string;   // identité locale, exclue des copies et partages
   // Étapes du système (au moins 1)
   steps: Step[];
   activeStep: number;
+  playerCount: 2 | 3 | 4 | 5;
 
   // Positions initiales défense (avant l'étape 0)
   defenseInitial: Record<DefenderId, Point>;
@@ -34,15 +42,17 @@ interface AppState {
   offBallScreenRule: 'over' | 'under' | 'switch' | 'bump';
 
   // Système collectif
-  defenseSystem: 'man' | 'zone';
+  defenseSystem: 'man' | 'zone' | 'junk' | 'press';
   zoneConfig: ZoneConfig;
+  /** Appuis/regard/fatigue du drag ; la poursuite progressive reste active sans ce flag. */
+  defenderDragInertiaEnabled?: boolean;
 
   // Défense scriptable
   /** Active l'application des directives défensives scriptées par l'engine. Default true. */
   defenseScriptedDirectivesEnabled?: boolean;
 
   // Outil courant + visu
-  tool: 'move' | 'pass' | 'dribble' | 'cut' | 'screen';
+  tool: 'move' | 'pass' | 'dribble' | 'cut' | 'screen' | 'text';
   showHelpLines: boolean;
   showMatchups: boolean;
   showPassLanes: boolean;
@@ -309,9 +319,12 @@ type PlayerId   = AttackerId | DefenderId;
 
 Convention : `O1` = meneur, `O2` = arrière, `O3` = ailier, `O4` = ailier fort, `O5` = pivot. Les défenseurs sont matchés par défaut sur leur indice (D1 ↔ O1, etc.) — voir `baseMatchups` dans `initial.ts`.
 
-## Types calculés (non sérialisés)
+## Types calculés
 
-Ces types sont produits par le moteur à chaque frame, jamais stockés.
+Ces types sont produits par le moteur et ne font pas partie du brouillon
+`AppState`. Un code de situation peut toutefois joindre une `PlaybackFrame`
+comme élément de diagnostic. Une trace BTG1 conserve un sous-ensemble
+explicite des données affichées, décrit ci-dessous.
 
 ```typescript
 interface ComputedDefender {
@@ -342,7 +355,61 @@ interface DetectedScreen {
 
 - Clé : `basket-tactics-state-v1`
 - Format : `JSON.stringify(state)`
-- Debounce : 400ms après mutation
+- Écriture différée : 250 ms après mutation (`useLocalSave`), avec vidage à la fermeture et au passage en arrière-plan
 - Compatibilité : `loadFromStorage` merge avec `makeInitialState()` pour les champs ajoutés (e.g. `fullCourt`, `offBallScreenRule`)
 
-L'export JSON utilise le même format. Un fichier exporté de v1.0 peut être importé en v1.1 même si de nouveaux champs sont apparus.
+L’export JSON conserve les données du système sans `librarySystemId`.
+`app.importState` protège le brouillon précédent dans
+`basket-tactics-previous-draft-v1`, puis applique la normalisation et les migrations.
+Les champs facultatifs absents peuvent ainsi recevoir les valeurs par défaut.
+
+La préférence `bt:coach-draw-hint:dismissed:v1` mémorise séparément la fermeture
+du bandeau **Dessiner le système**. Elle ne voyage pas avec le système.
+
+## Enveloppes de partage
+
+Les trois préfixes utilisent une enveloppe JSON UTF-8 compressée en DEFLATE,
+encodée en Base64url, avec `version: 1` :
+
+| Préfixe | Charge utile spécifique | Chargement |
+|---|---|---|
+| `BT1:` | `state`, `view?` (instant, source et frame de diagnostic facultative) | Remplace le système après protection du brouillon. |
+| `BTA1:` | `state`, `animation: { startT, speed }`, `view?` | Restaure les étapes et lance leur lecture ; vitesse entre 0,3× et 2×. |
+| `BTG1:` | `state` initial, `recording: { durationMs, frames, events }` | Relecture temporaire distincte du brouillon. |
+
+`animation` et `recording` sont exclusifs. Une animation de timeline nécessite
+au moins deux étapes ; un enregistrement manuel peut rester sur une seule
+étape et être stationnaire. Les codecs ne transportent ni la bibliothèque
+locale, ni la pile Annuler/Rétablir, ni l’identité `librarySystemId`.
+
+Pour les gestes, `ManualGestureFrame` contient `t`, `off`, `def`, `ball` et
+`carrier`. Chaque défenseur actif fournit `x`, `y`, `orientation`,
+`gazeOrientation` et `matchedTo`. Les `Partial<Record<…>>` couvrent les formats
+réduits : tous les joueurs actifs doivent néanmoins être présents dans
+chaque échantillon. `ManualGestureEvent` conserve un temps et un événement
+`begin`, `end` ou `move` avec l’identifiant et la position demandée.
+
+Le hook de capture arrondit les coordonnées et angles au millième. Il
+échantillonne au plus toutes les 50 ms, plus les bornes, jusqu’à 60 secondes.
+Les limites sont de 1 202 frames et 10 000 événements. Les temps sont
+croissants au sens large, dans `[0, durationMs]`, et la première frame est
+à `0`. La relecture retient le dernier échantillon atteint, sans lissage
+temporel ; les poses non enregistrées peuvent être recalculées.
+
+Le décodeur vérifie le préfixe, la version, les formes attendues, les joueurs
+actifs, les nombres finis et les limites de taille (750 000 caractères
+encodés, 2 000 000 octets décompressés). Voir
+[SITUATION-CODE.md](SITUATION-CODE.md) pour le format complet et le décodage
+d’un signalement de bug.
+
+## État temporaire d’interaction
+
+`DefenderPursuit` appartient à `useAppState` : positions affichées au départ,
+étape concernée, horodatage et indicateur de drag actif. Le rattrapage reste
+progressif après relâchement et est nettoyé lorsqu’il est terminé. Ce mécanisme
+ne crée pas de `defenseOverrides` dans les étapes.
+
+`useManualRecording` conserve un état `idle`, `recording`, `ready`, `replaying`
+ou `paused`, son instant courant et le dernier enregistrement en mémoire.
+Ce dernier n’est pas sauvegardé avec le brouillon ; copier le code BTG1 est
+nécessaire pour le conserver après rechargement.

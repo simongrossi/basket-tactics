@@ -2,6 +2,32 @@
 
 Documentation exhaustive de chaque réglage disponible dans l'interface.
 
+## Enregistrement des gestes et Actions globales
+
+La barre au-dessus du terrain propose **Enregistrer les gestes** en mode
+éditeur. Pendant la capture, seuls le déplacement des joueurs, la sélection
+multiple, l’aimantation et la navigation du terrain restent disponibles.
+**Arrêter l’enregistrement** produit une séquence temporaire de 60 secondes au
+plus. Elle peut être relue, mise en pause, parcourue avec le curseur ou copiée
+sous forme de code `BTG1`. Il faut copier ce code pour conserver la capture
+après un rechargement ou un nouvel enregistrement.
+
+Le menu **Actions globales (…)** contient :
+
+| Commande | Résultat |
+|---|---|
+| **Copier la situation (code)** | Code `BT1` avec le système et le contexte d’affichage utile au diagnostic. |
+| **Copier l’animation (code)** | Code `BTA1` avec les étapes, leurs durées, la vitesse et le départ. |
+| **Coller une situation / animation** | Accepte aussi `BTG1` et lance la relecture des gestes sans remplacer le brouillon. |
+
+La fenêtre de code permet la copie automatique ou la sélection manuelle si le
+presse-papiers est refusé. Les imports de situation/animation protègent le
+brouillon précédent ; **Retour au terrain** quitte une relecture BTG1. Voir
+[SITUATION-CODE.md](SITUATION-CODE.md) pour les limites et le diagnostic.
+
+Le bandeau **Dessiner le système** possède une croix. Sa fermeture est
+mémorisée sur l’appareil et ne fait pas partie du système partagé.
+
 ## Panneau attaque (gauche, orange)
 
 ### Outils

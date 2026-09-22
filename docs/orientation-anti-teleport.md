@@ -13,6 +13,50 @@ Avant ces changements :
 - Le **paint helper** appliquait son intensité à tous les défenseurs sans tenir compte de leur distance à la cible — un coin opposé pouvait être tiré aussi fort qu'un wing strong-side.
 - Les **écrans fantômes** étaient détectés sur simple proximité, sans vérifier que le screener marchait bien vers le couple porteur/défenseur.
 
+## Continuité pendant le déplacement manuel des attaquants
+
+Le déplacement des défenseurs est toujours borné en vitesse pendant le
+glissement d'un attaquant, y compris avec l'option **Appuis et fatigue pendant
+le déplacement** (`defenderDragInertiaEnabled`) désactivée. Cette option ajoute
+les effets des appuis, du regard et de la fatigue ; elle ne commande plus
+l'activation de la poursuite.
+
+À chaque tick, le budget de déplacement est `vitesse effective × dt`. La
+vitesse de base est le `maxSpeed` du défenseur (ou `defenseMaxSpeed`), divisé
+par la durée de l'étape active en millisecondes, bornée à au moins 100 ms.
+Le profil de vitesse s'applique toujours : élite ×1,3, lent ×0,7, standard ×1.
+Les modulateurs optionnels et leurs conditions sont détaillés dans
+[physics.md](physics.md#poursuite-défenseur-pendant-les-gestes-dédition).
+
+Le départ utilise les positions réellement affichées. Au relâchement, le
+rattrapage continue depuis ces positions jusqu'à la cible : aucun retour au
+snapshot initial, aucun saut si la distance dépasse 200 px, aucun abandon
+après 500 ms. Un nouveau glissement reprend là où les joueurs se trouvent.
+Les callbacks d'animation retardés sont plafonnés à 50 ms de déplacement.
+
+Pour un glissement groupé de défenseurs, le joueur qui sert de référence
+et ses coéquipiers partent aussi des positions affichées. Repartir des
+anciens `defenseInitial` ou overrides produisait un décalage dès le premier
+mouvement du groupe.
+
+Pour la zone 2-1-2, les receveurs déjà couverts par une mission prioritaire
+sont exclus avant l'affectation des défenseurs aux lignes de passe. Les
+exclure après affectation réservait inutilement un défenseur : dans la
+situation de régression, bouger O1 d'un pixel faisait sauter la cible de D5
+d'environ 73 px (deux mètres).
+
+Régressions : [poursuite affichée](../src/hooks/__tests__/useCourtFrame.pursuit.test.tsx),
+[cycle de vie de la poursuite](../src/hooks/__tests__/useAppState.pursuit.test.tsx),
+[continuité des cibles de zone](../src/lib/logic/__tests__/zoneDefenseContinuity.test.ts)
+et [gestes individuels/groupés et lecture seule](../src/components/__tests__/CourtView.recorded.test.tsx).
+
+Pour transmettre un nouveau bug, [enregistrer les gestes et copier leur code
+`BTG1`](SITUATION-CODE.md#enregistrer-et-transmettre-des-gestes-manuels).
+La trace conserve les demandes de déplacement et les positions affichées avec
+leurs timestamps. Sa relecture affiche les échantillons tels quels, sans
+lissage temporel ni nouvelle simulation défensive ; elle permet donc de
+retrouver un saut au lieu de le masquer.
+
 ## Module `orientation.ts`
 
 [`src/lib/logic/orientation.ts`](../src/lib/logic/orientation.ts) — fonctions pures.

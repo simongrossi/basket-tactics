@@ -72,10 +72,18 @@ Les tests vivent à côté du code testé sous `__tests__/`. Le pattern d'inclus
 
 ## Couverture actuelle
 
-**714 tests** dans 69 fichiers — logique défensive, simulation, orientation,
-invariants playbooks, rim protection, utilitaires zone, actions défensives
-scriptées, transforms purs `useAppState`, **et tous les nouveaux concepts
-basket B1-B10 + V2/v3** (cf. [session-2026-05-12.md](session-2026-05-12.md)).
+Validation complète du **23 septembre 2026** : **2 648 tests dans 271
+fichiers**, typage TypeScript et build de production réussis. La suite couvre
+notamment la logique défensive, la simulation, les écrans, les zones, les
+transformations d’état, les hooks et les composants React.
+
+Les codes de partage ont leurs tests de format, limites, validation et
+compatibilité dans `state/__tests__/situationCode.test.ts` et
+`manualGestureCode.test.ts`. La capture/relecture manuelle est couverte par
+`useManualRecording.test.tsx`, `useCourtFrame.recorded.test.tsx` et
+`CourtView.recorded.test.tsx`, notamment les sauts conservés sans interpolation,
+la lecture seule, les formats réduits et une capture maximale de 60 secondes.
+La continuité au drag et le cas D5 en zone 2-1-2 ont des régressions dédiées.
 
 Voir [CHANGELOG.md](../CHANGELOG.md) pour le détail des ajouts récents.
 

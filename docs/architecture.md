@@ -6,7 +6,7 @@
 - **React 18** — UI déclarative
 - **TypeScript** strict — typage des positions, règles, états
 - **SVG natif** — rendu du terrain et des joueurs (pas de Canvas, pas de WebGL)
-- **localStorage** — persistance unique de l'état
+- **localStorage** — brouillon, bibliothèque et préférences locales ; les enregistrements de gestes restent en mémoire jusqu’à leur copie en code
 - **Pas de bibliothèque UI** — tous les styles inline ou en CSS modules
 
 ## Pourquoi SVG plutôt que Canvas ?
@@ -47,6 +47,8 @@ src/
 │   ├── Player.tsx                # cercle + bras défensifs + ballon
 │   ├── Annotations.tsx           # flèches passe/dribble/course/écran
 │   ├── Timeline.tsx              # scrubber horizontal sous le terrain
+│   ├── ManualRecordingBar.tsx    # capture des gestes, pause/relecture, copie BTG1
+│   ├── CoachDrawHint.tsx         # aide au dessin avec fermeture mémorisée localement
 │   ├── ContextMenu.tsx           # dispatch defender / attacker (22 l)
 │   ├── contextMenu/              # menus contextuels (cf. § ContextMenu)
 │   │   ├── popupHooks.ts         #   useClampedPosition + useDraggablePopup
@@ -70,6 +72,7 @@ src/
 │   │   — Modales et lanceurs —
 │   ├── AddCoverageModal.tsx      # modale ajout de couverture défensive
 │   ├── LibraryModal.tsx          # modale bibliothèque / import de systèmes
+│   ├── SituationCodeModal.tsx    # copie/import BT1, BTA1 et BTG1
 │   ├── FloatingActionsMenu.tsx   # menu flottant d'actions rapides
 │   ├── ParametresLauncher.tsx    # bouton/lanceur du panneau paramètres
 │   │
@@ -83,8 +86,12 @@ src/
 ├── hooks/
 │   ├── useAppState.ts             # état central — persistance + history + câblage transforms (510 l)
 │   ├── useCourtFrame.ts           # calcule staticFrame / scrubFrame / playFrame (+ threats)
+│   ├── usePlaybackAnimation.ts    # horloge de lecture de la timeline
+│   ├── useManualRecording.ts      # capture horodatée et relecture des gestes, hors AppState
 │   └── useCourtPointerHandlers.ts # drag joueurs + tracé d'annotations (rAF-coalesced)
 └── lib/
+    ├── state/situationCode.ts     # enveloppes versionnées, compression et validation des codes
+    ├── state/manualGestures.ts    # types des traces de gestes et limites de capture
     ├── state/transforms/          # transformations pures AppState → AppState (cf. § useAppState)
     │   ├── index.ts               #   barrel — namespaces par domaine
     │   ├── shared.ts              #   markStepAsManual + recompileScenarioSteps + mutateActionsScope
@@ -218,8 +225,8 @@ Exemples :
 
 ### 2. Transformations pures + hook mince (state React)
 
-Le hook `useAppState` ne fait plus que persistance + history + câblage. Toute
-la **logique métier** des mutations d'état vit dans `lib/state/transforms/`,
+Le hook `useAppState` gère la persistance, l’historique, le câblage et les
+transitions temporaires de défense. La **logique métier** des mutations d'état vit dans `lib/state/transforms/`,
 sous forme de fonctions pures `(state, ...args) => state`. Le hook ré-expose
 chacune via `useCallback((args) => setStateWithHistory(s => stepTx.foo(s, args)))`.
 
@@ -278,26 +285,71 @@ useAppState callbacks
   ↓
 setState immutable
   ↓
-useEffect [state] → localStorage (debounce 400ms)
+useLocalSave [state] → localStorage (écriture différée de 250 ms)
   ↓
 Re-render des composants qui dépendent de state
   ↓
-CourtView → effectiveDefensePositions(state, activeStep)
+CourtView → useCourtFrame → source affichée (édition, lecture, match ou trace)
   ↓
-Le moteur recalcule les positions défensives à chaque frame
+Rendu SVG et notification onFrameChange({ state, frame, dynamic })
 ```
 
 ### Lecture (playback)
 
-Le RAF de lecture vit dans `CourtView`. Il utilise un **`stateRef.current`** (pas une dépendance d'effet) pour accéder à la version courante de `state` sans redémarrer la boucle à chaque mutation.
+`usePlaybackAnimation` pilote une horloge par intervalle d’environ 33 ms.
+Il lit l’état courant via une ref, convertit le temps écoulé avec les durées
+des étapes et notifie `useCourtFrame`. Le `playbackRunId` permet de lancer
+une animation importée même si une autre lecture était déjà active.
 
 À chaque tick :
-- calcul du `globalT` (fraction d'étape écoulée)
-- interpolation des positions O et D entre `idxA` et `idxB`
+- calcul de l’index d’étape fractionnaire `t` à partir de la durée et de la vitesse
+- résolution de la timeline par `resolveTimelineFrame(state, t)`
 - `setPlayFrame(...)` met à jour la frame locale
 - `onPlaybackTick(globalT)` remonte vers la page
 
-La page stocke `playbackT` et le passe à la `Timeline` qui affiche le playhead qui avance.
+La page stocke `playbackT` et le passe à la `Timeline` qui affiche le curseur.
+Le code `BTA1` transporte l’état et les paramètres de lecture ; il demande
+un nouveau calcul par le moteur, sans embarquer une vidéo ni toutes les
+frames calculées.
+
+### Déplacement manuel et poursuite défensive
+
+Au début d’un déplacement d’attaquant, `beginDefenderPursuit` capture les
+positions défensives affichées. `useCourtFrame` fait avancer les défenseurs
+à vitesse bornée vers leurs nouvelles cibles et poursuit le rattrapage après
+le relâchement. Un nouveau drag repart des positions affichées ; la fin du
+rattrapage nettoie uniquement la poursuite concernée.
+
+Cette continuité est toujours active en édition. Le réglage
+`defenderDragInertiaEnabled`, présenté comme **Appuis et fatigue pendant le
+déplacement**, ajoute les effets des appuis, du regard et de la fatigue.
+Il ne conditionne pas le déplacement progressif de base. La poursuite est
+un état temporaire du hook : elle ne crée pas d’override de position dans
+`AppState`. Voir [orientation-anti-teleport.md](orientation-anti-teleport.md).
+
+### Codes de partage et traces de gestes
+
+`SituationCodeModal` utilise le codec commun `state/situationCode.ts` :
+
+| Code | Données et chemin de chargement |
+|---|---|
+| `BT1` | État du système et contexte d’affichage facultatif ; import protégé par `app.importState`. |
+| `BTA1` | Même état, départ fractionnaire et vitesse de lecture ; import protégé, puis lecture de la timeline. |
+| `BTG1` | État au début de la capture, déplacements demandés et positions affichées échantillonnées ; chargement dans `useManualRecording`, sans remplacer le brouillon. |
+
+`useManualRecording` capture au plus un échantillon toutes les 50 ms, plus
+les bornes, pendant 60 secondes au maximum. `ManualRecordingBar` expose
+l’arrêt, la relecture, la pause, le curseur et la copie du code. Les
+enregistrements sont temporaires : il faut copier le code pour les conserver.
+
+En relecture BTG1, la page fournit `recordedFrame` à `CourtView`, avec un
+état de référence distinct du brouillon. Le terrain est en lecture seule,
+les commandes de modification sont suspendues et les positions proviennent
+des échantillons sans interpolation temporelle. Les poses auxiliaires
+peuvent être recalculées ; il ne s’agit pas d’une capture de tous les pixels
+ou de toutes les décisions internes. **Retour au terrain** réaffiche le
+brouillon courant. Le format, ses limites et le décodage pour diagnostic
+sont détaillés dans [SITUATION-CODE.md](SITUATION-CODE.md).
 
 ### Overrides défense
 
@@ -308,7 +360,7 @@ L'utilisateur peut **drag** un défenseur sur le terrain → la position est éc
 Toute la logique défensive (engine.ts, defense/*.ts, screens/, etc.) est **pure** : entrée = `AppState`, sortie = positions. Aucun hook React, aucun localStorage, aucun side-effect.
 
 Avantages :
-- Testable isolément (cf. [testing.md](testing.md) — 714 tests Vitest dans 69 fichiers : engine, screens, metrics, help, trap, manDefense, geometry, threats, offense, simulator, orientation, zone, directives défensives scriptées, transforms purs `useAppState`, **+ tous les concepts B1-B10 et V2/v3**…)
+- Testable isolément : moteur, écrans, métriques, zones, simulation et transformations d’état (cf. [testing.md](testing.md)).
 - Réutilisable en SSR / export PDF / preview
 - Le rendu peut s'appuyer dessus sans gérer d'état intermédiaire
 
@@ -376,9 +428,11 @@ Chaque couche est isolée derrière une signature `(positions, [matchups,] ctx) 
 
 - Clé localStorage : `basket-tactics-state-v1`
 - Sérialisation : `JSON.stringify(state)`
-- Sauvegarde debounce 400ms après chaque mutation
+- Sauvegarde différée de 250 ms via `useLocalSave`, vidée à la fermeture ou lors du passage en arrière-plan
 - Restauration au mount, mergée avec `makeInitialState()` pour la rétrocompatibilité (champs ajoutés ultérieurement)
-- Reset complet vide le storage et restaure les valeurs par défaut
+- Le brouillon précédent est conservé sous `basket-tactics-previous-draft-v1` avant un remplacement protégé
+- La préférence de fermeture du bandeau d’aide utilise `bt:coach-draw-hint:dismissed:v1` ; elle est indépendante du système partagé
+- Les traces de gestes et les transitions de poursuite ne sont pas dans cette sauvegarde ; les traces peuvent être copiées en `BTG1`
 
 ## Build / déploiement
 

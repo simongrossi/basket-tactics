@@ -43,6 +43,11 @@ Pendant la lecture, seules `Espace` et `Échap` restent actives.
 Naviguer entre étapes **n'entre pas** dans l'historique : Annuler revient à la
 dernière vraie modification.
 
+Pendant l’enregistrement ou la relecture de gestes, les raccourcis globaux du
+terrain sont suspendus. Les boutons **Arrêter**, **Pause**, **Lire/Rejouer** et
+**Retour au terrain** conservent leur activation clavier native avec `Espace` ;
+le curseur de relecture garde ses propres flèches.
+
 Les infobulles affichent le raccourci (constante `SHORTCUT_LABELS`, touches
 d'outils `TOOL_KEYS`).
 

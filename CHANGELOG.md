@@ -6,6 +6,36 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Partage par code, capture des gestes et continuité défensive (2026-09-23)
+
+- Codes **BT1** pour la situation complète et son instantané de diagnostic,
+  **BTA1** pour les étapes animées (durées, vitesse, départ choisi), **BTG1**
+  pour les gestes à la souris. Import commun dans Actions globales ; une
+  nouvelle animation remplace correctement la lecture déjà en cours.
+- Barre **Enregistrer les gestes** : jusqu’à 60 s, échantillonnage des positions
+  affichées à 20 images/s maximum et événements de déplacement horodatés.
+  Arrêt, relecture, pause, curseur et copie du code. La relecture conserve les
+  sauts capturés, sans réappliquer le moteur aux positions ni modifier le
+  brouillon. Copier le code permet de conserver la capture après fermeture.
+- Défense au déplacement manuel : continuité et vitesse limitée toujours
+  actives, y compris après le relâchement jusqu’à convergence. Retrait du
+  recalage brusque à grande distance et de l’arrêt après 500 ms. Le réglage
+  **Appuis et fatigue pendant le déplacement** ajoute les modulations physiques.
+- Zone 2-1-2 : les receveurs déjà couverts sont exclus avant l’attribution
+  des aides sur les passes ouvertes ; déplacer légèrement O1 ne provoque plus
+  le saut de D5 du cas signalé. Déplacement groupé depuis les positions
+  réellement affichées, fin de geste cohérente après annulation/appui long/pincement.
+- Bandeau **Dessiner le système** refermable, choix mémorisé. Pendant une
+  capture, seuls les déplacements de joueurs et de la vue restent disponibles ;
+  relecture protégée contre les modifications, boutons utilisables au clavier.
+- Séance locale par défaut **Transition & Tir**, avec le modèle Philadelphia
+  rattaché à son bloc ; migration des anciens blocs Philadelphia sans modèle.
+
+Formats, limites et diagnostic : [docs/SITUATION-CODE.md](docs/SITUATION-CODE.md).
+Validation : **2 648 tests / 271 fichiers** passent, typage et build de
+production réussis ; parcours capture → copie → import → relecture vérifié
+dans le navigateur.
+
 ### Réalisme défensif — poursuite V4 en lecture + P4.1 verrouillé (2026-09-22)
 
 - Le départ progressif (P3.1) tient compte du profil athlétique (élite ×1,3,

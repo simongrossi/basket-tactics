@@ -156,6 +156,30 @@ un pied dans la raquette — pas juste un sag proportionnel.
 
 ## P3 — Réalisme du mouvement (gains visuels, chantiers plus lourds)
 
+### ✅ Continuité des gestes d'édition (septembre 2026)
+
+Le cap de vitesse défensive pendant un drag attaquant est désormais
+systématique. `defenderDragInertiaEnabled` commande les effets supplémentaires
+d'appuis, de regard et de fatigue. La vitesse de base tient compte du
+`maxSpeed`, de la durée de l'étape et du profil de vitesse du défenseur ;
+le temps consommé par un tick est plafonné à 50 ms.
+
+Le drag et son rattrapage partent des positions affichées. Au relâchement,
+la poursuite continue jusqu'à convergence, sans snap au-delà de 200 px ni
+arrêt après 500 ms. Un nouveau drag reprend à l'endroit visible. Le déplacement
+groupé de défenseurs utilise aussi les positions affichées comme origines.
+
+La régression de zone 2-1-2 a été corrigée à la source : les receveurs déjà
+couverts sont retirés avant d'affecter les missions de fermeture de passe.
+Une passe vers O5 déjà couvert ne réserve plus D2 inutilement et ne fait plus
+basculer la cible de D5 d'environ 2 m pour un mouvement de O1 d'un pixel.
+
+Voir [la limite de vitesse et ses modulateurs](physics.md#poursuite-défenseur-pendant-les-gestes-dédition),
+[les régressions de continuité](orientation-anti-teleport.md#continuité-pendant-le-déplacement-manuel-des-attaquants)
+et [l'enregistrement `BTG1` pour transmettre un bug](SITUATION-CODE.md#enregistrer-et-transmettre-des-gestes-manuels).
+La lecture de cette trace conserve les positions observées ; elle ne rejoue
+pas le moteur avec de nouvelles décisions tactiques.
+
 ### ✅ P3.1-V1 — Rampe d'accélération défenseur en playback 〔M〕 (livré 2026-09-22)
 
 > **Livré** : `frameResolver :: applyDefenderMotionInertia` borne, à chaque
@@ -179,6 +203,10 @@ un pied dans la raquette — pas juste un sag proportionnel.
 > virage existante.
 
 ### Historique — P3.1 inertie défenseur en playback (re-scopé 2026-07-02)
+
+Ce bloc conserve le constat et les propositions de juillet. La continuité
+en édition est maintenant systématique, comme décrit ci-dessus ; les
+livraisons P3.1-V1/V2 précisent séparément ce qui a été porté en lecture.
 
 > **Audit** : l'inertie de virage existe déjà et est active par défaut en
 > playback — `applyDefenderMotionInertia` (frameResolver) : mémoire de
