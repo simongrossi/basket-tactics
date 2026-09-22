@@ -10,11 +10,12 @@ import { Sidebar, type ToolGroup } from '@/components/sidebar/Sidebar';
 import { SIDEBAR } from '@/components/sidebar/tokens';
 import { Swords, Shield, ListOrdered, GitBranch, Undo2, Redo2 } from 'lucide-react';
 import { OffenseToolsPanel } from '@/components/OffenseToolsPanel';
-import { StepsPanel } from '@/components/StepsPanel';
+import { StepsPanel, isPristineInitialStepList } from '@/components/StepsPanel';
 import { ScenarioPanel } from '@/components/ScenarioPanel';
 import { ScenarioReader } from '@/components/ScenarioReader';
 import { DefensePanel } from '@/components/DefensePanel';
 import { CoachStartActions } from '@/components/sidebar/CoachStartActions';
+import { CoachDrawHint } from '@/components/CoachDrawHint';
 import { SidebarOverflowMenu } from '@/components/sidebar/SidebarOverflowMenu';
 import { ParametresPanel } from '@/components/ParametresPanel';
 import { LibraryModal } from '@/components/LibraryModal';
@@ -522,6 +523,7 @@ export default function Page() {
                 icon: ListOrdered,
                 label: 'Étapes',
                 accent: '#f97316',
+                defaultOpen: true,
                 content: (
                   <StepsPanel
                     state={app.state}
@@ -752,6 +754,10 @@ export default function Page() {
                 </button>
               </div>
             )}
+            <CoachDrawHint
+              visible={!presentMode && !isPlayerMode && !isPlaying && !matchLoop.matchState
+                && isPristineInitialStepList(app.state)}
+            />
             {app.state.showCoachDiagnostics !== false && !isPlayerMode && (
               <CoachDiagnosticsOverlay diagnostics={coachDiagnostics} />
             )}

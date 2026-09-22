@@ -126,7 +126,10 @@ export function StepsPanel(props: StepsPanelProps) {
                 fontStyle: 'italic',
               }}
             >
-              Aucune étape
+              <div>Aucune étape</div>
+              <div style={{ marginTop: 4, fontStyle: 'normal' }}>
+                Dessine une action sur le terrain : elle devient l’étape 1.
+              </div>
             </div>
           ) : visibleStepRows.map(({ step: s, index: i, number }) => {
             const isActive = i === state.activeStep;
