@@ -7,7 +7,7 @@ import type {
   AttackerProfiles,
   OffensiveProfile,
 } from '../types';
-import { HOOP } from '../data/court';
+import { HOOP, MIDLINE_Y, THREE_POINT_RADIUS, CORNER_3PT_X_LEFT } from '../data/court';
 import { distance } from './geometry';
 
 /**
@@ -88,9 +88,36 @@ const SHOT_QUALITY_BY_ZONE: Record<ShotZone, number> = {
 export function shotZoneFor(distFromHoop: number): ShotZone {
   if (distFromHoop < 30) return 'rim';
   if (distFromHoop < 80) return 'paint';
-  if (distFromHoop < 200) return 'mid';
+  if (distFromHoop <= THREE_POINT_RADIUS) return 'mid';
   if (distFromHoop < 290) return 'three';
   return 'deep';
+}
+
+/** Géométrie commune au terrain FIBA : la ligne appartient à la zone à 2 points.
+ * Les positions représentent le point d'appui du tireur, pas son rayon visuel. */
+export function shotZoneAt(pos: Point, hoop: Point = HOOP): ShotZone {
+  const dist = distance(pos, hoop);
+  const cornerWidth = HOOP.x - CORNER_3PT_X_LEFT;
+  const arcJoin = Math.sqrt(THREE_POINT_RADIUS ** 2 - cornerWidth ** 2);
+  const towardMidcourt = (pos.y - hoop.y) * Math.sign(MIDLINE_Y - hoop.y);
+  const three = towardMidcourt <= arcJoin
+    ? Math.abs(pos.x - hoop.x) > cornerWidth
+    : dist > THREE_POINT_RADIUS;
+  if (three) return dist < 290 ? 'three' : 'deep';
+  return dist < 30 ? 'rim' : dist < 80 ? 'paint' : 'mid';
+}
+
+export function shotPointsAt(pos: Point, hoop: Point = HOOP): 2 | 3 {
+  const zone = shotZoneAt(pos, hoop);
+  return zone === 'three' || zone === 'deep' ? 3 : 2;
+}
+
+/** Même qualité de tir pour le porteur, le receveur et une finition projetée. */
+export function shotQualityAt(
+  pos: Point, contestDistance: number, hoop: Point = HOOP, profile?: OffensiveProfile,
+): number {
+  const zone = shotZoneAt(pos, hoop);
+  return SHOT_QUALITY_BY_ZONE[zone] * contestMultiplier(contestDistance) * profileShotMultiplier(profile, zone);
 }
 
 /** Pénalité de contest : au contact (0px) on divise la qualité par 2 ;
@@ -121,9 +148,7 @@ export function computeAttackerThreats(
 
   (Object.keys(off) as AttackerId[]).forEach((oId) => {
     const pos = off[oId];
-    const distH = distance(pos, hoop);
-    const zone = shotZoneFor(distH);
-    const baseQuality = SHOT_QUALITY_BY_ZONE[zone];
+    const zone = shotZoneAt(pos, hoop);
 
     // Défenseur le plus proche → contest sur tir
     let contestDist = Infinity;
@@ -132,8 +157,7 @@ export function computeAttackerThreats(
       const dd = distance({ x: d.x, y: d.y }, pos);
       if (dd < contestDist) contestDist = dd;
     });
-    const profileMult = profileShotMultiplier(profiles?.[oId], zone);
-    const shotQuality = baseQuality * contestMultiplier(contestDist) * profileMult;
+    const shotQuality = shotQualityAt(pos, contestDist, hoop, profiles?.[oId]);
 
     // Receivability — si non porteur, dépend de l'ouverture de la ligne de passe
     let receivability = 1;

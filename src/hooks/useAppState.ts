@@ -43,7 +43,7 @@ import type { DefenderProfile } from '@/lib/data/defenderProfiles';
 import { persistDetectedSwitchesThroughStep } from '@/lib/logic/engine';
 import { moveAttackerInState, moveDefenderInState } from '@/lib/logic/playerMove';
 import { loadFromStorage, saveToStorage, clearStorage } from '@/lib/state/persistence';
-import { decompressStateFromUrl } from '@/lib/state/urlCompression';
+import { decompressStateFromUrl, parseSharedHash } from '@/lib/state/urlCompression';
 import { computeOffBallPositions } from '@/lib/logic/autoOffense';
 import { HOOP, HOOP_OPPOSITE } from '@/lib/data/court';
 import {
@@ -125,13 +125,14 @@ export function useAppState() {
   // Hydration : lit l'URL partagée ou le localStorage post-montage.
   useEffect(() => {
     async function init() {
-      if (typeof window !== 'undefined' && window.location.hash.startsWith('#share=')) {
-        const payload = window.location.hash.slice('#share='.length);
+      const share = parseSharedHash(window.location.hash);
+      if (share.payload) {
+        const payload = share.payload;
         const shared = await decompressStateFromUrl(payload);
         if (shared) {
           setStateRaw(shared);
           // Nettoie le hash pour ne pas recharger à chaque refresh
-          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          window.history.replaceState(null, '', window.location.pathname + window.location.search + (share.playerMode ? '#mode=player' : ''));
           setHydrated(true);
           return;
         } else {

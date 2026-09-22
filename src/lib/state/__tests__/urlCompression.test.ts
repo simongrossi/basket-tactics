@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { makeInitialState } from '@/lib/data/initial';
-import { compressStateToUrl, decompressStateFromUrl } from '../urlCompression';
+import { compressStateToUrl, decompressStateFromUrl, createShareHash, parseSharedHash } from '../urlCompression';
 
 describe('urlCompression', () => {
+  it('ouvre le hash réellement généré, avec le paramètre mode lecteur', async () => {
+    const state = makeInitialState();
+    state.playerCount = 3;
+    const hash = await createShareHash(state);
+    const parsed = parseSharedHash(hash);
+    expect(parsed.playerMode).toBe(true);
+    expect((await decompressStateFromUrl(parsed.payload!))?.playerCount).toBe(3);
+    expect(parseSharedHash('#mode=player&share=' + parsed.payload)).toEqual(parsed);
+    expect(parseSharedHash('#mode=player').payload).toBeNull();
+  });
   it('effectue correctement le cycle compression -> décompression', async () => {
     const s0 = makeInitialState();
     s0.playerCount = 3;

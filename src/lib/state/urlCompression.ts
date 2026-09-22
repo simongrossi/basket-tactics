@@ -1,6 +1,15 @@
 import type { AppState } from '@/lib/types';
 import { importState } from './transforms/coreTransforms';
 
+export function parseSharedHash(hash: string): { payload: string | null; playerMode: boolean } {
+  const params = new URLSearchParams(hash.replace(/^#/, ''));
+  return { payload: params.get('share'), playerMode: params.get('mode') === 'player' };
+}
+
+export async function createShareHash(state: AppState): Promise<string> {
+  return '#' + new URLSearchParams({ share: await compressStateToUrl(state), mode: 'player' }).toString();
+}
+
 /**
  * Compresse un objet AppState en chaîne de caractères Base64url compressée avec l'algorithme Deflate.
  */

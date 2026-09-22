@@ -1,14 +1,14 @@
 // F.4 V1 — End-of-quarter "foul to give" detection.
 //
 // Concept basket : sous les 5 dernières secondes du chrono de quart,
-// si l'équipe défensive n'est pas encore en bonus (< 5 fautes équipe),
+// si l'équipe défensive n'est pas encore en bonus (< 4 fautes équipe),
 // elle PEUT volontairement faire faute pour stopper l'horloge et éviter
 // un tir au buzzer. Stratégie ultra-courante NBA/EuroLeague.
 //
 // V1 = détection + diagnostic + badge. Pas de modification de positions.
 // Conditions cumulées :
 //  1. `step.clockSeconds < 5` (fin de quart imminente)
-//  2. `state.defenseTeamFouls < 5` (pas encore en bonus)
+//  2. `state.defenseTeamFouls < 4` (pas encore en bonus)
 //  3. Porteur en mouvement vers le panier (drive trigger OU
 //     delta-distance vers hoop > 30 px depuis step précédent)
 
@@ -24,7 +24,7 @@ export interface FoulToGiveOpportunity {
   carrier: AttackerId;
   /** Secondes restantes au quart (< 5). */
   clockSeconds: number;
-  /** Fautes équipe défense en cours (< 5). */
+  /** Fautes équipe défense en cours (< 4). */
   teamFouls: number;
 }
 
@@ -41,7 +41,7 @@ export function detectFoulToGiveOpportunity(
 
   // Condition 2 — pas encore en bonus.
   const teamFouls = state.defenseTeamFouls ?? 0;
-  if (teamFouls >= 5) return null;
+  if (teamFouls >= 4) return null;
 
   // Condition 3 — porteur en mouvement vers le panier.
   const carrier = activeBallCarrier(step, state.playerCount);

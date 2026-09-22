@@ -1,4 +1,4 @@
-// Tests B7 — defensive 3 seconds (règle FIBA).
+// Non-régression FIBA : aucune règle des trois secondes défensives.
 
 import { describe, expect, it } from 'vitest';
 import type { AppState } from '@/lib/types';
@@ -51,12 +51,11 @@ describe('defensiveThreeSecondsRule (B7)', () => {
     expect(diags1.some((d) => d.tag === 'defensive-3sec')).toBe(false);
   });
 
-  it('violation au step 2 si D5 camped 3 steps dans la raquette sans attaquant proche', () => {
+  it('FIBA : D5 peut protéger la raquette sans attaquant proche', () => {
     const state = makeThreeSecState();
     const diags = computeCoachDiagnostics(state, 2);
     const violation = diags.find((d) => d.tag === 'defensive-3sec');
-    expect(violation).toBeDefined();
-    expect(violation!.defenders).toContain('D5');
+    expect(violation).toBeUndefined();
   });
 
   it('PAS de violation si un attaquant est proche du défenseur', () => {
@@ -83,7 +82,7 @@ describe('defensiveThreeSecondsRule (B7)', () => {
   });
 
   // Fix 2026-05-19 — exceptions ajoutées pour les cas basket-légitimes
-  // que la règle FIBA tolère.
+  // qui doivent rester exempts de ce diagnostic.
 
   it('PAS de violation si un attaquant occupe la raquette aux 3 steps (zone protégée)', () => {
     const state = makeThreeSecState();

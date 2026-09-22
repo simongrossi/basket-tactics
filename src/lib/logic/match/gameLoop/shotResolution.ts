@@ -6,7 +6,7 @@
 import type { AppState, AttackerId, DefenderId, Point } from '@/lib/types';
 import { getDefenseHoop } from '../../engine';
 import { nearestDefenderDistance, type OffensiveAction } from '../../offense';
-import { shotZoneFor } from '../../threats';
+import { shotZoneAt } from '../../threats';
 import { distance } from '../../geometry';
 import { seededAiRng } from '../aiPossession';
 import {
@@ -201,8 +201,7 @@ export function resolveShot(
   // On reprend les mêmes helpers que `evaluateOffensiveOptions` pour
   // garantir la cohérence avec le `scoreProbability` déjà calculé.
   const hoop = getDefenseHoop(baseAppState, state.attackingTeam);
-  const distFromHoop = distance(action.shotPos, hoop);
-  const shotZone = shotZoneFor(distFromHoop);
+  const shotZone = shotZoneAt(action.shotPos, hoop);
   const contestDistance = nearestDefenderDistance(action.shotPos, state.defPos);
   const contested = contestDistance <= CONTEST_THRESHOLD_PX;
 

@@ -50,7 +50,6 @@ import { pickAndRollRule } from './rules/pickAndRoll';
 import { rejectedScreenRule } from './rules/rejectedScreen';
 import { snakeDribbleRule } from './rules/snakeDribble';
 import { screenChainRule } from './rules/screenChain';
-import { defensiveThreeSecondsRule } from './rules/defensiveThreeSeconds';
 import { emptySidePnRRule } from './rules/emptySidePnR';
 import { zoneSituationsRule } from './rules/zoneSituations';
 import { offBallScreensRule } from './rules/offBallScreens';
@@ -80,7 +79,6 @@ const REGISTRY: Rule[] = [
   rejectedScreenRule,
   snakeDribbleRule,
   screenChainRule,
-  defensiveThreeSecondsRule,
   emptySidePnRRule,
   zoneSituationsRule,
   offBallScreensRule,

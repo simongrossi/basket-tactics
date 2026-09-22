@@ -39,7 +39,7 @@ import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offen
 import { computeCoachDiagnostics } from '@/lib/logic/coachDiagnostics';
 import { activeBallCarrier, activeOffense } from '@/lib/logic/players';
 import type { ActionTimingAnchor, AddAnnotationOptions, Annotation, AppState, Step } from '@/lib/types';
-import { compressStateToUrl } from '@/lib/state/urlCompression';
+import { createShareHash } from '@/lib/state/urlCompression';
 import { findTemplate } from '@/lib/data/templates';
 
 export default function Page() {
@@ -300,8 +300,7 @@ export default function Page() {
   }, [app.state]);
 
   const handleShare = useCallback(async () => {
-    const payload = await compressStateToUrl(app.state);
-    return window.location.origin + window.location.pathname + '#share=' + payload + '&mode=player';
+    return window.location.origin + window.location.pathname + await createShareHash(app.state);
   }, [app.state]);
 
   const handleImport = useCallback(() => {

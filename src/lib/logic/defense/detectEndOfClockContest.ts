@@ -1,7 +1,7 @@
 // B.3 V1 — End-of-quarter "contest mode" awareness.
 //
 // Concept basket : sous les 5 dernières secondes du chrono de quart,
-// si l'équipe défensive est DÉJÀ en bonus (≥ 5 fautes), la stratégie
+// si l'équipe défensive est DÉJÀ en bonus (≥ 4 fautes), la stratégie
 // inverse F.4 : on n'a plus l'option du foul to give (donne LF), donc
 // il faut **contester sans fauter** ("all-hands-up, no fouls").
 //
@@ -11,10 +11,10 @@
 //
 // Conditions cumulées :
 //   1. `step.clockSeconds < 5`            (fin de quart)
-//   2. `state.defenseTeamFouls >= 5`      (équipe en bonus — fauter coûte 2 LF)
+//   2. `state.defenseTeamFouls >= 4`      (équipe en bonus — fauter coûte 2 LF)
 //
 // Différence avec F.4 (foul to give) : F.4 s'active quand l'équipe N'EST PAS
-// encore en bonus (< 5 fautes). Les deux sont donc exclusifs sur l'axe
+// encore en bonus (< 4 fautes). Les deux sont donc exclusifs sur l'axe
 // `defenseTeamFouls`, ils ne peuvent jamais déclencher en même temps.
 
 import type { AppState, DefenderId } from '../../types';
@@ -26,7 +26,7 @@ export interface EndOfClockContestSignal {
   carrierDefender: DefenderId;
   /** Secondes restantes au quart (< 5). */
   clockSeconds: number;
-  /** Fautes équipe défense (≥ 5, donc bonus). */
+  /** Fautes équipe défense (≥ 4, donc bonus). */
   teamFouls: number;
 }
 
@@ -43,7 +43,7 @@ export function detectEndOfClockContest(
 
   // Condition 2 — équipe en bonus (pas d'option foul to give).
   const teamFouls = state.defenseTeamFouls ?? 0;
-  if (teamFouls < 5) return null;
+  if (teamFouls < 4) return null;
 
   const carrier = activeBallCarrier(step, state.playerCount);
   if (!carrier) return null;

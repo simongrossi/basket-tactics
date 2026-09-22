@@ -6,7 +6,7 @@ import type {
 } from '../types';
 import { HOOP } from '../data/court';
 import { distance } from './geometry';
-import { computeAttackerThreats, shotZoneFor } from './threats';
+import { computeAttackerThreats, shotPointsAt, shotQualityAt } from './threats';
 import {
   buildEJO,
   corridorBlockers,
@@ -55,22 +55,6 @@ const DRIVE_SUCCESS_RATE = 0.75;
 
 /** Distance minimale du panier pour qu'un drive ait un sens (sinon on shoote). */
 const DRIVE_MIN_DIST = 60;
-
-const FG_BY_ZONE: Record<ReturnType<typeof shotZoneFor>, number> = {
-  rim: 0.65,
-  paint: 0.50,
-  mid: 0.40,
-  three: 0.36,
-  deep: 0.28,
-};
-
-function shotPointsFor(zone: ReturnType<typeof shotZoneFor>): 2 | 3 {
-  return zone === 'three' || zone === 'deep' ? 3 : 2;
-}
-
-function contestMultiplier(distToNearestDef: number): number {
-  return 0.5 + 0.5 * Math.min(1, distToNearestDef / 80);
-}
 
 export function nearestDefenderDistance(pos: Point, defPos: ComputedDefense): number {
   let min = Infinity;
@@ -145,12 +129,11 @@ export function evaluateOffensiveOptions(
   const actions: OffensiveAction[] = [];
   const carrierPos = off[carrier];
   const carrierDist = distance(carrierPos, hoop);
-  const carrierZone = shotZoneFor(carrierDist);
 
   // === Option 1 : Tir direct ===
   const carrierContest = nearestDefenderDistance(carrierPos, defPos);
-  const carrierShotQ = FG_BY_ZONE[carrierZone] * contestMultiplier(carrierContest);
-  const carrierShotPts = shotPointsFor(carrierZone);
+  const carrierShotQ = shotQualityAt(carrierPos, carrierContest, hoop, profiles?.[carrier]);
+  const carrierShotPts = shotPointsAt(carrierPos, hoop);
   actions.push({
     type: 'shoot',
     expectedPoints: carrierShotQ * carrierShotPts,
@@ -170,7 +153,6 @@ export function evaluateOffensiveOptions(
       x: carrierPos.x + dx * driveDist,
       y: carrierPos.y + dy * driveDist,
     };
-    const driveZone = shotZoneFor(distance(drivePos, hoop));
     const driveContest = nearestDefenderDistance(drivePos, defPos);
     // Couloir ballon→panier (EJO large, 2.5 m) — pénalité par défenseur dans
     // l'axe (Vandevelde : action de jeu direct contre couloir saturé).
@@ -181,11 +163,10 @@ export function evaluateOffensiveOptions(
       1 - DRIVE_CORRIDOR_BLOCKER_PENALTY * blockers.length,
     );
     const driveShotQ =
-      FG_BY_ZONE[driveZone] *
-      contestMultiplier(driveContest) *
+      shotQualityAt(drivePos, driveContest, hoop, profiles?.[carrier]) *
       DRIVE_QUALITY_PENALTY *
       corridorOpenness;
-    const drivePts = shotPointsFor(driveZone);
+    const drivePts = shotPointsAt(drivePos, hoop);
     actions.push({
       type: 'drive',
       expectedPoints: DRIVE_SUCCESS_RATE * driveShotQ * drivePts,
@@ -203,8 +184,7 @@ export function evaluateOffensiveOptions(
     if (oId === carrier) return;
     const t = threats[oId];
     const recPos = off[oId];
-    const recZone = shotZoneFor(distance(recPos, hoop));
-    const recPts = shotPointsFor(recZone);
+    const recPts = shotPointsAt(recPos, hoop);
     // Lecture EJP : on suppose que le receveur fait face au ballon (il
     // s'attend à la passe). Un défenseur en `front` est entre le ballon et
     // le receveur — passe à risque ; `back` = trailing, ligne ouverte.

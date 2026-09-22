@@ -256,7 +256,7 @@ export function handleTransitionPause(
   next.boxOutTargets = null;
   next.boxOutStartedAtMs = null;
   // E.3 — désarme l'animation ballon (la transition gère la suite).
-  next.pendingRebound = null;
+  // Le résultat animé doit survivre jusqu’à executeTransition (aucun nouveau tirage).
   next.shotBallStartPos = null;
   next.shotPhysicalTrajectory = null;
 
@@ -356,6 +356,7 @@ export function executeTransition(
       homeScore,
       awayScore,
       possessionsPlayed: nextPossessionsPlayed,
+      pendingRebound: null,
       transitionStartedAtMs: null,
       teamStats,
     };

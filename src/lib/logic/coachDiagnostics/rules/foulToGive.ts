@@ -19,8 +19,8 @@ export const foulToGiveRule: Rule = (ctx) => {
       id: `foul-to-give-${opp.carrierDefender}-${stepIdx}`,
       severity: 'critical',
       message:
-        `Foul to give : ${opp.clockSeconds.toFixed(1)}s au quart, équipe ${opp.teamFouls}/5 fautes — ` +
-        `${opp.carrierDefender} peut couper l'action sur ${carrierLabel}`,
+        `Foul to give : ${opp.clockSeconds.toFixed(1)}s au quart, équipe ${opp.teamFouls}/4 fautes — ` +
+        `${opp.carrierDefender} peut couper l'action sur ${carrierLabel}, avant le tir et sans faute antisportive`,
       tag: 'foul-to-give',
       defenders: [opp.carrierDefender],
       attackers: [opp.carrier],
