@@ -15,6 +15,7 @@ import type {
   ContinuityLoop,
 } from '../types';
 import { makeInitialState } from './initial';
+import type { PracticeSession } from './practiceSessions';
 
 /**
  * Bibliothèque utilisateur — gestion locale de systèmes sauvegardés
@@ -156,6 +157,7 @@ export function loadLibrary(): UserLibrary {
     if (!raw) return defaultLibrary();
     const parsed = JSON.parse(raw) as UserLibrary;
     if (!parsed.folders || !Array.isArray(parsed.folders)) return defaultLibrary();
+    parsed.sessions = migrateSessions(parsed.sessions);
     return parsed;
   } catch {
     return defaultLibrary();
@@ -183,7 +185,60 @@ function defaultLibrary(): UserLibrary {
         createdAt: Date.now(),
       },
     ],
+    sessions: defaultSessions(),
   };
+}
+
+function migrateSessions(sessions: PracticeSession[] | undefined): PracticeSession[] {
+  const source = sessions && sessions.length > 0 ? sessions : defaultSessions();
+  return source.map((session) => ({
+    ...session,
+    blocks: session.blocks.map((block) => {
+      if (block.templateId) return block;
+      if (block.id === 'blk-philly' || block.title === 'Philadelphia Drill') {
+        return { ...block, templateId: 'drill-philadelphia' };
+      }
+      return block;
+    }),
+  }));
+}
+
+function defaultSessions(): PracticeSession[] {
+  const now = Date.now();
+  return [
+    {
+      id: 'sess-default-1',
+      name: 'Séance - Transition & Tir',
+      date: new Date().toISOString().split('T')[0],
+      notes: 'Focus sur le repli défensif et la transition rapide.',
+      createdAt: now,
+      updatedAt: now,
+      blocks: [
+        {
+          id: 'blk-warmup',
+          kind: 'free',
+          title: 'Échauffement & Mobilisation',
+          durationMin: 15,
+          notes: 'Échauffement articulaire dynamique, manipulation de balle et passes en mouvement.',
+        },
+        {
+          id: 'blk-philly',
+          kind: 'free',
+          title: 'Philadelphia Drill',
+          durationMin: 20,
+          templateId: 'drill-philadelphia',
+          notes: 'Exercice de contre-attaque continue à 3 ballons. Vitesse de passe, surnombre offensif et intensité de course sur les ailes.',
+        },
+        {
+          id: 'blk-play',
+          kind: 'free',
+          title: 'Jeu tout terrain (5v5)',
+          durationMin: 25,
+          notes: 'Mise en application tactique de la transition rapide avec consignes sur le repli.',
+        }
+      ]
+    }
+  ];
 }
 
 /** Capture l'état tactique courant en SavedSystem. UI state non sauvé. */
