@@ -41,7 +41,7 @@ export type { CoachDiagnostic, CoachSeverity, Rule, RuleContext } from './types'
 import { closeoutLongRule } from './rules/closeoutLong';
 import { shooterCloseoutRule } from './rules/shooterCloseout';
 import { switchMismatchRule } from './rules/switchMismatch';
-import { attackerJumpRule } from './rules/attackerJump';
+import { movementDurationRule } from './rules/movementDuration';
 import { baselineDriveRule } from './rules/baselineDriveCoverage';
 import { driveContainmentRule } from './rules/driveContainment';
 import { offBallCutsRule } from './rules/offBallCuts';
@@ -70,7 +70,7 @@ const REGISTRY: Rule[] = [
   closeoutLongRule,
   shooterCloseoutRule,
   switchMismatchRule,
-  attackerJumpRule,
+  movementDurationRule,
   baselineDriveRule,
   driveContainmentRule,
   offBallCutsRule,

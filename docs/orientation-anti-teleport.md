@@ -117,6 +117,10 @@ Avant le commit `fix(playback): tous les défenseurs suivent leurs attaquants`, 
 
 ## Diagnostic anti-téléportation
 
+**Mise à jour F12 (septembre 2026)** : le seuil historique décrit ci-dessous
+est remplacé par `movement-duration`, qui rapporte la vitesse demandée aux
+durées et aux fenêtres d'action. Voir [PLAN-COACH.md](../PLAN-COACH.md).
+
 [`coachDiagnostics.ts`](../src/lib/logic/coachDiagnostics.ts) — nouveau diagnostic `tag: 'attacker-jump'`. Si un attaquant parcourt plus de **4 m** entre deux étapes consécutives (4 × `PX_PER_M` = 148 px), un warning informatif s'affiche. La simulation n'est pas bloquée — le coach est juste alerté que la keyframe est suspecte.
 
 Seuil : 4 m correspond à environ 1 seconde de course soutenue pour un joueur ; au-delà, c'est probablement un saut éditorial à corriger.

@@ -19,7 +19,7 @@ Ce document suit le travail effectif ; une case n'est cochée qu'après validati
 - [x] F09 Respecter timing et trajet de l'action lors des évitements.
 - [x] F10 Calcul reproductible à un même instant, indépendamment de la fréquence d'affichage.
 - [x] F11 Séparation finale des joueurs, profil applicatif inclus, sans retour du flicker d'écran.
-- [ ] F12 Garantir les contraintes athlétiques ou signaler une durée impossible.
+- [x] F12 Signaler une durée impossible au regard de la vitesse demandée.
 - [ ] F13 Conseils et métriques synchronisés avec l'image et le panier attaqué.
 
 Validation : tests de régression sur les cas de l'audit, suite existante, type-check,
@@ -126,3 +126,22 @@ Ces changements doivent être préservés et distingués des commits de consolid
   Validation complète : 2 326 tests passent (244 fichiers), dont tous les
   garde-fous écran/overlap/userJson/screenLab. Seuls les 6 échecs et 2 erreurs
   TypeScript préexistants du chantier local congestion subsistent.
+
+
+- F12 livré sous forme de diagnostic coach, sans retouche automatique du système.
+  L'ancien avertissement arbitraire « plus de 4 m par étape » est remplacé par
+  une vérification en m/s, visible dans la lecture coach dès la première transition.
+  Trajectoires offensives échantillonnées avant limitation visuelle : points de
+  passage, fenêtres fractionnaires/absolues, sprint, arrivée du poseur et profil
+  réaliste. Les bornes des actions très courtes sont échantillonnées explicitement.
+  Défense : déplacement entre positions calculées, donc vitesse minimale requise.
+  Durées issues de l'horloge commune, interpolations comprises. Repère pédagogique
+  de 7 m/s, clairement nommé comme hypothèse du modèle ; le message propose
+  d'allonger la durée/la fenêtre d'action ou de raccourcir le trajet.
+  Limites : ce diagnostic ne certifie pas la faisabilité athlétique complète
+  (accélération, fatigue, détours défensifs et corrections de collision). F08 et
+  les validations de réalisme restent ouverts. Pas de nouveau contrôle visuel
+  navigateur ; intégration vérifiée via le moteur qui alimente le panneau existant.
+  Validation finale : 9 nouveaux tests ; suite complète à 2 335 tests réussis
+  (245 fichiers). Les 6 échecs et 2 erreurs TypeScript du chantier local
+  congestion restent préexistants et inchangés.

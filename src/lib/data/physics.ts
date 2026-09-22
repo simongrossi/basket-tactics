@@ -305,3 +305,8 @@ export const OFFENSIVE_POST_FEINTE_BOOST_AMPLITUDE = 0.4;
 /** Phy.O V3 V4 — Offset du pic de boost après le centre de la feinte,
  *  en fraction d'arc. 0.10 = boost peak ~10% d'arc après la feinte. */
 export const OFFENSIVE_POST_FEINTE_BOOST_OFFSET = 0.10;
+
+/** Repère conservateur du diagnostic de durée, en m/s (pas px/étape).
+ * Hypothèse pédagogique du modèle, pas une limite universelle des joueurs.
+ * Le dépassement avertit le coach sans modifier son système. */
+export const MOVEMENT_WARNING_SPEED_MPS = 7;
