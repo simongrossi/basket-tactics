@@ -71,15 +71,23 @@ sur tous les défenseurs après leur interpolation. Le set
 `screenLockedDefenders` SKIP la résolution pour les défenseurs en
 contact d'écran (anti-flicker visuel).
 
-> ⚠️ Limite connue : pendant l'interpolation d'un écran de qualité
-> élevée, un défenseur "stuck" sur le poseur peut techniquement passer
-> à < 34 px d'un autre joueur le temps d'une frame. Volontaire — sans
-> ce skip, D1 flippe de 60+ px d'un côté à l'autre du poseur quand
-> l'obstacle interpolé se déplace mid-segment (3 tests garde-fous dans
-> `screenContactFrame.test.ts`). Les positions ENDPOINTS (engine) sont
-> elles toujours à ≥ 34 px ; le visuel transitoire reste lisible parce
-> que D1 reste plaqué au poseur (qui n'overlap pas l'attaquant en
-> question grâce au niveau 3a).
+**3c. Projection finale commune (F11)** : après les couches tactiques et
+l'inertie, `solveMovingEntityCollisions` traite les dix joueurs ensemble.
+Chaque paire est séparée de 34 px au minimum. Les normales viennent de la
+frame canonique précédente : le défenseur peut être corrigé sans changer
+brutalement de côté autour du poseur. Le poseur reste une ancre fixe ; le
+screen-lock n'exempte plus un défenseur de la séparation finale.
+
+Les disques de déplacement (9 px par sous-pas) et les demi-plans séparateurs
+sont projetés dans la même boucle. Aucun clamp ultérieur ne peut recréer une
+superposition. Deux images intermédiaires issues du même prédécesseur restent
+ainsi dans le budget visuel de 18 px, indépendamment des FPS affichés.
+
+Si les contraintes sont incompatibles (deux poseurs importés au même point,
+ancre téléportée), la séparation est prioritaire : placement déterministe,
+première ancre conservée, puis correction des autres joueurs. Ce cas invalide
+peut dépasser le budget de déplacement ; le diagnostic des durées et mouvements
+impossibles reste le chantier F12.
 
 ## Tests garde-fous
 

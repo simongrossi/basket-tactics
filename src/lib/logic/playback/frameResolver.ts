@@ -37,7 +37,7 @@ import {
   resolvePlayerCollisions,
 } from '../geometry';
 import { pushOutOfScreenContact } from '../screenCollision';
-import { solveEntityCollisions } from '../constraintSolver';
+import { solveMovingEntityCollisions } from '../constraintSolver';
 import { computeDefensiveRoute, sampleRoute, type RouteObstacle } from '../defensiveRoute';
 import { passLaneJumpOffset } from '../passLaneJump';
 import { applyEasing } from './easing';
@@ -260,19 +260,13 @@ export interface ResolveDeterministicScrubOptions extends ResolveFrameOptions {
   fps?: number;
 }
 
-/** Saut maximum autorisé par frame sur la position d'un défenseur.
- *  À 60 fps : 18 px/frame = 1080 px/s ≈ 29 m/s. Au-delà = snap visuel
- *  (cause typique : screen detection qui change entre frames adjacentes,
- *  Bezier qui flip de côté, adhesion qui change brutalement de blend).
- *  En clamp à cette valeur, le défenseur rattrape son retard en ~5 frames
- *  (= 80ms) sur un saut de 90 px. Imperceptible visuellement. */
-const MAX_DEFENDER_JUMP_PX = 18;
-
-/** Saut maximum autorisé par frame sur la position d'un attaquant.
- *  Identique aux défenseurs : 18 px/frame = 1080 px/s ≈ 29 m/s. Un cut basket
- *  réel à 7 m/s ≈ 4.4 px/frame, largement sous le seuil. Borne les pics
- *  de `curveAroundObstacle` quand le cluster bouge (cause du jump O2 mi-Pindown). */
-const MAX_ATTACKER_JUMP_PX = 18;
+/** Budget de correction par sous-pas canonique, pas une vitesse athlétique.
+ * Une frame intermédiaire et la suivante partagent le même prédécesseur :
+ * chacune dispose de la moitié du seuil visuel de 18 px. Elles restent ainsi
+ * proches même si leurs corrections partent dans des directions opposées.
+ * La calibration en mètres/seconde relève des contraintes de durée (F12). */
+const MAX_DEFENDER_JUMP_PX = 9;
+const MAX_ATTACKER_JUMP_PX = 9;
 
 /** Démarre l'inertie quand le défenseur change fortement de direction.
  *  cos(70°) ≈ 0.34 : sous ce seuil, le virage devient visible à l'oeil. */
@@ -283,7 +277,6 @@ const DEFENDER_INERTIA_FAST_MAX_BLEND = 0.18;
 const DEFENDER_INERTIA_SLOW_MAX_BLEND = 0.36;
 const DEFENDER_INERTIA_FAST_SPEED_LOSS = 0.32;
 const DEFENDER_INERTIA_SLOW_SPEED_LOSS = 0.55;
-const INTERPOLATED_FRAME_CLEARANCE_PX = PLAYER_MIN_CLEARANCE_PX * 0.72;
 
 interface SegmentScreenStatic {
   matchupsA: Matchups;
@@ -1249,7 +1242,7 @@ export function resolveFrameAt(
   // MAX_DEFENDER_JUMP_PX. Évite les snaps visuels mid-segment causés par
   // changements brutaux d'état d'écran / Bezier flips / adhesion blend
   // discontinue. La position rattrape progressivement sur les frames
-  // suivantes (~5 frames = 80ms pour 90 px → imperceptible).
+  // suivantes de la reconstruction canonique.
   if (options.prevFrame) {
     const prev = options.prevFrame.defPos;
     defenderIds.forEach((id) => {
@@ -1273,19 +1266,8 @@ export function resolveFrameAt(
     defenderIds,
     attackerIsScreening,
     forcedScreeners: new Set([a.forcedScreener, b.forcedScreener].filter(Boolean) as AttackerId[]),
-    lockedDefenders: screenLockedDefenders,
     prevFrame: options.prevFrame,
   });
-  if (options.prevFrame) {
-    clampPostCollisionFrameJumps({
-      off,
-      defPos,
-      attackerIds,
-      defenderIds,
-      attackerIsScreening,
-      prevFrame: options.prevFrame,
-    });
-  }
   if (options.prevFrame && decisions) {
     const prev = options.prevFrame.defPos;
     defenderIds.forEach((id) => {
@@ -1427,13 +1409,14 @@ function resolveInterpolatedFrameCollisions(params: {
   defenderIds: DefenderId[];
   attackerIsScreening: Partial<Record<AttackerId, boolean>>;
   forcedScreeners: ReadonlySet<AttackerId>;
-  lockedDefenders: ReadonlySet<DefenderId>;
   prevFrame?: PlaybackFrame;
 }): void {
   const entities = [
     ...params.attackerIds.map((id) => ({
       id: `O:${id}` as const,
       point: params.off[id],
+      previous: params.prevFrame?.off[id],
+      maxDelta: MAX_ATTACKER_JUMP_PX,
       fixed: !!params.attackerIsScreening[id] || params.forcedScreeners.has(id),
       fallbackDirection: frameCollisionFallback(
         params.prevFrame?.off[id],
@@ -1444,7 +1427,9 @@ function resolveInterpolatedFrameCollisions(params: {
     ...params.defenderIds.map((id) => ({
       id: `D:${id}` as const,
       point: params.defPos[id],
-      fixed: params.lockedDefenders.has(id),
+      previous: params.prevFrame?.defPos[id],
+      maxDelta: MAX_DEFENDER_JUMP_PX,
+      fixed: false,
       fallbackDirection: frameCollisionFallback(
         params.prevFrame?.defPos[id],
         params.defPos[id],
@@ -1453,59 +1438,22 @@ function resolveInterpolatedFrameCollisions(params: {
     })),
   ];
 
-  const solved = solveEntityCollisions({
+  const solved = solveMovingEntityCollisions({
     entities,
-    defaultMinDist: INTERPOLATED_FRAME_CLEARANCE_PX,
-    iterations: 4,
-    epsilon: 0.25,
+    defaultMinDist: PLAYER_MIN_CLEARANCE_PX,
   });
 
   params.attackerIds.forEach((id) => {
-    const p = solved.positions[`O:${id}`];
+    const p = solved[`O:${id}`];
     if (!p) return;
     params.off[id] = p;
   });
   params.defenderIds.forEach((id) => {
-    const p = solved.positions[`D:${id}`];
+    const p = solved[`D:${id}`];
     if (!p) return;
     params.defPos[id].x = p.x;
     params.defPos[id].y = p.y;
   });
-}
-
-function clampPostCollisionFrameJumps(params: {
-  off: AttackerPositions;
-  defPos: ComputedDefense;
-  attackerIds: AttackerId[];
-  defenderIds: DefenderId[];
-  attackerIsScreening: Partial<Record<AttackerId, boolean>>;
-  prevFrame: PlaybackFrame;
-}): void {
-  params.attackerIds.forEach((id) => {
-    if (params.attackerIsScreening[id]) return;
-    const prev = params.prevFrame.off[id];
-    const current = params.off[id];
-    if (!prev || !current) return;
-    const clamped = clampStepDelta(prev, current, MAX_ATTACKER_JUMP_PX);
-    params.off[id] = clamped;
-  });
-  params.defenderIds.forEach((id) => {
-    const prev = params.prevFrame.defPos[id];
-    const current = params.defPos[id];
-    if (!prev || !current) return;
-    const clamped = clampStepDelta(prev, current, MAX_DEFENDER_JUMP_PX);
-    params.defPos[id].x = clamped.x;
-    params.defPos[id].y = clamped.y;
-  });
-}
-
-function clampStepDelta(prev: Point, current: Point, maxDelta: number): Point {
-  const dx = current.x - prev.x;
-  const dy = current.y - prev.y;
-  const d = Math.hypot(dx, dy);
-  if (d <= maxDelta) return current;
-  const k = maxDelta / d;
-  return { x: prev.x + dx * k, y: prev.y + dy * k };
 }
 
 function frameCollisionFallback(prev: Point | undefined, current: Point, seed: number): Point {

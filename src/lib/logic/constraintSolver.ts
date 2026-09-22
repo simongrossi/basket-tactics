@@ -140,6 +140,76 @@ export function solveEntityCollisions<Id extends string = string>(
   return { positions, movedIds, iterations: usedIterations };
 }
 
+/** Joint separation and per-frame movement projection. Pair normals are frozen
+ * from the previous frame, so corrections cannot flip sides around a screen.
+ * A separating half-plane is stronger than a radial distance constraint and
+ * remains convex when combined with each player's movement disk.
+ */
+export function solveMovingEntityCollisions<Id extends string>(params: {
+  entities: Array<CollisionEntity<Id> & { previous?: Point; maxDelta: number }>;
+  defaultMinDist: number;
+}): Partial<Record<Id, Point>> {
+  const { entities, defaultMinDist } = params;
+  const points = entities.map(e => ({ x: e.point.x, y: e.point.y }));
+  const pairs = entities.flatMap((a, i) => entities.slice(i + 1).map((b, offset) => {
+    const from = a.previous ?? a.point;
+    const to = b.previous ?? b.point;
+    const normal = normalizeVector({ x: to.x - from.x, y: to.y - from.y })
+      ?? normalizeVector(a.fallbackDirection) ?? { x: 1, y: 0 };
+    return { i, j: i + offset + 1, normal };
+  }));
+  for (let iteration = 0; iteration < 160; iteration++) {
+    let error = 0;
+    for (const { i, j, normal } of pairs) {
+      const a = points[i], b = points[j];
+      const penetration = defaultMinDist - (b.x - a.x) * normal.x - (b.y - a.y) * normal.y;
+      if (penetration <= 0) continue;
+      error = Math.max(error, penetration);
+      const wa = entities[i].fixed ? 0 : 1;
+      const wb = entities[j].fixed ? 0 : 1;
+      if (wa + wb === 0) continue;
+      const shift = penetration / (wa + wb);
+      a.x -= normal.x * shift * wa;
+      a.y -= normal.y * shift * wa;
+      b.x += normal.x * shift * wb;
+      b.y += normal.y * shift * wb;
+    }
+    entities.forEach((entity, i) => {
+      if (entity.fixed || !entity.previous) return;
+      const p = points[i], prev = entity.previous;
+      const d = Math.hypot(p.x - prev.x, p.y - prev.y);
+      if (d <= entity.maxDelta) return;
+      error = Math.max(error, d - entity.maxDelta);
+      const scale = entity.maxDelta / d;
+      p.x = prev.x + (p.x - prev.x) * scale;
+      p.y = prev.y + (p.y - prev.y) * scale;
+    });
+    if (error < 0.00001) break;
+  }
+  // Inconsistent imports can place two fixed screeners at the same point or
+  // teleport an anchor beyond another player's movement disk. Clearance has
+  // priority in that impossible case. Keep the first anchor, then place each
+  // remaining player outside the already accepted bodies, deterministically.
+  if (pairs.some(({ i, j }) => distanceSquared(points[i], points[j]) < (defaultMinDist - 0.0001) ** 2)) {
+    const accepted: PointObstacleConstraint[] = [];
+    const order = entities.map((_, i) => i).sort((a, b) => Number(!!entities[b].fixed) - Number(!!entities[a].fixed));
+    for (const i of order) {
+      let point = solvePointConstraints({
+        point: points[i], obstacles: accepted, defaultMinDist,
+        iterations: 64, fallbackDirection: entities[i].fallbackDirection,
+      }).point;
+      if (accepted.some(o => distanceSquared(point, o.center) < (defaultMinDist - 0.0001) ** 2)) {
+        // A radial projection can cycle in a closed cluster. This finite escape
+        // is reserved for malformed/infeasible frames, never normal contacts.
+        point = { x: Math.max(...accepted.map(o => o.center.x)) + defaultMinDist, y: point.y };
+      }
+      points[i] = point;
+      accepted.push({ center: point });
+    }
+  }
+  return Object.fromEntries(entities.map((e, i) => [e.id, points[i]])) as Partial<Record<Id, Point>>;
+}
+
 function projectObstacle(
   point: Point,
   obstacle: Point,

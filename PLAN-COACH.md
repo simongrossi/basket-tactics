@@ -18,7 +18,7 @@ Ce document suit le travail effectif ; une case n'est cochée qu'après validati
   changement de vitesse sans redémarrage. Reste : calibration temporelle des déplacements physiques.
 - [x] F09 Respecter timing et trajet de l'action lors des évitements.
 - [x] F10 Calcul reproductible à un même instant, indépendamment de la fréquence d'affichage.
-- [ ] F11 Séparation finale des joueurs, profil applicatif inclus, sans retour du flicker d'écran.
+- [x] F11 Séparation finale des joueurs, profil applicatif inclus, sans retour du flicker d'écran.
 - [ ] F12 Garantir les contraintes athlétiques ou signaler une durée impossible.
 - [ ] F13 Conseils et métriques synchronisés avec l'image et le panier attaqué.
 
@@ -110,3 +110,19 @@ Ces changements doivent être préservés et distingués des commits de consolid
   intégration du hook lecture/pause/reprise/export.
   Validation complète : 2 322 tests passent (244 fichiers). Seuls les 6 échecs
   et 2 erreurs TypeScript préexistants du chantier local congestion subsistent.
+
+
+- F11 terminé : séparation finale de 34 px avec projection commune des
+  contacts et des limites de déplacement. Le côté du contact précédent
+  stabilise les corrections ; le clamp qui recréait des chevauchements est
+  supprimé. Budget ramené à 9 px par sous-pas pour borner aussi à 18 px les
+  divergences entre images intermédiaires et grille canonique.
+  Régressions : toutes les paires à 120 échantillons par étape sur les Labs
+  écran et systèmes classiques, profils legacy et réaliste ; écran fixe,
+  déterminisme, absence de mutation et ancres importées confondues.
+  Les entrées incompatibles privilégient la séparation ; les diagnostics de
+  mouvement impossible restent F12. Validation visuelle non renouvelée dans
+  cette tranche (outil navigateur bloqué par la confirmation native antérieure).
+  Validation complète : 2 326 tests passent (244 fichiers), dont tous les
+  garde-fous écran/overlap/userJson/screenLab. Seuls les 6 échecs et 2 erreurs
+  TypeScript préexistants du chantier local congestion subsistent.

@@ -224,3 +224,37 @@ it('évitement temporisé : le cutter reste séparé du poseur pendant sa fenêt
     }
   }
 });
+
+describe('séparation finale de la timeline avec contacts écran', () => {
+  for (const realismProfile of ['legacy', 'realistic'] as const) {
+    it(`toutes les paires restent séparées et sans saut, profil ${realismProfile}`, async () => {
+      const { TEMPLATES } = await import('@/lib/data/templates');
+      const { resolveTimelineFrame } = await import('../playback/frameResolver');
+      const templates = TEMPLATES.filter(t => t.id.startsWith('screen-lab-') ||
+        ['pnr-central', 'ucla-cut', 'horns-flare', 'spain-pnr', 'floppy', 'hammer'].includes(t.id));
+      for (const template of templates) {
+        const state: AppState = { ...makeInitialState(), realismProfile,
+          steps: structuredClone(template.steps), defenseInitial: structuredClone(template.defenseInitial) };
+        let previous: ReturnType<typeof resolveTimelineFrame> = null;
+        for (let tick = 0; tick <= (state.steps.length - 1) * 120; tick++) {
+          const frame = resolveTimelineFrame(state, tick / 120)!;
+          const players = [...Object.entries(frame.off), ...Object.entries(frame.defPos)];
+          for (let i = 0; i < players.length; i++) {
+            for (let j = i + 1; j < players.length; j++) {
+              expect(distance(players[i][1], players[j][1]),
+                `${template.id} t=${tick / 120} ${players[i][0]} / ${players[j][0]}`)
+                .toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.01);
+            }
+            if (previous) {
+              const before = [...Object.entries(previous.off), ...Object.entries(previous.defPos)]
+                .find(([id]) => id === players[i][0])![1];
+              expect(distance(before, players[i][1]), `${template.id} t=${tick / 120} ${players[i][0]} jump`)
+                .toBeLessThanOrEqual(18.01);
+            }
+          }
+          previous = frame;
+        }
+      }
+    });
+  }
+});

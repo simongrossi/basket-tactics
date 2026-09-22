@@ -246,11 +246,11 @@ le cluster, le résultat est mirrorré du côté stable. En cas de stagger
 ou de côté non fiable, le solver retombe volontairement sur
 `pushOutOfMany`.
 
-Important : dans un cluster géométriquement impossible (pas de point
-qui satisfasse toutes les clearances sans changer brutalement de côté),
-ce solver privilégie la continuité du côté stable plutôt qu'une
-correction pleine distance en une frame. Le rate limiter playback et
-les endpoints moteur prennent le relais pour éviter les snaps.
+Dans un cluster difficile, ce solveur local privilégie la continuité du
+côté stable. La projection finale F11 (`solveMovingEntityCollisions`)
+concilie ensuite séparation de 34 px et budget de mouvement : elle inclut
+les défenseurs en contact et ne subit aucun clamp de position en aval.
+Voir PLAYER-CLEARANCE.md, niveau 3c, pour le repli sur les entrées impossibles.
 
 Depuis J.3a, `pushOutOfScreenContact()` délègue la projection à
 `solvePointConstraints()` (`constraintSolver.ts`). Ce solveur est le
@@ -691,13 +691,16 @@ blend, curveAroundObstacle dont le cluster bouge).
 **Fix** : `resolveFrameAt` accepte un `options.prevFrame` ; quand fourni
 (= sous-pas précédent de la reconstruction canonique), un
 **rate limiter** clamp le delta inter-frame à :
-- `MAX_DEFENDER_JUMP_PX = 18` (couche 5.b)
-- `MAX_ATTACKER_JUMP_PX = 18` (couche 1.c, après le solveur anti-superposition)
+- `MAX_DEFENDER_JUMP_PX = 9` (couche 5.b, depuis F11)
+- `MAX_ATTACKER_JUMP_PX = 9` (couche 1.c, depuis F11)
 
-À 60 fps, 18 px/frame = 1080 px/s ≈ 29 m/s. Au-delà = snap visuel.
-Un cut basket réel à 7 m/s ≈ 4.4 px/frame, largement sous le seuil.
+Ces bornes portent sur un sous-pas canonique, pas sur une seconde réelle.
+Une image intermédiaire et la suivante peuvent diverger depuis le même
+prédécesseur : 9 px chacune maintiennent leur écart sous 18 px. La projection
+finale applique simultanément ce budget et la séparation, sans clamp en aval.
+La calibration athlétique avec les durées réelles reste distincte (F12).
 
-**Effet mesuré** :
+**Effet mesuré à la livraison initiale (avant F11)** :
 | Lab | Avant | Après |
 |-----|-------|-------|
 | Lab Snake (D5) | 68 px | 18 px |
