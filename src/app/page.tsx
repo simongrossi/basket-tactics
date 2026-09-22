@@ -33,11 +33,8 @@ import { MetricsBar } from '@/components/MetricsBar';
 import { MetricsChart } from '@/components/MetricsChart';
 import { CoachDiagnosticsOverlay } from '@/components/CoachDiagnosticsOverlay';
 import { ExportModal } from '@/components/ExportModal';
-import { effectiveDefensePositions, getDefenseHoop, detectStepScreenAction } from '@/lib/logic/engine';
-import { computeMetrics } from '@/lib/logic/metrics';
-import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offense';
-import { computeCoachDiagnostics } from '@/lib/logic/coachDiagnostics';
-import { activeBallCarrier, activeOffense } from '@/lib/logic/players';
+import { computeFrameCoachAnalysis } from '@/lib/logic/frameCoachAnalysis';
+import type { DisplayedCourtFrame } from '@/hooks/useCourtFrame';
 import type { ActionTimingAnchor, AddAnnotationOptions, Annotation, AppState, Step } from '@/lib/types';
 import { createShareHash } from '@/lib/state/urlCompression';
 import { findTemplate } from '@/lib/data/templates';
@@ -142,41 +139,15 @@ export default function Page() {
     setIsPlayerMode(true);
   }, [app, sidebar]);
 
-  const metrics = useMemo(() => {
-    const step = app.state.steps[app.state.activeStep];
-    if (!step) return null;
-    const defPos = effectiveDefensePositions(app.state, app.state.activeStep);
-    return computeMetrics(
-      activeOffense(step.off, app.state.playerCount),
-      defPos,
-      activeBallCarrier(step, app.state.playerCount),
-      getDefenseHoop(app.state)
-    );
-  }, [app.state]);
-
-  const bestAction = useMemo(() => {
-    const step = app.state.steps[app.state.activeStep];
-    if (!step) return null;
-    const defPos = effectiveDefensePositions(app.state, app.state.activeStep);
-    const actions = evaluateOffensiveOptions(
-      activeOffense(step.off, app.state.playerCount),
-      defPos,
-      activeBallCarrier(step, app.state.playerCount),
-      getDefenseHoop(app.state),
-      app.state.attackerProfiles
-    );
-    return bestOffensiveAction(actions);
-  }, [app.state]);
-
-  const coachDiagnostics = useMemo(
-    () => computeCoachDiagnostics(app.state, app.state.activeStep),
-    [app.state]
-  );
-
-  const screenAction = useMemo(() => {
-    const detected = detectStepScreenAction(app.state, app.state.activeStep);
-    return detected?.action ?? null;
-  }, [app.state]);
+  const [displayedCourt, setDisplayedCourt] = useState<DisplayedCourtFrame | null>(null);
+  const analysis = useMemo(() => {
+    if (!displayedCourt || displayedCourt.state !== app.state) return null;
+    return computeFrameCoachAnalysis(app.state, displayedCourt.frame, displayedCourt.dynamic);
+  }, [app.state, displayedCourt]);
+  const metrics = analysis?.metrics ?? null;
+  const bestAction = analysis?.bestAction ?? null;
+  const coachDiagnostics = analysis?.diagnostics ?? [];
+  const screenAction = analysis?.screenAction ?? null;
 
   const actionTimingAnchor = app.state.actionTimingAnchor ?? 'start';
   const annotationFullT = scrubT ?? playbackT ?? null;
@@ -693,6 +664,7 @@ export default function Page() {
               <MiniBoxScore matchState={matchLoop.matchState} />
             )}
             <CourtView
+              onFrameChange={setDisplayedCourt}
               state={app.state}
               diagnostics={isPlayerMode ? [] : coachDiagnostics}
               onMoveAttacker={app.moveAttacker}

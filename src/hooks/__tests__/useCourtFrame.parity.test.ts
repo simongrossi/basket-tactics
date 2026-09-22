@@ -13,16 +13,19 @@ it('affiche les mêmes joueurs et ballon en lecture, pause, reprise et export', 
   const state = { ...makeInitialState(), steps: structuredClone(tpl.steps),
     defenseInitial: structuredClone(tpl.defenseInitial), secondsPerStep: 1 };
   const onPlaybackTick = vi.fn();
+  const onFrameChange = vi.fn();
   const initial = { state, isPlaying: true, playbackSpeed: 1, playbackStartT: 1.25,
-    scrubT: null as number | null, exportT: null as number | null, onPlaybackTick };
+    scrubT: null as number | null, exportT: null as number | null, onPlaybackTick, onFrameChange };
   const { result, rerender } = renderHook((options) => useCourtFrame(options), { initialProps: initial });
   act(() => vi.advanceTimersByTime(330));
   const t = onPlaybackTick.mock.lastCall![0];
   const played = result.current.frame;
+  expect(onFrameChange.mock.lastCall![0].frame).toBe(played);
   rerender({ ...initial, isPlaying: false, scrubT: t });
   expect(result.current.frame.off).toEqual(played.off);
   expect(result.current.frame.defPos).toEqual(played.defPos);
   expect(result.current.frame.ballPos).toEqual(played.ballPos);
+  expect(onFrameChange.mock.lastCall![0].frame).toBe(result.current.frame);
   rerender({ ...initial, playbackStartT: t });
   expect(result.current.frame.off).toEqual(played.off);
   expect(result.current.frame.defPos).toEqual(played.defPos);
@@ -30,4 +33,5 @@ it('affiche les mêmes joueurs et ballon en lecture, pause, reprise et export', 
   expect(result.current.frame.off).toEqual(played.off);
   expect(result.current.frame.defPos).toEqual(played.defPos);
   expect(result.current.frame.ballPos).toEqual(played.ballPos);
+  expect(onFrameChange.mock.lastCall![0].frame).toBe(result.current.frame);
 });

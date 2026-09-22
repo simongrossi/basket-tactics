@@ -20,7 +20,7 @@ Ce document suit le travail effectif ; une case n'est cochée qu'après validati
 - [x] F10 Calcul reproductible à un même instant, indépendamment de la fréquence d'affichage.
 - [x] F11 Séparation finale des joueurs, profil applicatif inclus, sans retour du flicker d'écran.
 - [x] F12 Signaler une durée impossible au regard de la vitesse demandée.
-- [ ] F13 Conseils et métriques synchronisés avec l'image et le panier attaqué.
+- [x] F13 Conseils et métriques synchronisés avec l'image et le panier attaqué.
 
 Validation : tests de régression sur les cas de l'audit, suite existante, type-check,
 contrôle visuel des systèmes et parcours réels de sauvegarde/partage.
@@ -145,3 +145,16 @@ Ces changements doivent être préservés et distingués des commits de consolid
   Validation finale : 9 nouveaux tests ; suite complète à 2 335 tests réussis
   (245 fichiers). Les 6 échecs et 2 erreurs TypeScript du chantier local
   congestion restent préexistants et inchangés.
+
+
+- F13 : le terrain transmet sa frame exacte aux métriques et aux conseils
+  (lecture, pause, scrub, export, poursuite au drag et match live).
+  Le panier vient du sens de jeu et de l'équipe attaquante ; les anneaux de
+  menace utilisent désormais ce même panier. Les conseils animés utilisent
+  seulement les règles applicables à une image, sans relire l'étape sélectionnée.
+  Les analyses historiques restent disponibles dans l'éditeur. Aucune proposition
+  de nouvelle passe/tir pendant le vol du ballon. Tests : analyse indépendante de
+  l'étape active, panier adverse, porteur, absence de mutation et transmission
+  de la frame via le hook en lecture/pause/reprise/export.
+  Validation F13 : 2 338 tests passent ; seuls les 6 échecs et 2 erreurs
+  TypeScript préexistants liés à la congestion subsistent.

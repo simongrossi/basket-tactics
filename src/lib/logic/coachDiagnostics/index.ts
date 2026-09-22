@@ -23,6 +23,7 @@ import {
   getDefenseHoop,
 } from '../engine';
 import { activeBallCarrier, activeOffense, getActiveDefenderIds } from '../players';
+import type { PlaybackFrame } from '../playback/frameResolver';
 import type { AppState } from '../../types';
 import type { CoachDiagnostic, Rule, RuleContext } from './types';
 import { sideOf } from './helpers';
@@ -129,17 +130,18 @@ function dedupePassOpenVsCorner(diagnostics: CoachDiagnostic[]): CoachDiagnostic
  */
 export function computeCoachDiagnostics(
   state: AppState,
-  stepIdx: number
+  stepIdx: number,
+  frame?: PlaybackFrame
 ): CoachDiagnostic[] {
   const cur = state.steps[stepIdx];
   if (!cur) return [];
-  const off = activeOffense(cur.off, state.playerCount);
-  const carrier = activeBallCarrier(cur, state.playerCount);
+  const off = frame?.off ?? activeOffense(cur.off, state.playerCount);
+  const carrier = frame?.carrier ?? activeBallCarrier(cur, state.playerCount);
   const carrierPos = off[carrier];
   if (!carrierPos) return [];
 
-  const defPos = effectiveDefensePositions(state, stepIdx);
-  const hoop = getDefenseHoop(state);
+  const defPos = frame?.defPos ?? effectiveDefensePositions(state, stepIdx);
+  const hoop = getDefenseHoop(state, frame?.attackingTeam);
   const carrierSide = sideOf(carrierPos, hoop);
 
   const ctx: RuleContext = {
@@ -158,7 +160,13 @@ export function computeCoachDiagnostics(
 
   // Itération du registry — chaque règle voit le même contexte.
   let out: CoachDiagnostic[] = [];
-  for (const rule of REGISTRY) {
+  // Only frame-local rules may describe an animated/live image. Temporal
+  // detectors that re-read saved endpoints remain available in the editor.
+  const rules = frame
+    ? (frame.ballInFlight ? [switchMismatchRule] : [closeoutLongRule, shooterCloseoutRule,
+      switchMismatchRule, cornerAbandonedRule, passOpenRule, paintNoHelpRule])
+    : REGISTRY;
+  for (const rule of rules) {
     out = out.concat(rule(ctx));
   }
 
@@ -170,7 +178,7 @@ export function computeCoachDiagnostics(
     out.push({
       id: 'all-good',
       severity: 'good',
-      message: 'Couverture propre : porteur pressé, aide en place, corners tenus',
+      message: frame ? (frame.ballInFlight ? 'Ballon en vol — lecture à la réception' : 'Aucune alerte sur les positions affichées') : 'Couverture propre : porteur pressé, aide en place, corners tenus',
       tag: 'all-good',
       defenders: [],
       attackers: [],

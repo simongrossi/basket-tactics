@@ -11,7 +11,7 @@
 // Câble aussi `usePlaybackAnimation` et expose son tick au caller via
 // `onPlaybackTick` (pour mettre à jour le slider parent).
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type {
   AppState,
   ComputedDefense,
@@ -22,6 +22,7 @@ import type {
 import type { DefenseReleaseTransition, DefenderPursuit } from '@/hooks/useAppState';
 import type { MatchState } from '@/lib/logic/match/gameLoop';
 import {
+  getDefenseHoop,
   computeAttackerVisuals,
   effectiveDefensePositions,
   getMatchupsAt,
@@ -37,7 +38,14 @@ import { computeAttackerThreats } from '@/lib/logic/threats';
 import { resolveRealismFlags } from '@/lib/logic/realismProfile';
 import { usePlaybackAnimation } from '@/hooks/usePlaybackAnimation';
 
+export interface DisplayedCourtFrame {
+  state: AppState;
+  frame: PlaybackFrame;
+  dynamic: boolean;
+}
+
 interface UseCourtFrameOptions {
+  onFrameChange?: (snapshot: DisplayedCourtFrame) => void;
   state: AppState;
   isPlaying: boolean;
   playbackSpeed: number;
@@ -446,10 +454,14 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
         frame.off,
         frame.defPos,
         frame.carrier,
-        undefined,
+        getDefenseHoop(state, frame.attackingTeam),
         state.attackerProfiles
       )
     : null;
 
+  const dynamic = !!(exportFrame || liveMatchFrame || playFrame || scrubFrame || pursuitFrame || releaseFrame);
+  useLayoutEffect(() => {
+    opts.onFrameChange?.({ state, frame, dynamic });
+  }, [opts.onFrameChange, state, frame, dynamic]);
   return { frame, threatData };
 }

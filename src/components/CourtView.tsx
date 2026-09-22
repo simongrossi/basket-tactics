@@ -67,7 +67,7 @@ import { BestActionOverlay } from './overlays/BestActionOverlay';
 import { GhostLayer } from './overlays/GhostLayer';
 import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offense';
 import { getActiveDefenderIds, isActiveAttacker } from '@/lib/logic/players';
-import { useCourtFrame } from '@/hooks/useCourtFrame';
+import { useCourtFrame, type DisplayedCourtFrame } from '@/hooks/useCourtFrame';
 import { useCourtPointerHandlers } from '@/hooks/useCourtPointerHandlers';
 import { CourtPlayersLayer } from './court/CourtPlayersLayer';
 import { CourtMenus, type CtxMenuState, type ZoneRegionMenuState } from './court/CourtMenus';
@@ -78,6 +78,7 @@ import { TextNotePopup } from './court/TextNotePopup';
 import type { CoachDiagnostic } from '@/lib/logic/coachDiagnostics';
 
 interface CourtViewProps {
+  onFrameChange?: (snapshot: DisplayedCourtFrame) => void;
   state: AppState;
   /** A.4 — Diagnostics coach déjà calculés en amont (page.tsx).
    *  Le composant en filtre les patterns visuellement importants
@@ -246,6 +247,7 @@ export function CourtView(props: CourtViewProps) {
 
   // Frame courante (statique / scrub / play) + threats.
   const { frame, threatData } = useCourtFrame({
+    onFrameChange: props.onFrameChange,
     state,
     isPlaying: props.isPlaying,
     playbackSpeed: props.playbackSpeed,
