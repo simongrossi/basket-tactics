@@ -3,6 +3,36 @@ import type { Annotation, AnnotationType, AttackerId, Point, Step } from '@/lib/
 // 'pass' exclu : une passe déplace le ballon, pas le corps du passeur.
 const MOVEMENT_TYPES = new Set<AnnotationType>(['cut', 'dribble', 'screen']);
 
+function hasEntries(value: object | undefined): boolean {
+  return !!value && Object.keys(value).length > 0;
+}
+
+/**
+ * Étape « vide » : positions seules, sans action ni réglage coach. C'est
+ * typiquement l'étape résultat créée automatiquement après un dessin.
+ */
+export function isBlankStep(step: Step): boolean {
+  return (
+    step.annotations.length === 0 &&
+    !step.label &&
+    !step.context &&
+    !hasEntries(step.defenseOverrides) &&
+    !step.forcedScreener &&
+    !step.manualOverride &&
+    !step.generatedBy &&
+    !step.shotOutcome &&
+    !step.shotPos &&
+    !step.rebounder &&
+    !step.reboundType &&
+    !step.outletPassPending &&
+    !step.viewSide &&
+    step.duration == null &&
+    step.clockSeconds == null &&
+    step.shotClockRemaining == null &&
+    !step.sprintBoost
+  );
+}
+
 function isMovement(a: Annotation): boolean {
   return MOVEMENT_TYPES.has(a.type);
 }

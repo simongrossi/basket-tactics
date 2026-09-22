@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeInitialState, makeStep, initialOff } from '@/lib/data/initial';
 import * as stepTx from '../transforms/stepTransforms';
+import * as annotationTx from '../transforms/annotationTransforms';
 
 describe('stepTransforms', () => {
   describe('setActiveStep', () => {
@@ -86,6 +87,39 @@ describe('stepTransforms', () => {
       };
       const s1 = stepTx.addStep(annotated);
       expect(s1.steps[s1.activeStep].ballCarrier).toBe('O3');
+    });
+
+    // Parcours coach : dessiner une course crée l'étape « résultat » ;
+    // cliquer ensuite « + étape » doit s'y placer, pas insérer une
+    // deuxième étape vide (temps mort de 4 s à la lecture).
+    it("réutilise l'étape résultat vide créée par le dessin", () => {
+      const s0 = makeInitialState();
+      const drawn = annotationTx.addAnnotation(s0, {
+        type: 'cut', fromId: 'O2', toId: null,
+        from: { ...s0.steps[0].off.O2 }, to: { x: 200, y: 100 },
+      });
+      expect(drawn.steps.length).toBe(2);
+      const s1 = stepTx.addStep(drawn);
+      expect(s1.steps.length).toBe(2);
+      expect(s1.activeStep).toBe(1);
+      expect(s1.steps[1].off.O2).toEqual({ x: 200, y: 100 });
+    });
+
+    it("insère quand l'étape suivante contient déjà des actions", () => {
+      const s0 = makeInitialState();
+      const cutO2 = annotationTx.addAnnotation(s0, {
+        type: 'cut', fromId: 'O2', toId: null,
+        from: { ...s0.steps[0].off.O2 }, to: { x: 200, y: 100 },
+      });
+      const onStep1 = stepTx.setActiveStep(cutO2, 1);
+      const cutO3 = annotationTx.addAnnotation(onStep1, {
+        type: 'cut', fromId: 'O3', toId: null,
+        from: { ...onStep1.steps[1].off.O3 }, to: { x: 300, y: 100 },
+      });
+      const back = stepTx.setActiveStep(cutO3, 0);
+      const s1 = stepTx.addStep(back);
+      expect(s1.steps.length).toBe(cutO3.steps.length + 1);
+      expect(s1.activeStep).toBe(1);
     });
   });
 

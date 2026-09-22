@@ -232,6 +232,11 @@ export function Sidebar({
         {collapsed ? <Logo /> : <><Logo /><span style={{ marginLeft: 10 }}>basket-tactics</span></>}
       </div>
 
+      {/* Tout le contenu sous le logo défile d'un bloc : sur un écran de
+          768 px de haut, les entrées + vues laissaient ~30 px aux outils
+          (Attaque / Étapes introuvables). Les outils gardent désormais leur
+          hauteur naturelle et le pied reste fixe. */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <InterfaceLevelSelector compact={collapsed} />
       {startActions}
       <div style={{ padding: '10px 0 6px', flexShrink: 0 }}>
@@ -251,9 +256,7 @@ export function Sidebar({
           <div
             className="sidebar-tools-scope"
             style={{
-              flex: 1,
-              minHeight: 0,
-              overflowY: 'auto',
+              flex: '1 0 auto',
               overflowX: 'hidden',
               padding: '0 6px 10px',
               display: 'flex',
@@ -295,6 +298,7 @@ export function Sidebar({
       )}
 
       {!showTools && <div style={{ flex: 1 }} />}
+      </div>
 
       <SidebarFooter
         collapsed={collapsed}

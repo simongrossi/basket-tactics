@@ -10,6 +10,7 @@ import type {
   Step,
 } from '@/lib/types';
 import { makeStep } from '@/lib/data/initial';
+import { isBlankStep } from '@/lib/logic/stepMutations';
 import {
   buildFreeThrowSetup,
   buildFreeThrowReboundSetup,
@@ -29,7 +30,11 @@ export function setActiveStep(s: AppState, idx: number): AppState {
 
 /** Ajoute une nouvelle étape juste après l'active. Propage les destinations
  *  des annotations de mouvement (cut/screen/dribble) de l'étape courante aux
- *  positions de la nouvelle, et propage le receveur d'une passe au porteur. */
+ *  positions de la nouvelle, et propage le receveur d'une passe au porteur.
+ *
+ *  Si l'étape suivante est la dernière et qu'elle est vide (étape résultat
+ *  créée automatiquement par le dessin), on s'y place au lieu d'insérer une
+ *  seconde étape identique, qui produirait un temps mort à la lecture. */
 export function addStep(s: AppState): AppState {
   const cur = s.steps[s.activeStep];
   const newOff = { ...cur.off };
@@ -43,6 +48,13 @@ export function addStep(s: AppState): AppState {
   });
   const passAnno = cur.annotations.find((a) => a.type === 'pass' && a.toId);
   const newCarrier = passAnno?.toId ?? cur.ballCarrier;
+  const nextIdx = s.activeStep + 1;
+  const next = s.steps[nextIdx];
+  if (next && nextIdx === s.steps.length - 1 && !next.isInterpolated && isBlankStep(next)) {
+    const steps = [...s.steps];
+    steps[nextIdx] = { ...next, off: { ...next.off, ...newOff }, ballCarrier: newCarrier };
+    return { ...s, steps, activeStep: nextIdx };
+  }
   const newStep = makeStep(newOff, newCarrier, []);
   const steps = [...s.steps];
   steps.splice(s.activeStep + 1, 0, newStep);

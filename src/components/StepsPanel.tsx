@@ -3,6 +3,7 @@
 import { Plus, Copy, Trash2 } from 'lucide-react';
 import type { AppState, AttackerId, InboundDefenseMode, InboundSide } from '@/lib/types';
 import { activeBallCarrier, getActiveAttackerIds, isActiveAttacker } from '@/lib/logic/players';
+import { isBlankStep } from '@/lib/logic/stepMutations';
 import { Panel, Section, Button, COLORS } from './ui';
 
 interface StepsPanelProps {
@@ -69,32 +70,6 @@ const ANNOTATION_LABELS: Record<'pass' | 'dribble' | 'cut' | 'screen', { label: 
   screen: { label: 'écran', symbol: '⊥' },
 };
 
-function hasEntries(value: object | undefined): boolean {
-  return !!value && Object.keys(value).length > 0;
-}
-
-function isBlankStepEntry(step: AppState['steps'][number]): boolean {
-  return (
-    step.annotations.length === 0 &&
-    !step.label &&
-    !step.context &&
-    !hasEntries(step.defenseOverrides) &&
-    !step.forcedScreener &&
-    !step.manualOverride &&
-    !step.generatedBy &&
-    !step.shotOutcome &&
-    !step.shotPos &&
-    !step.rebounder &&
-    !step.reboundType &&
-    !step.outletPassPending &&
-    !step.viewSide &&
-    step.duration == null &&
-    step.clockSeconds == null &&
-    step.shotClockRemaining == null &&
-    !step.sprintBoost
-  );
-}
-
 export function getVisibleStepRows(state: AppState): { step: AppState['steps'][number]; index: number; number: number }[] {
   const realSteps = state.steps
     .map((step, index) => ({ step, index }))
@@ -102,7 +77,7 @@ export function getVisibleStepRows(state: AppState): { step: AppState['steps'][n
 
   const rows: { step: AppState['steps'][number]; index: number; number: number }[] = [];
   realSteps.forEach(({ step, index }, realIdx) => {
-    const blank = isBlankStepEntry(step);
+    const blank = isBlankStep(step);
     if (realSteps.length === 1 && blank) return;
 
     const previous = realSteps[realIdx - 1]?.step;
