@@ -1,12 +1,36 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
+
+const DISMISSED_KEY = 'bt:coach-draw-hint:dismissed:v1';
+
 /**
  * Bandeau d'aide affiché sur le terrain tant que le système est vierge
  * (après « Créer un système »). Disparaît dès la première action dessinée.
- * Ne capte aucun clic : le dessin reste possible à travers le bandeau.
+ * Peut être masqué durablement avec la croix. Seul ce bouton capte les
+ * clics : le dessin reste possible à travers le reste du bandeau.
  */
 export function CoachDrawHint({ visible }: { visible: boolean }) {
-  if (!visible) return null;
+  const [dismissed, setDismissed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    try {
+      setDismissed(localStorage.getItem(DISMISSED_KEY) === '1');
+    } catch {
+      setDismissed(false);
+    }
+  }, []);
+
+  const dismiss = () => {
+    setDismissed(true);
+    try {
+      localStorage.setItem(DISMISSED_KEY, '1');
+    } catch { /* La fermeture reste possible si le stockage est indisponible. */ }
+  };
+
+  // Attendre la préférence locale évite de réafficher l'aide au chargement.
+  if (!visible || dismissed !== false) return null;
   return (
     <div
       role="note"
@@ -31,7 +55,33 @@ export function CoachDrawHint({ visible }: { visible: boolean }) {
         boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
       }}
     >
-      <strong style={{ color: '#fdba74' }}>Dessiner le système</strong>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <strong style={{ color: '#fdba74' }}>Dessiner le système</strong>
+        <button
+          type="button"
+          className="bt-touch"
+          aria-label="Masquer l’aide au dessin"
+          title="Masquer l’aide au dessin"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={dismiss}
+          style={{
+            pointerEvents: 'auto',
+            display: 'grid',
+            placeItems: 'center',
+            flexShrink: 0,
+            width: 28,
+            height: 28,
+            padding: 0,
+            border: '1px solid #475569',
+            borderRadius: 4,
+            background: '#1e293b',
+            color: '#f8fafc',
+            cursor: 'pointer',
+          }}
+        >
+          <X size={16} aria-hidden="true" />
+        </button>
+      </div>
       <ol style={{ margin: '4px 0 0', paddingLeft: 18 }}>
         <li>Choisis une action dans <b>Attaque</b> : course, passe, dribble, écran.</li>
         <li>Glisse depuis un joueur jusqu’à sa destination.</li>

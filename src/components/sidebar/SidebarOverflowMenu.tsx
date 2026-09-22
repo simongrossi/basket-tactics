@@ -17,6 +17,9 @@ type Props = {
   onImport: () => void;
   onReset: () => void;
   onShare?: () => Promise<string>;
+  onCopySituation?: () => void;
+  onCopyAnimation?: () => void;
+  onPasteSituation?: () => void;
   collapsed?: boolean;
 };
 
@@ -31,6 +34,9 @@ export function SidebarOverflowMenu({
   onImport,
   onReset,
   onShare,
+  onCopySituation,
+  onCopyAnimation,
+  onPasteSituation,
   collapsed = false,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -120,6 +126,10 @@ export function SidebarOverflowMenu({
       <Item onClick={run(onOpenPlayerTimeline)} label="Timeline par joueur" />
       <Item onClick={run(onOpenExport)} label="🎥 Exporter (GIF / WebM)" />
       <Divider />
+      {onCopySituation && <Item onClick={run(onCopySituation)} label="Copier la situation (code)" />}
+      {onCopyAnimation && <Item onClick={run(onCopyAnimation)} label="Copier l’animation (code)" />}
+      {onPasteSituation && <Item onClick={run(onPasteSituation)} label="Coller une situation / animation" />}
+      {(onCopySituation || onCopyAnimation || onPasteSituation) && <Divider />}
       {onShare && (
         <>
           <Item

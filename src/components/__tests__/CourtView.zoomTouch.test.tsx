@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { createElement, type ComponentProps } from 'react';
 import { makeInitialState } from '@/lib/data/initial';
 import type { AppState, Tool } from '@/lib/types';
@@ -60,6 +60,8 @@ function renderCourt(overrides: Partial<ComponentProps<typeof CourtView>> = {}) 
     onMoveAttacker: vi.fn(),
     onMoveDefender: vi.fn(),
     onBeginPlayerDrag: vi.fn(),
+    onBeginDefenderPursuit: vi.fn(),
+    onEndDefenderPursuit: vi.fn(),
     onMoveAttackerDuringDrag: vi.fn(),
     onMoveDefenderDuringDrag: vi.fn(),
     onCommitPlayerDrag: vi.fn(),
@@ -94,6 +96,64 @@ function renderCourt(overrides: Partial<ComponentProps<typeof CourtView>> = {}) 
 }
 
 describe('CourtView Touch & Zoom/Pan interaction tests', () => {
+  it('termine le drag et sa poursuite avant d’ouvrir le menu par appui long', () => {
+    const calls: string[] = [];
+    const { container, props } = renderCourt({
+      onMoveAttackerDuringDrag: vi.fn(() => calls.push('move')),
+      onCommitPlayerDrag: vi.fn(() => calls.push('commit')),
+      onEndDefenderPursuit: vi.fn(() => calls.push('end')),
+    });
+    const svg = container.querySelector('svg')!;
+    const o1 = container.querySelector('g[data-id="O1"]')!;
+    fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
+    act(() => vi.advanceTimersByTime(590));
+    // Petit déplacement : le menu reste prévu, le dernier move attend son rAF.
+    fireEvent.pointerMove(svg, { pointerId: 1, clientX: 304, clientY: 470 });
+    expect(props.onMoveAttackerDuringDrag).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(10));
+    expect(props.onMoveAttackerDuringDrag).toHaveBeenCalledWith('O1', 304, 470);
+    expect(calls).toEqual(['move', 'commit', 'end']);
+    fireEvent.pointerUp(svg, { pointerId: 1, clientX: 304, clientY: 470 });
+    act(() => vi.advanceTimersByTime(100));
+    expect(calls).toEqual(['move', 'commit', 'end']);
+  });
+
+  it('flush et termine le drag attaquant lorsque le second doigt commence un pincement', () => {
+    const calls: string[] = [];
+    const { container, props } = renderCourt({
+      onMoveAttackerDuringDrag: vi.fn(() => calls.push('move')),
+      onCommitPlayerDrag: vi.fn(() => calls.push('commit')),
+      onEndDefenderPursuit: vi.fn(() => calls.push('end')),
+    });
+    const svg = container.querySelector('svg')!;
+    const o1 = container.querySelector('g[data-id="O1"]')!;
+    fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
+    fireEvent.pointerMove(svg, { pointerId: 1, clientX: 325, clientY: 455 });
+    fireEvent.pointerDown(svg, { button: 0, pointerId: 2, clientX: 400, clientY: 450 });
+    expect(props.onMoveAttackerDuringDrag).toHaveBeenCalledWith('O1', 325, 455);
+    expect(calls).toEqual(['move', 'commit', 'end']);
+    fireEvent.pointerMove(svg, { pointerId: 2, clientX: 440, clientY: 450 });
+    fireEvent.pointerUp(svg, { pointerId: 2, clientX: 440, clientY: 450 });
+    fireEvent.pointerUp(svg, { pointerId: 1, clientX: 325, clientY: 455 });
+    act(() => vi.advanceTimersByTime(650));
+    expect(calls).toEqual(['move', 'commit', 'end']);
+  });
+
+  it.each(['text', 'cut'] as const)('ne commit pas un drag inexistant avec l’outil %s', (tool) => {
+    const { container, props } = renderCourt({ state: { ...makeInitialState(), tool } });
+    const svg = container.querySelector('svg')!;
+    const o1 = container.querySelector('g[data-id="O1"]')!;
+    fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
+    act(() => vi.advanceTimersByTime(600));
+    fireEvent.pointerUp(svg, { pointerId: 1, clientX: 300, clientY: 470 });
+    fireEvent.pointerDown(o1, { button: 0, pointerId: 3, clientX: 300, clientY: 470 });
+    fireEvent.pointerDown(svg, { button: 0, pointerId: 4, clientX: 400, clientY: 450 });
+    expect(props.onBeginPlayerDrag).not.toHaveBeenCalled();
+    expect(props.onCommitPlayerDrag).not.toHaveBeenCalled();
+    expect(props.onEndDefenderPursuit).not.toHaveBeenCalled();
+    expect(props.onAddAnnotation).not.toHaveBeenCalled();
+  });
+
   it('appui long sur un joueur declenche le context menu après 600ms', () => {
     const { container } = renderCourt();
     const o1 = container.querySelector('g[data-id="O1"]');

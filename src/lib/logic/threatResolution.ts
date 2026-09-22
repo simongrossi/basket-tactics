@@ -279,6 +279,8 @@ export interface OpenPassThreat {
  *
  * Le couvreur désigné est choisi parmi les défenseurs DISPONIBLES (exclus :
  * carrierDef, déjà désignés sur d'autres menaces).
+ * Les receveurs déjà couverts sont exclus AVANT les désignations : une
+ * menace ignorée ensuite ne doit pas réserver un défenseur disponible.
  */
 export function detectOpenPassThreats(
   off: AttackerPositions,
@@ -286,7 +288,8 @@ export function detectOpenPassThreats(
   hoop: Point,
   defPositions: Record<string, ThreatDefenderInput>,
   unavailable: Set<DefenderId> = new Set(),
-  matchups: Record<string, AttackerId> | null = null
+  matchups: Record<string, AttackerId> | null = null,
+  coveredReceivers: ReadonlySet<AttackerId> = new Set()
 ): OpenPassThreat[] {
   const carrierPos = off[carrier];
   if (!carrierPos) return [];
@@ -300,7 +303,7 @@ export function detectOpenPassThreats(
   // Trie les receveurs potentiels par menace : plus proche du panier d'abord
   // (passe la plus dangereuse), puis les autres.
   const ranked = (Object.entries(off) as [AttackerId, Point][])
-    .filter(([id]) => id !== carrier)
+    .filter(([id]) => id !== carrier && !coveredReceivers.has(id))
     .map(([id, pos]) => ({
       id,
       pos,
@@ -446,4 +449,3 @@ export function detectMatchupOrphans(
 
   return orphans;
 }
-

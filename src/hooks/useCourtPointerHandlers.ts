@@ -46,14 +46,16 @@ interface UseCourtPointerHandlersOptions {
   svgRef: React.RefObject<SVGSVGElement | null>;
   isPlaying: boolean;
   isPlayerMode?: boolean;
+  /** Un appui long ne doit pas interrompre un geste en cours d'enregistrement. */
+  disableLongPress?: boolean;
   onBeginPlayerDrag?: () => void;
   onCommitPlayerDrag?: () => void;
-  /** Poursuite défenseur (opt-in) — début : capture les positions défenseurs
+  /** Poursuite défenseur — début : capture les positions défenseurs affichées
    *  et active le rAF loop dans useCourtFrame. À appeler au démarrage d'un
    *  drag attaquant. */
-  onBeginDefenderPursuit?: () => void;
-  /** Poursuite défenseur — fin : désactive le rAF loop. À appeler au commit
-   *  du drag attaquant. */
+  onBeginDefenderPursuit?: (displayed?: Partial<Record<DefenderId, Point>>) => void;
+  /** Poursuite défenseur — fin : laisse les défenseurs rejoindre leur cible
+   *  à vitesse bornée après le commit du drag attaquant. */
   onEndDefenderPursuit?: () => void;
   onMoveAttacker: (id: AttackerId, x: number, y: number) => void;
   onMoveDefender: (id: DefenderId, x: number, y: number) => void;
@@ -142,6 +144,7 @@ export function useCourtPointerHandlers(
     svgRef,
     isPlaying,
     isPlayerMode = false,
+    disableLongPress = false,
     onBeginPlayerDrag,
     onCommitPlayerDrag,
     onBeginDefenderPursuit,
@@ -172,7 +175,12 @@ export function useCourtPointerHandlers(
   const stickySnap = !!stickyModifiers?.snap;
   const stickyMulti = !!stickyModifiers?.multiSelect;
 
-  const [dragging, setDragging] = useState<{ id: PlayerId; isDef: boolean } | null>(null);
+  const [dragging, setDraggingState] = useState<{ id: PlayerId; isDef: boolean } | null>(null);
+  const draggingRef = useRef<typeof dragging>(null);
+  const setDragging = useCallback((next: typeof dragging) => {
+    draggingRef.current = next;
+    setDraggingState(next);
+  }, []);
   const dragMoveRef = useRef<{ id: PlayerId; isDef: boolean; x: number; y: number } | null>(null);
   const dragRafRef = useRef<number | null>(null);
   const lastDragPointRef = useRef<{ x: number; y: number } | null>(null);
@@ -217,6 +225,13 @@ export function useCourtPointerHandlers(
   const activePointersRef = useRef<Map<number, Point>>(new Map());
   const lastGestureRef = useRef<{ distance: number; midpoint: Point } | null>(null);
   const panStartRef = useRef<{ clientX: number; clientY: number; transformX: number; transformY: number } | null>(null);
+
+  useEffect(() => {
+    if (!disableLongPress) return;
+    if (longPressTimerRef.current !== null) window.clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = null;
+    longPressTriggeredRef.current = false;
+  }, [disableLongPress]);
 
   const transformRef = useRef(transform);
   useEffect(() => {
@@ -279,6 +294,7 @@ export function useCourtPointerHandlers(
   const queueDragMove = useCallback(
     (id: PlayerId, isDef: boolean, x: number, y: number) => {
       dragMoveRef.current = { id, isDef, x, y };
+      if (dragRafRef.current !== null) return;
       dragRafRef.current = requestAnimationFrame(() => {
         dragRafRef.current = null;
         const move = dragMoveRef.current;
@@ -315,6 +331,20 @@ export function useCourtPointerHandlers(
     }
   }, [onMoveAttacker, onMoveAttackerDuringDrag, onMoveDefender, onMoveDefenderDuringDrag]);
 
+  // Le timer d'appui long a été créé avant le début du drag : lire la ref
+  // courante évite une closure périmée et les commits sur une simple note.
+  // Le dernier move doit appartenir au même undo que le reste du geste.
+  const finishPlayerDrag = useCallback(() => {
+    const currentDrag = draggingRef.current;
+    if (!currentDrag) return;
+    flushDragMove();
+    setDragging(null);
+    groupDragInitialRef.current = null;
+    setSnapTarget(null);
+    onCommitPlayerDrag?.();
+    if (!currentDrag.isDef) onEndDefenderPursuit?.();
+  }, [flushDragMove, onCommitPlayerDrag, onEndDefenderPursuit, setDragging]);
+
   // Cleanup raf au unmount pour éviter le warning "setState on unmounted".
   useEffect(() => {
     return () => {
@@ -333,15 +363,11 @@ export function useCourtPointerHandlers(
         const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
         const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
         lastGestureRef.current = { distance: d, midpoint: mid };
-        setDragging(null);
+        finishPlayerDrag();
         setPending(null);
         if (longPressTimerRef.current !== null) {
           window.clearTimeout(longPressTimerRef.current);
           longPressTimerRef.current = null;
-        }
-        if (dragRafRef.current !== null) {
-          cancelAnimationFrame(dragRafRef.current);
-          dragRafRef.current = null;
         }
         return;
       }
@@ -389,7 +415,7 @@ export function useCourtPointerHandlers(
         return;
       }
 
-      if (e.button === 0 && id) {
+      if (!disableLongPress && e.button === 0 && id) {
         touchStartPosRef.current = { x: e.clientX, y: e.clientY };
         longPressTriggeredRef.current = false;
         if (longPressTimerRef.current !== null) {
@@ -398,15 +424,11 @@ export function useCourtPointerHandlers(
         longPressTimerRef.current = window.setTimeout(() => {
           longPressTimerRef.current = null;
           longPressTriggeredRef.current = true;
+          finishPlayerDrag();
           if (onOpenContextMenu) {
             onOpenContextMenu(id, e.clientX, e.clientY);
           }
-          setDragging(null);
           setPending(null);
-          if (dragRafRef.current !== null) {
-            cancelAnimationFrame(dragRafRef.current);
-            dragRafRef.current = null;
-          }
         }, 600);
       }
 
@@ -463,15 +485,16 @@ export function useCourtPointerHandlers(
           selectedDefenders.has(id as DefenderId) &&
           selectedDefenders.size >= 2
         ) {
-          // Capture des positions initiales pour calculer le delta.
+          // Partir des positions affichées, y compris pendant une poursuite :
+          // les ancrages initiaux peuvent être très loin des joueurs visibles.
           const stepDef = state.steps[state.activeStep]?.defenseOverrides;
           const others = new Map<DefenderId, Point>();
           selectedDefenders.forEach((dId) => {
             if (dId === id) return;
-            const p = stepDef?.[dId] ?? state.defenseInitial[dId];
+            const p = frameDefPos?.[dId] ?? stepDef?.[dId] ?? state.defenseInitial[dId];
             if (p) others.set(dId, { x: p.x, y: p.y });
           });
-          const anchorPos = stepDef?.[id as DefenderId] ?? state.defenseInitial[id as DefenderId];
+          const anchorPos = frameDefPos?.[id as DefenderId] ?? stepDef?.[id as DefenderId] ?? state.defenseInitial[id as DefenderId];
           groupDragInitialRef.current = {
             anchorId: id as DefenderId,
             initial: { x: anchorPos.x, y: anchorPos.y },
@@ -491,11 +514,11 @@ export function useCourtPointerHandlers(
         }
         if (!target) return;
         onBeginPlayerDrag?.();
-        // Poursuite défenseur (opt-in) : si l'utilisateur drag un ATTAQUANT,
+        // Poursuite défenseur : si l'utilisateur drag un ATTAQUANT,
         // capturer les positions défenseurs et activer le rAF loop pursuit
         // (cap vitesse modulé, V1+V2+V3 dans useCourtFrame).
         if (!id!.startsWith('D')) {
-          onBeginDefenderPursuit?.();
+          onBeginDefenderPursuit?.(frameDefPos);
         }
         lastDragPointRef.current = null;
         dragMoveRef.current = null;
@@ -545,7 +568,7 @@ export function useCourtPointerHandlers(
       });
       svgRef.current?.setPointerCapture(e.pointerId);
     },
-    [findPlayerAt, frameOff, isPlaying, isPlayerMode, onAddAnnotation, onBeginPlayerDrag, onClearContextMenu, onClearDefenderSelection, onTextToolClick, onToggleDefenderSelection, pendingAutoSourceId, selectedDefenders, state, stickyFreehand, stickyMulti, svgPoint, svgRef, textNotes]
+    [disableLongPress, findPlayerAt, finishPlayerDrag, frameOff, frameDefPos, isPlaying, isPlayerMode, onAddAnnotation, onBeginPlayerDrag, onBeginDefenderPursuit, onClearContextMenu, onClearDefenderSelection, onOpenContextMenu, onTextToolClick, onToggleDefenderSelection, pendingAutoSourceId, selectedDefenders, setDragging, spacePressed, state, stickyFreehand, stickyMulti, svgPoint, svgRef, textNotes]
   );
 
   const onPointerMove = useCallback(
@@ -760,14 +783,7 @@ export function useCourtPointerHandlers(
           groupDragInitialRef.current = null;
         }
         queueDragMove(dragging.id, dragging.isDef, Math.round(x), Math.round(y));
-        flushDragMove();
-        onCommitPlayerDrag?.();
-        // Si c'était un drag attaquant et que la poursuite était active, on
-        // termine le rAF loop (useCourtFrame fait un ease-out final).
-        if (!dragging.isDef) {
-          onEndDefenderPursuit?.();
-        }
-        setDragging(null);
+        finishPlayerDrag();
         return;
       }
       if (pending) {
@@ -804,11 +820,10 @@ export function useCourtPointerHandlers(
     },
     [
       dragging,
-      flushDragMove,
+      finishPlayerDrag,
       marquee,
       annotationFullT,
       onAddAnnotation,
-      onCommitPlayerDrag,
       onMoveDefender,
       onMoveDefenderDuringDrag,
       onSetDefenderSelection,

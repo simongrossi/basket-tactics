@@ -21,6 +21,8 @@ interface UsePlaybackAnimationParams {
   /** Instant `t` initial au démarrage de la lecture. Permet de reprendre
    *  depuis un scrub au lieu de redémarrer du début. */
   startT: number;
+  /** Identifie une nouvelle lecture importée, même si isPlaying reste true. */
+  runId?: number;
   /** Notifié à chaque tick avec le `t` fractionnaire courant. */
   onTick: (t: number) => void;
   /** Notifié quand `t` atteint `totalSteps` (lecture terminée). */
@@ -32,7 +34,7 @@ interface UsePlaybackAnimationParams {
 const TICK_INTERVAL_MS = 33; // ~30 fps
 
 export function usePlaybackAnimation(params: UsePlaybackAnimationParams): void {
-  const { isPlaying, speed } = params;
+  const { isPlaying, speed, runId } = params;
   const latest = useRef(params);
   latest.current = params;
   const speedRef = useRef(speed);
@@ -73,5 +75,5 @@ export function usePlaybackAnimation(params: UsePlaybackAnimationParams): void {
       advanceRef.current = null;
       window.clearInterval(intervalId);
     };
-  }, [isPlaying]);
+  }, [isPlaying, runId]);
 }

@@ -433,7 +433,7 @@ describe('computeZoneTargets — weakside paint sag (P3.f)', () => {
     expect(Math.abs(t.D1.x - 300)).toBeLessThan(70);
   });
 
-  it('weakside défenseur ne track pas son matchup naturel s\'il est aussi weakside', () => {
+  it('weakside défenseur reste en aide au lieu de coller son matchup naturel', () => {
     const off: AttackerPositions = {
       O1: { x: 470, y: 200 },
       O2: { x: 130, y: 380 },
@@ -443,8 +443,9 @@ describe('computeZoneTargets — weakside paint sag (P3.f)', () => {
     };
     const t = computeZoneTargets(off, 'O1', layout, baseConfig, 40, HOOP);
     // D4↔O4 baseMatchup. Tous deux côté gauche, ballon côté droit.
-    // D4 doit RESTER en help (pas de track explicite), pas coller O4.
-    expect(t.D4.trackedAttacker).not.toBe('O4');
+    // La cible peut conserver O4 comme responsabilité tout en restant en
+    // aide : vérifier la position réelle, pas le seuil d'affichage du lien.
+    expect(t.D4.x - off.O4.x).toBeGreaterThan(60);
   });
 
   it('ballon central → D4 et D3 marquent leur matchup respectif (pas de bias weakside)', () => {

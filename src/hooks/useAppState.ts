@@ -82,9 +82,9 @@ export interface DefenderPursuit {
   /** Snapshot des positions au moment du début du drag (init des
    *  livePositions). */
   snapshot: Partial<Record<DefenderId, Point>>;
-  /** True tant que le drag est actif. False = en fin (ease-out vers cible
-   *  auto sur ~400 ms). */
+  /** True pendant le drag ; false pendant le rattrapage à vitesse bornée. */
   active: boolean;
+  stepIndex: number;
   /** Timestamp du début du drag (pour timing / latence). */
   startedAtMs: number;
 }
@@ -100,11 +100,11 @@ export function useAppState() {
     stateRef,
     setStateRaw,
     setStateWithHistory,
-    undo,
-    redo,
+    undo: undoHistory,
+    redo: redoHistory,
     canUndo,
     canRedo,
-    beginPlayerDrag,
+    beginPlayerDrag: beginHistoryDrag,
     commitPlayerDrag,
   } = useHistorizedState(makeAppInitialState);
   const [hydrated, setHydrated] = useState(false);
@@ -115,6 +115,18 @@ export function useAppState() {
   const [defenseReleaseTransition, setDefenseReleaseTransition] =
     useState<DefenseReleaseTransition | null>(null);
   const [defenderPursuit, setDefenderPursuit] = useState<DefenderPursuit | null>(null);
+  const undo = useCallback(() => {
+    setDefenderPursuit(null);
+    undoHistory();
+  }, [undoHistory]);
+  const redo = useCallback(() => {
+    setDefenderPursuit(null);
+    redoHistory();
+  }, [redoHistory]);
+  const beginPlayerDrag = useCallback(() => {
+    setDefenderPursuit(null);
+    beginHistoryDrag();
+  }, [beginHistoryDrag]);
   // Auto-cleanup : on nullifie le transition quand sa durée est écoulée.
   useEffect(() => {
     if (!defenseReleaseTransition) return;
@@ -176,7 +188,10 @@ export function useAppState() {
   }, [stateRef]);
   const restoreDraft = useCallback(() => {
     const previous = loadFromStorage(RECOVERY_KEY);
-    if (previous && protectDraft()) setStateWithHistory(previous);
+    if (previous && protectDraft()) {
+      setDefenderPursuit(null);
+      setStateWithHistory(previous);
+    }
   }, [protectDraft, setStateWithHistory]);
 
   // ============================================================
@@ -187,6 +202,7 @@ export function useAppState() {
   // Naviguer n'est pas modifier : hors historique, sinon « Annuler » se
   // contenterait de revenir à l'étape consultée avant la vraie correction.
   const setActiveStep = useCallback((idx: number) => {
+    setDefenderPursuit(null);
     setStateRaw((s) => {
       const next = stepTx.setActiveStep(s, idx);
       return next.activeStep === s.activeStep ? s : next;
@@ -553,28 +569,32 @@ export function useAppState() {
   /** Poursuite défenseur sur drag attaquant — démarrage. Capture les
    *  positions défenseurs courantes et active le mécanisme de poursuite
    *  (rAF loop dans useCourtFrame qui maintient des livePositions avec cap
-   *  vitesse modulé). No-op si `defenderDragInertiaEnabled` est faux. */
-  const beginDefenderPursuit = useCallback(() => {
+   *  vitesse bornée). Le snapshot affiché évite un saut lorsqu'un nouveau
+   *  drag commence avant la fin du rattrapage précédent. */
+  const beginDefenderPursuit = useCallback((displayed?: Partial<Record<DefenderId, Point>>) => {
     const cur = stateRef.current;
-    if (!cur.defenderDragInertiaEnabled) return;
-    const defPos = effectiveDefensePositions(cur, cur.activeStep);
+    const defPos = displayed ?? effectiveDefensePositions(cur, cur.activeStep);
     const snapshot: Partial<Record<DefenderId, Point>> = {};
     (Object.keys(defPos) as DefenderId[]).forEach((id) => {
-      snapshot[id] = { x: defPos[id].x, y: defPos[id].y };
+      const p = defPos[id];
+      if (p) snapshot[id] = { x: p.x, y: p.y };
     });
     setDefenderPursuit({
       snapshot,
       active: true,
+      stepIndex: cur.activeStep,
       startedAtMs: performance.now(),
     });
   }, []);
 
-  /** Poursuite défenseur — fin du drag. Désactive le rAF loop ; useCourtFrame
-   *  fera un ease-out final vers la cible auto sur ~400 ms. */
+  /** Le rattrapage continue à vitesse bornée jusqu'à la cible. Aucun délai
+   *  arbitraire ne doit provoquer un saut ni interrompre le drag suivant. */
   const endDefenderPursuit = useCallback(() => {
     setDefenderPursuit((cur) => (cur ? { ...cur, active: false } : null));
-    // Reset complet après l'ease-out (~500 ms de marge).
-    setTimeout(() => setDefenderPursuit(null), 500);
+  }, []);
+
+  const finishDefenderPursuit = useCallback((finished: DefenderPursuit) => {
+    setDefenderPursuit((cur) => cur === finished && !cur.active ? null : cur);
   }, []);
 
   // -- Attackers --
@@ -606,6 +626,7 @@ export function useAppState() {
   // -- Reset / template / import / patch / playerCount --
   const resetAll = useCallback(() => {
     if (!protectDraft()) return false;
+    setDefenderPursuit(null);
     setStateWithHistory(coreTx.resetAll());
     return true;
   }, [setStateWithHistory, protectDraft]);
@@ -615,12 +636,14 @@ export function useAppState() {
   // avec le système du bloc précédent.
   const loadTemplate = useCallback((template: Template, options?: { keepRecovery?: boolean }) => {
     if (!options?.keepRecovery && !protectDraft()) return false;
+    setDefenderPursuit(null);
     setStateWithHistory((s) => coreTx.loadTemplate(s, template));
     return true;
   }, [setStateWithHistory, protectDraft]);
 
   const importState = useCallback((next: AppState, options?: { keepRecovery?: boolean }) => {
     if (!options?.keepRecovery && !protectDraft()) return false;
+    setDefenderPursuit(null);
     setStateWithHistory(coreTx.importState(next));
     return true;
   }, [setStateWithHistory, protectDraft]);
@@ -818,6 +841,7 @@ export function useAppState() {
     clearAllDefenseOverridesActiveStepAnimated,
     beginDefenderPursuit,
     endDefenderPursuit,
+    finishDefenderPursuit,
     defenseReleaseTransition,
     defenderPursuit,
     setStepLabel,

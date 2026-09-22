@@ -412,15 +412,17 @@ export function computeZoneTargets(
     if (baselineDriveCoverer) unavailable.add(baselineDriveCoverer);
     if (ballPressureCoverer) unavailable.add(ballPressureCoverer);
     rimProtectorByThreat.forEach((dId) => unavailable.add(dId));
-    const threats = detectOpenPassThreats(off, ballCarrier, hoop, homePosByDef, unavailable, baseMatchups);
+    // Ne pas laisser une menace déjà couverte réserver un défenseur : la
+    // filtrer après detectOpenPassThreats ferait disparaître la couverture
+    // d'un autre receveur dès qu'une de ces lignes de passe s'ouvre.
+    const coveredReceivers = new Set([
+      ...designatedCoverer.keys(),
+      ...rimProtectorByThreat.keys(),
+    ]);
+    const threats = detectOpenPassThreats(
+      off, ballCarrier, hoop, homePosByDef, unavailable, baseMatchups, coveredReceivers
+    );
     threats.forEach((t) => {
-      // Skip si ce receveur est déjà la cible d'une autre désignation forte
-      // (high-post / short-corner isolé, rim threat) — il a déjà une mission
-      // de couverture et y ajouter un pass-denier créerait des conflits
-      // (deux défenseurs attirés sur le même attaquant pour des raisons
-      // différentes).
-      if (designatedCoverer.has(t.receiver)) return;
-      if (rimProtectorByThreat.has(t.receiver)) return;
       if (t.designated) {
         passThreats.push(t);
         passDenierByReceiver.set(t.receiver, t.designated);

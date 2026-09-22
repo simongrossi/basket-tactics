@@ -978,11 +978,8 @@ export interface AppState {
    *  driveContainmentLayer) et le diagnostic coach signale drive contenu /
    *  ligne ouverte. Default off → pipeline bit-identique. */
   driveContainmentEnabled?: boolean;
-  /** Inertie défenseur sur drag attaquant (mode édition). Quand actif, au
-   *  démarrage d'un drag d'attaquant, les défenseurs sont "freezés" à leur
-   *  position courante puis rattrapent leur cible avec un easing cubique
-   *  (≈ 400 ms). Sans flag, comportement legacy : suivi instantané face-à-face.
-   *  Réutilise le mécanisme `defenseReleaseTransition` (blend lerp). */
+  /** Appuis, regard et fatigue pendant le drag attaquant (mode édition).
+   *  La continuité et la limite de vitesse restent actives sans cette option. */
   defenderDragInertiaEnabled?: boolean;
   /** Format de jeu actif : 2x2, 3x3, 4x4 ou 5x5.
    *  Les joueurs hors format restent en mémoire, mais le moteur, les rendus

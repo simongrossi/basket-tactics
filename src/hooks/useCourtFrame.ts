@@ -14,11 +14,16 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type {
   AppState,
+  AttackerId,
+  AttackerPositions,
+  ComputedAttackerVisuals,
   ComputedDefense,
   DefenderId,
   DetectedOffBallScreen,
   Point,
+  Matchups,
 } from '@/lib/types';
+import type { ManualGestureFrame } from '@/lib/state/manualGestures';
 import type { DefenseReleaseTransition, DefenderPursuit } from '@/hooks/useAppState';
 import type { MatchState } from '@/lib/logic/match/gameLoop';
 import {
@@ -36,7 +41,10 @@ import {
 } from '@/lib/logic/playback/frameResolver';
 import { computeAttackerThreats } from '@/lib/logic/threats';
 import { resolveRealismFlags } from '@/lib/logic/realismProfile';
+import { getStepDurationSeconds } from '@/lib/logic/timecode';
 import { usePlaybackAnimation } from '@/hooks/usePlaybackAnimation';
+import { computeAttackerOrientation, computeDefenderOrientation } from '@/lib/logic/orientation';
+import { hasShotOutcome } from '@/lib/logic/shotTracking';
 
 export interface DisplayedCourtFrame {
   state: AppState;
@@ -47,9 +55,13 @@ export interface DisplayedCourtFrame {
 interface UseCourtFrameOptions {
   onFrameChange?: (snapshot: DisplayedCourtFrame) => void;
   state: AppState;
+  /** Replay de gestes : les coordonnées et angles enregistrés priment sur
+   *  toutes les sources calculées, sans repasser par le moteur défensif. */
+  recordedFrame?: ManualGestureFrame | null;
   isPlaying: boolean;
   playbackSpeed: number;
   playbackStartT: number;
+  playbackRunId?: number;
   scrubT: number | null | undefined;
   /** E.2 — Instant d'export (espace step). Quand défini, prime sur scrub
    *  et playback : c'est la frame que l'utilisateur capture. */
@@ -64,6 +76,7 @@ interface UseCourtFrameOptions {
    *  loop qui maintient les positions défenseurs avec un cap de vitesse
    *  modulé (footwork, fatigue). */
   defenderPursuit?: DefenderPursuit | null;
+  onDefenderPursuitSettled?: (finished: DefenderPursuit) => void;
   /** B4 — état de la game loop "▶ Play IA (live)". Quand non-null, le
    *  rendu utilise les positions live au lieu du staticFrame. Priorité
    *  maximale dans la frame chain. */
@@ -83,12 +96,93 @@ function extractDefPositions(defPos: ComputedDefense): Record<DefenderId, Point>
   return out;
 }
 
+function frameFromRecording(state: AppState, saved: ManualGestureFrame): PlaybackFrame {
+  const off = Object.fromEntries(Object.entries(saved.off).map(([id, pos]) => [id, { ...pos }])) as AttackerPositions;
+  const ballPos = { ...saved.ball };
+  const defPos = {} as ComputedDefense;
+  const matchups = {} as Matchups;
+  const hoop = getDefenseHoop(state);
+  for (const [id, pos] of Object.entries(saved.def) as [DefenderId, NonNullable<ManualGestureFrame['def'][DefenderId]>][]) {
+    const rule = state.rules[id];
+    const visual = computeDefenderOrientation({
+      defenderPos: pos,
+      manPos: off[pos.matchedTo] ?? ballPos,
+      ballPos,
+      isCarrierDefender: pos.matchedTo === saved.carrier,
+      stance: state.defenseSystem === 'zone' ? 'sag' : rule?.offBallStance,
+      vsCarrier: rule?.vsCarrier,
+      manualBody: pos.orientation,
+      hoop,
+    });
+    const gazeRadians = pos.gazeOrientation * Math.PI / 180;
+    matchups[id] = pos.matchedTo;
+    defPos[id] = {
+      ...pos,
+      // Aucun moteur de mouvement, collision ou vitesse ne doit modifier
+      // ces positions. Les seuls éléments dérivés sont les bras et le regard.
+      facing: { x: pos.x + Math.sin(gazeRadians) * 30, y: pos.y - Math.cos(gazeRadians) * 30 },
+      armBallSide: visual.armBallSide,
+      armManSide: visual.armManSide,
+      late: false,
+      helpFactor: 0,
+      isCarrierDefender: pos.matchedTo === saved.carrier,
+      onScreen: false,
+      switchedThisStep: false,
+    };
+  }
+  const cur = state.steps[state.activeStep];
+  const screen = state.defenseSystem === 'man'
+    ? detectScreen(off, saved.carrier, matchups, defPos, state.screenRadius, cur?.forcedScreener)
+    : null;
+  const offBallScreens = state.defenseSystem === 'man'
+    ? detectOffBallScreens(off, saved.carrier, matchups, defPos, state.screenRadius)
+    : [];
+  const screenTargets = new Map<AttackerId, Point>();
+  if (screen) screenTargets.set(screen.screener, defPos[screen.carrierDef]);
+  for (const detected of offBallScreens) screenTargets.set(detected.screener, defPos[detected.cutterDef]);
+  const attVisuals = {} as ComputedAttackerVisuals;
+  const attackerIsScreening: Partial<Record<AttackerId, boolean>> = {};
+  for (const [id, pos] of Object.entries(off) as [AttackerId, Point][]) {
+    const screenTargetDefPos = screenTargets.get(id);
+    const role = id === saved.carrier ? (hasShotOutcome(cur) ? 'shooter' : 'carrier') : screenTargetDefPos ? 'screener' : 'idle';
+    const visual = computeAttackerOrientation({
+      attackerPos: pos,
+      role,
+      ballPos,
+      hoop,
+      screenTargetDefPos,
+      manualBody: state.attackerOrientations?.[id]?.body,
+      manualGaze: state.attackerOrientations?.[id]?.gaze,
+    });
+    attVisuals[id] = {
+      orientation: visual.bodyOrientation,
+      gazeOrientation: visual.gazeOrientation,
+      facing: visual.facing,
+      armBallSide: visual.armBallSide,
+      armManSide: visual.armManSide,
+    };
+    if (screenTargetDefPos) attackerIsScreening[id] = true;
+  }
+  return {
+    off, defPos, carrier: saved.carrier, ballPos, ballInFlight: false,
+    stepIdx: state.activeStep, screen, offBallScreens, attVisuals,
+    attackerIsScreening, attackerMovementType: {},
+  };
+}
+
 export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
-  const { state, isPlaying, playbackSpeed, playbackStartT, scrubT, exportT, onPlaybackTick, onPlaybackEnd, defenseReleaseTransition, defenderPursuit, liveMatchState } = opts;
+  const { state, recordedFrame, isPlaying, playbackSpeed, playbackStartT, scrubT, exportT, onPlaybackTick, onPlaybackEnd, defenseReleaseTransition, defenderPursuit, liveMatchState } = opts;
+  const replaying = recordedFrame != null;
+  const recordedPlaybackFrame = useMemo(
+    () => recordedFrame ? frameFromRecording(state, recordedFrame) : null,
+    [state, recordedFrame]
+  );
 
   const [playFrame, setPlayFrame] = useState<PlaybackFrame | null>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
+  const onPursuitSettledRef = useRef(opts.onDefenderPursuitSettled);
+  onPursuitSettledRef.current = opts.onDefenderPursuitSettled;
   const handleTick = useCallback((t: number) => {
     const cur = stateRef.current;
     const totalSteps = cur.steps.length - 1;
@@ -108,10 +202,11 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
 
   usePlaybackAnimation({
     state,
-    isPlaying,
+    isPlaying: isPlaying && !replaying,
     speed: playbackSpeed,
     totalSteps: state.steps.length - 1,
     startT: playbackStartT,
+    runId: opts.playbackRunId,
     onTick: handleTick,
     onEnd: onPlaybackEnd,
     realSpeedMode: state.realSpeedMode,
@@ -126,6 +221,7 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
 
   // Frame statique (étape active, sans interpolation).
   const staticFrame = useMemo<PlaybackFrame>(() => {
+    if (recordedPlaybackFrame) return recordedPlaybackFrame;
     const cur = state.steps[state.activeStep];
     const off = activeOffense(cur.off, state.playerCount);
     const carrier = activeBallCarrier(cur, state.playerCount);
@@ -162,7 +258,7 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
       attackerIsScreening: {},
       attackerMovementType: {},
     };
-  }, [state]);
+  }, [state, recordedPlaybackFrame]);
 
   // Scrub frame (interpolation entre étapes pendant le drag de la timeline).
   // Même logique que la lecture continue avec un stepIdx arrondi pour afficher
@@ -174,7 +270,7 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
   // par resolveTimelineFrame qui reconstruit la mémoire depuis
   // le début de la timeline (cf. SCREEN-ENGINE.md).
   const scrubFrame = useMemo<PlaybackFrame | null>(() => {
-    if (scrubT == null) return null;
+    if (replaying || scrubT == null) return null;
     const totalSteps = state.steps.length - 1;
     if (totalSteps <= 0) return null;
     const t = Math.max(0, Math.min(totalSteps, scrubT));
@@ -183,14 +279,14 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
       collectDecisions: !!state.showScreenDebug || !!state.showPlayerDebug,
       profile: !!state.showProfileOverlay,
     });
-  }, [scrubT, state]);
+  }, [scrubT, state, replaying]);
 
   // Tick d'animation pour le release "Tout en auto réel". Force un re-render
   // à 60 fps pendant la durée de la transition pour fluidifier le blend.
   // Hors transition active, aucun effet.
   const [releaseTick, setReleaseTick] = useState(0);
   useEffect(() => {
-    if (!defenseReleaseTransition) return;
+    if (replaying || !defenseReleaseTransition) return;
     let raf = 0;
     const tick = () => {
       const elapsed = performance.now() - defenseReleaseTransition.startedAtMs;
@@ -200,7 +296,7 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [defenseReleaseTransition]);
+  }, [defenseReleaseTransition, replaying]);
 
   // Frame "release animée" : si une transition est active ET qu'on n'est ni
   // en playback ni en scrub, on blend les positions défenseurs depuis les
@@ -209,7 +305,7 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
   // ralentir à l'arrivée — visuellement "le défenseur revient se mettre en
   // place" plutôt qu'un téléport.
   const releaseFrame = useMemo<PlaybackFrame | null>(() => {
-    if (!defenseReleaseTransition) return null;
+    if (replaying || !defenseReleaseTransition) return null;
     const elapsed = performance.now() - defenseReleaseTransition.startedAtMs;
     if (elapsed >= defenseReleaseTransition.durationMs) return null;
     const raw = elapsed / defenseReleaseTransition.durationMs;
@@ -229,47 +325,58 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     return { ...staticFrame, defPos: blended };
     // releaseTick force l'invalidation à chaque rAF tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defenseReleaseTransition, staticFrame, releaseTick]);
+  }, [defenseReleaseTransition, staticFrame, releaseTick, replaying]);
 
   // === V1+V2+V3 — Poursuite défenseur pendant drag attaquant ===============
   // Maintient les positions défenseurs avec un cap de vitesse modulé (footwork,
-  // fatigue). Le rAF loop tourne tant que `defenderPursuit.active === true`.
-  // Après commitPlayerDrag (active=false), un ease-out de 400 ms ramène
-  // doucement vers la cible auto puis defenderPursuit est nullifié côté
-  // useAppState.
+  // fatigue en option). Après release, le rattrapage continue jusqu'à la
+  // cible, sans reset vers le snapshot initial ni délai de téléportation.
   const livePositionsRef = useRef<Record<DefenderId, Point>>({} as Record<DefenderId, Point>);
   const lastTickRef = useRef<number>(0);
   const lastAttackerPosRef = useRef<Record<string, Point>>({});
   const pivotLatencyRef = useRef<Record<DefenderId, number>>({} as Record<DefenderId, number>);
   const fatigueRef = useRef<Record<DefenderId, number>>({} as Record<DefenderId, number>);
+  const pursuitSnapshotRef = useRef<DefenderPursuit['snapshot'] | null>(null);
+  const pursuitSettledRef = useRef(false);
   const [pursuitTick, setPursuitTick] = useState(0);
 
   useEffect(() => {
-    if (!defenderPursuit) {
+    if (replaying || !defenderPursuit) {
       livePositionsRef.current = {} as Record<DefenderId, Point>;
       lastAttackerPosRef.current = {};
       pivotLatencyRef.current = {} as Record<DefenderId, number>;
       fatigueRef.current = {} as Record<DefenderId, number>;
+      pursuitSnapshotRef.current = null;
+      pursuitSettledRef.current = false;
       return;
     }
-    // Init avec snapshot au démarrage.
-    (Object.entries(defenderPursuit.snapshot) as [DefenderId, Point | undefined][]).forEach(
-      ([id, p]) => {
-        if (p) livePositionsRef.current[id] = { x: p.x, y: p.y };
-      },
-    );
+    // L'objet de poursuite change au relâchement, mais son snapshot reste
+    // identique : ne jamais réinitialiser les positions dans ce cas.
+    if (pursuitSnapshotRef.current !== defenderPursuit.snapshot) {
+      pursuitSnapshotRef.current = defenderPursuit.snapshot;
+      livePositionsRef.current = {} as Record<DefenderId, Point>;
+      for (const [id, p] of Object.entries(defenderPursuit.snapshot)) {
+        if (p) livePositionsRef.current[id as DefenderId] = { ...p };
+      }
+      lastAttackerPosRef.current = {};
+      pivotLatencyRef.current = {} as Record<DefenderId, number>;
+      fatigueRef.current = {} as Record<DefenderId, number>;
+      pursuitSettledRef.current = false;
+    }
     lastTickRef.current = performance.now();
 
     let raf = 0;
     const tick = () => {
       const cur = stateRef.current;
+      if (cur.activeStep !== defenderPursuit.stepIndex) return;
       const realism = resolveRealismFlags(cur);
+      const advancedInertia = !!cur.defenderDragInertiaEnabled;
       const now = performance.now();
-      const dt = Math.max(1, now - lastTickRef.current);
+      // Un onglet suspendu ne doit pas rattraper plusieurs secondes d'un coup.
+      const dt = Math.min(50, Math.max(0, now - lastTickRef.current));
       lastTickRef.current = now;
       // Step duration en ms (pour normaliser maxSpeed px/step → px/ms).
-      const stepDurationMs = (cur.secondsPerStep ?? 2) * 1000;
-      const baseMaxPxPerMs = cur.defenseMaxSpeed / Math.max(100, stepDurationMs);
+      const stepDurationMs = getStepDurationSeconds(cur, cur.activeStep) * 1000;
 
       const target = effectiveDefensePositions(cur, cur.activeStep);
       const off = activeOffense(cur.steps[cur.activeStep].off, cur.playerCount);
@@ -281,6 +388,8 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
           return;
         }
         const t = target[id];
+        const baseMaxPxPerMs = Math.max(0, cur.rules[id]?.maxSpeed ?? cur.defenseMaxSpeed)
+          / Math.max(100, stepDurationMs);
 
         // V3 — profil athlétique : elite +30 %, lent −30 %.
         const speedProfile = cur.defenderSpeedProfiles?.[id];
@@ -292,7 +401,7 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
         let footworkMult = 1.0;
         const matchedAttId = target[id].matchedTo;
         const matchedAtt = matchedAttId ? off[matchedAttId] : null;
-        if (realism.footworkRulesEnabled && matchedAtt) {
+        if (advancedInertia && realism.footworkRulesEnabled && matchedAtt) {
           // Direction du défenseur vers sa cible.
           const dx = t.x - live.x;
           const dy = t.y - live.y;
@@ -340,12 +449,12 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
         // (juste un freeze brief au début du drag, simulé via fatigue offset).
         // V3 — fatigue cumulée : au-delà d'un seuil, vitesse × 0.7.
         const fatigueDist = fatigueRef.current[id] ?? 0;
-        const fatigueMult = fatigueDist > 300 ? 0.7 : 1.0;
+        const fatigueMult = advancedInertia && fatigueDist > 300 ? 0.7 : 1.0;
 
         // V3 — lecture du regard : si l'attaquant est dans le cône de regard
         // du défenseur (±60°), latence × 0.5 (mieux lu) ; sinon ×1.5.
         let gazeMult = 1.0;
-        if (realism.footworkRulesEnabled && matchedAtt) {
+        if (advancedInertia && realism.footworkRulesEnabled && matchedAtt) {
           const gaze = target[id].gazeOrientation ?? 0;
           const angleToAtt = (Math.atan2(matchedAtt.x - live.x, -(matchedAtt.y - live.y)) * 180) / Math.PI;
           const gazeDiff = Math.abs(((angleToAtt - gaze + 540) % 360) - 180);
@@ -359,16 +468,6 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
         const dx = t.x - live.x;
         const dy = t.y - live.y;
         const dist = Math.hypot(dx, dy);
-
-        // V3 — décrochage : si écart > 200 px, snap-vers la cible moins 200
-        // (le défenseur "abandonne" la poursuite exacte et reprend route directe).
-        if (dist > 200) {
-          const k = (dist - 200) / dist;
-          live.x = t.x - dx * (200 / dist);
-          live.y = t.y - dy * (200 / dist);
-          fatigueRef.current[id] = (fatigueRef.current[id] ?? 0) + (dist - 200) * k;
-          return;
-        }
 
         if (dist <= maxDelta) {
           fatigueRef.current[id] = (fatigueRef.current[id] ?? 0) + dist;
@@ -387,37 +486,44 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
         lastAttackerPosRef.current[aid] = { x: pos.x, y: pos.y };
       });
 
+      const settled = Object.entries(target).every(([id, p]) => {
+        const live = livePositionsRef.current[id as DefenderId];
+        return live && live.x === p.x && live.y === p.y;
+      });
+      pursuitSettledRef.current = !defenderPursuit.active && settled;
       setPursuitTick((t) => t + 1);
-      // Si l'active=false, on continue encore 400ms pour ease-out puis stop.
-      if (!defenderPursuit.active) {
-        const sinceEnd = now - (defenderPursuit.startedAtMs);
-        if (sinceEnd > 5000) return; // hard stop
+      if (pursuitSettledRef.current) {
+        onPursuitSettledRef.current?.(defenderPursuit);
+        return;
       }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [defenderPursuit]);
+  }, [defenderPursuit, replaying]);
 
   const pursuitFrame = useMemo<PlaybackFrame | null>(() => {
-    if (!defenderPursuit) return null;
-    if (Object.keys(livePositionsRef.current).length === 0) return null;
+    if (replaying || !defenderPursuit || defenderPursuit.stepIndex !== state.activeStep) return null;
+    const newPursuit = pursuitSnapshotRef.current !== defenderPursuit.snapshot;
+    if (!newPursuit && pursuitSettledRef.current && !defenderPursuit.active) return null;
+    // Le premier rendu doit déjà afficher le snapshot, avant le premier rAF.
+    const positions = newPursuit ? defenderPursuit.snapshot : livePositionsRef.current;
     const blended: ComputedDefense = { ...staticFrame.defPos };
     (Object.keys(blended) as DefenderId[]).forEach((id) => {
-      const live = livePositionsRef.current[id];
+      const live = positions[id];
       if (!live) return;
       blended[id] = { ...blended[id], x: live.x, y: live.y };
     });
     return { ...staticFrame, defPos: blended };
     // pursuitTick force l'invalidation à chaque rAF.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defenderPursuit, staticFrame, pursuitTick]);
+  }, [defenderPursuit, staticFrame, pursuitTick, state.activeStep, replaying]);
 
   // B4 — Frame "match live" construite depuis `MatchState`. Priorité
   // maximale : quand un match IA tourne (ou est en pause à mi-possession),
   // l'utilisateur veut voir cet état, pas le scénario édité.
   const liveMatchFrame = useMemo<PlaybackFrame | null>(() => {
-    if (!liveMatchState) return null;
+    if (replaying || !liveMatchState) return null;
     return {
       off: liveMatchState.off,
       defPos: liveMatchState.defPos,
@@ -432,23 +538,23 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
       attackerMovementType: {},
       attackingTeam: liveMatchState.attackingTeam,
     };
-  }, [liveMatchState, state]);
+  }, [liveMatchState, state, replaying]);
 
   // Frame d'export : même mémoire synthétique que lecture et scrub.
   // Mémoïsée sur exportT + state, prioritaire sur les autres sources.
   const exportFrame = useMemo(() => {
-    if (exportT == null) return null;
+    if (replaying || exportT == null) return null;
     const totalSteps = state.steps.length - 1;
     if (totalSteps <= 0) return null;
     const t = Math.max(0, Math.min(totalSteps, exportT));
     return resolveTimelineFrame(state, t);
-  }, [exportT, state]);
+  }, [exportT, state, replaying]);
 
   // Priorité : export > matchLive > playback > scrub > release animation > static.
   // L'export prime sur tout : c'est la frame que le capture loop veut.
   // Hors export (exportT == null → exportFrame == null), la chaîne retombe
   // sur le comportement existant à l'identique.
-  const frame = exportFrame ?? liveMatchFrame ?? playFrame ?? scrubFrame ?? pursuitFrame ?? releaseFrame ?? staticFrame;
+  const frame = recordedPlaybackFrame ?? exportFrame ?? liveMatchFrame ?? playFrame ?? scrubFrame ?? pursuitFrame ?? releaseFrame ?? staticFrame;
   const threatData = state.showThreats
     ? computeAttackerThreats(
         frame.off,
@@ -459,7 +565,7 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
       )
     : null;
 
-  const dynamic = !!(exportFrame || liveMatchFrame || playFrame || scrubFrame || pursuitFrame || releaseFrame);
+  const dynamic = !!(recordedPlaybackFrame || exportFrame || liveMatchFrame || playFrame || scrubFrame || pursuitFrame || releaseFrame);
   useLayoutEffect(() => {
     opts.onFrameChange?.({ state, frame, dynamic });
   }, [opts.onFrameChange, state, frame, dynamic]);

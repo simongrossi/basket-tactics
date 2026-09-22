@@ -690,9 +690,9 @@ export function ParametresPanel({
           />
           <CheckboxLine
             checked={!!state.defenderDragInertiaEnabled}
-            label="Inertie défenseur sur drag attaquant"
+            label="Appuis et fatigue pendant le déplacement"
             onChange={(v) => onPatch({ defenderDragInertiaEnabled: v })}
-            title="En mode édition, quand tu drag un attaquant, les défenseurs restent figés sur leurs appuis puis rattrapent leur cible avec un easing cubique (~400 ms). Sans flag, suivi instantané face-à-face. Réutilise le mécanisme defenseReleaseTransition (blend lerp)."
+            title="Les défenseurs se déplacent toujours progressivement lorsque tu bouges un attaquant. Cette option ajoute les effets des appuis, du regard et de la fatigue au rattrapage."
           />
           <CheckboxLine
             checked={realism.attackerVelocityProfileEnabled}

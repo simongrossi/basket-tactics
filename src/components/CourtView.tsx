@@ -19,7 +19,8 @@ import { useInterfaceLevel } from './interface/InterfaceLevel';
 // La logique métier vit dans les hooks et sous-composants ; ce fichier est
 // surtout du câblage.
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import type { ManualGestureFrame } from '@/lib/state/manualGestures';
 import type {
   AppState,
   ActionTimingAnchor,
@@ -72,7 +73,9 @@ import { GhostLayer } from './overlays/GhostLayer';
 import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offense';
 import { getActiveDefenderIds, isActiveAttacker } from '@/lib/logic/players';
 import { useCourtFrame, type DisplayedCourtFrame } from '@/hooks/useCourtFrame';
+import type { DefenderPursuit } from '@/hooks/useAppState';
 import { useCourtPointerHandlers } from '@/hooks/useCourtPointerHandlers';
+import { focusKindOf } from '@/hooks/useKeyboardShortcuts';
 import { CourtPlayersLayer } from './court/CourtPlayersLayer';
 import { CourtMenus, type CtxMenuState, type ZoneRegionMenuState } from './court/CourtMenus';
 import { SnapGuideOverlay } from './court/SnapGuideOverlay';
@@ -96,8 +99,9 @@ interface CourtViewProps {
   onMoveAttackerDuringDrag?: (id: AttackerId, x: number, y: number) => void;
   onMoveDefenderDuringDrag?: (id: DefenderId, x: number, y: number) => void;
   onCommitPlayerDrag?: () => void;
-  onBeginDefenderPursuit?: () => void;
+  onBeginDefenderPursuit?: (displayed?: Partial<Record<DefenderId, Point>>) => void;
   onEndDefenderPursuit?: () => void;
+  onDefenderPursuitSettled?: (finished: DefenderPursuit) => void;
   onAddAnnotation: (a: Annotation, options?: AddAnnotationOptions) => void;
   onUpdateRule: (dId: DefenderId, patch: Partial<AppState['rules'][DefenderId]>) => void;
   onApplyDefenderProfile: (dId: DefenderId, profile: import('@/lib/data/defenderProfiles').DefenderProfile) => void;
@@ -135,6 +139,7 @@ interface CourtViewProps {
    *  la lecture quand `isPlaying` passe de false à true. 0 = du début. Lu
    *  au démarrage de la lecture pour décaler `playStart` ; ignoré ensuite. */
   playbackStartT?: number;
+  playbackRunId?: number;
   /** Animation transitoire "Tout en auto réel" : positions de départ + start
    *  time. Quand non-null et hors playback/scrub, useCourtFrame lerp les
    *  positions défenseurs depuis `fromPositions` vers la cible auto. */
@@ -153,11 +158,26 @@ interface CourtViewProps {
   isPlayerMode?: boolean;
   /** Terrain de consultation (page Simulation) : pas de commandes d'édition. */
   readOnly?: boolean;
+  /** Enregistrement manuel : autorise uniquement les déplacements joueurs,
+   *  leur sélection et la navigation du terrain. */
+  gesturesOnly?: boolean;
+  /** Coordonnées enregistrées à afficher telles quelles pendant un replay. */
+  recordedFrame?: ManualGestureFrame | null;
 }
 
 export function CourtView(props: CourtViewProps) {
   const { analysis, development } = useInterfaceLevel();
   const { state } = props;
+  const readOnly = !!props.readOnly || !!props.recordedFrame;
+  // Les callbacks d'un rAF de drag déjà en attente doivent aussi respecter
+  // un passage immédiat en lecture seule (arrêt/import d'un enregistrement).
+  const readOnlyRef = useRef(readOnly);
+  readOnlyRef.current = readOnly;
+  const editingBlocked = readOnly || !!props.gesturesOnly;
+  const pointerState = useMemo<AppState>(
+    () => props.gesturesOnly ? { ...state, tool: 'move' } : state,
+    [state, props.gesturesOnly]
+  );
   const svgRef = useRef<SVGSVGElement>(null);
   const contentRef = useRef<SVGGElement>(null);
   const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
@@ -197,12 +217,18 @@ export function CourtView(props: CourtViewProps) {
     if (state.tool !== 'text') setTextPopup(null);
   }, [state.tool]);
 
+  useEffect(() => {
+    if (!editingBlocked) return;
+    setCtxMenu(null);
+    setZoneRegionMenu(null);
+    setTextPopup(null);
+  }, [editingBlocked]);
+
   // Key listeners for spacebar tracking
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === ' ' || e.key === 'Spacebar') {
-        const active = document.activeElement?.tagName;
-        if (active !== 'INPUT' && active !== 'TEXTAREA') {
+        if (focusKindOf(document.activeElement) === 'other') {
           e.preventDefault();
           setSpacePressed(true);
         }
@@ -263,15 +289,18 @@ export function CourtView(props: CourtViewProps) {
   const { frame, threatData } = useCourtFrame({
     onFrameChange: props.onFrameChange,
     state,
+    recordedFrame: props.recordedFrame,
     isPlaying: props.isPlaying,
     playbackSpeed: props.playbackSpeed,
     playbackStartT: props.playbackStartT ?? 0,
+    playbackRunId: props.playbackRunId,
     scrubT: props.scrubT,
     exportT: props.exportT,
     onPlaybackTick: props.onPlaybackTick,
     onPlaybackEnd: props.onPlaybackEnd,
     defenseReleaseTransition: props.defenseReleaseTransition,
     defenderPursuit: props.defenderPursuit,
+    onDefenderPursuitSettled: props.onDefenderPursuitSettled,
     liveMatchState: props.liveMatchState,
   });
 
@@ -285,19 +314,26 @@ export function CourtView(props: CourtViewProps) {
   // Pointer/drag + tracé d'annotation + marquee.
   const { pending, snapTarget, marquee, pendingAutoSourceId, cancelPendingAuto, svgPoint, onPointerDown, onPointerMove, onPointerUp } =
     useCourtPointerHandlers({
-      state,
+      state: pointerState,
       svgRef,
       isPlaying: props.isPlaying,
-      isPlayerMode: props.isPlayerMode,
-      onBeginPlayerDrag: props.onBeginPlayerDrag,
-      onCommitPlayerDrag: props.onCommitPlayerDrag,
-      onBeginDefenderPursuit: props.onBeginDefenderPursuit,
-      onEndDefenderPursuit: props.onEndDefenderPursuit,
-      onMoveAttacker: props.onMoveAttacker,
-      onMoveDefender: props.onMoveDefender,
-      onMoveAttackerDuringDrag: props.onMoveAttackerDuringDrag,
-      onMoveDefenderDuringDrag: props.onMoveDefenderDuringDrag,
-      onAddAnnotation: props.onAddAnnotation,
+      isPlayerMode: props.isPlayerMode || readOnly,
+      disableLongPress: editingBlocked,
+      onBeginPlayerDrag: () => { if (!readOnlyRef.current) props.onBeginPlayerDrag?.(); },
+      onCommitPlayerDrag: () => { if (!readOnlyRef.current) props.onCommitPlayerDrag?.(); },
+      onBeginDefenderPursuit: (displayed) => { if (!readOnlyRef.current) props.onBeginDefenderPursuit?.(displayed); },
+      onEndDefenderPursuit: () => { if (!readOnlyRef.current) props.onEndDefenderPursuit?.(); },
+      onMoveAttacker: (id, x, y) => { if (!readOnlyRef.current) props.onMoveAttacker(id, x, y); },
+      onMoveDefender: (id, x, y) => { if (!readOnlyRef.current) props.onMoveDefender(id, x, y); },
+      onMoveAttackerDuringDrag: props.onMoveAttackerDuringDrag && ((id, x, y) => {
+        if (!readOnlyRef.current) props.onMoveAttackerDuringDrag?.(id, x, y);
+      }),
+      onMoveDefenderDuringDrag: props.onMoveDefenderDuringDrag && ((id, x, y) => {
+        if (!readOnlyRef.current) props.onMoveDefenderDuringDrag?.(id, x, y);
+      }),
+      onAddAnnotation: (annotation, options) => {
+        if (!editingBlocked) props.onAddAnnotation(annotation, options);
+      },
       annotationFullT: props.scrubT ?? null,
       frameOff: frame.off,
       frameDefPos: frame.defPos,
@@ -308,6 +344,7 @@ export function CourtView(props: CourtViewProps) {
       onClearDefenderSelection: clearDefenderSelection,
       textNotes: currentTextNotes,
       onTextToolClick: ({ courtPos, screenPos, noteIdx }) => {
+        if (editingBlocked) return;
         if (noteIdx === null) {
           setTextPopup({
             mode: 'create',
@@ -328,6 +365,7 @@ export function CourtView(props: CourtViewProps) {
         }
       },
       onOpenContextMenu: (id, clientX, clientY) => {
+        if (editingBlocked) return;
         const wrap = svgRef.current?.parentElement?.getBoundingClientRect();
         if (!wrap) return;
         const x = clientX - wrap.left;
@@ -349,6 +387,10 @@ export function CourtView(props: CourtViewProps) {
   // du context menu du joueur sous le curseur (avec fallback proximité si
   // un poseur d'écran masque le data-id).
   const onContextMenu = (e: React.MouseEvent) => {
+    if (editingBlocked) {
+      e.preventDefault();
+      return;
+    }
     const annotationG = (e.target as Element).closest('g[data-annotation-idx]');
     const annoIdxStr = annotationG?.getAttribute('data-annotation-idx');
     const annoStepStr = annotationG?.getAttribute('data-annotation-step');
@@ -449,6 +491,19 @@ export function CourtView(props: CourtViewProps) {
   return (
     <div
       onContextMenu={onContextMenu}
+      onDoubleClickCapture={(event) => {
+        if (!editingBlocked) return;
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      onKeyDownCapture={(event) => {
+        const key = event.key.toLowerCase();
+        const changesCourt = ['delete', 'backspace', 'arrowleft', 'arrowright', 'pageup', 'pagedown', ',', '.', 'm', 'p', 'd', 'r', 'e', 't'].includes(key)
+          || ((event.ctrlKey || event.metaKey) && (key === 'z' || key === 'y'));
+        if (!editingBlocked || !changesCourt) return;
+        event.preventDefault();
+        event.stopPropagation();
+      }}
       style={{
         position: 'relative',
         background: '#262a32',
@@ -499,7 +554,7 @@ export function CourtView(props: CourtViewProps) {
           const zoneLayout = applyZoneOverrides(oriented, state.zoneOverrides).filter((z) =>
             activeDefenders.has(z.assignedTo)
           );
-          if (state.zoneEditMode) {
+          if (state.zoneEditMode && !editingBlocked) {
             return (
               <ZoneEditOverlay
                 layout={zoneLayout}
@@ -896,7 +951,7 @@ export function CourtView(props: CourtViewProps) {
               (!annotation.toId || isActiveAttacker(annotation.toId, state.playerCount))
             )
             .map(({ annotation: a, index, stepIdx: annoStep }) => (
-              <g key={`${annoStep}-${index}`} data-annotation-idx={index} data-annotation-step={annoStep} style={{ cursor: 'context-menu' }}>
+              <g key={`${annoStep}-${index}`} data-annotation-idx={index} data-annotation-step={annoStep} style={{ cursor: editingBlocked ? undefined : 'context-menu' }}>
                 <AnnotationView annotation={a} />
                 {/* Hit-test invisible : élargit la zone de clic-droit pour
                     la suppression depuis le terrain. */}
@@ -911,13 +966,13 @@ export function CourtView(props: CourtViewProps) {
                 />
               </g>
             ))}
-          {pending && pending.from && <AnnotationView annotation={pending as Annotation} preview />}
+          {!editingBlocked && pending && pending.from && <AnnotationView annotation={pending as Annotation} preview />}
         </g>
 
         {/* Poignées d'édition des annotations de mouvement — pause uniquement
             pour ne pas polluer la lecture. L'overlay vit après les annotations
             pour rester au-dessus visuellement (z-order SVG = ordre du DOM). */}
-        {!props.isPlaying && state.steps[frame.stepIdx] && (
+        {!editingBlocked && !props.isPlaying && state.steps[frame.stepIdx] && (
           <AnnotationHandles
             annotations={state.steps[frame.stepIdx].annotations}
             isHidden={(a) => isArrivalMovement(state.steps[frame.stepIdx], a)}
@@ -1030,7 +1085,7 @@ export function CourtView(props: CourtViewProps) {
       </svg>
 
       {/* A.3 — Popup d'édition de note (HTML position:fixed, hors SVG). */}
-      {textPopup && (
+      {!editingBlocked && textPopup && (
         <TextNotePopup
           screen={textPopup.screenPos}
           initialText={textPopup.initialText}
@@ -1158,7 +1213,7 @@ export function CourtView(props: CourtViewProps) {
       )}
 
       {/* ---- Menus contextuels ---- */}
-      <CourtMenus
+      {!editingBlocked && <CourtMenus
         state={state}
         frame={frame}
         ctxMenu={ctxMenu}
@@ -1182,20 +1237,21 @@ export function CourtView(props: CourtViewProps) {
         onClearZoneOverride={props.onClearZoneOverride}
         onSetPlayerName={props.onSetPlayerName}
         onSetPlayerNumber={props.onSetPlayerNumber}
-      />
+      />}
 
-      {!props.isPlaying && !props.isPlayerMode && !props.readOnly && (
+      {!props.isPlaying && !props.isPlayerMode && !readOnly && (
         <CourtTouchBar
-          tool={state.tool}
+          tool={pointerState.tool}
           modifiers={stickyModifiers}
           onChangeModifiers={setStickyModifiers}
-          annotationCount={actionsOfStep(state.steps, state.activeStep).length}
+          annotationCount={props.gesturesOnly ? 0 : actionsOfStep(state.steps, state.activeStep).length}
           onDeleteLastAnnotation={() => {
+            if (editingBlocked) return;
             const actions = actionsOfStep(state.steps, state.activeStep);
             const last = actions[actions.length - 1];
             if (last) props.onDeleteAnnotation(last.index, last.stepIdx);
           }}
-          pendingAutoSourceId={pendingAutoSourceId}
+          pendingAutoSourceId={props.gesturesOnly ? null : pendingAutoSourceId}
           onCancelPendingAuto={cancelPendingAuto}
           selectedDefenders={selectedDefenders}
           onClearSelection={clearDefenderSelection}

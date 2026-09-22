@@ -37,6 +37,10 @@ import { MetricsBar } from '@/components/MetricsBar';
 import { MetricsChart } from '@/components/MetricsChart';
 import { CoachDiagnosticsOverlay } from '@/components/CoachDiagnosticsOverlay';
 import { ExportModal } from '@/components/ExportModal';
+import { SituationCodeModal } from '@/components/SituationCodeModal';
+import { ManualRecordingBar } from '@/components/ManualRecordingBar';
+import { useManualRecording } from '@/hooks/useManualRecording';
+import type { SituationSnapshot } from '@/lib/state/situationCode';
 import { computeFrameCoachAnalysis } from '@/lib/logic/frameCoachAnalysis';
 import type { DisplayedCourtFrame } from '@/hooks/useCourtFrame';
 import type { ActionTimingAnchor, AddAnnotationOptions, Annotation, AppState, Step } from '@/lib/types';
@@ -61,6 +65,7 @@ export default function Page() {
   const [showMultiTrack, setShowMultiTrack] = useState(false);
   const [scrubT, setScrubT] = useState<number | null>(null);
   const [playbackStartT, setPlaybackStartT] = useState(0);
+  const [playbackRunId, setPlaybackRunId] = useState(0);
   const [presentMode, setPresentMode] = useState(false);
   const [isPlayerMode, setIsPlayerMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -72,6 +77,12 @@ export default function Page() {
   // E.2 — Ouverture de la modal d'export. La modal elle-même drive
   // `setExportT` quand l'utilisateur clique "Démarrer".
   const [showExportModal, setShowExportModal] = useState(false);
+  const [situationDialog, setSituationDialog] = useState<{ mode: 'copy' | 'animation' | 'gestures' | 'import'; snapshot: SituationSnapshot } | null>(null);
+  const manual = useManualRecording();
+  const [preparingRecording, setPreparingRecording] = useState(false);
+  const recordingGestures = manual.status === 'recording';
+  const replayingGestures = manual.status === 'replaying' || manual.status === 'paused';
+  const manualBusy = preparingRecording || recordingGestures || replayingGestures;
 
   // B4 — Game loop "▶ Play IA (live)" : hook unique remonté au niveau page
   // pour partager le matchState live entre CourtView (rendu terrain) et
@@ -207,6 +218,41 @@ export default function Page() {
   }, [sessionRun, app, sessionRunState, sidebar]);
 
   const [displayedCourt, setDisplayedCourt] = useState<DisplayedCourtFrame | null>(null);
+  const handleCourtFrame = useCallback((displayed: DisplayedCourtFrame) => {
+    setDisplayedCourt(displayed);
+    manual.capture(displayed.frame);
+  }, [manual.capture]);
+  const startGestureRecording = useCallback(() => {
+    matchLoop.stop();
+    setIsPlaying(false);
+    setIsPlayerMode(false);
+    setPlaybackT(null);
+    setScrubT(null);
+    setExportT(null);
+    manual.closeReplay();
+    sidebar.setActiveView('court');
+    app.setTool('move');
+    setPreparingRecording(true);
+  }, [matchLoop.stop, manual.closeReplay, sidebar.setActiveView, app.setTool]);
+  useEffect(() => {
+    // Wait for the editable step to render, so a former timeline/live frame
+    // cannot become the recording's starting position.
+    if (!preparingRecording || isPlaying || scrubT !== null || matchLoop.matchState
+      || app.state.tool !== 'move' || displayedCourt?.state !== app.state || displayedCourt.dynamic) return;
+    manual.start(app.state, displayedCourt.frame);
+    setPreparingRecording(false);
+  }, [preparingRecording, isPlaying, scrubT, matchLoop.matchState, app.state, displayedCourt, manual.start]);
+  const copyGestureRecording = useCallback(() => {
+    if (manual.snapshot) setSituationDialog({ mode: 'gestures', snapshot: manual.snapshot });
+  }, [manual.snapshot]);
+  const replayGestureRecording = useCallback(() => {
+    matchLoop.stop();
+    setIsPlaying(false);
+    setPlaybackT(null);
+    setScrubT(null);
+    setExportT(null);
+    manual.replay();
+  }, [matchLoop.stop, manual.replay]);
   const analysis = useMemo(() => {
     if (!displayedCourt || displayedCourt.state !== app.state) return null;
     return computeFrameCoachAnalysis(app.state, displayedCourt.frame, displayedCourt.dynamic);
@@ -283,7 +329,7 @@ export default function Page() {
   // la lecture en cours et le focus. Voir resolveShortcut.
   const shortcutMode: ShortcutMode = presentMode ? 'present' : isPlayerMode ? 'player' : 'edit';
   useKeyboardShortcuts({
-    courtVisible: sidebar.activeView === 'court',
+    courtVisible: sidebar.activeView === 'court' && !manualBusy,
     mode: shortcutMode,
     isPlaying,
     onAction: (action) => {
@@ -329,6 +375,44 @@ export default function Page() {
   const handleShare = useCallback(async () => {
     return window.location.origin + window.location.pathname + await createShareHash(app.state);
   }, [app.state]);
+
+  const openSituationDialog = useCallback((mode: 'copy' | 'animation' | 'import') => {
+    const frame = displayedCourt?.state === app.state ? displayedCourt.frame : undefined;
+    const time = matchLoop.matchState ? null : scrubT ?? playbackT;
+    setSituationDialog({ mode, snapshot: structuredClone({
+      state: app.state,
+      view: { time, source: matchLoop.matchState ? 'live' : time === null ? 'editor' : 'timeline', frame },
+      ...(mode === 'animation' ? { animation: { startT: time ?? app.state.activeStep, speed: playbackSpeed } } : {}),
+    }) });
+  }, [app.state, displayedCourt, matchLoop.matchState, playbackT, scrubT, playbackSpeed]);
+
+  const handleImportSituation = useCallback((snapshot: SituationSnapshot) => {
+    if (snapshot.recording) {
+      matchLoop.stop();
+      setIsPlaying(false);
+      setPlaybackT(null);
+      setExportT(null);
+      setScrubT(null);
+      setIsPlayerMode(false);
+      sidebar.setActiveView('court');
+      manual.load(snapshot.state, snapshot.recording);
+      return true;
+    }
+    if (!app.importState(snapshot.state)) return false;
+    manual.closeReplay();
+    matchLoop.stop();
+    setIsPlaying(!!snapshot.animation);
+    setPlaybackT(null);
+    setExportT(null);
+    setPlaybackStartT(snapshot.animation?.startT ?? snapshot.view?.time ?? snapshot.state.activeStep);
+    setScrubT(snapshot.animation ? null : snapshot.view?.time ?? null);
+    if (snapshot.animation) setPlaybackSpeed(snapshot.animation.speed);
+    // Une nouvelle lecture remplace aussi une animation déjà en cours.
+    setPlaybackRunId(id => id + 1);
+    setIsPlayerMode(false);
+    sidebar.setActiveView('court');
+    return true;
+  }, [app, matchLoop, sidebar, manual.load, manual.closeReplay]);
 
   const handleImport = useCallback(() => {
     fileInputRef.current?.click();
@@ -378,7 +462,7 @@ export default function Page() {
         color: '#e5e7eb',
       }}
     >
-      {!presentMode && !isPlayerMode && (
+      {!presentMode && !isPlayerMode && !manualBusy && (
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, fontSize: 12 }}>
           {sidebar.activeView === 'court' && (
             <div role="group" aria-label="Historique des modifications" style={{ display: 'flex', gap: 6 }}>
@@ -406,7 +490,7 @@ export default function Page() {
         </div>
       )}
       <div
-        className={presentMode || isPlayerMode ? 'layout-grid presenting' : 'layout-grid'}
+        className={presentMode || isPlayerMode || manualBusy ? 'layout-grid presenting' : 'layout-grid'}
         style={{
           // Refonte UI — largeur de la sidebar pilotée par useSidebarState.
           // Le mode présentation force une seule colonne (cf. .presenting).
@@ -415,7 +499,7 @@ export default function Page() {
           }px`,
         }}
       >
-        {!presentMode && !isPlayerMode && (
+        {!presentMode && !isPlayerMode && !manualBusy && (
           <Sidebar
             startActions={<CoachStartActions
               collapsed={sidebar.collapsed}
@@ -460,6 +544,9 @@ export default function Page() {
                 onImport={handleImport}
                 onReset={app.resetAll}
                 onShare={handleShare}
+                onCopySituation={() => openSituationDialog('copy')}
+                onCopyAnimation={() => openSituationDialog('animation')}
+                onPasteSituation={() => openSituationDialog('import')}
                 collapsed={sidebar.collapsed}
               />
             }
@@ -596,7 +683,8 @@ export default function Page() {
           />
         )}
 
-        <div className={`center-col${sidebar.activeView !== 'court' ? ' center-col-view inline-view-scope' : sessionRun ? ' has-session-run' : ''}`}>
+        <div className={`center-col${sidebar.activeView !== 'court' ? ' center-col-view inline-view-scope' : sessionRun ? ' has-session-run' : ''}`}
+          style={{ gridTemplateRows: sidebar.activeView === 'court' ? `${sessionRun && runSession && !manualBusy ? 'auto ' : ''}${!isPlayerMode && !presentMode ? 'auto ' : ''}minmax(0, 1fr)${!manualBusy ? ' auto auto' : ''}` : undefined }}>
           {sidebar.activeView === 'playbook' && (
             <SidebarThemeProvider dark>
               <PlaybookView
@@ -699,7 +787,7 @@ export default function Page() {
           )}
           {sidebar.activeView === 'court' && (
           <>
-          {sessionRun && runSession && (
+          {sessionRun && runSession && !manualBusy && (
             <SessionRunBar
               session={runSession}
               run={sessionRun}
@@ -717,8 +805,9 @@ export default function Page() {
               onEnd={handleEndSessionRun}
             />
           )}
+          {!isPlayerMode && !presentMode && <ManualRecordingBar recorder={manual} preparing={preparingRecording} onStart={startGestureRecording} onCopy={copyGestureRecording} onReplay={replayGestureRecording} />}
           <div style={{ position: 'relative', minHeight: 0, overflow: 'hidden', display: 'grid' }}>
-            {runBlock && runBlockVisual?.kind === 'none' && (
+            {runBlock && runBlockVisual?.kind === 'none' && !manualBusy && (
               <div style={{ position: 'absolute', inset: 0, zIndex: 60, display: 'grid' }}>
                 <SessionBlockCard title={runBlock.title} notes={runBlock.notes} durationMin={runBlock.durationMin} />
               </div>
@@ -751,10 +840,10 @@ export default function Page() {
               </div>
             )}
             <CoachDrawHint
-              visible={!presentMode && !isPlayerMode && !isPlaying && !matchLoop.matchState
+              visible={!manualBusy && !presentMode && !isPlayerMode && !isPlaying && !matchLoop.matchState
                 && isPristineInitialStepList(app.state)}
             />
-            {app.state.showCoachDiagnostics !== false && !isPlayerMode && (
+            {app.state.showCoachDiagnostics !== false && !isPlayerMode && !manualBusy && (
               <CoachDiagnosticsOverlay diagnostics={coachDiagnostics} />
             )}
             {/* E.1 V1 — HUD compact en overlay quand mode présentation actif
@@ -773,17 +862,21 @@ export default function Page() {
               <MiniBoxScore matchState={matchLoop.matchState} />
             )}
             <CourtView
-              onFrameChange={setDisplayedCourt}
-              state={app.state}
-              diagnostics={isPlayerMode ? [] : coachDiagnostics}
+              onFrameChange={handleCourtFrame}
+              state={replayingGestures && manual.snapshot ? manual.snapshot.state : app.state}
+              recordedFrame={manual.replayFrame}
+              readOnly={replayingGestures || preparingRecording}
+              gesturesOnly={recordingGestures}
+              diagnostics={isPlayerMode || manualBusy ? [] : coachDiagnostics}
               onMoveAttacker={app.moveAttacker}
               onMoveDefender={app.moveDefender}
-              onBeginPlayerDrag={app.beginPlayerDrag}
-              onMoveAttackerDuringDrag={app.moveAttackerDuringDrag}
-              onMoveDefenderDuringDrag={app.moveDefenderDuringDrag}
-              onCommitPlayerDrag={app.commitPlayerDrag}
+              onBeginPlayerDrag={() => { app.beginPlayerDrag(); manual.recordEvent({ type: 'begin' }); }}
+              onMoveAttackerDuringDrag={(id, x, y) => { manual.recordEvent({ type: 'move', id, x, y }); app.moveAttackerDuringDrag(id, x, y); }}
+              onMoveDefenderDuringDrag={(id, x, y) => { manual.recordEvent({ type: 'move', id, x, y }); app.moveDefenderDuringDrag(id, x, y); }}
+              onCommitPlayerDrag={() => { app.commitPlayerDrag(); manual.recordEvent({ type: 'end' }); }}
               onBeginDefenderPursuit={app.beginDefenderPursuit}
               onEndDefenderPursuit={app.endDefenderPursuit}
+              onDefenderPursuitSettled={app.finishDefenderPursuit}
               onAddAnnotation={handleAddAnnotation}
               onAddTextNote={app.addTextNote}
               onUpdateTextNote={app.updateTextNote}
@@ -813,6 +906,7 @@ export default function Page() {
               playbackSpeed={playbackSpeed}
               scrubT={scrubT}
               playbackStartT={playbackStartT}
+              playbackRunId={playbackRunId}
               onPlaybackTick={setPlaybackT}
               onPlaybackEnd={() => {
                 setIsPlaying(false);
@@ -821,8 +915,8 @@ export default function Page() {
                 setScrubT(app.state.steps.length - 1);
                 app.setActiveStep(app.state.steps.length - 1);
               }}
-              defenseReleaseTransition={app.defenseReleaseTransition}
-              defenderPursuit={app.defenderPursuit}
+              defenseReleaseTransition={replayingGestures ? null : app.defenseReleaseTransition}
+              defenderPursuit={replayingGestures ? null : app.defenderPursuit}
               liveMatchState={matchLoop.matchState}
               exportT={exportT}
               externalSvgRef={courtSvgRef}
@@ -840,14 +934,14 @@ export default function Page() {
               />
             )}
           </div>
-          {(app.state.scriptedActions?.length ?? 0) > 0 && !isPlayerMode && (
+          {(app.state.scriptedActions?.length ?? 0) > 0 && !isPlayerMode && !manualBusy && (
             <ScenarioReader
               scriptedActions={app.state.scriptedActions ?? []}
               activeStep={app.state.activeStep}
               stepToActionId={app.state.steps.map((_, i, all) => all[i + 1]?.generatedBy)}
             />
           )}
-          {!isPlayerMode && (
+          {!isPlayerMode && !manualBusy && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ flex: 1 }}>
               <Timeline
@@ -891,7 +985,7 @@ export default function Page() {
             )}
           </div>
           )}
-          {showMultiTrack && !isPlayerMode && (
+          {showMultiTrack && !isPlayerMode && !manualBusy && (
             <MultiTrackTimeline
               state={app.state}
               fullT={scrubT ?? playbackT ?? app.state.activeStep}
@@ -913,8 +1007,8 @@ export default function Page() {
               onSetQuality={app.setAnnotationQuality}
             />
           )}
-          {metrics && !isPlayerMode && <MetricsBar playerCount={app.state.playerCount} metrics={metrics} bestAction={bestAction} screenAction={screenAction} />}
-          {!isPlayerMode && (
+          {metrics && !isPlayerMode && !manualBusy && <MetricsBar playerCount={app.state.playerCount} metrics={metrics} bestAction={bestAction} screenAction={screenAction} />}
+          {!isPlayerMode && !manualBusy && (
             <InterfaceGate min="analysis"><MetricsChart
               state={app.state}
               activeStep={app.state.activeStep}
@@ -960,6 +1054,14 @@ export default function Page() {
           svgRef={courtSvgRef}
           setExportT={setExportT}
           onClose={() => setShowExportModal(false)}
+        />
+      )}
+      {situationDialog && (
+        <SituationCodeModal
+          mode={situationDialog.mode}
+          snapshot={situationDialog.snapshot}
+          onImport={handleImportSituation}
+          onClose={() => setSituationDialog(null)}
         />
       )}
 
