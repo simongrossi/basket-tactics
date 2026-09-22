@@ -3,7 +3,7 @@
 import { Plus, Copy, Trash2 } from 'lucide-react';
 import type { AppState, AttackerId, InboundDefenseMode, InboundSide } from '@/lib/types';
 import { activeBallCarrier, getActiveAttackerIds, isActiveAttacker } from '@/lib/logic/players';
-import { isBlankStep } from '@/lib/logic/stepMutations';
+import { getVisibleStepRows as getVisibleStepRowsOf, stepCounterAt, type StepRow } from '@/lib/logic/stepNumbering';
 import { Panel, Section, Button, COLORS } from './ui';
 
 interface StepsPanelProps {
@@ -70,26 +70,8 @@ const ANNOTATION_LABELS: Record<'pass' | 'dribble' | 'cut' | 'screen', { label: 
   screen: { label: 'écran', symbol: '⊥' },
 };
 
-export function getVisibleStepRows(state: AppState): { step: AppState['steps'][number]; index: number; number: number }[] {
-  const realSteps = state.steps
-    .map((step, index) => ({ step, index }))
-    .filter(({ step }) => !step.isInterpolated);
-
-  const rows: { step: AppState['steps'][number]; index: number; number: number }[] = [];
-  realSteps.forEach(({ step, index }, realIdx) => {
-    const blank = isBlankStep(step);
-    if (realSteps.length === 1 && blank) return;
-
-    const previous = realSteps[realIdx - 1]?.step;
-    const isInitialSetup = realIdx === 0 && blank;
-    const isTrailingActionResult =
-      realIdx === realSteps.length - 1 && blank && !!previous && previous.annotations.length > 0;
-
-    if (isInitialSetup || isTrailingActionResult) return;
-    rows.push({ step, index, number: rows.length + 1 });
-  });
-
-  return rows;
+export function getVisibleStepRows(state: AppState): StepRow[] {
+  return getVisibleStepRowsOf(state.steps);
 }
 
 export function isPristineInitialStepList(state: AppState): boolean {
@@ -108,6 +90,9 @@ export function StepsPanel(props: StepsPanelProps) {
   const attackerIds = getActiveAttackerIds(state.playerCount);
   const visibleStepRows = getVisibleStepRows(state);
   const showEmptyStepList = visibleStepRows.length === 0;
+  // Le coach est sur la position finale auto-créée (après « + étape ») :
+  // on la montre, non numérotée, comme la timeline (« Position finale »).
+  const onFinalPosition = stepCounterAt(state.steps, state.activeStep).kind === 'end';
 
   return (
     <Panel theme="offense" title="📖 Étapes">
@@ -489,6 +474,23 @@ export function StepsPanel(props: StepsPanelProps) {
               </div>
             );
           })}
+          {onFinalPosition && (
+            <div
+              data-testid="final-position-row"
+              style={{
+                padding: '5px 7px',
+                borderRadius: 5,
+                fontSize: 11,
+                background: c.bgSubtle,
+                border: `1px dashed ${c.accent}`,
+              }}
+            >
+              <div style={{ fontWeight: 600, color: c.accentText }}>Position finale</div>
+              <div style={{ color: '#94a3b8', marginTop: 2 }}>
+                Dessine l’action suivante : elle deviendra l’étape {visibleStepRows.length + 1}.
+              </div>
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
           {/* Action primaire : ajouter une étape — solid orange (accent

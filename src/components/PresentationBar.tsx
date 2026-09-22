@@ -11,12 +11,12 @@
 
 import type { Step } from '@/lib/types';
 import {
-  realStepPosition,
   nextRealStepIndex,
   prevRealStepIndex,
   isOnFirstRealStep,
   isOnLastRealStep,
 } from '@/lib/logic/playback/realSteps';
+import { formatStepCounter, stepCounterAt } from '@/lib/logic/stepNumbering';
 import { ChevronLeft, ChevronRight, Play, Square } from 'lucide-react';
 
 interface PresentationBarProps {
@@ -52,7 +52,7 @@ export function PresentationBar({
   onTogglePlay,
   isPlaying,
 }: PresentationBarProps) {
-  const { current, total } = realStepPosition(steps, activeStep);
+  const counter = stepCounterAt(steps, activeStep);
   const atFirst = isOnFirstRealStep(steps, activeStep);
   const atLast = isOnLastRealStep(steps, activeStep);
   const label = steps[activeStep]?.label || 'Sans description';
@@ -137,7 +137,7 @@ export function PresentationBar({
             letterSpacing: 0.6,
           }}
         >
-          Étape {current} / {total}
+          {formatStepCounter(counter)}
         </span>
         <span
           style={{

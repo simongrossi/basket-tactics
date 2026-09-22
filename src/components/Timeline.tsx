@@ -1,5 +1,6 @@
 'use client';
 
+import { formatStepCounter, stepCounterAt } from '@/lib/logic/stepNumbering';
 import { InterfaceGate, useInterfaceLevel } from './interface/InterfaceLevel';
 import { useRef, useState, useCallback } from 'react';
 import { SHORTCUT_LABELS } from '@/hooks/useKeyboardShortcuts';
@@ -120,6 +121,9 @@ export function Timeline({
   const ratio = total > 1 ? displayT / (total - 1) : 0;
   const currentStepIdx = Math.round(displayT);
   const currentStep = state.steps[currentStepIdx];
+  // Même numérotation que le panneau Étapes (cf. stepNumbering).
+  const stepCounter = stepCounterAt(state.steps, displayT);
+  const counterLabel = stepCounter.rowIndex != null ? state.steps[stepCounter.rowIndex]?.label : undefined;
 
   // Timecode (Étape 13) : mappe la position courante (full-step) sur l'axe
   // des étapes réelles (non-interpolées), puis convertit en secondes.
@@ -409,8 +413,8 @@ export function Timeline({
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: TIMELINE_UI.muted, lineHeight: 1.2, alignItems: 'center' }}>
         <span>
-          Étape {currentStepIdx + 1} / {total}
-          {currentStep?.label ? ` — ${currentStep.label}` : ''}
+          {formatStepCounter(stepCounter)}
+          {counterLabel ? ` — ${counterLabel}` : ''}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontVariantNumeric: 'tabular-nums' }}>
           <span title={`Possession totale : ${totalSec.toFixed(1)} s`}>

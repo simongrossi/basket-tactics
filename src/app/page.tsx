@@ -16,6 +16,7 @@ import { ScenarioReader } from '@/components/ScenarioReader';
 import { DefensePanel } from '@/components/DefensePanel';
 import { CoachStartActions } from '@/components/sidebar/CoachStartActions';
 import { CoachDrawHint } from '@/components/CoachDrawHint';
+import { formatStepCounter, stepCounterAt } from '@/lib/logic/stepNumbering';
 import { SidebarOverflowMenu } from '@/components/sidebar/SidebarOverflowMenu';
 import { ParametresPanel } from '@/components/ParametresPanel';
 import { LibraryModal } from '@/components/LibraryModal';
@@ -738,12 +739,7 @@ export default function Page() {
                 </div>
                 <div className="player-step-info">
                   <div style={{ fontSize: 9, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    Étape {(() => {
-                      const realIndices: number[] = [];
-                      app.state.steps.forEach((s, idx) => { if (!s.isInterpolated) realIndices.push(idx); });
-                      const currentRealIdx = realIndices.indexOf(app.state.activeStep);
-                      return currentRealIdx !== -1 ? currentRealIdx + 1 : app.state.activeStep + 1;
-                    })()} sur {app.state.steps.filter(s => !s.isInterpolated).length || 1}
+                    {formatStepCounter(stepCounterAt(app.state.steps, app.state.activeStep))}
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2, color: '#f3f4f6', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {app.state.steps[app.state.activeStep]?.label || 'Sans description'}

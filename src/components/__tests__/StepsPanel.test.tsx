@@ -77,4 +77,22 @@ describe('StepsPanel', () => {
     expect(container.textContent).not.toContain('#2');
     expect(container.textContent).not.toContain('Aucune étape');
   });
+
+  it('« + étape » après une action : ligne Position finale, comme la timeline', () => {
+    const initial = makeInitialState();
+    const state = addStep(addAnnotation(initial, cutAnnotation(initial)));
+
+    const { container, getByTestId } = renderStepsPanel(state);
+    expect(container.textContent).toContain('#1');
+    expect(container.textContent).not.toContain('#2');
+    expect(getByTestId('final-position-row').textContent).toContain('deviendra l’étape 2');
+  });
+
+  it('pas de ligne Position finale quand on édite une étape numérotée', () => {
+    const initial = makeInitialState();
+    const state = addAnnotation(initial, cutAnnotation(initial));
+
+    const { queryByTestId } = renderStepsPanel(state);
+    expect(queryByTestId('final-position-row')).toBeNull();
+  });
 });
