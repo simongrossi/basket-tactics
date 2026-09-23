@@ -22,9 +22,9 @@ passe après). Ordre de travail :
    mouvement dans le profil « Réaliste », placement via la case « Placement
    défensif avancé ». **2026-09-23** : bascule réalistes / idéaux et athlétisme
    par défenseur au niveau Coach, freinage défensif en lecture.
-   Ordre suivant (validé) : main forte fonctionnelle (🟡 V1 2026-09-23 :
-   consigne « main faible » ; V2 orientation / lecture offensive / aides),
-   lectures anti-zone →
+   Ordre suivant (validé) : main forte fonctionnelle (✅ V1 2026-09-23 ;
+   V2 en non prioritaire, cf. § « Non prioritaire »), lectures anti-zone
+   (🟡 en cours) →
    modèle de contact (box-out / rebond, écrans illégaux, fautes) → P4.3 / P4.4.
 2. **Axe coaching** (tableau § « Coaching — usage entraînement » ci-dessous) :
    quiz / lecture cachée → clés d'enseignement → fiche d'une page par système
@@ -1835,6 +1835,25 @@ V1, refonte `getDefenseHoop`).
 | F.5 Late shot clock | ⚪ détaillé (V1 modulation globale) | — | — |
 
 ---
+
+## ⏸ Non prioritaire (backlog noté, 2026-09-23)
+
+### Main forte fonctionnelle — V2 (V1 livrée `c37ab13`)
+
+Décision du user : noter, ne pas prioriser. La V1 place le défenseur en
+consigne « main faible » (décalage côté main forte). Restent :
+
+- **Orientation du corps** : hanches tournées pour fermer la main forte
+  (`orientation.ts`, comme la modulation ±30° de baseline / topside —
+  demande de transmettre la main aux appelants de
+  `computeDefenderOrientation`).
+- **Lecture offensive** : un drive côté main faible vaut moins dans
+  `evaluateOffensiveOptions` (« meilleure action ») ; finition main faible
+  moins efficace.
+- **Aides** : anticiper le drive côté main forte (pré-rotation P1.4 biaisée
+  selon la main du porteur).
+- **Diagnostic coach** : « D1 laisse la main forte » quand le drive dessiné
+  part côté main forte malgré la consigne.
 
 ## Hors roadmap court terme
 
