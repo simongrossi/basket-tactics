@@ -289,6 +289,135 @@ export function useCourtPointerHandlers(
     [frameDefPos, frameOff, state]
   );
 
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const onMoveAttackerRef = useRef(onMoveAttacker);
+  onMoveAttackerRef.current = onMoveAttacker;
+  const onMoveDefenderRef = useRef(onMoveDefender);
+  onMoveDefenderRef.current = onMoveDefender;
+  const onMoveAttackerDuringDragRef = useRef(onMoveAttackerDuringDrag);
+  onMoveAttackerDuringDragRef.current = onMoveAttackerDuringDrag;
+  const onMoveDefenderDuringDragRef = useRef(onMoveDefenderDuringDrag);
+  onMoveDefenderDuringDragRef.current = onMoveDefenderDuringDrag;
+  const onCommitPlayerDragRef = useRef(onCommitPlayerDrag);
+  onCommitPlayerDragRef.current = onCommitPlayerDrag;
+  const onEndDefenderPursuitRef = useRef(onEndDefenderPursuit);
+  onEndDefenderPursuitRef.current = onEndDefenderPursuit;
+
+  const isSettlingRef = useRef<{ id: PlayerId; isDef: boolean; target: Point } | null>(null);
+  const lastVelocityRef = useRef<{ vx: number; vy: number; speed: number } | null>(null);
+  const plantDecelRef = useRef<number>(0);
+
+  const processDragStep = useCallback(() => {
+    dragRafRef.current = null;
+    const move = dragMoveRef.current;
+    if (!move) return;
+    const last = lastDragPointRef.current;
+    const now = performance.now();
+    const dt = lastDragTimeRef.current ? Math.min(100, Math.max(1, now - lastDragTimeRef.current)) : 16;
+    lastDragTimeRef.current = now;
+
+    let targetX = move.x;
+    let targetY = move.y;
+    let needsMoreFrames = false;
+
+    // Vitesse maximale athlétique pour les attaquants :
+    // 240 px/s sans ballon (~6.5 m/s), 190 px/s avec ballon (~5.1 m/s).
+    if (!move.isDef && last) {
+      const curState = stateRef.current;
+      const isCarrier = curState.steps[curState.activeStep]?.ballCarrier === move.id;
+      let maxSpeedPxPerSec = isCarrier ? 190 : 240;
+
+      const dx = move.x - last.x;
+      const dy = move.y - last.y;
+      const dist = Math.hypot(dx, dy);
+
+      // Détection de virage aigu (Plant-and-Cut) :
+      // Si le joueur est en mouvement (> 40 px/s) et change de cap (> 75°),
+      // il subit une décélération biomécanique temporaire (~150 ms) pour planter son appui.
+      const curVx = dt > 0 ? (dx / dt) * 1000 : 0;
+      const curVy = dt > 0 ? (dy / dt) * 1000 : 0;
+      const curSpeed = Math.hypot(curVx, curVy);
+      const prevVel = lastVelocityRef.current;
+
+      if (prevVel && prevVel.speed > 40 && curSpeed > 40) {
+        const dot = (prevVel.vx * curVx + prevVel.vy * curVy) / (prevVel.speed * curSpeed);
+        const clampedDot = Math.max(-1, Math.min(1, dot));
+        const turnAngleDeg = Math.acos(clampedDot) * (180 / Math.PI);
+        if (turnAngleDeg > 75) {
+          plantDecelRef.current = 150;
+        }
+      }
+
+      if (plantDecelRef.current > 0) {
+        plantDecelRef.current = Math.max(0, plantDecelRef.current - dt);
+        const plantFactor = 0.55 + 0.45 * (1 - plantDecelRef.current / 150);
+        maxSpeedPxPerSec *= plantFactor;
+      }
+
+      if (curSpeed > 10) {
+        lastVelocityRef.current = { vx: curVx, vy: curVy, speed: curSpeed };
+      }
+
+      const maxDelta = (maxSpeedPxPerSec / 1000) * dt;
+
+      if (dist > maxDelta) {
+        const k = maxDelta / dist;
+        targetX = Math.round(last.x + dx * k);
+        targetY = Math.round(last.y + dy * k);
+        needsMoreFrames = true;
+      }
+    }
+
+    if (last && last.x === targetX && last.y === targetY && !needsMoreFrames) {
+      if (isSettlingRef.current) {
+        const settling = isSettlingRef.current;
+        isSettlingRef.current = null;
+        dragMoveRef.current = null;
+        lastVelocityRef.current = null;
+        plantDecelRef.current = 0;
+        if (settling.isDef) {
+          onMoveDefenderRef.current(settling.id as DefenderId, targetX, targetY);
+        } else {
+          onMoveAttackerRef.current(settling.id as AttackerId, targetX, targetY);
+          onEndDefenderPursuitRef.current?.();
+        }
+        onCommitPlayerDragRef.current?.();
+        return;
+      }
+      dragMoveRef.current = null;
+      return;
+    }
+
+    lastDragPointRef.current = { x: targetX, y: targetY };
+    if (move.isDef) {
+      (onMoveDefenderDuringDragRef.current ?? onMoveDefenderRef.current)(move.id as DefenderId, targetX, targetY);
+    } else {
+      (onMoveAttackerDuringDragRef.current ?? onMoveAttackerRef.current)(move.id as AttackerId, targetX, targetY);
+    }
+
+    if (needsMoreFrames) {
+      dragRafRef.current = requestAnimationFrame(processDragStep);
+    } else {
+      if (isSettlingRef.current) {
+        const settling = isSettlingRef.current;
+        isSettlingRef.current = null;
+        dragMoveRef.current = null;
+        lastVelocityRef.current = null;
+        plantDecelRef.current = 0;
+        if (settling.isDef) {
+          onMoveDefenderRef.current(settling.id as DefenderId, targetX, targetY);
+        } else {
+          onMoveAttackerRef.current(settling.id as AttackerId, targetX, targetY);
+          onEndDefenderPursuitRef.current?.();
+        }
+        onCommitPlayerDragRef.current?.();
+      } else {
+        dragMoveRef.current = null;
+      }
+    }
+  }, []);
+
   /** rAF-coalesce : on enregistre la dernière position du drag dans
    *  `dragMoveRef` et on l'applique au prochain frame avec une vitesse
    *  maximale athlétique pour éviter la téléportation surhumaine à la souris. */
@@ -296,95 +425,76 @@ export function useCourtPointerHandlers(
     (id: PlayerId, isDef: boolean, x: number, y: number) => {
       dragMoveRef.current = { id, isDef, x, y };
       if (dragRafRef.current !== null) return;
-
-      const step = () => {
-        dragRafRef.current = null;
-        const move = dragMoveRef.current;
-        if (!move) return;
-        const last = lastDragPointRef.current;
-        const now = performance.now();
-        const dt = lastDragTimeRef.current ? Math.min(100, Math.max(1, now - lastDragTimeRef.current)) : 16;
-        lastDragTimeRef.current = now;
-
-        let targetX = move.x;
-        let targetY = move.y;
-        let needsMoreFrames = false;
-
-        // Vitesse maximale athlétique pour les attaquants :
-        // Évite la téléportation surhumaine à la souris (> 300 px/s).
-        // 240 px/s sans ballon (~6.5 m/s), 190 px/s avec ballon (~5.1 m/s).
-        if (!move.isDef && last) {
-          const isCarrier = state.steps[state.activeStep]?.ballCarrier === move.id;
-          const maxSpeedPxPerSec = isCarrier ? 190 : 240;
-          const maxDelta = (maxSpeedPxPerSec / 1000) * dt;
-          const dx = move.x - last.x;
-          const dy = move.y - last.y;
-          const dist = Math.hypot(dx, dy);
-
-          if (dist > maxDelta) {
-            const k = maxDelta / dist;
-            targetX = Math.round(last.x + dx * k);
-            targetY = Math.round(last.y + dy * k);
-            needsMoreFrames = true;
-          }
-        }
-
-        if (last && last.x === targetX && last.y === targetY && !needsMoreFrames) {
-          dragMoveRef.current = null;
-          return;
-        }
-
-        lastDragPointRef.current = { x: targetX, y: targetY };
-        if (move.isDef) {
-          (onMoveDefenderDuringDrag ?? onMoveDefender)(move.id as DefenderId, targetX, targetY);
-        } else {
-          (onMoveAttackerDuringDrag ?? onMoveAttacker)(move.id as AttackerId, targetX, targetY);
-        }
-
-        if (needsMoreFrames) {
-          dragRafRef.current = requestAnimationFrame(step);
-        } else {
-          dragMoveRef.current = null;
-        }
-      };
-
-      dragRafRef.current = requestAnimationFrame(step);
+      dragRafRef.current = requestAnimationFrame(processDragStep);
     },
-    [onMoveAttacker, onMoveAttackerDuringDrag, onMoveDefender, onMoveDefenderDuringDrag, state]
+    [processDragStep]
   );
 
-  const flushDragMove = useCallback(() => {
+  const flushSettling = useCallback(() => {
     if (dragRafRef.current !== null) {
       cancelAnimationFrame(dragRafRef.current);
       dragRafRef.current = null;
     }
+    const settling = isSettlingRef.current;
+    isSettlingRef.current = null;
     const move = dragMoveRef.current;
     dragMoveRef.current = null;
     lastDragTimeRef.current = 0;
-    if (!move) return;
-    const last = lastDragPointRef.current;
-    if (last && last.x === move.x && last.y === move.y) return;
-    lastDragPointRef.current = { x: move.x, y: move.y };
-    if (move.isDef) {
-      (onMoveDefenderDuringDrag ?? onMoveDefender)(move.id as DefenderId, move.x, move.y);
+    lastVelocityRef.current = null;
+    plantDecelRef.current = 0;
+
+    const target = settling ? { id: settling.id, isDef: settling.isDef, x: settling.target.x, y: settling.target.y } : move;
+    if (!target) return;
+
+    lastDragPointRef.current = { x: target.x, y: target.y };
+    if (target.isDef) {
+      (onMoveDefenderDuringDragRef.current ?? onMoveDefenderRef.current)(target.id as DefenderId, target.x, target.y);
     } else {
-      (onMoveAttackerDuringDrag ?? onMoveAttacker)(move.id as AttackerId, move.x, move.y);
+      (onMoveAttackerDuringDragRef.current ?? onMoveAttackerRef.current)(target.id as AttackerId, target.x, target.y);
+      onEndDefenderPursuitRef.current?.();
     }
-  }, [onMoveAttacker, onMoveAttackerDuringDrag, onMoveDefender, onMoveDefenderDuringDrag]);
+    onCommitPlayerDragRef.current?.();
+  }, []);
 
   // Le timer d'appui long a été créé avant le début du drag : lire la ref
   // courante évite une closure périmée et les commits sur une simple note.
   // Le dernier move doit appartenir au même undo que le reste du geste.
   const finishPlayerDrag = useCallback(() => {
     const currentDrag = draggingRef.current;
-    if (!currentDrag) return;
-    flushDragMove();
+    if (!currentDrag) {
+      if (isSettlingRef.current) {
+        flushSettling();
+      }
+      return;
+    }
+
     setDragging(null);
     groupDragInitialRef.current = null;
     setSnapTarget(null);
-    onCommitPlayerDrag?.();
-    if (!currentDrag.isDef) onEndDefenderPursuit?.();
-  }, [flushDragMove, onCommitPlayerDrag, onEndDefenderPursuit, setDragging]);
+
+    const move = dragMoveRef.current;
+    const last = lastDragPointRef.current;
+
+    // Si attaquant et qu'il reste du chemin à parcourir (sprint pas encore arrivé à destination) :
+    // Ne pas téléporter brutalement ! Passer en mode "settling" et laisser rAF terminer
+    // la course à vitesse athlétique jusqu'au point déposé.
+    if (!currentDrag.isDef && move && last) {
+      const distRemaining = Math.hypot(move.x - last.x, move.y - last.y);
+      if (distRemaining > 2) {
+        isSettlingRef.current = {
+          id: currentDrag.id,
+          isDef: currentDrag.isDef,
+          target: { x: move.x, y: move.y },
+        };
+        if (dragRafRef.current === null) {
+          dragRafRef.current = requestAnimationFrame(processDragStep);
+        }
+        return;
+      }
+    }
+
+    flushSettling();
+  }, [flushSettling, processDragStep, setDragging]);
 
   // Cleanup raf au unmount pour éviter le warning "setState on unmounted".
   useEffect(() => {
@@ -432,6 +542,9 @@ export function useCourtPointerHandlers(
       if (e.button === 2) return;
       onClearContextMenu();
       if (isPlaying) return;
+      if (isSettlingRef.current) {
+        flushSettling();
+      }
       const target = (e.target as Element).closest('g[data-id]');
       const pt = svgPoint(e);
       const id = findPlayerAt(pt) ?? (target?.getAttribute('data-id') as PlayerId | null);
@@ -567,6 +680,8 @@ export function useCourtPointerHandlers(
           lastDragPointRef.current = null;
         }
         lastDragTimeRef.current = performance.now();
+        lastVelocityRef.current = null;
+        plantDecelRef.current = 0;
         dragMoveRef.current = null;
         setDragging({ id: id as PlayerId, isDef: id!.startsWith('D') });
         svgRef.current?.setPointerCapture(e.pointerId);

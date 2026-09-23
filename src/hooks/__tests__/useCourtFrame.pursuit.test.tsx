@@ -148,8 +148,8 @@ describe('defender pursuit while editing positions', () => {
     // D5 is trailing by 400px (100 -> 500)
     act(() => vi.advanceTimersByTime(16));
     const deltaX = result.current.frame.defPos.D5.x - 100;
-    // Base is 40 * 0.016 = 0.64. With recovery sprint boost (up to 1.8), deltaX should exceed 0.64
+    // Base is 40 * 0.016 = 0.64. With recovery sprint boost (up to 2.4), deltaX should exceed 0.64
     expect(deltaX).toBeGreaterThan(0.64);
-    expect(deltaX).toBeLessThanOrEqual(0.64 * 1.8 + 1e-6);
+    expect(deltaX).toBeLessThanOrEqual(0.64 * 2.4 + 1e-6);
   });
 });

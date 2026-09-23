@@ -471,9 +471,9 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
 
         // Sprint de récupération : en défense individuelle, si le défenseur est distancé (> 60 px)
         // de sa cible (par exemple lors d'une coupe rapide), il passe en course de repli (recovery sprint)
-        // pouvant accélérer jusqu'à ×1.8 (cohérent avec sprintMultiplier en fast break).
+        // pouvant accélérer jusqu'à ×2.4 (repli défensif athlétique pour contester les coupes franches).
         const recoveryMult = cur.defenseSystem === 'man' && distToTarget > 60
-          ? Math.min(1.8, 1.0 + (distToTarget - 60) / 100)
+          ? Math.min(2.4, 1.0 + (distToTarget - 60) / 75)
           : 1.0;
 
         const effectiveMaxPxPerMs = baseMaxPxPerMs * profileMult * footworkMult * fatigueMult * gazeMult * recoveryMult;
