@@ -184,6 +184,7 @@ export function useCourtPointerHandlers(
   const dragMoveRef = useRef<{ id: PlayerId; isDef: boolean; x: number; y: number } | null>(null);
   const dragRafRef = useRef<number | null>(null);
   const lastDragPointRef = useRef<{ x: number; y: number } | null>(null);
+  const lastDragTimeRef = useRef<number>(0);
   const [pending, setPending] = useState<PendingAnnotation | null>(null);
   const [snapTarget, setSnapTarget] = useState<SnapTarget | null>(null);
   /** Source d'une passe auto (clic-simple en mode `tool === 'pass'`). On garde
@@ -289,28 +290,67 @@ export function useCourtPointerHandlers(
   );
 
   /** rAF-coalesce : on enregistre la dernière position du drag dans
-   *  `dragMoveRef` et on l'applique au prochain frame. Évite de pousser
-   *  20+ updates React par mouvement souris (latence + jitter). */
+   *  `dragMoveRef` et on l'applique au prochain frame avec une vitesse
+   *  maximale athlétique pour éviter la téléportation surhumaine à la souris. */
   const queueDragMove = useCallback(
     (id: PlayerId, isDef: boolean, x: number, y: number) => {
       dragMoveRef.current = { id, isDef, x, y };
       if (dragRafRef.current !== null) return;
-      dragRafRef.current = requestAnimationFrame(() => {
+
+      const step = () => {
         dragRafRef.current = null;
         const move = dragMoveRef.current;
-        dragMoveRef.current = null;
         if (!move) return;
         const last = lastDragPointRef.current;
-        if (last && last.x === move.x && last.y === move.y) return;
-        lastDragPointRef.current = { x: move.x, y: move.y };
-        if (move.isDef) {
-          (onMoveDefenderDuringDrag ?? onMoveDefender)(move.id as DefenderId, move.x, move.y);
-        } else {
-          (onMoveAttackerDuringDrag ?? onMoveAttacker)(move.id as AttackerId, move.x, move.y);
+        const now = performance.now();
+        const dt = lastDragTimeRef.current ? Math.min(100, Math.max(1, now - lastDragTimeRef.current)) : 16;
+        lastDragTimeRef.current = now;
+
+        let targetX = move.x;
+        let targetY = move.y;
+        let needsMoreFrames = false;
+
+        // Vitesse maximale athlétique pour les attaquants :
+        // Évite la téléportation surhumaine à la souris (> 300 px/s).
+        // 240 px/s sans ballon (~6.5 m/s), 190 px/s avec ballon (~5.1 m/s).
+        if (!move.isDef && last) {
+          const isCarrier = state.steps[state.activeStep]?.ballCarrier === move.id;
+          const maxSpeedPxPerSec = isCarrier ? 190 : 240;
+          const maxDelta = (maxSpeedPxPerSec / 1000) * dt;
+          const dx = move.x - last.x;
+          const dy = move.y - last.y;
+          const dist = Math.hypot(dx, dy);
+
+          if (dist > maxDelta) {
+            const k = maxDelta / dist;
+            targetX = Math.round(last.x + dx * k);
+            targetY = Math.round(last.y + dy * k);
+            needsMoreFrames = true;
+          }
         }
-      });
+
+        if (last && last.x === targetX && last.y === targetY && !needsMoreFrames) {
+          dragMoveRef.current = null;
+          return;
+        }
+
+        lastDragPointRef.current = { x: targetX, y: targetY };
+        if (move.isDef) {
+          (onMoveDefenderDuringDrag ?? onMoveDefender)(move.id as DefenderId, targetX, targetY);
+        } else {
+          (onMoveAttackerDuringDrag ?? onMoveAttacker)(move.id as AttackerId, targetX, targetY);
+        }
+
+        if (needsMoreFrames) {
+          dragRafRef.current = requestAnimationFrame(step);
+        } else {
+          dragMoveRef.current = null;
+        }
+      };
+
+      dragRafRef.current = requestAnimationFrame(step);
     },
-    [onMoveAttacker, onMoveAttackerDuringDrag, onMoveDefender, onMoveDefenderDuringDrag]
+    [onMoveAttacker, onMoveAttackerDuringDrag, onMoveDefender, onMoveDefenderDuringDrag, state]
   );
 
   const flushDragMove = useCallback(() => {
@@ -320,6 +360,7 @@ export function useCourtPointerHandlers(
     }
     const move = dragMoveRef.current;
     dragMoveRef.current = null;
+    lastDragTimeRef.current = 0;
     if (!move) return;
     const last = lastDragPointRef.current;
     if (last && last.x === move.x && last.y === move.y) return;
@@ -502,6 +543,7 @@ export function useCourtPointerHandlers(
           };
           onBeginPlayerDrag?.();
           lastDragPointRef.current = null;
+          lastDragTimeRef.current = 0;
           dragMoveRef.current = null;
           setDragging({ id, isDef: true });
           svgRef.current?.setPointerCapture(e.pointerId);
@@ -519,8 +561,12 @@ export function useCourtPointerHandlers(
         // (cap vitesse modulé, V1+V2+V3 dans useCourtFrame).
         if (!id!.startsWith('D')) {
           onBeginDefenderPursuit?.(frameDefPos);
+          const initialAttPos = frameOff?.[id as AttackerId] ?? state.steps[state.activeStep]?.off[id as AttackerId];
+          lastDragPointRef.current = initialAttPos ? { x: initialAttPos.x, y: initialAttPos.y } : null;
+        } else {
+          lastDragPointRef.current = null;
         }
-        lastDragPointRef.current = null;
+        lastDragTimeRef.current = performance.now();
         dragMoveRef.current = null;
         setDragging({ id: id as PlayerId, isDef: id!.startsWith('D') });
         svgRef.current?.setPointerCapture(e.pointerId);

@@ -376,7 +376,13 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
       const dt = Math.min(50, Math.max(0, now - lastTickRef.current));
       lastTickRef.current = now;
       // Step duration en ms (pour normaliser maxSpeed px/step → px/ms).
-      const stepDurationMs = getStepDurationSeconds(cur, cur.activeStep) * 1000;
+      // En édition interactive, si la durée de step n'est pas spécifiée,
+      // on utilise la base physique de 2 s (PLAYBACK_STEP_DURATION_MS) plutôt
+      // que la durée complète d'une possession tactique (4 s).
+      const stepDurationSec = cur.secondsPerStep != null
+        ? getStepDurationSeconds(cur, cur.activeStep)
+        : (cur.realSpeedMode ? 0.5 : 2);
+      const stepDurationMs = stepDurationSec * 1000;
 
       const target = effectiveDefensePositions(cur, cur.activeStep);
       const off = activeOffense(cur.steps[cur.activeStep].off, cur.playerCount);
@@ -401,11 +407,12 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
         let footworkMult = 1.0;
         const matchedAttId = target[id].matchedTo;
         const matchedAtt = matchedAttId ? off[matchedAttId] : null;
+        const dx = t.x - live.x;
+        const dy = t.y - live.y;
+        const distToTarget = Math.hypot(dx, dy);
+
         if (advancedInertia && realism.footworkRulesEnabled && matchedAtt) {
           // Direction du défenseur vers sa cible.
-          const dx = t.x - live.x;
-          const dy = t.y - live.y;
-          const distToTarget = Math.hypot(dx, dy);
           if (distToTarget > 0.5) {
             const moveAngleDeg = (Math.atan2(dx, -dy) * 180) / Math.PI; // 0 = nord
             const bodyOrient = target[id].orientation ?? 0;
@@ -462,12 +469,16 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
           else if (gazeDiff > 120) gazeMult = 0.7; // pris à contre-pied
         }
 
-        const effectiveMaxPxPerMs = baseMaxPxPerMs * profileMult * footworkMult * fatigueMult * gazeMult;
-        const maxDelta = effectiveMaxPxPerMs * dt;
+        // Sprint de récupération : en défense individuelle, si le défenseur est distancé (> 60 px)
+        // de sa cible (par exemple lors d'une coupe rapide), il passe en course de repli (recovery sprint)
+        // pouvant accélérer jusqu'à ×1.8 (cohérent avec sprintMultiplier en fast break).
+        const recoveryMult = cur.defenseSystem === 'man' && distToTarget > 60
+          ? Math.min(1.8, 1.0 + (distToTarget - 60) / 100)
+          : 1.0;
 
-        const dx = t.x - live.x;
-        const dy = t.y - live.y;
-        const dist = Math.hypot(dx, dy);
+        const effectiveMaxPxPerMs = baseMaxPxPerMs * profileMult * footworkMult * fatigueMult * gazeMult * recoveryMult;
+        const maxDelta = effectiveMaxPxPerMs * dt;
+        const dist = distToTarget;
 
         if (dist <= maxDelta) {
           fatigueRef.current[id] = (fatigueRef.current[id] ?? 0) + dist;

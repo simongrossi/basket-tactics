@@ -141,4 +141,15 @@ describe('defender pursuit while editing positions', () => {
     act(() => vi.advanceTimersByTime(16));
     expect(result.current.frame.defPos.D5.x).toBe(target.D5.x);
   });
+
+  it('accelerates with recovery sprint boost in man defense when trailing far behind target', () => {
+    const { result, state, pursuit } = setup();
+    state.defenseSystem = 'man';
+    // D5 is trailing by 400px (100 -> 500)
+    act(() => vi.advanceTimersByTime(16));
+    const deltaX = result.current.frame.defPos.D5.x - 100;
+    // Base is 40 * 0.016 = 0.64. With recovery sprint boost (up to 1.8), deltaX should exceed 0.64
+    expect(deltaX).toBeGreaterThan(0.64);
+    expect(deltaX).toBeLessThanOrEqual(0.64 * 1.8 + 1e-6);
+  });
 });
