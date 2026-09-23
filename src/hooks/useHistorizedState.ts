@@ -14,6 +14,10 @@
 //  - `beginPlayerDrag` / `commitPlayerDrag` : coalesce les snapshots
 //    pendant un drag pour ne créer qu'une seule entrée d'historique par
 //    geste utilisateur (sinon le drag pollue le past avec 60 entrées).
+//  - `registerPendingFlush` : un geste peut rester ouvert après le
+//    relâchement (fin de course d'un joueur). La fonction enregistrée le
+//    termine ; elle est appelée avant tout undo / redo / action historisée,
+//    sinon la fin de course s'appliquerait sur l'état annulé ou modifié.
 
 import { useCallback, useReducer, useRef, useState, type MutableRefObject } from 'react';
 import type { AppState } from '@/lib/types';
@@ -39,6 +43,9 @@ export interface HistorizedState {
   canRedo: boolean;
   beginPlayerDrag: () => void;
   commitPlayerDrag: () => void;
+  /** Enregistre (ou retire avec `null`) la fonction qui termine un geste
+   *  encore ouvert. Elle doit être sans effet s'il n'y a rien à terminer. */
+  registerPendingFlush: (flush: (() => void) | null) => void;
 }
 
 export function useHistorizedState(initializer: () => AppState): HistorizedState {
@@ -53,12 +60,29 @@ export function useHistorizedState(initializer: () => AppState): HistorizedState
   // La pile vit dans un ref : ce compteur force le rendu qui relit
   // canUndo/canRedo (un commit de drag ne change pas l'état lui-même).
   const [, bumpHistory] = useReducer((n: number) => n + 1, 0);
+  const pendingFlushRef = useRef<(() => void) | null>(null);
+  const flushingRef = useRef(false);
+  /** Termine un geste encore ouvert avant une action historisée. */
+  const flushPendingGesture = useCallback(() => {
+    const flush = pendingFlushRef.current;
+    if (!flush || flushingRef.current) return;
+    flushingRef.current = true;
+    try {
+      flush();
+    } finally {
+      flushingRef.current = false;
+    }
+  }, []);
+  const registerPendingFlush = useCallback((flush: (() => void) | null) => {
+    pendingFlushRef.current = flush;
+  }, []);
 
   const setStateRaw = useCallback((updater: Updater) => {
     setState(updater);
   }, []);
 
   const setStateWithHistory = useCallback((updater: Updater) => {
+    flushPendingGesture();
     setState((prev) => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
       if (next === prev) return prev;
@@ -66,7 +90,7 @@ export function useHistorizedState(initializer: () => AppState): HistorizedState
       return next;
     });
     bumpHistory();
-  }, []);
+  }, [flushPendingGesture]);
 
   const beginPlayerDrag = useCallback(() => {
     if (!dragHistoryAnchorRef.current) {
@@ -86,14 +110,16 @@ export function useHistorizedState(initializer: () => AppState): HistorizedState
   }, []);
 
   const undo = useCallback(() => {
+    flushPendingGesture();
     setState((cur) => undoFromHistory(historyRef.current, cur));
     bumpHistory();
-  }, []);
+  }, [flushPendingGesture]);
 
   const redo = useCallback(() => {
+    flushPendingGesture();
     setState((cur) => redoFromHistory(historyRef.current, cur));
     bumpHistory();
-  }, []);
+  }, [flushPendingGesture]);
 
   return {
     state,
@@ -106,5 +132,6 @@ export function useHistorizedState(initializer: () => AppState): HistorizedState
     canRedo: historyRef.current.future.length > 0,
     beginPlayerDrag,
     commitPlayerDrag,
+    registerPendingFlush,
   };
 }

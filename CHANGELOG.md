@@ -6,6 +6,25 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Corrections — fin de course après relâchement (2026-09-23)
+
+Suite de `7b1ac6b` (settle du drag), qui faisait échouer 6 tests et
+introduisait des défauts :
+
+- **Double entrée d'annulation** : la fin de course appelait le déplacement
+  historisé avant le commit ; un glisser demandait deux « Annuler » (le second
+  sans effet). Fin de geste unique `completeDrag` (variante « pendant le
+  drag », puis commit, puis fin de poursuite).
+- **Annuler / Rétablir / action pendant la fin de course** : la course
+  continuait sur l'état annulé et effaçait la pile Rétablir. L'historique
+  termine désormais d'abord le geste (`registerPendingFlush`).
+- **Appui long, pincement, `pointercancel`** : le geste est terminé tout de
+  suite au lieu de se prolonger sous le menu ou pendant le zoom.
+- **Changement de vue pendant la course** : le geste n'est plus perdu (position,
+  commit et ancre d'historique).
+- Tests : 3 tests de relâchement normal adaptés à la fin de course ; 5 tests
+  ajoutés. Suite 2 695 / 2 695.
+
 ### Réalisme défensif visible par les coachs (2026-09-23)
 
 - **Profil « Réaliste »** (profil par défaut de l'application) : la

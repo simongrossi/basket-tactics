@@ -57,6 +57,9 @@ interface UseCourtPointerHandlersOptions {
   /** Poursuite défenseur — fin : laisse les défenseurs rejoindre leur cible
    *  à vitesse bornée après le commit du drag attaquant. */
   onEndDefenderPursuit?: () => void;
+  /** Enregistre auprès de l'historique la fonction qui termine un geste
+   *  encore en fin de course (appelée avant undo / redo / action historisée). */
+  registerPendingGestureFlush?: (flush: (() => void) | null) => void;
   onMoveAttacker: (id: AttackerId, x: number, y: number) => void;
   onMoveDefender: (id: DefenderId, x: number, y: number) => void;
   onMoveAttackerDuringDrag?: (id: AttackerId, x: number, y: number) => void;
@@ -149,6 +152,7 @@ export function useCourtPointerHandlers(
     onCommitPlayerDrag,
     onBeginDefenderPursuit,
     onEndDefenderPursuit,
+    registerPendingGestureFlush,
     onMoveAttacker,
     onMoveDefender,
     onMoveAttackerDuringDrag,
@@ -308,6 +312,27 @@ export function useCourtPointerHandlers(
   const lastVelocityRef = useRef<{ vx: number; vy: number; speed: number } | null>(null);
   const plantDecelRef = useRef<number>(0);
 
+  /** Termine un geste : dernière position (variante « pendant le drag », donc
+   *  dans le même groupe d'annulation), commit de l'historique, puis fin de
+   *  la poursuite défensive. Point unique pour le relâchement immédiat et la
+   *  fin de course (settling) — un déplacement historisé ici créait une
+   *  seconde entrée d'annulation. */
+  const completeDrag = useCallback((id: PlayerId, isDef: boolean, x: number, y: number) => {
+    isSettlingRef.current = null;
+    dragMoveRef.current = null;
+    lastDragTimeRef.current = 0;
+    lastVelocityRef.current = null;
+    plantDecelRef.current = 0;
+    lastDragPointRef.current = { x, y };
+    if (isDef) {
+      (onMoveDefenderDuringDragRef.current ?? onMoveDefenderRef.current)(id as DefenderId, x, y);
+    } else {
+      (onMoveAttackerDuringDragRef.current ?? onMoveAttackerRef.current)(id as AttackerId, x, y);
+    }
+    onCommitPlayerDragRef.current?.();
+    if (!isDef) onEndDefenderPursuitRef.current?.();
+  }, []);
+
   const processDragStep = useCallback(() => {
     dragRafRef.current = null;
     const move = dragMoveRef.current;
@@ -372,17 +397,7 @@ export function useCourtPointerHandlers(
     if (last && last.x === targetX && last.y === targetY && !needsMoreFrames) {
       if (isSettlingRef.current) {
         const settling = isSettlingRef.current;
-        isSettlingRef.current = null;
-        dragMoveRef.current = null;
-        lastVelocityRef.current = null;
-        plantDecelRef.current = 0;
-        if (settling.isDef) {
-          onMoveDefenderRef.current(settling.id as DefenderId, targetX, targetY);
-        } else {
-          onMoveAttackerRef.current(settling.id as AttackerId, targetX, targetY);
-          onEndDefenderPursuitRef.current?.();
-        }
-        onCommitPlayerDragRef.current?.();
+        completeDrag(settling.id, settling.isDef, targetX, targetY);
         return;
       }
       dragMoveRef.current = null;
@@ -401,22 +416,12 @@ export function useCourtPointerHandlers(
     } else {
       if (isSettlingRef.current) {
         const settling = isSettlingRef.current;
-        isSettlingRef.current = null;
-        dragMoveRef.current = null;
-        lastVelocityRef.current = null;
-        plantDecelRef.current = 0;
-        if (settling.isDef) {
-          onMoveDefenderRef.current(settling.id as DefenderId, targetX, targetY);
-        } else {
-          onMoveAttackerRef.current(settling.id as AttackerId, targetX, targetY);
-          onEndDefenderPursuitRef.current?.();
-        }
-        onCommitPlayerDragRef.current?.();
+        completeDrag(settling.id, settling.isDef, targetX, targetY);
       } else {
         dragMoveRef.current = null;
       }
     }
-  }, []);
+  }, [completeDrag]);
 
   /** rAF-coalesce : on enregistre la dernière position du drag dans
    *  `dragMoveRef` et on l'applique au prochain frame avec une vitesse
@@ -436,30 +441,25 @@ export function useCourtPointerHandlers(
       dragRafRef.current = null;
     }
     const settling = isSettlingRef.current;
-    isSettlingRef.current = null;
     const move = dragMoveRef.current;
-    dragMoveRef.current = null;
-    lastDragTimeRef.current = 0;
-    lastVelocityRef.current = null;
-    plantDecelRef.current = 0;
-
-    const target = settling ? { id: settling.id, isDef: settling.isDef, x: settling.target.x, y: settling.target.y } : move;
-    if (!target) return;
-
-    lastDragPointRef.current = { x: target.x, y: target.y };
-    if (target.isDef) {
-      (onMoveDefenderDuringDragRef.current ?? onMoveDefenderRef.current)(target.id as DefenderId, target.x, target.y);
-    } else {
-      (onMoveAttackerDuringDragRef.current ?? onMoveAttackerRef.current)(target.id as AttackerId, target.x, target.y);
-      onEndDefenderPursuitRef.current?.();
+    const target = settling
+      ? { id: settling.id, isDef: settling.isDef, x: settling.target.x, y: settling.target.y }
+      : move;
+    if (!target) {
+      isSettlingRef.current = null;
+      dragMoveRef.current = null;
+      lastDragTimeRef.current = 0;
+      lastVelocityRef.current = null;
+      plantDecelRef.current = 0;
+      return;
     }
-    onCommitPlayerDragRef.current?.();
-  }, []);
+    completeDrag(target.id, target.isDef, target.x, target.y);
+  }, [completeDrag]);
 
   // Le timer d'appui long a été créé avant le début du drag : lire la ref
   // courante évite une closure périmée et les commits sur une simple note.
   // Le dernier move doit appartenir au même undo que le reste du geste.
-  const finishPlayerDrag = useCallback(() => {
+  const finishPlayerDrag = useCallback((options: { settle?: boolean } = {}) => {
     const currentDrag = draggingRef.current;
     if (!currentDrag) {
       if (isSettlingRef.current) {
@@ -477,8 +477,10 @@ export function useCourtPointerHandlers(
 
     // Si attaquant et qu'il reste du chemin à parcourir (sprint pas encore arrivé à destination) :
     // Ne pas téléporter brutalement ! Passer en mode "settling" et laisser rAF terminer
-    // la course à vitesse athlétique jusqu'au point déposé.
-    if (!currentDrag.isDef && move && last) {
+    // la course à vitesse athlétique jusqu'au point déposé. Uniquement sur un
+    // relâchement normal : appui long (menu), second doigt (pincement) et
+    // pointercancel terminent le geste immédiatement.
+    if (options.settle !== false && !currentDrag.isDef && move && last) {
       const distRemaining = Math.hypot(move.x - last.x, move.y - last.y);
       if (distRemaining > 2) {
         isSettlingRef.current = {
@@ -496,11 +498,24 @@ export function useCourtPointerHandlers(
     flushSettling();
   }, [flushSettling, processDragStep, setDragging]);
 
-  // Cleanup raf au unmount pour éviter le warning "setState on unmounted".
+  // Démontage (changement de vue) : un geste encore en fin de course est
+  // terminé tout de suite — sinon position finale, commit et fin de poursuite
+  // sont perdus, et l'ancre d'historique reste ouverte pour le geste suivant.
+  const flushSettlingRef = useRef(flushSettling);
+  flushSettlingRef.current = flushSettling;
+  useEffect(() => {
+    if (!registerPendingGestureFlush) return;
+    registerPendingGestureFlush(() => {
+      if (isSettlingRef.current) flushSettlingRef.current();
+    });
+    return () => registerPendingGestureFlush(null);
+  }, [registerPendingGestureFlush]);
   useEffect(() => {
     return () => {
+      if (isSettlingRef.current) flushSettlingRef.current();
       if (dragRafRef.current !== null) {
         cancelAnimationFrame(dragRafRef.current);
+        dragRafRef.current = null;
       }
     };
   }, []);
@@ -514,7 +529,7 @@ export function useCourtPointerHandlers(
         const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
         const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
         lastGestureRef.current = { distance: d, midpoint: mid };
-        finishPlayerDrag();
+        finishPlayerDrag({ settle: false });
         setPending(null);
         if (longPressTimerRef.current !== null) {
           window.clearTimeout(longPressTimerRef.current);
@@ -578,7 +593,7 @@ export function useCourtPointerHandlers(
         longPressTimerRef.current = window.setTimeout(() => {
           longPressTimerRef.current = null;
           longPressTriggeredRef.current = true;
-          finishPlayerDrag();
+          finishPlayerDrag({ settle: false });
           if (onOpenContextMenu) {
             onOpenContextMenu(id, e.clientX, e.clientY);
           }
@@ -944,7 +959,7 @@ export function useCourtPointerHandlers(
           groupDragInitialRef.current = null;
         }
         queueDragMove(dragging.id, dragging.isDef, Math.round(x), Math.round(y));
-        finishPlayerDrag();
+        finishPlayerDrag({ settle: e.type !== 'pointercancel' });
         return;
       }
       if (pending) {

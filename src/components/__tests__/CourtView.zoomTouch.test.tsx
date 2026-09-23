@@ -139,6 +139,61 @@ describe('CourtView Touch & Zoom/Pan interaction tests', () => {
     expect(calls).toEqual(['move', 'commit', 'end']);
   });
 
+  // Relâcher alors que le joueur court encore : la fin de course (settling)
+  // appartient au même geste d'annulation — aucun déplacement historisé.
+  it('fin de course après relâchement : une seule entrée d’annulation, ordre move → commit → end', () => {
+    const calls: string[] = [];
+    const { container, props } = renderCourt({
+      onMoveAttacker: vi.fn(() => calls.push('history-move')),
+      onMoveAttackerDuringDrag: vi.fn(() => calls.push('move')),
+      onCommitPlayerDrag: vi.fn(() => calls.push('commit')),
+      onEndDefenderPursuit: vi.fn(() => calls.push('end')),
+    });
+    const svg = container.querySelector('svg')!;
+    const o1 = container.querySelector('g[data-id="O1"]')!;
+    fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
+    fireEvent.pointerUp(svg, { pointerId: 1, clientX: 420, clientY: 470 });
+    expect(props.onCommitPlayerDrag).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1500));
+    expect(props.onMoveAttacker).not.toHaveBeenCalled();
+    expect(props.onMoveAttackerDuringDrag).toHaveBeenLastCalledWith('O1', 420, 470);
+    expect(calls.filter((c) => c !== 'move')).toEqual(['commit', 'end']);
+  });
+
+  it('expose à l’historique une fonction qui termine la fin de course (Annuler pendant la course)', () => {
+    let flush: (() => void) | null = null;
+    const register = vi.fn((fn: (() => void) | null) => { flush = fn; });
+    const { container, props } = renderCourt({ registerPendingGestureFlush: register });
+    expect(register).toHaveBeenCalled();
+    const svg = container.querySelector('svg')!;
+    const o1 = container.querySelector('g[data-id="O1"]')!;
+    fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
+    fireEvent.pointerUp(svg, { pointerId: 1, clientX: 420, clientY: 470 });
+    act(() => vi.advanceTimersByTime(50));
+    expect(props.onCommitPlayerDrag).not.toHaveBeenCalled();
+    act(() => flush!());
+    expect(props.onMoveAttackerDuringDrag).toHaveBeenLastCalledWith('O1', 420, 470);
+    expect(props.onCommitPlayerDrag).toHaveBeenCalledTimes(1);
+    // Plus rien à terminer : sans effet, et la boucle d'animation est arrêtée.
+    act(() => flush!());
+    act(() => vi.advanceTimersByTime(1500));
+    expect(props.onCommitPlayerDrag).toHaveBeenCalledTimes(1);
+  });
+
+  it('changer de vue pendant la fin de course termine le geste (position, commit, poursuite)', () => {
+    const { container, props, unmount } = renderCourt();
+    const svg = container.querySelector('svg')!;
+    const o1 = container.querySelector('g[data-id="O1"]')!;
+    fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
+    fireEvent.pointerUp(svg, { pointerId: 1, clientX: 420, clientY: 470 });
+    act(() => vi.advanceTimersByTime(50));
+    expect(props.onCommitPlayerDrag).not.toHaveBeenCalled();
+    unmount();
+    expect(props.onMoveAttackerDuringDrag).toHaveBeenLastCalledWith('O1', 420, 470);
+    expect(props.onCommitPlayerDrag).toHaveBeenCalledTimes(1);
+    expect(props.onEndDefenderPursuit).toHaveBeenCalledTimes(1);
+  });
+
   it.each(['text', 'cut'] as const)('ne commit pas un drag inexistant avec l’outil %s', (tool) => {
     const { container, props } = renderCourt({ state: { ...makeInitialState(), tool } });
     const svg = container.querySelector('svg')!;

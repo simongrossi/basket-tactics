@@ -106,6 +106,7 @@ export function useAppState() {
     canRedo,
     beginPlayerDrag: beginHistoryDrag,
     commitPlayerDrag,
+    registerPendingFlush: registerPendingGestureFlush,
   } = useHistorizedState(makeAppInitialState);
   const [hydrated, setHydrated] = useState(false);
   const [hasRecovery, setHasRecovery] = useState(false);
@@ -795,6 +796,7 @@ export function useAppState() {
     moveDefender,
     beginPlayerDrag,
     commitPlayerDrag,
+    registerPendingGestureFlush,
     moveAttackerDuringDrag,
     moveDefenderDuringDrag,
     addAnnotation,

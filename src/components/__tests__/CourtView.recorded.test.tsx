@@ -85,6 +85,8 @@ describe('CourtView recording and replay interaction guards', () => {
     expect(props.onEndDefenderPursuit).not.toHaveBeenCalled();
     fireEvent.pointerMove(svg, { pointerId: 1, clientX: 340, clientY: 430 });
     fireEvent.pointerUp(svg, { pointerId: 1, clientX: 340, clientY: 430 });
+    // Relâchement normal : le joueur termine sa course à vitesse athlétique.
+    act(() => vi.advanceTimersByTime(1000));
     expect(props.onMoveAttackerDuringDrag).toHaveBeenCalledWith('O1', 340, 430);
     expect(props.onCommitPlayerDrag).toHaveBeenCalledTimes(1);
     expect(props.onEndDefenderPursuit).toHaveBeenCalledTimes(1);

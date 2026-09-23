@@ -76,7 +76,7 @@ describe('useCourtPointerHandlers drag physics', () => {
   }
 
   it('settles smoothly on pointerUp instead of teleporting instantaneously', () => {
-    const { hook, onMoveAttacker, onCommitPlayerDrag, onEndDefenderPursuit } = setup();
+    const { hook, onMoveAttacker, onMoveAttackerDuringDrag, onCommitPlayerDrag, onEndDefenderPursuit } = setup();
 
     const downEvent = {
       button: 0,
@@ -115,9 +115,13 @@ describe('useCourtPointerHandlers drag physics', () => {
       }
     });
 
-    expect(onMoveAttacker).toHaveBeenCalledWith('O1', 500, 400);
-    expect(onCommitPlayerDrag).toHaveBeenCalled();
-    expect(onEndDefenderPursuit).toHaveBeenCalled();
+    // La fin de course reste dans le même geste d'annulation : variante
+    // « pendant le drag », jamais le déplacement historisé (sinon un glisser
+    // créait deux entrées d'annulation).
+    expect(onMoveAttackerDuringDrag).toHaveBeenLastCalledWith('O1', 500, 400);
+    expect(onMoveAttacker).not.toHaveBeenCalled();
+    expect(onCommitPlayerDrag).toHaveBeenCalledTimes(1);
+    expect(onEndDefenderPursuit).toHaveBeenCalledTimes(1);
   });
 
   it('applies plant-and-cut braking on sharp angle direction changes (> 75 deg)', () => {

@@ -101,6 +101,9 @@ interface CourtViewProps {
   onCommitPlayerDrag?: () => void;
   onBeginDefenderPursuit?: (displayed?: Partial<Record<DefenderId, Point>>) => void;
   onEndDefenderPursuit?: () => void;
+  /** Cf. useHistorizedState.registerPendingFlush : termine une fin de course
+   *  avant un undo / redo / action historisée. */
+  registerPendingGestureFlush?: (flush: (() => void) | null) => void;
   onDefenderPursuitSettled?: (finished: DefenderPursuit) => void;
   onAddAnnotation: (a: Annotation, options?: AddAnnotationOptions) => void;
   onUpdateRule: (dId: DefenderId, patch: Partial<AppState['rules'][DefenderId]>) => void;
@@ -323,6 +326,7 @@ export function CourtView(props: CourtViewProps) {
       onCommitPlayerDrag: () => { if (!readOnlyRef.current) props.onCommitPlayerDrag?.(); },
       onBeginDefenderPursuit: (displayed) => { if (!readOnlyRef.current) props.onBeginDefenderPursuit?.(displayed); },
       onEndDefenderPursuit: () => { if (!readOnlyRef.current) props.onEndDefenderPursuit?.(); },
+      registerPendingGestureFlush: props.registerPendingGestureFlush,
       onMoveAttacker: (id, x, y) => { if (!readOnlyRef.current) props.onMoveAttacker(id, x, y); },
       onMoveDefender: (id, x, y) => { if (!readOnlyRef.current) props.onMoveDefender(id, x, y); },
       onMoveAttackerDuringDrag: props.onMoveAttackerDuringDrag && ((id, x, y) => {

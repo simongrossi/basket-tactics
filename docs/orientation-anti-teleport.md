@@ -34,6 +34,19 @@ snapshot initial, aucun saut si la distance dépasse 200 px, aucun abandon
 après 500 ms. Un nouveau glissement reprend là où les joueurs se trouvent.
 Les callbacks d'animation retardés sont plafonnés à 50 ms de déplacement.
 
+Côté attaquant, un relâchement normal laisse le joueur terminer sa course à
+vitesse athlétique (« settling »). Ce geste reste ouvert jusqu'à l'arrivée ;
+il est donc terminé tout de suite — position finale, commit, fin de poursuite —
+dans quatre cas : appui long (le menu s'ouvre sur un joueur arrêté), second
+doigt (pincement), `pointercancel`, et démontage du terrain (changement de
+vue). Toute action historisée (Annuler, Rétablir, « + étape »…) le termine
+aussi d'abord, via `registerPendingFlush` de `useHistorizedState` : sinon la
+course se poursuivait sur l'état annulé et effaçait la pile Rétablir. La fin
+de course passe par la variante « pendant le drag » (`completeDrag`) : un
+glisser = une seule entrée d'annulation. Régressions :
+[`CourtView.zoomTouch.test.tsx`](../src/components/__tests__/CourtView.zoomTouch.test.tsx),
+[`useHistorizedState.test.tsx`](../src/hooks/__tests__/useHistorizedState.test.tsx).
+
 Pour un glissement groupé de défenseurs, le joueur qui sert de référence
 et ses coéquipiers partent aussi des positions affichées. Repartir des
 anciens `defenseInitial` ou overrides produisait un décalage dès le premier

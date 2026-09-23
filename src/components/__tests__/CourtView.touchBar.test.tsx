@@ -2,7 +2,7 @@
 // U04 — chaque geste qui demandait une touche a un équivalent tactile.
 
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { createElement, type ComponentProps } from 'react';
 import { makeInitialState } from '@/lib/data/initial';
 import type { Annotation, AppState, Tool } from '@/lib/types';
@@ -75,6 +75,7 @@ const toggle = (name: string) => screen.getByRole('button', { name });
 
 describe('CourtView — barre tactile (U04)', () => {
   it('Aimanter remplace Ctrl/⌘ pendant le déplacement', () => {
+    vi.useFakeTimers();
     const { container, props } = renderCourt('move');
     const svg = container.querySelector('svg')!;
     const o1 = container.querySelector('g[data-id="O1"]')!;
@@ -84,16 +85,22 @@ describe('CourtView — barre tactile (U04)', () => {
 
     fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
     fireEvent.pointerUp(svg, { pointerId: 1, clientX: 305, clientY: 440 });
+    // Relâchement normal : fin de course à vitesse athlétique.
+    act(() => vi.advanceTimersByTime(1000));
+    vi.useRealTimers();
     // Ligne médiane (x = 300) à moins de 8 px : aimantée sans touche.
     expect(props.onMoveAttackerDuringDrag).toHaveBeenLastCalledWith('O1', 300, 440);
   });
 
   it('sans Aimanter, la position reste celle du doigt', () => {
+    vi.useFakeTimers();
     const { container, props } = renderCourt('move');
     const svg = container.querySelector('svg')!;
     const o1 = container.querySelector('g[data-id="O1"]')!;
     fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
     fireEvent.pointerUp(svg, { pointerId: 1, clientX: 305, clientY: 440 });
+    act(() => vi.advanceTimersByTime(1000));
+    vi.useRealTimers();
     expect(props.onMoveAttackerDuringDrag).toHaveBeenLastCalledWith('O1', 305, 440);
   });
 

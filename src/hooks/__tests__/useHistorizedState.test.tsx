@@ -103,4 +103,47 @@ describe('useHistorizedState', () => {
     });
     expect(result.current.stateRef.current.activeStep).toBe(7);
   });
+
+  // Geste encore en fin de course (settling) au moment d'un Annuler :
+  // l'historique termine d'abord le geste, puis l'annule en entier.
+  it('Annuler pendant un geste en cours : termine le geste puis l’annule d’un coup', () => {
+    const { result } = renderHook(() => useHistorizedState(makeInitialState));
+    let pending = true;
+    act(() => {
+      result.current.beginPlayerDrag();
+      result.current.setStateRaw((s) => patch(s, { activeStep: 2 }));
+      result.current.registerPendingFlush(() => {
+        if (!pending) return;
+        pending = false;
+        result.current.setStateRaw((s) => patch(s, { activeStep: 3 }));
+        result.current.commitPlayerDrag();
+      });
+    });
+    act(() => { result.current.undo(); });
+    expect(result.current.state.activeStep).toBe(0);
+    expect(result.current.canUndo).toBe(false);
+    expect(result.current.canRedo).toBe(true);
+    act(() => { result.current.redo(); });
+    expect(result.current.state.activeStep).toBe(3);
+  });
+
+  it('une action historisée pendant un geste en cours le termine d’abord', () => {
+    const { result } = renderHook(() => useHistorizedState(makeInitialState));
+    let pending = true;
+    act(() => {
+      result.current.beginPlayerDrag();
+      result.current.registerPendingFlush(() => {
+        if (!pending) return;
+        pending = false;
+        result.current.setStateRaw((s) => patch(s, { activeStep: 3 }));
+        result.current.commitPlayerDrag();
+      });
+    });
+    act(() => { result.current.setStateWithHistory((s) => patch(s, { playerCount: 3 } as Partial<AppState>)); });
+    expect(result.current.state.activeStep).toBe(3);
+    act(() => { result.current.undo(); });
+    expect(result.current.state.activeStep).toBe(3);
+    act(() => { result.current.undo(); });
+    expect(result.current.state.activeStep).toBe(0);
+  });
 });

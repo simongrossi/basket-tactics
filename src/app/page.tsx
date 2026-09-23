@@ -883,6 +883,7 @@ export default function Page() {
               onCommitPlayerDrag={() => { app.commitPlayerDrag(); manual.recordEvent({ type: 'end' }); }}
               onBeginDefenderPursuit={app.beginDefenderPursuit}
               onEndDefenderPursuit={app.endDefenderPursuit}
+              registerPendingGestureFlush={app.registerPendingGestureFlush}
               onDefenderPursuitSettled={app.finishDefenderPursuit}
               onAddAnnotation={handleAddAnnotation}
               onAddTextNote={app.addTextNote}
