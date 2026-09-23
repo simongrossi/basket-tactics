@@ -386,7 +386,7 @@ export default function Page() {
     }) });
   }, [app.state, displayedCourt, matchLoop.matchState, playbackT, scrubT, playbackSpeed]);
 
-  const handleImportSituation = useCallback((snapshot: SituationSnapshot) => {
+  const handleImportSituation = useCallback((snapshot: SituationSnapshot, saveOption?: { folderId: string; name: string }) => {
     if (snapshot.recording) {
       matchLoop.stop();
       setIsPlaying(false);
@@ -399,6 +399,13 @@ export default function Page() {
       return true;
     }
     if (!app.importState(snapshot.state)) return false;
+    if (saveOption?.name?.trim()) {
+      const targetFolderId = saveOption.folderId || lib.library.folders[0]?.id;
+      if (targetFolderId) {
+        const id = lib.saveSystem(snapshot.state, targetFolderId, saveOption.name.trim());
+        app.patch({ librarySystemId: id });
+      }
+    }
     manual.closeReplay();
     matchLoop.stop();
     setIsPlaying(!!snapshot.animation);
@@ -412,7 +419,7 @@ export default function Page() {
     setIsPlayerMode(false);
     sidebar.setActiveView('court');
     return true;
-  }, [app, matchLoop, sidebar, manual.load, manual.closeReplay]);
+  }, [app, lib, matchLoop, sidebar, manual.load, manual.closeReplay]);
 
   const handleImport = useCallback(() => {
     fileInputRef.current?.click();
@@ -1060,6 +1067,7 @@ export default function Page() {
         <SituationCodeModal
           mode={situationDialog.mode}
           snapshot={situationDialog.snapshot}
+          libraryFolders={lib.library.folders.map(f => ({ id: f.id, name: f.name }))}
           onImport={handleImportSituation}
           onClose={() => setSituationDialog(null)}
         />

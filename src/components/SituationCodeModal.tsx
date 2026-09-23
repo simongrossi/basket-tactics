@@ -8,11 +8,12 @@ import { SIDEBAR } from '@/components/sidebar/tokens';
 interface Props {
   mode: 'copy' | 'animation' | 'gestures' | 'import';
   snapshot: SituationSnapshot;
-  onImport: (snapshot: SituationSnapshot) => boolean;
+  libraryFolders?: Array<{ id: string; name: string }>;
+  onImport: (snapshot: SituationSnapshot, saveOption?: { folderId: string; name: string }) => boolean;
   onClose: () => void;
 }
 
-export function SituationCodeModal({ mode, snapshot, onImport, onClose }: Props) {
+export function SituationCodeModal({ mode, snapshot, libraryFolders, onImport, onClose }: Props) {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(mode !== 'import');
   const [error, setError] = useState('');
@@ -25,6 +26,9 @@ export function SituationCodeModal({ mode, snapshot, onImport, onClose }: Props)
   const [fromCurrentPosition, setFromCurrentPosition] = useState(false);
   const importingAnimation = !copying && /^BTA\d+:/.test(code.trim());
   const importingGestures = !copying && /^BTG\d+:/.test(code.trim());
+  const [saveToLibrary, setSaveToLibrary] = useState(false);
+  const [systemName, setSystemName] = useState('');
+  const [selectedFolderId, setSelectedFolderId] = useState(libraryFolders?.[0]?.id ?? '');
 
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
@@ -91,13 +95,27 @@ export function SituationCodeModal({ mode, snapshot, onImport, onClose }: Props)
     }
   };
 
+  useEffect(() => {
+    if (libraryFolders?.[0]?.id && !selectedFolderId) {
+      setSelectedFolderId(libraryFolders[0].id);
+    }
+  }, [libraryFolders, selectedFolderId]);
+
   const importCode = async () => {
+    if (saveToLibrary && !systemName.trim()) {
+      setError('Veuillez indiquer un nom pour le système.');
+      return;
+    }
     setBusy(true);
     setError('');
     setMessage('');
     try {
       const result = await decodeSituationCode(code);
-      if (onImport(result)) onClose();
+      const saveOption = saveToLibrary
+        ? { folderId: selectedFolderId || libraryFolders?.[0]?.id || '', name: systemName.trim() }
+        : undefined;
+      const success = saveOption ? onImport(result, saveOption) : onImport(result);
+      if (success) onClose();
       else setError('Import annulé. Votre situation actuelle est conservée.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossible de charger cette situation.');
@@ -125,7 +143,7 @@ export function SituationCodeModal({ mode, snapshot, onImport, onClose }: Props)
           }
           if (e.key === 'Tab') {
             const elements = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('*') ?? [])
-              .filter(el => (el.tagName === 'BUTTON' || el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') && !(el as HTMLButtonElement).disabled);
+              .filter(el => (el.tagName === 'BUTTON' || el.tagName === 'TEXTAREA' || el.tagName === 'INPUT' || el.tagName === 'SELECT') && !(el as HTMLButtonElement).disabled);
             if (!elements?.length) return;
             const first = elements[0];
             const last = elements[elements.length - 1];
@@ -173,6 +191,67 @@ export function SituationCodeModal({ mode, snapshot, onImport, onClose }: Props)
           onChange={e => { setCode(e.target.value); setError(''); setMessage(''); }}
           style={{ boxSizing: 'border-box', width: '100%', minHeight: 160, resize: 'vertical', border: `1px solid ${SIDEBAR.textDim}`, borderRadius: 6, padding: 10, background: SIDEBAR.bgHover, color: SIDEBAR.text, fontFamily: 'monospace', fontSize: 12, overflowWrap: 'anywhere' }}
         />
+        {!copying && !importingGestures && (
+          <div style={{ marginTop: 12, padding: '10px 12px', background: SIDEBAR.bgActive, borderRadius: 8, border: `1px solid ${SIDEBAR.border}` }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500, userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                aria-label="Enregistrer aussi dans la bibliothèque (presets)"
+                checked={saveToLibrary}
+                onChange={e => {
+                  setSaveToLibrary(e.target.checked);
+                  if (e.target.checked && !systemName.trim()) {
+                    setSystemName('Système importé');
+                  }
+                  setError('');
+                }}
+              />
+              <span>Enregistrer aussi dans la bibliothèque (presets)</span>
+            </label>
+            {saveToLibrary && (
+              <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: libraryFolders && libraryFolders.length > 1 ? '1fr 1fr' : '1fr', gap: 10 }}>
+                <div>
+                  <label htmlFor="import-system-name" style={{ display: 'block', fontSize: 12, color: SIDEBAR.textMuted, marginBottom: 4 }}>
+                    Nom du système
+                  </label>
+                  <input
+                    id="import-system-name"
+                    type="text"
+                    value={systemName}
+                    placeholder="Ex: 5c5 Cornes PnR"
+                    onChange={e => { setSystemName(e.target.value); setError(''); }}
+                    style={{
+                      width: '100%', boxSizing: 'border-box', padding: '6px 10px',
+                      background: SIDEBAR.bgHover, border: `1px solid ${SIDEBAR.textDim}`,
+                      borderRadius: 6, color: SIDEBAR.text, fontSize: 13,
+                    }}
+                  />
+                </div>
+                {libraryFolders && libraryFolders.length > 1 && (
+                  <div>
+                    <label htmlFor="import-system-folder" style={{ display: 'block', fontSize: 12, color: SIDEBAR.textMuted, marginBottom: 4 }}>
+                      Dossier
+                    </label>
+                    <select
+                      id="import-system-folder"
+                      value={selectedFolderId || libraryFolders[0].id}
+                      onChange={e => setSelectedFolderId(e.target.value)}
+                      style={{
+                        width: '100%', boxSizing: 'border-box', padding: '6px 10px',
+                        background: SIDEBAR.bgHover, border: `1px solid ${SIDEBAR.textDim}`,
+                        borderRadius: 6, color: SIDEBAR.text, fontSize: 13,
+                      }}
+                    >
+                      {libraryFolders.map(f => (
+                        <option key={f.id} value={f.id}>{f.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         {error && <p role="alert" style={{ color: '#fca5a5', fontSize: 13 }}>{error}</p>}
         {message && <p role="status" style={{ color: '#86efac', fontSize: 13 }}>{message}</p>}
         <div style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
@@ -181,7 +260,17 @@ export function SituationCodeModal({ mode, snapshot, onImport, onClose }: Props)
             <button type="button" style={primaryStyle} disabled={busy || !code} onClick={() => void copyCode()}>{busy ? 'Création…' : 'Copier le code'}</button>
           </> : <>
             <button type="button" style={buttonStyle} disabled={busy} onClick={() => void pasteCode()}>Coller le code</button>
-            <button type="button" style={primaryStyle} disabled={busy || !code.trim()} onClick={() => void importCode()}>{busy ? 'Chargement…' : importingGestures ? 'Rejouer les gestes' : importingAnimation ? 'Charger et lire l’animation' : 'Charger la situation'}</button>
+            <button type="button" style={primaryStyle} disabled={busy || !code.trim()} onClick={() => void importCode()}>
+              {busy
+                ? 'Chargement…'
+                : importingGestures
+                ? 'Rejouer les gestes'
+                : saveToLibrary
+                ? 'Charger et enregistrer'
+                : importingAnimation
+                ? 'Charger et lire l’animation'
+                : 'Charger la situation'}
+            </button>
           </>}
         </div>
       </div>

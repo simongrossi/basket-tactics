@@ -16,10 +16,14 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
-function setup(mode: 'copy' | 'animation' | 'gestures' | 'import', snapshot: SituationSnapshot = { state: makeAppInitialState() }) {
-  const onImport = vi.fn(() => true);
+function setup(
+  mode: 'copy' | 'animation' | 'gestures' | 'import',
+  snapshot: SituationSnapshot = { state: makeAppInitialState() },
+  libraryFolders?: Array<{ id: string; name: string }>,
+) {
+  const onImport = vi.fn((_snapshot: SituationSnapshot, _saveOption?: { folderId: string; name: string }) => true);
   const onClose = vi.fn();
-  return { ...render(<SituationCodeModal mode={mode} snapshot={snapshot} onImport={onImport} onClose={onClose} />), onImport, onClose, snapshot };
+  return { ...render(<SituationCodeModal mode={mode} snapshot={snapshot} libraryFolders={libraryFolders} onImport={onImport} onClose={onClose} />), onImport, onClose, snapshot };
 }
 
 describe('SituationCodeModal', () => {
@@ -146,5 +150,59 @@ describe('SituationCodeModal', () => {
     expect(document.activeElement).toBe(ui.getByRole('button', { name: 'Coller le code' }));
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
     expect(ui.onClose).toHaveBeenCalledOnce();
+  });
+
+  it('allows saving directly to presets/library when importing with custom name and selected folder', async () => {
+    const folders = [
+      { id: 'f-1', name: 'Mes systèmes' },
+      { id: 'f-2', name: 'Fin de match' },
+    ];
+    const ui = setup('import', { state: makeAppInitialState() }, folders);
+    vi.mocked(decodeSituationCode).mockResolvedValue(ui.snapshot);
+
+    fireEvent.change(ui.getByLabelText('Code de situation'), { target: { value: 'BT1:example' } });
+
+    const checkbox = ui.getByRole('checkbox', { name: /Enregistrer aussi dans la bibliothèque/i });
+    expect((checkbox as HTMLInputElement).checked).toBe(false);
+
+    fireEvent.click(checkbox);
+    expect((checkbox as HTMLInputElement).checked).toBe(true);
+
+    const nameInput = ui.getByLabelText(/Nom du système/i) as HTMLInputElement;
+    expect(nameInput.value).toBe('Système importé');
+
+    fireEvent.change(nameInput, { target: { value: 'Cornes PnR' } });
+
+    const folderSelect = ui.getByLabelText(/Dossier/i) as HTMLSelectElement;
+    expect(folderSelect.value).toBe('f-1');
+    fireEvent.change(folderSelect, { target: { value: 'f-2' } });
+
+    const submitBtn = ui.getByRole('button', { name: 'Charger et enregistrer' });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => expect(ui.onImport).toHaveBeenCalledExactlyOnceWith(ui.snapshot, {
+      folderId: 'f-2',
+      name: 'Cornes PnR',
+    }));
+    expect(ui.onClose).toHaveBeenCalledOnce();
+  });
+
+  it('validates system name when save to library is checked and prevented on empty name', async () => {
+    const ui = setup('import', { state: makeAppInitialState() });
+    fireEvent.change(ui.getByLabelText('Code de situation'), { target: { value: 'BT1:example' } });
+
+    const checkbox = ui.getByRole('checkbox', { name: /Enregistrer aussi dans la bibliothèque/i });
+    fireEvent.click(checkbox);
+
+    const nameInput = ui.getByLabelText(/Nom du système/i) as HTMLInputElement;
+    fireEvent.change(nameInput, { target: { value: '   ' } });
+
+    const submitBtn = ui.getByRole('button', { name: 'Charger et enregistrer' });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => expect(ui.getByRole('alert').textContent).toContain('Veuillez indiquer un nom'));
+    expect(decodeSituationCode).not.toHaveBeenCalled();
+    expect(ui.onImport).not.toHaveBeenCalled();
+    expect(ui.onClose).not.toHaveBeenCalled();
   });
 });
