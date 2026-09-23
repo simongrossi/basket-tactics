@@ -148,3 +148,27 @@ export const DEFENSE_PRESETS: DefensePreset[] = [
 export function findDefensePreset(id: string): DefensePreset | undefined {
   return DEFENSE_PRESETS.find((p) => p.id === id);
 }
+
+/**
+ * « Placement défensif avancé » — 4 couches de positionnement livrées en
+ * juillet 2026 (plan comportements physiques P1/P2), cumulables avec
+ * n'importe quel style : split line côté faible (P1.1), resserrement sur un
+ * drive naissant (P1.4), pas dans la ligne de passe (P2.1), deny du
+ * renversement au nail (P2.2). Un seul interrupteur côté coach.
+ */
+export const ADVANCED_PLACEMENT_FLAGS = [
+  'helpSideStanceEnabled',
+  'weakSideShrinkEnabled',
+  'jumpPassingLanesEnabled',
+  'denyReversalEnabled',
+] as const;
+
+export function isAdvancedPlacementOn(state: AppState): boolean {
+  return ADVANCED_PLACEMENT_FLAGS.every((flag) => !!state[flag]);
+}
+
+export function advancedPlacementPatch(on: boolean): Partial<AppState> {
+  const patch: Partial<AppState> = {};
+  ADVANCED_PLACEMENT_FLAGS.forEach((flag) => { patch[flag] = on; });
+  return patch;
+}

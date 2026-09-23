@@ -20,6 +20,16 @@ Effort : **S** ≤ ½ journée · **M** 1-2 jours · **L** chantier multi-sessio
 
 ---
 
+## Activation par défaut (2026-09-23)
+
+P3.3, P3.1 (+ poursuite V4) et P3.5 font partie du profil « Réaliste »
+(`PRESET_REALISTIC`, profil par défaut de l'application) ; les options
+restent désactivables une à une. P1.1, P1.4, P2.1 et P2.2 sont regroupées
+sous la case coach « Placement défensif avancé » (`advancedPlacementPatch`,
+`defensePresets.ts`). Garde-fou : `realisticDefenseGuard.test.ts`.
+
+---
+
 ## P0 — Fondation (à faire avant tout le reste)
 
 ### ✅ P0.1 — Dé-doublonner la logique ball-side / weak-side / aide 〔M〕 (livré 2026-07-01)

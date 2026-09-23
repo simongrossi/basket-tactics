@@ -51,4 +51,24 @@ describe('resolveRealismFlags', () => {
     expect(r.attackerVelocityProfileEnabled).toBe(false);
     expect(r.footworkRulesEnabled).toBe(false);
   });
+
+  it('profil realistic : réalisme défensif (congestion, départ progressif, poursuite anticipée) actif', () => {
+    const r = resolveRealismFlags({ ...makeInitialState(), realismProfile: 'realistic' });
+    expect(r.congestionPenaltyEnabled).toBe(true);
+    expect(r.defenderPlaybackAccelerationEnabled).toBe(true);
+    expect(r.defenderLeadPursuitEnabled).toBe(true);
+  });
+
+  it('profil realistic : un coach peut désactiver un comportement défensif', () => {
+    const r = resolveRealismFlags({ ...makeInitialState(), realismProfile: 'realistic', congestionPenaltyEnabled: false });
+    expect(r.congestionPenaltyEnabled).toBe(false);
+    expect(r.defenderPlaybackAccelerationEnabled).toBe(true);
+  });
+
+  it('profil legacy : réalisme défensif désactivé sauf opt-in explicite', () => {
+    const r = resolveRealismFlags({ ...makeInitialState(), defenderLeadPursuitEnabled: true });
+    expect(r.congestionPenaltyEnabled).toBe(false);
+    expect(r.defenderPlaybackAccelerationEnabled).toBe(false);
+    expect(r.defenderLeadPursuitEnabled).toBe(true);
+  });
 });

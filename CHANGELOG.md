@@ -6,6 +6,22 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Réalisme défensif visible par les coachs (2026-09-23)
+
+- **Profil « Réaliste »** (profil par défaut de l'application) : la
+  congestion en trafic (P3.3), le départ progressif en lecture (P3.1 +
+  poursuite V4) et la poursuite anticipée (P3.5) en font désormais partie
+  (`realismProfile.ts`). Le moteur lit les valeurs résolues ; un réglage
+  explicitement décoché reste prioritaire. Profil « Tactique » inchangé.
+- **« Placement défensif avancé »** : une case au niveau Coach, sous « Style »
+  (défense individuelle), active ensemble split line côté faible (P1.1),
+  resserrement sur drive naissant (P1.4), pas dans la ligne de passe (P2.1)
+  et deny du renversement (P2.2). Cumulable avec n'importe quel style.
+- Garde-fou `realisticDefenseGuard.test.ts` : les 31 modèles classiques, profil
+  Réaliste + placement avancé, 34 px et sauts ≤ 18 px sur toute la lecture.
+- Cache de `effectiveDefensePositions` : la congestion fait partie des
+  dépendances.
+
 ### Partage par code, capture des gestes et continuité défensive (2026-09-23)
 
 - Codes **BT1** pour la situation complète et son instantané de diagnostic,

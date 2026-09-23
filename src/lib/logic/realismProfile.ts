@@ -18,6 +18,11 @@ export const PRESET_REALISTIC = {
   attackerMomentum: 0.15,
   attackerVelocityProfileEnabled: true,
   footworkRulesEnabled: true,
+  // Réalisme défensif (2026-09-22) : congestion en trafic (P3.3), départ
+  // progressif en lecture (P3.1 + poursuite V4) et poursuite anticipée (P3.5).
+  congestionPenaltyEnabled: true,
+  defenderPlaybackAccelerationEnabled: true,
+  defenderLeadPursuitEnabled: true,
 } as const;
 
 export interface ResolvedRealismFlags {
@@ -27,6 +32,9 @@ export interface ResolvedRealismFlags {
   attackerMomentum: number | undefined;
   attackerVelocityProfileEnabled: boolean;
   footworkRulesEnabled: boolean;
+  congestionPenaltyEnabled: boolean;
+  defenderPlaybackAccelerationEnabled: boolean;
+  defenderLeadPursuitEnabled: boolean;
 }
 
 export function resolveRealismFlags(state: AppState): ResolvedRealismFlags {
@@ -45,6 +53,12 @@ export function resolveRealismFlags(state: AppState): ResolvedRealismFlags {
         state.attackerVelocityProfileEnabled ?? PRESET_REALISTIC.attackerVelocityProfileEnabled,
       footworkRulesEnabled:
         state.footworkRulesEnabled ?? PRESET_REALISTIC.footworkRulesEnabled,
+      congestionPenaltyEnabled:
+        state.congestionPenaltyEnabled ?? PRESET_REALISTIC.congestionPenaltyEnabled,
+      defenderPlaybackAccelerationEnabled:
+        state.defenderPlaybackAccelerationEnabled ?? PRESET_REALISTIC.defenderPlaybackAccelerationEnabled,
+      defenderLeadPursuitEnabled:
+        state.defenderLeadPursuitEnabled ?? PRESET_REALISTIC.defenderLeadPursuitEnabled,
     };
   }
   // legacy / undefined — flags bruts, bit-identiques au comportement actuel.
@@ -55,5 +69,8 @@ export function resolveRealismFlags(state: AppState): ResolvedRealismFlags {
     attackerMomentum: state.attackerMomentum,
     attackerVelocityProfileEnabled: !!state.attackerVelocityProfileEnabled,
     footworkRulesEnabled: !!state.footworkRulesEnabled,
+    congestionPenaltyEnabled: !!state.congestionPenaltyEnabled,
+    defenderPlaybackAccelerationEnabled: !!state.defenderPlaybackAccelerationEnabled,
+    defenderLeadPursuitEnabled: !!state.defenderLeadPursuitEnabled,
   };
 }

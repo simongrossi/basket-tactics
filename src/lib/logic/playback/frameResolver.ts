@@ -1515,7 +1515,8 @@ function applyDefenderMotionInertia(params: {
 }): DefenderMotionInertiaResult {
   const stats: Partial<Record<DefenderId, DefenderMotionStat>> = {};
   let applied = false;
-  const rampAccel = params.state.defenderPlaybackAccelerationEnabled && params.dtSec && params.dtSec > 0
+  const realismFlags = resolveRealismFlags(params.state);
+  const rampAccel = realismFlags.defenderPlaybackAccelerationEnabled && params.dtSec && params.dtSec > 0
     ? (params.state.defenderPlaybackAcceleration ?? DEFAULT_DEFENDER_PLAYBACK_ACCELERATION) * PX_PER_M
     : 0;
   params.defenderIds.forEach((id) => {
@@ -1551,7 +1552,7 @@ function applyDefenderMotionInertia(params: {
         // rencontre (place idéale + vitesse de l'homme × temps de rattrapage,
         // plafonné) plutôt que la place actuelle — couper l'angle au lieu de
         // courir derrière. Sans retard, ce bloc n'est pas atteint.
-        const manNow = params.state.defenderLeadPursuitEnabled ? params.off[current.matchedTo] : undefined;
+        const manNow = realismFlags.defenderLeadPursuitEnabled ? params.off[current.matchedTo] : undefined;
         const manPrev = params.prevFrame.off[current.matchedTo];
         if (manNow && manPrev) {
           const reach = previousSpeed + accel * dt;

@@ -97,6 +97,7 @@ interface EffectiveDefenseCacheDeps {
   attackingDirection: AppState['attackingDirection'];
   defenseScriptedDirectivesEnabled: AppState['defenseScriptedDirectivesEnabled'];
   defensiveRouting: AppState['defensiveRouting'];
+  congestion: boolean;
 }
 
 /** Untimed legacy scenarios keep their historical target-to-target model.
@@ -141,6 +142,7 @@ function effectiveDefenseDeps(state: AppState, stepIdx: number): EffectiveDefens
     attackingDirection: state.attackingDirection,
     defenseScriptedDirectivesEnabled: state.defenseScriptedDirectivesEnabled,
     defensiveRouting: state.defensiveRouting,
+    congestion: resolveRealismFlags(state).congestionPenaltyEnabled,
   };
 }
 
@@ -472,10 +474,10 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
     defenderIds.forEach((other) => {
       if (other !== dId) frictionObstacles.push(prevPositions[other]);
     });
-    // P3.3 (opt-in) — densité : chaque corps supplémentaire sur le trajet
+    // P3.3 (profil Réaliste ou opt-in) — densité : chaque corps supplémentaire sur le trajet
     // ralentit encore (traverser la raquette pleine ≠ frôler un joueur).
     const friction = proximityFriction(from, to, frictionObstacles)
-      * (state.congestionPenaltyEnabled ? congestionFactor(from, to, frictionObstacles) : 1);
+      * (realism.congestionPenaltyEnabled ? congestionFactor(from, to, frictionObstacles) : 1);
 
     // Closeout : le défenseur du nouveau porteur bénéficie d'un bump de vitesse.
     const closingOut = isCloseoutTransition && targets[dId].isCarrierDefender;

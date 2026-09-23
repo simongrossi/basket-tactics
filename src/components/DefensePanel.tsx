@@ -17,10 +17,11 @@ import type {
   Step,
 } from '@/lib/types';
 import { Panel, AccordionSection, Slider, CheckboxLine, Button, COLORS, InfoTooltip } from './ui';
-import { DEFENSE_PRESETS, type DefensePreset } from '@/lib/data/defensePresets';
+import { DEFENSE_PRESETS, advancedPlacementPatch, isAdvancedPlacementOn, type DefensePreset } from '@/lib/data/defensePresets';
 import type { UserDefensePreset } from '@/lib/data/library';
 import { SystemSelector, type SystemChoice } from './defense/SystemSelector';
 import { getActiveDefenderIds } from '@/lib/logic/players';
+import { resolveRealismFlags } from '@/lib/logic/realismProfile';
 
 const HELP_TRIGGERS_TOOLTIP =
   "Les triggers d'aide sont les conditions qui autorisent l'aide automatique. Quand l'un d'eux est actif, les défenseurs avec aide % > 0 peuvent quitter leur homme selon leur priorité.";
@@ -79,6 +80,8 @@ export function DefensePanel(props: DefensePanelProps) {
   const { state } = props;
   const { analysis } = useInterfaceLevel();
   const c = COLORS.defense;
+  // Valeurs réellement appliquées (profil Réaliste + choix explicites).
+  const realismFlags = resolveRealismFlags(state);
   const isMan = state.defenseSystem === 'man';
   const defenderIds = getActiveDefenderIds(state.playerCount);
   const scriptedOn = props.scriptedDefenseEnabled !== false;
@@ -163,6 +166,14 @@ export function DefensePanel(props: DefensePanelProps) {
               ))}
             </select>
           </div>
+        )}
+        {isMan && (
+          <CheckboxLine
+            checked={isAdvancedPlacementOn(state)}
+            label="Placement défensif avancé"
+            onChange={(v) => props.onPatch(advancedPlacementPatch(v))}
+            title="S'ajoute au style choisi. Côté faible : le défenseur se place sur l'axe du panier, un pied dans la raquette (voit ballon et homme). Quand le porteur attaque le panier, l'aide se resserre avant même le drive. Pendant une passe, le défenseur proche fait un pas dans la ligne. Ballon sur l'aile, le défenseur du joueur en tête conteste le renversement."
+          />
         )}
 
       </div>
@@ -899,19 +910,19 @@ export function DefensePanel(props: DefensePanelProps) {
                 title="Quand le porteur commence à gagner du terrain vers le panier (sous le seuil du trigger drive), les défenseurs côté faible approfondissent leur aide vers la raquette — pré-rotation avant l'aide active."
               />
               <CheckboxLine
-                checked={!!state.congestionPenaltyEnabled}
+                checked={realismFlags.congestionPenaltyEnabled}
                 label="ralenti dans la foule (P3.3)"
                 onChange={(v) => props.onPatch({ congestionPenaltyEnabled: v })}
                 title="Un défenseur qui doit traverser plusieurs joueurs (raquette encombrée, trafic d'écrans) perd plus de vitesse que s'il en frôle un seul. Jamais figé : au pire ~55 % de sa vitesse."
               />
               <CheckboxLine
-                checked={!!state.defenderPlaybackAccelerationEnabled}
+                checked={realismFlags.defenderPlaybackAccelerationEnabled}
                 label="départ progressif en lecture (P3.1)"
                 onChange={(v) => props.onPatch({ defenderPlaybackAccelerationEnabled: v })}
                 title="Pendant la lecture animée, un défenseur à l'arrêt accélère progressivement (≈ 4,5 m/s², environ 6 m/s atteints en 1,3 s) au lieu de partir instantanément à pleine vitesse. L'accélération dépend du profil (élite / lent), des appuis (avancer, pas chassés, reculer) et du regard (voit-il son homme partir ?). Hors contact d'écran et placements manuels."
               />
               <CheckboxLine
-                checked={!!state.defenderLeadPursuitEnabled}
+                checked={realismFlags.defenderLeadPursuitEnabled}
                 label="poursuite anticipée (P3.5)"
                 onChange={(v) => props.onPatch({ defenderLeadPursuitEnabled: v })}
                 title="Avec le départ progressif : un défenseur en retard coupe l'angle vers le point de rencontre avec son homme (surtout quand celui-ci change de direction) au lieu de courir derrière lui."
