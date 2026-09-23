@@ -46,6 +46,7 @@ interface CourtMenusProps {
   // Defender ctx menu
   onUpdateRule: (dId: DefenderId, patch: Partial<AppState['rules'][DefenderId]>) => void;
   onApplyDefenderProfile: (dId: DefenderId, profile: DefenderProfile) => void;
+  onSetDefenderSpeedProfile?: (dId: DefenderId, profile: 'elite' | 'standard' | 'lent' | undefined) => void;
   onClearDefenseOverride: (dId: DefenderId) => void;
   // Attacker ctx menu
   onSetBallCarrier: (oId: AttackerId) => void;
@@ -79,6 +80,7 @@ export function CourtMenus(props: CourtMenusProps) {
     onCloseZoneRegionMenu,
     onUpdateRule,
     onApplyDefenderProfile,
+    onSetDefenderSpeedProfile,
     onClearDefenseOverride,
     onSetBallCarrier,
     onSetForcedScreener,
@@ -111,6 +113,8 @@ export function CourtMenus(props: CourtMenusProps) {
           onSetActionTimingAnchor={onSetActionTimingAnchor}
           onUpdate={(p) => onUpdateRule(ctxMenu.dId, p)}
           onApplyProfile={(profile) => onApplyDefenderProfile(ctxMenu.dId, profile)}
+          speedProfile={state.defenderSpeedProfiles?.[ctxMenu.dId]}
+          onSetSpeedProfile={onSetDefenderSpeedProfile && ((p) => onSetDefenderSpeedProfile(ctxMenu.dId, p))}
           onClearOverride={() => onClearDefenseOverride(ctxMenu.dId)}
           onClose={onCloseCtxMenu}
           name={state.playerNames?.[ctxMenu.dId]}

@@ -151,4 +151,17 @@ describe('defenseTransforms', () => {
       expect(s1.steps[0].defenseOverrides).toBeUndefined();
     });
   });
+
+  describe('setDefenderSpeedProfile', () => {
+    it('règle puis retire le profil athlétique d’un seul défenseur', () => {
+      const s0 = makeInitialState();
+      const s1 = defenseTx.setDefenderSpeedProfile(s0, 'D5', 'lent');
+      expect(s1.defenderSpeedProfiles).toEqual({ D5: 'lent' });
+      const s2 = defenseTx.setDefenderSpeedProfile(s1, 'D1', 'elite');
+      expect(s2.defenderSpeedProfiles).toEqual({ D5: 'lent', D1: 'elite' });
+      const s3 = defenseTx.setDefenderSpeedProfile(s2, 'D5', undefined);
+      expect(s3.defenderSpeedProfiles).toEqual({ D1: 'elite' });
+      expect(s0.defenderSpeedProfiles).toBeUndefined();
+    });
+  });
 });

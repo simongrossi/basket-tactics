@@ -6,6 +6,23 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Réalisme : réglages coach + freinage défensif (2026-09-23)
+
+- **« Déplac. : réalistes / idéaux »** au niveau Coach (panneau Défense, sous
+  « Style ») : même réglage que Paramètres › Physique (`realismProfile`),
+  jusqu'ici réservé au niveau Développement. « Idéaux » pour enseigner la
+  bonne position sans retard, « réalistes » pour montrer le match.
+- **Athlétisme par défenseur** (élite / standard / lent) dans son menu :
+  `defenderSpeedProfiles` était utilisé par le moteur (vitesse max,
+  accélération en lecture) sans aucun réglage à l'écran.
+- **Freinage défensif en lecture** : vitesse bornée à
+  `v_homme + √(2·b·d)` (b = 7 m/s²) — le défenseur ralentit en arrivant sur
+  sa place au lieu de s'y arrêter net, sans freiner tant que son homme court
+  (la première version, relative à une cible immobile, imposait ~1,8 m de
+  retard permanent derrière un homme lancé : corrigé avant commit). Retards
+  mesurés inchangés (PNR central 1,83 m max, écart final nul).
+- Suite 2 697 / 2 697.
+
 ### Corrections — fin de course après relâchement (2026-09-23)
 
 Suite de `7b1ac6b` (settle du drag), qui faisait échouer 6 tests et

@@ -20,7 +20,10 @@ passe après). Ordre de travail :
    lecture (profil, appuis, regard — 2026-09-22 ; fatigue laissée au match simulé) ;
    P4.3 / P4.4 à instruire séparément. **Activé pour les coachs le 2026-09-23** :
    mouvement dans le profil « Réaliste », placement via la case « Placement
-   défensif avancé ».
+   défensif avancé ». **2026-09-23** : bascule réalistes / idéaux et athlétisme
+   par défenseur au niveau Coach, freinage défensif en lecture.
+   Ordre suivant (validé) : main forte fonctionnelle, lectures anti-zone →
+   modèle de contact (box-out / rebond, écrans illégaux, fautes) → P4.3 / P4.4.
 2. **Axe coaching** (tableau § « Coaching — usage entraînement » ci-dessous) :
    quiz / lecture cachée → clés d'enseignement → fiche d'une page par système
    → effectif réutilisable → tableau blanc.

@@ -175,6 +175,43 @@ export function DefensePanel(props: DefensePanelProps) {
             title="S'ajoute au style choisi. Côté faible : le défenseur se place sur l'axe du panier, un pied dans la raquette (voit ballon et homme). Quand le porteur attaque le panier, l'aide se resserre avant même le drive. Pendant une passe, le défenseur proche fait un pas dans la ligne. Ballon sur l'aile, le défenseur du joueur en tête conteste le renversement."
           />
         )}
+        {/* Réaliste / Idéal — même réglage que Paramètres › Physique, exposé au
+            coach : « idéal » pour enseigner la bonne position sans retard,
+            « réaliste » pour montrer ce qui se passe vraiment. */}
+        <div role="group" aria-label="Déplacements" style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+          <span style={{ fontSize: 10, color: '#cbd5e1', flex: '0 0 48px' }}>Déplac.</span>
+          {([
+            ['realistic', 'réalistes', "Accélération, freinage, trafic et poursuite : les défenseurs peuvent être en retard, comme en match."],
+            ['legacy', 'idéaux', 'Positions idéales, sans retard physique : pour enseigner où chacun doit être.'],
+          ] as const).map(([profile, label, help]) => {
+            const active = profile === 'realistic'
+              ? state.realismProfile === 'realistic'
+              : state.realismProfile !== 'realistic';
+            return (
+              <button
+                key={profile}
+                type="button"
+                aria-pressed={active}
+                title={help}
+                onClick={() => props.onPatch({ realismProfile: profile })}
+                className="bt-touch"
+                style={{
+                  flex: '1 1 0%',
+                  fontSize: 11,
+                  padding: '4px 6px',
+                  borderRadius: 6,
+                  border: `1px solid ${active ? c.accent : '#475569'}`,
+                  background: active ? '#1d4ed8' : 'transparent',
+                  color: active ? '#fff' : '#cbd5e1',
+                  cursor: 'pointer',
+                  fontWeight: active ? 700 : 500,
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
 
       </div>
 

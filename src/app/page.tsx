@@ -892,6 +892,7 @@ export default function Page() {
               onUpdateRule={app.updateRule}
               onClearDefenseOverride={app.clearDefenseOverride}
               onApplyDefenderProfile={app.applyDefenderProfile}
+              onSetDefenderSpeedProfile={app.setDefenderSpeedProfile}
               onSetBallCarrier={app.setBallCarrier}
               onSetForcedScreener={app.setForcedScreener}
               onClearAnnotationsFor={app.clearAnnotationsFor}

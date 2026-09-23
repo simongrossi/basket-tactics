@@ -207,6 +207,9 @@ export interface DefenderMenuProps {
   onSetActionTimingAnchor?: (mode: ActionTimingAnchor) => void;
   onUpdate: (patch: Partial<DefenderRule>) => void;
   onApplyProfile: (profile: DefenderProfile) => void;
+  /** Profil athlétique (élite / standard / lent) ; ligne masquée sans handler. */
+  speedProfile?: 'elite' | 'standard' | 'lent' | undefined;
+  onSetSpeedProfile?: (profile: 'elite' | 'standard' | 'lent' | undefined) => void;
   name?: string;
   number?: string;
   onSetPlayerName: (id: PlayerId, name: string) => void;
@@ -228,6 +231,8 @@ export function DefenderMenu({
   onSetActionTimingAnchor,
   onUpdate,
   onApplyProfile,
+  speedProfile,
+  onSetSpeedProfile,
   onClearOverride,
   onClose,
   name,
@@ -459,6 +464,25 @@ export function DefenderMenu({
             ))}
           </select>
         </Row>
+        {onSetSpeedProfile && (
+          <Row
+            label="athlétisme"
+            title="Vitesse et démarrage du défenseur : élite ×1,3, lent ×0,7. Joue sur sa vitesse maximale et, en lecture, sur son accélération au départ."
+          >
+            <select
+              aria-label="Athlétisme du défenseur"
+              value={speedProfile ?? 'standard'}
+              onChange={(e) => {
+                const v = e.target.value;
+                onSetSpeedProfile(v === 'standard' ? undefined : (v as 'elite' | 'lent'));
+              }}
+            >
+              <option value="elite">élite</option>
+              <option value="standard">standard</option>
+              <option value="lent">lent</option>
+            </select>
+          </Row>
+        )}
       </MenuSection>
 
       <MenuSection title="Défense" icon={Shield}>

@@ -279,6 +279,9 @@ const MAX_ATTACKER_JUMP_PX = 9;
  *  ~6 m/s atteints en ~1,3 s. Ordre de grandeur des premiers appuis d'un
  *  joueur de basket (3-6 m/s²). */
 const DEFAULT_DEFENDER_PLAYBACK_ACCELERATION = 4.5;
+/** Freinage (m/s²) : un joueur s'arrête plus vite qu'il ne démarre. La vitesse
+ *  est bornée à √(2·b·d) pour s'arrêter sur sa place au lieu de s'y figer. */
+const DEFAULT_DEFENDER_PLAYBACK_BRAKING = 7;
 /** P3.5 — horizon maximal d'anticipation (s) : au-delà, viser si loin devant
  *  l'homme devient un pari, pas une lecture. */
 const DEFENDER_LEAD_PURSUIT_MAX_SEC = 0.6;
@@ -1545,14 +1548,27 @@ function applyDefenderMotionInertia(params: {
         gazeDeg: prev.gazeOrientation,
         toManDeg: man ? headingDeg(man.x - prev.x, man.y - prev.y) : undefined,
       });
-      const maxDist = (previousSpeed + accel * dt) * dt;
+      // Accélération bornée (départ) et freinage anticipé (arrivée). Le
+      // freinage est relatif à la vitesse de la place visée (≈ celle de son
+      // homme) : suivre un homme qui court ne freine pas, seul son arrêt
+      // (ou un ralentissement) fait freiner le défenseur.
+      const manPrevPos = params.prevFrame.off[current.matchedTo];
+      const manSpeed = man && manPrevPos ? Math.hypot(man.x - manPrevPos.x, man.y - manPrevPos.y) / dt : 0;
+      const brakeSpeed = manSpeed + Math.sqrt(2 * DEFAULT_DEFENDER_PLAYBACK_BRAKING * PX_PER_M * dist);
+      const rampSpeed = previousSpeed + accel * dt;
+      const brakingBinds = brakeSpeed < rampSpeed;
+      const maxDist = Math.min(rampSpeed, brakeSpeed) * dt;
       if (dist > maxDist + 1e-6) {
         let dir = { x: dx / dist, y: dy / dist };
         // P3.5 (opt-in) — poursuite anticipée : en retard, viser le point de
         // rencontre (place idéale + vitesse de l'homme × temps de rattrapage,
         // plafonné) plutôt que la place actuelle — couper l'angle au lieu de
         // courir derrière. Sans retard, ce bloc n'est pas atteint.
-        const manNow = realismFlags.defenderLeadPursuitEnabled ? params.off[current.matchedTo] : undefined;
+        // Anticipation seulement quand c'est l'accélération qui limite : en
+        // phase de freinage, le défenseur est déjà sur sa place.
+        const manNow = realismFlags.defenderLeadPursuitEnabled && !brakingBinds
+          ? params.off[current.matchedTo]
+          : undefined;
         const manPrev = params.prevFrame.off[current.matchedTo];
         if (manNow && manPrev) {
           const reach = previousSpeed + accel * dt;

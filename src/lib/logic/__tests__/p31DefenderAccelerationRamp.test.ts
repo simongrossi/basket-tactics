@@ -107,4 +107,28 @@ describe('P3.1 — rampe d’accélération des défenseurs (lecture)', () => {
     };
     expect(run('elite')).toBeGreaterThan(run('lent') * 1.3);
   });
+
+  // Freinage : l'homme s'arrête (étape 2 → 3 identique), le défenseur en
+  // retard rejoint sa place en ralentissant, pas en s'arrêtant net.
+  it('freinage : le défenseur ralentit en arrivant au lieu de s’arrêter net', () => {
+    const s0 = makeInitialState();
+    const start = structuredClone(s0.steps[0]);
+    const end = structuredClone(s0.steps[0]);
+    end.off.O1 = { x: 540, y: 480 };
+    const hold = structuredClone(end);
+    start.duration = 1;
+    end.duration = 2;
+    const state: AppState = { ...s0, defenderPlaybackAccelerationEnabled: true, steps: [start, end, hold] };
+    const moves = substepDisplacements(state, 'D1', SUBSTEPS * 2);
+    const peak = Math.max(...moves);
+    const lastMoving = moves.map((d, i) => [d, i] as const).filter(([d]) => d > 0.05).pop()!;
+    expect(peak).toBeGreaterThan(2);
+    // Dernier sous-pas en mouvement : une fraction de la vitesse de pointe.
+    expect(lastMoving[0]).toBeLessThan(peak * 0.25);
+    // Pas de chute brutale : aucun sous-pas ne perd plus de la moitié de la
+    // vitesse de pointe d'un coup.
+    for (let i = 1; i <= lastMoving[1]; i++) {
+      expect(moves[i - 1] - moves[i], `sous-pas ${i}`).toBeLessThan(peak * 0.5);
+    }
+  });
 });

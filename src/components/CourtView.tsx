@@ -108,6 +108,8 @@ interface CourtViewProps {
   onAddAnnotation: (a: Annotation, options?: AddAnnotationOptions) => void;
   onUpdateRule: (dId: DefenderId, patch: Partial<AppState['rules'][DefenderId]>) => void;
   onApplyDefenderProfile: (dId: DefenderId, profile: import('@/lib/data/defenderProfiles').DefenderProfile) => void;
+  /** Profil athlétique d'un défenseur (élite / standard / lent). */
+  onSetDefenderSpeedProfile?: (dId: DefenderId, profile: 'elite' | 'standard' | 'lent' | undefined) => void;
   onClearDefenseOverride: (dId: DefenderId) => void;
   onSetBallCarrier: (oId: AttackerId) => void;
   onSetForcedScreener: (oId: AttackerId | null) => void;
@@ -1228,6 +1230,7 @@ export function CourtView(props: CourtViewProps) {
         onCloseZoneRegionMenu={closeZoneRegionMenu}
         onUpdateRule={props.onUpdateRule}
         onApplyDefenderProfile={props.onApplyDefenderProfile}
+        onSetDefenderSpeedProfile={props.onSetDefenderSpeedProfile}
         onClearDefenseOverride={props.onClearDefenseOverride}
         onSetBallCarrier={props.onSetBallCarrier}
         onSetForcedScreener={props.onSetForcedScreener}

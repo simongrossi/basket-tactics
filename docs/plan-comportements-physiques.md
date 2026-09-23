@@ -202,7 +202,8 @@ pas le moteur avec de nouvelles décisions tactiques.
 > PNR central jusqu'à 1,8 m de retard au départ du repli, rattrapé ; ≤ 0,18 m
 > en fin de lecture. Tests : `p31DefenderAccelerationRamp.test.ts` (dont
 > séparation 34 px et sauts ≤ 18 px sur 6 modèles). Reste V2 : freinage
-> (décélération).
+> (décélération) — **livré 2026-09-23** : vitesse bornée à `v_homme + √(2·b·d)`,
+> b = 7 m/s² (`DEFAULT_DEFENDER_PLAYBACK_BRAKING`), dans la même rampe.
 >
 > **V2 livrée le même jour (poursuite V4 en lecture, ROADMAP #9)** :
 > `defense/pursuitModulators.ts` module l'accélération de la rampe comme la

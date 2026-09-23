@@ -522,6 +522,12 @@ export function useAppState() {
     },
     [setStateWithHistory]
   );
+  const setDefenderSpeedProfile = useCallback(
+    (dId: DefenderId, profile: 'elite' | 'standard' | 'lent' | undefined) => {
+      setStateWithHistory((s) => defenseTx.setDefenderSpeedProfile(s, dId, profile));
+    },
+    [setStateWithHistory]
+  );
 
   const setScreenRule = useCallback((rule: ScreenRule) => {
     setStateWithHistory((s) => defenseTx.setScreenRule(s, rule));
@@ -824,6 +830,7 @@ export function useAppState() {
     updateAllRules,
     resetIndividualOverrides,
     applyDefenderProfile,
+    setDefenderSpeedProfile,
     setAttackerHand,
     setAttackerOrientation,
     setAttackerProfile,

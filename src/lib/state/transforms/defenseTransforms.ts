@@ -129,3 +129,17 @@ export function clearAllDefenseOverridesActiveStep(s: AppState): AppState {
   steps[s.activeStep] = next;
   return { ...s, steps };
 }
+
+/** Profil athlétique d'un défenseur (élite / standard / lent) — module sa
+ *  vitesse max (speedConstraint) et son accélération en lecture (poursuite
+ *  V4). `undefined` retire le réglage (= standard). */
+export function setDefenderSpeedProfile(
+  s: AppState,
+  id: DefenderId,
+  profile: 'elite' | 'standard' | 'lent' | undefined,
+): AppState {
+  const current = { ...(s.defenderSpeedProfiles ?? {}) };
+  if (profile === undefined) delete current[id];
+  else current[id] = profile;
+  return { ...s, defenderSpeedProfiles: current };
+}
