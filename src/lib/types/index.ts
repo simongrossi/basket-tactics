@@ -536,7 +536,9 @@ export interface DefensiveDirective {
 }
 
 export type HelpPriority = 'paint' | 'man' | 'passlane';
-export type CarrierBehavior = 'coller' | 'bumper' | 'contester' | 'reculer' | 'topside' | 'baseline';
+/** 'main-faible' : se décaler du côté de la main forte du porteur pour le
+ *  forcer sur sa main faible (cf. `attackerHands`). */
+export type CarrierBehavior = 'coller' | 'bumper' | 'contester' | 'reculer' | 'topside' | 'baseline' | 'main-faible';
 export type OffBallStance = 'sag' | 'deny-3q' | 'fronting' | 'behind' | 'stunt';
 export type BodyOrientationMode =
   | 'auto'
@@ -1375,9 +1377,9 @@ export interface AppState {
    *  visé = HOOP_OPPOSITE bottom). Utile en mode fullCourt pour modéliser le
    *  repli/contre-attaque. La défense de zone n'est pas encore directionnelle. */
   attackingDirection?: 'up' | 'down';
-  /** Main dominante de chaque attaquant (default 'right'). Information de
-   *  scouting pour le coach — le moteur ne la consomme pas pour l'instant.
-   *  Utile pour décider manuellement de l'orientation des défenseurs. */
+  /** Main dominante de chaque attaquant (default 'right'). Consommée par la
+   *  consigne sur porteur 'main-faible' (le défenseur se décale côté main
+   *  forte) et par le rendu du sprite. */
   attackerHands?: AttackerHands;
   /** Profil offensif de chaque attaquant. Module la qualité de tir, la
    *  receivability et le comportement défensif (closeout, aide, diagnostics).

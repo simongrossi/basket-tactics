@@ -34,7 +34,7 @@ export function buildStep0DetectionPositions(
     const rule = state.rules[dId];
     const dist = rule?.distance ?? state.defenseDistance;
     const target = oId === ballCarrier
-      ? carrierDefenderTarget(rule?.vsCarrier ?? 'coller', att, dist, hoop) ?? manTarget(att, dist, hoop)
+      ? carrierDefenderTarget(rule?.vsCarrier ?? 'coller', att, dist, hoop, state.attackerHands?.[oId] ?? 'right') ?? manTarget(att, dist, hoop)
       : manTarget(att, dist, hoop);
     if (target) out[dId] = target;
   });

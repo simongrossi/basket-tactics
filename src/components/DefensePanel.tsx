@@ -1212,6 +1212,7 @@ export function DefensePanel(props: DefensePanelProps) {
                 options={[
                   ['coller', 'coller'], ['bumper', 'bumper'], ['contester', 'contester'],
                   ['reculer', 'reculer'], ['topside', 'topside'], ['baseline', 'baseline'],
+                  ['main-faible', 'main faible'],
                 ]}
               />
             </MassRow>
@@ -1404,6 +1405,7 @@ export function DefensePanel(props: DefensePanelProps) {
                   <option value="reculer">reculer</option>
                   <option value="topside">topside</option>
                   <option value="baseline">baseline</option>
+                  <option value="main-faible">main faible</option>
                 </select>
                 <select
                   value={r.offBallStance ?? 'sag'}

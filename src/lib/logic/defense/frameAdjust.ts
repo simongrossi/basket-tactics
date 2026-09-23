@@ -95,7 +95,7 @@ export function followDefendersAtFrame(
     let tgt: Point | null = null;
     const myManIsCurrentCarrier = slot.matchedTo === ballCarrier;
     if (myManIsCurrentCarrier) {
-      tgt = carrierDefenderTarget(rule.vsCarrier, myMan, dist, hoop);
+      tgt = carrierDefenderTarget(rule.vsCarrier, myMan, dist, hoop, state.attackerHands?.[slot.matchedTo] ?? 'right');
     } else {
       const stance = rule.offBallStance;
       // Position du ballon ≈ position du porteur (approximation OK hors passe

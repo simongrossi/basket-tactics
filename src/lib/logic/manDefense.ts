@@ -37,7 +37,9 @@ export function carrierDefenderTarget(
   vsCarrier: CarrierBehavior,
   att: Point | undefined,
   defenseDistance: number,
-  hoop: Point = HOOP
+  hoop: Point = HOOP,
+  /** Main forte du porteur — utilisée par la consigne 'main-faible'. */
+  strongHand: 'right' | 'left' = 'right',
 ): Point | null {
   if (!att) return null;
   const dx = att.x - hoop.x;
@@ -51,6 +53,9 @@ export function carrierDefenderTarget(
   let bumpOffset = 0;
 
   let lateralOffset = 0;
+  // Décalage « main faible » : indépendant du côté du terrain, signé selon la
+  // main forte (droite du porteur quand il fait face au panier attaqué).
+  let handOffset = 0;
   switch (vsCarrier) {
     case 'coller':
       baseRatio = 0.4;
@@ -73,6 +78,10 @@ export function carrierDefenderTarget(
       baseRatio = 0.4;
       lateralOffset = -14; // force le porteur côté ligne de fond
       break;
+    case 'main-faible':
+      baseRatio = 0.4;
+      handOffset = 14; // ~0,38 m côté main forte : il doit partir main faible
+      break;
   }
 
   // Distance minimale pour que les cercles ne se superposent pas visuellement
@@ -85,9 +94,13 @@ export function carrierDefenderTarget(
   const perpX = -dy / dist;
   const perpY = dx / dist;
   const sideSign = binarySide(att.x, hoop.x);
+  // (perpX, perpY) pointe vers la GAUCHE du porteur face au panier.
+  const handSign = strongHand === 'right' ? -1 : 1;
   return {
-    x: hoop.x + dx * ratio - (dx / dist) * bumpOffset + perpX * lateralOffset * sideSign,
-    y: hoop.y + dy * ratio - (dy / dist) * bumpOffset + perpY * lateralOffset * sideSign,
+    x: hoop.x + dx * ratio - (dx / dist) * bumpOffset + perpX * lateralOffset * sideSign
+      + perpX * handOffset * handSign,
+    y: hoop.y + dy * ratio - (dy / dist) * bumpOffset + perpY * lateralOffset * sideSign
+      + perpY * handOffset * handSign,
   };
 }
 
@@ -195,8 +208,9 @@ export function carrierDefenderTargetForces(
   defenseDistance: number,
   hoop: Point = HOOP,
   slowingRadius: number = STEERING_MAN_SLOWING_RADIUS_PX,
+  strongHand: 'right' | 'left' = 'right',
 ): SteeringForce[] {
-  const target = carrierDefenderTarget(vsCarrier, att, defenseDistance, hoop);
+  const target = carrierDefenderTarget(vsCarrier, att, defenseDistance, hoop, strongHand);
   if (!target) return [];
   const w = distance(defenderPos, target);
   if (w < 1e-6) return [];

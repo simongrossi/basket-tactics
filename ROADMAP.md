@@ -22,7 +22,9 @@ passe après). Ordre de travail :
    mouvement dans le profil « Réaliste », placement via la case « Placement
    défensif avancé ». **2026-09-23** : bascule réalistes / idéaux et athlétisme
    par défenseur au niveau Coach, freinage défensif en lecture.
-   Ordre suivant (validé) : main forte fonctionnelle, lectures anti-zone →
+   Ordre suivant (validé) : main forte fonctionnelle (🟡 V1 2026-09-23 :
+   consigne « main faible » ; V2 orientation / lecture offensive / aides),
+   lectures anti-zone →
    modèle de contact (box-out / rebond, écrans illégaux, fautes) → P4.3 / P4.4.
 2. **Axe coaching** (tableau § « Coaching — usage entraînement » ci-dessous) :
    quiz / lecture cachée → clés d'enseignement → fiche d'une page par système
@@ -120,7 +122,8 @@ match-sim crédible, attaque de zone.
 
 ### 🟡 Mineurs / opportunités
 
-10. **Latéralité fonctionnelle** : `dominantHand` n'affecte que le
+10. **Latéralité fonctionnelle** — 🟡 V1 livrée 2026-09-23 (consigne
+    « main faible »). Avant : `dominantHand` n'affectait que le
     sprite. Finition main faible / drive côté fort changerait les
     lectures de l'ice (forcer la mauvaise main est le but réel de cette
     couverture).

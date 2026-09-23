@@ -346,7 +346,7 @@ export function AttackerMenu({
           background: ORANGE_TINT_BG,
           border: `1px solid ${ORANGE_TINT_BORDER}`,
         }}
-        title="Main dominante de l'attaquant. Utilisée par les défenseurs en stance 'mauvaise main' pour décider quel côté fermer (droitier → on le pousse à gauche, gaucher → à droite)."
+        title="Main dominante de l'attaquant. Un défenseur réglé « sur porteur : main faible » se décale côté main forte pour le forcer sur sa main faible (droitier → on le pousse à gauche, gaucher → à droite)."
       >
         <span style={{ fontSize: 11, color: ORANGE_ACCENT, width: 88, fontWeight: 500 }}>main dom.</span>
         <select

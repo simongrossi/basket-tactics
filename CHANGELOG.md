@@ -6,6 +6,22 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Main forte fonctionnelle — V1 (2026-09-23)
+
+- Nouvelle consigne sur porteur **« main faible »** : le défenseur se décale
+  d'environ 0,38 m du côté de la main forte de son homme (`attackerHands`)
+  pour le forcer sur sa main faible. Côté calculé face au panier attaqué
+  (sens d'attaque inversé géré). Transmise au moteur d'étape
+  (`baseTargets`), au suivi en lecture (`frameAdjust`) et à la détection
+  d'écran à l'étape 0. Disponible dans le menu du défenseur, « Appliquer à
+  tous » et les règles individuelles.
+- `attackerHands` n'était consommé que par le dessin ; l'infobulle de la main
+  dans le menu attaquant promettait un effet inexistant : corrigée.
+- Suite 2 702 / 2 702 (dont écran / overlap / userJson / screenLab).
+- Reste (V2) : orientation du corps (hanches vers la main faible), lecture
+  offensive (drive côté main faible moins efficace), aides qui anticipent le
+  côté main forte, diagnostic coach.
+
 ### Réalisme : réglages coach + freinage défensif (2026-09-23)
 
 - **« Déplac. : réalistes / idéaux »** au niveau Coach (panneau Défense, sous

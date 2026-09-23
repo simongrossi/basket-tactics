@@ -544,6 +544,7 @@ export function DefenderMenu({
             <option value="reculer">reculer (drop)</option>
             <option value="topside">topside (force milieu)</option>
             <option value="baseline">baseline (force ligne de fond)</option>
+            <option value="main-faible">main faible (force sa main faible)</option>
           </select>
         </Row>
       </MenuSection>

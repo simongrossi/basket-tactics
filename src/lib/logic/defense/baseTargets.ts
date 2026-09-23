@@ -122,7 +122,8 @@ export function applyBaseTargetsLayer(
     // (bit-équivalent legacy) ou "proche" (target amorti).
     const defenderRef = prevDefenderPositions[dId] ?? state.defenseInitial[dId];
     if (isCarrierDefender) {
-      const forces = carrierDefenderTargetForces(defenderRef, rule.vsCarrier, att, dist, hoop, slowingRadius);
+      const strongHand = state.attackerHands?.[oId as AttackerId] ?? 'right';
+      const forces = carrierDefenderTargetForces(defenderRef, rule.vsCarrier, att, dist, hoop, slowingRadius, strongHand);
       target = forces.length > 0 ? composeTarget(defenderRef, forces) : defenderRef;
     } else {
       const stance = rule.offBallStance ?? 'sag';
