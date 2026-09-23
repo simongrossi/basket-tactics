@@ -203,6 +203,40 @@ export function Player({
           pointerEvents="none"
         />
       )}
+      {/* Anneau / Aura au sol du porteur de balle (HUD pro) */}
+      {isCarrier && isAttacker && showStateRings && (
+        <g pointerEvents="none">
+          {/* Halo d'aura douce ambrée au sol */}
+          <circle
+            cx={pos.x}
+            cy={pos.y}
+            r={r + 8}
+            fill="#F59E0B"
+            fillOpacity={0.22}
+          />
+          {/* Anneau extérieur pointillé doré / ambre éclatant */}
+          <circle
+            cx={pos.x}
+            cy={pos.y}
+            r={r + 7}
+            fill="none"
+            stroke="#F59E0B"
+            strokeWidth={2.2}
+            strokeDasharray="5 3"
+            opacity={0.95}
+          />
+          {/* Anneau intérieur fin contrasté */}
+          <circle
+            cx={pos.x}
+            cy={pos.y}
+            r={r + 4}
+            fill="none"
+            stroke="#D97706"
+            strokeWidth={1}
+            opacity={0.7}
+          />
+        </g>
+      )}
       <g pointerEvents="none">
         {/* PROPOSITION C — ANATOMIQUE VECTORIEL */}
         
@@ -839,10 +873,12 @@ export function Ball({ pos, carrierPos, inFlight }: BallProps) {
   }
 
   // Rayon du ballon avec effet 3D subtil
-  const r = hasZ ? 7 + Math.min(3, z * 0.02) : (inFlight ? 8 : 7);
+  const r = hasZ ? 7.5 + Math.min(3, z * 0.02) : (inFlight ? 8.5 : 7.5);
+  const seamColor = '#1F140A';
 
   return (
     <g pointerEvents="none">
+      {/* Ombre portée au sol */}
       {showShadow && (
         <ellipse
           cx={p.x}
@@ -852,14 +888,79 @@ export function Ball({ pos, carrierPos, inFlight }: BallProps) {
           fill={`rgba(0,0,0,${shadowOpacity})`}
         />
       )}
-      <circle
-        cx={p.x}
-        cy={p.y}
-        r={r}
-        fill="#BA7517"
-        stroke={inFlight ? '#fff' : '#412402'}
-        strokeWidth={inFlight ? 2.5 : 2}
-      />
+
+      {/* Aura blanche/lumineuse quand le ballon est en vol pour un suivi visuel optimal */}
+      {inFlight && (
+        <circle
+          cx={p.x}
+          cy={p.y}
+          r={r + 3}
+          fill="none"
+          stroke="#FFFFFF"
+          strokeWidth={1.8}
+          opacity={0.85}
+        />
+      )}
+
+      {/* Ballon stylisé avec nervures de basket et reflet 3D */}
+      <g transform={`translate(${p.x}, ${p.y})`}>
+        {/* Disque principal du ballon : orange basket éclatant */}
+        <circle
+          cx={0}
+          cy={0}
+          r={r}
+          fill="#FF6A00"
+          stroke={inFlight ? '#FFFFFF' : '#2D1602'}
+          strokeWidth={inFlight ? 1.8 : 1.2}
+        />
+
+        {/* Nervure centrale verticale */}
+        <line
+          x1={0}
+          y1={-r}
+          x2={0}
+          y2={r}
+          stroke={seamColor}
+          strokeWidth={0.9}
+        />
+
+        {/* Nervure centrale horizontale */}
+        <line
+          x1={-r}
+          y1={0}
+          x2={r}
+          y2={0}
+          stroke={seamColor}
+          strokeWidth={0.9}
+        />
+
+        {/* Nervure courbe gauche (arc caractéristique du ballon de basket) */}
+        <path
+          d={`M ${-r * 0.707} ${-r * 0.707} Q ${-r * 0.22} 0 ${-r * 0.707} ${r * 0.707}`}
+          fill="none"
+          stroke={seamColor}
+          strokeWidth={0.8}
+        />
+
+        {/* Nervure courbe droite (arc caractéristique du ballon de basket) */}
+        <path
+          d={`M ${r * 0.707} ${-r * 0.707} Q ${r * 0.22} 0 ${r * 0.707} ${r * 0.707}`}
+          fill="none"
+          stroke={seamColor}
+          strokeWidth={0.8}
+        />
+
+        {/* Reflet de brillance 3D en haut à gauche */}
+        <ellipse
+          cx={-r * 0.32}
+          cy={-r * 0.32}
+          rx={r * 0.26}
+          ry={r * 0.14}
+          transform={`rotate(-40, ${-r * 0.32}, ${-r * 0.32})`}
+          fill="#FFFFFF"
+          opacity={0.42}
+        />
+      </g>
     </g>
   );
 }

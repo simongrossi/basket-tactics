@@ -125,17 +125,58 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
 
   if (type === 'pass') {
     return (
-      <line
-        x1={from.x}
-        y1={from.y}
-        x2={visualTo.x}
-        y2={visualTo.y}
-        stroke="#D85A30"
-        strokeWidth={2.5}
-        strokeDasharray="3 5"
-        markerEnd="url(#arrow-orange)"
-        opacity={preview ? 0.5 : 1}
-      />
+      <>
+        {/* Trait de contraste sombre sous les tirets pour lisibilité tout-terrain */}
+        {hasWaypoints && visualPoints ? (
+          <path
+            d={polylinePath(visualPoints)}
+            fill="none"
+            stroke="#4A1504"
+            strokeWidth={4.5}
+            strokeDasharray="7 4"
+            strokeLinecap="round"
+            opacity={preview ? 0.3 : 0.65}
+          />
+        ) : (
+          <line
+            x1={from.x}
+            y1={from.y}
+            x2={visualTo.x}
+            y2={visualTo.y}
+            stroke="#4A1504"
+            strokeWidth={4.5}
+            strokeDasharray="7 4"
+            strokeLinecap="round"
+            opacity={preview ? 0.3 : 0.65}
+          />
+        )}
+        {/* Ligne principale orange flashy avec tirets nets et pointe contrastée */}
+        {hasWaypoints && visualPoints ? (
+          <path
+            d={polylinePath(visualPoints)}
+            fill="none"
+            stroke="#FF5500"
+            strokeWidth={3}
+            strokeDasharray="7 4"
+            strokeLinecap="round"
+            markerEnd="url(#arrow-pass)"
+            opacity={preview ? 0.6 : 1}
+          />
+        ) : (
+          <line
+            x1={from.x}
+            y1={from.y}
+            x2={visualTo.x}
+            y2={visualTo.y}
+            stroke="#FF5500"
+            strokeWidth={3}
+            strokeDasharray="7 4"
+            strokeLinecap="round"
+            markerEnd="url(#arrow-pass)"
+            opacity={preview ? 0.6 : 1}
+          />
+        )}
+      </>
     );
   }
 

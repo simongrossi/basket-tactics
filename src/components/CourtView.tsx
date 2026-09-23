@@ -1073,8 +1073,8 @@ export function CourtView(props: CourtViewProps) {
             cy={frame.off[pendingAutoSourceId].y}
             r={PLAYER_RADIUS + 8}
             fill="none"
-            stroke="#D85A30"
-            strokeWidth={2}
+            stroke="#FF5500"
+            strokeWidth={2.5}
             strokeDasharray="4 3"
             pointerEvents="none"
           >

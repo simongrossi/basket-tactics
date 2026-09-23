@@ -278,6 +278,17 @@ export function ArrowMarkers() {
         <path d="M 0 0 L 10 5 L 0 10 z" fill="#D85A30" />
       </marker>
       <marker
+        id="arrow-pass"
+        viewBox="0 0 10 10"
+        refX={8}
+        refY={5}
+        markerWidth={9}
+        markerHeight={9}
+        orient="auto-start-reverse"
+      >
+        <path d="M 0 1 L 9 5 L 0 9 z" fill="#FF5500" stroke="#7A1D00" strokeWidth={0.8} />
+      </marker>
+      <marker
         id="arrow-gray"
         viewBox="0 0 10 10"
         refX={9}
