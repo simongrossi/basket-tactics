@@ -65,6 +65,9 @@ marqué". Jamais "nord / sud / est / ouest".
 
 ---
 
+Pour la cartographie rapide des fichiers, voir :
+- [AGENTS.md](AGENTS.md) — index rapide des fichiers clés par domaine (pour Claude, Codex, etc.)
+
 Pour les conventions de code, structure et patterns réutilisables, voir :
 - [docs/GAME-ENGINE.md](docs/GAME-ENGINE.md) — cartographie moteur
 - [docs/refactoring-history.md](docs/refactoring-history.md) — patterns
