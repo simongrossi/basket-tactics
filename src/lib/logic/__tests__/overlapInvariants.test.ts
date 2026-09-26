@@ -255,7 +255,47 @@ describe('séparation finale de la timeline avec contacts écran', () => {
           previous = frame;
         }
       }
-    });
+    }, 60_000);
+  }
+});
+
+describe('P4.4 mémoire de rotation — séparation et continuité en lecture', () => {
+  for (const rotationMemory of ['auto', 'stay', 'recover'] as const) {
+    it(`toutes les paires ≥ clearance et sauts ≤ 18 px, mode ${rotationMemory}`, async () => {
+      const { TEMPLATES } = await import('@/lib/data/templates');
+      const { resolveTimelineFrame } = await import('../playback/frameResolver');
+      const templates = TEMPLATES.filter(t => ['pnr-central', 'spain-pnr', 'pnr-wing',
+        'screen-lab-pnr', 'screen-lab-snake', 'screen-lab-reject'].includes(t.id));
+      for (const template of templates) {
+        const steps = structuredClone(template.steps);
+        // Étape de retour au calme : le porteur ressort, les duels échangés
+        // se rendent leurs hommes pendant la lecture.
+        const last = steps[steps.length - 1];
+        steps.push({ ...structuredClone(last), label: undefined, annotations: [],
+          off: { ...last.off, [last.ballCarrier]: { x: 300, y: 400 } } });
+        const state: AppState = { ...makeInitialState(), realismProfile: 'realistic', rotationMemory,
+          screenRule: 'hedge', steps, defenseInitial: structuredClone(template.defenseInitial) };
+        let previous: ReturnType<typeof resolveTimelineFrame> = null;
+        for (let tick = 0; tick <= (state.steps.length - 1) * 60; tick++) {
+          const frame = resolveTimelineFrame(state, tick / 60)!;
+          const players = [...Object.entries(frame.off), ...Object.entries(frame.defPos)];
+          for (let i = 0; i < players.length; i++) {
+            for (let j = i + 1; j < players.length; j++) {
+              expect(distance(players[i][1], players[j][1]),
+                `${template.id} t=${tick / 60} ${players[i][0]} / ${players[j][0]}`)
+                .toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.01);
+            }
+            if (previous) {
+              const before = [...Object.entries(previous.off), ...Object.entries(previous.defPos)]
+                .find(([id]) => id === players[i][0])![1];
+              expect(distance(before, players[i][1]), `${template.id} t=${tick / 60} ${players[i][0]} jump`)
+                .toBeLessThanOrEqual(18.01);
+            }
+          }
+          previous = frame;
+        }
+      }
+    }, 60_000);
   }
 });
 

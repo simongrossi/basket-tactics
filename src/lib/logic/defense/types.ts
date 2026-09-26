@@ -1,7 +1,7 @@
 // Types partagés entre les couches de calcul défensif. Centralisés ici pour
 // éviter le ReturnType<typeof ...> circulaire et donner un nom clair.
 
-import type { AttackerId, HelpPriority, Point, ScreenContactPhase } from '../../types';
+import type { AttackerId, DefenderRotationState, HelpPriority, Point, ScreenContactPhase } from '../../types';
 
 /** Cible défensive "idéale" calculée par le moteur, AVANT contrainte de
  *  vitesse. C'est la sortie de `computeDefenseTargets` (man ou zone) et
@@ -24,6 +24,12 @@ export interface DefenderTarget {
   denying?: boolean;
   helpTriggered?: boolean;
   pnrRole?: 'tag' | 'x-out' | 'stunt';
+  /** P4.4 — Attaquant visé par la rotation PnR : le roller pour un tag,
+   *  l'homme laissé libre pour un X-out, le porteur pour un stunt. Lu à
+   *  l'étape suivante par la mémoire de rotation. */
+  rotationOn?: AttackerId;
+  /** P4.4 — cf. `ComputedDefender.rotation`. */
+  rotation?: DefenderRotationState;
   orientation: number;
   gazeOrientation: number;
   facing: Point;

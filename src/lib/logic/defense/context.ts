@@ -48,7 +48,14 @@ import {
   getDefenseHoop,
   getMatchupsAt,
 } from '../engine';
-import type { DefenderId } from '../../types';
+import type { DefenderId, DefenderRotationState } from '../../types';
+import type { DefenderTarget } from './types';
+import {
+  carryRotationSwaps,
+  applyRotationSwap,
+  decideRotationSwap,
+  type RotationMemoryOutput,
+} from './rotationMemory';
 
 export interface DefenseFrameContext {
   /** AppState courant — lecture seule. */
@@ -94,6 +101,17 @@ export interface DefenseFrameContext {
    *  la quality effective de l'écran à 90 minimum → la défense maintient
    *  son engagement au lieu de re-armer à zéro sur la 2ᵉ utilisation. */
   snakeDribble: SnakeDribble | null;
+  /** Cibles complètes de l'étape précédente (null à l'étape 0). Déjà
+   *  calculées pour la détection d'écran ; réutilisées par la mémoire de
+   *  rotation (P4.4) sans nouvel appel. */
+  prevTargets: Record<DefenderId, DefenderTarget> | null;
+  /** P4.4 — État de rotation décidé dans le contexte (rotate-and-stay,
+   *  retour au calme), posé sur les cibles par `rotationMemoryLayer`. */
+  rotationEvents: Partial<Record<DefenderId, DefenderRotationState>>;
+  /** P4.4 — Sortie mutable de la mémoire de rotation pour cette étape
+   *  (échanges actifs + tag observé), exposée dans `DefenseTargetsResult`.
+   *  Seules les couches de rotation (PnR, mémoire) y écrivent. */
+  rotationOut: RotationMemoryOutput;
 }
 
 /**
@@ -113,6 +131,9 @@ export function buildDefenseFrameContext(
 
   // Matchups en début d'étape (avant détection d'écran sur cette étape).
   let matchups = getMatchupsAt(state.steps, stepIdx - 1, state.playerCount);
+  const hoop = getDefenseHoop(state);
+  const prevOff = stepIdx > 0 ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount) : null;
+  const triggers = detectTriggers(off, prevOff, ballCarrier, state.triggers, hoop);
 
   // Estimation des positions défensives au début de cette étape, pour que la
   // détection d'écran soit basée sur où sont vraiment les défenseurs.
@@ -125,13 +146,35 @@ export function buildDefenseFrameContext(
   // Fix : à step 0, on substitue la position homme-à-homme idéale (collée
   // au porteur) pour le carrier defender, ce qui rapproche la "prevPosition"
   // de l'endroit où D1 va finir et permet la détection d'écran.
+  const prevResult = stepIdx === 0 ? null : computeDefenseTargets(state, stepIdx - 1);
   const prevDefenderPositions: DefenderPositions =
-    stepIdx === 0
+    prevResult === null
       ? buildStep0DetectionPositions(
           state, off, ballCarrier, matchups,
           activeDefenseInitial(state.defenseInitial, state.playerCount)
         )
-      : extractDefenderPositions(computeDefenseTargets(state, stepIdx - 1).positions);
+      : extractDefenderPositions(prevResult.positions);
+
+  // P4.4 — Mémoire de rotation : les échanges de duels issus d'une rotation
+  // (rotate-and-stay) sont reportés AVANT la détection d'écran, pour que le
+  // tagueur soit bien lu comme le défenseur du roller. Ils se défont au
+  // retour au calme.
+  const rotationMode = state.rotationMemory;
+  const rotationEvents: Partial<Record<DefenderId, DefenderRotationState>> = {};
+  const rotationOut: RotationMemoryOutput = { swaps: [] };
+  if (rotationMode && prevResult?.rotationSwaps?.length) {
+    const { kept, scrambled } = carryRotationSwaps(prevResult.rotationSwaps, matchups, {
+      carrierPos: off[ballCarrier],
+      hoop,
+      triggerActive: triggers.any,
+      prevPositions: prevDefenderPositions,
+    });
+    rotationOut.swaps.push(...kept);
+    scrambled.forEach((swap) => {
+      rotationEvents[swap.tagger] = 'scramble-back';
+      rotationEvents[swap.bigDef] = 'scramble-back';
+    });
+  }
 
   const prevOffAtStep: AttackerPositions | undefined =
     stepIdx > 0 ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount) : undefined;
@@ -247,9 +290,39 @@ export function buildDefenseFrameContext(
     }
   }
 
-  const prevOff = stepIdx > 0 ? activeOffense(state.steps[stepIdx - 1].off, state.playerCount) : null;
-  const hoop = getDefenseHoop(state);
-  const triggers = detectTriggers(off, prevOff, ballCarrier, state.triggers, hoop);
+  // P4.4 — Fin d'un tag : le tagueur garde-t-il le roller ? Décidé après la
+  // lecture de l'écran courant (un écran qui continue sur le même roller
+  // relance le tag normalement) et après les switchs de l'étape.
+  if (rotationMode && prevResult?.pnrTag) {
+    const busy = new Set<DefenderId>();
+    if (screen) {
+      busy.add(screen.carrierDef);
+      busy.add(screen.screenerDef);
+    }
+    if (scrammedSwitch) {
+      busy.add(scrammedSwitch.from);
+      busy.add(scrammedSwitch.to);
+    }
+    rotationOut.swaps.forEach((s) => {
+      busy.add(s.tagger);
+      busy.add(s.bigDef);
+    });
+    const swap = decideRotationSwap(rotationMode, prevResult.pnrTag, matchups, {
+      stepIdx,
+      off,
+      hoop,
+      prevPositions: prevDefenderPositions,
+      busyDefenders: busy,
+      currentScreener: screen?.screener,
+    });
+    if (swap) {
+      applyRotationSwap(matchups, swap);
+      rotationOut.swaps.push(swap);
+      rotationEvents[swap.tagger] = 'stay';
+      rotationEvents[swap.bigDef] = 'help-the-helper';
+    }
+  }
+
   const side = ballSide(off[ballCarrier]);
   const carrierPos = off[ballCarrier];
 
@@ -273,6 +346,9 @@ export function buildDefenseFrameContext(
     scrammedSwitch,
     rejectedScreen,
     snakeDribble,
+    prevTargets: prevResult?.positions ?? null,
+    rotationEvents,
+    rotationOut,
   };
 
   return { ctx, matchups };

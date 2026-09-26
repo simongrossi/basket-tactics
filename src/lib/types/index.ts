@@ -859,6 +859,12 @@ export interface ComputedDefender {
    *  - `stunt` : faux mouvement vers le porteur depuis le nail
    *  Permet de tracer un anneau spécifique pour le coach. */
   pnrRole?: 'tag' | 'x-out' | 'stunt';
+  /** P4.4 — État de rotation issu de la mémoire de rotation :
+   *  - `stay` : le tagueur garde le roller (rotate-and-stay)
+   *  - `help-the-helper` : le défenseur du poseur prend l'homme du tagueur
+   *  - `recover` : fin de rotation, retour progressif sur son homme
+   *  - `scramble-back` : retour au calme, chacun reprend son homme d'origine */
+  rotation?: DefenderRotationState;
   /** Angle horaire du CORPS depuis le nord (0–360°). Calculé automatiquement
    *  par `computeDefenderOrientation` à partir de la stance, du ballon, de
    *  la position de l'homme. Override possible via `rule.bodyOrientation`. */
@@ -1226,6 +1232,19 @@ export interface AppState {
    *  Effet : blend décroissant entre la position d'aide précédente et la
    *  cible homme-à-homme courante, sur la base du temps cumulé d'aide. */
   helpStickinessMs?: number;
+  /** P4.4 — Mémoire de rotation après un tag sur pick-and-roll. Quand le
+   *  low man a taggé le roller et que l'écran n'est plus lu :
+   *    - `auto`    : le plus proche du roller le garde. Si c'est le tagueur,
+   *                  il reste sur le roller et le défenseur du poseur prend
+   *                  l'homme laissé (rotate-and-stay) ; sinon chacun revient.
+   *    - `stay`    : le tagueur garde toujours le roller.
+   *    - `recover` : le tagueur rend toujours le roller et revient sur son homme.
+   *  Dans tous les cas, les défenseurs en rotation (tag, X-out, stunt)
+   *  reviennent progressivement au lieu de repartir à froid, et les duels
+   *  issus d'une rotation se rééchangent au retour au calme (ballon ressorti,
+   *  pas de drive, défenseurs assez proches). `undefined` → comportement
+   *  historique (recalcul à chaque étape). */
+  rotationMemory?: RotationMemoryMode;
   /** C.7 V2 — Read offensive action chains : si activé, la défense RÉAGIT
    *  aux chaînes détectées par `detectScreenChain` (re-screen, stagger,
    *  flare-then-fade) au lieu de juste les diagnoster.
@@ -1430,3 +1449,9 @@ export interface AppState {
    *  après le chemin principal). Indéfini = false par défaut. */
   pdfIncludeBranches?: boolean;
 }
+
+/** P4.4 — Réglage coach de la mémoire de rotation (cf. `AppState.rotationMemory`). */
+export type RotationMemoryMode = 'auto' | 'stay' | 'recover';
+
+/** P4.4 — État de rotation d'un défenseur (cf. `ComputedDefender.rotation`). */
+export type DefenderRotationState = 'stay' | 'help-the-helper' | 'recover' | 'scramble-back';

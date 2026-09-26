@@ -14,6 +14,7 @@ import type {
   ZoneConfig,
   DropDepth,
   OffBallScreenRule,
+  RotationMemoryMode,
   Step,
 } from '@/lib/types';
 import { Panel, AccordionSection, Slider, CheckboxLine, Button, COLORS, InfoTooltip } from './ui';
@@ -174,6 +175,32 @@ export function DefensePanel(props: DefensePanelProps) {
             onChange={(v) => props.onPatch(advancedPlacementPatch(v))}
             title="S'ajoute au style choisi. Côté faible : le défenseur se place sur l'axe du panier, un pied dans la raquette (voit ballon et homme). Quand le porteur attaque le panier, l'aide se resserre avant même le drive. Pendant une passe, le défenseur proche fait un pas dans la ligne. Ballon sur l'aile, le défenseur du joueur en tête conteste le renversement."
           />
+        )}
+        {/* P4.4 — Mémoire de rotation : que devient le tag une fois l'écran fini. */}
+        {isMan && (
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+            <span
+              style={{ fontSize: 10, color: '#cbd5e1', flex: '0 0 48px' }}
+              title="Après un tag sur pick-and-roll : qui garde le roller une fois l'écran terminé. Les défenseurs en rotation (tag, X-out, stunt) finissent leur rotation au lieu de repartir d'un coup, et les duels échangés se rendent leurs hommes quand le ballon ressort."
+            >
+              Après tag
+            </span>
+            <select
+              value={state.rotationMemory ?? 'off'}
+              onChange={(e) => {
+                const v = e.target.value;
+                props.onPatch({ rotationMemory: v === 'off' ? undefined : (v as RotationMemoryMode) });
+              }}
+              aria-label="Rotation après un tag"
+              title="auto : le plus proche du roller le garde (le tagueur reste et le pivot prend son homme, ou le tagueur rend le roller au pivot). Retour aux duels d'origine au retour au calme."
+              style={{ flex: '1 1 0%', minWidth: 0, fontSize: 11, padding: '3px 4px' }}
+            >
+              <option value="off">recalcul à chaque étape</option>
+              <option value="auto">auto : le plus proche garde le roller</option>
+              <option value="stay">le tagueur garde le roller</option>
+              <option value="recover">le tagueur revient sur son homme</option>
+            </select>
+          </div>
         )}
         {/* Réaliste / Idéal — même réglage que Paramètres › Physique, exposé au
             coach : « idéal » pour enseigner la bonne position sans retard,

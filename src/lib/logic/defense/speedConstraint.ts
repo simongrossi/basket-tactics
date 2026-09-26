@@ -97,6 +97,7 @@ interface EffectiveDefenseCacheDeps {
   attackingDirection: AppState['attackingDirection'];
   defenseScriptedDirectivesEnabled: AppState['defenseScriptedDirectivesEnabled'];
   defensiveRouting: AppState['defensiveRouting'];
+  rotationMemory: AppState['rotationMemory'];
   congestion: boolean;
 }
 
@@ -142,6 +143,7 @@ function effectiveDefenseDeps(state: AppState, stepIdx: number): EffectiveDefens
     attackingDirection: state.attackingDirection,
     defenseScriptedDirectivesEnabled: state.defenseScriptedDirectivesEnabled,
     defensiveRouting: state.defensiveRouting,
+    rotationMemory: state.rotationMemory,
     congestion: resolveRealismFlags(state).congestionPenaltyEnabled,
   };
 }
@@ -350,6 +352,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         denying: targets[dId].denying,
         helpTriggered: targets[dId].helpTriggered,
         pnrRole: targets[dId].pnrRole,
+        rotation: targets[dId].rotation,
         orientation: targets[dId].orientation,
         gazeOrientation: targets[dId].gazeOrientation,
         facing: targets[dId].facing,
@@ -670,6 +673,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         denying: targets[dId].denying,
         helpTriggered: targets[dId].helpTriggered,
         pnrRole: targets[dId].pnrRole,
+        rotation: targets[dId].rotation,
         orientation: targets[dId].orientation,
         gazeOrientation: targets[dId].gazeOrientation,
         facing: targets[dId].facing,
@@ -717,6 +721,7 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
         denying: targets[dId].denying,
         helpTriggered: targets[dId].helpTriggered,
         pnrRole: targets[dId].pnrRole,
+        rotation: targets[dId].rotation,
         orientation: targets[dId].orientation,
         gazeOrientation: targets[dId].gazeOrientation,
         facing: targets[dId].facing,

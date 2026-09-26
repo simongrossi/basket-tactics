@@ -6,6 +6,29 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Mémoire de rotation défensive — P4.4 V1 (2026-09-26)
+
+- Nouveau réglage **« Après tag »** (panneau Défense, défense individuelle,
+  opt-in) : `auto` (le plus proche garde le roller), `stay` (le tagueur
+  garde le roller), `recover` (le tagueur revient sur son homme).
+- **Rotate-and-stay** : quand l'écran n'est plus lu, le tagueur garde le
+  roller et le défenseur du poseur prend l'homme laissé libre. L'échange tient
+  d'étape en étape et se défait au **retour au calme** (ballon ressorti, pas
+  de drive, les deux défenseurs assez proches).
+- **Fin de rotation progressive** : tag, X-out et stunt reviennent à
+  mi-chemin sur l'étape qui suit au lieu de repartir d'un coup.
+- Le tag-then-switch (C.5) tient désormais jusqu'au retour au calme quand la
+  mémoire est active.
+- Badges : GARDE ROLL, AIDE L'AIDEUR, ↩ FIN ROTATION, ⇄ RETOUR.
+- Mesuré sur PNR central : roller gardé à 34 px (70 px avant) ; Lab PnR :
+  34 px (96 px avant). Aucun calcul défensif supplémentaire : la mémoire
+  réutilise l'étape précédente déjà calculée pour la détection d'écran.
+- Diagnostic : `scripts/diag-rotation-memory.ts`. Tests : 17 unitaires + garde-fou
+  lecture (34 px, sauts ≤ 18 px) sur 6 PnR × 3 modes. Délai explicite (60 s)
+  sur le test de séparation de la timeline, déjà à ~4,5 s pour une limite
+  de 5 s et en dépassement sous la charge de la suite complète.
+- Suite 2 722 / 2 722 (dont écran / overlap / userJson / screenLab).
+
 ### Main forte fonctionnelle — V1 (2026-09-23)
 
 - Nouvelle consigne sur porteur **« main faible »** : le défenseur se décale

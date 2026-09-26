@@ -71,3 +71,20 @@ export const SCREEN_REPEL_LAYER_MAX_SHIFT_PX = 3;
 // === driveContainmentLayer (2a — défense vivante / drive) ===
 /** Décalage max par step du défenseur du porteur vers le point de contain. */
 export const CONTAINMENT_MAX_SHIFT_PX = 8;
+
+// === rotationMemory (P4.4 — mémoire d'intention défensive) ===
+/** Zone du cercle : en mode auto, le tagueur ne garde le roller que si
+ *  celui-ci est encore à moins de ~5 m du panier. */
+export const ROTATION_ROLL_ZONE_PX = 190;
+/** Avance minimale du tagueur sur le défenseur du poseur (distance au
+ *  roller) pour qu'il garde le roller en mode auto. */
+export const ROTATION_STAY_MARGIN_PX = 20;
+/** Retour au calme : le ballon doit être ressorti à au moins ~6,2 m du panier
+ *  (juste sous la ligne à 3 points). */
+export const ROTATION_CALM_BALL_DIST_PX = 230;
+/** Retour au calme : distance max entre les deux défenseurs échangés pour
+ *  qu'ils se rendent leurs hommes (~4 m). */
+export const ROTATION_SCRAMBLE_DIST_PX = 150;
+/** Fin de rotation : part de la position de rotation gardée à l'étape qui
+ *  suit (0.5 = le défenseur revient à mi-chemin). */
+export const ROTATION_RECOVER_BLEND = 0.5;

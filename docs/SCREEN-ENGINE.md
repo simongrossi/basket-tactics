@@ -69,6 +69,10 @@ state.steps[N].off + matchups
     ↓
 [applyPnRRotationsLayer]     — low-man tag + X-out + nail stunt
     ↓
+[applyRotationMemoryLayer]   — P4.4 fin de rotation progressive + badges
+                               (échanges tag/roller reportés dans le
+                               contexte, avant detectScreen ; opt-in)
+    ↓
 [applyChainResponseLayer]    — C.7 V2 réaction aux chaînes d'écrans
     ↓
 [applyBlitzReleaseLayer]     — couche 2.6 relâche du blitz (#8.1, opt-in)
@@ -475,6 +479,7 @@ du cercle du poseur, côté oppose au panier.
 | `offBallScreenRule` | global | over | Réponse défensive par défaut sur écran hors-ballon |
 | `hedgeRecoveryDelay` | global | undefined | C.3 — nb steps consécutifs avant recover forcé en hedge (1..3) |
 | `helpStickiness` | global | undefined | C.2 — nb steps de sticky help avec decay après disparition du trigger (1..3) |
+| `rotationMemory` | global | undefined | P4.4 — après un tag : `auto` (le plus proche garde le roller) / `stay` / `recover`. Échange reporté via `computeDefenseTargets(N-1)` (déjà calculé par le contexte, pas de récursion ajoutée), défait au retour au calme. |
 | `readScreenChainsEnabled` | global | undefined | C.7 V2 — défense réagit aux chaînes (re-screen shift tangentiel, flare-fade gazeLock no-help). Diag V1 actif indépendamment via badges. |
 | `tagThenSwitchEnabled` | global | false | C.5 — bascule switch implicite si roller proche panier |
 | `preRotationEnabled` | global | false | C.4 — shift carrierDef 10 px vers un poseur imminent |

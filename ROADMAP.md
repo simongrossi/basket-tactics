@@ -10,6 +10,11 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
 ## 🧭 Priorité actuelle (mise à jour 2026-09-23)
 
+Décision du user (26/09) : **se concentrer sur la défense et le
+positionnement défensif** (lectures anti-zone mises en attente). ✅ P4.4 V1
+mémoire de rotation livrée le 26/09 (réglage « Après tag » : auto / garde le
+roller / revient, retour aux duels d'origine au retour au calme).
+
 Décision du user (22/09) : **finir d'abord le réalisme des déplacements et du
 placement défensifs**, puis l'axe coaching (le quiz est validé comme idée mais
 passe après). Ordre de travail :
@@ -25,7 +30,8 @@ passe après). Ordre de travail :
    Ordre suivant (validé) : main forte fonctionnelle (✅ V1 2026-09-23 ;
    V2 en non prioritaire, cf. § « Non prioritaire »), lectures anti-zone
    (🟡 en cours) →
-   modèle de contact (box-out / rebond, écrans illégaux, fautes) → P4.3 / P4.4.
+   modèle de contact (box-out / rebond, écrans illégaux, fautes) → P4.3 /
+   ✅ P4.4 V1 (2026-09-26).
 2. **Axe coaching** (tableau § « Coaching — usage entraînement » ci-dessous) :
    quiz / lecture cachée → clés d'enseignement → fiche d'une page par système
    → effectif réutilisable → tableau blanc.
