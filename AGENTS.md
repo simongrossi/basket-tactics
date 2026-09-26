@@ -30,7 +30,7 @@ Ce document est le point d'entrée unique pour tout agent d'assistance au code (
 | **Orchestration générale** | `src/lib/logic/engine.ts` | `computeDefenseTargets`, `effectiveDefensePositions`, dispatch man/zone/écrans. |
 | **Défense individuelle** | `src/lib/logic/defense/manDefense.ts` | Calcul des cibles homme-à-homme, stances, orientation défenseur. |
 | **Aide défensive** | `src/lib/logic/defense/help.ts` | Côté aide, split line, drop, contestation de passe (`deny`). |
-| **Défense de zone** | `src/lib/logic/defense/zoneDefense.ts` | Zones 2-3, 3-2, 1-3-1, responsabilités de balle et rotations. |
+| **Défense de zone** | `src/lib/logic/zoneDefense.ts`, `defense/matchupZone.ts`, `defense/zone32Rotation.ts` | Zones 2-3, 3-2 (règle de coin), 1-3-1, matchup (un pour un, relais), responsabilités de balle et rotations. |
 | **Contraintes de vitesse** | `src/lib/logic/defense/speedConstraint.ts` | Budget de déplacement max (`rule.maxSpeed`), friction, closeout boost. |
 | **Couvertures d'écrans / PnR**| `src/lib/logic/screens/` | Détection (`detectScreen`), couvertures (drop, hedge, switch, blitz). |
 

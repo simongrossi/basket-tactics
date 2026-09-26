@@ -731,6 +731,12 @@ export interface ZoneConfig {
   rotationSpeed: number;
   trapCorners: boolean;
   extendTo3pt: boolean;
+  /** Zone 3-2 — rotation sur ballon au coin.
+   *  `baseline` (défaut) : le bas côté ballon sort sur le coin, l'aile
+   *  redescend au poste bas, le bas côté faible glisse devant le cercle, la
+   *  pointe descend au coude, l'aile côté faible s'enfonce.
+   *  `wing` : l'aile sort au coin (moteur de zone générique). */
+  cornerRotation?: 'baseline' | 'wing';
   /** Décalage vertical (en px) appliqué à toutes les zones — positif = vers le
    *  milieu de terrain, négatif = vers le panier. Permet de "remonter" ou
    *  "redescendre" la zone selon la philosophie défensive. */

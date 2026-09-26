@@ -62,7 +62,7 @@ const FAMILIES: { title: string; systems: SystemDef[] }[] = [
       {
         id: 'zone-3-2',
         label: 'Zone 3-2',
-        description: 'Pivot bas.',
+        description: '3 hauts, 2 bas. Coin : le bas sort, l\'aile redescend.',
         choice: { kind: 'zone', zoneType: 'zone-3-2' },
       },
       {
@@ -74,7 +74,7 @@ const FAMILIES: { title: string; systems: SystemDef[] }[] = [
       {
         id: 'zone-matchup',
         label: 'Match-up',
-        description: 'Zone qui suit l\'homme.',
+        description: 'Chacun prend l\'homme de sa zone et passe les coupeurs.',
         choice: { kind: 'zone', zoneType: 'zone-matchup' },
       },
     ],

@@ -13,11 +13,16 @@ import { computeZoneTargets } from '../zoneDefense';
 import { activeBallCarrier, activeOffense, getActiveDefenderIds } from '../players';
 import { getDefenseHoop } from '../engine';
 import type { DefenderTarget } from './types';
+import { computeMatchupZoneTargets } from './matchupZone';
+import { applyZone32CornerRotation } from './zone32Rotation';
 
 export function computeZoneDefenseTargets(
   state: AppState,
   stepIdx: number
 ): { positions: Record<DefenderId, DefenderTarget>; matchupsApplied: Matchups } {
+  // Zone matchup : appariement un-pour-un avec passage de relais (moteur
+  // dédié, cf. matchupZone.ts), pas l'ownership continu des autres zones.
+  if (state.zoneConfig.type === 'zone-matchup') return computeMatchupZoneTargets(state, stepIdx);
   const cur = state.steps[stepIdx];
   const off = activeOffense(cur.off, state.playerCount);
   const ballCarrier = activeBallCarrier(cur, state.playerCount);
@@ -80,6 +85,34 @@ export function computeZoneDefenseTargets(
       armManSide: orient.armManSide,
     };
   });
+
+  // Zone 3-2 : règle de coin (le bas sort, l'aile redescend…). Réglage
+  // `cornerRotation` : 'baseline' (défaut) ou 'wing' (moteur générique).
+  if (state.zoneConfig.type === 'zone-3-2' && (state.zoneConfig.cornerRotation ?? 'baseline') === 'baseline') {
+    const moved = applyZone32CornerRotation({
+      positions, layout, off, ballCarrier, hoop, defenseDistance: state.defenseDistance,
+    });
+    moved.forEach((dId) => {
+      const t = positions[dId];
+      matchups[dId] = t.matchedTo;
+      const orient = computeDefenderOrientation({
+        defenderPos: { x: t.x, y: t.y },
+        manPos: off[t.matchedTo] ?? { x: t.x, y: t.y },
+        ballPos: carrierPosZone ?? { x: t.x, y: t.y },
+        isCarrierDefender: t.isCarrierDefender,
+        stance: 'sag',
+        manualDelta: state.rules[dId]?.orientation ?? 0,
+        manualBody: state.rules[dId]?.bodyOrientation,
+        bodyMode: state.rules[dId]?.bodyOrientationMode,
+        gazeLock: state.rules[dId]?.gazeLock,
+      });
+      t.orientation = orient.bodyOrientation;
+      t.gazeOrientation = orient.gazeOrientation;
+      t.facing = orient.facing;
+      t.armBallSide = orient.armBallSide;
+      t.armManSide = orient.armManSide;
+    });
+  }
 
   return { positions, matchupsApplied: matchups };
 }

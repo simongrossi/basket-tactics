@@ -304,6 +304,46 @@ describe('P4.4 mémoire de rotation — séparation et continuité en lecture', 
   }
 });
 
+describe('zones matchup et 3-2 — séparation et continuité en lecture', () => {
+  for (const type of ['zone-matchup', 'zone-3-2'] as const) {
+    it(`toutes les paires ≥ clearance et sauts ≤ 18 px, ${type}`, async () => {
+      const { TEMPLATES } = await import('@/lib/data/templates');
+      const { resolveTimelineFrame } = await import('../playback/frameResolver');
+      const templates = TEMPLATES.filter(t => ['pnr-central', 'pindown-corner', 'ucla-cut', 'floppy',
+        'screen-lab-pnr'].includes(t.id));
+      for (const template of templates) {
+        const steps = structuredClone(template.steps);
+        // Ballon au coin (règle de coin 3-2, relais matchup).
+        const last = steps[steps.length - 1];
+        steps.push({ ...structuredClone(last), label: undefined, annotations: [],
+          off: { ...last.off, [last.ballCarrier]: { x: 545, y: 110 } } });
+        const base = makeInitialState();
+        const state: AppState = { ...base, realismProfile: 'realistic', defenseSystem: 'zone',
+          zoneConfig: { ...base.zoneConfig, type }, steps, defenseInitial: structuredClone(template.defenseInitial) };
+        let previous: ReturnType<typeof resolveTimelineFrame> = null;
+        for (let tick = 0; tick <= (state.steps.length - 1) * 60; tick++) {
+          const frame = resolveTimelineFrame(state, tick / 60)!;
+          const players = [...Object.entries(frame.off), ...Object.entries(frame.defPos)];
+          for (let i = 0; i < players.length; i++) {
+            for (let j = i + 1; j < players.length; j++) {
+              expect(distance(players[i][1], players[j][1]),
+                `${template.id} t=${tick / 60} ${players[i][0]} / ${players[j][0]}`)
+                .toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.01);
+            }
+            if (previous) {
+              const before = [...Object.entries(previous.off), ...Object.entries(previous.defPos)]
+                .find(([id]) => id === players[i][0])![1];
+              expect(distance(before, players[i][1]), `${template.id} t=${tick / 60} ${players[i][0]} jump`)
+                .toBeLessThanOrEqual(18.01);
+            }
+          }
+          previous = frame;
+        }
+      }
+    }, 60_000);
+  }
+});
+
 it('la calibration temporelle conserve la séparation aux durées courtes et longues', () => {
   for (const duration of [0.25, 1, 4, 8]) {
     const state = makeInitialState();

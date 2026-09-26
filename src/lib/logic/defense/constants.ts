@@ -88,3 +88,35 @@ export const ROTATION_SCRAMBLE_DIST_PX = 150;
 /** Fin de rotation : part de la position de rotation gardée à l'étape qui
  *  suit (0.5 = le défenseur revient à mi-chemin). */
 export const ROTATION_RECOVER_BLEND = 0.5;
+
+// === matchupZone (zone matchup — un défenseur par attaquant) ===
+/** Pénalité d'appariement pour un attaquant hors de la zone du défenseur. */
+export const MATCHUP_OUT_OF_ZONE_PENALTY_PX = 40;
+/** Bonus de continuité : on garde son homme tant qu'il reste dans sa zone
+ *  (au-delà, un coéquipier plus proche le prend : passage de relais). */
+export const MATCHUP_STICK_BONUS_PX = 60;
+/** Le défenseur du porteur ne lâche pas le ballon pour une coupe hors ballon,
+ *  même si le porteur change de zone. */
+export const MATCHUP_BALL_STICK_BONUS_PX = 250;
+/** Affaissement vers la ligne d'aide, homme côté ballon (reste proche). */
+export const MATCHUP_BALL_SIDE_SAG = 0.15;
+/** Affaissement vers la ligne d'aide, homme côté faible (dans la raquette). */
+export const MATCHUP_WEAK_SIDE_SAG = 0.45;
+/** Ligne d'aide : point à 35 % du chemin panier → ballon. */
+export const MATCHUP_HELP_LINE_RATIO = 0.35;
+
+// === zone32Rotation (zone 3-2 — rotation sur ballon au coin) ===
+/** Coin : porteur à ≥ 160 px latéralement du panier… */
+export const ZONE32_CORNER_LATERAL_PX = 160;
+/** …et à ≤ 120 px de profondeur (près de la ligne de fond). */
+export const ZONE32_CORNER_DEPTH_PX = 120;
+/** Coude côté ballon (pointe qui descend) : latéral / profondeur. */
+export const ZONE32_ELBOW_LATERAL_PX = 80;
+export const ZONE32_ELBOW_DEPTH_PX = 160;
+/** Devant le cercle (bas côté faible) : profondeur. */
+export const ZONE32_RIM_FRONT_DEPTH_PX = 45;
+/** Aile côté faible qui s'enfonce : latéral / profondeur. */
+export const ZONE32_WEAK_WING_LATERAL_PX = 60;
+export const ZONE32_WEAK_WING_DEPTH_PX = 175;
+/** Rayon pour rattacher un défenseur repositionné à l'attaquant voisin. */
+export const ZONE32_PICKUP_RADIUS_PX = 90;

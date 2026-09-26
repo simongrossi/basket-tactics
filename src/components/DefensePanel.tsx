@@ -518,6 +518,21 @@ export function DefensePanel(props: DefensePanelProps) {
               value={state.zoneConfig.passDenial ?? 50}
               onChange={(v) => props.onUpdateZoneConfig({ passDenial: v })}
             />
+            {state.zoneConfig.type === 'zone-3-2' && (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <span style={{ fontSize: 10, color: '#cbd5e1', flex: '0 0 64px' }}>ballon au coin</span>
+                <select
+                  value={state.zoneConfig.cornerRotation ?? 'baseline'}
+                  onChange={(e) => props.onUpdateZoneConfig({ cornerRotation: e.target.value as 'baseline' | 'wing' })}
+                  aria-label="Rotation 3-2 sur ballon au coin"
+                  title="Le bas sort : le défenseur du bas côté ballon sort sur le coin, l'aile redescend au poste bas, le bas côté faible glisse devant le cercle, la pointe descend au coude. L'aile sort : l'aile court au coin."
+                  style={{ flex: '1 1 0%', minWidth: 0, fontSize: 11, padding: '3px 4px' }}
+                >
+                  <option value="baseline">le bas sort, l&apos;aile redescend</option>
+                  <option value="wing">l&apos;aile sort au coin</option>
+                </select>
+              </div>
+            )}
             <CheckboxLine
               checked={state.zoneConfig.trapCorners}
               label="trap en coin"

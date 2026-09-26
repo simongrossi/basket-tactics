@@ -6,6 +6,28 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Zones matchup et 3-2 (2026-09-26)
+
+- **Zone matchup** : nouveau moteur (`defense/matchupZone.ts`). Avant, elle
+  reprenait la disposition 2-3 avec un bonus « défenseur n° = attaquant n° » :
+  un attaquant pouvait rester sans défenseur à 140 px. Désormais :
+  - appariement **un pour un** par la place de zone (affectation optimale) ;
+  - chacun **garde son homme** tant qu'il reste dans sa zone ; le défenseur du
+    porteur ne lâche jamais le ballon ;
+  - **passage de relais** : un coupeur qui traverse est pris par la zone
+    d'arrivée, le défenseur libéré prend l'attaquant qui entre chez lui ;
+  - placement individuel avec principes de zone (côté faible dans la raquette).
+- **Zone 3-2** : règle de coin (`defense/zone32Rotation.ts`) — le bas côté
+  ballon sort, l'aile redescend au poste bas, le bas faible devant le cercle,
+  la pointe au coude, l'aile faible vers la ligne des lancers. Réglage
+  « ballon au coin » dans les réglages de zone (`le bas sort` par défaut,
+  `l'aile sort` = ancien comportement).
+- Changement de comportement pour les situations déjà enregistrées en zone
+  matchup ou 3-2 (ballon au coin) : c'est l'objet du chantier.
+- Tests : 13 unitaires + garde-fou de lecture (34 px, sauts ≤ 18 px) sur 5
+  systèmes × 2 zones avec ballon au coin.
+- Suite 2 746 / 2 746.
+
 ### Rotation en cascade — P4.4 (2026-09-26)
 
 - Sur la passe vers l'homme laissé libre par le tagueur (juste après le
