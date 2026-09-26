@@ -53,7 +53,9 @@ import type { DefenderTarget } from './types';
 import {
   carryRotationSwaps,
   applyRotationSwap,
+  decideCascadeSwap,
   decideRotationSwap,
+  type RotationSwap,
   type RotationMemoryOutput,
 } from './rotationMemory';
 
@@ -164,6 +166,7 @@ export function buildDefenseFrameContext(
   const rotationOut: RotationMemoryOutput = { swaps: [] };
   if (rotationMode && prevResult?.rotationSwaps?.length) {
     const { kept, scrambled } = carryRotationSwaps(prevResult.rotationSwaps, matchups, {
+      off,
       carrierPos: off[ballCarrier],
       hoop,
       triggerActive: triggers.any,
@@ -171,8 +174,8 @@ export function buildDefenseFrameContext(
     });
     rotationOut.swaps.push(...kept);
     scrambled.forEach((swap) => {
-      rotationEvents[swap.tagger] = 'scramble-back';
-      rotationEvents[swap.bigDef] = 'scramble-back';
+      rotationEvents[swap.a] = 'scramble-back';
+      rotationEvents[swap.b] = 'scramble-back';
     });
   }
 
@@ -293,7 +296,7 @@ export function buildDefenseFrameContext(
   // P4.4 — Fin d'un tag : le tagueur garde-t-il le roller ? Décidé après la
   // lecture de l'écran courant (un écran qui continue sur le même roller
   // relance le tag normalement) et après les switchs de l'étape.
-  if (rotationMode && prevResult?.pnrTag) {
+  if (rotationMode && (prevResult?.pnrTag || prevResult?.xOut)) {
     const busy = new Set<DefenderId>();
     if (screen) {
       busy.add(screen.carrierDef);
@@ -303,10 +306,11 @@ export function buildDefenseFrameContext(
       busy.add(scrammedSwitch.from);
       busy.add(scrammedSwitch.to);
     }
-    rotationOut.swaps.forEach((s) => {
-      busy.add(s.tagger);
-      busy.add(s.bigDef);
-    });
+    const markBusy = (s: RotationSwap) => {
+      busy.add(s.a);
+      busy.add(s.b);
+    };
+    rotationOut.swaps.forEach(markBusy);
     const swap = decideRotationSwap(rotationMode, prevResult.pnrTag, matchups, {
       stepIdx,
       off,
@@ -318,8 +322,32 @@ export function buildDefenseFrameContext(
     if (swap) {
       applyRotationSwap(matchups, swap);
       rotationOut.swaps.push(swap);
-      rotationEvents[swap.tagger] = 'stay';
-      rotationEvents[swap.bigDef] = 'help-the-helper';
+      rotationEvents[swap.a] = 'stay';
+      rotationEvents[swap.b] = 'help-the-helper';
+    }
+    // Rotation en cascade : passe sur l'homme laissé libre → le X-out fait
+    // le closeout, celui qui devait le prendre récupère l'homme du X-out.
+    // Évaluée APRÈS l'échange du tag (le « garde » de l'homme libre peut être
+    // le défenseur du poseur qui vient d'aider l'aideur). Les défenseurs de
+    // l'échange du tag restent disponibles pour la cascade.
+    const cascadeBusy = new Set(busy);
+    if (swap) {
+      cascadeBusy.delete(swap.a);
+      cascadeBusy.delete(swap.b);
+    }
+    const cascade = decideCascadeSwap(rotationMode, prevResult.xOut, matchups, {
+      stepIdx,
+      off,
+      ballCarrier,
+      prevBallCarrier: activeBallCarrier(state.steps[stepIdx - 1], state.playerCount),
+      prevPositions: prevDefenderPositions,
+      busyDefenders: cascadeBusy,
+    });
+    if (cascade) {
+      applyRotationSwap(matchups, cascade);
+      rotationOut.swaps.push(cascade);
+      rotationEvents[cascade.a] = 'closeout';
+      rotationEvents[cascade.b] = 'rotate';
     }
   }
 

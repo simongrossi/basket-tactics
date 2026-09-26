@@ -862,6 +862,8 @@ export interface ComputedDefender {
   /** P4.4 — État de rotation issu de la mémoire de rotation :
    *  - `stay` : le tagueur garde le roller (rotate-and-stay)
    *  - `help-the-helper` : le défenseur du poseur prend l'homme du tagueur
+   *  - `closeout` : cascade — le X-out sort sur l'homme libre qui reçoit
+   *  - `rotate` : cascade — prend l'homme laissé par le X-out
    *  - `recover` : fin de rotation, retour progressif sur son homme
    *  - `scramble-back` : retour au calme, chacun reprend son homme d'origine */
   rotation?: DefenderRotationState;
@@ -1454,4 +1456,10 @@ export interface AppState {
 export type RotationMemoryMode = 'auto' | 'stay' | 'recover';
 
 /** P4.4 — État de rotation d'un défenseur (cf. `ComputedDefender.rotation`). */
-export type DefenderRotationState = 'stay' | 'help-the-helper' | 'recover' | 'scramble-back';
+export type DefenderRotationState =
+  | 'stay'
+  | 'help-the-helper'
+  | 'closeout'
+  | 'rotate'
+  | 'recover'
+  | 'scramble-back';

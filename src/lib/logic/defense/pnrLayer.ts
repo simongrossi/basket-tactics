@@ -14,6 +14,7 @@ import { distance } from '../geometry';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
 import { PNR_TAG_THEN_SWITCH_DIST_PX as TAG_THEN_SWITCH_DIST_PX } from './constants';
+import { tagRotationSwap } from './rotationMemory';
 
 export function applyPnRRotationsLayer(
   positions: Record<DefenderId, DefenderTarget>,
@@ -68,6 +69,17 @@ export function applyPnRRotationsLayer(
     };
   }
 
+  // P4.4 — X-out observé, relu à l'étape suivante pour la rotation en
+  // cascade (passe sur l'homme laissé libre).
+  const xOutOv = overrides.find((o) => o.role === 'x-out');
+  if (state.rotationMemory && xOutOv && lowManOrphan) {
+    ctx.rotationOut.xOut = {
+      xOutDef: xOutOv.defender,
+      xOutMan: matchups[xOutOv.defender],
+      orphan: lowManOrphan,
+    };
+  }
+
   // C.5 — Tag-then-switch dynamic.
   // Si state.tagThenSwitchEnabled ET un override 'tag' a été appliqué ET
   // le roller (= screener) est très proche du panier (≤ 150px), on bascule
@@ -114,13 +126,12 @@ export function applyPnRRotationsLayer(
         // P4.4 — avec la mémoire de rotation, ce switch implicite tient
         // jusqu'au retour au calme au lieu d'être oublié à l'étape suivante.
         if (state.rotationMemory) {
-          ctx.rotationOut.swaps.push({
+          ctx.rotationOut.swaps.push(tagRotationSwap({
             tagger: lowManId,
             roller: screen.screener,
             bigDef: screen.screenerDef,
             orphan,
-            since: stepIdx,
-          });
+          }, stepIdx));
         }
       }
     }

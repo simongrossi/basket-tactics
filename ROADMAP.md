@@ -13,7 +13,8 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 Décision du user (26/09) : **se concentrer sur la défense et le
 positionnement défensif** (lectures anti-zone mises en attente). ✅ P4.4 V1
 mémoire de rotation livrée le 26/09 (réglage « Après tag » : auto / garde le
-roller / revient, retour aux duels d'origine au retour au calme).
+roller / revient, retour aux duels d'origine au retour au calme), puis la
+rotation en cascade (passe sur l'homme libre → closeout du X-out).
 
 Décision du user (22/09) : **finir d'abord le réalisme des déplacements et du
 placement défensifs**, puis l'axe coaching (le quiz est validé comme idée mais
@@ -117,7 +118,8 @@ match-sim crédible, attaque de zone.
    match : 2-for-1, faute volontaire à +3, tenir la dernière
    possession, raccourcir le jeu quand on mène.
 8. **Lacunes défensives résiduelles** (IDEAS §8) : X-out limité à un
-   seul roller, pas de re-scram en cascade, tag du roller sans contact.
+   seul roller, ~~pas de re-scram en cascade~~ (🟢 V1 2026-09-26 : closeout
+   du X-out sur la passe à l'homme libre, un cran), tag du roller sans contact.
    À ranger derrière le chantier fautes (le contact en est le
    prérequis).
 9. **Poursuite défenseur V4 en playback — livrée le 22/09.** Le profil,

@@ -266,7 +266,12 @@ describe('P4.4 mémoire de rotation — séparation et continuité en lecture', 
       const { resolveTimelineFrame } = await import('../playback/frameResolver');
       const templates = TEMPLATES.filter(t => ['pnr-central', 'spain-pnr', 'pnr-wing',
         'screen-lab-pnr', 'screen-lab-snake', 'screen-lab-reject'].includes(t.id));
-      for (const template of templates) {
+      // Rotation en cascade : PNR central où O1 passe à O4 (homme laissé
+      // libre par le tagueur) juste après le tag.
+      const pnrCentral = templates.find(t => t.id === 'pnr-central')!;
+      const cascade = { ...pnrCentral, id: 'pnr-central-cascade', steps: structuredClone(pnrCentral.steps) };
+      cascade.steps[3] = { ...cascade.steps[3], ballCarrier: 'O4', annotations: [] };
+      for (const template of [...templates, cascade]) {
         const steps = structuredClone(template.steps);
         // Étape de retour au calme : le porteur ressort, les duels échangés
         // se rendent leurs hommes pendant la lecture.

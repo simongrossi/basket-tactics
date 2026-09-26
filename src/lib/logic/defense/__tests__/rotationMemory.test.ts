@@ -9,9 +9,11 @@ import { distance } from '@/lib/logic/geometry';
 import type { AppState, AttackerPositions, Matchups, RotationMemoryMode, Step } from '@/lib/types';
 import {
   carryRotationSwaps,
+  decideCascadeSwap,
   decideRotationSwap,
   isCalmForScramble,
   shouldTaggerStay,
+  tagRotationSwap,
   type RotationSwap,
 } from '../rotationMemory';
 
@@ -113,6 +115,27 @@ describe('P4.4 mémoire de rotation — PNR central', () => {
     expect(res.rotationSwaps).toBeUndefined();
   });
 
+  it('retour au calme : la chaîne (tag + cascade) se défait d’un bloc', () => {
+    // Ballon ressorti, chacun revenu près de son homme d'origine.
+    const state = passToOpenMan('auto', [stepAfterRoll({
+      O1: { x: 300, y: 400 }, O2: { x: 180, y: 260 }, O4: { x: 250, y: 230 }, O5: { x: 200, y: 300 },
+    })]);
+    const res = computeDefenseTargets(state, 4);
+    expect(res.positions.D2.matchedTo).toBe('O2');
+    expect(res.positions.D4.matchedTo).toBe('O4');
+    expect(res.positions.D5.matchedTo).toBe('O5');
+    (['D2', 'D4', 'D5'] as const).forEach((d) => expect(res.positions[d].rotation).toBe('scramble-back'));
+    expect(res.rotationSwaps).toBeUndefined();
+  });
+
+  it('ballon ressorti mais défenseurs encore loin de leur homme : la chaîne tient entière', () => {
+    const state = passToOpenMan('auto', [stepAfterRoll({ O1: { x: 300, y: 400 } })]);
+    const res = computeDefenseTargets(state, 4);
+    expect(res.rotationSwaps).toHaveLength(2);
+    expect(res.positions.D2.matchedTo).toBe('O4');
+    expect(res.positions.D5.matchedTo).toBe('O2');
+  });
+
   it('pur et déterministe : deux appels donnent le même résultat', () => {
     const state = pnrCentral('auto', [stepAfterRoll({ O1: { x: 330, y: 220 } })]);
     expect(computeDefenseTargets(state, 4)).toEqual(computeDefenseTargets(state, 4));
@@ -123,6 +146,55 @@ describe('P4.4 mémoire de rotation — PNR central', () => {
     const snapshot = structuredClone(state);
     computeDefenseTargets(state, 3);
     expect(state).toEqual(snapshot);
+  });
+});
+
+/** PNR central où, à l'étape 3, O1 passe à O4 (l'homme laissé libre par le
+ *  tagueur D4, vers qui D2 a fait le X-out). */
+function passToOpenMan(mode?: RotationMemoryMode, extraSteps: Step[] = []): AppState {
+  const state = pnrCentral(mode, extraSteps);
+  state.steps[3] = { ...state.steps[3], ballCarrier: 'O4', annotations: [] };
+  return state;
+}
+
+describe('P4.4 rotation en cascade — passe sur l’homme laissé libre', () => {
+  it('sans réglage : pas de cascade', () => {
+    const res = computeDefenseTargets(passToOpenMan(), 3);
+    expect(res.positions.D2.matchedTo).toBe('O2');
+    expect(res.positions.D4.matchedTo).toBe('O4');
+  });
+
+  it('le X-out est observé à l’étape 2', () => {
+    expect(computeDefenseTargets(passToOpenMan('auto'), 2).xOut)
+      .toEqual({ xOutDef: 'D2', xOutMan: 'O2', orphan: 'O4' });
+  });
+
+  it('auto : le X-out fait le closeout, le big prend l’homme du X-out, le tagueur garde le roller', () => {
+    const res = computeDefenseTargets(passToOpenMan('auto'), 3);
+    expect(res.positions.D4.matchedTo).toBe('O5');
+    expect(res.positions.D4.rotation).toBe('stay');
+    expect(res.positions.D2.matchedTo).toBe('O4');
+    expect(res.positions.D2.rotation).toBe('closeout');
+    expect(res.positions.D5.matchedTo).toBe('O2');
+    expect(res.positions.D5.rotation).toBe('rotate');
+    // Tous les attaquants restent marqués par un défenseur distinct.
+    const men = Object.values(res.positions).map((p) => p.matchedTo);
+    expect(new Set(men).size).toBe(5);
+  });
+
+  it('les duels de la cascade tiennent à l’étape suivante tant que le jeu n’est pas calmé', () => {
+    const state = passToOpenMan('auto', [stepAfterRoll({ O4: { x: 190, y: 160 } }, 'O4')]);
+    const res = computeDefenseTargets(state, 4);
+    expect(res.positions.D2.matchedTo).toBe('O4');
+    expect(res.positions.D5.matchedTo).toBe('O2');
+    expect(res.positions.D4.matchedTo).toBe('O5');
+  });
+
+  it('recover : pas d’échange durable, pas de cascade', () => {
+    const res = computeDefenseTargets(passToOpenMan('recover'), 3);
+    expect(res.positions.D2.matchedTo).toBe('O2');
+    expect(res.positions.D4.matchedTo).toBe('O4');
+    expect(res.rotationSwaps).toBeUndefined();
   });
 });
 
@@ -169,27 +241,53 @@ describe('P4.4 mémoire de rotation — fonctions pures', () => {
   });
 
   it('un échange est abandonné si un switch a changé les duels entre-temps', () => {
-    const swap: RotationSwap = { ...tag, since: 2 };
+    const swap: RotationSwap = tagRotationSwap(tag, 2);
     const matchups = { D4: 'O2', D5: 'O5', D2: 'O4' } as Matchups;
     const { kept, scrambled } = carryRotationSwaps([swap], matchups, {
-      carrierPos: { x: hoop.x, y: hoop.y + 150 }, hoop, triggerActive: true, prevPositions: {} as never,
+      off, carrierPos: { x: hoop.x, y: hoop.y + 150 }, hoop, triggerActive: true, prevPositions: {} as never,
     });
     expect(kept).toHaveLength(0);
     expect(scrambled).toHaveLength(0);
     expect(matchups.D4).toBe('O2');
   });
 
-  it('retour au calme : il faut ballon dehors, pas de trigger, défenseurs proches', () => {
-    const base = {
-      carrierPos: { x: hoop.x, y: hoop.y + 320 },
-      hoop,
-      triggerActive: false,
-      taggerPos: { x: hoop.x, y: hoop.y + 80 },
-      bigDefPos: { x: hoop.x + 90, y: hoop.y + 100 },
-    };
+  it('retour au calme : ballon dehors, pas de trigger, chacun près de son homme d’origine', () => {
+    const near = { defenderPos: { x: hoop.x, y: hoop.y + 80 }, originalManPos: { x: hoop.x + 90, y: hoop.y + 100 } };
+    const far = { defenderPos: { x: hoop.x, y: hoop.y + 80 }, originalManPos: { x: hoop.x + 250, y: hoop.y + 200 } };
+    const base = { carrierPos: { x: hoop.x, y: hoop.y + 320 }, hoop, triggerActive: false, returns: [near, near] };
     expect(isCalmForScramble(base)).toBe(true);
     expect(isCalmForScramble({ ...base, triggerActive: true })).toBe(false);
     expect(isCalmForScramble({ ...base, carrierPos: { x: hoop.x, y: hoop.y + 150 } })).toBe(false);
-    expect(isCalmForScramble({ ...base, bigDefPos: { x: hoop.x + 250, y: hoop.y + 200 } })).toBe(false);
+    expect(isCalmForScramble({ ...base, returns: [near, far] })).toBe(false);
+  });
+
+  it('cascade : pas de closeout si la passe ne va pas à l’homme libre', () => {
+    const xOut = { xOutDef: 'D2', xOutMan: 'O2', orphan: 'O4' } as const;
+    const matchups = { D2: 'O2', D4: 'O4' } as Matchups;
+    const params = {
+      stepIdx: 3,
+      off: { O4: { x: 150, y: 200 } } as AttackerPositions,
+      ballCarrier: 'O1' as const,
+      prevBallCarrier: 'O1' as const,
+      prevPositions: { D2: { x: 160, y: 230 }, D4: { x: 300, y: 150 } } as never,
+      busyDefenders: new Set<never>(),
+    };
+    expect(decideCascadeSwap('auto', xOut, matchups, params)).toBeNull();
+    expect(decideCascadeSwap('auto', xOut, { ...matchups }, { ...params, ballCarrier: 'O4' }))
+      .toMatchObject({ a: 'D2', aTakes: 'O4', b: 'D4', bTakes: 'O2', kind: 'cascade' });
+    expect(decideCascadeSwap('recover', xOut, { ...matchups }, { ...params, ballCarrier: 'O4' })).toBeNull();
+  });
+
+  it('cascade : le garde de l’homme libre, plus proche, le garde', () => {
+    const xOut = { xOutDef: 'D2', xOutMan: 'O2', orphan: 'O4' } as const;
+    const swap = decideCascadeSwap('auto', xOut, { D2: 'O2', D4: 'O4' } as Matchups, {
+      stepIdx: 3,
+      off: { O4: { x: 150, y: 200 } } as AttackerPositions,
+      ballCarrier: 'O4',
+      prevBallCarrier: 'O1',
+      prevPositions: { D2: { x: 300, y: 300 }, D4: { x: 160, y: 190 } } as never,
+      busyDefenders: new Set(),
+    });
+    expect(swap).toBeNull();
   });
 });

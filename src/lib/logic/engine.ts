@@ -15,7 +15,7 @@ import {
   getActiveDefenderIds,
 } from './players';
 import type { DefenderTarget } from './defense/types';
-import type { PnrTagRecord, RotationSwap } from './defense/rotationMemory';
+import type { PnrTagRecord, RotationSwap, XOutRecord } from './defense/rotationMemory';
 import { buildDefenseFrameContext } from './defense/context';
 import { applyBaseTargetsLayer } from './defense/baseTargets';
 import { applyDriveContainmentLayer } from './defense/driveContainmentLayer';
@@ -82,6 +82,8 @@ export interface DefenseTargetsResult {
   rotationSwaps?: RotationSwap[];
   /** P4.4 — Tag PnR observé à cette étape (mémoire de rotation). */
   pnrTag?: PnrTagRecord;
+  /** P4.4 — X-out PnR observé à cette étape (rotation en cascade). */
+  xOut?: XOutRecord;
 }
 
 /**
@@ -188,6 +190,7 @@ export function computeDefenseTargets(
     detectedSwitch: ctx.detectedSwitch,
     rotationSwaps: ctx.rotationOut.swaps.length ? ctx.rotationOut.swaps : undefined,
     pnrTag: ctx.rotationOut.pnrTag,
+    xOut: ctx.rotationOut.xOut,
   };
 }
 

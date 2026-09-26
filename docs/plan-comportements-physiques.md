@@ -364,20 +364,30 @@ opt-in, `undefined` = historique) :
    (`DefenseTargetsResult.rotationSwaps`), appliqué aux matchups AVANT la
    détection d'écran (le tagueur est lu comme défenseur du roller).
 2. **Retour au calme** : l'échange se défait quand le ballon est ressorti
-   (≥ 230 px du panier), sans drive / post / pénétration, et que les deux
-   défenseurs sont à ≤ 150 px l'un de l'autre.
+   (≥ 230 px du panier), sans drive / post / pénétration, et que chaque
+   défenseur de la chaîne est à ≤ 150 px de son homme d'origine. Les
+   échanges qui partagent un défenseur (tag + cascade) forment une chaîne
+   défaite d'un bloc — jamais un seul maillon.
 3. **Fin de rotation progressive** (couche 2.05) : tag / X-out / stunt de
    l'étape précédente sans rôle à l'étape courante → retour à mi-chemin
    (`ROTATION_RECOVER_BLEND = 0.5`) au lieu d'un départ à froid.
 4. C.5 tag-then-switch : avec la mémoire, le switch implicite tient jusqu'au
    retour au calme au lieu d'être oublié à l'étape suivante.
+5. **Rotation en cascade** (2026-09-26, modes `auto` / `stay`) : si le
+   ballon arrive sur l'homme laissé libre par le tagueur juste après le X-out,
+   et que le défenseur du X-out en est nettement plus proche (marge 20 px)
+   que celui qui le marque maintenant, il fait le **closeout** ; l'autre prend
+   l'homme du X-out (**rotation**). Sur PNR central : D4 garde le roller O5,
+   D2 sort sur O4, D5 prend O2 — les 5 attaquants restent marqués.
 
-Badges coach : GARDE ROLL, AIDE L'AIDEUR, ↩ FIN ROTATION, ⇄ RETOUR.
+Badges coach : GARDE ROLL, AIDE L'AIDEUR, CLOSEOUT, ROTATION, ↩ FIN ROTATION,
+⇄ RETOUR.
 
 **Mesuré** : PNR central, roller gardé à 34 px (au lieu de 70) ; Lab PnR,
 34 px (au lieu de 96). Tests : `defense/__tests__/rotationMemory.test.ts`
-(17) + garde-fou lecture (34 px, sauts ≤ 18 px, 3 modes, 6 PnR avec étape
-de retour au calme) dans `overlapInvariants.test.ts`.
+(26, dont cascade) + garde-fou lecture (34 px, sauts ≤ 18 px, 3 modes, 6 PnR
++ variante cascade, avec étape de retour au calme) dans
+`overlapInvariants.test.ts`.
 
 **Limites V1 / suite possible** :
 - Seule la rotation PnR (tag) crée un échange durable. L'aide sur drive
@@ -386,9 +396,9 @@ de retour au calme) dans `overlapInvariants.test.ts`.
   matchups persistés (`getMatchupsAt`) : un nouvel écran posé sur un
   défenseur échangé est lu avec l'ancien duel pendant l'animation (même
   limite que les switchs locaux C.5 / scram déjà existants).
-- Pas encore de mémoire pour une rotation en cascade (X-out qui devient
-  closeout sur une passe au coin) : à brancher sur « re-scram en cascade »
-  (ROADMAP § Lacunes défensives résiduelles).
+- La cascade ne se déclenche que sur la passe qui suit immédiatement le
+  X-out (mémoire d'une étape) et s'arrête à un cran : pas de troisième
+  rotation si le ballon repart ensuite vers l'homme du X-out.
 
 ---
 

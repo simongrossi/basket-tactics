@@ -6,6 +6,22 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Rotation en cascade — P4.4 (2026-09-26)
+
+- Sur la passe vers l'homme laissé libre par le tagueur (juste après le
+  X-out), le défenseur du X-out, s'il en est nettement plus proche, fait le
+  **closeout** ; celui qui devait prendre l'homme libre prend à la place
+  l'homme du X-out (**rotation**). Modes `auto` et `stay` (pas en `recover`).
+  PNR central : D4 garde le roller, D2 sort sur O4, D5 prend O2.
+- Échanges de duels généralisés (paire `a` / `b`) : le tag et la cascade
+  forment une **chaîne** défaite d'un bloc au retour au calme. Nouveau
+  critère de retour au calme : chaque défenseur de la chaîne à ≤ 150 px de
+  son homme d'origine (au lieu de « les deux défenseurs proches »).
+- Badges CLOSEOUT et ROTATION.
+- Tests : 26 unitaires (dont 9 cascade / chaîne) + variante cascade dans le
+  garde-fou de lecture.
+- Suite 2 731 / 2 731 (dont écran / overlap / userJson / screenLab).
+
 ### Mémoire de rotation défensive — P4.4 V1 (2026-09-26)
 
 - Nouveau réglage **« Après tag »** (panneau Défense, défense individuelle,

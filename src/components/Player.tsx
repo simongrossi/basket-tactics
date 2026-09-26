@@ -1,4 +1,4 @@
-import type { Point, ScreenContactPhase } from '@/lib/types';
+import type { DefenderRotationState, Point, ScreenContactPhase } from '@/lib/types';
 import { PLAYER_RADIUS } from '@/lib/data/court';
 import { angleDiff, normalizeAngle, angleFromNorth } from '@/lib/logic/angles';
 
@@ -47,7 +47,7 @@ interface PlayerProps {
   /** Rôle PnR (P1) — affiche un anneau distinct selon la rotation. */
   pnrRole?: 'tag' | 'x-out' | 'stunt';
   /** P4.4 — état de rotation (mémoire de rotation). */
-  rotation?: 'stay' | 'help-the-helper' | 'recover' | 'scramble-back';
+  rotation?: DefenderRotationState;
   /** Severity du mismatch après switch (B1). Range 0–4. Affiche un badge ⚠
    *  orange (severity 2) ou rouge (severity ≥3) à côté du défenseur quand
    *  ≥ `mismatchThreshold`. Si scram switch appliqué, badge bleu "SCRAM". */
@@ -839,6 +839,8 @@ export function Player({
 const ROTATION_BADGE: Record<NonNullable<PlayerProps['rotation']>, { label: string; color: string }> = {
   stay: { label: 'GARDE ROLL', color: '#B45309' },
   'help-the-helper': { label: "AIDE L'AIDEUR", color: '#7C3AED' },
+  closeout: { label: 'CLOSEOUT', color: '#DC2626' },
+  rotate: { label: 'ROTATION', color: '#9333EA' },
   recover: { label: '↩ FIN ROTATION', color: '#0EA5A8' },
   'scramble-back': { label: '⇄ RETOUR', color: '#2563EB' },
 };

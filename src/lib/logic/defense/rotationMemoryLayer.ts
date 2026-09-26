@@ -35,9 +35,9 @@ export function applyRotationMemoryLayer(
     const event = rotationEvents[dId];
     if (event) {
       target.rotation = event;
-      // Le tagueur qui garde le roller / le big qui prend l'homme laissé
+      // Duels échangés (garde le roller, aide l'aideur, cascade)
       // sont en marquage direct : pas de retour progressif à appliquer.
-      if (event === 'stay' || event === 'help-the-helper') return;
+      if (event === 'stay' || event === 'help-the-helper' || event === 'closeout' || event === 'rotate') return;
     }
 
     const prev = prevTargets?.[dId];

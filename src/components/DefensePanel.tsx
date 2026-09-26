@@ -192,7 +192,7 @@ export function DefensePanel(props: DefensePanelProps) {
                 props.onPatch({ rotationMemory: v === 'off' ? undefined : (v as RotationMemoryMode) });
               }}
               aria-label="Rotation après un tag"
-              title="auto : le plus proche du roller le garde (le tagueur reste et le pivot prend son homme, ou le tagueur rend le roller au pivot). Retour aux duels d'origine au retour au calme."
+              title="auto : le plus proche du roller le garde (le tagueur reste et le pivot prend son homme, ou le tagueur rend le roller au pivot). Sur une passe à l'homme laissé libre, le défenseur du X-out fait le closeout et un coéquipier prend son homme (auto et « garde le roller »). Retour aux duels d'origine au retour au calme."
               style={{ flex: '1 1 0%', minWidth: 0, fontSize: 11, padding: '3px 4px' }}
             >
               <option value="off">recalcul à chaque étape</option>
