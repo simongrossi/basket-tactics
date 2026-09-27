@@ -71,3 +71,74 @@ export const SCREEN_REPEL_LAYER_MAX_SHIFT_PX = 3;
 // === driveContainmentLayer (2a — défense vivante / drive) ===
 /** Décalage max par step du défenseur du porteur vers le point de contain. */
 export const CONTAINMENT_MAX_SHIFT_PX = 8;
+
+// === rotationMemory (P4.4 — mémoire d'intention défensive) ===
+/** Zone du cercle : en mode auto, le tagueur ne garde le roller que si
+ *  celui-ci est encore à moins de ~5 m du panier. */
+export const ROTATION_ROLL_ZONE_PX = 190;
+/** Avance minimale du tagueur sur le défenseur du poseur (distance au
+ *  roller) pour qu'il garde le roller en mode auto. */
+export const ROTATION_STAY_MARGIN_PX = 20;
+/** Retour au calme : le ballon doit être ressorti à au moins ~6,2 m du panier
+ *  (juste sous la ligne à 3 points). */
+export const ROTATION_CALM_BALL_DIST_PX = 230;
+/** Retour au calme : distance max entre les deux défenseurs échangés pour
+ *  qu'ils se rendent leurs hommes (~4 m). */
+export const ROTATION_SCRAMBLE_DIST_PX = 150;
+/** Fin de rotation : part de la position de rotation gardée à l'étape qui
+ *  suit (0.5 = le défenseur revient à mi-chemin). */
+export const ROTATION_RECOVER_BLEND = 0.5;
+
+// === matchupZone (zone matchup — un défenseur par attaquant) ===
+/** Pénalité d'appariement pour un attaquant hors de la zone du défenseur. */
+export const MATCHUP_OUT_OF_ZONE_PENALTY_PX = 40;
+/** Bonus de continuité : on garde son homme tant qu'il reste dans sa zone
+ *  (au-delà, un coéquipier plus proche le prend : passage de relais). */
+export const MATCHUP_STICK_BONUS_PX = 60;
+/** Le défenseur du porteur ne lâche pas le ballon pour une coupe hors ballon,
+ *  même si le porteur change de zone. */
+export const MATCHUP_BALL_STICK_BONUS_PX = 250;
+/** Affaissement vers la ligne d'aide, homme côté ballon (reste proche). */
+export const MATCHUP_BALL_SIDE_SAG = 0.15;
+/** Affaissement vers la ligne d'aide, homme côté faible (dans la raquette). */
+export const MATCHUP_WEAK_SIDE_SAG = 0.45;
+/** Ligne d'aide : point à 35 % du chemin panier → ballon. */
+export const MATCHUP_HELP_LINE_RATIO = 0.35;
+
+// === zone32Rotation (zone 3-2 — rotation sur ballon au coin) ===
+/** Coin : porteur à ≥ 160 px latéralement du panier… */
+export const ZONE32_CORNER_LATERAL_PX = 160;
+/** …et à ≤ 120 px de profondeur (près de la ligne de fond). */
+export const ZONE32_CORNER_DEPTH_PX = 120;
+/** Coude côté ballon (pointe qui descend) : latéral / profondeur. */
+export const ZONE32_ELBOW_LATERAL_PX = 80;
+export const ZONE32_ELBOW_DEPTH_PX = 160;
+/** Devant le cercle (bas côté faible) : profondeur. */
+export const ZONE32_RIM_FRONT_DEPTH_PX = 45;
+/** Aile côté faible qui s'enfonce : latéral / profondeur. */
+export const ZONE32_WEAK_WING_LATERAL_PX = 60;
+export const ZONE32_WEAK_WING_DEPTH_PX = 175;
+/** Rayon pour rattacher un défenseur repositionné à l'attaquant voisin. */
+export const ZONE32_PICKUP_RADIUS_PX = 90;
+/** Poste haut : porteur à ≤ 70 px de l'axe, entre 120 et 235 px du panier. */
+export const ZONE32_HIGH_POST_LATERAL_PX = 70;
+export const ZONE32_HIGH_POST_MIN_DEPTH_PX = 120;
+export const ZONE32_HIGH_POST_MAX_DEPTH_PX = 235;
+/** Aile : porteur à ≥ 120 px de l'axe et ≤ 330 px de profondeur (hors coin). */
+export const ZONE32_WING_LATERAL_PX = 120;
+export const ZONE32_WING_MAX_DEPTH_PX = 330;
+/** Poste haut : la pointe met la pression 35 px dans le dos du porteur. */
+export const ZONE32_DIG_OFFSET_PX = 35;
+/** Poste haut : coudes vers lesquels les ailes resserrent. */
+export const ZONE32_PINCH_LATERAL_PX = 75;
+/** Aile : intervalle côté ballon fermé par la pointe. */
+export const ZONE32_GAP_LATERAL_PX = 65;
+export const ZONE32_GAP_DEPTH_PX = 215;
+/** Aile : bas côté faible au milieu de la raquette. */
+export const ZONE32_WEAK_LOW_LATERAL_PX = 20;
+export const ZONE32_WEAK_LOW_DEPTH_PX = 70;
+/** Cascade : nombre max de crans (closeouts successifs) d'une même rotation. */
+export const ROTATION_CASCADE_MAX_LEVELS = 3;
+/** Cascade : le défenseur qui « tourne » est arrivé sur l'homme laissé libre
+ *  à moins de 60 px — la rotation est terminée, plus de cran suivant. */
+export const ROTATION_RUNNER_ARRIVED_PX = 60;

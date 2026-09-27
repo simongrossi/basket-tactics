@@ -14,6 +14,7 @@ import { distance } from '../geometry';
 import type { DefenseFrameContext } from './context';
 import type { DefenderTarget } from './types';
 import { PNR_TAG_THEN_SWITCH_DIST_PX as TAG_THEN_SWITCH_DIST_PX } from './constants';
+import { tagRotationSwap } from './rotationMemory';
 
 export function applyPnRRotationsLayer(
   positions: Record<DefenderId, DefenderTarget>,
@@ -34,10 +35,17 @@ export function applyPnRRotationsLayer(
     off, matchups, screen, action, currentTargets, hoop,
     activeDefenseInitial(state.defenseInitial, state.playerCount)
   );
+  const tagOv = overrides.find((o) => o.role === 'tag');
+  const lowManOrphan: AttackerId | undefined = tagOv ? matchups[tagOv.defender] : undefined;
   for (const ov of overrides) {
     positions[ov.defender].x = Math.round(ov.target.x);
     positions[ov.defender].y = Math.round(ov.target.y);
     positions[ov.defender].pnrRole = ov.role;
+    // P4.4 — attaquant visé, relu à l'étape suivante par la mémoire de rotation.
+    positions[ov.defender].rotationOn =
+      ov.role === 'tag' ? screen.screener
+        : ov.role === 'x-out' ? lowManOrphan
+        : screen.carrier;
     // Marque comme aide active pour que HelpLines distingue ces rotations.
     if (ov.role === 'tag' || ov.role === 'x-out') {
       positions[ov.defender].helpFactor = Math.max(positions[ov.defender].helpFactor, 0.6);
@@ -48,6 +56,28 @@ export function applyPnRRotationsLayer(
     // car la rotation PnR prend le pas.
     positions[ov.defender].helpAim = ov.target;
     positions[ov.defender].helpKind = 'active-help';
+  }
+
+  // P4.4 — Tag observé à cette étape, relu à l'étape suivante pour décider
+  // si le tagueur garde le roller une fois l'écran terminé.
+  if (state.rotationMemory && tagOv && lowManOrphan) {
+    ctx.rotationOut.pnrTag = {
+      tagger: tagOv.defender,
+      roller: screen.screener,
+      bigDef: screen.screenerDef,
+      orphan: lowManOrphan,
+    };
+  }
+
+  // P4.4 — X-out observé, relu à l'étape suivante pour la rotation en
+  // cascade (passe sur l'homme laissé libre).
+  const xOutOv = overrides.find((o) => o.role === 'x-out');
+  if (state.rotationMemory && xOutOv && lowManOrphan) {
+    ctx.rotationOut.xOut = {
+      xOutDef: xOutOv.defender,
+      xOutMan: matchups[xOutOv.defender],
+      orphan: lowManOrphan,
+    };
   }
 
   // C.5 — Tag-then-switch dynamic.
@@ -68,6 +98,8 @@ export function applyPnRRotationsLayer(
       if (rollerPos && distance(rollerPos, hoop) <= TAG_THEN_SWITCH_DIST_PX) {
         const orphan: AttackerId = matchups[lowManId];
         const orphanPos = off[orphan];
+        // Le tag devient un switch : plus de tag à terminer à l'étape suivante.
+        ctx.rotationOut.pnrTag = undefined;
         // Swap matchups : lowMan ↔ screenerDef.
         matchups[lowManId] = screen.screener;
         matchups[screen.screenerDef] = orphan;
@@ -91,6 +123,16 @@ export function applyPnRRotationsLayer(
         // Marque ce step comme switché pour les diagnostics.
         positions[lowManId].switchedThisStep = true;
         positions[screen.screenerDef].switchedThisStep = true;
+        // P4.4 — avec la mémoire de rotation, ce switch implicite tient
+        // jusqu'au retour au calme au lieu d'être oublié à l'étape suivante.
+        if (state.rotationMemory) {
+          ctx.rotationOut.swaps.push(tagRotationSwap({
+            tagger: lowManId,
+            roller: screen.screener,
+            bigDef: screen.screenerDef,
+            orphan,
+          }, stepIdx));
+        }
       }
     }
   }

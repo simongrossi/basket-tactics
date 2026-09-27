@@ -1,4 +1,4 @@
-import type { Point, ScreenContactPhase } from '@/lib/types';
+import type { DefenderRotationState, Point, ScreenContactPhase } from '@/lib/types';
 import { PLAYER_RADIUS } from '@/lib/data/court';
 import { angleDiff, normalizeAngle, angleFromNorth } from '@/lib/logic/angles';
 
@@ -46,6 +46,8 @@ interface PlayerProps {
   showName?: boolean;
   /** Rôle PnR (P1) — affiche un anneau distinct selon la rotation. */
   pnrRole?: 'tag' | 'x-out' | 'stunt';
+  /** P4.4 — état de rotation (mémoire de rotation). */
+  rotation?: DefenderRotationState;
   /** Severity du mismatch après switch (B1). Range 0–4. Affiche un badge ⚠
    *  orange (severity 2) ou rouge (severity ≥3) à côté du défenseur quand
    *  ≥ `mismatchThreshold`. Si scram switch appliqué, badge bleu "SCRAM". */
@@ -116,6 +118,7 @@ export function Player({
   showDenyingRing = true,
   showForcedScreenerBadge = true,
   pnrRole,
+  rotation,
   mismatchSeverity,
   scrammedThisStep,
   mismatchThreshold = 2,
@@ -761,6 +764,18 @@ export function Player({
           ⚓
         </text>
       )}
+      {rotation && !isAttacker && showStateRings && (
+        <text
+          x={pos.x + r + 6}
+          y={pos.y + 3}
+          fontSize={8}
+          fontWeight={700}
+          fill={ROTATION_BADGE[rotation].color}
+          pointerEvents="none"
+        >
+          {ROTATION_BADGE[rotation].label}
+        </text>
+      )}
       {blitzRecovering && !isAttacker && showStateRings && (
         <text
           x={pos.x + r + 12}
@@ -819,6 +834,16 @@ export function Player({
     </g>
   );
 }
+
+/** P4.4 — badge de l'état de rotation (mémoire de rotation). */
+const ROTATION_BADGE: Record<NonNullable<PlayerProps['rotation']>, { label: string; color: string }> = {
+  stay: { label: 'GARDE ROLL', color: '#B45309' },
+  'help-the-helper': { label: "AIDE L'AIDEUR", color: '#7C3AED' },
+  closeout: { label: 'CLOSEOUT', color: '#DC2626' },
+  rotate: { label: 'ROTATION', color: '#9333EA' },
+  recover: { label: '↩ FIN ROTATION', color: '#0EA5A8' },
+  'scramble-back': { label: '⇄ RETOUR', color: '#2563EB' },
+};
 
 function screenPhaseColor(phase: ScreenContactPhase): string {
   switch (phase) {

@@ -119,6 +119,7 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
             blitzRecovering={p.blitzRecovering}
             denying={p.denying}
             pnrRole={p.pnrRole}
+            rotation={p.rotation}
             mismatchSeverity={p.mismatchSeverity}
             scrammedThisStep={p.scrammedThisStep}
             mismatchThreshold={state.mismatchThreshold ?? 2}

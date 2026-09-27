@@ -6,6 +6,95 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Cascade à plusieurs crans — P4.4 (2026-09-27)
+
+- Après un closeout de cascade, l'homme laissé libre est suivi (`openMan` :
+  homme, défenseur qui court le reprendre, cran). Si le ballon lui arrive
+  avant que ce coureur ne soit là (> 60 px, positions réelles de l'étape
+  précédente), le défenseur le plus proche, nettement plus proche que le
+  coureur, sort à son tour et le coureur prend son homme. Jusqu'à 3 crans.
+- On ne lâche pas la raquette : un défenseur dont l'homme est à ≤ 190 px du
+  panier n'est jamais candidat.
+- PNR central (O1 dérive à gauche) : passe à O4 → D2 sort, D5 court vers
+  O2 ; O4 renvoie à O2 → D1 sort, D5 prend O1.
+- Tests : 32 unitaires rotation (6 nouveaux) + variante 2 crans dans le
+  garde-fou de lecture.
+- Suite 2 758 / 2 758 (inclut aussi le commit 3-2 poste haut / aile).
+
+### Zone 3-2 — poste haut et aile / renversement (2026-09-27)
+
+- **Poste haut** : on « pince ». Le bas dont le bloc est libre monte au
+  contact face au panier, la pointe met la pression dans le dos, les ailes
+  resserrent vers les coudes, l'autre bas garde le joueur à son poste bas
+  (sinon tient le cercle).
+- **Aile** : l'aile côté ballon sort, la pointe ferme l'intervalle côté
+  ballon (pénétration axe et poste haut), le bas côté ballon tient le poste
+  bas, le bas faible au milieu de la raquette, l'aile faible vers la ligne
+  des lancers. **Renversement** : rôles en miroir sur l'autre aile.
+- Ballon au sommet : moteur de zone générique (inchangé).
+- Tests : 19 unitaires zones (6 nouveaux).
+
+### Zones matchup et 3-2 (2026-09-26)
+
+- **Zone matchup** : nouveau moteur (`defense/matchupZone.ts`). Avant, elle
+  reprenait la disposition 2-3 avec un bonus « défenseur n° = attaquant n° » :
+  un attaquant pouvait rester sans défenseur à 140 px. Désormais :
+  - appariement **un pour un** par la place de zone (affectation optimale) ;
+  - chacun **garde son homme** tant qu'il reste dans sa zone ; le défenseur du
+    porteur ne lâche jamais le ballon ;
+  - **passage de relais** : un coupeur qui traverse est pris par la zone
+    d'arrivée, le défenseur libéré prend l'attaquant qui entre chez lui ;
+  - placement individuel avec principes de zone (côté faible dans la raquette).
+- **Zone 3-2** : règle de coin (`defense/zone32Rotation.ts`) — le bas côté
+  ballon sort, l'aile redescend au poste bas, le bas faible devant le cercle,
+  la pointe au coude, l'aile faible vers la ligne des lancers. Réglage
+  « ballon au coin » dans les réglages de zone (`le bas sort` par défaut,
+  `l'aile sort` = ancien comportement).
+- Changement de comportement pour les situations déjà enregistrées en zone
+  matchup ou 3-2 (ballon au coin) : c'est l'objet du chantier.
+- Tests : 13 unitaires + garde-fou de lecture (34 px, sauts ≤ 18 px) sur 5
+  systèmes × 2 zones avec ballon au coin.
+- Suite 2 746 / 2 746.
+
+### Rotation en cascade — P4.4 (2026-09-26)
+
+- Sur la passe vers l'homme laissé libre par le tagueur (juste après le
+  X-out), le défenseur du X-out, s'il en est nettement plus proche, fait le
+  **closeout** ; celui qui devait prendre l'homme libre prend à la place
+  l'homme du X-out (**rotation**). Modes `auto` et `stay` (pas en `recover`).
+  PNR central : D4 garde le roller, D2 sort sur O4, D5 prend O2.
+- Échanges de duels généralisés (paire `a` / `b`) : le tag et la cascade
+  forment une **chaîne** défaite d'un bloc au retour au calme. Nouveau
+  critère de retour au calme : chaque défenseur de la chaîne à ≤ 150 px de
+  son homme d'origine (au lieu de « les deux défenseurs proches »).
+- Badges CLOSEOUT et ROTATION.
+- Tests : 26 unitaires (dont 9 cascade / chaîne) + variante cascade dans le
+  garde-fou de lecture.
+- Suite 2 731 / 2 731 (dont écran / overlap / userJson / screenLab).
+
+### Mémoire de rotation défensive — P4.4 V1 (2026-09-26)
+
+- Nouveau réglage **« Après tag »** (panneau Défense, défense individuelle,
+  opt-in) : `auto` (le plus proche garde le roller), `stay` (le tagueur
+  garde le roller), `recover` (le tagueur revient sur son homme).
+- **Rotate-and-stay** : quand l'écran n'est plus lu, le tagueur garde le
+  roller et le défenseur du poseur prend l'homme laissé libre. L'échange tient
+  d'étape en étape et se défait au **retour au calme** (ballon ressorti, pas
+  de drive, les deux défenseurs assez proches).
+- **Fin de rotation progressive** : tag, X-out et stunt reviennent à
+  mi-chemin sur l'étape qui suit au lieu de repartir d'un coup.
+- Le tag-then-switch (C.5) tient désormais jusqu'au retour au calme quand la
+  mémoire est active.
+- Badges : GARDE ROLL, AIDE L'AIDEUR, ↩ FIN ROTATION, ⇄ RETOUR.
+- Mesuré sur PNR central : roller gardé à 34 px (70 px avant) ; Lab PnR :
+  34 px (96 px avant). Aucun calcul défensif supplémentaire : la mémoire
+  réutilise l'étape précédente déjà calculée pour la détection d'écran.
+- Diagnostic : `scripts/diag-rotation-memory.ts`. Tests : 17 unitaires + garde-fou
+  lecture (34 px, sauts ≤ 18 px) sur 6 PnR × 3 modes. Délai explicite (60 s)
+  sur le test de séparation de la timeline, déjà à ~4,5 s pour une limite
+  de 5 s et en dépassement sous la charge de la suite complète.
+- Suite 2 722 / 2 722 (dont écran / overlap / userJson / screenLab).
+
 ### Main forte fonctionnelle — V1 (2026-09-23)
 
 - Nouvelle consigne sur porteur **« main faible »** : le défenseur se décale

@@ -338,13 +338,69 @@ limite acceptée `systeme_basket-8`). Piste : échantillonner l'obstacle
 en 2-3 points du segment avec hystérésis. ⚠ Contredit partiellement
 une règle SCREEN-ENGINE — à instruire avec soin, golden metrics.
 
-### P4.4 — Mémoire d'intention défensive multi-step 〔L〕
+### ✅ P4.4 — Mémoire d'intention défensive multi-step 〔L〕 (V1 livrée 2026-09-26)
 
-Help sticky (C.2) et hedge counter (C.3) sont des rustines ponctuelles.
-Généraliser : un défenseur en rotation « finit sa rotation » au lieu de
-recalculer à froid chaque step. Design à brainstormer (état persistant
-par défenseur vs approximations pures — attention à la règle
-anti-récursion de SCREEN-ENGINE).
+> **Constat mesuré** (`scripts/diag-rotation-memory.ts`) : sur « PNR
+> central », à l'étape qui suit le tag, le roller est à 105 px du panier ;
+> le tagueur D4 (55 px du roller) repart sur son homme et le pivot D5 est
+> à 70 px derrière → roller seul. Même chose sur « Lab PnR » (96 px).
+
+**Choix de conception** : approximations pures, pas d'état persistant dans
+l'AppState. La mémoire est dérivée de `computeDefenseTargets(N-1)`, que
+`buildDefenseFrameContext` calculait déjà pour la détection d'écran : aucun
+appel ni récursion supplémentaire, scrub et lecture déterministes.
+
+**Réglage coach** `state.rotationMemory` (panneau Défense › « Après tag »,
+opt-in, `undefined` = historique) :
+- `auto` : le plus proche du roller le garde. Tagueur nettement plus proche
+  (marge 20 px) et roller encore à ≤ 190 px du panier → **rotate-and-stay** :
+  le tagueur garde le roller, le défenseur du poseur prend l'homme laissé
+  (« aide l'aideur »). Sinon le tagueur rend le roller.
+- `stay` : le tagueur garde toujours le roller.
+- `recover` : le tagueur revient toujours sur son homme.
+
+**Mécanismes** (`defense/rotationMemory.ts`, `defense/rotationMemoryLayer.ts`) :
+1. L'échange de duels est reporté d'étape en étape
+   (`DefenseTargetsResult.rotationSwaps`), appliqué aux matchups AVANT la
+   détection d'écran (le tagueur est lu comme défenseur du roller).
+2. **Retour au calme** : l'échange se défait quand le ballon est ressorti
+   (≥ 230 px du panier), sans drive / post / pénétration, et que chaque
+   défenseur de la chaîne est à ≤ 150 px de son homme d'origine. Les
+   échanges qui partagent un défenseur (tag + cascade) forment une chaîne
+   défaite d'un bloc — jamais un seul maillon.
+3. **Fin de rotation progressive** (couche 2.05) : tag / X-out / stunt de
+   l'étape précédente sans rôle à l'étape courante → retour à mi-chemin
+   (`ROTATION_RECOVER_BLEND = 0.5`) au lieu d'un départ à froid.
+4. C.5 tag-then-switch : avec la mémoire, le switch implicite tient jusqu'au
+   retour au calme au lieu d'être oublié à l'étape suivante.
+5. **Rotation en cascade** (2026-09-26, modes `auto` / `stay`) : si le
+   ballon arrive sur l'homme laissé libre par le tagueur juste après le X-out,
+   et que le défenseur du X-out en est nettement plus proche (marge 20 px)
+   que celui qui le marque maintenant, il fait le **closeout** ; l'autre prend
+   l'homme du X-out (**rotation**). Sur PNR central : D4 garde le roller O5,
+   D2 sort sur O4, D5 prend O2 — les 5 attaquants restent marqués.
+
+Badges coach : GARDE ROLL, AIDE L'AIDEUR, CLOSEOUT, ROTATION, ↩ FIN ROTATION,
+⇄ RETOUR.
+
+**Mesuré** : PNR central, roller gardé à 34 px (au lieu de 70) ; Lab PnR,
+34 px (au lieu de 96). Tests : `defense/__tests__/rotationMemory.test.ts`
+(26, dont cascade) + garde-fou lecture (34 px, sauts ≤ 18 px, 3 modes, 6 PnR
++ variante cascade, avec étape de retour au calme) dans
+`overlapInvariants.test.ts`.
+
+**Limites V1 / suite possible** :
+- Seule la rotation PnR (tag) crée un échange durable. L'aide sur drive
+  reste gérée par C.2 (retour progressif), le hedge par C.3.
+- La détection d'écran du `frameResolver` (contexte segment) lit encore les
+  matchups persistés (`getMatchupsAt`) : un nouvel écran posé sur un
+  défenseur échangé est lu avec l'ancien duel pendant l'animation (même
+  limite que les switchs locaux C.5 / scram déjà existants).
+- Cascade à plusieurs crans (2026-09-27) : l'homme laissé libre par chaque
+  closeout est suivi tant que son coureur n'est pas arrivé (positions réelles
+  de l'étape précédente) ; une passe vers lui déclenche le closeout du plus
+  proche (hors défenseurs de joueurs près du cercle), jusqu'à 3 crans.
+  Le 1er cran reste limité à la passe qui suit immédiatement le X-out.
 
 ---
 
@@ -359,7 +415,7 @@ anti-récursion de SCREEN-ENGINE).
 Backlog restant réel :
 ✅ P3.3 congestion (2026-09-22) ──► ✅ P3.1-V1 rampe accélération (2026-09-22)
 ──► ✅ P3.5 poursuite anticipée (2026-09-22) ──► ✅ P4.1 (déjà couvert, garde-fou 2026-09-22)
-P4.3 / P4.4 : à instruire séparément (risque écran / design multi-step)
+P4.3 : à instruire séparément (risque écran) · ✅ P4.4 V1 mémoire de rotation (2026-09-26)
 ```
 
 **Prochain sprint suggéré** : P3.3 (GREEN sur les tests existants) +

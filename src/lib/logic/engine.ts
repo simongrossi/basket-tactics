@@ -15,6 +15,7 @@ import {
   getActiveDefenderIds,
 } from './players';
 import type { DefenderTarget } from './defense/types';
+import type { OpenManRecord, PnrTagRecord, RotationSwap, XOutRecord } from './defense/rotationMemory';
 import { buildDefenseFrameContext } from './defense/context';
 import { applyBaseTargetsLayer } from './defense/baseTargets';
 import { applyDriveContainmentLayer } from './defense/driveContainmentLayer';
@@ -25,6 +26,7 @@ import { applyRimProtectionLayer } from './defense/rimProtectionLayer';
 import { applyHelpStickyLayer } from './defense/helpStickyLayer';
 import { applyLateShotClockLayer } from './defense/lateShotClockLayer';
 import { applyPnRRotationsLayer } from './defense/pnrLayer';
+import { applyRotationMemoryLayer } from './defense/rotationMemoryLayer';
 import { applyChainResponseLayer } from './defense/chainResponseLayer';
 import { applyBlitzReleaseLayer } from './defense/blitzReleaseLayer';
 import { applyOffBallScreenLayer } from './defense/offBallScreenLayer';
@@ -75,6 +77,15 @@ export interface DefenseTargetsResult {
   positions: Record<DefenderId, DefenderTarget>;
   matchupsApplied: Matchups;
   detectedSwitch?: DetectedSwitchPair;
+  /** P4.4 — Échanges de duels issus d'une rotation, actifs après cette
+   *  étape (mémoire de rotation). Relus par l'étape suivante. */
+  rotationSwaps?: RotationSwap[];
+  /** P4.4 — Tag PnR observé à cette étape (mémoire de rotation). */
+  pnrTag?: PnrTagRecord;
+  /** P4.4 — X-out PnR observé à cette étape (rotation en cascade). */
+  xOut?: XOutRecord;
+  /** P4.4 — Homme laissé libre par la cascade en cours (cran suivant). */
+  openMan?: OpenManRecord;
 }
 
 /**
@@ -139,6 +150,11 @@ export function computeDefenseTargets(
   applyLateShotClockLayer(positions, matchups, ctx);
   // Couche 2 — Rotations PnR (low-man tag + X-out + nail stunt).
   applyPnRRotationsLayer(positions, matchups, ctx);
+  // Couche 2.05 — P4.4 Mémoire de rotation : pose les états de rotation
+  // (garde le roller / aide l'aideur / retour au calme) et fait revenir
+  // progressivement les défenseurs dont la rotation PnR vient de finir.
+  // Opt-in via `state.rotationMemory`.
+  applyRotationMemoryLayer(positions, matchups, ctx);
   // Couche 2.1 (CVT 1.3b) — Screen repel : raffine la trajectoire
   // des défenseurs périphériques (non carrier, non screener, non
   // pnrRole) proches d'un poseur d'écran. Cap dur 3 px, inconditionnel.
@@ -170,7 +186,15 @@ export function computeDefenseTargets(
   // Couche 6 — Recalcul orientation final depuis les positions ajustées.
   applyPostPassOrientationLayer(positions, ctx);
 
-  return { positions, matchupsApplied: matchups, detectedSwitch: ctx.detectedSwitch };
+  return {
+    positions,
+    matchupsApplied: matchups,
+    detectedSwitch: ctx.detectedSwitch,
+    rotationSwaps: ctx.rotationOut.swaps.length ? ctx.rotationOut.swaps : undefined,
+    pnrTag: ctx.rotationOut.pnrTag,
+    xOut: ctx.rotationOut.xOut,
+    openMan: ctx.rotationOut.openMan,
+  };
 }
 
 export function persistDetectedSwitchForStep(state: AppState, stepIdx: number): AppState {

@@ -10,6 +10,17 @@ Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 
 ## 🧭 Priorité actuelle (mise à jour 2026-09-23)
 
+Décision du user (26/09) : **se concentrer sur la défense et le
+positionnement défensif** (lectures anti-zone mises en attente). ✅ P4.4 V1
+mémoire de rotation livrée le 26/09 (réglage « Après tag » : auto / garde le
+roller / revient, retour aux duels d'origine au retour au calme), puis la
+rotation en cascade (passe sur l'homme libre → closeout du X-out).
+✅ Zones matchup et 3-2 réelles (26/09) : matchup = un défenseur par attaquant
+apparié par la zone, passage de relais des coupeurs ; 3-2 = règle de coin (le
+bas sort, l'aile redescend), réglable ; 27/09 : 3-2 poste haut (on pince) et
+aile / renversement ; cascade à plusieurs crans (jusqu'à 3 closeouts
+successifs, sans lâcher la raquette).
+
 Décision du user (22/09) : **finir d'abord le réalisme des déplacements et du
 placement défensifs**, puis l'axe coaching (le quiz est validé comme idée mais
 passe après). Ordre de travail :
@@ -25,7 +36,8 @@ passe après). Ordre de travail :
    Ordre suivant (validé) : main forte fonctionnelle (✅ V1 2026-09-23 ;
    V2 en non prioritaire, cf. § « Non prioritaire »), lectures anti-zone
    (🟡 en cours) →
-   modèle de contact (box-out / rebond, écrans illégaux, fautes) → P4.3 / P4.4.
+   modèle de contact (box-out / rebond, écrans illégaux, fautes) → P4.3 /
+   ✅ P4.4 V1 (2026-09-26).
 2. **Axe coaching** (tableau § « Coaching — usage entraînement » ci-dessous) :
    quiz / lecture cachée → clés d'enseignement → fiche d'une page par système
    → effectif réutilisable → tableau blanc.
@@ -111,7 +123,8 @@ match-sim crédible, attaque de zone.
    match : 2-for-1, faute volontaire à +3, tenir la dernière
    possession, raccourcir le jeu quand on mène.
 8. **Lacunes défensives résiduelles** (IDEAS §8) : X-out limité à un
-   seul roller, pas de re-scram en cascade, tag du roller sans contact.
+   seul roller, ~~pas de re-scram en cascade~~ (🟢 V1 2026-09-26 : closeout
+   du X-out sur la passe à l'homme libre, un cran), tag du roller sans contact.
    À ranger derrière le chantier fautes (le contact en est le
    prérequis).
 9. **Poursuite défenseur V4 en playback — livrée le 22/09.** Le profil,
