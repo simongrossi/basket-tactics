@@ -107,7 +107,7 @@ describe('repli en transition — dans le fast-break', () => {
       D4: { x: 230, y: 130 }, D5: { x: 370, y: 130 },
     };
     const st: AppState = {
-      ...s0, playerCount: 5, activeStep: 0, realismProfile: 'realistic',
+      ...s0, playerCount: 5, activeStep: 0, realismProfile: 'realistic', secondsPerStep: 4, // timing de référence du scénario
       steps: [{ off: o, ballCarrier: 'O1', annotations: [], defenseOverrides: d, rebounder: 'D3', reboundType: 'defensive' }],
     };
     return addFastBreakSteps(st, { sourceStepIdx: 0 });
@@ -145,7 +145,7 @@ describe('repli en transition — phase 2 : retour aux bons duels', () => {
       D4: { x: 230, y: 130 }, D5: { x: 370, y: 130 },
     };
     const st = addFastBreakSteps({
-      ...s0, playerCount: 5, activeStep: 0, realismProfile: 'realistic',
+      ...s0, playerCount: 5, activeStep: 0, realismProfile: 'realistic', secondsPerStep: 4,
       steps: [{ off: o, ballCarrier: 'O1', annotations: [], defenseOverrides: d, rebounder: 'D3', reboundType: 'defensive' }],
     }, { sourceStepIdx: 0 });
     return { ...st, steps: [...st.steps, ...extra.map((e) => ({ ...e, annotations: [] }))] };
@@ -313,7 +313,7 @@ describe('repli en transition — poursuite tant que la défense est en retard',
       D4: { x: 230, y: 130 }, D5: { x: 370, y: 130 },
     };
     const st = addFastBreakSteps({
-      ...s0, playerCount: 5, activeStep: 0, realismProfile: 'realistic',
+      ...s0, playerCount: 5, activeStep: 0, realismProfile: 'realistic', secondsPerStep: 4,
       steps: [{ off: o, ballCarrier: 'O1', annotations: [], defenseOverrides: d, rebounder: 'D3', reboundType: 'defensive' }],
     }, { sourceStepIdx: 0 });
     const settled: AttackerPositions = {

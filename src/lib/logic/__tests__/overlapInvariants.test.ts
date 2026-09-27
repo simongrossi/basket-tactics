@@ -415,3 +415,34 @@ it('la calibration temporelle conserve la séparation aux durées courtes et lon
     }
   }
 });
+
+describe('cinématique physique et tempo selon la distance — séparation et continuité', () => {
+  it('toute la bibliothèque en profil réaliste : paires ≥ clearance, sauts ≤ 18 px', async () => {
+    const { TEMPLATES } = await import('@/lib/data/templates');
+    const { resolveTimelineFrame } = await import('../playback/frameResolver');
+    const { loadTemplate } = await import('@/lib/state/transforms/coreTransforms');
+    for (const template of TEMPLATES) {
+      const state = loadTemplate({ ...makeInitialState(), realismProfile: 'realistic' }, template);
+      if (state.steps.length < 2) continue;
+      let previous: ReturnType<typeof resolveTimelineFrame> = null;
+      for (let tick = 0; tick <= (state.steps.length - 1) * 60; tick++) {
+        const frame = resolveTimelineFrame(state, tick / 60)!;
+        const players = [...Object.entries(frame.off), ...Object.entries(frame.defPos)];
+        for (let i = 0; i < players.length; i++) {
+          for (let j = i + 1; j < players.length; j++) {
+            expect(distance(players[i][1], players[j][1]),
+              `${template.id} t=${tick / 60} ${players[i][0]} / ${players[j][0]}`)
+              .toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.01);
+          }
+          if (previous) {
+            const before = [...Object.entries(previous.off), ...Object.entries(previous.defPos)]
+              .find(([id]) => id === players[i][0])![1];
+            expect(distance(before, players[i][1]), `${template.id} t=${tick / 60} ${players[i][0]} jump`)
+              .toBeLessThanOrEqual(18.01);
+          }
+        }
+        previous = frame;
+      }
+    }
+  }, 120_000);
+});

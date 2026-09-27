@@ -125,6 +125,8 @@ export function ParametresPanel({
   // Valeurs cinématiques effectives (preset réaliste résolu) pour que les
   // cases reflètent l'état réel, pas seulement l'override brut.
   const realism = resolveRealismFlags(state);
+  // Tempo selon la distance : actif tant qu’aucune durée globale n’est imposée.
+  const autoTempo = realism.distanceTempoEnabled && !state.realSpeedMode;
   return (
     <Panel theme="defense" title="⚙ Paramètres">
       <InterfaceLevelSelector />
@@ -150,15 +152,20 @@ export function ParametresPanel({
             <div style={compactGridStyle}>
               <NumberField
                 label="s / étape"
-                title="Durée d'une étape en secondes. Utilisée par la lecture, l’export, les déplacements défensifs et le chronomètre."
+                title={autoTempo
+                  ? "Vide = tempo calculé selon la distance à courir (≈ 3,5 m/s d’action, 1,8 à 4 s par étape). Saisir une valeur pour imposer une durée fixe."
+                  : "Durée d'une étape en secondes. Utilisée par la lecture, l’export, les déplacements défensifs et le chronomètre."}
               >
                 <input
                   type="number"
                   min={0.5}
                   max={20}
                   step={0.5}
-                  value={state.secondsPerStep ?? 4}
-                  onChange={(e) => onPatch({ secondsPerStep: parseFloat(e.target.value) })}
+                  value={state.secondsPerStep ?? (autoTempo ? '' : 4)}
+                  placeholder={autoTempo ? 'auto' : undefined}
+                  onChange={(e) => onPatch({
+                    secondsPerStep: e.target.value === '' ? undefined : parseFloat(e.target.value),
+                  })}
                   style={inputStyle}
                 />
               </NumberField>

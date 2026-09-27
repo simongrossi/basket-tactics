@@ -5,6 +5,8 @@
 
 import type { AppState } from '../types';
 import { realStepIndices } from './playback/realSteps';
+import { resolveRealismFlags } from './realismProfile';
+import { distanceTempoSeconds, usesDistanceTempo } from './stepTempo';
 
 export const DEFAULT_SECONDS_PER_STEP = 4;
 export const DEFAULT_POSSESSION_SECONDS = 24;
@@ -20,12 +22,19 @@ export function getSecondsPerStep(state: AppState): number {
 }
 
 /** B.1 — Durée d'un step donné (transition step → step+1) en secondes.
- *  Lit `step.duration` si défini et valide, sinon retombe sur la valeur
+ *  Lit `step.duration` si défini et valide ; sinon, en profil réaliste sans
+ *  `secondsPerStep` explicite, le tempo selon la distance ; sinon la valeur
  *  globale `state.secondsPerStep`. Sécurise contre les index hors-bornes. */
 export function getStepDurationSeconds(state: AppState, stepIdx: number): number {
   const step = state.steps[stepIdx];
   const d = step?.duration;
   if (typeof d === 'number' && isFinite(d) && d > 0) return d;
+  // Tempo selon la distance (profil réaliste) : sans durée explicite, la
+  // durée découle de la plus longue course de l'étape (cf. stepTempo.ts).
+  if (usesDistanceTempo(state, resolveRealismFlags(state).distanceTempoEnabled)) {
+    const auto = distanceTempoSeconds(state.steps, stepIdx);
+    if (auto !== undefined) return auto;
+  }
   return getSecondsPerStep(state);
 }
 

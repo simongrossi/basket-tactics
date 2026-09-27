@@ -103,6 +103,16 @@ export interface PlaybackVelocityProfileOptions {
   acceleration?: number;
   momentumEnabled?: boolean;
   momentum?: number;
+  /** Cinématique physique — remap temporel d'un déplacement rectiligne
+   *  (idle sans annotation, cut / dribble sans waypoints) : départ / arrêt
+   *  progressifs. `window` = bornes du mouvement en fraction du segment. */
+  straightProgress?: (
+    id: AttackerId,
+    t01: number,
+    from: Point,
+    to: Point,
+    window: { start: number; end: number },
+  ) => number;
 }
 
 /** Cache de profils par annotation × tier. Évite de re-construire le profil
@@ -232,9 +242,16 @@ export function attackerTrajectoryAt(
     }
   }
 
+  const idleT = (): number => {
+    const clampedT = Math.max(0, Math.min(1, localT));
+    return velocityProfileOptions?.straightProgress?.(
+      playerId, clampedT, idleStart, idleEnd ?? idleStart, { start: 0, end: 1 },
+    ) ?? clampedT;
+  };
   if (candidates.length === 0) {
-    return { position: idleAt(Math.max(0, Math.min(1, localT))), movementType: 'idle', isScreening: false,
-      route: { path: [idleStart, idleEnd ?? idleStart], progress: Math.max(0, Math.min(1, localT)) } };
+    const p = idleT();
+    return { position: idleAt(p), movementType: 'idle', isScreening: false,
+      route: { path: [idleStart, idleEnd ?? idleStart], progress: p } };
   }
 
   const active = candidates
@@ -264,6 +281,12 @@ export function attackerTrajectoryAt(
   if (ann.sprint) {
     actionT = actionT >= 0.6 ? 1.0 : actionT / 0.6;
   }
+  const straightT = (): number => velocityProfileOptions?.straightProgress && !ann.sprint
+    ? velocityProfileOptions.straightProgress(playerId, actionT, ann.from, ann.to, {
+        start: chosen.absStart - stepIdx,
+        end: chosen.absEnd - stepIdx,
+      })
+    : actionT;
 
   const hasWaypoints = !!ann.waypoints && ann.waypoints.length > 0;
   if (ann.type === 'cut') {
@@ -351,7 +374,8 @@ export function attackerTrajectoryAt(
         }
       }
     } else {
-      position = lerp(ann.from, ann.to, actionT);
+      routeProgress = straightT();
+      position = lerp(ann.from, ann.to, routeProgress);
     }
     return { position, movementType: 'cut', isScreening: false, route: { path: routePath, progress: routeProgress } };
   }
@@ -429,7 +453,8 @@ export function attackerTrajectoryAt(
         }
       }
     } else {
-      position = lerp(ann.from, ann.to, actionT);
+      routeProgress = straightT();
+      position = lerp(ann.from, ann.to, routeProgress);
     }
     return { position, movementType: 'dribble', isScreening: false, route: { path: routePath, progress: routeProgress } };
   }

@@ -23,6 +23,10 @@ export const PRESET_REALISTIC = {
   congestionPenaltyEnabled: true,
   defenderPlaybackAccelerationEnabled: true,
   defenderLeadPursuitEnabled: true,
+  // Audit réalisme 2026-09-27 : cinématique en m/s / m/s² et tempo calculé
+  // selon la distance à courir.
+  physicalKinematicsEnabled: true,
+  distanceTempoEnabled: true,
 } as const;
 
 export interface ResolvedRealismFlags {
@@ -35,6 +39,8 @@ export interface ResolvedRealismFlags {
   congestionPenaltyEnabled: boolean;
   defenderPlaybackAccelerationEnabled: boolean;
   defenderLeadPursuitEnabled: boolean;
+  physicalKinematicsEnabled: boolean;
+  distanceTempoEnabled: boolean;
 }
 
 export function resolveRealismFlags(state: AppState): ResolvedRealismFlags {
@@ -59,6 +65,10 @@ export function resolveRealismFlags(state: AppState): ResolvedRealismFlags {
         state.defenderPlaybackAccelerationEnabled ?? PRESET_REALISTIC.defenderPlaybackAccelerationEnabled,
       defenderLeadPursuitEnabled:
         state.defenderLeadPursuitEnabled ?? PRESET_REALISTIC.defenderLeadPursuitEnabled,
+      physicalKinematicsEnabled:
+        state.physicalKinematicsEnabled ?? PRESET_REALISTIC.physicalKinematicsEnabled,
+      distanceTempoEnabled:
+        state.distanceTempoEnabled ?? PRESET_REALISTIC.distanceTempoEnabled,
     };
   }
   // legacy / undefined — flags bruts, bit-identiques au comportement actuel.
@@ -72,5 +82,7 @@ export function resolveRealismFlags(state: AppState): ResolvedRealismFlags {
     congestionPenaltyEnabled: !!state.congestionPenaltyEnabled,
     defenderPlaybackAccelerationEnabled: !!state.defenderPlaybackAccelerationEnabled,
     defenderLeadPursuitEnabled: !!state.defenderLeadPursuitEnabled,
+    physicalKinematicsEnabled: !!state.physicalKinematicsEnabled,
+    distanceTempoEnabled: !!state.distanceTempoEnabled,
   };
 }
