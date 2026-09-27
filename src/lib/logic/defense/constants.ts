@@ -168,3 +168,37 @@ export const TRANSITION_FEINT_MAX_RIM_DIST_PX = 130;
 export const TRANSITION_FEINT_SHADE = 0.25;
 /** Tandem : ballon « à l'aile » à ≥ 100 px latéralement du panier. */
 export const TRANSITION_TANDEM_WING_LATERAL_PX = 100;
+
+// === zoneSituationRules (zones 2-3 et 1-3-1 — règles par situation) ===
+/** 2-3 : pivot au bloc côté ballon (coin / aile) ; ailes basses aux blocs
+ *  (poste haut). */
+export const ZONE23_PIVOT_BLOCK_LATERAL_PX = 55;
+export const ZONE23_PIVOT_BLOCK_DEPTH_PX = 60;
+/** 2-3 coin : le garde côté ballon descend au coude. */
+export const ZONE23_BALL_ELBOW_LATERAL_PX = 95;
+export const ZONE23_BALL_ELBOW_DEPTH_PX = 190;
+/** 2-3 : le garde côté faible s'enfonce vers la ligne des lancers. */
+export const ZONE23_WEAK_GUARD_LATERAL_PX = 35;
+export const ZONE23_WEAK_GUARD_DEPTH_PX = 190;
+/** 2-3 aile : l'aile basse côté ballon couvre le coin. */
+export const ZONE23_CORNER_COVER_LATERAL_PX = 165;
+export const ZONE23_CORNER_COVER_DEPTH_PX = 80;
+/** 2-3 poste haut : les gardes mettent la pression dans le dos. */
+export const ZONE23_DIG_LATERAL_PX = 50;
+export const ZONE23_DIG_DEPTH_PX = 30;
+/** 1-3-1 coin : l'aile côté ballon ferme la passe au poste bas. */
+export const ZONE131_FRONT_POST_LATERAL_PX = 80;
+export const ZONE131_FRONT_POST_DEPTH_PX = 70;
+/** 1-3-1 coin : l'aile opposée au bloc faible. */
+export const ZONE131_WEAK_MID_CORNER_LATERAL_PX = 50;
+export const ZONE131_WEAK_MID_CORNER_DEPTH_PX = 90;
+/** 1-3-1 aile : la pointe ferme côté milieu (piège léger), à 45 px vers
+ *  l'axe et 25 px vers la mi-terrain du porteur. */
+export const ZONE131_TRAP_LATERAL_PX = 45;
+export const ZONE131_TRAP_DEPTH_PX = 25;
+/** 1-3-1 aile : le défenseur de la ligne de fond couvre bloc et coin. */
+export const ZONE131_ANCHOR_WING_LATERAL_PX = 120;
+export const ZONE131_ANCHOR_WING_DEPTH_PX = 55;
+/** 1-3-1 aile : l'aile opposée s'enfonce. */
+export const ZONE131_WEAK_MID_WING_LATERAL_PX = 40;
+export const ZONE131_WEAK_MID_WING_DEPTH_PX = 110;

@@ -238,3 +238,96 @@ describe('zone 3-2 — aile et renversement', () => {
     expect(top.D1.matchedTo).toBe('O1');
   });
 });
+
+describe('zone 2-3 — règles par situation', () => {
+  // Layout 2-3 : D1 garde gauche, D2 garde droit, D4 aile basse gauche,
+  // D3 aile basse droite, D5 pivot.
+  it('aile : le garde côté ballon sort, l’aile basse couvre le coin, le pivot tient le bloc', () => {
+    const state = zoneState('zone-2-3', [{ off: SET, carrier: 'O3' }]);
+    const res = computeDefenseTargets(state, 0).positions;
+    const hoop = getDefenseHoop(state);
+    expect(res.D2.isCarrierDefender).toBe(true);
+    expect(distance(res.D2, SET.O3)).toBeLessThan(45);
+    // Aile basse côté ballon entre le bloc et le coin.
+    expect(res.D3.x).toBeGreaterThan(420);
+    expect(Math.abs(res.D3.y - hoop.y)).toBeLessThan(100);
+    // Pivot sur le bloc côté ballon (O5).
+    expect(res.D5.matchedTo).toBe('O5');
+    // Aile basse opposée au milieu de la raquette.
+    expect(Math.abs(res.D4.x - hoop.x)).toBeLessThan(40);
+  });
+
+  it('coin : l’aile basse sort, l’aile opposée devant le cercle, le garde côté ballon au coude', () => {
+    const corner: Off = { ...SET, O3: { x: 540, y: 110 }, O5: { x: 400, y: 140 } };
+    const state = zoneState('zone-2-3', [{ off: corner, carrier: 'O3' }]);
+    const res = computeDefenseTargets(state, 0).positions;
+    const hoop = getDefenseHoop(state);
+    expect(res.D3.isCarrierDefender).toBe(true);
+    expect(distance(res.D3, corner.O3)).toBeLessThan(60);
+    expect(distance(res.D4, hoop)).toBeLessThan(60);
+    expect(res.D5.matchedTo).toBe('O5');
+    // Garde côté ballon descendu au coude (sous sa place de 270).
+    expect(res.D2.y).toBeLessThan(270);
+    expect(res.D2.x).toBeGreaterThan(hoop.x);
+  });
+
+  it('poste haut : le pivot monte au contact, les ailes basses ferment les blocs, les gardes dans le dos', () => {
+    const hp: Off = { ...SET, O4: { x: 300, y: 230 }, O5: { x: 430, y: 100 } };
+    const state = zoneState('zone-2-3', [{ off: hp, carrier: 'O4' }]);
+    const res = computeDefenseTargets(state, 0).positions;
+    const hoop = getDefenseHoop(state);
+    expect(res.D5.isCarrierDefender).toBe(true);
+    expect(distance(res.D5, hoop)).toBeLessThan(distance(hp.O4, hoop));
+    // Les deux ailes basses restent sur les blocs, de part et d'autre.
+    expect(Math.abs(res.D3.y - hoop.y)).toBeLessThan(80);
+    expect(Math.abs(res.D4.y - hoop.y)).toBeLessThan(80);
+    expect(Math.sign(res.D3.x - hoop.x)).not.toBe(Math.sign(res.D4.x - hoop.x));
+    // Gardes plus loin du panier que le porteur (dans son dos).
+    expect(distance(res.D1, hoop)).toBeGreaterThan(distance(hp.O4, hoop));
+    expect(distance(res.D2, hoop)).toBeGreaterThan(distance(hp.O4, hoop));
+  });
+
+  it('sommet : moteur générique', () => {
+    const top = computeDefenseTargets(zoneState('zone-2-3', [{ off: SET, carrier: 'O1' }]), 0).positions;
+    expect(Object.values(top).filter((p) => p.isCarrierDefender).length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('zone 1-3-1 — règles par situation', () => {
+  // Layout 1-3-1 : D1 pointe, D2 milieu gauche, D3 milieu centre, D4 milieu
+  // droit, D5 défenseur de la ligne de fond.
+  it('coin : le défenseur de la ligne de fond sort, l’aile ferme le poste bas, la pointe au coude', () => {
+    const corner: Off = { ...SET, O3: { x: 540, y: 110 }, O5: { x: 400, y: 140 } };
+    const state = zoneState('zone-1-3-1', [{ off: corner, carrier: 'O3' }]);
+    const res = computeDefenseTargets(state, 0).positions;
+    const hoop = getDefenseHoop(state);
+    expect(res.D5.isCarrierDefender).toBe(true);
+    expect(distance(res.D5, corner.O3)).toBeLessThan(60);
+    expect(res.D4.matchedTo).toBe('O5');
+    expect(Math.abs(res.D4.y - hoop.y)).toBeLessThan(100);
+    expect(res.D1.x).toBeGreaterThan(hoop.x);
+    expect(Math.abs(res.D1.y - hoop.y)).toBeLessThan(200);
+  });
+
+  it('aile : piège léger — l’aile sort, la pointe ferme côté milieu ; le milieu ferme le poste haut', () => {
+    const state = zoneState('zone-1-3-1', [{ off: SET, carrier: 'O3' }]);
+    const res = computeDefenseTargets(state, 0).positions;
+    const hoop = getDefenseHoop(state);
+    expect(res.D4.isCarrierDefender).toBe(true);
+    expect(distance(res.D4, SET.O3)).toBeLessThan(45);
+    // La pointe au contact du porteur, côté axe.
+    expect(distance(res.D1, SET.O3)).toBeLessThan(80);
+    expect(res.D1.x).toBeLessThan(SET.O3.x);
+    // Le milieu reste au poste haut côté ballon.
+    expect(Math.abs(res.D3.x - hoop.x)).toBeLessThan(60);
+    expect(Math.abs(res.D3.y - hoop.y)).toBeGreaterThan(130);
+    // Le défenseur de la ligne de fond couvre le bloc côté ballon.
+    expect(res.D5.x).toBeGreaterThan(hoop.x);
+  });
+
+  it('miroir : ballon à l’aile gauche', () => {
+    const res = computeDefenseTargets(zoneState('zone-1-3-1', [{ off: SET, carrier: 'O2' }]), 0).positions;
+    expect(res.D2.isCarrierDefender).toBe(true);
+    expect(res.D1.x).toBeGreaterThan(SET.O2.x);
+  });
+});

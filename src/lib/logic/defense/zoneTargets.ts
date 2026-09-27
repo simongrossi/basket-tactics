@@ -14,7 +14,7 @@ import { activeBallCarrier, activeOffense, getActiveDefenderIds } from '../playe
 import { getDefenseHoop } from '../engine';
 import type { DefenderTarget } from './types';
 import { computeMatchupZoneTargets } from './matchupZone';
-import { applyZone32Rotation } from './zone32Rotation';
+import { applyZoneSituationRules } from './zoneSituationRules';
 
 export function computeZoneDefenseTargets(
   state: AppState,
@@ -86,11 +86,12 @@ export function computeZoneDefenseTargets(
     };
   });
 
-  // Zone 3-2 : règles par situation — coin (le bas sort, l'aile redescend ;
-  // `cornerRotation: 'wing'` = moteur générique), poste haut (on pince),
-  // aile / renversement (la pointe ferme l'intervalle côté ballon).
-  if (state.zoneConfig.type === 'zone-3-2') {
-    const { moved } = applyZone32Rotation({
+  // Règles par situation (coin, poste haut, aile) des zones 3-2, 2-3 et
+  // 1-3-1 (cf. zone32Rotation.ts et zoneSituationRules.ts). Ballon au
+  // sommet : moteur générique.
+  {
+    const moved = applyZoneSituationRules({
+      type: state.zoneConfig.type,
       positions, layout, off, ballCarrier, hoop, defenseDistance: state.defenseDistance,
       cornerRotation: state.zoneConfig.cornerRotation,
     });

@@ -361,8 +361,8 @@ describe('P4.4 mémoire de rotation — séparation et continuité en lecture', 
   }
 });
 
-describe('zones matchup et 3-2 — séparation et continuité en lecture', () => {
-  for (const type of ['zone-matchup', 'zone-3-2'] as const) {
+describe('zones matchup, 3-2, 2-3 et 1-3-1 — séparation et continuité en lecture', () => {
+  for (const type of ['zone-matchup', 'zone-3-2', 'zone-2-3', 'zone-1-3-1'] as const) {
     it(`toutes les paires ≥ clearance et sauts ≤ 18 px, ${type}`, async () => {
       const { TEMPLATES } = await import('@/lib/data/templates');
       const { resolveTimelineFrame } = await import('../playback/frameResolver');
