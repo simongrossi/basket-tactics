@@ -548,6 +548,11 @@ borne, sinon il est physiquement irréaliste.
 
 `PLAYBACK_STEP_DURATION_MS = 2000` (2s par transition).
 
+**Tempo selon la distance (profil réaliste, 2026-09-27)** : sans durée
+explicite, chaque étape dure plus longue course ÷ 3,5 m/s + 0,6 s, bornée à
+[1,8 ; 4] s (`stepTempo.ts`). Les systèmes de la bibliothèque durent alors
+1,8 à 9 s (médiane 3,8 s ; PNR central 5,4 s contre 12 s à 4 s par étape).
+
 | Système type | Steps | Transitions | Durée |
 |--------------|-------|-------------|-------|
 | Action courte (PnR roll) | 4-5 | 3-4 | 6-8s |
@@ -721,6 +726,23 @@ La calibration athlétique avec les durées réelles reste distincte (F12).
 - ✅ La mémoire provient uniquement de la séquence synthétique canonique,
   jamais de la dernière frame affichée. Pause, reprise et export partagent
   donc le même résultat, même si des images ont été sautées.
+
+**Cinématique physique (profil réaliste, 2026-09-27)** : sous le garde-fou
+de 9 px, le budget défensif du sous-pas vient de `playback/kinematicLimits.ts`
+(m/s par appui, accélération 6 m/s², freinage anticipé 9 m/s², dt réel). Cf.
+[physics.md](physics.md#cinématique-en-unités-réelles-et-tempo-selon-la-distance-27092026).
+- ✅ La rampe s'applique AUSSI aux défenseurs en contact d'écran et aux
+  changements d'étape (le skip `onScreen` de P3.1 laissait D5 partir à pleine
+  vitesse sur PNR central).
+- ✅ Le solveur final reçoit le budget physique (+ 0,5 px de contact) ; en cas
+  d'amas insoluble, il est relancé avec les 9 px (l'échappée de secours
+  téléporte sinon — spain-pnr, t = 2,35).
+- ✅ La vitesse mémorisée est bornée au budget propre : une poussée de contact
+  ne nourrit pas la rampe (sinon emballement à ~20 m/s²).
+- ❌ Ne pas ajouter de rampe d'accélération sur les attaquants : un attaquant
+  en retard sur son tracé désaligne l'écran et rend les amas insolubles.
+  Leur départ / arrêt progressif passe par le remap temporel des déplacements
+  rectilignes (`straightProgress` → `restToRestProgress`).
 
 **À INTERDIRE** :
 - ❌ Ne pas augmenter le seuil au-dessus de ~20 sans mesurer l'impact

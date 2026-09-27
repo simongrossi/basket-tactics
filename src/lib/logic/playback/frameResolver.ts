@@ -47,6 +47,15 @@ import { resolveAnnotationTiming } from '../annotationTiming';
 import { activeBallCarrier, activeOffense } from '../players';
 import { avoidAttackerRoute } from './attackerRouteAvoidance';
 import { headingDeg, pursuitAccelerationMultiplier } from '../defense/pursuitModulators';
+import {
+  ATTACKER_SPRINT_MAX_MPS,
+  ATTACKER_IDLE_ACCEL_MPS2,
+  DEFENDER_ACCEL_MPS2,
+  clampStep,
+  defenderSpeedCapMps,
+  kinematicMaxStepPx,
+  restToRestProgress,
+} from './kinematicLimits';
 import { attackerTrajectoryAt, type MovementType } from '../playbackTrajectory';
 import { lerpAngleDeg } from '../angles';
 import { buildStep0DetectionPositions } from '../step0Detection';
@@ -206,6 +215,9 @@ export interface DefenderMotionMemoryEntry {
   /** P3.1 — vitesse réelle (px/s) sur le dernier sous-pas, indépendante de
    *  la durée d'étape. Absente si l'intervalle de temps est inconnu. */
   speedPxPerSec?: number;
+  /** Cinématique physique — place visée (avant limitation) au dernier
+   *  sous-pas : sa vitesse sert au freinage anticipé. */
+  target?: Point;
 }
 
 export type DefenderMotionMemory = Partial<Record<DefenderId, DefenderMotionMemoryEntry>>;
@@ -274,6 +286,11 @@ export interface ResolveDeterministicScrubOptions extends ResolveFrameOptions {
  * La calibration en mètres/seconde relève des contraintes de durée (F12). */
 const MAX_DEFENDER_JUMP_PX = 9;
 const MAX_ATTACKER_JUMP_PX = 9;
+/** Cinématique physique — dépassement du budget du sous-pas toléré pour
+ *  résoudre un contact (défenseur bousculé), px. */
+const COLLISION_CONTACT_SLACK_PX = 0.5;
+/** Déplacement (px) entre deux étapes sous lequel un attaquant est à l'arrêt. */
+const IDLE_REST_EPS_PX = 3;
 
 /** P3.1 — accélération par défaut d'un défenseur depuis l'arrêt (m/s²) :
  *  ~6 m/s atteints en ~1,3 s. Ordre de grandeur des premiers appuis d'un
@@ -409,12 +426,44 @@ export function resolveFrameAt(
 
   const attackerIds = Object.keys(offA) as AttackerId[];
   const defenderIds = Object.keys(defA) as DefenderId[];
+  // Durée réelle écoulée depuis la frame précédente (P3.1, cinématique
+  // physique). Indéfinie en scrub pur ou si l'instant ne progresse pas.
+  const motionDtSec = options.prevFrame?.t != null && clamped > options.prevFrame.t
+    ? (clamped - options.prevFrame.t) * getStepDurationSeconds(state, idxA)
+    : undefined;
+  const physicalDt = realism.physicalKinematicsEnabled && motionDtSec && motionDtSec > 0
+    ? motionDtSec
+    : undefined;
 
   // ---------------------------------------------------------------------
   // 1. Positions attaquants — trajectoire pilotée par les annotations,
   //    avec évitement d'obstacles pour cut/idle/dribble.
   // ---------------------------------------------------------------------
   const off = {} as AttackerPositions;
+  // Cinématique physique — départ / arrêt progressifs des déplacements
+  // rectilignes (idle, cut / dribble sans waypoints) : rampe au départ si le
+  // joueur était arrêté (immobile à l'étape précédente, ou mouvement qui
+  // commence après le début du segment), au freinage s'il s'arrête ensuite ;
+  // vitesse continue avec les étapes voisines sinon.
+  const straightProgress = realism.physicalKinematicsEnabled
+    ? (attId: AttackerId, t01: number, from: Point, to: Point, window: { start: number; end: number }): number => {
+        const before = state.steps[idxA - 1]?.off[attId];
+        const at = offA[attId];
+        const next = offB[attId];
+        const after = state.steps[idxB + 1]?.off[attId];
+        const still = (p: Point | undefined, q: Point | undefined) =>
+          !p || !q || Math.hypot(p.x - q.x, p.y - q.y) < IDLE_REST_EPS_PX;
+        const span = Math.max(0.05, window.end - window.start);
+        return restToRestProgress({
+          localT: t01,
+          distM: Math.hypot(to.x - from.x, to.y - from.y) / PX_PER_M,
+          durationSec: getStepDurationSeconds(state, idxA) * span,
+          accelMps2: ATTACKER_IDLE_ACCEL_MPS2,
+          startsFromRest: window.start > 0.02 || still(before, at),
+          stopsAtEnd: window.end < 0.98 || idxB >= totalSteps || still(next, after),
+        });
+      }
+    : undefined;
   const attackerMovementType: Partial<Record<AttackerId, MovementType>> = {};
   const attackerIsScreening: Partial<Record<AttackerId, boolean>> = {};
   attackerIds.forEach((id) => {
@@ -486,6 +535,7 @@ export function resolveFrameAt(
         acceleration: realism.attackerAcceleration,
         momentumEnabled: realism.attackerMomentumEnabled,
         momentum: realism.attackerMomentum,
+        straightProgress,
       },
     );
     attackerMovementType[id] = traj.movementType;
@@ -582,6 +632,11 @@ export function resolveFrameAt(
   // Appliqué APRÈS le solveur anti-superposition (qui peut avoir lui-même
   // injecté un déplacement) et AVANT le calcul défenseur (qui dépend des
   // positions attaquantes finales).
+  // Cinématique physique : le budget du sous-pas est aussi plafonné par la
+  // vitesse de pointe réelle. Pas de rampe ici : l'accélération offensive
+  // relève du profil de vitesse des trajectoires, et retarder un attaquant
+  // sur son tracé désaligne la géométrie des écrans (amas insolubles →
+  // échappée du solveur de collisions, mesuré sur spain-pnr).
   if (options.prevFrame) {
     const prevOff = options.prevFrame.off;
     attackerIds.forEach((id) => {
@@ -589,13 +644,11 @@ export function resolveFrameAt(
       const p0 = prevOff[id];
       const p1 = off[id];
       if (!p0 || !p1) return;
-      const dx = p1.x - p0.x;
-      const dy = p1.y - p0.y;
-      const d = Math.hypot(dx, dy);
-      if (d > MAX_ATTACKER_JUMP_PX) {
-        const k = MAX_ATTACKER_JUMP_PX / d;
-        off[id] = { x: p0.x + dx * k, y: p0.y + dy * k };
+      let maxStep = MAX_ATTACKER_JUMP_PX;
+      if (physicalDt) {
+        maxStep = Math.min(maxStep, ATTACKER_SPRINT_MAX_MPS * PX_PER_M * physicalDt);
       }
+      off[id] = clampStep(p0, p1, maxStep);
     });
   }
   profiler?.lap('attackers');
@@ -1177,10 +1230,6 @@ export function resolveFrameAt(
     8,
     screenLockedDefenders
   );
-  // Durée réelle écoulée depuis la frame précédente (P3.1).
-  const motionDtSec = options.prevFrame?.t != null && clamped > options.prevFrame.t
-    ? (clamped - options.prevFrame.t) * getStepDurationSeconds(state, idxA)
-    : undefined;
   const motionResult = options.prevFrame
     ? applyDefenderMotionInertia({
         state,
@@ -1267,20 +1316,45 @@ export function resolveFrameAt(
   // changements brutaux d'état d'écran / Bezier flips / adhesion blend
   // discontinue. La position rattrape progressivement sur les frames
   // suivantes de la reconstruction canonique.
+  // Cinématique physique : budget en m/s selon l'appui (face / pas chassé /
+  // reculons, sprint en repli / closeout / rotation), accélération depuis la
+  // vitesse du sous-pas précédent — y compris au changement d'étape et pour
+  // les défenseurs impliqués dans un écran (le skip `onScreen` de P3.1 les
+  // laissait partir à 9 px par sous-pas) — et freinage anticipé.
+  const defenderTargets: Partial<Record<DefenderId, Point>> = {};
+  const defenderMaxStep: Partial<Record<DefenderId, number>> = {};
   if (options.prevFrame) {
     const prev = options.prevFrame.defPos;
     defenderIds.forEach((id) => {
       const p = prev[id];
       const c = defPos[id];
       if (!p || !c) return;
-      const dx = c.x - p.x;
-      const dy = c.y - p.y;
-      const d = Math.hypot(dx, dy);
-      if (d > MAX_DEFENDER_JUMP_PX) {
-        const k = MAX_DEFENDER_JUMP_PX / d;
-        defPos[id].x = p.x + dx * k;
-        defPos[id].y = p.y + dy * k;
+      let maxStep = MAX_DEFENDER_JUMP_PX;
+      if (physicalDt) {
+        defenderTargets[id] = { x: c.x, y: c.y };
+        const memory = options.prevFrame!.motionMemory?.[id];
+        const gapPx = Math.hypot(c.x - p.x, c.y - p.y);
+        const sprint = !!c.closingOut || !!c.transitionRole ||
+          (c.rotation != null && c.rotation !== 'stay');
+        maxStep = Math.min(maxStep, kinematicMaxStepPx({
+          prev: p,
+          target: c,
+          dtSec: physicalDt,
+          memory: memory ? { speedPxPerSec: memory.speedPxPerSec ?? 0, target: memory.target } : undefined,
+          maxSpeedMps: defenderSpeedCapMps({
+            moveDx: c.x - p.x,
+            moveDy: c.y - p.y,
+            bodyDeg: p.orientation,
+            gapPx,
+            sprint,
+          }),
+          accelMps2: DEFENDER_ACCEL_MPS2,
+        }));
       }
+      if (physicalDt) defenderMaxStep[id] = maxStep;
+      const clampedPos = clampStep(p, c, maxStep);
+      defPos[id].x = clampedPos.x;
+      defPos[id].y = clampedPos.y;
     });
   }
   resolveInterpolatedFrameCollisions({
@@ -1291,6 +1365,7 @@ export function resolveFrameAt(
     attackerIsScreening,
     forcedScreeners: new Set([a.forcedScreener, b.forcedScreener].filter(Boolean) as AttackerId[]),
     prevFrame: options.prevFrame,
+    defenderMaxStep,
   });
   if (options.prevFrame && decisions) {
     const prev = options.prevFrame.defPos;
@@ -1302,7 +1377,7 @@ export function resolveFrameAt(
     });
   }
   const nextMotionMemory = options.prevFrame
-    ? buildDefenderMotionMemory(defPos, options.prevFrame, defenderIds, motionResult?.stats, motionDtSec)
+    ? buildDefenderMotionMemory(defPos, options.prevFrame, defenderIds, motionResult?.stats, motionDtSec, defenderTargets, defenderMaxStep)
     : undefined;
   recomputeDefenseFrameOrientations(state, off, carrier, defPos, defA);
   profiler?.lap('rateLimiter');
@@ -1435,8 +1510,11 @@ function resolveInterpolatedFrameCollisions(params: {
   attackerIsScreening: Partial<Record<AttackerId, boolean>>;
   forcedScreeners: ReadonlySet<AttackerId>;
   prevFrame?: PlaybackFrame;
+  /** Cinématique physique — budget du sous-pas par défenseur ; le contact
+   *  peut le dépasser de COLLISION_CONTACT_SLACK_PX (être bousculé). */
+  defenderMaxStep?: Partial<Record<DefenderId, number>>;
 }): void {
-  const entities = [
+  const buildEntities = (physical: boolean) => [
     ...params.attackerIds.map((id) => ({
       id: `O:${id}` as const,
       point: params.off[id],
@@ -1453,7 +1531,9 @@ function resolveInterpolatedFrameCollisions(params: {
       id: `D:${id}` as const,
       point: params.defPos[id],
       previous: params.prevFrame?.defPos[id],
-      maxDelta: MAX_DEFENDER_JUMP_PX,
+      maxDelta: physical && params.defenderMaxStep?.[id] != null
+        ? Math.min(MAX_DEFENDER_JUMP_PX, params.defenderMaxStep[id]! + COLLISION_CONTACT_SLACK_PX)
+        : MAX_DEFENDER_JUMP_PX,
       fixed: false,
       fallbackDirection: frameCollisionFallback(
         params.prevFrame?.defPos[id],
@@ -1463,10 +1543,23 @@ function resolveInterpolatedFrameCollisions(params: {
     })),
   ];
 
-  const solved = solveMovingEntityCollisions({
-    entities,
-    defaultMinDist: PLAYER_MIN_CLEARANCE_PX,
-  });
+  const solve = (physical: boolean) => {
+    const entities = buildEntities(physical);
+    const result = solveMovingEntityCollisions({ entities, defaultMinDist: PLAYER_MIN_CLEARANCE_PX });
+    // Amas insoluble avec les budgets physiques : l'échappée de secours du
+    // solveur ignore les budgets (saut de plusieurs mètres). On retente alors
+    // avec le garde-fou en pixels, qui laisse la place de se dégager.
+    const escaped = entities.some((e) => {
+      const p = result[e.id];
+      return !!p && !!e.previous && !e.fixed &&
+        Math.hypot(p.x - e.previous.x, p.y - e.previous.y) > e.maxDelta + 1;
+    });
+    return { result, escaped };
+  };
+  const hasPhysical = !!params.defenderMaxStep && Object.keys(params.defenderMaxStep).length > 0;
+  let attempt = solve(hasPhysical);
+  if (hasPhysical && attempt.escaped) attempt = solve(false);
+  const solved = attempt.result;
 
   params.attackerIds.forEach((id) => {
     const p = solved[`O:${id}`];
@@ -1662,6 +1755,11 @@ function buildDefenderMotionMemory(
   defenderIds: DefenderId[],
   stats: Partial<Record<DefenderId, DefenderMotionStat>> | undefined,
   dtSec?: number,
+  targets?: Partial<Record<DefenderId, Point>>,
+  /** Cinématique physique : la vitesse mémorisée (base de la rampe) est
+   *  bornée au budget propre du sous-pas — une poussée de contact déplace le
+   *  joueur sans nourrir son accélération. */
+  ownMaxStep?: Partial<Record<DefenderId, number>>,
 ): DefenderMotionMemory {
   const out: DefenderMotionMemory = {};
   defenderIds.forEach((id) => {
@@ -1674,7 +1772,10 @@ function buildDefenderMotionMemory(
       velocity,
       turnDeg: stat?.turnDeg ?? 0,
       inertia: stat?.inertia ?? 0,
-      ...(dtSec && dtSec > 0 ? { speedPxPerSec: Math.hypot(velocity.x, velocity.y) / dtSec } : {}),
+      ...(dtSec && dtSec > 0 ? {
+        speedPxPerSec: Math.min(Math.hypot(velocity.x, velocity.y), ownMaxStep?.[id] ?? Infinity) / dtSec,
+      } : {}),
+      ...(targets?.[id] ? { target: targets[id] } : {}),
     };
   });
   return out;

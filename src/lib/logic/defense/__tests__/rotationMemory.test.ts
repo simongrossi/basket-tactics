@@ -209,7 +209,8 @@ function twoLevelCascade(mode?: RotationMemoryMode): AppState {
   const off = state.steps[3].off;
   state.steps.push({ off, ballCarrier: 'O2', annotations: [] });
   state.steps.push({ off, ballCarrier: 'O1', annotations: [] });
-  return { ...state, realismProfile: 'realistic' };
+  // Timing de référence du scénario : 4 s par étape (pas le tempo calculé).
+  return { ...state, realismProfile: 'realistic', secondsPerStep: 4 };
 }
 
 describe('P4.4 cascade à plusieurs crans', () => {
@@ -231,7 +232,7 @@ describe('P4.4 cascade à plusieurs crans', () => {
   it('on ne lâche pas la raquette : pas de cran si seuls des défenseurs de joueurs au cercle sont plus proches', () => {
     // Sans la dérive d'O1, seuls D2 (O4 à 151 px du panier) et D4 (roller)
     // sont plus proches d'O2 que D5.
-    const state = { ...passToOpenMan('auto'), realismProfile: 'realistic' as const };
+    const state = { ...passToOpenMan('auto'), realismProfile: 'realistic' as const, secondsPerStep: 4 };
     const off = state.steps[3].off;
     state.steps.push({ off, ballCarrier: 'O2', annotations: [] });
     const res = computeDefenseTargets(state, 4);

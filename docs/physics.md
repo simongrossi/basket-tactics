@@ -184,3 +184,48 @@ position réellement atteinte. Les anciens scénarios legacy sans timing explici
 conservent leur modèle historique pour préserver les systèmes existants.
 Overrides manuels et contacts écran restent prioritaires ; le diagnostic F12
 signale les vitesses demandées excessives sans changer le dessin du coach.
+
+## Cinématique en unités réelles et tempo selon la distance (27/09/2026)
+
+Suite de l'[audit chiffré du réalisme](audit-realisme-2026-09-27.md). Profil
+réaliste uniquement (`physicalKinematicsEnabled`, `distanceTempoEnabled`) ;
+legacy inchangé au bit près.
+
+**Lecture, défenseurs** (`playback/kinematicLimits.ts`, couche 5.b du
+`frameResolver`) — budget du sous-pas en m/s et m/s² avec le `dt` réel :
+
+| Paramètre | Valeur |
+|---|---|
+| Course de face | 7 m/s |
+| Sprint (repli, closeout, rotation) | 8 m/s |
+| Pas chassé | 4 m/s |
+| Reculons | 4,5 m/s |
+| Accélération | 6 m/s² |
+| Freinage anticipé | 9 m/s² (vitesse ≤ vitesse de la place visée + √(2·b·écart)) |
+| « Turn and run » | au-delà de 1,5 m de retard, plafond de face |
+
+La rampe s'applique à tous les défenseurs, y compris au changement d'étape et
+en contact d'écran (c'est ce qui manquait : le défenseur marqué `onScreen`
+était exclu de la rampe P3.1 et partait à 9 px par sous-pas). Le solveur de
+collisions final reçoit ce budget + 0,5 px de contact ; la vitesse mémorisée
+(base de la rampe) est bornée au budget propre, pour qu'une poussée de contact
+ne nourrisse pas l'accélération. Amas insoluble avec ces budgets → le solveur
+est relancé avec le garde-fou en pixels (sinon son échappée de secours fait
+sauter un joueur de plusieurs mètres, mesuré sur spain-pnr).
+
+**Lecture, attaquants** — plafond de 8 m/s seulement : retarder un attaquant
+sur son tracé désaligne la géométrie des écrans (amas insolubles). Les
+déplacements rectilignes (idle sans annotation, cut / dribble sans waypoints)
+suivent un profil trapézoïdal à 4 m/s² quand le joueur part de l'arrêt ou s'y
+arrête (`restToRestProgress`) ; vitesse continue entre deux étapes en
+mouvement.
+
+**Garde-fou en pixels** — `MAX_DEFENDER_JUMP_PX = MAX_ATTACKER_JUMP_PX = 9` par
+sous-pas reste le plafond absolu (continuité ≤ 18 px). Il ne mord qu'aux
+étapes de plus de ~2,1 s (9 px × 60 / 37 / T).
+
+**Tempo selon la distance** (`stepTempo.ts`, lu par `getStepDurationSeconds`)
+— sans `step.duration` ni `secondsPerStep` : durée = plus longue course
+d'attaquant de l'étape ÷ 3,5 m/s (÷ fenêtre de l'annotation) + 0,6 s, bornée à
+[1,8 s ; 4 s] ; une passe compte à 10 m/s. Une durée explicite reste
+prioritaire ; le champ « s / étape » vide = auto.

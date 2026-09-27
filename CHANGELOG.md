@@ -6,6 +6,36 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Réalisme — cinématique en unités réelles et tempo selon la distance (2026-09-27)
+
+Suite de l'[audit chiffré](docs/audit-realisme-2026-09-27.md), correctifs 1
+et 2 et tempo. Profil réaliste (défaut de l'app) ; legacy inchangé.
+
+- **Cinématique en m/s, m/s²** (`playback/kinematicLimits.ts`, flag
+  `physicalKinematicsEnabled`) : budget défensif par sous-pas selon l'appui
+  (face 7 m/s, pas chassé 4, reculons 4,5, sprint 8 en repli / closeout /
+  rotation), accélération 6 m/s², freinage anticipé 9 m/s² ; attaquants
+  plafonnés à 8 m/s. Le garde-fou de 9 px par sous-pas reste le plafond.
+- **Départs / arrêts progressifs** : la rampe couvre tous les défenseurs, y
+  compris en contact d'écran et au changement d'étape ; une poussée de contact
+  ne nourrit plus la rampe ; les déplacements rectilignes des attaquants
+  suivent un profil trapézoïdal (4 m/s²) quand ils partent de l'arrêt ou s'y
+  arrêtent.
+- **Solveur de collisions** : relancé avec le garde-fou en pixels si les
+  budgets physiques rendent un amas insoluble (évite l'échappée de secours).
+- **Tempo selon la distance** (`stepTempo.ts`, flag `distanceTempoEnabled`) :
+  sans durée explicite, étape = plus longue course ÷ 3,5 m/s + 0,6 s, bornée à
+  [1,8 ; 4] s. Champ « s / étape » vide = auto. Les systèmes de la
+  bibliothèque passent de 4-20 s (médiane 8) à 1,8-9 s (médiane 3,8 ;
+  PNR central 12 → 5,4 s).
+- Accélération défensive p90 : 18,2 → 15,9 m/s² au tempo auto (72,6 avant à
+  2 s par étape) ; sauts > 9 px par sous-pas : aucun sur la bibliothèque.
+- Tests : `kinematicLimits.test.ts`, `stepTempo.test.ts`, garde-fou
+  bibliothèque complète en profil réaliste dans `overlapInvariants.test.ts`.
+  Trois tests moteur (transition, cascade) fixent `secondsPerStep: 4`, leur
+  timing de référence.
+- Diagnostic : `scripts/diag-kinematics.ts <système> <joueur> [t0] [t1]`.
+
 ### Zones 2-3 et 1-3-1 — règles par situation (2026-09-27)
 
 - `defense/zoneSituationRules.ts`, appliqué après le moteur de zone générique

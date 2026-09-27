@@ -40,6 +40,8 @@ Ce document est le point d'entrée unique pour tout agent d'assistance au code (
 | **Déplacement attaquants** | `src/lib/logic/playerMove.ts` | `moveAttackerInState`, respect des push-outs anti-overlap. |
 | **Trajectoires & Actions** | `src/lib/logic/playbackTrajectory.ts` | Courbes de coupe (cut), dribbles, pose d'écrans. |
 | **Timing & Horloge** | `src/lib/logic/timecode.ts` | `getStepDurationSeconds`, shot clock, conversion étapes ↔ secondes. |
+| **Tempo selon la distance** | `src/lib/logic/stepTempo.ts` | Durée d'étape auto (plus longue course ÷ 3,5 m/s + 0,6 s, [1,8 ; 4] s), profil réaliste. |
+| **Cinématique de lecture** | `src/lib/logic/playback/kinematicLimits.ts` | Budget du sous-pas en m/s, m/s² (appuis, rampe, freinage anticipé), profil départ / arrêt des attaquants. |
 | **Placement sans ballon** | `src/lib/logic/autoOffense/positionOffBall.ts` | Spacing automatique hors-porteur. |
 
 ### D. Physique & Géométrie

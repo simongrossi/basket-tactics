@@ -1088,6 +1088,17 @@ export interface AppState {
    *  de rattrapage, ≤ 0,6 s) au lieu de sa place actuelle. Sans effet si la
    *  rampe est désactivée. Default undefined = legacy. */
   defenderLeadPursuitEnabled?: boolean;
+  /** Audit réalisme 1+2 — Cinématique de lecture en unités réelles. Défenseurs : vitesse
+   *  max par appui (face 7 m/s, pas chassé 4, reculons 4,5 ; sprint 8 en
+   *  repli / closeout / rotation), accélération 6 m/s² et
+   *  freinage anticipé 9 m/s², avec le dt réel du sous-pas, y compris aux
+   *  changements d'étape ; attaquants : 8 m/s max. Default undefined = legacy. */
+  physicalKinematicsEnabled?: boolean;
+  /** Tempo selon la distance : sans `step.duration` ni `secondsPerStep`,
+   *  la durée d'une étape découle de la plus longue course de l'étape
+   *  (≈ 4 m/s d'action, cf. `stepTempo.ts`) au lieu du défaut 4 s.
+   *  Default undefined = legacy. */
+  distanceTempoEnabled?: boolean;
   /** P2.1 — Jump the passing lane : pendant le vol d'une passe, un défenseur
    *  proche de la ligne passeur→receveur fait un pas dans la ligne
    *  (tentative de déflection) puis revient. Playback/scrub uniquement,

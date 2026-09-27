@@ -98,3 +98,48 @@ rapides, 8 virages brusques).
    run »).
 5. **Défenseurs perdus** — revue ciblée des cas écran (pindown, stagger,
    floppy) une fois 1 et 2 faits.
+
+## Suivi — correctifs 1, 2 et tempo selon la distance (27/09/2026)
+
+Livré dans le profil réaliste (détail : [physics.md](physics.md#cinématique-en-unités-réelles-et-tempo-selon-la-distance-27092026)) :
+
+- **1. Cinématique en unités réelles** — budget défensif du sous-pas en m/s
+  par appui (face 7, pas chassé 4, reculons 4,5, sprint 8 en repli / closeout /
+  rotation ; « turn and run » au-delà de 1,5 m de retard), accélération
+  6 m/s², freinage anticipé 9 m/s² ; attaquants plafonnés à 8 m/s. Le
+  garde-fou de 9 px reste le plafond absolu.
+- **2. Départs et arrêts progressifs** — cause : la rampe P3.1 excluait les
+  défenseurs marqués `onScreen` (D5 sur PNR central) et les poussées du solveur
+  de collisions nourrissaient la vitesse mémorisée. La rampe couvre désormais
+  tous les défenseurs ; les déplacements rectilignes des attaquants suivent un
+  profil trapézoïdal (4 m/s²) quand ils partent de l'arrêt ou s'y arrêtent.
+- **3. Tempo selon la distance** — plus longue course ÷ 3,5 m/s + 0,6 s, bornée
+  à [1,8 ; 4] s. Bibliothèque : 1,8 à 9 s par système (médiane 3,8 s).
+
+### Mesures après correctifs
+
+| | Avant, 4 s | Avant, 2 s | Après, tempo auto | Après, 2 s | Après, 4 s |
+|---|---|---|---|---|---|
+| Vitesse pointe att. (p90) | 2,4 | 4,7 | 5,2 | 5,2 | 2,7 |
+| Vitesse pointe déf. (max) | 3,6 | 7,3 | 6,5 | 6,6 | 3,6 |
+| Accélération déf. (p90) | 18,2 | 72,6 | 15,9 | 15,7 | 7,6 |
+| Accélération déf. (max) | 18,2 | 73,0 | 39,2 | 42,2 | 12,1 |
+| Joueurs hors seuils | 113 | 205 | 164 | 153 | 73 |
+
+PNR central, D5 au changement d'étape : 0 → 0,6 → 0,8 → 1,0 → 1,2 m/s par
+sous-pas (6 m/s² + 0,45 m/s de contact avec le rouleur), au lieu de 0 → 3,65.
+
+### Ce qui reste
+
+- **Attaquants** : accélérations p90 ~27 m/s² au tempo auto. Sources : courbes
+  d'évitement (Bezier paramétrée en t, pas en abscisse curviligne), profils de
+  vitesse des tracés à waypoints, fenêtres d'annotation courtes, annotations
+  posées sur l'étape d'arrivée. À traiter dans `playbackTrajectory` (zone
+  Règle 1bis).
+- **Freinages défensifs** (p90 ~24 m/s²) : cibles moteur qui s'arrêtent ou
+  sautent d'un coup (changement de contexte d'écran à la borne, réaffectation
+  de zone). Le freinage anticipé ne peut pas prévoir ces arrêts.
+- **Correctif 4** (turn and run visible) : le plafond se relève au-delà de
+  1,5 m de retard, mais le corps n'est pas encore retourné dans le sens de la
+  course.
+- **Correctif 5** (défenseurs perdus) : inchangé (25 à 33 fins d'étape).
