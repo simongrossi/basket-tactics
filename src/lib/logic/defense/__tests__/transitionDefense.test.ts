@@ -8,7 +8,7 @@ import { computeDefenseTargets } from '@/lib/logic/engine';
 import { distance } from '@/lib/logic/geometry';
 import { addFastBreakSteps } from '@/lib/state/transforms/stepTransforms';
 import type { AppState, AttackerPositions, DefenderPositions, Matchups } from '@/lib/types';
-import { planTransitionDefense } from '../transitionDefense';
+import { defenseOutnumbered, planTransitionDefense, transitionNumbers } from '../transitionDefense';
 import { applyRotationSwap, swapsFromMatchups } from '../rotationMemory';
 
 const hoop = HOOP_OPPOSITE; // la défense protège le panier bas
@@ -163,27 +163,28 @@ describe('repli en transition — phase 2 : retour aux bons duels', () => {
     expect(b).not.toEqual({ D1: 'O1', D2: 'O2', D3: 'O3', D4: 'O4', D5: 'O5' });
   });
 
-  it('retour par paires : deux défenseurs se rendent leurs hommes quand ces attaquants se rapprochent', () => {
+  it('retour par paires : une fois la défense revenue, deux défenseurs se rendent leurs hommes quand ces attaquants se rapprochent', () => {
     const settled: AttackerPositions = {
       O4: { x: 300, y: 710 }, O2: { x: 110, y: 800 }, O5: { x: 490, y: 800 },
-      O1: { x: 370, y: 720 }, O3: { x: 370, y: 950 },
+      O1: { x: 230, y: 950 }, O3: { x: 370, y: 950 },
     };
-    const base = breakThen([]);
-    const sprint = base.steps[2];
-    const st = breakThen([
-      { off: sprint.off, ballCarrier: 'O4' },
-      { off: settled, ballCarrier: 'O4' },
-    ]);
-    const before = computeDefenseTargets(st, 3).matchupsApplied;
-    const after = computeDefenseTargets(st, 4);
-    // D1 (qui gardait O4) reprend O1, D5 (qui gardait O1) prend O4.
-    expect(before.D1).toBe('O4');
+    // Assez d'étapes pour que tout le monde soit revenu (fin du repli).
+    const waiting = Array.from({ length: 10 }, () => ({ off: settled, ballCarrier: 'O4' as const }));
+    const near: AttackerPositions = { ...settled, O1: { x: 370, y: 720 } };
+    const st = breakThen([...waiting, { off: near, ballCarrier: 'O4' }, { off: near, ballCarrier: 'O4' }]);
+    const last = st.steps.length - 1;
+    const before = computeDefenseTargets(st, last - 2);
+    expect(before.transitionPhase).toBeUndefined();
+    // Cross-matching encore en place : D1 garde O4, D5 garde O1.
+    expect(before.matchupsApplied.D1).toBe('O4');
+    expect(before.matchupsApplied.D5).toBe('O1');
+    const after = computeDefenseTargets(st, last);
+    // D1 reprend O1, D5 prend O4.
     expect(after.matchupsApplied.D1).toBe('O1');
     expect(after.matchupsApplied.D5).toBe('O4');
-    expect(after.positions.D1.rotation).toBe('scramble-back');
+    expect(new Set(Object.values(after.matchupsApplied)).size).toBe(5);
     // Les autres duels du repli tiennent (leurs attaquants sont éloignés).
     expect(after.rotationSwaps!.length).toBeGreaterThan(0);
-    expect(new Set(Object.values(after.matchupsApplied)).size).toBe(5);
   });
 
   it('pas de retour tant qu’un drive est en cours ou que le ballon est près du panier', () => {
@@ -208,5 +209,136 @@ describe('repli en transition — phase 2 : retour aux bons duels', () => {
     swaps.forEach((sw) => applyRotationSwap(replay, sw));
     expect(replay).toEqual(target);
     expect(swaps.every((sw) => sw.kind === 'transition')).toBe(true);
+  });
+});
+
+describe('repli en transition — infériorité numérique', () => {
+  const ids = ['D1', 'D2', 'D3', 'D4', 'D5'] as const;
+  const planFor = (o: AttackerPositions, carrier: 'O1' | 'O2' | 'O3' | 'O4' | 'O5', start: DefenderPositions) =>
+    planTransitionDefense({
+      off: o, ballCarrier: carrier, hoop, defenderIds: [...ids], startPos: start,
+      baseMatchups: base, defenseDistance: 45,
+    });
+
+  describe('2 contre 1', () => {
+    // O1 conduit au milieu, O2 à l'aile gauche ; seul D1 est revenu.
+    const o: AttackerPositions = {
+      O1: { x: 300, y: 700 }, O2: { x: 150, y: 760 }, O3: { x: 450, y: 450 },
+      O4: { x: 300, y: 400 }, O5: { x: 200, y: 380 },
+    };
+    const start: DefenderPositions = {
+      D1: { x: 300, y: 900 }, D2: { x: 200, y: 560 }, D3: { x: 400, y: 520 },
+      D4: { x: 300, y: 480 }, D5: { x: 250, y: 420 },
+    };
+
+    it('le défenseur revenu ne choisit pas : il recule devant le cercle, décalé vers l’autre attaquant', () => {
+      const p = planFor(o, 'O1', start);
+      expect(p.roles.D1).toBe('feint-retreat');
+      // Nettement plus près du cercle que le porteur, sans monter sur lui.
+      expect(distance(p.targets.D1, hoop)).toBeLessThan(distance(o.O1, hoop) - 100);
+      expect(distance(p.targets.D1, o.O1)).toBeGreaterThan(100);
+      // Décalé du côté de O2 (gauche) par rapport à l'axe porteur → panier.
+      expect(p.targets.D1.x).toBeLessThan(300);
+    });
+
+    it('retardataires : le premier revenu prend l’attaquant libre le plus dangereux', () => {
+      const p = planFor(o, 'O1', start);
+      // D2 est le retardataire le plus avancé ; O2 est l'attaquant libre le
+      // plus près du panier.
+      expect(p.matchups.D2).toBe('O2');
+      expect(p.roles.D2).toBe('match');
+    });
+  });
+
+  describe('3 contre 2 en tandem', () => {
+    const o: AttackerPositions = {
+      O1: { x: 300, y: 700 }, O2: { x: 120, y: 800 }, O3: { x: 480, y: 800 },
+      O4: { x: 300, y: 450 }, O5: { x: 220, y: 400 },
+    };
+    // D1 en haut du tandem, D2 en bas ; les autres en retard.
+    const start: DefenderPositions = {
+      D1: { x: 300, y: 840 }, D2: { x: 300, y: 950 }, D3: { x: 400, y: 520 },
+      D4: { x: 300, y: 480 }, D5: { x: 250, y: 420 },
+    };
+
+    it('ballon dans l’axe : le haut arrête le ballon, le bas garde le cercle', () => {
+      const p = planFor(o, 'O1', start);
+      expect(p.roles.D1).toBe('stop-ball');
+      expect(p.matchups.D1).toBe('O1');
+      expect(p.roles.D2).toBe('protect-rim');
+      expect(distance(p.targets.D2, hoop)).toBeLessThan(70);
+    });
+
+    it('passe à l’aile : le bas sort sur la passe, le haut descend au cercle (on tourne)', () => {
+      const p = planFor(o, 'O3', start);
+      expect(p.roles.D2).toBe('stop-ball');
+      expect(p.matchups.D2).toBe('O3');
+      expect(p.roles.D1).toBe('tandem-drop');
+      expect(distance(p.targets.D1, hoop)).toBeLessThan(70);
+    });
+
+    it('retardataires : dans l’ordre d’arrivée, sur les attaquants libres les plus dangereux', () => {
+      const p = planFor(o, 'O1', start);
+      // D3 (le plus avancé des retardataires) prend une aile (les plus près du panier).
+      expect(['O2', 'O3']).toContain(p.matchups.D3);
+      expect(new Set(Object.values(p.matchups)).size).toBe(5);
+    });
+  });
+
+  it('comptage : défenseurs revenus devant le ballon et attaquants dans le jeu', () => {
+    const o: AttackerPositions = {
+      O1: { x: 300, y: 700 }, O2: { x: 150, y: 760 }, O3: { x: 450, y: 450 },
+      O4: { x: 300, y: 400 }, O5: { x: 200, y: 380 },
+    };
+    const start: DefenderPositions = {
+      D1: { x: 300, y: 900 }, D2: { x: 200, y: 560 }, D3: { x: 400, y: 520 },
+      D4: { x: 300, y: 480 }, D5: { x: 250, y: 420 },
+    };
+    const n = transitionNumbers({ off: o, ballCarrier: 'O1', hoop, defenderIds: [...ids], startPos: start });
+    expect(n.back).toEqual(['D1']);
+    expect(n.inPlay.sort()).toEqual(['O1', 'O2']);
+    expect(defenseOutnumbered({ off: o, ballCarrier: 'O1', hoop, defenderIds: [...ids], startPos: start })).toBe(true);
+  });
+});
+
+describe('repli en transition — poursuite tant que la défense est en retard', () => {
+  function breakAndHalfCourt(extraSteps: number): AppState {
+    const s0 = makeInitialState();
+    const o: AttackerPositions = {
+      O1: { x: 300, y: 300 }, O2: { x: 200, y: 250 }, O3: { x: 400, y: 250 },
+      O4: { x: 240, y: 140 }, O5: { x: 360, y: 140 },
+    };
+    const d: DefenderPositions = {
+      D1: { x: 300, y: 200 }, D2: { x: 180, y: 180 }, D3: { x: 300, y: 110 },
+      D4: { x: 230, y: 130 }, D5: { x: 370, y: 130 },
+    };
+    const st = addFastBreakSteps({
+      ...s0, playerCount: 5, activeStep: 0, realismProfile: 'realistic',
+      steps: [{ off: o, ballCarrier: 'O1', annotations: [], defenseOverrides: d, rebounder: 'D3', reboundType: 'defensive' }],
+    }, { sourceStepIdx: 0 });
+    const settled: AttackerPositions = {
+      O4: { x: 300, y: 720 }, O2: { x: 110, y: 800 }, O5: { x: 490, y: 800 },
+      O1: { x: 230, y: 950 }, O3: { x: 370, y: 950 },
+    };
+    const more = Array.from({ length: extraSteps }, () => ({ off: settled, ballCarrier: 'O4' as const, annotations: [] }));
+    return { ...st, steps: [...st.steps, ...more] };
+  }
+
+  it('l’étape suivant le sprint reste en repli tant que la défense est en infériorité', () => {
+    const st = breakAndHalfCourt(1);
+    expect(computeDefenseTargets(st, 3).transitionPhase).toBe(true);
+  });
+
+  it('dès que tout le monde est revenu, le moteur normal reprend (et ne repasse pas en repli)', () => {
+    const st = breakAndHalfCourt(10);
+    const phases = st.steps.map((_, i) => !!computeDefenseTargets(st, i).transitionPhase);
+    const firstNormal = phases.findIndex((p, i) => i > 2 && !p);
+    expect(firstNormal).toBeGreaterThan(2);
+    expect(phases.slice(firstNormal).every((p) => !p)).toBe(true);
+  });
+
+  it('sans fast-break, jamais de repli', () => {
+    const st: AppState = { ...makeInitialState() };
+    st.steps.forEach((_, i) => expect(computeDefenseTargets(st, i).transitionPhase).toBeUndefined());
   });
 });

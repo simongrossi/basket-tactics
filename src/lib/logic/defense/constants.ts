@@ -154,3 +154,17 @@ export const TRANSITION_BEHIND_BALL_PENALTY_PX = 150;
 export const TRANSITION_RIM_DEPTH_PX = 55;
 /** Premier attaquant disponible : affaissement vers le cercle. */
 export const TRANSITION_MATCH_SAG = 0.25;
+/** Infériorité numérique : un défenseur est « revenu » s'il est plus près du
+ *  panier que le porteur d'au moins 10 px. */
+export const TRANSITION_BACK_MARGIN_PX = 10;
+/** Infériorité numérique : un attaquant est « dans le jeu » s'il est au plus
+ *  60 px derrière le porteur (le trailer très en retrait ne compte pas). */
+export const TRANSITION_INPLAY_MARGIN_PX = 60;
+/** 2 contre 1 : le défenseur recule devant le cercle, à 45 % du chemin
+ *  panier → ballon, sans dépasser 130 px du panier. */
+export const TRANSITION_FEINT_RIM_RATIO = 0.45;
+export const TRANSITION_FEINT_MAX_RIM_DIST_PX = 130;
+/** 2 contre 1 : décalage vers l'autre attaquant (ne pas choisir trop tôt). */
+export const TRANSITION_FEINT_SHADE = 0.25;
+/** Tandem : ballon « à l'aile » à ≥ 100 px latéralement du panier. */
+export const TRANSITION_TANDEM_WING_LATERAL_PX = 100;

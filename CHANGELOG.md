@@ -6,6 +6,32 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Repli en transition — infériorité numérique (2026-09-27)
+
+- **Infériorité numérique** : moins de défenseurs revenus devant le ballon
+  que d'attaquants dans le jeu (porteur + ceux à sa hauteur ou devant).
+  - **2 contre 1** : le défenseur revenu ne choisit pas trop tôt — il recule
+    devant le cercle (à mi-chemin du ballon, ≤ 130 px du panier), décalé vers
+    l'autre attaquant. Badge FEINTE · RECULE.
+  - **3 contre 2 en tandem** : ballon dans l'axe → le haut arrête le ballon,
+    le bas garde le cercle ; passe à l'aile / au coin → le bas sort sur la
+    passe, le haut descend au cercle (« on tourne », badge TOURNE).
+  - **Retardataires** : dans l'ordre d'arrivée, chacun prend l'attaquant
+    libre le plus dangereux (le plus près du panier).
+- **La transition se poursuit** d'étape en étape tant que la défense est en
+  infériorité (positions réelles), courue en sprint (×1,8) ; dès que les
+  nombres s'égalisent, le moteur normal reprend et les duels du repli se
+  rendent par paires.
+- **Mémo du calcul défensif** (`computeDefenseTargets`) limité à l'appel le
+  plus externe : une étape n'est plus recalculée plusieurs fois par niveau de
+  récursion (nécessaire pour la poursuite de transition, sans résultat
+  périmé possible).
+- Test « retour par paires » réécrit : le retour n'a lieu qu'une fois la
+  défense revenue.
+- Tests : 8 unitaires (2c1, tandem axe / aile, retardataires, comptage,
+  poursuite, fin de poursuite, sans fast-break) + garde-fou de lecture
+  allongé (fast-break + 9 étapes). Suite 2 781 / 2 781.
+
 ### Repli défensif en transition — phase 2 : retour aux bons duels (2026-09-27)
 
 - Les duels du repli (cross-matching) sont conservés sur les étapes qui
