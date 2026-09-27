@@ -188,10 +188,21 @@ describe('fast-break — invariant clearance', () => {
         D1: { x: 300, y: 200 }, D2: { x: 180, y: 180 }, D3: { x: 300, y: 110 },
         D4: { x: 230, y: 130 }, D5: { x: 370, y: 130 },
       };
-      const state: AppState = addFastBreakSteps({
+      const broken: AppState = addFastBreakSteps({
         ...s0, playerCount: 5, activeStep: 0, realismProfile,
         steps: [{ off, ballCarrier: 'O1', annotations: [], defenseOverrides: def, rebounder: 'D3', reboundType: 'defensive' }],
       }, { sourceStepIdx: 0 });
+      // Phase 2 : demi-terrain après le break — duels du repli qui tiennent,
+      // puis retour par paires quand O1 rejoint O4 au sommet.
+      const sprint = broken.steps[2];
+      const settled: AttackerPositions = {
+        O4: { x: 300, y: 710 }, O2: { x: 110, y: 800 }, O5: { x: 490, y: 800 },
+        O1: { x: 370, y: 720 }, O3: { x: 370, y: 950 },
+      };
+      const state: AppState = { ...broken, steps: [...broken.steps,
+        { off: sprint.off, ballCarrier: sprint.ballCarrier, annotations: [] },
+        { off: settled, ballCarrier: 'O4', annotations: [] },
+        { off: settled, ballCarrier: 'O4', annotations: [] }] };
       let previous: ReturnType<typeof resolveTimelineFrame> = null;
       for (let tick = 0; tick <= (state.steps.length - 1) * 60; tick++) {
         const frame = resolveTimelineFrame(state, tick / 60)!;

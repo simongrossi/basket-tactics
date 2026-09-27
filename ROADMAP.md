@@ -290,10 +290,10 @@ gagne la **transition** : rebond → outlet → course.
 **Livré (2026-09-27)** — repli défensif, phase 1 : l'étape de sprint est
 calculée par le moteur (arrêter le ballon → protéger le panier → premier
 attaquant disponible, `defense/transitionDefense.ts`) au lieu d'une ligne
-figée.
+figée ; phase 2 : les duels du repli tiennent puis se rendent par paires au
+retour au calme.
 
 **Restant (sous-projets)** :
-- Repli défensif phase 2 : retrouver les bons duels quand l'attaque s'installe
 - Avantage numérique 2c1/3c2 + conclusion (layup / lecture) — sous-projet 2
 - Secondary break → bascule vers le demi-terrain placé — sous-projet 3
 - Transition auto dans le match-sim (audit #7)

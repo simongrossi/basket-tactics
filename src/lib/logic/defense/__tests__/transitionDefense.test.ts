@@ -9,6 +9,7 @@ import { distance } from '@/lib/logic/geometry';
 import { addFastBreakSteps } from '@/lib/state/transforms/stepTransforms';
 import type { AppState, AttackerPositions, DefenderPositions, Matchups } from '@/lib/types';
 import { planTransitionDefense } from '../transitionDefense';
+import { applyRotationSwap, swapsFromMatchups } from '../rotationMemory';
 
 const hoop = HOOP_OPPOSITE; // la défense protège le panier bas
 const base: Matchups = { D1: 'O1', D2: 'O2', D3: 'O3', D4: 'O4', D5: 'O5' };
@@ -129,5 +130,83 @@ describe('repli en transition — dans le fast-break', () => {
     const snapshot = structuredClone(st);
     expect(computeDefenseTargets(st, 2)).toEqual(computeDefenseTargets(st, 2));
     expect(st).toEqual(snapshot);
+  });
+});
+
+describe('repli en transition — phase 2 : retour aux bons duels', () => {
+  function breakThen(extra: Array<{ off: AttackerPositions; ballCarrier: 'O1' | 'O2' | 'O3' | 'O4' | 'O5' }>): AppState {
+    const s0 = makeInitialState();
+    const o: AttackerPositions = {
+      O1: { x: 300, y: 300 }, O2: { x: 200, y: 250 }, O3: { x: 400, y: 250 },
+      O4: { x: 240, y: 140 }, O5: { x: 360, y: 140 },
+    };
+    const d: DefenderPositions = {
+      D1: { x: 300, y: 200 }, D2: { x: 180, y: 180 }, D3: { x: 300, y: 110 },
+      D4: { x: 230, y: 130 }, D5: { x: 370, y: 130 },
+    };
+    const st = addFastBreakSteps({
+      ...s0, playerCount: 5, activeStep: 0, realismProfile: 'realistic',
+      steps: [{ off: o, ballCarrier: 'O1', annotations: [], defenseOverrides: d, rebounder: 'D3', reboundType: 'defensive' }],
+    }, { sourceStepIdx: 0 });
+    return { ...st, steps: [...st.steps, ...extra.map((e) => ({ ...e, annotations: [] }))] };
+  }
+
+  it('les duels du repli tiennent tant que le ballon est près du panier (sans réglage)', () => {
+    const base = breakThen([]);
+    const sprint = base.steps[2];
+    const st = breakThen([{ off: sprint.off, ballCarrier: sprint.ballCarrier as 'O4' }]);
+    expect(st.rotationMemory).toBeUndefined();
+    const a = computeDefenseTargets(st, 2).matchupsApplied;
+    const b = computeDefenseTargets(st, 3).matchupsApplied;
+    expect(b).toEqual(a);
+    // Et ce ne sont pas les duels d'origine (cross-matching).
+    expect(b).not.toEqual({ D1: 'O1', D2: 'O2', D3: 'O3', D4: 'O4', D5: 'O5' });
+  });
+
+  it('retour par paires : deux défenseurs se rendent leurs hommes quand ces attaquants se rapprochent', () => {
+    const settled: AttackerPositions = {
+      O4: { x: 300, y: 710 }, O2: { x: 110, y: 800 }, O5: { x: 490, y: 800 },
+      O1: { x: 370, y: 720 }, O3: { x: 370, y: 950 },
+    };
+    const base = breakThen([]);
+    const sprint = base.steps[2];
+    const st = breakThen([
+      { off: sprint.off, ballCarrier: 'O4' },
+      { off: settled, ballCarrier: 'O4' },
+    ]);
+    const before = computeDefenseTargets(st, 3).matchupsApplied;
+    const after = computeDefenseTargets(st, 4);
+    // D1 (qui gardait O4) reprend O1, D5 (qui gardait O1) prend O4.
+    expect(before.D1).toBe('O4');
+    expect(after.matchupsApplied.D1).toBe('O1');
+    expect(after.matchupsApplied.D5).toBe('O4');
+    expect(after.positions.D1.rotation).toBe('scramble-back');
+    // Les autres duels du repli tiennent (leurs attaquants sont éloignés).
+    expect(after.rotationSwaps!.length).toBeGreaterThan(0);
+    expect(new Set(Object.values(after.matchupsApplied)).size).toBe(5);
+  });
+
+  it('pas de retour tant qu’un drive est en cours ou que le ballon est près du panier', () => {
+    const settled: AttackerPositions = {
+      O4: { x: 300, y: 850 }, O2: { x: 110, y: 800 }, O5: { x: 490, y: 800 },
+      O1: { x: 360, y: 870 }, O3: { x: 370, y: 950 },
+    };
+    const base = breakThen([]);
+    const sprint = base.steps[2];
+    const st = breakThen([
+      { off: sprint.off, ballCarrier: 'O4' },
+      { off: settled, ballCarrier: 'O4' },
+    ]);
+    expect(computeDefenseTargets(st, 4).matchupsApplied.D1).toBe('O4');
+  });
+
+  it('décomposition en échanges : rejouée, elle redonne les duels du repli', () => {
+    const baseM: Matchups = { D1: 'O1', D2: 'O2', D3: 'O3', D4: 'O4', D5: 'O5' };
+    const target: Matchups = { D1: 'O4', D2: 'O3', D3: 'O5', D4: 'O2', D5: 'O1' };
+    const swaps = swapsFromMatchups(baseM, target, 2);
+    const replay = { ...baseM };
+    swaps.forEach((sw) => applyRotationSwap(replay, sw));
+    expect(replay).toEqual(target);
+    expect(swaps.every((sw) => sw.kind === 'transition')).toBe(true);
   });
 });

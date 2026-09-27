@@ -33,6 +33,7 @@ import {
 import { effectiveDefensePositions, extractDefenderPositions, getDefenseHoop, getMatchupsAt } from '../engine';
 import { optimalAssignment } from './matchupZone';
 import type { DefenderTarget } from './types';
+import { swapsFromMatchups, type RotationSwap } from './rotationMemory';
 import {
   TRANSITION_BALL_CUSHION_PX,
   TRANSITION_BEHIND_BALL_PENALTY_PX,
@@ -133,7 +134,7 @@ export function planTransitionDefense(params: {
 export function computeTransitionDefenseTargets(
   state: AppState,
   stepIdx: number
-): { positions: Record<DefenderId, DefenderTarget>; matchupsApplied: Matchups } {
+): { positions: Record<DefenderId, DefenderTarget>; matchupsApplied: Matchups; rotationSwaps?: RotationSwap[] } {
   const step = state.steps[stepIdx];
   const off = activeOffense(step.off, state.playerCount);
   const ballCarrier = activeBallCarrier(step, state.playerCount);
@@ -142,13 +143,14 @@ export function computeTransitionDefenseTargets(
   const startPos: DefenderPositions = stepIdx > 0
     ? extractDefenderPositions(effectiveDefensePositions(state, stepIdx - 1))
     : activeDefenseInitial(state.defenseInitial, state.playerCount);
+  const baseMatchups = getMatchupsAt(state.steps, stepIdx - 1, state.playerCount);
   const plan = planTransitionDefense({
     off,
     ballCarrier,
     hoop,
     defenderIds,
     startPos,
-    baseMatchups: getMatchupsAt(state.steps, stepIdx - 1, state.playerCount),
+    baseMatchups,
     defenseDistance: state.defenseDistance,
   });
 
@@ -185,5 +187,9 @@ export function computeTransitionDefenseTargets(
       armManSide: orient.armManSide,
     };
   });
-  return { positions, matchupsApplied: plan.matchups };
+  // Phase 2 — les duels du repli sont exprimés en échanges par rapport aux
+  // duels d'origine : l'étape suivante les reporte et ils se défont au
+  // retour au calme (cf. carryRotationSwaps).
+  const swaps = swapsFromMatchups(baseMatchups, plan.matchups, stepIdx);
+  return { positions, matchupsApplied: plan.matchups, rotationSwaps: swaps.length ? swaps : undefined };
 }

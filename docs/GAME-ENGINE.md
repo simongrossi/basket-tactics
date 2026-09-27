@@ -171,6 +171,7 @@ Court-circuit de `computeDefenseTargets` sur `step.transitionDefense` (posé par
 2. Panier : le plus proche du cercle parmi les restants (55 px devant le panier).
 3. Premier attaquant disponible : affectation optimale sur les attaquants les plus proches du panier ; cible = `manTarget` affaissé de 25 % vers le cercle. Le trailer restant est confié nominalement au défenseur du cercle.
 Départ : `effectiveDefensePositions(N-1)`.
+Phase 2 : les duels du repli sont retournés en échanges `transition` (`swapsFromMatchups`) et reportés par le contexte sans réglage ; au calme (ballon ≥ 230 px, pas de trigger), `carryTransitionSwaps` rend les hommes par paires (chacun à ≤ 150 px de l'homme qu'il reprend).
 
 #### Zone matchup (`defense/matchupZone.ts`, 2026-09-26)
 Pas d'ownership continu : **appariement un pour un** (affectation optimale sur 5×5, 120 permutations).
