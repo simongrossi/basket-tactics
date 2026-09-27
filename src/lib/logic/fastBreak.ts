@@ -18,7 +18,6 @@ const SPRINT_BALL_Y = 780;
 const SPRINT_WING_Y = 840;
 const TRAILER1_Y = 560;
 const TRAILER2_Y = 650;
-const DEF_RETREAT_Y = 900;
 const OUTLET_Y = 420;
 
 /** Attaquant le plus proche du rebondeur (hors lui) = vient chercher l'outlet. */
@@ -98,19 +97,12 @@ export function buildFastBreakSteps(
   if (others.length >= 3) sprintOff[others[1]] = { x: LANE_MID_X, y: TRAILER2_Y };
   spread(sprintOff, attackerIds);
 
-  const sprintDef: DefenderPositions = {} as DefenderPositions;
-  defenderIds.forEach((dId) => {
-    sprintDef[dId] = { x: breakDefStart[dId].x, y: DEF_RETREAT_Y };
-  });
-  // Étale les défenseurs sur la ligne de repli (évite les x identiques).
-  for (const dId of defenderIds) {
-    const obstacles: Point[] = defenderIds.filter((o) => o !== dId).map((o) => sprintDef[o]);
-    sprintDef[dId] = pushOutOfMany(sprintDef[dId], obstacles, PLAYER_MIN_CLEARANCE_PX);
-  }
-
+  // Repli défensif : calculé par le moteur (defense/transitionDefense.ts) —
+  // arrêter le ballon, protéger le panier, premier attaquant disponible —
+  // au lieu d'une ligne figée.
   const sprintStep: Step = {
     label: 'Sprint couloirs', off: sprintOff, ballCarrier: ball, annotations: [],
-    sprintBoost: true, manualOverride: true, defenseOverrides: sprintDef, context: 'live-play',
+    sprintBoost: true, transitionDefense: true, manualOverride: true, context: 'live-play',
   };
 
   return { outletStep, sprintStep };

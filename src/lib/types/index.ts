@@ -183,6 +183,11 @@ export interface Step {
    *  transition, run-out post-rebond). Default false = no-op. Cumulable
    *  avec defenderSpeedProfiles (G.4) et rule.closeoutBoost. */
   sprintBoost?: boolean;
+  /** Repli défensif en transition : sur cette étape, la défense se replie
+   *  selon les priorités (arrêter le ballon, protéger le panier, premier
+   *  attaquant disponible) au lieu de chercher son homme. Posé par le
+   *  fast-break sur l'étape de sprint. */
+  transitionDefense?: boolean;
   /** A11 V1+V2 — Issue du tir pris sur ce step. Default = pas de tir.
    *  - `'made'`    : tir réussi. Le step suivant peut être une transition
    *    (BLOB / SLOB) gérée manuellement par le coach.
@@ -873,6 +878,9 @@ export interface ComputedDefender {
    *  - `recover` : fin de rotation, retour progressif sur son homme
    *  - `scramble-back` : retour au calme, chacun reprend son homme d'origine */
   rotation?: DefenderRotationState;
+  /** Repli en transition : rôle du défenseur (arrêter le ballon, protéger le
+   *  panier, premier attaquant disponible). */
+  transitionRole?: 'stop-ball' | 'protect-rim' | 'match';
   /** Angle horaire du CORPS depuis le nord (0–360°). Calculé automatiquement
    *  par `computeDefenderOrientation` à partir de la stance, du ballon, de
    *  la position de l'homme. Override possible via `rule.bodyOrientation`. */

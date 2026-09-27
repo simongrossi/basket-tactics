@@ -287,7 +287,13 @@ gagne la **transition** : rebond → outlet → course.
   sans miroir) part en fast-break full-court (outlet + 3 couloirs vers
   `HOOP_OPPOSITE` + repli défensif), bouton ⚡ StepsPanel. ~10 tests.
 
+**Livré (2026-09-27)** — repli défensif, phase 1 : l'étape de sprint est
+calculée par le moteur (arrêter le ballon → protéger le panier → premier
+attaquant disponible, `defense/transitionDefense.ts`) au lieu d'une ligne
+figée.
+
 **Restant (sous-projets)** :
+- Repli défensif phase 2 : retrouver les bons duels quand l'attaque s'installe
 - Avantage numérique 2c1/3c2 + conclusion (layup / lecture) — sous-projet 2
 - Secondary break → bascule vers le demi-terrain placé — sous-projet 3
 - Transition auto dans le match-sim (audit #7)

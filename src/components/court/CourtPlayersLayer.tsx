@@ -120,6 +120,7 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
             denying={p.denying}
             pnrRole={p.pnrRole}
             rotation={p.rotation}
+            transitionRole={p.transitionRole}
             mismatchSeverity={p.mismatchSeverity}
             scrammedThisStep={p.scrammedThisStep}
             mismatchThreshold={state.mismatchThreshold ?? 2}

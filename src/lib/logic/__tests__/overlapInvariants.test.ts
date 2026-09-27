@@ -176,6 +176,42 @@ describe('fast-break — invariant clearance', () => {
     }
   });
 
+  for (const realismProfile of ['legacy', 'realistic'] as const) {
+    it(`repli en transition : toutes les paires ≥ clearance et sauts ≤ 18 px en lecture, ${realismProfile}`, async () => {
+      const { resolveTimelineFrame } = await import('../playback/frameResolver');
+      const s0 = makeInitialState();
+      const off: AttackerPositions = {
+        O1: { x: 300, y: 300 }, O2: { x: 200, y: 250 }, O3: { x: 400, y: 250 },
+        O4: { x: 240, y: 140 }, O5: { x: 360, y: 140 },
+      };
+      const def: DefenderPositions = {
+        D1: { x: 300, y: 200 }, D2: { x: 180, y: 180 }, D3: { x: 300, y: 110 },
+        D4: { x: 230, y: 130 }, D5: { x: 370, y: 130 },
+      };
+      const state: AppState = addFastBreakSteps({
+        ...s0, playerCount: 5, activeStep: 0, realismProfile,
+        steps: [{ off, ballCarrier: 'O1', annotations: [], defenseOverrides: def, rebounder: 'D3', reboundType: 'defensive' }],
+      }, { sourceStepIdx: 0 });
+      let previous: ReturnType<typeof resolveTimelineFrame> = null;
+      for (let tick = 0; tick <= (state.steps.length - 1) * 60; tick++) {
+        const frame = resolveTimelineFrame(state, tick / 60)!;
+        const players = [...Object.entries(frame.off), ...Object.entries(frame.defPos)];
+        for (let i = 0; i < players.length; i++) {
+          for (let j = i + 1; j < players.length; j++) {
+            expect(distance(players[i][1], players[j][1]), `t=${tick / 60} ${players[i][0]} / ${players[j][0]}`)
+              .toBeGreaterThanOrEqual(PLAYER_MIN_CLEARANCE_PX - 0.01);
+          }
+          if (previous) {
+            const before = [...Object.entries(previous.off), ...Object.entries(previous.defPos)]
+              .find(([id]) => id === players[i][0])![1];
+            expect(distance(before, players[i][1]), `t=${tick / 60} ${players[i][0]} jump`).toBeLessThanOrEqual(18.01);
+          }
+        }
+        previous = frame;
+      }
+    }, 60_000);
+  }
+
   it('driveContainmentEnabled : clearance préservée sur un drive', () => {
     // 2a — la couche driveContainment glisse le défenseur du porteur vers le
     // point de contain ; elle doit rester compatible Rule 1 (push-out aval).

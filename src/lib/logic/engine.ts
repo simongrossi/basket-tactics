@@ -8,6 +8,7 @@ import type {
 import { computeZoneDefenseTargets } from './defense/zoneTargets';
 import { computeJunkDefenseTargets } from './defense/junkLayer';
 import { computePressDefenseTargets } from './defense/pressLayer';
+import { computeTransitionDefenseTargets } from './defense/transitionDefense';
 import { HOOP, HOOP_OPPOSITE } from '../data/court';
 import type { Point } from '../types';
 import {
@@ -101,6 +102,11 @@ export function computeDefenseTargets(
   stepIdx: number,
   _legacyMutateStepForSwitch: boolean = false
 ): DefenseTargetsResult {
+  // Repli en transition : priorités de repli, quel que soit le système
+  // (zone, press… se mettent en place une fois la défense revenue).
+  if (state.steps[stepIdx]?.transitionDefense) {
+    return computeTransitionDefenseTargets(state, stepIdx);
+  }
   if (state.defenseSystem === 'zone') {
     return computeZoneDefenseTargets(state, stepIdx);
   }

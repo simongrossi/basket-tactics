@@ -48,6 +48,8 @@ interface PlayerProps {
   pnrRole?: 'tag' | 'x-out' | 'stunt';
   /** P4.4 — état de rotation (mémoire de rotation). */
   rotation?: DefenderRotationState;
+  /** Repli en transition : rôle du défenseur. */
+  transitionRole?: 'stop-ball' | 'protect-rim' | 'match';
   /** Severity du mismatch après switch (B1). Range 0–4. Affiche un badge ⚠
    *  orange (severity 2) ou rouge (severity ≥3) à côté du défenseur quand
    *  ≥ `mismatchThreshold`. Si scram switch appliqué, badge bleu "SCRAM". */
@@ -119,6 +121,7 @@ export function Player({
   showForcedScreenerBadge = true,
   pnrRole,
   rotation,
+  transitionRole,
   mismatchSeverity,
   scrammedThisStep,
   mismatchThreshold = 2,
@@ -774,6 +777,18 @@ export function Player({
           pointerEvents="none"
         >
           {ROTATION_BADGE[rotation].label}
+        </text>
+      )}
+      {transitionRole && transitionRole !== 'match' && !isAttacker && showStateRings && (
+        <text
+          x={pos.x + r + 6}
+          y={pos.y - r + 2}
+          fontSize={8}
+          fontWeight={700}
+          fill={transitionRole === 'stop-ball' ? '#DC2626' : '#2563EB'}
+          pointerEvents="none"
+        >
+          {transitionRole === 'stop-ball' ? 'STOP BALLE' : 'PANIER'}
         </text>
       )}
       {blitzRecovering && !isAttacker && showStateRings && (
