@@ -201,6 +201,22 @@ Pistes Sprite V3 (futures) :
   Capture limitée à 60 s, relecture avec pause et curseur ;
   [guide](docs/SITUATION-CODE.md).
 
+- ⚪ **Suite de l'audit réalisme 2026-09-27** (cinématique en m/s et tempo
+  selon la distance livrés ; mesures dans
+  [docs/audit-realisme-2026-09-27.md § Ce qui reste](docs/audit-realisme-2026-09-27.md)) :
+  - **Accélérations offensives** (p90 ~27 m/s² au tempo auto) : courbes
+    d'évitement Bezier paramétrées en t et non en abscisse curviligne,
+    profils des tracés à waypoints, annotations à fenêtre courte ou posées
+    sur l'étape d'arrivée. Zone `playbackTrajectory` (Règle 1bis).
+  - **Freinages défensifs** (p90 ~24 m/s²) : la place cible du moteur
+    s'arrête ou saute d'un coup (contexte d'écran au passage d'étape,
+    réaffectation de zone) ; le freinage anticipé ne peut pas le prévoir.
+  - **Demi-tour visible** (turn and run) : au-delà de 1,5 m de retard le
+    plafond de la course de face s'applique, mais le corps reste orienté vers
+    l'homme / le ballon.
+  - **Défenseurs perdus sur écrans** : 25 à 33 fins d'étape à plus de 3 m de
+    leur homme (pindown, stagger, floppy ; les anti-zones sont attendues).
+
 ### Pistes V4 (poursuite défenseur)
 
 - ✅ **Étendre les modulations de poursuite à playback step→step**
