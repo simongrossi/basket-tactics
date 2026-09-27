@@ -6,6 +6,21 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Cascade à plusieurs crans — P4.4 (2026-09-27)
+
+- Après un closeout de cascade, l'homme laissé libre est suivi (`openMan` :
+  homme, défenseur qui court le reprendre, cran). Si le ballon lui arrive
+  avant que ce coureur ne soit là (> 60 px, positions réelles de l'étape
+  précédente), le défenseur le plus proche, nettement plus proche que le
+  coureur, sort à son tour et le coureur prend son homme. Jusqu'à 3 crans.
+- On ne lâche pas la raquette : un défenseur dont l'homme est à ≤ 190 px du
+  panier n'est jamais candidat.
+- PNR central (O1 dérive à gauche) : passe à O4 → D2 sort, D5 court vers
+  O2 ; O4 renvoie à O2 → D1 sort, D5 prend O1.
+- Tests : 32 unitaires rotation (6 nouveaux) + variante 2 crans dans le
+  garde-fou de lecture.
+- Suite 2 758 / 2 758 (inclut aussi le commit 3-2 poste haut / aile).
+
 ### Zone 3-2 — poste haut et aile / renversement (2026-09-27)
 
 - **Poste haut** : on « pince ». Le bas dont le bloc est libre monte au

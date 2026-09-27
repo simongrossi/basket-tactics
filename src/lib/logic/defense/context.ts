@@ -44,6 +44,7 @@ import {
 } from '../players';
 import {
   computeDefenseTargets,
+  effectiveDefensePositions,
   extractDefenderPositions,
   getDefenseHoop,
   getMatchupsAt,
@@ -54,7 +55,9 @@ import {
   carryRotationSwaps,
   applyRotationSwap,
   decideCascadeSwap,
+  decideNextCascade,
   decideRotationSwap,
+  openManStillRunning,
   type RotationSwap,
   type RotationMemoryOutput,
 } from './rotationMemory';
@@ -296,7 +299,7 @@ export function buildDefenseFrameContext(
   // P4.4 — Fin d'un tag : le tagueur garde-t-il le roller ? Décidé après la
   // lecture de l'écran courant (un écran qui continue sur le même roller
   // relance le tag normalement) et après les switchs de l'étape.
-  if (rotationMode && (prevResult?.pnrTag || prevResult?.xOut)) {
+  if (rotationMode && (prevResult?.pnrTag || prevResult?.xOut || prevResult?.openMan)) {
     const busy = new Set<DefenderId>();
     if (screen) {
       busy.add(screen.carrierDef);
@@ -306,6 +309,8 @@ export function buildDefenseFrameContext(
       busy.add(scrammedSwitch.from);
       busy.add(scrammedSwitch.to);
     }
+    // Pris par un écran / switch de l'étape (hors échanges de rotation).
+    const actionBusy = new Set(busy);
     const markBusy = (s: RotationSwap) => {
       busy.add(s.a);
       busy.add(s.b);
@@ -335,11 +340,12 @@ export function buildDefenseFrameContext(
       cascadeBusy.delete(swap.a);
       cascadeBusy.delete(swap.b);
     }
+    const prevBallCarrier = activeBallCarrier(state.steps[stepIdx - 1], state.playerCount);
     const cascade = decideCascadeSwap(rotationMode, prevResult.xOut, matchups, {
       stepIdx,
       off,
       ballCarrier,
-      prevBallCarrier: activeBallCarrier(state.steps[stepIdx - 1], state.playerCount),
+      prevBallCarrier,
       prevPositions: prevDefenderPositions,
       busyDefenders: cascadeBusy,
     });
@@ -348,6 +354,34 @@ export function buildDefenseFrameContext(
       rotationOut.swaps.push(cascade);
       rotationEvents[cascade.a] = 'closeout';
       rotationEvents[cascade.b] = 'rotate';
+      // L'homme du X-out est libre : son nouveau défenseur court le reprendre.
+      rotationOut.openMan = { man: cascade.bTakes, runner: cascade.b, level: 1 };
+    } else if (prevResult.openMan) {
+      // Cascade à plusieurs crans : le ballon repart vers l'homme laissé
+      // libre par le closeout précédent avant que le coureur n'arrive. Le
+      // retard du coureur se lit sur les positions RÉELLES de l'étape
+      // précédente (contrainte de vitesse), pas sur les cibles idéales où il
+      // est déjà arrivé. `effectiveDefensePositions(N-1)` ne dépend que des
+      // étapes ≤ N-1 : pas de cycle.
+      const reached = extractDefenderPositions(effectiveDefensePositions(state, stepIdx - 1));
+      const next = decideNextCascade(rotationMode, prevResult.openMan, matchups, {
+        stepIdx,
+        off,
+        hoop,
+        ballCarrier,
+        prevBallCarrier,
+        prevPositions: reached,
+        busyDefenders: actionBusy,
+      });
+      if (next) {
+        applyRotationSwap(matchups, next.swap);
+        rotationOut.swaps.push(next.swap);
+        rotationEvents[next.swap.a] = 'closeout';
+        rotationEvents[next.swap.b] = 'rotate';
+        rotationOut.openMan = next.open;
+      } else if (openManStillRunning(prevResult.openMan, matchups, off, reached)) {
+        rotationOut.openMan = prevResult.openMan;
+      }
     }
   }
 

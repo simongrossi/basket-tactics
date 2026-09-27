@@ -38,6 +38,8 @@ import type {
 import { distance } from '../geometry';
 import {
   ROTATION_CALM_BALL_DIST_PX,
+  ROTATION_CASCADE_MAX_LEVELS,
+  ROTATION_RUNNER_ARRIVED_PX,
   ROTATION_ROLL_ZONE_PX,
   ROTATION_SCRAMBLE_DIST_PX,
   ROTATION_STAY_MARGIN_PX,
@@ -80,11 +82,21 @@ export interface RotationSwap {
   since: number;
 }
 
+/** Homme laissé libre par le dernier closeout d'une cascade, et défenseur
+ *  qui court le reprendre. */
+export interface OpenManRecord {
+  man: AttackerId;
+  runner: DefenderId;
+  /** Cran de la cascade (1 = après le closeout du X-out). */
+  level: number;
+}
+
 /** Sortie de la mémoire pour une étape, lue par l'étape suivante. */
 export interface RotationMemoryOutput {
   swaps: RotationSwap[];
   pnrTag?: PnrTagRecord;
   xOut?: XOutRecord;
+  openMan?: OpenManRecord;
 }
 
 /** Échange « rotate-and-stay » : le tagueur prend le roller, le défenseur du
@@ -283,4 +295,73 @@ export function decideCascadeSwap(
   if (!orphanPos || !xOutPos || !guardPos) return null;
   if (distance(xOutPos, orphanPos) + ROTATION_STAY_MARGIN_PX >= distance(guardPos, orphanPos)) return null;
   return { a: xOutDef, aTakes: orphan, b: guard, bTakes: xOutMan, kind: 'cascade', since: params.stepIdx };
+}
+
+/**
+ * Cascade à plusieurs crans : le ballon arrive (à cette étape) sur l'homme
+ * laissé libre par le closeout précédent, alors que le défenseur qui court le
+ * reprendre n'y est pas encore. Le défenseur le plus proche de cet homme, s'il
+ * est nettement plus proche que le « coureur », fait le closeout ; le coureur
+ * prend son homme à la place. Jamais un défenseur dont l'homme est près du
+ * cercle (on ne lâche pas la raquette). Limité à ROTATION_CASCADE_MAX_LEVELS.
+ */
+export function decideNextCascade(
+  mode: RotationMemoryMode,
+  prevOpen: OpenManRecord | undefined,
+  matchups: Matchups,
+  params: {
+    stepIdx: number;
+    off: AttackerPositions;
+    hoop: Point;
+    ballCarrier: AttackerId;
+    prevBallCarrier: AttackerId | undefined;
+    prevPositions: DefenderPositions;
+    busyDefenders: ReadonlySet<DefenderId>;
+  }
+): { swap: RotationSwap; open: OpenManRecord } | null {
+  if (mode === 'recover' || !prevOpen) return null;
+  if (prevOpen.level >= ROTATION_CASCADE_MAX_LEVELS) return null;
+  const { man, runner } = prevOpen;
+  if (params.ballCarrier !== man || params.prevBallCarrier === man) return null;
+  if (matchups[runner] !== man) return null;
+  const manPos = params.off[man];
+  const runnerPos = params.prevPositions[runner];
+  if (!manPos || !runnerPos) return null;
+  let helper: DefenderId | null = null;
+  let helperDist = Infinity;
+  (Object.keys(matchups) as DefenderId[]).forEach((d) => {
+    if (d === runner || params.busyDefenders.has(d)) return;
+    const hisMan = params.off[matchups[d]];
+    const pos = params.prevPositions[d];
+    if (!hisMan || !pos) return;
+    if (distance(hisMan, params.hoop) <= ROTATION_ROLL_ZONE_PX) return;
+    const dist = distance(pos, manPos);
+    if (dist < helperDist) {
+      helperDist = dist;
+      helper = d;
+    }
+  });
+  if (!helper) return null;
+  const h: DefenderId = helper;
+  if (helperDist + ROTATION_STAY_MARGIN_PX >= distance(runnerPos, manPos)) return null;
+  const left = matchups[h];
+  return {
+    swap: { a: h, aTakes: man, b: runner, bTakes: left, kind: 'cascade', since: params.stepIdx },
+    open: { man: left, runner, level: prevOpen.level + 1 },
+  };
+}
+
+/** Le coureur est-il encore en route vers l'homme libre ? (sinon la
+ *  rotation est finie et la cascade s'arrête). */
+export function openManStillRunning(
+  open: OpenManRecord,
+  matchups: Matchups,
+  off: AttackerPositions,
+  prevPositions: DefenderPositions
+): boolean {
+  if (matchups[open.runner] !== open.man) return false;
+  const manPos = off[open.man];
+  const runnerPos = prevPositions[open.runner];
+  if (!manPos || !runnerPos) return false;
+  return distance(runnerPos, manPos) > ROTATION_RUNNER_ARRIVED_PX;
 }

@@ -396,9 +396,11 @@ Badges coach : GARDE ROLL, AIDE L'AIDEUR, CLOSEOUT, ROTATION, ↩ FIN ROTATION,
   matchups persistés (`getMatchupsAt`) : un nouvel écran posé sur un
   défenseur échangé est lu avec l'ancien duel pendant l'animation (même
   limite que les switchs locaux C.5 / scram déjà existants).
-- La cascade ne se déclenche que sur la passe qui suit immédiatement le
-  X-out (mémoire d'une étape) et s'arrête à un cran : pas de troisième
-  rotation si le ballon repart ensuite vers l'homme du X-out.
+- Cascade à plusieurs crans (2026-09-27) : l'homme laissé libre par chaque
+  closeout est suivi tant que son coureur n'est pas arrivé (positions réelles
+  de l'étape précédente) ; une passe vers lui déclenche le closeout du plus
+  proche (hors défenseurs de joueurs près du cercle), jusqu'à 3 crans.
+  Le 1er cran reste limité à la passe qui suit immédiatement le X-out.
 
 ---
 

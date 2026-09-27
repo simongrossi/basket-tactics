@@ -10,7 +10,9 @@ import type { AppState, AttackerPositions, Matchups, RotationMemoryMode, Step } 
 import {
   carryRotationSwaps,
   decideCascadeSwap,
+  decideNextCascade,
   decideRotationSwap,
+  openManStillRunning,
   isCalmForScramble,
   shouldTaggerStay,
   tagRotationSwap,
@@ -195,6 +197,74 @@ describe('P4.4 rotation en cascade — passe sur l’homme laissé libre', () =>
     expect(res.positions.D2.matchedTo).toBe('O2');
     expect(res.positions.D4.matchedTo).toBe('O4');
     expect(res.rotationSwaps).toBeUndefined();
+  });
+});
+
+/** Cascade à deux crans : pendant le roll O1 dérive à gauche ; passe à O4
+ *  (1er closeout, D5 court vers O2), puis O4 renvoie à O2 (2e closeout). */
+function twoLevelCascade(mode?: RotationMemoryMode): AppState {
+  const state = passToOpenMan(mode);
+  const roll = state.steps[3].off;
+  state.steps[3] = { ...state.steps[3], off: { ...roll, O1: { x: 220, y: 390 } } };
+  const off = state.steps[3].off;
+  state.steps.push({ off, ballCarrier: 'O2', annotations: [] });
+  state.steps.push({ off, ballCarrier: 'O1', annotations: [] });
+  return { ...state, realismProfile: 'realistic' };
+}
+
+describe('P4.4 cascade à plusieurs crans', () => {
+  it('1er cran : l’homme du X-out est signalé libre, son nouveau défenseur court', () => {
+    const res = computeDefenseTargets(twoLevelCascade('auto'), 3);
+    expect(res.openMan).toEqual({ man: 'O2', runner: 'D5', level: 1 });
+  });
+
+  it('2e cran : passe à l’homme libre avant l’arrivée du coureur → le plus proche sort', () => {
+    const res = computeDefenseTargets(twoLevelCascade('auto'), 4);
+    expect(res.positions.D1.matchedTo).toBe('O2');
+    expect(res.positions.D1.rotation).toBe('closeout');
+    expect(res.positions.D5.matchedTo).toBe('O1');
+    expect(res.positions.D5.rotation).toBe('rotate');
+    expect(res.openMan).toEqual({ man: 'O1', runner: 'D5', level: 2 });
+    expect(new Set(Object.values(res.positions).map((p) => p.matchedTo)).size).toBe(5);
+  });
+
+  it('on ne lâche pas la raquette : pas de cran si seuls des défenseurs de joueurs au cercle sont plus proches', () => {
+    // Sans la dérive d'O1, seuls D2 (O4 à 151 px du panier) et D4 (roller)
+    // sont plus proches d'O2 que D5.
+    const state = { ...passToOpenMan('auto'), realismProfile: 'realistic' as const };
+    const off = state.steps[3].off;
+    state.steps.push({ off, ballCarrier: 'O2', annotations: [] });
+    const res = computeDefenseTargets(state, 4);
+    expect(res.positions.D5.matchedTo).toBe('O2');
+    expect(res.positions.D2.matchedTo).toBe('O4');
+    // Le coureur est toujours en route : la cascade reste ouverte.
+    expect(res.openMan).toEqual({ man: 'O2', runner: 'D5', level: 1 });
+  });
+
+  it('recover : aucune cascade', () => {
+    const res = computeDefenseTargets(twoLevelCascade('recover'), 4);
+    expect(res.positions.D1.matchedTo).toBe('O1');
+    expect(res.openMan).toBeUndefined();
+  });
+
+  it('nombre de crans borné', () => {
+    const next = decideNextCascade('auto', { man: 'O2', runner: 'D5', level: 3 }, { D5: 'O2', D1: 'O1' } as Matchups, {
+      stepIdx: 5,
+      off: { O1: { x: 200, y: 380 }, O2: { x: 130, y: 320 } } as AttackerPositions,
+      hoop: getDefenseHoop(makeInitialState()),
+      ballCarrier: 'O2',
+      prevBallCarrier: 'O4',
+      prevPositions: { D5: { x: 400, y: 200 }, D1: { x: 150, y: 330 } } as never,
+      busyDefenders: new Set(),
+    });
+    expect(next).toBeNull();
+  });
+
+  it('coureur arrivé : la cascade se referme', () => {
+    const open = { man: 'O2', runner: 'D5', level: 1 } as const;
+    const off = { O2: { x: 130, y: 320 } } as AttackerPositions;
+    expect(openManStillRunning(open, { D5: 'O2' } as Matchups, off, { D5: { x: 150, y: 300 } } as never)).toBe(false);
+    expect(openManStillRunning(open, { D5: 'O2' } as Matchups, off, { D5: { x: 330, y: 250 } } as never)).toBe(true);
   });
 });
 

@@ -271,7 +271,12 @@ describe('P4.4 mémoire de rotation — séparation et continuité en lecture', 
       const pnrCentral = templates.find(t => t.id === 'pnr-central')!;
       const cascade = { ...pnrCentral, id: 'pnr-central-cascade', steps: structuredClone(pnrCentral.steps) };
       cascade.steps[3] = { ...cascade.steps[3], ballCarrier: 'O4', annotations: [] };
-      for (const template of [...templates, cascade]) {
+      // Cascade à deux crans : O1 dérive à gauche, puis O4 renvoie à O2.
+      const cascade2 = { ...pnrCentral, id: 'pnr-central-cascade-2', steps: structuredClone(pnrCentral.steps) };
+      const off2 = { ...cascade2.steps[3].off, O1: { x: 220, y: 390 } };
+      cascade2.steps[3] = { ...cascade2.steps[3], off: off2, ballCarrier: 'O4', annotations: [] };
+      cascade2.steps.push({ off: off2, ballCarrier: 'O2', annotations: [] });
+      for (const template of [...templates, cascade, cascade2]) {
         const steps = structuredClone(template.steps);
         // Étape de retour au calme : le porteur ressort, les duels échangés
         // se rendent leurs hommes pendant la lecture.

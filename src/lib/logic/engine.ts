@@ -15,7 +15,7 @@ import {
   getActiveDefenderIds,
 } from './players';
 import type { DefenderTarget } from './defense/types';
-import type { PnrTagRecord, RotationSwap, XOutRecord } from './defense/rotationMemory';
+import type { OpenManRecord, PnrTagRecord, RotationSwap, XOutRecord } from './defense/rotationMemory';
 import { buildDefenseFrameContext } from './defense/context';
 import { applyBaseTargetsLayer } from './defense/baseTargets';
 import { applyDriveContainmentLayer } from './defense/driveContainmentLayer';
@@ -84,6 +84,8 @@ export interface DefenseTargetsResult {
   pnrTag?: PnrTagRecord;
   /** P4.4 — X-out PnR observé à cette étape (rotation en cascade). */
   xOut?: XOutRecord;
+  /** P4.4 — Homme laissé libre par la cascade en cours (cran suivant). */
+  openMan?: OpenManRecord;
 }
 
 /**
@@ -191,6 +193,7 @@ export function computeDefenseTargets(
     rotationSwaps: ctx.rotationOut.swaps.length ? ctx.rotationOut.swaps : undefined,
     pnrTag: ctx.rotationOut.pnrTag,
     xOut: ctx.rotationOut.xOut,
+    openMan: ctx.rotationOut.openMan,
   };
 }
 

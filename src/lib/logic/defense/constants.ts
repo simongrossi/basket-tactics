@@ -137,3 +137,8 @@ export const ZONE32_GAP_DEPTH_PX = 215;
 /** Aile : bas côté faible au milieu de la raquette. */
 export const ZONE32_WEAK_LOW_LATERAL_PX = 20;
 export const ZONE32_WEAK_LOW_DEPTH_PX = 70;
+/** Cascade : nombre max de crans (closeouts successifs) d'une même rotation. */
+export const ROTATION_CASCADE_MAX_LEVELS = 3;
+/** Cascade : le défenseur qui « tourne » est arrivé sur l'homme laissé libre
+ *  à moins de 60 px — la rotation est terminée, plus de cran suivant. */
+export const ROTATION_RUNNER_ARRIVED_PX = 60;
