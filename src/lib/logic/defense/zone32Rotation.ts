@@ -67,6 +67,40 @@ function nearestAttacker(off: AttackerPositions, p: Point, taken: Set<AttackerId
   return best;
 }
 
+/**
+ * Outils de placement partagés par les règles de zone : `at(lateral, depth)`
+ * donne un point relatif au panier (profondeur vers la mi-terrain) ; `place`
+ * pose un défenseur et le rattache à l'attaquant voisin (pickup) ou au
+ * porteur. Chaque attaquant n'est rattaché qu'une fois ; sans voisin, le
+ * défenseur est une aide pure (rattaché au porteur, sans le marquer).
+ */
+export function createZonePlacer(params: {
+  positions: Record<DefenderId, DefenderTarget>;
+  off: AttackerPositions;
+  ballCarrier: AttackerId;
+  hoop: Point;
+}): {
+  at: (lateral: number, depth: number) => Point;
+  place: (dId: DefenderId, p: Point, pickup: boolean) => void;
+} {
+  const { positions, off, ballCarrier, hoop } = params;
+  const up = Math.sign(MIDLINE_Y - hoop.y) || 1;
+  const taken = new Set<AttackerId>([ballCarrier]);
+  return {
+    at: (lateral, depth) => ({ x: hoop.x + lateral, y: hoop.y + up * depth }),
+    place: (dId, p, pickup) => {
+      const t = positions[dId];
+      if (!t) return;
+      t.x = p.x;
+      t.y = p.y;
+      const matched = pickup ? nearestAttacker(off, p, taken) : ballCarrier;
+      if (matched) taken.add(matched);
+      t.matchedTo = matched ?? ballCarrier;
+      t.isCarrierDefender = !pickup;
+    },
+  };
+}
+
 /** Situation de la 3-2 reconnue d'après la position du porteur. */
 export type Zone32Situation = 'corner' | 'high-post' | 'wing';
 
@@ -129,7 +163,6 @@ export function applyZone32Rotation(params: {
 
   // Poste haut dans l'axe : le « côté ballon » est celui où penche le porteur.
   const side = Math.sign(ballPos.x - hoop.x) || 1;
-  const up = Math.sign(MIDLINE_Y - hoop.y) || 1;
   const region = (id: string) => layout.find((z) => z.id === id);
   const onBallSide = (id: string) => Math.sign((region(id)?.homePos.x ?? hoop.x) - hoop.x) === side;
   const ballLow = onBallSide('low-left') ? region('low-left') : region('low-right');
@@ -140,20 +173,7 @@ export function applyZone32Rotation(params: {
   if (!ballLow || !weakLow || !ballWing || !weakWing || !top) return none;
   if (ballLow === weakLow || ballWing === weakWing) return none;
 
-  const at = (lateral: number, depth: number): Point => ({ x: hoop.x + lateral, y: hoop.y + up * depth });
-  // Chaque attaquant n'est rattaché qu'une fois ; sans voisin, le défenseur
-  // est une aide pure (rattaché au porteur, qu'il regarde, sans le marquer).
-  const taken = new Set<AttackerId>([ballCarrier]);
-  const place = (dId: DefenderId, p: Point, pickup: boolean) => {
-    const t = positions[dId];
-    if (!t) return;
-    t.x = p.x;
-    t.y = p.y;
-    const matched = pickup ? nearestAttacker(off, p, taken) : ballCarrier;
-    if (matched) taken.add(matched);
-    t.matchedTo = matched ?? ballCarrier;
-    t.isCarrierDefender = !pickup;
-  };
+  const { at, place } = createZonePlacer({ positions, off, ballCarrier, hoop });
   const closeout = carrierDefenderTarget('contester', ballPos, defenseDistance, hoop) ?? ballPos;
 
   if (situation === 'corner') {

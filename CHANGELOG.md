@@ -6,6 +6,31 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Zones 2-3 et 1-3-1 — règles par situation (2026-09-27)
+
+- `defense/zoneSituationRules.ts`, appliqué après le moteur de zone générique
+  (même principe que la 3-2 ; outils de placement partagés
+  `createZonePlacer`). Ballon au sommet : moteur générique inchangé.
+- **2-3** :
+  - coin : l'aile basse côté ballon sort, le pivot glisse au bloc côté ballon,
+    l'aile basse opposée descend devant le cercle, le garde côté ballon
+    descend au coude, le garde opposé s'enfonce au milieu ;
+  - poste haut : le pivot monte au contact, les ailes basses ferment les
+    blocs, les gardes mettent la pression dans le dos ;
+  - aile : le garde côté ballon sort, l'aile basse couvre le coin, le pivot au
+    bloc côté ballon, l'aile basse opposée au milieu, le garde opposé vers les
+    lancers.
+- **1-3-1** :
+  - coin : le défenseur de la ligne de fond sort, l'aile côté ballon ferme la
+    passe au poste bas, le milieu devant le cercle, l'aile opposée au bloc
+    faible, la pointe au coude ;
+  - aile : piège léger — l'aile sort, la pointe ferme côté milieu ; le milieu
+    ferme le poste haut, le défenseur de la ligne de fond couvre bloc et coin.
+- Changement de comportement par défaut de la 2-3 et de la 1-3-1 dans ces
+  situations (c'est l'objet du chantier).
+- Tests : 8 unitaires + garde-fou de lecture étendu aux deux zones (34 px,
+  sauts ≤ 18 px). Suite 2 790 / 2 790.
+
 ### Repli en transition — infériorité numérique (2026-09-27)
 
 - **Infériorité numérique** : moins de défenseurs revenus devant le ballon

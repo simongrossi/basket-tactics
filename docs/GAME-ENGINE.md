@@ -188,6 +188,14 @@ Appliquées après `computeZoneTargets` (`applyZone32Rotation`) :
 - **Aile** (≥ 120 px de l'axe, ≤ 330 px, hors coin) : l'aile sort, la pointe à l'intervalle côté ballon, le bas côté ballon au bloc, le bas faible au milieu, l'aile faible vers les lancers. Renversement = miroir.
 - Sommet : moteur générique.
 
+#### Zones 2-3 et 1-3-1 — règles par situation (`defense/zoneSituationRules.ts`, 2026-09-27)
+`applyZoneSituationRules` (appelé par `zoneTargets.ts` pour toutes les zones ; délègue la 3-2 à `zone32Rotation.ts`). Situations détectées par `zone32Situation` (coin / poste haut / aile).
+- 2-3 coin : aile basse ballon sort ; pivot bloc ballon (55, 60) ; aile basse faible devant le cercle ; garde ballon au coude (95, 190) ; garde faible (−35, 190).
+- 2-3 poste haut : pivot au contact ; ailes basses aux blocs (±55, 60) ; gardes dans le dos (±50 latéral, +30).
+- 2-3 aile : garde ballon sort ; aile basse ballon couvre le coin (165, 80) ; pivot bloc ballon ; aile basse faible au milieu ; garde faible vers les lancers.
+- 1-3-1 coin : ligne de fond sort ; aile ballon ferme le poste bas (80, 70) ; milieu devant le cercle ; aile faible bloc faible (−50, 90) ; pointe au coude.
+- 1-3-1 aile : aile ballon sort + pointe côté milieu (piège léger, 45 px vers l'axe, 25 px vers la mi-terrain) ; milieu au poste haut (30, 175) ; ligne de fond bloc / coin (120, 55) ; aile faible (−40, 110).
+
 #### Situations zone (`zoneSituations.ts`)
 - `detectOverload` — 3+ attaquants côté ballon → boost `effectiveBallSideHelp = ballSideHelp × (1 + intensity × 0.6)`. Intensité 0.6 (3 joueurs) ou 1.0 (4+).
 - `isShortCorner` — bande baseline (`lateral > 130 ET vert. < 100 ET dHoop < 250`) → `criticalMult = 1.4`.
