@@ -69,12 +69,12 @@ describe('buildFastBreakSteps', () => {
     expect(Math.max(...xs)).toBeGreaterThanOrEqual(490); // une aile droite
   });
 
-  it('repli défensif : tous les défenseurs reculent vers le panier opposé', () => {
+  it('repli défensif : calculé par le moteur (pas de ligne figée)', () => {
     const r = buildFastBreakSteps(reboundState(), 0)!;
-    const def = r.sprintStep.defenseOverrides!;
-    (['D1', 'D2', 'D3', 'D4', 'D5'] as const).forEach((d) => {
-      expect(def[d]!.y).toBeGreaterThanOrEqual(880);
-    });
+    expect(r.sprintStep.transitionDefense).toBe(true);
+    expect(r.sprintStep.defenseOverrides).toBeUndefined();
+    // L'outlet garde le point de départ (les tireurs où ils étaient).
+    expect(r.outletStep.defenseOverrides).toBeDefined();
   });
 
   it('clearance respectée entre attaquants du sprint', () => {

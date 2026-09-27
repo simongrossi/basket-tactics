@@ -6,6 +6,41 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Repli défensif en transition — phase 2 : retour aux bons duels (2026-09-27)
+
+- Les duels du repli (cross-matching) sont conservés sur les étapes qui
+  suivent le break, sans réglage : exprimés en échanges par rapport aux
+  duels d'origine (`swapsFromMatchups`, type `transition`) et reportés d'étape
+  en étape comme ceux de la mémoire de rotation.
+- **Retour par paires** (`carryTransitionSwaps`) : ballon ressorti (≥ 230 px
+  du panier) et pas de drive / post / pénétration → deux défenseurs se rendent
+  leurs hommes dès que chacun est à ≤ 150 px de l'homme qu'il reprend. La
+  défense retrouve ses duels progressivement (une permutation à 5 ne se défait
+  pas d'un bloc). Badge ⇄ RETOUR.
+- Les rotations PnR gardent leur retour « chaîne entière ».
+- Tests : 4 unitaires + garde-fou de lecture étendu au demi-terrain après le
+  break.
+- Suite 2 772 / 2 772.
+
+### Repli défensif en transition — phase 1 (2026-09-27)
+
+- L'étape de sprint du fast-break n'impose plus une ligne de repli figée
+  (y=900, chacun garde son x) : la défense est calculée par le moteur
+  (`defense/transitionDefense.ts`, `step.transitionDefense`) selon les
+  priorités enseignées :
+  1. **arrêter le ballon** — le défenseur qui peut se placer le plus vite
+     devant le porteur (priorité à ceux déjà revenus devant le ballon) ;
+  2. **protéger le panier** — le suivant file sous le cercle ;
+  3. **premier attaquant disponible** (cross-matching) — les autres prennent
+     les attaquants les plus dangereux ; le trailer le plus loin est confié
+     au défenseur du cercle.
+- Actif quel que soit le système défensif. Point de départ : positions
+  réelles de l'étape précédente. Badges STOP BALLE et PANIER.
+- Fast-breaks déjà enregistrés : inchangés (ils gardent leur ligne figée).
+- Tests : 11 unitaires (plan + fast-break) + garde-fou de lecture (34 px,
+  sauts ≤ 18 px, legacy / réaliste).
+- Suite 2 768 / 2 768.
+
 ### Cascade à plusieurs crans — P4.4 (2026-09-27)
 
 - Après un closeout de cascade, l'homme laissé libre est suivi (`openMan` :

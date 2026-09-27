@@ -165,6 +165,14 @@ Tactiques par type de zone (`TACTICS`) :
 | 2-1-2 | 1.2 | 1.5 | 0.5 | 1.0 |
 | match-up | — (moteur dédié, cf. ci-dessous) | | | |
 
+#### Repli en transition (`defense/transitionDefense.ts`, 2026-09-27)
+Court-circuit de `computeDefenseTargets` sur `step.transitionDefense` (posé par le fast-break sur l'étape de sprint), quel que soit le système :
+1. Stop ballon : coût = distance au point d'arrêt (70 px devant le porteur, côté panier) + 150 px si le défenseur est derrière le ballon.
+2. Panier : le plus proche du cercle parmi les restants (55 px devant le panier).
+3. Premier attaquant disponible : affectation optimale sur les attaquants les plus proches du panier ; cible = `manTarget` affaissé de 25 % vers le cercle. Le trailer restant est confié nominalement au défenseur du cercle.
+Départ : `effectiveDefensePositions(N-1)`.
+Phase 2 : les duels du repli sont retournés en échanges `transition` (`swapsFromMatchups`) et reportés par le contexte sans réglage ; au calme (ballon ≥ 230 px, pas de trigger), `carryTransitionSwaps` rend les hommes par paires (chacun à ≤ 150 px de l'homme qu'il reprend).
+
 #### Zone matchup (`defense/matchupZone.ts`, 2026-09-26)
 Pas d'ownership continu : **appariement un pour un** (affectation optimale sur 5×5, 120 permutations).
 - Coût = distance place de zone → attaquant, + 40 px s'il est hors de la zone, − 60 px pour garder son homme tant qu'il reste dans la zone, − 250 px pour ne pas lâcher le porteur.

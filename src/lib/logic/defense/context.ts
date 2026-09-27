@@ -53,6 +53,7 @@ import type { DefenderId, DefenderRotationState } from '../../types';
 import type { DefenderTarget } from './types';
 import {
   carryRotationSwaps,
+  carryTransitionSwaps,
   applyRotationSwap,
   decideCascadeSwap,
   decideNextCascade,
@@ -167,8 +168,26 @@ export function buildDefenseFrameContext(
   const rotationMode = state.rotationMemory;
   const rotationEvents: Partial<Record<DefenderId, DefenderRotationState>> = {};
   const rotationOut: RotationMemoryOutput = { swaps: [] };
-  if (rotationMode && prevResult?.rotationSwaps?.length) {
-    const { kept, scrambled } = carryRotationSwaps(prevResult.rotationSwaps, matchups, {
+  // Les duels du repli en transition sont reportés sans réglage, et se
+  // rendent PAR PAIRES au retour au calme (cf. carryTransitionSwaps).
+  const transitionSwaps = (prevResult?.rotationSwaps ?? []).filter((s) => s.kind === 'transition');
+  if (transitionSwaps.length) {
+    const { kept, scrambled } = carryTransitionSwaps(transitionSwaps, matchups, {
+      off,
+      carrierPos: off[ballCarrier],
+      hoop,
+      triggerActive: triggers.any,
+      prevPositions: prevDefenderPositions,
+      stepIdx,
+    });
+    rotationOut.swaps.push(...kept);
+    scrambled.forEach((d) => { rotationEvents[d] = 'scramble-back'; });
+  }
+  const carried = rotationMode
+    ? (prevResult?.rotationSwaps ?? []).filter((s) => s.kind !== 'transition')
+    : [];
+  if (carried.length) {
+    const { kept, scrambled } = carryRotationSwaps(carried, matchups, {
       off,
       carrierPos: off[ballCarrier],
       hoop,

@@ -76,8 +76,9 @@ export interface RotationSwap {
   b: DefenderId;
   bTakes: AttackerId;
   /** `tag` : tagueur ↔ défenseur du poseur. `cascade` : X-out ↔ défenseur
-   *  qui devait prendre l'homme libre. */
-  kind: 'tag' | 'cascade';
+   *  qui devait prendre l'homme libre. `transition` : duels du repli
+   *  (cross-matching), reportés sans réglage jusqu'au retour au calme. */
+  kind: 'tag' | 'cascade' | 'transition';
   /** Étape où l'échange a été décidé. */
   since: number;
 }
@@ -364,4 +365,88 @@ export function openManStillRunning(
   const runnerPos = prevPositions[open.runner];
   if (!manPos || !runnerPos) return false;
   return distance(runnerPos, manPos) > ROTATION_RUNNER_ARRIVED_PX;
+}
+
+/**
+ * Décompose des duels cibles en échanges successifs à partir des duels
+ * d'origine (transpositions). Rejoués dans l'ordre par `carryRotationSwaps`,
+ * ils redonnent exactement `target` ; au retour au calme, la chaîne entière se
+ * défait et chacun retrouve son homme d'origine.
+ */
+export function swapsFromMatchups(
+  base: Matchups,
+  target: Matchups,
+  since: number
+): RotationSwap[] {
+  const current: Matchups = { ...base };
+  const swaps: RotationSwap[] = [];
+  const defenders = (Object.keys(target) as DefenderId[]).sort();
+  for (const d of defenders) {
+    const want = target[d];
+    if (!want || current[d] === want) continue;
+    const e = (Object.keys(current) as DefenderId[]).find((x) => x !== d && current[x] === want);
+    if (!e) continue;
+    const swap: RotationSwap = { a: d, aTakes: want, b: e, bTakes: current[d], kind: 'transition', since };
+    applyRotationSwap(current, swap);
+    swaps.push(swap);
+  }
+  return swaps;
+}
+
+/**
+ * Report des duels du repli en transition, avec retour aux duels d'origine
+ * PAR PAIRES : une permutation à 5 ne se défait pas d'un bloc sur le
+ * terrain. Au retour au calme (ballon ressorti, pas de trigger), deux
+ * défenseurs se rendent leurs hommes dès que chacun est à ≤ 150 px de l'homme
+ * qu'il reprend ; la défense retrouve ses duels en quelques étapes.
+ * `matchups` entre avec les duels d'origine et ressort avec les duels de
+ * l'étape ; retourne les échanges restants (à reporter) et les défenseurs
+ * revenus sur leur homme.
+ */
+export function carryTransitionSwaps(
+  prevSwaps: readonly RotationSwap[],
+  matchups: Matchups,
+  params: {
+    off: AttackerPositions;
+    carrierPos: Point | undefined;
+    hoop: Point;
+    triggerActive: boolean;
+    prevPositions: DefenderPositions;
+    stepIdx: number;
+  }
+): { kept: RotationSwap[]; scrambled: DefenderId[] } {
+  const base: Matchups = { ...matchups };
+  const current: Matchups = { ...matchups };
+  const applicable = prevSwaps.every((swap) => {
+    if (!swapStillApplicable(current, swap)) return false;
+    applyRotationSwap(current, swap);
+    return true;
+  });
+  if (!applicable || !prevSwaps.length) return { kept: [], scrambled: [] };
+
+  const scrambled: DefenderId[] = [];
+  const calmBall = !params.triggerActive && !!params.carrierPos &&
+    distance(params.carrierPos, params.hoop) >= ROTATION_CALM_BALL_DIST_PX;
+  if (calmBall) {
+    const near = (d: DefenderId, o: AttackerId) => {
+      const p = params.prevPositions[d];
+      const a = params.off[o];
+      return !!p && !!a && distance(p, a) <= ROTATION_SCRAMBLE_DIST_PX;
+    };
+    for (const d of (Object.keys(current) as DefenderId[]).sort()) {
+      const orig = base[d];
+      if (current[d] === orig) continue;
+      const g = (Object.keys(current) as DefenderId[]).find((x) => current[x] === orig);
+      if (!g) continue;
+      if (!near(d, orig) || !near(g, current[d])) continue;
+      const mine = current[d];
+      current[d] = orig;
+      current[g] = mine;
+      scrambled.push(d);
+      if (current[g] === base[g]) scrambled.push(g);
+    }
+  }
+  Object.assign(matchups, current);
+  const since = Math.min(...prevSwaps.map((s) => s.since));
+  return { kept: swapsFromMatchups(base, current, since), scrambled };
 }

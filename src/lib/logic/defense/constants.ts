@@ -142,3 +142,15 @@ export const ROTATION_CASCADE_MAX_LEVELS = 3;
 /** Cascade : le défenseur qui « tourne » est arrivé sur l'homme laissé libre
  *  à moins de 60 px — la rotation est terminée, plus de cran suivant. */
 export const ROTATION_RUNNER_ARRIVED_PX = 60;
+
+// === transitionDefense (repli défensif en transition) ===
+/** Stop ballon : le défenseur se place 70 px devant le porteur, côté panier
+ *  (recul, il ne monte pas au contact en plein sprint). */
+export const TRANSITION_BALL_CUSHION_PX = 70;
+/** Stop ballon : pénalité pour un défenseur derrière le ballon (il doit le
+ *  contourner — un défenseur déjà devant est prioritaire). */
+export const TRANSITION_BEHIND_BALL_PENALTY_PX = 150;
+/** Protection du cercle : profondeur devant le panier. */
+export const TRANSITION_RIM_DEPTH_PX = 55;
+/** Premier attaquant disponible : affaissement vers le cercle. */
+export const TRANSITION_MATCH_SAG = 0.25;

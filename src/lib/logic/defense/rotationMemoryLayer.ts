@@ -26,7 +26,10 @@ export function applyRotationMemoryLayer(
   ctx: DefenseFrameContext
 ): void {
   const { state, defenderIds, rotationEvents, prevTargets } = ctx;
-  if (!state.rotationMemory) return;
+  // Les états (retour au calme d'un repli en transition compris) sont posés
+  // même sans réglage ; le retour progressif des rotations PnR, lui, reste
+  // réservé à la mémoire de rotation.
+  const recoverBlend = !!state.rotationMemory;
 
   defenderIds.forEach((dId) => {
     const target = positions[dId];
@@ -40,6 +43,7 @@ export function applyRotationMemoryLayer(
       if (event === 'stay' || event === 'help-the-helper' || event === 'closeout' || event === 'rotate') return;
     }
 
+    if (!recoverBlend) return;
     const prev = prevTargets?.[dId];
     if (!prev?.pnrRole) return;
     // Rotation encore active à cette étape (écran qui continue) : la couche
