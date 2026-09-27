@@ -880,7 +880,7 @@ export interface ComputedDefender {
   rotation?: DefenderRotationState;
   /** Repli en transition : rôle du défenseur (arrêter le ballon, protéger le
    *  panier, premier attaquant disponible). */
-  transitionRole?: 'stop-ball' | 'protect-rim' | 'match';
+  transitionRole?: 'stop-ball' | 'protect-rim' | 'match' | 'feint-retreat' | 'tandem-drop';
   /** Angle horaire du CORPS depuis le nord (0–360°). Calculé automatiquement
    *  par `computeDefenderOrientation` à partir de la stance, du ballon, de
    *  la position de l'homme. Override possible via `rule.bodyOrientation`. */

@@ -49,7 +49,7 @@ interface PlayerProps {
   /** P4.4 — état de rotation (mémoire de rotation). */
   rotation?: DefenderRotationState;
   /** Repli en transition : rôle du défenseur. */
-  transitionRole?: 'stop-ball' | 'protect-rim' | 'match';
+  transitionRole?: 'stop-ball' | 'protect-rim' | 'match' | 'feint-retreat' | 'tandem-drop';
   /** Severity du mismatch après switch (B1). Range 0–4. Affiche un badge ⚠
    *  orange (severity 2) ou rouge (severity ≥3) à côté du défenseur quand
    *  ≥ `mismatchThreshold`. Si scram switch appliqué, badge bleu "SCRAM". */
@@ -785,10 +785,10 @@ export function Player({
           y={pos.y - r + 2}
           fontSize={8}
           fontWeight={700}
-          fill={transitionRole === 'stop-ball' ? '#DC2626' : '#2563EB'}
+          fill={TRANSITION_BADGE[transitionRole].color}
           pointerEvents="none"
         >
-          {transitionRole === 'stop-ball' ? 'STOP BALLE' : 'PANIER'}
+          {TRANSITION_BADGE[transitionRole].label}
         </text>
       )}
       {blitzRecovering && !isAttacker && showStateRings && (
@@ -849,6 +849,14 @@ export function Player({
     </g>
   );
 }
+
+/** Repli en transition — badge du rôle (le premier attaquant disponible n'en a pas). */
+const TRANSITION_BADGE: Record<Exclude<NonNullable<PlayerProps['transitionRole']>, 'match'>, { label: string; color: string }> = {
+  'stop-ball': { label: 'STOP BALLE', color: '#DC2626' },
+  'protect-rim': { label: 'PANIER', color: '#2563EB' },
+  'feint-retreat': { label: 'FEINTE · RECULE', color: '#B45309' },
+  'tandem-drop': { label: 'TOURNE', color: '#7C3AED' },
+};
 
 /** P4.4 — badge de l'état de rotation (mémoire de rotation). */
 const ROTATION_BADGE: Record<NonNullable<PlayerProps['rotation']>, { label: string; color: string }> = {

@@ -171,6 +171,8 @@ Court-circuit de `computeDefenseTargets` sur `step.transitionDefense` (posé par
 2. Panier : le plus proche du cercle parmi les restants (55 px devant le panier).
 3. Premier attaquant disponible : affectation optimale sur les attaquants les plus proches du panier ; cible = `manTarget` affaissé de 25 % vers le cercle. Le trailer restant est confié nominalement au défenseur du cercle.
 Départ : `effectiveDefensePositions(N-1)`.
+Infériorité numérique (`planOutnumbered`) : défenseurs revenus (≥ 10 px plus près du panier que le porteur) < attaquants dans le jeu (≤ 60 px derrière le porteur). 1 revenu → `feint-retreat` (45 % du chemin panier → ballon, ≤ 130 px, décalé de 25 % vers les autres attaquants) ; 2 revenus → tandem (axe : haut `stop-ball`, bas `protect-rim` ; aile ≥ 100 px latéral : bas `stop-ball`, haut `tandem-drop`) ; retardataires dans l'ordre d'arrivée sur les attaquants libres les plus dangereux.
+Poursuite (`continuesTransition`) : étape précédente en repli ET défense en infériorité sur `effectiveDefensePositions(N-1)` → l'étape reste en repli, courue en sprint (×1,8 dans `speedConstraint`).
 Phase 2 : les duels du repli sont retournés en échanges `transition` (`swapsFromMatchups`) et reportés par le contexte sans réglage ; au calme (ballon ≥ 230 px, pas de trigger), `carryTransitionSwaps` rend les hommes par paires (chacun à ≤ 150 px de l'homme qu'il reprend).
 
 #### Zone matchup (`defense/matchupZone.ts`, 2026-09-26)

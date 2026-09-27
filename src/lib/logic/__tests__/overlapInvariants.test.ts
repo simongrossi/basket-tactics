@@ -199,10 +199,15 @@ describe('fast-break — invariant clearance', () => {
         O4: { x: 300, y: 710 }, O2: { x: 110, y: 800 }, O5: { x: 490, y: 800 },
         O1: { x: 370, y: 720 }, O3: { x: 370, y: 950 },
       };
+      // Poursuite du repli tant que la défense est en retard (sprint), puis
+      // retour par paires quand O1 rejoint O4.
+      const waiting = Array.from({ length: 6 }, () => ({ off: settled, ballCarrier: 'O4' as const, annotations: [] }));
+      const near: AttackerPositions = { ...settled, O1: { x: 370, y: 720 } };
       const state: AppState = { ...broken, steps: [...broken.steps,
         { off: sprint.off, ballCarrier: sprint.ballCarrier, annotations: [] },
-        { off: settled, ballCarrier: 'O4', annotations: [] },
-        { off: settled, ballCarrier: 'O4', annotations: [] }] };
+        ...waiting,
+        { off: near, ballCarrier: 'O4', annotations: [] },
+        { off: near, ballCarrier: 'O4', annotations: [] }] };
       let previous: ReturnType<typeof resolveTimelineFrame> = null;
       for (let tick = 0; tick <= (state.steps.length - 1) * 60; tick++) {
         const frame = resolveTimelineFrame(state, tick / 60)!;

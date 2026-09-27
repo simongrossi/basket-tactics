@@ -8,7 +8,7 @@ import type {
 import { computeZoneDefenseTargets } from './defense/zoneTargets';
 import { computeJunkDefenseTargets } from './defense/junkLayer';
 import { computePressDefenseTargets } from './defense/pressLayer';
-import { computeTransitionDefenseTargets } from './defense/transitionDefense';
+import { computeTransitionDefenseTargets, continuesTransition } from './defense/transitionDefense';
 import { HOOP, HOOP_OPPOSITE } from '../data/court';
 import type { Point } from '../types';
 import {
@@ -85,6 +85,9 @@ export interface DefenseTargetsResult {
   pnrTag?: PnrTagRecord;
   /** P4.4 — X-out PnR observé à cette étape (rotation en cascade). */
   xOut?: XOutRecord;
+  /** Étape jouée en repli de transition (lue par l'étape suivante pour
+   *  poursuivre la transition tant que la défense est en infériorité). */
+  transitionPhase?: boolean;
   /** P4.4 — Homme laissé libre par la cascade en cours (cran suivant). */
   openMan?: OpenManRecord;
 }
@@ -97,14 +100,46 @@ export interface DefenseTargetsResult {
  * frame et exposé via `detectedSwitch`, mais `state.steps[i].switches` n'est
  * jamais écrit ici. La persistance vit dans `persistDetectedSwitchForStep`.
  */
+// Mémo d'un calcul : le calcul défensif d'une étape relit les étapes
+// précédentes (contexte, aide collante, mémoire de rotation, transition…) ;
+// sans mémo, une même étape serait recalculée plusieurs fois par niveau de
+// récursion. Le mémo ne vit que le temps de l'appel le plus externe : l'état
+// ne peut pas changer pendant un calcul synchrone, donc aucun résultat
+// périmé. Les résultats sont en lecture seule pour tous les appelants.
+let defenseMemoDepth = 0;
+let defenseMemo: Map<AppState, Map<number, DefenseTargetsResult>> | null = null;
+
 export function computeDefenseTargets(
   state: AppState,
   stepIdx: number,
   _legacyMutateStepForSwitch: boolean = false
 ): DefenseTargetsResult {
+  const outermost = defenseMemoDepth === 0;
+  if (outermost) defenseMemo = new Map();
+  defenseMemoDepth++;
+  try {
+    let byStep = defenseMemo!.get(state);
+    if (!byStep) {
+      byStep = new Map();
+      defenseMemo!.set(state, byStep);
+    }
+    const hit = byStep.get(stepIdx);
+    if (hit) return hit;
+    const result = computeDefenseTargetsUncached(state, stepIdx);
+    byStep.set(stepIdx, result);
+    return result;
+  } finally {
+    defenseMemoDepth--;
+    if (outermost) defenseMemo = null;
+  }
+}
+
+function computeDefenseTargetsUncached(state: AppState, stepIdx: number): DefenseTargetsResult {
   // Repli en transition : priorités de repli, quel que soit le système
-  // (zone, press… se mettent en place une fois la défense revenue).
-  if (state.steps[stepIdx]?.transitionDefense) {
+  // (zone, press… se mettent en place une fois la défense revenue). La
+  // transition se poursuit tant que la défense reste en infériorité
+  // numérique devant le ballon.
+  if (state.steps[stepIdx]?.transitionDefense || continuesTransition(state, stepIdx)) {
     return computeTransitionDefenseTargets(state, stepIdx);
   }
   if (state.defenseSystem === 'zone') {

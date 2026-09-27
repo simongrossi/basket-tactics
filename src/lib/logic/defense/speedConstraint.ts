@@ -178,7 +178,7 @@ export function effectiveDefensePositions(state: AppState, stepIdx: number): Com
 
 function computeEffectiveDefensePositions(state: AppState, stepIdx: number): ComputedDefense {
   const realism = resolveRealismFlags(state);
-  const { positions: targets } = computeDefenseTargets(state, stepIdx);
+  const { positions: targets, transitionPhase } = computeDefenseTargets(state, stepIdx);
   const defenderIds = getActiveDefenderIds(state.playerCount);
   const curStep = state.steps[stepIdx];
   // Legacy speed settings are distances per standard (4 s) transition.
@@ -518,7 +518,9 @@ function computeEffectiveDefensePositions(state: AppState, stepIdx: number): Com
     const profileMultiplier =
       speedProfile === 'elite' ? 1.3 :
       speedProfile === 'lent' ? 0.7 : 1.0;
-    const sprintMultiplier = curStep.sprintBoost ? 1.8 : 1.0;
+    // Une étape jouée en repli de transition (poursuite après le sprint du
+    // fast-break) est aussi courue en sprint.
+    const sprintMultiplier = curStep.sprintBoost || transitionPhase ? 1.8 : 1.0;
     const indivMaxSpeed = rawIndivMaxSpeed * profileMultiplier * sprintMultiplier * durationScale;
     const maxSpeed = closingOut ? indivMaxSpeed * closeoutBoost : indivMaxSpeed;
     // Pénalité de contact d'écran : un défenseur qui prend un écran perd du

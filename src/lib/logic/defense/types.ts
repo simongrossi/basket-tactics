@@ -31,7 +31,7 @@ export interface DefenderTarget {
   /** P4.4 — cf. `ComputedDefender.rotation`. */
   rotation?: DefenderRotationState;
   /** Cf. `ComputedDefender.transitionRole`. */
-  transitionRole?: 'stop-ball' | 'protect-rim' | 'match';
+  transitionRole?: 'stop-ball' | 'protect-rim' | 'match' | 'feint-retreat' | 'tandem-drop';
   orientation: number;
   gazeOrientation: number;
   facing: Point;

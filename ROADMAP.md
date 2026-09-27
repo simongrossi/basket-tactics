@@ -291,7 +291,8 @@ gagne la **transition** : rebond → outlet → course.
 calculée par le moteur (arrêter le ballon → protéger le panier → premier
 attaquant disponible, `defense/transitionDefense.ts`) au lieu d'une ligne
 figée ; phase 2 : les duels du repli tiennent puis se rendent par paires au
-retour au calme.
+retour au calme ; infériorité numérique (2c1 feinte-recul, tandem 3c2,
+retardataires) et poursuite du repli tant que la défense est en retard.
 
 **Restant (sous-projets)** :
 - Avantage numérique 2c1/3c2 + conclusion (layup / lecture) — sous-projet 2
