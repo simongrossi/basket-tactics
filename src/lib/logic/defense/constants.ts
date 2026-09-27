@@ -120,3 +120,20 @@ export const ZONE32_WEAK_WING_LATERAL_PX = 60;
 export const ZONE32_WEAK_WING_DEPTH_PX = 175;
 /** Rayon pour rattacher un défenseur repositionné à l'attaquant voisin. */
 export const ZONE32_PICKUP_RADIUS_PX = 90;
+/** Poste haut : porteur à ≤ 70 px de l'axe, entre 120 et 235 px du panier. */
+export const ZONE32_HIGH_POST_LATERAL_PX = 70;
+export const ZONE32_HIGH_POST_MIN_DEPTH_PX = 120;
+export const ZONE32_HIGH_POST_MAX_DEPTH_PX = 235;
+/** Aile : porteur à ≥ 120 px de l'axe et ≤ 330 px de profondeur (hors coin). */
+export const ZONE32_WING_LATERAL_PX = 120;
+export const ZONE32_WING_MAX_DEPTH_PX = 330;
+/** Poste haut : la pointe met la pression 35 px dans le dos du porteur. */
+export const ZONE32_DIG_OFFSET_PX = 35;
+/** Poste haut : coudes vers lesquels les ailes resserrent. */
+export const ZONE32_PINCH_LATERAL_PX = 75;
+/** Aile : intervalle côté ballon fermé par la pointe. */
+export const ZONE32_GAP_LATERAL_PX = 65;
+export const ZONE32_GAP_DEPTH_PX = 215;
+/** Aile : bas côté faible au milieu de la raquette. */
+export const ZONE32_WEAK_LOW_LATERAL_PX = 20;
+export const ZONE32_WEAK_LOW_DEPTH_PX = 70;

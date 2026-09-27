@@ -17,7 +17,8 @@ roller / revient, retour aux duels d'origine au retour au calme), puis la
 rotation en cascade (passe sur l'homme libre → closeout du X-out).
 ✅ Zones matchup et 3-2 réelles (26/09) : matchup = un défenseur par attaquant
 apparié par la zone, passage de relais des coupeurs ; 3-2 = règle de coin (le
-bas sort, l'aile redescend), réglable.
+bas sort, l'aile redescend), réglable ; 27/09 : 3-2 poste haut (on pince) et
+aile / renversement.
 
 Décision du user (22/09) : **finir d'abord le réalisme des déplacements et du
 placement défensifs**, puis l'axe coaching (le quiz est validé comme idée mais

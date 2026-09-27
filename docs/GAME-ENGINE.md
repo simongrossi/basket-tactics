@@ -171,8 +171,12 @@ Pas d'ownership continu : **appariement un pour un** (affectation optimale sur 5
 - Mémoire : appariement de l'étape précédente (récursion à index décroissant). Un coupeur qui quitte la zone de son défenseur est « passé » à la zone d'arrivée (`switchedThisStep`).
 - Placement : porteur en individuelle (`vsCarrier` du défenseur) ; hors ballon, `manTarget` affaissé vers la ligne d'aide (35 % panier → ballon) de 15 % côté ballon, 45 % côté faible.
 
-#### Zone 3-2 — rotation de coin (`defense/zone32Rotation.ts`, 2026-09-26)
-Ballon au coin (≥ 160 px latéral, ≤ 120 px de profondeur) et `zoneConfig.cornerRotation` ≠ `wing` : le bas côté ballon sort, l'aile redescend au poste bas, le bas faible devant le cercle, la pointe au coude côté ballon, l'aile faible vers la ligne des lancers. Appliqué après `computeZoneTargets`.
+#### Zone 3-2 — règles par situation (`defense/zone32Rotation.ts`, 2026-09-26/27)
+Appliquées après `computeZoneTargets` (`applyZone32Rotation`) :
+- **Coin** (≥ 160 px latéral, ≤ 120 px de profondeur ; `zoneConfig.cornerRotation` ≠ `wing`) : le bas côté ballon sort, l'aile redescend au poste bas, le bas faible devant le cercle, la pointe au coude côté ballon, l'aile faible vers la ligne des lancers.
+- **Poste haut** (≤ 70 px de l'axe, 120–235 px) : le bas au bloc libre monte au contact, la pointe dans le dos (+35 px), les ailes à mi-chemin des coudes, l'autre bas garde son poste bas ou le cercle.
+- **Aile** (≥ 120 px de l'axe, ≤ 330 px, hors coin) : l'aile sort, la pointe à l'intervalle côté ballon, le bas côté ballon au bloc, le bas faible au milieu, l'aile faible vers les lancers. Renversement = miroir.
+- Sommet : moteur générique.
 
 #### Situations zone (`zoneSituations.ts`)
 - `detectOverload` — 3+ attaquants côté ballon → boost `effectiveBallSideHelp = ballSideHelp × (1 + intensity × 0.6)`. Intensité 0.6 (3 joueurs) ou 1.0 (4+).

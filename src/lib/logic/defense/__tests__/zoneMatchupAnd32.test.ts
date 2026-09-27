@@ -7,7 +7,7 @@ import { computeDefenseTargets, getDefenseHoop } from '@/lib/logic/engine';
 import { distance } from '@/lib/logic/geometry';
 import type { AppState, AttackerId, AttackerPositions, ZoneType } from '@/lib/types';
 import { optimalAssignment } from '../matchupZone';
-import { isCornerBall } from '../zone32Rotation';
+import { isCornerBall, zone32Situation } from '../zone32Rotation';
 
 type Off = Record<AttackerId, { x: number; y: number }>;
 
@@ -157,9 +157,84 @@ describe('zone 3-2 — rotation sur ballon au coin', () => {
     expect(distance(res.D3, corner.O3)).toBeLessThan(distance(res.D5, corner.O3));
   });
 
-  it('hors coin : pas de rotation spéciale', () => {
+  it('le réglage « ballon au coin » n’affecte que le coin', () => {
     const wing = computeDefenseTargets(zoneState('zone-3-2', [{ off: SET, carrier: 'O3' }]), 0).positions;
     const wingOpt = computeDefenseTargets(zoneState('zone-3-2', [{ off: SET, carrier: 'O3' }], { cornerRotation: 'wing' }), 0).positions;
     expect(wing).toEqual(wingOpt);
+  });
+
+  it('situations reconnues', () => {
+    const hoop = getDefenseHoop(makeInitialState());
+    expect(zone32Situation({ x: 540, y: 110 }, hoop)).toBe('corner');
+    expect(zone32Situation({ x: 300, y: 230 }, hoop)).toBe('high-post');
+    expect(zone32Situation({ x: 490, y: 280 }, hoop)).toBe('wing');
+    expect(zone32Situation({ x: 300, y: 380 }, hoop)).toBeNull();
+  });
+});
+
+describe('zone 3-2 — poste haut', () => {
+  // O4 reçoit au poste haut, O5 au poste bas droit.
+  const highPost: Off = { ...SET, O4: { x: 300, y: 230 }, O5: { x: 430, y: 100 } };
+
+  it('on pince : le bas libre monte, la pointe dans le dos, les ailes resserrent', () => {
+    const state = zoneState('zone-3-2', [{ off: highPost, carrier: 'O4' }]);
+    const res = computeDefenseTargets(state, 0).positions;
+    const hoop = getDefenseHoop(state);
+    // D4 (bas gauche, personne à son bloc) monte au contact, côté panier.
+    expect(res.D4.isCarrierDefender).toBe(true);
+    expect(distance(res.D4, hoop)).toBeLessThan(distance(highPost.O4, hoop));
+    // D5 garde O5 au poste bas.
+    expect(res.D5.matchedTo).toBe('O5');
+    // La pointe est dans le dos du poste haut (plus loin du panier que lui).
+    expect(distance(res.D1, hoop)).toBeGreaterThan(distance(highPost.O4, hoop));
+    expect(distance(res.D1, highPost.O4)).toBeLessThan(45);
+    // Les ailes se sont rapprochées de l'axe (par rapport à leur place 110 / 490).
+    expect(res.D2.x).toBeGreaterThan(136);
+    expect(res.D3.x).toBeLessThan(464);
+  });
+
+  it('sans joueur au poste bas, l’autre bas tient le cercle', () => {
+    const noLow: Off = { ...highPost, O5: { x: 560, y: 300 } };
+    const state = zoneState('zone-3-2', [{ off: noLow, carrier: 'O4' }]);
+    const res = computeDefenseTargets(state, 0).positions;
+    const hoop = getDefenseHoop(state);
+    const rim = [res.D4, res.D5].filter((p) => !p.isCarrierDefender)[0];
+    expect(distance(rim, hoop)).toBeLessThan(60);
+  });
+});
+
+describe('zone 3-2 — aile et renversement', () => {
+  it('ballon à l’aile : l’aile sort, la pointe ferme l’intervalle, le bas tient le poste bas', () => {
+    const state = zoneState('zone-3-2', [{ off: SET, carrier: 'O3' }]);
+    const res = computeDefenseTargets(state, 0).positions;
+    const hoop = getDefenseHoop(state);
+    expect(res.D3.isCarrierDefender).toBe(true);
+    expect(distance(res.D3, SET.O3)).toBeLessThan(45);
+    // Pointe côté ballon, entre le porteur et l'axe.
+    expect(res.D1.x).toBeGreaterThan(hoop.x);
+    expect(res.D1.x).toBeLessThan(SET.O3.x);
+    // Bas côté ballon sur son poste bas (O5).
+    expect(res.D5.matchedTo).toBe('O5');
+    // Aile faible enfoncée : plus près de l'axe que sa place.
+    expect(res.D2.x).toBeGreaterThan(136);
+  });
+
+  it('renversement : les rôles basculent en miroir sur l’autre aile', () => {
+    const state = zoneState('zone-3-2', [{ off: SET, carrier: 'O3' }, { off: SET, carrier: 'O2' }]);
+    const right = computeDefenseTargets(state, 0).positions;
+    const left = computeDefenseTargets(state, 1).positions;
+    const hoop = getDefenseHoop(state);
+    // Ballon à gauche : D2 sort, D3 s'enfonce, la pointe passe côté gauche.
+    expect(left.D2.isCarrierDefender).toBe(true);
+    expect(left.D1.x).toBeLessThan(hoop.x);
+    // Positions symétriques de part et d'autre de l'axe.
+    expect(left.D3.x - hoop.x).toBeCloseTo(-(right.D2.x - hoop.x), 0);
+    expect(left.D3.y).toBeCloseTo(right.D2.y, 0);
+    expect(left.D1.x - hoop.x).toBeCloseTo(-(right.D1.x - hoop.x), 0);
+  });
+
+  it('ballon au sommet : pas de règle dédiée (moteur de zone générique)', () => {
+    const top = computeDefenseTargets(zoneState('zone-3-2', [{ off: SET, carrier: 'O1' }]), 0).positions;
+    expect(top.D1.matchedTo).toBe('O1');
   });
 });

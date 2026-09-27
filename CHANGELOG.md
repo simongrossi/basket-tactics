@@ -6,6 +6,19 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### Zone 3-2 — poste haut et aile / renversement (2026-09-27)
+
+- **Poste haut** : on « pince ». Le bas dont le bloc est libre monte au
+  contact face au panier, la pointe met la pression dans le dos, les ailes
+  resserrent vers les coudes, l'autre bas garde le joueur à son poste bas
+  (sinon tient le cercle).
+- **Aile** : l'aile côté ballon sort, la pointe ferme l'intervalle côté
+  ballon (pénétration axe et poste haut), le bas côté ballon tient le poste
+  bas, le bas faible au milieu de la raquette, l'aile faible vers la ligne
+  des lancers. **Renversement** : rôles en miroir sur l'autre aile.
+- Ballon au sommet : moteur de zone générique (inchangé).
+- Tests : 19 unitaires zones (6 nouveaux).
+
 ### Zones matchup et 3-2 (2026-09-26)
 
 - **Zone matchup** : nouveau moteur (`defense/matchupZone.ts`). Avant, elle
