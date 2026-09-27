@@ -23,8 +23,10 @@ successifs, sans lâcher la raquette).
 
 Réalisme des déplacements (27/09) : [audit chiffré](docs/audit-realisme-2026-09-27.md)
 puis ✅ cinématique en m/s / m/s², départs et arrêts progressifs, tempo selon la
-distance (profil réaliste). Restent : accélérations offensives des tracés
-courbes, turn and run visible, défenseurs perdus sur écrans.
+distance (profil réaliste). Restent (détail § « Ce qui reste » de l'audit) :
+accélérations offensives des tracés courbes et fenêtres courtes, freinages
+défensifs sur cibles qui sautent, demi-tour visible (turn and run), défenseurs
+perdus sur écrans.
 
 Décision du user (22/09) : **finir d'abord le réalisme des déplacements et du
 placement défensifs**, puis l'axe coaching (le quiz est validé comme idée mais
