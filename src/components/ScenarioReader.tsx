@@ -27,8 +27,8 @@ export function ScenarioReader({ scriptedActions, activeStep, stepToActionId }: 
       style={{
         // U04 — thème sombre explicite (contraste ≥ 4,5:1), sans dépendre
         // des remappages CSS de la colonne centrale.
-        background: '#262a32',
-        border: '1px solid #343b47',
+        background: 'var(--bt-surface)',
+        border: '1px solid var(--bt-border-strong)',
         borderRadius: 8,
         padding: '8px 12px',
         display: 'flex',
@@ -39,7 +39,7 @@ export function ScenarioReader({ scriptedActions, activeStep, stepToActionId }: 
         lineHeight: 1.4,
       }}
     >
-      <span style={{ fontSize: 11, fontWeight: 700, color: '#fdba74', marginRight: 4 }}>
+      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--bt-orange-text)', marginRight: 4 }}>
         Système :
       </span>
       {offensiveActions.map((action, idx) => {
@@ -52,13 +52,13 @@ export function ScenarioReader({ scriptedActions, activeStep, stepToActionId }: 
             style={{
               padding: '2px 8px',
               borderRadius: 4,
-              background: isActive ? 'rgba(216, 90, 48, 0.22)' : '#1f242c',
-              border: `1px solid ${isActive ? '#fb923c' : '#3b4452'}`,
+              background: isActive ? 'rgba(216, 90, 48, 0.22)' : 'var(--bt-bg)',
+              border: `1px solid ${isActive ? '#fb923c' : 'var(--bt-border-strong)'}`,
               fontWeight: isActive ? 600 : 400,
-              color: isActive ? '#fed7aa' : '#e5e7eb',
+              color: isActive ? '#fed7aa' : 'var(--bt-text)',
             }}
           >
-            <span style={{ fontWeight: 700, marginRight: 4, color: '#fdba74' }}>{idx + 1}.</span>
+            <span style={{ fontWeight: 700, marginRight: 4, color: 'var(--bt-orange-text)' }}>{idx + 1}.</span>
             {text}
           </span>
         );

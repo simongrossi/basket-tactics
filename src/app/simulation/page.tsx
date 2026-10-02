@@ -70,6 +70,7 @@ export default function SimulationPage() {
 
   return (
     <main
+      className="bt-force-dark"
       style={{
         height: '100vh',
         maxHeight: '100vh',

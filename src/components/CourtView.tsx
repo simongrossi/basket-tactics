@@ -512,13 +512,13 @@ export function CourtView(props: CourtViewProps) {
       }}
       style={{
         position: 'relative',
-        background: '#262a32',
+        background: 'var(--bt-stage)',
         borderRadius: 12,
         padding: 6,
         minHeight: 0,
         minWidth: 0,
         overflow: 'hidden',
-        border: '1px solid #2a2d35',
+        border: '1px solid var(--bt-stage-border)',
       }}
     >
       <svg

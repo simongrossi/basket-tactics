@@ -240,7 +240,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
 
   return (
     <Panel theme="offense" title="🎬 Scénario">
-      <div style={{ fontSize: 11, color: '#cbd5e1', lineHeight: 1.4 }}>
+      <div style={{ fontSize: 11, color: 'var(--bt-text-muted)', lineHeight: 1.4 }}>
         Empile des actions FIBA nommées. Le système génère automatiquement les
         étapes correspondantes. Tu peux toujours retoucher chaque étape à la
         main ensuite — les modifs manuelles seront préservées.
@@ -288,7 +288,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
         return (
           <div style={{
             fontSize: 11,
-            color: '#6ee7b7',
+            color: 'var(--bt-green-text)',
             background: 'rgba(110, 231, 183, 0.12)',
             border: '1px solid rgba(110, 231, 183, 0.4)',
             borderRadius: 4,
@@ -296,7 +296,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
           }}>
             🤖 Lecture auto : <strong>{read.label}</strong>
             {cov ? <> — déclencheur : <strong>{cov}</strong></> : null}
-            <div style={{ color: '#a7f3d0', marginTop: 2 }}>
+            <div style={{ color: 'var(--bt-green-text)', marginTop: 2 }}>
               L'offense s'adapte à la défense. Change la couverture défensive pour
               voir la lecture basculer.
             </div>
@@ -308,7 +308,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
           tirée de façon seedée (Phase L proba). N'apparaît qu'avec des branches
           réactives screen-coverage. */}
       {hasReactiveScreenBranches && (
-        <div style={{ marginTop: 10, padding: 8, border: '1px solid #334155', borderRadius: 6 }}>
+        <div style={{ marginTop: 10, padding: 8, border: '1px solid var(--bt-border-strong)', borderRadius: 6 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
             <input
               type="checkbox"
@@ -347,10 +347,10 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                     }}
                     style={{ width: 56, fontSize: 11 }}
                   />
-                  <span style={{ fontSize: 10, color: '#94a3b8' }}>%</span>
+                  <span style={{ fontSize: 10, color: 'var(--bt-text-dim)' }}>%</span>
                   <button
                     onClick={() => props.onSetCoverageDistribution(dist.filter((_, j) => j !== di))}
-                    style={{ border: 'none', background: 'transparent', color: '#dc2626', cursor: 'pointer' }}
+                    style={{ border: 'none', background: 'transparent', color: 'var(--bt-red-text)', cursor: 'pointer' }}
                     title="Retirer cette couverture"
                   >×</button>
                 </div>
@@ -361,17 +361,17 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                   const next = readableCoverages.find((cov) => !used.has(cov));
                   if (next) props.onSetCoverageDistribution([...dist, { coverage: next, weight: 0.5 }]);
                 }}
-                style={{ fontSize: 10, padding: '2px 6px', border: '1px solid #94a3b8', borderRadius: 3, background: 'transparent', color: '#cbd5e1', cursor: 'pointer' }}
+                style={{ fontSize: 10, padding: '2px 6px', border: '1px solid #94a3b8', borderRadius: 3, background: 'transparent', color: 'var(--bt-text-muted)', cursor: 'pointer' }}
               >+ couverture</button>
 
               {/* Bouton rejouer + couverture réalisée */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
                 <button
                   onClick={() => props.onRerollCoverage()}
-                  style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, border: '1px solid #475569', background: '#1e293b', color: '#e2e8f0', cursor: 'pointer' }}
+                  style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, border: '1px solid var(--bt-border-strong)', background: 'var(--bt-surface)', color: 'var(--bt-text)', cursor: 'pointer' }}
                 >🎲 rejouer la défense</button>
                 {props.rolledCoverage && (
-                  <span style={{ fontSize: 11, color: '#cbd5e1' }}>
+                  <span style={{ fontSize: 11, color: 'var(--bt-text-muted)' }}>
                     réalisé : <strong style={{ textTransform: 'uppercase' }}>{props.rolledCoverage}</strong>
                   </span>
                 )}
@@ -381,11 +381,11 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
               <div style={{ marginTop: 8 }}>
                 {stats.map((s, si) => (
                   <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, marginBottom: 2 }}>
-                    <span style={{ minWidth: 48, color: '#94a3b8', textTransform: 'uppercase' }}>{s.coverage}</span>
+                    <span style={{ minWidth: 48, color: 'var(--bt-text-dim)', textTransform: 'uppercase' }}>{s.coverage}</span>
                     <div style={{ flex: 1, height: 8, background: '#0f172a', borderRadius: 4, overflow: 'hidden' }}>
                       <div style={{ width: `${Math.round(s.weight * 100)}%`, height: '100%', background: '#6366f1' }} />
                     </div>
-                    <span style={{ minWidth: 80, color: '#cbd5e1' }}>{Math.round(s.weight * 100)}% {s.branchLabel}</span>
+                    <span style={{ minWidth: 80, color: 'var(--bt-text-muted)' }}>{Math.round(s.weight * 100)}% {s.branchLabel}</span>
                   </div>
                 ))}
               </div>
@@ -397,7 +397,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
       {/* Continuity / motion offense — boucle rotative (Phase Motion). N'apparaît
           qu'avec ≥ 2 actions offensives. */}
       {offActionsForLoop.length >= 2 && (
-        <div style={{ marginTop: 10, padding: 8, border: '1px solid #334155', borderRadius: 6 }}>
+        <div style={{ marginTop: 10, padding: 8, border: '1px solid var(--bt-border-strong)', borderRadius: 6 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
             <input
               type="checkbox"
@@ -411,7 +411,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
             <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {/* Plage de boucle */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-                <span style={{ color: '#94a3b8' }}>de</span>
+                <span style={{ color: 'var(--bt-text-dim)' }}>de</span>
                 <select
                   value={loop.startActionId}
                   onChange={(e) => props.onSetContinuityLoop({ ...loop, startActionId: e.target.value })}
@@ -421,7 +421,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                     <option key={x.a.id} value={x.a.id}>#{x.i + 1} {x.a.type}</option>
                   ))}
                 </select>
-                <span style={{ color: '#94a3b8' }}>à</span>
+                <span style={{ color: 'var(--bt-text-dim)' }}>à</span>
                 <select
                   value={loop.endActionId}
                   onChange={(e) => props.onSetContinuityLoop({ ...loop, endActionId: e.target.value })}
@@ -434,13 +434,13 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
               </div>
 
               {/* Roue de rotation */}
-              <div style={{ fontSize: 11, color: '#cbd5e1' }}>
-                <div style={{ color: '#94a3b8', marginBottom: 2 }}>Rotation des rôles :</div>
+              <div style={{ fontSize: 11, color: 'var(--bt-text-muted)' }}>
+                <div style={{ color: 'var(--bt-text-dim)', marginBottom: 2 }}>Rotation des rôles :</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
                   {rotation.map((p, ri) => (
                     <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
                       <strong>{p}</strong>
-                      {ri < rotation.length - 1 && <span style={{ color: '#64748b' }}>→</span>}
+                      {ri < rotation.length - 1 && <span style={{ color: 'var(--bt-text-dim)' }}>→</span>}
                       <button
                         onClick={() => {
                           const next = [...rotation];
@@ -453,13 +453,13 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                       >⇄</button>
                     </span>
                   ))}
-                  <span style={{ color: '#64748b' }}>↺</span>
+                  <span style={{ color: 'var(--bt-text-dim)' }}>↺</span>
                 </div>
               </div>
 
               {/* Cycles max */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-                <span style={{ color: '#94a3b8' }}>cycles max</span>
+                <span style={{ color: 'var(--bt-text-dim)' }}>cycles max</span>
                 <input
                   type="number" min={1} max={6} step={1}
                   value={loop.maxCycles}
@@ -474,7 +474,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
               {/* Sortie sur lecture (option C) */}
               {props.scenarioBranches.some((b) => b.trigger?.kind === 'screen-coverage') && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-                  <span style={{ color: '#94a3b8' }}>sortir si lecture</span>
+                  <span style={{ color: 'var(--bt-text-dim)' }}>sortir si lecture</span>
                   <select
                     value={loop.exitBranchId ?? ''}
                     onChange={(e) => props.onSetContinuityLoop({ ...loop, exitBranchId: e.target.value || null })}
@@ -491,7 +491,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
               )}
 
               {/* Récap */}
-              <div style={{ fontSize: 10, color: '#64748b' }}>
+              <div style={{ fontSize: 10, color: 'var(--bt-text-dim)' }}>
                 Boucle : {rotation.join('→')} ↺ · {loop.maxCycles} cycles max
                 {loop.exitBranchId ? ' · sortie sur lecture' : ''}
               </div>
@@ -502,7 +502,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
 
       {/* Auto-replacement — cascade de fill sur cut/drive (Phase Motion). */}
       {hasReplacementTrigger && (
-        <div style={{ marginTop: 10, padding: 8, border: '1px solid #334155', borderRadius: 6 }}>
+        <div style={{ marginTop: 10, padding: 8, border: '1px solid var(--bt-border-strong)', borderRadius: 6 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
             <input
               type="checkbox"
@@ -514,7 +514,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
           {props.autoReplacementEnabled && (
             <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-                <span style={{ color: '#94a3b8' }}>profondeur de cascade</span>
+                <span style={{ color: 'var(--bt-text-dim)' }}>profondeur de cascade</span>
                 <input
                   type="number" min={1} max={4} step={1}
                   value={replDepth}
@@ -525,7 +525,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                   style={{ width: 48, fontSize: 11 }}
                 />
               </div>
-              <div style={{ fontSize: 10, color: '#64748b' }}>
+              <div style={{ fontSize: 10, color: 'var(--bt-text-dim)' }}>
                 Fill auto : cascade prof. {replDepth} sur cut/drive (le joueur derrière comble le spot vidé).
               </div>
             </div>
@@ -536,7 +536,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
       {activeBranch && (
         <div style={{
           fontSize: 11,
-          color: '#fbbf24',
+          color: 'var(--bt-amber-text)',
           background: 'rgba(251, 191, 36, 0.12)',
           border: '1px solid rgba(251, 191, 36, 0.4)',
           borderRadius: 4,
@@ -551,7 +551,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
 
       {/* Liste des actions */}
       {offensiveActions.length === 0 && (
-        <div style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic', padding: 8, textAlign: 'center' }}>
+        <div style={{ fontSize: 12, color: 'var(--bt-text-dim)', fontStyle: 'italic', padding: 8, textAlign: 'center' }}>
           Aucune action. Ajoute la première ci-dessous.
         </div>
       )}
@@ -567,7 +567,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
               border: '1px solid #fed7aa',
               borderLeft: '3px solid #ea580c',
               borderRadius: 6,
-              background: '#262a32',
+              background: 'var(--bt-surface)',
               overflow: 'hidden',
             }}
           >
@@ -583,19 +583,19 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                 userSelect: 'none',
               }}
             >
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#fdba74' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--bt-orange-text)' }}>
                 #{(idx + 1).toString().padStart(2, '0')}
               </span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#e5e7eb', flex: 1 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--bt-text)', flex: 1 }}>
                 {def.label}
               </span>
-              <span style={{ fontSize: 11, color: '#9ca3af' }}>{isExpanded ? '▲' : '▼'}</span>
+              <span style={{ fontSize: 11, color: 'var(--bt-text-dim)' }}>{isExpanded ? '▲' : '▼'}</span>
               {!activeBranch && isReadEligible(action) && (
                 <button
                   onClick={(e) => { e.stopPropagation(); handleInsertReads(action); }}
                   style={{
                     border: '1px solid #6ee7b7', background: '#0f2a22', cursor: 'pointer',
-                    fontSize: 10, color: '#6ee7b7', padding: '2px 6px', borderRadius: 3,
+                    fontSize: 10, color: 'var(--bt-green-text)', padding: '2px 6px', borderRadius: 3,
                     fontWeight: 600,
                   }}
                   title="Insérer les lectures standard selon la défense lue (couverture PnR, origine d'aide sur drive, ou deny → backdoor)"
@@ -605,8 +605,8 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                 <button
                   onClick={(e) => { e.stopPropagation(); handleAddBranch(action.id); }}
                   style={{
-                    border: '1px solid #fed7aa', background: '#262a32', cursor: 'pointer',
-                    fontSize: 10, color: '#fdba74', padding: '2px 6px', borderRadius: 3,
+                    border: '1px solid #fed7aa', background: 'var(--bt-surface)', cursor: 'pointer',
+                    fontSize: 10, color: 'var(--bt-orange-text)', padding: '2px 6px', borderRadius: 3,
                   }}
                   title="Créer une variante manuelle qui diverge après cette action"
                 >+ variante</button>
@@ -615,21 +615,21 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                 onClick={(e) => { e.stopPropagation(); props.onDeleteAction(action.id); }}
                 style={{
                   border: 'none', background: 'transparent', cursor: 'pointer',
-                  fontSize: 13, color: '#f87171', padding: '2px 6px',
+                  fontSize: 13, color: 'var(--bt-red-text)', padding: '2px 6px',
                 }}
                 title="Supprimer"
                 aria-label={`Supprimer l’action ${action.label || def.label}`}
                 className="bt-touch"
               >✕</button>
             </div>
-            <div style={{ fontSize: 11, color: '#cbd5e1', padding: '0 10px 8px 28px' }}>
+            <div style={{ fontSize: 11, color: 'var(--bt-text-muted)', padding: '0 10px 8px 28px' }}>
               {action.label || def.reader(action.params)}
             </div>
 
             {/* Panneau déplié */}
             {isExpanded && (
-              <div style={{ borderTop: '1px solid #2a2d35', padding: 10, background: '#1f2329' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#fdba74', marginBottom: 6 }}>
+              <div style={{ borderTop: '1px solid var(--bt-border)', padding: 10, background: 'var(--bt-bg)' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--bt-orange-text)', marginBottom: 6 }}>
                   PARAMÈTRES
                 </div>
                 <ActionForm
@@ -644,9 +644,9 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                     disabled={idx === 0}
                     style={{
                       flex: 1, padding: '6px 10px', fontSize: 11,
-                      border: '1px solid #2a2d35', borderRadius: 4,
-                      background: '#262a32',
-                      color: idx === 0 ? '#6b7280' : '#cbd5e1',
+                      border: '1px solid var(--bt-border)', borderRadius: 4,
+                      background: 'var(--bt-surface)',
+                      color: idx === 0 ? '#6b7280' : 'var(--bt-text-muted)',
                       opacity: idx === 0 ? 0.5 : 1,
                       cursor: idx === 0 ? 'not-allowed' : 'pointer',
                     }}
@@ -656,9 +656,9 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                     disabled={idx === offensiveActions.length - 1}
                     style={{
                       flex: 1, padding: '6px 10px', fontSize: 11,
-                      border: '1px solid #2a2d35', borderRadius: 4,
-                      background: '#262a32',
-                      color: idx === offensiveActions.length - 1 ? '#6b7280' : '#cbd5e1',
+                      border: '1px solid var(--bt-border)', borderRadius: 4,
+                      background: 'var(--bt-surface)',
+                      color: idx === offensiveActions.length - 1 ? '#6b7280' : 'var(--bt-text-muted)',
                       opacity: idx === offensiveActions.length - 1 ? 0.5 : 1,
                       cursor: idx === offensiveActions.length - 1 ? 'not-allowed' : 'pointer',
                     }}
@@ -674,13 +674,13 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                   return (
                     <div style={{
                       marginTop: 12, paddingTop: 10,
-                      borderTop: '1px dashed #2a2d35',
+                      borderTop: '1px dashed var(--bt-border)',
                     }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#93c5fd', marginBottom: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--bt-blue-text)', marginBottom: 6 }}>
                         🛡️ COUVERTURES DÉFENSIVES
                       </div>
                       {attached.length === 0 ? (
-                        <div style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic', marginBottom: 6 }}>
+                        <div style={{ fontSize: 11, color: 'var(--bt-text-dim)', fontStyle: 'italic', marginBottom: 6 }}>
                           (aucune)
                         </div>
                       ) : (
@@ -689,17 +689,17 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                             const cdef = DEFENSIVE_ACTIONS_CATALOG[cov.type];
                             return (
                               <div key={cov.id} style={{
-                                background: '#262a32', border: '1px solid #dbeafe', borderRadius: 4,
+                                background: 'var(--bt-surface)', border: '1px solid #dbeafe', borderRadius: 4,
                                 padding: '6px 8px', fontSize: 11, display: 'flex',
                                 alignItems: 'center', gap: 6,
                               }}>
-                                <span style={{ fontWeight: 600, color: '#93c5fd' }}>{cdef.label}</span>
-                                <span style={{ color: '#cbd5e1', flex: 1 }}>{cdef.reader(cov.params)}</span>
+                                <span style={{ fontWeight: 600, color: 'var(--bt-blue-text)' }}>{cdef.label}</span>
+                                <span style={{ color: 'var(--bt-text-muted)', flex: 1 }}>{cdef.reader(cov.params)}</span>
                                 <button
                                   onClick={() => props.onDeleteDefensiveAction(cov.id)}
                                   style={{
                                     border: 'none', background: 'transparent', cursor: 'pointer',
-                                    fontSize: 12, color: '#dc2626',
+                                    fontSize: 12, color: 'var(--bt-red-text)',
                                   }}
                                   title="Supprimer la couverture"
                                 >✕</button>
@@ -713,7 +713,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                         style={{
                           fontSize: 11, padding: '5px 10px',
                           border: '1px solid #1e3a8a', borderRadius: 4,
-                          background: '#262a32', color: '#93c5fd', cursor: 'pointer',
+                          background: 'var(--bt-surface)', color: 'var(--bt-blue-text)', cursor: 'pointer',
                           fontWeight: 600,
                         }}
                       >+ ajouter une couverture</button>
@@ -736,7 +736,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
         return (
           <>
             <div style={{
-              fontSize: 10, fontWeight: 700, color: '#93c5fd',
+              fontSize: 10, fontWeight: 700, color: 'var(--bt-blue-text)',
               marginTop: 8, marginBottom: 4, letterSpacing: 0.5,
             }}>🛡️ DÉFENSE (LIBRE)</div>
             {free.map((act) => {
@@ -746,37 +746,37 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
                 <div key={act.id} style={{
                   border: '1px solid #dbeafe',
                   borderLeft: '3px solid #1e3a8a',
-                  borderRadius: 6, background: '#262a32', overflow: 'hidden',
+                  borderRadius: 6, background: 'var(--bt-surface)', overflow: 'hidden',
                 }}>
                   <div onClick={() => toggleExpand(act.id)} style={{
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '8px 10px', cursor: 'pointer', userSelect: 'none',
                   }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#93c5fd' }}>🛡️</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#e5e7eb', flex: 1 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--bt-blue-text)' }}>🛡️</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--bt-text)', flex: 1 }}>
                       {cdef.label}
                     </span>
-                    <span style={{ fontSize: 11, color: '#9ca3af' }}>{isExpanded ? '▲' : '▼'}</span>
+                    <span style={{ fontSize: 11, color: 'var(--bt-text-dim)' }}>{isExpanded ? '▲' : '▼'}</span>
                     <button
                       onClick={(e) => { e.stopPropagation(); props.onDeleteDefensiveAction(act.id); }}
                       style={{
                         border: 'none', background: 'transparent', cursor: 'pointer',
-                        fontSize: 13, color: '#dc2626', padding: '2px 6px',
+                        fontSize: 13, color: 'var(--bt-red-text)', padding: '2px 6px',
                       }}
                     >✕</button>
                   </div>
-                  <div style={{ fontSize: 11, color: '#cbd5e1', padding: '0 10px 8px 28px' }}>
+                  <div style={{ fontSize: 11, color: 'var(--bt-text-muted)', padding: '0 10px 8px 28px' }}>
                     {cdef.reader(act.params)} · steps : {(act.affectedSteps ?? []).join(',') || '—'}
                   </div>
                   {isExpanded && (
-                    <div style={{ padding: 10, background: '#262a32' }}>
+                    <div style={{ padding: 10, background: 'var(--bt-surface)' }}>
                       <DefensiveActionForm
                         action={act}
                         defenderIds={defenderIds}
                         attackerIds={attackerIds}
                         onChange={(updated) => props.onUpdateDefensiveAction(act.id, updated)}
                       />
-                      <div style={{ marginTop: 8, fontSize: 10, fontWeight: 700, color: '#93c5fd' }}>
+                      <div style={{ marginTop: 8, fontSize: 10, fontWeight: 700, color: 'var(--bt-blue-text)' }}>
                         STEPS CIBLES
                       </div>
                       <input
@@ -884,7 +884,7 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: '#262a32',
+          background: 'var(--bt-surface)',
           borderRadius: 12,
           width: 'min(640px, 100%)',
           maxHeight: '85vh',
@@ -910,7 +910,7 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
             onClick={onClose}
             style={{
               fontSize: 13, padding: '4px 10px', borderRadius: 6,
-              border: '1px solid #e2e8f0', background: '#262a32', cursor: 'pointer', color: '#cbd5e1',
+              border: '1px solid #e2e8f0', background: 'var(--bt-surface)', cursor: 'pointer', color: 'var(--bt-text-muted)',
             }}
             title="Fermer (Échap)"
           >✕</button>
@@ -943,7 +943,7 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
                 <div
                   style={{
                     fontSize: 10,
-                    color: '#94a3b8',
+                    color: 'var(--bt-text-dim)',
                     textTransform: 'uppercase',
                     marginBottom: 6,
                     letterSpacing: 0.5,
@@ -964,7 +964,7 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
                         padding: '8px 10px',
                         borderRadius: 6,
                         border: `1px solid ${c.border}`,
-                        background: '#262a32',
+                        background: 'var(--bt-surface)',
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
@@ -972,7 +972,7 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
                       }}
                     >
                       <span style={{ fontWeight: 600, color: c.accentText }}>{def.label}</span>
-                      <span style={{ fontSize: 11, color: '#94a3b8' }}>{def.description}</span>
+                      <span style={{ fontSize: 11, color: 'var(--bt-text-dim)' }}>{def.description}</span>
                     </button>
                   ))}
                 </div>
@@ -995,7 +995,7 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
             return (
               <div style={{ marginBottom: 14 }}>
                 <div style={{
-                  fontSize: 10, color: '#93c5fd', textTransform: 'uppercase',
+                  fontSize: 10, color: 'var(--bt-blue-text)', textTransform: 'uppercase',
                   marginBottom: 6, letterSpacing: 0.5, fontWeight: 600,
                 }}>
                   🛡️ Défense (libre)
@@ -1012,11 +1012,11 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
                           textAlign: 'left', fontSize: 12,
                           padding: '8px 10px',
                           border: '1px solid #dbeafe', borderRadius: 6,
-                          background: '#262a32', cursor: 'pointer',
+                          background: 'var(--bt-surface)', cursor: 'pointer',
                         }}
                       >
-                        <div style={{ fontWeight: 600, color: '#93c5fd' }}>{def.label}</div>
-                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{def.description}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--bt-blue-text)' }}>{def.label}</div>
+                        <div style={{ fontSize: 11, color: 'var(--bt-text-dim)', marginTop: 2 }}>{def.description}</div>
                       </button>
                     );
                   })}
@@ -1065,7 +1065,7 @@ function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6, marginLeft: 24 }}>
       {allParams.map((paramKey) => (
         <div key={paramKey} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 80 }}>
+          <span style={{ fontSize: 11, color: 'var(--bt-text-muted)', minWidth: 80 }}>
             {PARAM_LABELS[paramKey]}{def.requiredParams.includes(paramKey) ? ' *' : ''}
           </span>
           {paramKey === 'chain' ? (
@@ -1104,7 +1104,7 @@ function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
         />
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 80 }}>Libellé libre</span>
+        <span style={{ fontSize: 11, color: 'var(--bt-text-muted)', minWidth: 80 }}>Libellé libre</span>
         <input
           type="text"
           value={action.label ?? ''}
@@ -1147,14 +1147,14 @@ function ChainEditor({
               <button
                 onClick={() => onChange(chain.filter((_, j) => j !== i), modes?.filter((_, j) => j !== Math.min(i, chain.length - 2)))}
                 title="Retirer ce maillon"
-                style={{ border: 'none', background: 'transparent', color: '#dc2626', cursor: 'pointer' }}
+                style={{ border: 'none', background: 'transparent', color: 'var(--bt-red-text)', cursor: 'pointer' }}
               >×</button>
             )}
           </div>
           {i < chain.length - 1 && (
             <button
               onClick={() => setLinkMode(i, linkMode(i) === 'pass' ? 'dho' : 'pass')}
-              style={{ alignSelf: 'flex-start', fontSize: 9, padding: '1px 6px', borderRadius: 3, border: '1px solid #475569', background: '#1e293b', color: '#cbd5e1', cursor: 'pointer' }}
+              style={{ alignSelf: 'flex-start', fontSize: 9, padding: '1px 6px', borderRadius: 3, border: '1px solid var(--bt-border-strong)', background: 'var(--bt-surface)', color: 'var(--bt-text-muted)', cursor: 'pointer' }}
             >↓ {linkMode(i) === 'dho' ? 'DHO' : 'passe'}</button>
           )}
         </div>
@@ -1165,7 +1165,7 @@ function ChainEditor({
           const next = attackerIds.find((id) => !used.has(id)) ?? attackerIds[0];
           onChange([...chain, next], modes);
         }}
-        style={{ alignSelf: 'flex-start', fontSize: 10, padding: '2px 6px', border: '1px solid #94a3b8', borderRadius: 3, background: 'transparent', color: '#cbd5e1', cursor: 'pointer' }}
+        style={{ alignSelf: 'flex-start', fontSize: 10, padding: '2px 6px', border: '1px solid #94a3b8', borderRadius: 3, background: 'transparent', color: 'var(--bt-text-muted)', cursor: 'pointer' }}
       >+ maillon</button>
     </div>
   );
@@ -1227,7 +1227,7 @@ function BranchTab({
       ? '#6ee7b7'
       : isReactive
         ? '#3f6212'
-        : '#2a2d35';
+        : 'var(--bt-border)';
   return (
     <div
       onClick={onClick}
@@ -1240,8 +1240,8 @@ function BranchTab({
         borderRadius: 4,
         fontSize: 11,
         fontWeight: active || autoActive ? 700 : 500,
-        background: active ? '#ea580c' : autoActive ? 'rgba(110,231,183,0.15)' : '#262a32',
-        color: active ? '#fff' : autoActive ? '#6ee7b7' : '#fdba74',
+        background: active ? '#ea580c' : autoActive ? 'rgba(110,231,183,0.15)' : 'var(--bt-surface)',
+        color: active ? '#fff' : autoActive ? 'var(--bt-green-text)' : 'var(--bt-orange-text)',
         border: `1px solid ${border}`,
         borderStyle: autoActive ? 'dashed' : 'solid',
         cursor: 'pointer',
@@ -1259,7 +1259,7 @@ function BranchTab({
           onClick={(e) => { e.stopPropagation(); onRename(); }}
           style={{
             border: 'none', background: 'transparent', cursor: 'pointer',
-            fontSize: 12, color: active ? '#fff' : '#fdba74', padding: '0 4px', lineHeight: 1,
+            fontSize: 12, color: active ? '#fff' : 'var(--bt-orange-text)', padding: '0 4px', lineHeight: 1,
           }}
           title="Renommer la variante"
           aria-label={`Renommer la variante ${label}`}
@@ -1271,7 +1271,7 @@ function BranchTab({
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
           style={{
             border: 'none', background: 'transparent', cursor: 'pointer',
-            fontSize: 13, color: active ? '#fff' : '#f87171', padding: '0 4px', lineHeight: 1,
+            fontSize: 13, color: active ? '#fff' : 'var(--bt-red-text)', padding: '0 4px', lineHeight: 1,
           }}
           title="Supprimer la variante"
           aria-label={`Supprimer la variante ${label}`}

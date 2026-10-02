@@ -17,16 +17,16 @@ import {
 } from '@/lib/logic/timecode';
 
 const TIMELINE_UI = {
-  surface: '#20252d',
-  surfaceRaised: '#252b34',
-  surfaceHover: '#303744',
-  border: '#343b47',
-  borderStrong: '#465061',
-  text: '#f3f4f6',
-  muted: '#cbd5e1',
-  dim: '#94a3b8',
+  surface: 'var(--bt-surface)',
+  surfaceRaised: 'var(--bt-surface)',
+  surfaceHover: 'var(--bt-surface-raised)',
+  border: 'var(--bt-border-strong)',
+  borderStrong: 'var(--bt-border-strong)',
+  text: 'var(--bt-text)',
+  muted: 'var(--bt-text-muted)',
+  dim: 'var(--bt-text-dim)',
   orange: '#D85A30',
-  orangeSoft: '#fdba74',
+  orangeSoft: 'var(--bt-orange-text)',
   blue: '#378ADD',
 } as const;
 
@@ -181,7 +181,7 @@ export function Timeline({
           left: 14,
           right: 14,
           height: 4,
-          background: '#3a424f',
+          background: 'var(--bt-surface-raised)',
           borderRadius: 2,
           transform: 'translateY(-50%)',
         }}
@@ -220,7 +220,7 @@ export function Timeline({
               width: isInterp ? 8 : 14,
               height: isInterp ? 8 : 14,
               borderRadius: isInterp ? 4 : 7,
-              background: isCurrent ? TIMELINE_UI.orange : isInterp ? '#3a424f' : TIMELINE_UI.surface,
+              background: isCurrent ? TIMELINE_UI.orange : isInterp ? 'var(--bt-surface-raised)' : TIMELINE_UI.surface,
               border: `${isInterp ? 1 : 2}px solid ${isCurrent ? TIMELINE_UI.orangeSoft : isInterp ? '#4a5362' : TIMELINE_UI.borderStrong}`,
               opacity: isInterp ? 0.6 : 1,
               transform: 'translate(-50%, -50%)',
@@ -427,7 +427,7 @@ export function Timeline({
                 return {
                   padding: '1px 6px', borderRadius: 4, fontWeight: 700,
                   background: 'rgba(248, 113, 113, 0.18)',
-                  color: '#fca5a5',
+                  color: 'var(--bt-red-text)',
                   border: '1px solid rgba(248, 113, 113, 0.32)',
                 };
               }
@@ -436,7 +436,7 @@ export function Timeline({
                 return {
                   padding: '1px 6px', borderRadius: 4, fontWeight: 700,
                   background: 'rgba(220, 38, 38, 0.18)',
-                  color: '#fca5a5',
+                  color: 'var(--bt-red-text)',
                   border: '1px solid rgba(220, 38, 38, 0.36)',
                 };
               }
@@ -444,14 +444,14 @@ export function Timeline({
                 return {
                   padding: '1px 6px', borderRadius: 4, fontWeight: 700,
                   background: 'rgba(251, 191, 36, 0.16)',
-                  color: '#fbbf24',
+                  color: 'var(--bt-amber-text)',
                   border: '1px solid rgba(251, 191, 36, 0.28)',
                 };
               }
               return {
                 padding: '1px 6px', borderRadius: 4, fontWeight: 700,
                 background: 'rgba(22, 163, 74, 0.14)',
-                color: '#86efac',
+                color: 'var(--bt-green-text)',
                 border: '1px solid rgba(22, 163, 74, 0.26)',
               };
             })()}

@@ -636,13 +636,13 @@ export function GraphCanvas({
 
                   {/* Rendu spécifique du contenu selon le type */}
                   {node.type === 'start' ? (
-                    <div style={{ fontWeight: 700, fontSize: 11, textAlign: 'center', color: '#cbd5e1' }}>
+                    <div style={{ fontWeight: 700, fontSize: 11, textAlign: 'center', color: 'var(--bt-text-muted)' }}>
                       {node.label}
                     </div>
                   ) : node.type === 'trigger' ? (
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: 9, fontWeight: 700, color: '#ddd' }}>{node.label}</div>
-                      <div style={{ fontSize: 8, color: '#e0cffc', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ fontSize: 8, color: 'var(--bt-violet-text)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {node.triggerBranch?.label || 'Condition'}
                       </div>
                     </div>
@@ -653,7 +653,7 @@ export function GraphCanvas({
                           style={{
                             fontSize: 8,
                             fontWeight: 800,
-                            color: node.branchId ? '#c4b5fd' : '#fdba74',
+                            color: node.branchId ? 'var(--bt-violet-text)' : 'var(--bt-orange-text)',
                             textTransform: 'uppercase',
                             letterSpacing: 0.5,
                           }}
@@ -671,7 +671,7 @@ export function GraphCanvas({
                           fontWeight: 600,
                           fontSize: 10,
                           marginTop: 3,
-                          color: '#f8fafc',
+                          color: 'var(--bt-text)',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -679,7 +679,7 @@ export function GraphCanvas({
                       >
                         {node.action?.label || node.action?.type.replace(/-/g, ' ')}
                       </div>
-                      <div style={{ fontSize: 8, color: '#94a3b8', marginTop: 1, display: 'flex', gap: 4 }}>
+                      <div style={{ fontSize: 8, color: 'var(--bt-text-dim)', marginTop: 1, display: 'flex', gap: 4 }}>
                         {node.action?.kind === 'offensive' && node.action.params.ballHandler && (
                           <span>Ball: {node.action.params.ballHandler}</span>
                         )}
@@ -739,7 +739,7 @@ export function GraphCanvas({
           style={{
             background: 'transparent',
             border: 'none',
-            color: '#cbd5e1',
+            color: 'var(--bt-text-muted)',
             cursor: 'pointer',
             padding: 6,
             borderRadius: 4,
@@ -757,7 +757,7 @@ export function GraphCanvas({
           style={{
             background: 'transparent',
             border: 'none',
-            color: '#cbd5e1',
+            color: 'var(--bt-text-muted)',
             cursor: 'pointer',
             padding: 6,
             borderRadius: 4,
@@ -775,7 +775,7 @@ export function GraphCanvas({
           style={{
             background: 'transparent',
             border: 'none',
-            color: '#cbd5e1',
+            color: 'var(--bt-text-muted)',
             cursor: 'pointer',
             padding: 6,
             borderRadius: 4,

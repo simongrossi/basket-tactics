@@ -7,10 +7,10 @@ interface CoachDiagnosticsProps {
 }
 
 const SEVERITY_STYLES: Record<CoachSeverity, { bg: string; fg: string; border: string; icon: string }> = {
-  good:     { bg: 'rgba(52, 211, 153, 0.14)', fg: '#6ee7b7', border: 'rgba(52, 211, 153, 0.26)', icon: '✓' },
-  info:     { bg: 'rgba(96, 165, 250, 0.15)', fg: '#93c5fd', border: 'rgba(96, 165, 250, 0.28)', icon: 'ⓘ' },
-  warning:  { bg: 'rgba(251, 191, 36, 0.14)', fg: '#fbbf24', border: 'rgba(251, 191, 36, 0.25)', icon: '⚠' },
-  critical: { bg: 'rgba(248, 113, 113, 0.14)', fg: '#fca5a5', border: 'rgba(248, 113, 113, 0.28)', icon: '✕' },
+  good:     { bg: 'rgba(52, 211, 153, 0.14)', fg: 'var(--bt-green-text)', border: 'rgba(52, 211, 153, 0.26)', icon: '✓' },
+  info:     { bg: 'rgba(96, 165, 250, 0.15)', fg: 'var(--bt-blue-text)', border: 'rgba(96, 165, 250, 0.28)', icon: 'ⓘ' },
+  warning:  { bg: 'rgba(251, 191, 36, 0.14)', fg: 'var(--bt-amber-text)', border: 'rgba(251, 191, 36, 0.25)', icon: '⚠' },
+  critical: { bg: 'rgba(248, 113, 113, 0.14)', fg: 'var(--bt-red-text)', border: 'rgba(248, 113, 113, 0.28)', icon: '✕' },
 };
 
 const SEVERITY_RANK: Record<CoachSeverity, number> = {
@@ -41,8 +41,8 @@ export function CoachDiagnostics({ diagnostics }: CoachDiagnosticsProps) {
         flexDirection: 'column',
         gap: 3,
         padding: '5px 6px',
-        background: '#20252d',
-        border: '1px solid #343b47',
+        background: 'var(--bt-surface)',
+        border: '1px solid var(--bt-border-strong)',
         borderRadius: 7,
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
         flex: '0 0 auto',
@@ -50,7 +50,7 @@ export function CoachDiagnostics({ diagnostics }: CoachDiagnosticsProps) {
     >
       {sortedDefense.length > 0 && (
         <>
-          <div style={{ fontSize: 9, fontWeight: 800, color: '#94a3b8', letterSpacing: '0.06em' }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--bt-text-dim)', letterSpacing: '0.06em' }}>
             LECTURE COACH
           </div>
           {sortedDefense.map((d) => (
@@ -64,7 +64,7 @@ export function CoachDiagnostics({ diagnostics }: CoachDiagnosticsProps) {
             style={{
               fontSize: 9,
               fontWeight: 700,
-              color: '#94a3b8',
+              color: 'var(--bt-text-dim)',
               letterSpacing: '0.06em',
               marginTop: sortedDefense.length > 0 ? 4 : 0,
             }}

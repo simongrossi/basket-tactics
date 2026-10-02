@@ -146,7 +146,7 @@ export function SystemSelector({ defenseSystem, zoneType, junkType, pressType, o
           <div
             style={{
               fontSize: 9,
-              color: '#78716c',
+              color: 'var(--bt-text-dim)',
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
               marginBottom: 4,
@@ -194,7 +194,7 @@ export function SystemSelector({ defenseSystem, zoneType, junkType, pressType, o
                         ? '#fafafa'
                         : '#fff',
                     cursor: isPending ? 'not-allowed' : 'pointer',
-                    color: isPending ? '#a8a29e' : c.accentText,
+                    color: isPending ? 'var(--bt-text-dim)' : c.accentText,
                     opacity: isPending ? 0.7 : 1,
                     display: 'flex',
                     flexDirection: 'column',
@@ -240,7 +240,7 @@ export function SystemSelector({ defenseSystem, zoneType, junkType, pressType, o
                           fontSize: 8,
                           fontWeight: 600,
                           background: '#fef3c7',
-                          color: '#92400e',
+                          color: 'var(--bt-amber-text)',
                           padding: '1px 4px',
                           borderRadius: 6,
                           flex: '0 0 auto',
@@ -253,7 +253,7 @@ export function SystemSelector({ defenseSystem, zoneType, junkType, pressType, o
                   <div
                     style={{
                       fontSize: 9.5,
-                      color: isPending ? '#a8a29e' : '#78716c',
+                      color: isPending ? 'var(--bt-text-dim)' : 'var(--bt-text-dim)',
                       lineHeight: 1.3,
                       paddingLeft: 16,
                       overflow: 'hidden',

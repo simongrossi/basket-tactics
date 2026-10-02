@@ -118,7 +118,7 @@ export function SimulationSection({ state, onLoadAiSteps, matchLoop, matchSpeed,
       <div style={{ fontSize: 11, fontWeight: 700, color: c.accentText, marginBottom: 4 }}>
         Mode IA possession
       </div>
-      <div style={{ fontSize: 10, color: '#475569', marginBottom: 6, lineHeight: 1.4 }}>
+      <div style={{ fontSize: 10, color: 'var(--bt-text-muted)', marginBottom: 6, lineHeight: 1.4 }}>
         Génère plusieurs possessions depuis l'état courant, puis charge une possession dans la timeline.
       </div>
       <button
@@ -132,7 +132,7 @@ export function SimulationSection({ state, onLoadAiSteps, matchLoop, matchSpeed,
           borderRadius: 4,
           border: `1px solid ${c.border}`,
           background: runningAi ? '#f1f5f9' : '#eef2ff',
-          color: runningAi ? '#94a3b8' : '#3730a3',
+          color: runningAi ? 'var(--bt-text-dim)' : 'var(--bt-violet-text)',
           cursor: runningAi ? 'wait' : 'pointer',
           fontWeight: 700,
           marginBottom: 8,
@@ -141,7 +141,7 @@ export function SimulationSection({ state, onLoadAiSteps, matchLoop, matchSpeed,
         ▶ générer 3 possessions IA
       </button>
       {runningAi && (
-        <div style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center', padding: '8px 0' }}>
+        <div style={{ fontSize: 11, color: 'var(--bt-text-dim)', textAlign: 'center', padding: '8px 0' }}>
           IA en lecture…
         </div>
       )}
@@ -169,7 +169,7 @@ export function SimulationSection({ state, onLoadAiSteps, matchLoop, matchSpeed,
       <div style={{ fontSize: 11, fontWeight: 700, color: c.accentText, marginBottom: 4 }}>
         Monte Carlo
       </div>
-      <div style={{ fontSize: 10, color: '#475569', marginBottom: 6, lineHeight: 1.4 }}>
+      <div style={{ fontSize: 10, color: 'var(--bt-text-muted)', marginBottom: 6, lineHeight: 1.4 }}>
         Lance N possessions stochastiques sur l'état courant. La défense est figée pendant la sim.
       </div>
       <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
@@ -185,7 +185,7 @@ export function SimulationSection({ state, onLoadAiSteps, matchLoop, matchSpeed,
               borderRadius: 4,
               border: `1px solid ${c.border}`,
               background: running ? '#f1f5f9' : '#fff',
-              color: running ? '#94a3b8' : c.accentText,
+              color: running ? 'var(--bt-text-dim)' : c.accentText,
               cursor: running ? 'wait' : 'pointer',
               fontWeight: 500,
             }}
@@ -196,7 +196,7 @@ export function SimulationSection({ state, onLoadAiSteps, matchLoop, matchSpeed,
       </div>
       {result && !running && <SimulationStats result={result} />}
       {running && (
-        <div style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center', padding: '12px 0' }}>
+        <div style={{ fontSize: 11, color: 'var(--bt-text-dim)', textAlign: 'center', padding: '12px 0' }}>
           Simulation en cours…
         </div>
       )}
@@ -232,10 +232,10 @@ function AiSeriesStats({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#334155' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--bt-text-muted)' }}>
                   P{plan.possession} · {AI_OUTCOME_LABELS[plan.outcome]} · {plan.points} pt
                 </div>
-                <div style={{ fontSize: 10, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 10, color: 'var(--bt-text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {plan.events.map((e) => e.label).join(' · ') || 'Aucune décision'}
                 </div>
               </div>
@@ -250,7 +250,7 @@ function AiSeriesStats({
                     borderRadius: 4,
                     border: '1px solid #c7d2fe',
                     background: '#fff',
-                    color: '#3730a3',
+                    color: 'var(--bt-violet-text)',
                     cursor: 'pointer',
                     fontWeight: 700,
                     whiteSpace: 'nowrap',
@@ -286,7 +286,7 @@ function SimulationStats({ result }: { result: SimulationResult }) {
         />
       </div>
       {/* Distribution des outcomes */}
-      <div style={{ fontSize: 10, color: '#475569' }}>
+      <div style={{ fontSize: 10, color: 'var(--bt-text-muted)' }}>
         <div style={{ fontWeight: 600, marginBottom: 2 }}>Distribution ({result.runs} possessions)</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {(Object.keys(OUTCOME_LABELS) as Array<keyof SimulationResult['outcomes']>).map((k) => {
@@ -301,7 +301,7 @@ function SimulationStats({ result }: { result: SimulationResult }) {
                 <div style={{ width: 4, height: 10, background: color, borderRadius: 1 }} />
                 <span style={{ flex: 1 }}>{OUTCOME_LABELS[k]}</span>
                 <span style={{ fontWeight: 600 }}>{count}</span>
-                <span style={{ width: 38, textAlign: 'right', color: '#94a3b8' }}>
+                <span style={{ width: 38, textAlign: 'right', color: 'var(--bt-text-dim)' }}>
                   {pct.toFixed(0)}%
                 </span>
               </div>
@@ -369,10 +369,10 @@ function LiveMatchPanel({
 
   return (
     <div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#1e3a8a', marginBottom: 4 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--bt-blue-text)', marginBottom: 4 }}>
         Play IA (live)
       </div>
-      <div style={{ fontSize: 10, color: '#475569', marginBottom: 6, lineHeight: 1.4 }}>
+      <div style={{ fontSize: 10, color: 'var(--bt-text-muted)', marginBottom: 6, lineHeight: 1.4 }}>
         Lance une possession simulée tick par tick (5 Hz). MVP B1 — le terrain n'est pas encore
         synchronisé (B4) ; on observe le shot clock + outcome.
       </div>
@@ -404,7 +404,7 @@ function LiveMatchPanel({
       {/* B3b — sélecteur de longueur de session, visible quand pas en cours */}
       {!matchState && (
         <div style={{ display: 'flex', gap: 4, marginBottom: 6, alignItems: 'center' }}>
-          <span style={{ fontSize: 9, color: '#64748b', flex: '0 0 60px' }}>POSSESSIONS</span>
+          <span style={{ fontSize: 9, color: 'var(--bt-text-dim)', flex: '0 0 60px' }}>POSSESSIONS</span>
           {[1, 3, 5, null].map((n) => (
             <button
               key={n ?? 'inf'}
@@ -418,7 +418,7 @@ function LiveMatchPanel({
                 border: '1px solid',
                 borderColor: maxPossessions === n ? '#4338ca' : '#cbd5e1',
                 background: maxPossessions === n ? '#eef2ff' : '#fff',
-                color: maxPossessions === n ? '#3730a3' : '#64748b',
+                color: maxPossessions === n ? 'var(--bt-violet-text)' : 'var(--bt-text-dim)',
                 cursor: 'pointer',
                 fontWeight: maxPossessions === n ? 700 : 500,
               }}
@@ -432,7 +432,7 @@ function LiveMatchPanel({
       {/* P3 B6 — sélecteur de vitesse, modifiable même en cours */}
       {onSetMatchSpeed && (
         <div style={{ display: 'flex', gap: 4, marginBottom: 6, alignItems: 'center' }}>
-          <span style={{ fontSize: 9, color: '#64748b', flex: '0 0 60px' }}>VITESSE</span>
+          <span style={{ fontSize: 9, color: 'var(--bt-text-dim)', flex: '0 0 60px' }}>VITESSE</span>
           {[1, 2, 4, 8].map((s) => (
             <button
               key={s}
@@ -446,7 +446,7 @@ function LiveMatchPanel({
                 border: '1px solid',
                 borderColor: (matchSpeed ?? 1) === s ? '#16a34a' : '#cbd5e1',
                 background: (matchSpeed ?? 1) === s ? '#dcfce7' : '#fff',
-                color: (matchSpeed ?? 1) === s ? '#166534' : '#64748b',
+                color: (matchSpeed ?? 1) === s ? 'var(--bt-green-text)' : 'var(--bt-text-dim)',
                 cursor: 'pointer',
                 fontWeight: (matchSpeed ?? 1) === s ? 700 : 500,
               }}
@@ -494,7 +494,7 @@ function LiveMatchPanel({
               borderRadius: 4,
               border: '1px solid #4338ca',
               background: '#eef2ff',
-              color: '#3730a3',
+              color: 'var(--bt-violet-text)',
               cursor: 'pointer',
               fontWeight: 600,
             }}
@@ -516,7 +516,7 @@ function LiveMatchPanel({
               border: '1px solid #e2e8f0',
               borderRadius: 5,
               fontSize: 11,
-              color: '#1e293b',
+              color: 'var(--bt-text)',
               marginBottom: 4,
             }}
           >
@@ -529,10 +529,10 @@ function LiveMatchPanel({
                 border: matchState.attackingTeam === 'home' ? '1px solid #3b82f6' : '1px solid transparent',
               }}
             >
-              <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 9, color: 'var(--bt-text-dim)', textTransform: 'uppercase' }}>
                 {matchState.attackingTeam === 'home' ? '▶ HOME' : 'HOME'}
               </div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#1e3a8a', lineHeight: 1.1 }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--bt-blue-text)', lineHeight: 1.1 }}>
                 {matchState.homeScore}
                 {matchState.score > 0 && matchState.attackingTeam === 'home' && !isFinished && (
                   <span style={{ fontSize: 10, color: '#16a34a', marginLeft: 3 }}>+{matchState.score}</span>
@@ -548,10 +548,10 @@ function LiveMatchPanel({
                 border: matchState.attackingTeam === 'away' ? '1px solid #dc2626' : '1px solid transparent',
               }}
             >
-              <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 9, color: 'var(--bt-text-dim)', textTransform: 'uppercase' }}>
                 {matchState.attackingTeam === 'away' ? '▶ AWAY' : 'AWAY'}
               </div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#991b1b', lineHeight: 1.1 }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--bt-red-text)', lineHeight: 1.1 }}>
                 {matchState.awayScore}
               </div>
             </div>
@@ -565,11 +565,11 @@ function LiveMatchPanel({
               border: '1px solid #e2e8f0',
               borderRadius: 5,
               fontSize: 11,
-              color: '#1e293b',
+              color: 'var(--bt-text)',
             }}
           >
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 9, color: 'var(--bt-text-dim)', textTransform: 'uppercase' }}>
                 {matchState.inboundTimerMs !== null ? '⏱ remise 5s' : 'shot clock'}
               </div>
               {matchState.inboundTimerMs !== null ? (
@@ -577,34 +577,34 @@ function LiveMatchPanel({
                   style={{
                     fontSize: 18,
                     fontWeight: 700,
-                    color: matchState.inboundTimerMs <= 2000 ? '#dc2626' : '#d97706',
+                    color: matchState.inboundTimerMs <= 2000 ? 'var(--bt-red-text)' : '#d97706',
                     lineHeight: 1.1,
                   }}
                 >
                   {(matchState.inboundTimerMs / 1000).toFixed(1)}
-                  <span style={{ fontSize: 10, color: '#94a3b8' }}> s</span>
+                  <span style={{ fontSize: 10, color: 'var(--bt-text-dim)' }}> s</span>
                 </div>
               ) : (
                 <div style={{ fontSize: 18, fontWeight: 700, color: shotClockColor, lineHeight: 1.1 }}>
                   {shotClockSec.toFixed(1)}
-                  <span style={{ fontSize: 10, color: '#94a3b8' }}> s</span>
+                  <span style={{ fontSize: 10, color: 'var(--bt-text-dim)' }}> s</span>
                 </div>
               )}
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>possession</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#7c2d12', lineHeight: 1.1 }}>
+              <div style={{ fontSize: 9, color: 'var(--bt-text-dim)', textTransform: 'uppercase' }}>possession</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--bt-orange-text)', lineHeight: 1.1 }}>
                 {matchState.possession}
                 {matchState.maxPossessions !== null && (
-                  <span style={{ fontSize: 10, color: '#94a3b8' }}>/{matchState.maxPossessions}</span>
+                  <span style={{ fontSize: 10, color: 'var(--bt-text-dim)' }}>/{matchState.maxPossessions}</span>
                 )}
               </div>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 9, color: 'var(--bt-text-dim)', textTransform: 'uppercase' }}>
                 {matchState.attackingTeam === 'home' ? 'porteur' : 'phase'}
               </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#7c2d12', lineHeight: 1.1 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--bt-orange-text)', lineHeight: 1.1 }}>
                 {matchState.attackingTeam === 'home' ? matchState.carrier : '🛡 def'}
               </div>
             </div>
@@ -658,12 +658,12 @@ function LiveMatchPanel({
             border: '1px solid #e2e8f0',
             borderRadius: 5,
             fontSize: 10,
-            color: '#475569',
+            color: 'var(--bt-text-muted)',
             maxHeight: 100,
             overflowY: 'auto',
           }}
         >
-          <div style={{ fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>
+          <div style={{ fontSize: 9, color: 'var(--bt-text-dim)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>
             événements ({matchState.eventLog.length})
           </div>
           {[...matchState.eventLog]
@@ -679,7 +679,7 @@ function LiveMatchPanel({
                   borderBottom: i < 4 ? '1px solid #f1f5f9' : 'none',
                 }}
               >
-                <span style={{ flex: '0 0 32px', color: '#94a3b8', fontFamily: 'monospace' }}>
+                <span style={{ flex: '0 0 32px', color: 'var(--bt-text-dim)', fontFamily: 'monospace' }}>
                   {event.clock.toFixed(1)}s
                 </span>
                 <span style={{ flex: 1 }}>{event.label}</span>
@@ -697,7 +697,7 @@ function LiveMatchPanel({
             border: '1px solid #c7d2fe',
             borderRadius: 5,
             fontSize: 11,
-            color: '#3730a3',
+            color: 'var(--bt-violet-text)',
             textAlign: 'center',
             fontWeight: 600,
           }}
@@ -719,7 +719,7 @@ function LiveMatchPanel({
             borderRadius: 4,
             border: '1px solid #4338ca',
             background: '#eef2ff',
-            color: '#3730a3',
+            color: 'var(--bt-violet-text)',
             cursor: 'pointer',
             fontWeight: 600,
           }}
@@ -743,7 +743,7 @@ function LiveMatchPanel({
               marginTop: 4,
               padding: '4px 8px',
               fontSize: 10,
-              color: '#475569',
+              color: 'var(--bt-text-muted)',
               fontStyle: 'italic',
               textAlign: 'center',
             }}
@@ -783,15 +783,15 @@ function CalibrationPanel({ state }: { state: AppState }) {
 
   return (
     <div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#1e3a8a', marginBottom: 4 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--bt-blue-text)', marginBottom: 4 }}>
         Calibration live vs Monte-Carlo
       </div>
-      <div style={{ fontSize: 10, color: '#475569', marginBottom: 6, lineHeight: 1.4 }}>
+      <div style={{ fontSize: 10, color: 'var(--bt-text-muted)', marginBottom: 6, lineHeight: 1.4 }}>
         Compare la PPP de la game loop live à celle du simulator Monte-Carlo sur le
         même état. Cible : Δ ≤ 0.15.
       </div>
       <div style={{ display: 'flex', gap: 4, marginBottom: 6, alignItems: 'center' }}>
-        <span style={{ fontSize: 9, color: '#64748b', flex: '0 0 50px' }}>RUNS</span>
+        <span style={{ fontSize: 9, color: 'var(--bt-text-dim)', flex: '0 0 50px' }}>RUNS</span>
         {[20, 50, 100].map((n) => (
           <button
             key={n}
@@ -806,7 +806,7 @@ function CalibrationPanel({ state }: { state: AppState }) {
               border: '1px solid',
               borderColor: runCount === n ? '#4338ca' : '#cbd5e1',
               background: runCount === n ? '#eef2ff' : '#fff',
-              color: runCount === n ? '#3730a3' : '#64748b',
+              color: runCount === n ? 'var(--bt-violet-text)' : 'var(--bt-text-dim)',
               cursor: running ? 'wait' : 'pointer',
               fontWeight: runCount === n ? 700 : 500,
             }}
@@ -827,7 +827,7 @@ function CalibrationPanel({ state }: { state: AppState }) {
             borderRadius: 4,
             border: '1px solid #4338ca',
             background: running ? '#f1f5f9' : '#eef2ff',
-            color: running ? '#94a3b8' : '#3730a3',
+            color: running ? 'var(--bt-text-dim)' : 'var(--bt-violet-text)',
             cursor: running ? 'wait' : 'pointer',
             fontWeight: 600,
           }}
@@ -861,7 +861,7 @@ function CalibrationPanel({ state }: { state: AppState }) {
             borderRadius: 4,
             border: '1px solid #16a34a',
             background: autoTuning ? '#f1f5f9' : '#dcfce7',
-            color: autoTuning ? '#94a3b8' : '#166534',
+            color: autoTuning ? 'var(--bt-text-dim)' : 'var(--bt-green-text)',
             cursor: autoTuning ? 'wait' : 'pointer',
             fontWeight: 600,
           }}
@@ -879,7 +879,7 @@ function CalibrationPanel({ state }: { state: AppState }) {
               background: tuning.converged ? '#dcfce7' : '#fef3c7',
               border: `1px solid ${tuning.converged ? '#86efac' : '#fcd34d'}`,
               fontSize: 11,
-              color: tuning.converged ? '#166534' : '#92400e',
+              color: tuning.converged ? 'var(--bt-green-text)' : 'var(--bt-amber-text)',
               fontWeight: 600,
             }}
           >
@@ -898,20 +898,20 @@ function CalibrationPanel({ state }: { state: AppState }) {
             }}
           >
             <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: 9, color: '#64748b' }}>BEST CREATIVITY</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1e3a8a' }}>
+              <div style={{ fontSize: 9, color: 'var(--bt-text-dim)' }}>BEST CREATIVITY</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--bt-blue-text)' }}>
                 {tuning.bestCreativity.toFixed(2)}
               </div>
             </div>
             <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: 9, color: '#64748b' }}>Δ PPP RESTANT</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: Math.abs(tuning.bestDelta) <= 0.15 ? '#16a34a' : '#dc2626' }}>
+              <div style={{ fontSize: 9, color: 'var(--bt-text-dim)' }}>Δ PPP RESTANT</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: Math.abs(tuning.bestDelta) <= 0.15 ? '#16a34a' : 'var(--bt-red-text)' }}>
                 {tuning.bestDelta >= 0 ? '+' : ''}
                 {tuning.bestDelta.toFixed(2)}
               </div>
             </div>
           </div>
-          <div style={{ marginTop: 4, fontSize: 9, color: '#94a3b8', fontStyle: 'italic' }}>
+          <div style={{ marginTop: 4, fontSize: 9, color: 'var(--bt-text-dim)', fontStyle: 'italic' }}>
             Historique : {tuning.history.map((h) => `${h.creativity.toFixed(2)}→Δ${h.deltaPpp >= 0 ? '+' : ''}${h.deltaPpp.toFixed(2)}`).join(' · ')}
           </div>
         </div>
@@ -926,7 +926,7 @@ function CalibrationPanel({ state }: { state: AppState }) {
               background: report.withinTolerance ? '#dcfce7' : '#fee2e2',
               border: `1px solid ${report.withinTolerance ? '#86efac' : '#fca5a5'}`,
               fontSize: 11,
-              color: report.withinTolerance ? '#166534' : '#991b1b',
+              color: report.withinTolerance ? 'var(--bt-green-text)' : 'var(--bt-red-text)',
               fontWeight: 600,
             }}
           >
@@ -947,27 +947,27 @@ function CalibrationPanel({ state }: { state: AppState }) {
             }}
           >
             <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: 9, color: '#64748b' }}>LIVE PPP</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1e3a8a' }}>
+              <div style={{ fontSize: 9, color: 'var(--bt-text-dim)' }}>LIVE PPP</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--bt-blue-text)' }}>
                 {report.liveStats.ppp.toFixed(2)}
               </div>
             </div>
             <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: 9, color: '#64748b' }}>SIM PPP</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1e3a8a' }}>
+              <div style={{ fontSize: 9, color: 'var(--bt-text-dim)' }}>SIM PPP</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--bt-blue-text)' }}>
                 {report.simulatorStats.ppp.toFixed(2)}
               </div>
             </div>
             <div style={{ background: '#f8fafc', padding: '4px 6px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: 9, color: '#64748b' }}>Δ eFG%</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#1e3a8a' }}>
+              <div style={{ fontSize: 9, color: 'var(--bt-text-dim)' }}>Δ eFG%</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--bt-blue-text)' }}>
                 {(report.delta.efgPct * 100).toFixed(1)}
               </div>
             </div>
           </div>
 
           {report.suggestions.length > 0 && (
-            <div style={{ marginTop: 6, fontSize: 10, color: '#475569' }}>
+            <div style={{ marginTop: 6, fontSize: 10, color: 'var(--bt-text-muted)' }}>
               <div style={{ fontWeight: 600, marginBottom: 2 }}>Suggestions :</div>
               <ul style={{ margin: 0, paddingLeft: 16 }}>
                 {report.suggestions.map((s, i) => (
@@ -983,7 +983,7 @@ function CalibrationPanel({ state }: { state: AppState }) {
             style={{
               marginTop: 6,
               fontSize: 9,
-              color: '#94a3b8',
+              color: 'var(--bt-text-dim)',
               fontStyle: 'italic',
             }}
           >
@@ -999,9 +999,9 @@ function CalibrationPanel({ state }: { state: AppState }) {
 
 function liveButtonStyle(kind: 'start' | 'pause' | 'stop') {
   const palette = {
-    start: { bg: '#eef2ff', border: '#4338ca', color: '#3730a3' },
-    pause: { bg: '#fef3c7', border: '#d97706', color: '#92400e' },
-    stop: { bg: '#fee2e2', border: '#dc2626', color: '#991b1b' },
+    start: { bg: '#eef2ff', border: '#4338ca', color: 'var(--bt-violet-text)' },
+    pause: { bg: '#fef3c7', border: '#d97706', color: 'var(--bt-amber-text)' },
+    stop: { bg: '#fee2e2', border: '#dc2626', color: 'var(--bt-red-text)' },
   }[kind];
   return {
     flex: 1,
@@ -1028,7 +1028,7 @@ function Stat({ label, value, color }: { label: string; value: string; color: st
         border: '1px solid #e2e8f0',
       }}
     >
-      <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+      <div style={{ fontSize: 9, color: 'var(--bt-text-dim)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
         {label}
       </div>
       <div style={{ fontSize: 18, fontWeight: 700, color, lineHeight: 1.1, marginTop: 2 }}>

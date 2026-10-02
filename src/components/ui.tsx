@@ -29,7 +29,7 @@ export const COLORS = {
   neutral: {
     bg: '#fafaf9',
     border: '#e2e8f0',
-    text: '#475569',
+    text: 'var(--bt-text-muted)',
   },
 };
 
@@ -368,7 +368,7 @@ export function Slider({ label, min, max, step, value, onChange, title }: Slider
       <span
         style={{
           fontSize: 11,
-          color: dark ? DARK_PANEL.textMuted : '#475569',
+          color: dark ? DARK_PANEL.textMuted : 'var(--bt-text-muted)',
           flex: '0 0 auto',
           maxWidth: 80,
           textDecoration: title ? `underline dotted ${dark ? DARK_PANEL.border : '#cbd5e1'}` : undefined,
@@ -416,7 +416,7 @@ export function Slider({ label, min, max, step, value, onChange, title }: Slider
         style={{
           width: 44,
           fontSize: 11,
-          color: dark ? DARK_PANEL.text : '#475569',
+          color: dark ? DARK_PANEL.text : 'var(--bt-text-muted)',
           textAlign: 'right',
           border: `1px solid ${dark ? DARK_PANEL.border : '#e2e8f0'}`,
           borderRadius: 3,
@@ -453,7 +453,7 @@ export function CheckboxLine({ checked, label, onChange, title }: CheckboxLinePr
         gap: 8,
         alignItems: 'center',
         fontSize: 12,
-        color: dark ? DARK_PANEL.text : '#1f2937',
+        color: dark ? DARK_PANEL.text : 'var(--bt-text)',
         cursor: 'pointer',
         lineHeight: 1.25,
         minWidth: 0,
@@ -488,7 +488,7 @@ export function InfoTooltip({ title }: { title: string }) {
         borderRadius: '50%',
         border: '1px solid #bfdbfe',
         background: '#eff6ff',
-        color: '#1e40af',
+        color: 'var(--bt-blue-text)',
         fontSize: 10,
         fontWeight: 700,
         lineHeight: 1,

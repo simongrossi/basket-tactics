@@ -57,8 +57,8 @@ const inboundButtonStyle = {
   padding: '4px 4px',
   borderRadius: 4,
   border: '1px solid #dc2626',
-  background: '#262a32',
-  color: '#fca5a5',
+  background: 'var(--bt-surface)',
+  color: 'var(--bt-red-text)',
   cursor: 'pointer' as const,
   fontWeight: 600,
   minWidth: 0,
@@ -106,7 +106,7 @@ export function StepsPanel(props: StepsPanelProps) {
                 borderRadius: 5,
                 border: `1px dashed ${c.border}`,
                 background: '#fff',
-                color: '#94a3b8',
+                color: 'var(--bt-text-dim)',
                 fontSize: 11,
                 textAlign: 'center',
                 fontStyle: 'italic',
@@ -155,14 +155,14 @@ export function StepsPanel(props: StepsPanelProps) {
                       style={{ flex: 1, fontSize: 11, padding: '2px 4px', border: `1px solid ${c.border}`, borderRadius: 3 }}
                     />
                   ) : (
-                    <span style={{ flex: 1, color: '#cbd5e1', fontStyle: s.label ? 'normal' : 'italic' }}>
+                    <span style={{ flex: 1, color: 'var(--bt-text-muted)', fontStyle: s.label ? 'normal' : 'italic' }}>
                       {s.label || '(sans label)'}
                     </span>
                   )}
                   {s.switches && <span style={{ fontSize: 10, color: '#999' }}>↔</span>}
                   {s.context === 'free-throw' && (
                     <span
-                      style={{ fontSize: 10, color: '#fbbf24', background: '#fef3c7', padding: '1px 4px', borderRadius: 3, fontWeight: 600 }}
+                      style={{ fontSize: 10, color: 'var(--bt-amber-text)', background: '#fef3c7', padding: '1px 4px', borderRadius: 3, fontWeight: 600 }}
                       title="Lancer franc — positions réglementaires figées"
                     >
                       🏀 LF
@@ -172,7 +172,7 @@ export function StepsPanel(props: StepsPanelProps) {
                     s.context === 'inbound-sideline-low' ||
                     s.context === 'inbound-sideline-high') && (
                     <span
-                      style={{ fontSize: 10, color: '#fca5a5', background: '#fee2e2', padding: '1px 4px', borderRadius: 3, fontWeight: 600 }}
+                      style={{ fontSize: 10, color: 'var(--bt-red-text)', background: '#fee2e2', padding: '1px 4px', borderRadius: 3, fontWeight: 600 }}
                       title={`Remise en jeu — ${
                         s.context === 'inbound-baseline'
                           ? 'ligne de fond (BLOB)'
@@ -186,14 +186,14 @@ export function StepsPanel(props: StepsPanelProps) {
                   )}
                   {s.context === 'jump-ball' && (
                     <span
-                      style={{ fontSize: 10, color: '#5b21b6', background: '#ede9fe', padding: '1px 4px', borderRadius: 3, fontWeight: 600 }}
+                      style={{ fontSize: 10, color: 'var(--bt-violet-text)', background: '#ede9fe', padding: '1px 4px', borderRadius: 3, fontWeight: 600 }}
                       title="Entre-deux (jump ball) — setup canonique cercle central"
                     >
                       🆙 JUMP
                     </span>
                   )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#94a3b8' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--bt-text-dim)' }}>
                   <span>porteur</span>
                   {isActive ? (
                     <select
@@ -222,7 +222,7 @@ export function StepsPanel(props: StepsPanelProps) {
                       gap: 4,
                       marginTop: 4,
                       fontSize: 9,
-                      color: '#94a3b8',
+                      color: 'var(--bt-text-dim)',
                     }}
                   >
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }} title="B.1 — durée narrative de cette étape (s). Vide = défaut global.">
@@ -286,7 +286,7 @@ export function StepsPanel(props: StepsPanelProps) {
                       gap: 5,
                       marginTop: 3,
                       fontSize: 9,
-                      color: '#94a3b8',
+                      color: 'var(--bt-text-dim)',
                       cursor: 'pointer',
                     }}
                     title="G.2 — Sprint contextuel : vitesse max défense ×1.8 sur ce step (fast break / transition / run-out)."
@@ -316,15 +316,15 @@ export function StepsPanel(props: StepsPanelProps) {
                             fontSize: 10,
                             padding: '2px 4px',
                             borderRadius: 3,
-                            background: '#262a32',
+                            background: 'var(--bt-surface)',
                             border: '1px solid #fed7aa',
                           }}
                         >
-                          <span style={{ color: '#fdba74', fontWeight: 700, minWidth: 12, textAlign: 'center' }}>
+                          <span style={{ color: 'var(--bt-orange-text)', fontWeight: 700, minWidth: 12, textAlign: 'center' }}>
                             {ai + 1}
                           </span>
                           <span style={{ fontSize: 11 }}>{meta.symbol}</span>
-                          <span style={{ flex: 1, color: '#cbd5e1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span style={{ flex: 1, color: 'var(--bt-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {meta.label} {a.fromId}
                             {a.toId ? ` → ${a.toId}` : ''}
                           </span>
@@ -339,7 +339,7 @@ export function StepsPanel(props: StepsPanelProps) {
                             style={{
                               border: 'none',
                               background: 'transparent',
-                              color: '#f87171',
+                              color: 'var(--bt-red-text)',
                               cursor: 'pointer',
                               fontSize: 13,
                               fontWeight: 700,
@@ -366,7 +366,7 @@ export function StepsPanel(props: StepsPanelProps) {
                                 marginLeft: 18,
                                 marginBottom: 3,
                                 fontSize: 10,
-                                color: '#9ca3af',
+                                color: 'var(--bt-text-dim)',
                               }}
                             >
                               <label
@@ -375,7 +375,7 @@ export function StepsPanel(props: StepsPanelProps) {
                                   alignItems: 'center',
                                   gap: 5,
                                   fontSize: 9,
-                                  color: '#9ca3af',
+                                  color: 'var(--bt-text-dim)',
                                   cursor: 'pointer',
                                   marginTop: 3,
                                 }}
@@ -391,7 +391,7 @@ export function StepsPanel(props: StepsPanelProps) {
                               </label>
                               {a.type === 'cut' && (
                                 <label
-                                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#cbd5e1', marginTop: 3 }}
+                                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--bt-text-muted)', marginTop: 3 }}
                                   title="Phy.O V3 V2 — si le défenseur matché est de ce côté de la ligne du cut, le cut part automatiquement du côté opposé (path miroité)."
                                 >
                                   flip si déf.
@@ -439,7 +439,7 @@ export function StepsPanel(props: StepsPanelProps) {
                                     style={{
                                       border: 'none',
                                       background: 'transparent',
-                                      color: '#dc2626',
+                                      color: 'var(--bt-red-text)',
                                       cursor: 'pointer',
                                       fontSize: 11,
                                       padding: '0 2px',
@@ -460,7 +460,7 @@ export function StepsPanel(props: StepsPanelProps) {
                                   background: 'transparent',
                                   border: '1px solid #94a3b8',
                                   borderRadius: 3,
-                                  color: '#cbd5e1',
+                                  color: 'var(--bt-text-muted)',
                                   cursor: 'pointer',
                                 }}
                               >
@@ -488,7 +488,7 @@ export function StepsPanel(props: StepsPanelProps) {
               }}
             >
               <div style={{ fontWeight: 600, color: c.accentText }}>Position finale</div>
-              <div style={{ color: '#94a3b8', marginTop: 2 }}>
+              <div style={{ color: 'var(--bt-text-dim)', marginTop: 2 }}>
                 Dessine l’action suivante : elle deviendra l’étape {visibleStepRows.length + 1}.
               </div>
             </div>
@@ -536,9 +536,9 @@ export function StepsPanel(props: StepsPanelProps) {
               fontWeight: 500,
               padding: '7px 8px',
               borderRadius: 6,
-              border: '1px solid #2a2d35',
-              background: '#262a32',
-              color: '#cbd5e1',
+              border: '1px solid var(--bt-border)',
+              background: 'var(--bt-surface)',
+              color: 'var(--bt-text-muted)',
               cursor: 'pointer',
             }}
           >
@@ -562,7 +562,7 @@ export function StepsPanel(props: StepsPanelProps) {
               borderRadius: 6,
               border: '1px solid rgba(252, 165, 165, 0.4)',
               background: 'rgba(252, 165, 165, 0.10)',
-              color: '#fca5a5',
+              color: 'var(--bt-red-text)',
               cursor: 'pointer',
             }}
           >
@@ -578,7 +578,7 @@ export function StepsPanel(props: StepsPanelProps) {
           const outcome = activeStep.shotOutcome;
           return (
             <div style={{ marginTop: 4 }}>
-              <div style={{ fontSize: 9, color: '#94a3b8', marginBottom: 3, letterSpacing: 0.3 }}>
+              <div style={{ fontSize: 9, color: 'var(--bt-text-dim)', marginBottom: 3, letterSpacing: 0.3 }}>
                 TIR (A11)
               </div>
               <div style={{ display: 'flex', gap: 3 }}>
@@ -595,8 +595,8 @@ export function StepsPanel(props: StepsPanelProps) {
                     padding: '4px 6px',
                     borderRadius: 4,
                     border: `1.5px solid ${outcome === 'made' ? '#22c55e' : 'rgba(34, 197, 94, 0.35)'}`,
-                    background: outcome === 'made' ? '#22c55e' : '#262a32',
-                    color: outcome === 'made' ? '#fff' : '#86efac',
+                    background: outcome === 'made' ? '#22c55e' : 'var(--bt-surface)',
+                    color: outcome === 'made' ? '#fff' : 'var(--bt-green-text)',
                     cursor: 'pointer',
                     fontWeight: outcome === 'made' ? 700 : 500,
                   }}
@@ -616,8 +616,8 @@ export function StepsPanel(props: StepsPanelProps) {
                     padding: '4px 6px',
                     borderRadius: 4,
                     border: `1.5px solid ${outcome === 'missed' ? '#dc2626' : 'rgba(252, 165, 165, 0.35)'}`,
-                    background: outcome === 'missed' ? '#dc2626' : '#262a32',
-                    color: outcome === 'missed' ? '#fff' : '#fca5a5',
+                    background: outcome === 'missed' ? '#dc2626' : 'var(--bt-surface)',
+                    color: outcome === 'missed' ? '#fff' : 'var(--bt-red-text)',
                     cursor: 'pointer',
                     fontWeight: outcome === 'missed' ? 700 : 500,
                   }}
@@ -637,8 +637,8 @@ export function StepsPanel(props: StepsPanelProps) {
                     padding: '4px 6px',
                     borderRadius: 4,
                     border: `1.5px solid ${outcome === 'blocked' ? '#a855f7' : 'rgba(196, 181, 253, 0.35)'}`,
-                    background: outcome === 'blocked' ? '#a855f7' : '#262a32',
-                    color: outcome === 'blocked' ? '#fff' : '#c4b5fd',
+                    background: outcome === 'blocked' ? '#a855f7' : 'var(--bt-surface)',
+                    color: outcome === 'blocked' ? '#fff' : 'var(--bt-violet-text)',
                     cursor: 'pointer',
                     fontWeight: outcome === 'blocked' ? 700 : 500,
                   }}
@@ -647,7 +647,7 @@ export function StepsPanel(props: StepsPanelProps) {
                 </button>
               </div>
               {outcome && (
-                <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 3, fontStyle: 'italic' }}>
+                <div style={{ fontSize: 9, color: 'var(--bt-text-dim)', marginTop: 3, fontStyle: 'italic' }}>
                   Step marqué comme tir {outcome === 'made' ? 'réussi' : 'manqué'}.
                   Cliquer à nouveau pour annuler.
                 </div>
@@ -670,8 +670,8 @@ export function StepsPanel(props: StepsPanelProps) {
                     padding: '5px 6px',
                     borderRadius: 4,
                     border: '1px solid #f59e0b',
-                    background: '#262a32',
-                    color: '#fbbf24',
+                    background: 'var(--bt-surface)',
+                    color: 'var(--bt-amber-text)',
                     cursor: 'pointer',
                     fontWeight: 600,
                     marginTop: 4,
@@ -699,8 +699,8 @@ export function StepsPanel(props: StepsPanelProps) {
                     padding: '5px 6px',
                     borderRadius: 4,
                     border: '1px solid #dc2626',
-                    background: '#262a32',
-                    color: '#fca5a5',
+                    background: 'var(--bt-surface)',
+                    color: 'var(--bt-red-text)',
                     cursor: 'pointer',
                     fontWeight: 600,
                     marginTop: 4,
@@ -723,8 +723,8 @@ export function StepsPanel(props: StepsPanelProps) {
                     padding: '5px 6px',
                     borderRadius: 4,
                     border: '1px solid #f59e0b',
-                    background: '#262a32',
-                    color: '#fcd34d',
+                    background: 'var(--bt-surface)',
+                    color: 'var(--bt-amber-text)',
                     cursor: 'pointer',
                     fontWeight: 600,
                     marginTop: 4,
@@ -763,8 +763,8 @@ export function StepsPanel(props: StepsPanelProps) {
                       padding: '5px 6px',
                       borderRadius: 4,
                       border: `1px solid ${isAway ? '#22c55e' : '#dc2626'}`,
-                      background: '#262a32',
-                      color: isAway ? '#86efac' : '#fca5a5',
+                      background: 'var(--bt-surface)',
+                      color: isAway ? 'var(--bt-green-text)' : 'var(--bt-red-text)',
                       cursor: 'pointer',
                       fontWeight: 600,
                       marginTop: 4,
@@ -792,8 +792,8 @@ export function StepsPanel(props: StepsPanelProps) {
                 padding: '4px 6px',
                 borderRadius: 4,
                 border: '1px solid #f59e0b',
-                background: '#262a32',
-                color: '#fbbf24',
+                background: 'var(--bt-surface)',
+                color: 'var(--bt-amber-text)',
                 cursor: 'pointer',
                 fontWeight: 600,
               }}
@@ -817,8 +817,8 @@ export function StepsPanel(props: StepsPanelProps) {
                   padding: '4px 4px',
                   borderRadius: 4,
                   border: '1px solid #10b981',
-                  background: '#262a32',
-                  color: '#065f46',
+                  background: 'var(--bt-surface)',
+                  color: 'var(--bt-green-text)',
                   cursor: 'pointer',
                   fontWeight: 600,
                   minWidth: 0,
@@ -836,8 +836,8 @@ export function StepsPanel(props: StepsPanelProps) {
                   padding: '4px 4px',
                   borderRadius: 4,
                   border: '1px solid #f59e0b',
-                  background: '#262a32',
-                  color: '#fbbf24',
+                  background: 'var(--bt-surface)',
+                  color: 'var(--bt-amber-text)',
                   cursor: 'pointer',
                   fontWeight: 600,
                   minWidth: 0,
@@ -903,8 +903,8 @@ export function StepsPanel(props: StepsPanelProps) {
                 padding: '4px 6px',
                 borderRadius: 4,
                 border: '1px solid #7c3aed',
-                background: '#262a32',
-                color: '#5b21b6',
+                background: 'var(--bt-surface)',
+                color: 'var(--bt-violet-text)',
                 cursor: 'pointer',
                 fontWeight: 600,
               }}
@@ -921,7 +921,7 @@ export function StepsPanel(props: StepsPanelProps) {
             props.state.steps[props.state.activeStep].context === 'inbound-sideline-low' ||
             props.state.steps[props.state.activeStep].context === 'inbound-sideline-high') && (
             <div style={{ marginTop: 6, padding: '4px 6px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 4 }}>
-              <div style={{ fontSize: 9, fontWeight: 600, color: '#fca5a5', marginBottom: 3, letterSpacing: 0.3 }}>
+              <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--bt-red-text)', marginBottom: 3, letterSpacing: 0.3 }}>
                 🛡 DÉFENSE SUR REMISE
               </div>
               <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
@@ -942,8 +942,8 @@ export function StepsPanel(props: StepsPanelProps) {
                       padding: '3px 6px',
                       borderRadius: 3,
                       border: '1px solid #fca5a5',
-                      background: '#262a32',
-                      color: '#fca5a5',
+                      background: 'var(--bt-surface)',
+                      color: 'var(--bt-red-text)',
                       cursor: 'pointer',
                       fontWeight: 600,
                       minWidth: 0,

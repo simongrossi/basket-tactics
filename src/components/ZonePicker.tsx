@@ -152,12 +152,12 @@ export function ZonePickerModal({ initialValue, onConfirm, onCancel }: ZonePicke
           <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Choisir une zone du terrain</h3>
           <button
             type="button" onClick={onCancel}
-            style={{ fontSize: 14, background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+            style={{ fontSize: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--bt-text-dim)' }}
           >✕</button>
         </div>
 
         <div style={{ display: 'flex', gap: 8, fontSize: 11 }}>
-          <span style={{ color: '#475569' }}>Mode :</span>
+          <span style={{ color: 'var(--bt-text-muted)' }}>Mode :</span>
           {(['absolute', 'strong', 'weak'] as PickerMode[]).map((m) => (
             <label key={m} style={{ display: 'flex', alignItems: 'center', gap: 3, cursor: 'pointer' }}>
               <input
@@ -228,7 +228,7 @@ export function ZonePickerModal({ initialValue, onConfirm, onCancel }: ZonePicke
           })}
         </svg>
 
-        <p style={{ fontSize: 11, color: '#475569', margin: 0 }}>
+        <p style={{ fontSize: 11, color: 'var(--bt-text-muted)', margin: 0 }}>
           {mode === 'absolute'
             ? 'Clique une zone pour la sélectionner (référence absolue gauche/droite).'
             : `Clique une zone latéralisée — elle sera enregistrée comme "${mode === 'strong' ? 'côté fort' : 'côté faible'}" relativement au porteur.`}

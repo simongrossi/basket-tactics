@@ -12,29 +12,29 @@ import {
 import { realStepToSeconds, getStepDurationSeconds } from '@/lib/logic/timecode';
 
 const TRACK_UI = {
-  bg: '#171b22',
-  surface: '#20252d',
-  cell: '#252b34',
-  cellBorder: '#343b47',
+  bg: 'var(--bt-bg)',
+  surface: 'var(--bt-surface)',
+  cell: 'var(--bt-surface)',
+  cellBorder: 'var(--bt-border-strong)',
   divider: '#475569',
-  text: '#f3f4f6',
-  muted: '#cbd5e1',
-  dim: '#94a3b8',
+  text: 'var(--bt-text)',
+  muted: 'var(--bt-text-muted)',
+  dim: 'var(--bt-text-dim)',
   orange: '#D85A30',
-  orangeSoft: '#fdba74',
+  orangeSoft: 'var(--bt-orange-text)',
   blue: '#378ADD',
 } as const;
 
 const DARK_ACTIVITY_COLORS: typeof ACTIVITY_COLORS = {
-  idle:     { bg: '#222831', fg: '#94a3b8', label: 'idle' },
-  pos:      { bg: '#26313d', fg: '#cbd5e1', label: 'position' },
-  dribble:  { bg: 'rgba(249, 115, 22, 0.22)', fg: '#fdba74', label: 'dribble' },
-  cut:      { bg: 'rgba(251, 191, 36, 0.23)', fg: '#fbbf24', label: 'cut' },
-  screen:   { bg: 'rgba(248, 113, 113, 0.22)', fg: '#fca5a5', label: 'écran' },
-  pass:     { bg: 'rgba(245, 158, 11, 0.22)', fg: '#fcd34d', label: 'passe' },
-  tracking: { bg: 'rgba(96, 165, 250, 0.24)', fg: '#93c5fd', label: 'suit' },
+  idle:     { bg: 'var(--bt-surface)', fg: 'var(--bt-text-dim)', label: 'idle' },
+  pos:      { bg: 'var(--bt-surface)', fg: 'var(--bt-text-muted)', label: 'position' },
+  dribble:  { bg: 'rgba(249, 115, 22, 0.22)', fg: 'var(--bt-orange-text)', label: 'dribble' },
+  cut:      { bg: 'rgba(251, 191, 36, 0.23)', fg: 'var(--bt-amber-text)', label: 'cut' },
+  screen:   { bg: 'rgba(248, 113, 113, 0.22)', fg: 'var(--bt-red-text)', label: 'écran' },
+  pass:     { bg: 'rgba(245, 158, 11, 0.22)', fg: 'var(--bt-amber-text)', label: 'passe' },
+  tracking: { bg: 'rgba(96, 165, 250, 0.24)', fg: 'var(--bt-blue-text)', label: 'suit' },
   closeout: { bg: 'rgba(56, 189, 248, 0.22)', fg: '#7dd3fc', label: 'closeout' },
-  help:     { bg: 'rgba(167, 139, 250, 0.24)', fg: '#c4b5fd', label: 'aide' },
+  help:     { bg: 'rgba(167, 139, 250, 0.24)', fg: 'var(--bt-violet-text)', label: 'aide' },
 };
 
 interface MultiTrackTimelineProps {
@@ -83,7 +83,7 @@ export function MultiTrackTimeline({
 
   if (tracks.length === 0 || realStepsCount < 2) {
     return (
-      <div style={{ padding: '12px 16px', fontSize: 11, color: '#94a3b8', textAlign: 'center' }}>
+      <div style={{ padding: '12px 16px', fontSize: 11, color: 'var(--bt-text-dim)', textAlign: 'center' }}>
         Crée au moins 2 étapes pour voir les pistes par joueur.
       </div>
     );
@@ -225,7 +225,7 @@ function TrackRow({
         gap: 4,
         padding: '2px 6px',
         background: track.kind === 'attacker' ? 'rgba(249, 115, 22, 0.2)' : 'rgba(55, 138, 221, 0.2)',
-        color: track.kind === 'attacker' ? '#fdba74' : '#93c5fd',
+        color: track.kind === 'attacker' ? 'var(--bt-orange-text)' : 'var(--bt-blue-text)',
         border: `1px solid ${track.kind === 'attacker' ? 'rgba(249, 115, 22, 0.28)' : 'rgba(55, 138, 221, 0.32)'}`,
         borderRadius: 6,
         fontSize: 10,

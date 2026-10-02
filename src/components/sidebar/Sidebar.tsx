@@ -46,6 +46,7 @@ export function Sidebar({ toolGroups, activeTool, panelOpen, onSelectTool, onClo
         .sidebar-tools-scope .sidebar-tool-section:last-of-type {
           border-bottom: none !important;
         }
+:root[data-theme="dark"] {
         .sidebar-tools-scope select,
         .sidebar-tools-scope input[type="text"],
         .sidebar-tools-scope input[type="number"],
@@ -70,7 +71,7 @@ export function Sidebar({ toolGroups, activeTool, panelOpen, onSelectTool, onClo
         .sidebar-tools-scope textarea::placeholder {
           color: ${SIDEBAR.textDim} !important;
         }
-        .sidebar-tools-scope [style*="rgb(255, 255, 255)"]:not(input):not(select):not(textarea),
+        .sidebar-tools-scope [style*="background: rgb(255, 255, 255)"]:not(input):not(select):not(textarea),
         .sidebar-tools-scope [style*="rgb(255,255,255)"]:not(input):not(select):not(textarea),
         .sidebar-tools-scope [style*="background: #fff"]:not(input):not(select):not(textarea),
         .sidebar-tools-scope [style*="background:#fff"]:not(input):not(select):not(textarea),
@@ -184,6 +185,7 @@ export function Sidebar({ toolGroups, activeTool, panelOpen, onSelectTool, onClo
         .sidebar-tools-scope [style*="border: 1px solid #fecaca"] {
           border-color: ${SIDEBAR.border} !important;
         }
+}
       `}} />
       <nav className="bt-rail" aria-label="Outils">
         {toolGroups.map((g) => {

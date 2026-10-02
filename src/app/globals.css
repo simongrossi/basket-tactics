@@ -1,17 +1,75 @@
+/* Thème : clair par défaut. `data-theme` est posé sur <html> par
+   useTheme (et par le script anti-flash de layout.tsx) : « dark » quand
+   l'utilisateur le choisit, ou en mode automatique si le système est sombre. */
 :root {
-  --bt-bg: #171a20;
-  --bt-surface: #1f242c;
-  --bt-surface-raised: #262b34;
+  color-scheme: light;
+  --bt-canvas: #eef1f5;
+  --bt-bg: #ffffff;
+  --bt-surface: #f3f5f8;
+  --bt-surface-raised: #e6eaf0;
+  --bt-surface-hover: #eef1f5;
+  --bt-border: #e2e6ec;
+  --bt-border-strong: #c5cdd8;
+  --bt-text: #18212b;
+  --bt-text-muted: #475569;
+  --bt-text-dim: #64748b;
+  --bt-accent: #1d6ec2;
+  --bt-accent-strong: #1d6ec2;
+  --bt-accent-bg: rgba(29, 110, 194, 0.1);
+  --bt-orange: #d85a30;
+  --bt-orange-soft: #9a3412;
+  --bt-blue-text: #1e40af;
+  --bt-red-text: #b91c1c;
+  --bt-orange-text: #9a3412;
+  --bt-amber-text: #92400e;
+  --bt-green-text: #047857;
+  --bt-violet-text: #5b21b6;
+  --bt-scroll-thumb: #c5cdd8;
+  --bt-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  /* Autour du terrain : non redéfini par .bt-force-dark, suit le thème. */
+  --bt-stage: #dde2e9;
+  --bt-stage-border: #cfd6df;
+}
+
+:root[data-theme='dark'] {
+  --bt-stage: #262a32;
+  --bt-stage-border: #2a2d35;
+}
+
+/* `.bt-force-dark` : éléments posés sur le terrain (menus contextuels,
+   bandeaux, pages de simulation) qui restent sombres dans les deux thèmes. */
+:root[data-theme='dark'],
+.bt-force-dark,
+.bt-context-menu {
+  color-scheme: dark;
+  --bt-canvas: #14171c;
+  --bt-bg: #1a1d23;
+  --bt-surface: #262a32;
+  --bt-surface-raised: #2f343d;
   --bt-surface-hover: #303744;
-  --bt-border: #343b47;
-  --bt-border-strong: #465061;
+  --bt-border: #2a2d35;
+  --bt-border-strong: #3d4653;
   --bt-text: #f3f4f6;
   --bt-text-muted: #cbd5e1;
   --bt-text-dim: #94a3b8;
-  --bt-accent: #378add;
+  --bt-accent: #4ba3ff;
   --bt-accent-strong: #4ba3ff;
+  --bt-accent-bg: rgba(75, 163, 255, 0.16);
   --bt-orange: #d85a30;
   --bt-orange-soft: #fdba74;
+  --bt-blue-text: #93c5fd;
+  --bt-red-text: #fca5a5;
+  --bt-orange-text: #fdba74;
+  --bt-amber-text: #fbbf24;
+  --bt-green-text: #6ee7b7;
+  --bt-violet-text: #c4b5fd;
+  --bt-scroll-thumb: #3d4653;
+  --bt-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.bt-force-dark,
+.bt-context-menu {
+  color: var(--bt-text);
 }
 
 * {
@@ -43,7 +101,7 @@ button {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #3d4653 #171a20;
+  scrollbar-color: var(--bt-scroll-thumb) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -52,17 +110,19 @@ button {
 }
 
 *::-webkit-scrollbar-track {
-  background: #171a20;
+  background: transparent;
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #3d4653;
-  border: 2px solid #171a20;
+  background: var(--bt-scroll-thumb);
+  border: 2px solid transparent;
+  background-clip: padding-box;
   border-radius: 999px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #4b5565;
+  background: var(--bt-text-dim);
+  background-clip: padding-box;
 }
 
 input[type='checkbox'] {
@@ -72,14 +132,9 @@ input[type='checkbox'] {
   height: 16px;
   flex: 0 0 16px;
   margin: 0;
-  border: 1px solid #526074;
+  border: 1px solid var(--bt-border-strong);
   border-radius: 5px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 100%),
-    #171c24;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 1px 3px rgba(0, 0, 0, 0.28);
+  background: var(--bt-bg);
   cursor: pointer;
   transition:
     background-color 120ms ease,
@@ -89,7 +144,7 @@ input[type='checkbox'] {
 }
 
 input[type='checkbox']:hover {
-  border-color: #7a8798;
+  border-color: var(--bt-text-dim);
 }
 
 input[type='checkbox']:checked {
@@ -127,9 +182,9 @@ input[type='range'] {
 
 input[type='range']::-webkit-slider-runnable-track {
   height: 5px;
-  border: 1px solid #333b47;
+  border: none;
   border-radius: 999px;
-  background: linear-gradient(180deg, #3a424f 0%, #2b313b 100%);
+  background: var(--bt-border-strong);
 }
 
 input[type='range']::-webkit-slider-thumb {
@@ -138,26 +193,26 @@ input[type='range']::-webkit-slider-thumb {
   width: 18px;
   height: 18px;
   margin-top: -7px;
-  border: 2px solid #f3f4f6;
+  border: 2px solid var(--bt-accent);
   border-radius: 50%;
-  background: linear-gradient(180deg, #ffffff 0%, #dbeafe 100%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 input[type='range']::-moz-range-track {
   height: 5px;
-  border: 1px solid #333b47;
+  border: none;
   border-radius: 999px;
-  background: #2b313b;
+  background: var(--bt-border-strong);
 }
 
 input[type='range']::-moz-range-thumb {
   width: 16px;
   height: 16px;
-  border: 2px solid #f3f4f6;
+  border: 2px solid var(--bt-accent);
   border-radius: 50%;
-  background: #e5efff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 input[type='number'],
@@ -165,9 +220,9 @@ input[type='text'],
 input[type='search'],
 select,
 textarea {
-  border: 1px solid var(--bt-border);
+  border: 1px solid var(--bt-border-strong);
   border-radius: 6px;
-  background: var(--bt-surface-raised);
+  background: var(--bt-bg);
   color: var(--bt-text);
 }
 
@@ -263,7 +318,6 @@ textarea {
 
 input[type='number'] {
   appearance: textfield;
-  color-scheme: dark;
 }
 
 input[type='number']::-webkit-inner-spin-button,
@@ -328,6 +382,7 @@ textarea::placeholder {
 }
 
 .bt-touchbar-btn {
+  /* Posé sur le terrain : reste sombre dans les deux thèmes. */
   pointer-events: auto;
   padding: 6px 12px;
   border-radius: 8px;
@@ -494,8 +549,8 @@ textarea::placeholder {
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  background: #1a1d23;
-  border-bottom: 1px solid #2a2d35;
+  background: var(--bt-bg);
+  border-bottom: 1px solid var(--bt-border);
 }
 
 .bt-topbar {
@@ -545,12 +600,12 @@ textarea::placeholder {
 }
 
 .bt-nav-pill:hover {
-  background: #262a32;
+  background: var(--bt-surface);
   color: var(--bt-text);
 }
 
 .bt-nav-pill[aria-current='page'] {
-  background: #2f343d;
+  background: var(--bt-surface-raised);
   color: var(--bt-text);
   font-weight: 600;
 }
@@ -585,7 +640,7 @@ textarea::placeholder {
   width: 1px;
   height: 20px;
   margin: 0 4px;
-  background: #343b47;
+  background: var(--bt-border-strong);
 }
 
 .bt-toolbar-title {
@@ -604,7 +659,7 @@ textarea::placeholder {
 }
 
 .bt-toolbar-status.is-error {
-  color: #fca5a5;
+  color: var(--bt-red-text);
 }
 
 .bt-toolbar-spacer {
@@ -628,7 +683,7 @@ textarea::placeholder {
 
 .bt-icon-btn:hover:not(:disabled),
 .bt-icon-btn[aria-expanded='true'] {
-  background: #2f343d;
+  background: var(--bt-surface-raised);
   color: var(--bt-text);
 }
 
@@ -643,7 +698,7 @@ textarea::placeholder {
   gap: 7px;
   height: 32px;
   padding: 0 14px;
-  border: 1px solid #3d4653;
+  border: 1px solid var(--bt-border-strong);
   border-radius: 999px;
   background: transparent;
   color: var(--bt-text);
@@ -655,8 +710,8 @@ textarea::placeholder {
 }
 
 .bt-btn:hover {
-  background: #262a32;
-  border-color: #526074;
+  background: var(--bt-surface);
+  border-color: var(--bt-text-dim);
 }
 
 .bt-btn-primary {
@@ -686,8 +741,8 @@ textarea::placeholder {
   padding: 8px 0;
   overflow-y: auto;
   scrollbar-width: none;
-  background: #1a1d23;
-  border-right: 1px solid #2a2d35;
+  background: var(--bt-bg);
+  border-right: 1px solid var(--bt-border);
 }
 
 .bt-rail-item {
@@ -709,12 +764,12 @@ textarea::placeholder {
 }
 
 .bt-rail-item:hover {
-  background: #262a32;
+  background: var(--bt-surface);
   color: var(--bt-text);
 }
 
 .bt-rail-item[aria-pressed='true'] {
-  background: #2f343d;
+  background: var(--bt-surface-raised);
   color: var(--bt-text);
   font-weight: 600;
 }
@@ -722,7 +777,7 @@ textarea::placeholder {
 .bt-rail-version {
   margin-top: auto;
   padding-top: 8px;
-  color: #64748b;
+  color: var(--bt-text-dim);
   font-size: 10px;
 }
 
@@ -732,15 +787,15 @@ textarea::placeholder {
   width: 272px;
   flex: 0 0 272px;
   min-height: 0;
-  background: #1a1d23;
-  border-right: 1px solid #2a2d35;
+  background: var(--bt-bg);
+  border-right: 1px solid var(--bt-border);
 }
 
 .bt-panel-right {
   width: 288px;
   flex-basis: 288px;
   border-right: none;
-  border-left: 1px solid #2a2d35;
+  border-left: 1px solid var(--bt-border);
 }
 
 .bt-panel-right.is-collapsed {
@@ -804,8 +859,8 @@ textarea::placeholder {
     flex: 0 0 auto;
     padding: 6px 8px;
     border-right: none;
-    border-top: 1px solid #2a2d35;
-    border-bottom: 1px solid #2a2d35;
+    border-top: 1px solid var(--bt-border);
+    border-bottom: 1px solid var(--bt-border);
   }
 
   .bt-rail-version {

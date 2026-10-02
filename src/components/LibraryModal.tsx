@@ -150,7 +150,7 @@ export function LibraryModal(props: LibraryModalProps) {
               justifyContent: 'center',
               padding: 0,
               boxSizing: 'border-box',
-              background: '#1a1d23',
+              background: 'var(--bt-bg)',
             }
           : {
               position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)',
@@ -165,7 +165,7 @@ export function LibraryModal(props: LibraryModalProps) {
           inline
             ? {
                 width: '100%', maxWidth: 1100,
-                background: '#1a1d23',
+                background: 'var(--bt-bg)',
                 display: 'flex', flexDirection: 'column', overflow: 'hidden',
               }
             : {
@@ -189,7 +189,7 @@ export function LibraryModal(props: LibraryModalProps) {
               <div style={{ fontSize: 14, fontWeight: 700, color: c.accentText, letterSpacing: '-0.01em' }}>
                 📚 Bibliothèque
               </div>
-              <div style={{ fontSize: 11, color: '#78716c', marginTop: 2 }}>
+              <div style={{ fontSize: 11, color: 'var(--bt-text-dim)', marginTop: 2 }}>
                 Systèmes classiques · {library.folders.length} dossier(s) personnel(s)
               </div>
             </div>
@@ -197,7 +197,7 @@ export function LibraryModal(props: LibraryModalProps) {
               onClick={onClose}
               style={{
                 fontSize: 20, border: 'none', background: 'transparent',
-                cursor: 'pointer', color: '#64748b', padding: '4px 10px',
+                cursor: 'pointer', color: 'var(--bt-text-dim)', padding: '4px 10px',
                 borderRadius: 4, lineHeight: 1,
               }}
               title="Fermer (Échap)"
@@ -228,7 +228,7 @@ export function LibraryModal(props: LibraryModalProps) {
               active={selectedTag === null && selectedFolderId === LAB_FOLDER_ID}
               onClick={() => { setSelectedTag(null); setSelectedFolderId(LAB_FOLDER_ID); }}
             />}
-            <div style={{ fontSize: 9, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 8, marginBottom: 2, paddingLeft: 4 }}>
+            <div style={{ fontSize: 9, color: 'var(--bt-text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 8, marginBottom: 2, paddingLeft: 4 }}>
               Mes dossiers
             </div>
             {library.folders.map((f) => (
@@ -268,7 +268,7 @@ export function LibraryModal(props: LibraryModalProps) {
               if (tags.length === 0) return null;
               return (
                 <>
-                  <div style={{ fontSize: 9, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 10, marginBottom: 2, paddingLeft: 4 }}>
+                  <div style={{ fontSize: 9, color: 'var(--bt-text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 10, marginBottom: 2, paddingLeft: 4 }}>
                     🏷 Catégories
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '2px 4px' }}>
@@ -290,9 +290,9 @@ export function LibraryModal(props: LibraryModalProps) {
                             fontSize: 11,
                             padding: '2px 6px',
                             borderRadius: 999,
-                            border: active ? '1px solid #a78bfa' : '1px solid #2a2d35',
+                            border: active ? '1px solid #a78bfa' : '1px solid var(--bt-border)',
                             background: active ? 'rgba(167, 139, 250, 0.22)' : 'transparent',
-                            color: active ? '#f3f4f6' : '#cbd5e1',
+                            color: active ? 'var(--bt-text)' : 'var(--bt-text-muted)',
                             cursor: 'pointer',
                           }}
                         >
@@ -323,7 +323,7 @@ export function LibraryModal(props: LibraryModalProps) {
                 return (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: inline ? '#f3f4f6' : c.accentText }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: inline ? 'var(--bt-text)' : c.accentText }}>
                         🏷 #{selectedTag} · {total} système{total > 1 ? 's' : ''}
                       </div>
                       <button
@@ -332,14 +332,14 @@ export function LibraryModal(props: LibraryModalProps) {
                         style={{
                           fontSize: 11, padding: '2px 8px',
                           border: '1px solid #94a3b8', borderRadius: 4,
-                          background: 'transparent', color: '#cbd5e1', cursor: 'pointer',
+                          background: 'transparent', color: 'var(--bt-text-muted)', cursor: 'pointer',
                         }}
                       >
                         × retirer le filtre
                       </button>
                     </div>
                     {total === 0 ? (
-                      <div style={{ fontSize: 12, color: '#a8a29e', padding: 24, textAlign: 'center', fontStyle: 'italic' }}>
+                      <div style={{ fontSize: 12, color: 'var(--bt-text-dim)', padding: 24, textAlign: 'center', fontStyle: 'italic' }}>
                         Aucun système avec ce tag.
                       </div>
                     ) : (
@@ -373,10 +373,10 @@ export function LibraryModal(props: LibraryModalProps) {
                                 {t.name}
                               </div>
                             </div>
-                            <div style={{ fontSize: 11, color: '#57534e', lineHeight: 1.4 }}>
+                            <div style={{ fontSize: 11, color: 'var(--bt-text-muted)', lineHeight: 1.4 }}>
                               {t.description}
                             </div>
-                            <div style={{ fontSize: 10, color: '#94a3b8' }}>
+                            <div style={{ fontSize: 10, color: 'var(--bt-text-dim)' }}>
                               {(t.tags ?? []).map((tg) => `#${tg}`).join(' ')}
                             </div>
                           </button>
@@ -407,7 +407,7 @@ export function LibraryModal(props: LibraryModalProps) {
               })()
             ) : isReadOnlyFolder ? (
               <>
-                <div style={{ fontSize: 11, color: '#78716c' }}>
+                <div style={{ fontSize: 11, color: 'var(--bt-text-dim)' }}>
                   {isClassic
                     ? "Systèmes prêts à l'emploi (lecture seule). Clic pour charger."
                     : "Bancs de test exhaustifs des écrans — outils dev. Chaque template = un scénario continu (≤ 18 s) pour valider visuellement les comportements engine."}
@@ -444,7 +444,7 @@ export function LibraryModal(props: LibraryModalProps) {
                           {t.name}
                         </div>
                       </div>
-                      <div style={{ fontSize: 11, color: '#57534e', lineHeight: 1.4 }}>
+                      <div style={{ fontSize: 11, color: 'var(--bt-text-muted)', lineHeight: 1.4 }}>
                         {t.description}
                       </div>
                     </button>
@@ -456,7 +456,7 @@ export function LibraryModal(props: LibraryModalProps) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{
                     fontSize: 13, fontWeight: 600,
-                    color: inline ? '#f3f4f6' : c.accentText,
+                    color: inline ? 'var(--bt-text)' : c.accentText,
                   }}>
                     {userFolder.name} · {userFolder.systems.length} système(s)
                   </div>
@@ -505,7 +505,7 @@ export function LibraryModal(props: LibraryModalProps) {
                   </div>
                 </div>
                 {userFolder.systems.length === 0 ? (
-                  <div style={{ fontSize: 12, color: '#a8a29e', padding: 24, textAlign: 'center', fontStyle: 'italic' }}>
+                  <div style={{ fontSize: 12, color: 'var(--bt-text-dim)', padding: 24, textAlign: 'center', fontStyle: 'italic' }}>
                     Aucun système dans ce dossier. Utilise "+ sauvegarder l'état courant" pour en créer un.
                   </div>
                 ) : (
@@ -545,7 +545,7 @@ export function LibraryModal(props: LibraryModalProps) {
         <footer
           style={{
             padding: '8px 16px', borderTop: `1px solid ${c.border}`,
-            fontSize: 10, color: '#94a3b8', display: 'flex', justifyContent: 'space-between',
+            fontSize: 10, color: 'var(--bt-text-dim)', display: 'flex', justifyContent: 'space-between',
           }}
         >
           <span>Tous les systèmes personnels sont sauvegardés en local (localStorage).</span>
@@ -612,10 +612,10 @@ function darkSecondaryBtn(): React.CSSProperties {
     padding: '6px 12px',
     fontSize: 12,
     fontWeight: 500,
-    border: '1px solid #2a2d35',
+    border: '1px solid var(--bt-border)',
     borderRadius: 6,
     background: 'transparent',
-    color: '#cbd5e1',
+    color: 'var(--bt-text-muted)',
     cursor: 'pointer',
   };
 }
@@ -636,13 +636,13 @@ function FolderRow({
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
         padding: '0 10px', height: 34, borderRadius: 6, cursor: 'pointer',
         background: active ? 'rgba(167, 139, 250, 0.14)' : 'transparent',
-        color: active ? '#f3f4f6' : '#cbd5e1',
+        color: active ? 'var(--bt-text)' : 'var(--bt-text-muted)',
         fontSize: 13, fontWeight: active ? 600 : 500,
         transition: 'background 120ms ease, color 120ms ease',
       }}
       onMouseEnter={(e) => {
         if (!active) {
-          e.currentTarget.style.background = '#262a32';
+          e.currentTarget.style.background = 'var(--bt-surface)';
           e.currentTarget.style.color = '#f3f4f6';
         }
       }}
@@ -655,7 +655,7 @@ function FolderRow({
     >
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
         {label}{' '}
-        <span style={{ color: '#94a3b8', fontSize: 11, fontWeight: 500 }}>
+        <span style={{ color: 'var(--bt-text-dim)', fontSize: 11, fontWeight: 500 }}>
           ({count})
         </span>
       </span>
@@ -667,7 +667,7 @@ function FolderRow({
               title="Renommer"
               style={{
                 border: 'none', background: 'transparent', cursor: 'pointer',
-                fontSize: 11, padding: 2, color: '#94a3b8',
+                fontSize: 11, padding: 2, color: 'var(--bt-text-dim)',
               }}
             >
               ✎
@@ -679,7 +679,7 @@ function FolderRow({
               title="Supprimer"
               style={{
                 border: 'none', background: 'transparent', cursor: 'pointer',
-                fontSize: 11, padding: 2, color: '#fca5a5',
+                fontSize: 11, padding: 2, color: 'var(--bt-red-text)',
               }}
             >
               🗑
@@ -731,7 +731,7 @@ function TagEditor({
             padding: compact ? '1px 4px 1px 6px' : '2px 5px 2px 7px',
             borderRadius: 999,
             background: 'rgba(167, 139, 250, 0.18)',
-            color: '#5b21b6',
+            color: 'var(--bt-violet-text)',
             border: '1px solid rgba(167, 139, 250, 0.42)',
           }}
         >
@@ -775,7 +775,7 @@ function TagEditor({
           border: '1px dashed #94a3b8',
           borderRadius: 4,
           background: 'transparent',
-          color: '#1f2937',
+          color: 'var(--bt-text)',
         }}
       />
       {suggestions && suggestions.length > 0 && (
@@ -808,8 +808,8 @@ function NewFolderForm({
           inline
             ? {
                 marginTop: 6, padding: '8px 10px', fontSize: 12,
-                border: '1px dashed #2a2d35', borderRadius: 6,
-                background: 'transparent', color: '#cbd5e1', cursor: 'pointer',
+                border: '1px dashed var(--bt-border)', borderRadius: 6,
+                background: 'transparent', color: 'var(--bt-text-muted)', cursor: 'pointer',
                 textAlign: 'left',
               }
             : {
@@ -841,7 +841,7 @@ function NewFolderForm({
     <div
       style={{
         marginTop: 6, padding: 8, borderRadius: 6,
-        border: `1px solid #2a2d35`, background: '#181a20',
+        border: `1px solid var(--bt-border)`, background: 'var(--bt-bg)',
         display: 'flex', flexDirection: 'column', gap: 6,
       }}
     >
@@ -857,7 +857,7 @@ function NewFolderForm({
         }}
         style={{
           fontSize: 12, padding: '4px 6px', borderRadius: 4,
-          background: '#0f1117', color: '#f3f4f6', border: '1px solid #2a2d35',
+          background: '#0f1117', color: 'var(--bt-text)', border: '1px solid var(--bt-border)',
         }}
       />
       <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
@@ -865,8 +865,8 @@ function NewFolderForm({
           onClick={cancel}
           style={{
             fontSize: 11, padding: '3px 8px', borderRadius: 4,
-            background: 'transparent', color: '#94a3b8',
-            border: '1px solid #2a2d35', cursor: 'pointer',
+            background: 'transparent', color: 'var(--bt-text-dim)',
+            border: '1px solid var(--bt-border)', cursor: 'pointer',
           }}
         >
           Annuler
@@ -876,7 +876,7 @@ function NewFolderForm({
           disabled={!name.trim()}
           style={{
             fontSize: 11, padding: '3px 8px', borderRadius: 4,
-            background: name.trim() ? accent : '#374151',
+            background: name.trim() ? accent : 'var(--bt-border-strong)',
             color: '#fff',
             border: 'none', cursor: name.trim() ? 'pointer' : 'not-allowed',
           }}
@@ -940,11 +940,11 @@ function SystemCard({
           </div>
         </div>
         {system.description && (
-          <div style={{ fontSize: 11, color: '#57534e', lineHeight: 1.4 }}>
+          <div style={{ fontSize: 11, color: 'var(--bt-text-muted)', lineHeight: 1.4 }}>
             {system.description}
           </div>
         )}
-        <div style={{ fontSize: 10, color: '#78716c' }}>
+        <div style={{ fontSize: 10, color: 'var(--bt-text-dim)' }}>
           {system.defenseSystem === 'zone' ? `zone ${system.zoneConfig.type.replace('zone-', '')}` : 'individuelle'} ·
           {' '}sauvegardé {new Date(system.updatedAt).toLocaleDateString('fr-FR')}
         </div>
@@ -992,7 +992,7 @@ function SystemCard({
             title="Supprimer"
             aria-label={`Supprimer ${system.name}`}
             className="bt-touch"
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 14, padding: 2, color: '#dc2626' }}
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 14, padding: 2, color: 'var(--bt-red-text)' }}
           >
             🗑
           </button>
@@ -1088,7 +1088,7 @@ function SaveDialog({
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
           Sauvegarder dans "{targetFolderName}"
         </div>
-        <div style={{ fontSize: 11, color: '#78716c', marginBottom: 10 }}>
+        <div style={{ fontSize: 11, color: 'var(--bt-text-dim)', marginBottom: 10 }}>
           Capture les positions, annotations, défense, profils joueurs, zone, écrans.
         </div>
         <input
@@ -1110,7 +1110,7 @@ function SaveDialog({
           rows={2}
           style={{ width: '100%', padding: '6px 8px', fontSize: 12, border: '1px solid #d6d3d1', borderRadius: 4, resize: 'vertical', marginBottom: 6 }}
         />
-        <div style={{ fontSize: 10, color: '#78716c', marginBottom: 4 }}>
+        <div style={{ fontSize: 10, color: 'var(--bt-text-dim)', marginBottom: 4 }}>
           🏷 Tags (Entrée pour ajouter, suggestions depuis tags existants) :
         </div>
         <TagEditor tags={tags} suggestions={tagSuggestions} onChange={setTags} />

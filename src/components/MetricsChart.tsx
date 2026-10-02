@@ -53,11 +53,11 @@ const CHART_HEIGHT = 70;
 const CHART_PADDING = { top: 6, right: 8, bottom: 14, left: 8 };
 
 const CHART_UI = {
-  bg: '#20252d',
-  surface: '#252b34',
-  border: '#343b47',
-  text: '#cbd5e1',
-  dim: '#94a3b8',
+  bg: 'var(--bt-surface)',
+  surface: 'var(--bt-surface)',
+  border: 'var(--bt-border-strong)',
+  text: 'var(--bt-text-muted)',
+  dim: 'var(--bt-text-dim)',
   accent: '#378ADD',
   danger: '#f87171',
 } as const;

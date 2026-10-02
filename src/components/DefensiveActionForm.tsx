@@ -26,7 +26,7 @@ export function DefensiveActionForm({ action, defenderIds, attackerIds, onChange
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11 }}>
       {requires('defenders') && (
         <div>
-          <label style={{ color: '#475569', display: 'block', marginBottom: 2 }}>
+          <label style={{ color: 'var(--bt-text-muted)', display: 'block', marginBottom: 2 }}>
             Défenseur(s)
           </label>
           <div style={{ display: 'flex', gap: 4 }}>
@@ -46,7 +46,7 @@ export function DefensiveActionForm({ action, defenderIds, attackerIds, onChange
                     border: '1px solid ' + (checked ? '#1e3a8a' : '#cbd5e1'),
                     borderRadius: 4,
                     background: checked ? '#dbeafe' : '#fff',
-                    color: checked ? '#1e3a8a' : '#64748b',
+                    color: checked ? 'var(--bt-blue-text)' : 'var(--bt-text-dim)',
                     cursor: 'pointer',
                   }}
                 >{d}</button>
@@ -58,7 +58,7 @@ export function DefensiveActionForm({ action, defenderIds, attackerIds, onChange
 
       {requires('target') && (
         <div>
-          <label style={{ color: '#475569', display: 'block', marginBottom: 2 }}>Cible</label>
+          <label style={{ color: 'var(--bt-text-muted)', display: 'block', marginBottom: 2 }}>Cible</label>
           <select
             value={action.params.target ?? ''}
             onChange={(e) => updateParams({ target: e.target.value as AttackerId })}
@@ -72,7 +72,7 @@ export function DefensiveActionForm({ action, defenderIds, attackerIds, onChange
 
       {requires('swapWith') && (
         <div>
-          <label style={{ color: '#475569', display: 'block', marginBottom: 2 }}>
+          <label style={{ color: 'var(--bt-text-muted)', display: 'block', marginBottom: 2 }}>
             Échange avec
           </label>
           <select

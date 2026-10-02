@@ -466,7 +466,7 @@ export default function Page() {
   }, [app]);
 
   const shellVisible = !presentMode && !isPlayerMode && !manualBusy;
-  const showStepsColumn = wide && sidebar.activeView === 'court';
+  const showStepsColumn = wide;
   const stepsPanel = (
     <StepsPanel
       state={app.state}
@@ -501,10 +501,10 @@ export default function Page() {
         height: '100vh',
         maxHeight: '100vh',
         overflow: 'hidden',
-        background: '#1a1d23',
+        background: 'var(--bt-bg)',
         display: 'flex',
         flexDirection: 'column',
-        color: '#e5e7eb',
+        color: 'var(--bt-text)',
       }}
     >
       {shellVisible && (
@@ -752,7 +752,7 @@ export default function Page() {
                   height: '100%',
                   overflow: 'auto',
                   padding: '24px 28px',
-                  background: '#171a20',
+                  background: 'var(--bt-bg)',
                   borderRadius: 8,
                   boxSizing: 'border-box',
                 }}
@@ -789,6 +789,8 @@ export default function Page() {
           )}
           {sidebar.activeView === 'scenariograph' && (
             <SidebarThemeProvider dark>
+              {/* Plan de travail du graphe : sombre dans les deux thèmes. */}
+              <div className="bt-force-dark" style={{ display: 'grid', minHeight: 0 }}>
               <ScenarioGraphView
                 state={app.state}
                 activeStep={app.state.activeStep}
@@ -804,6 +806,7 @@ export default function Page() {
                 onSetContinuityLoop={app.setContinuityLoop}
                 onClose={() => sidebar.setActiveView('court')}
               />
+              </div>
             </SidebarThemeProvider>
           )}
           {sidebar.activeView === 'court' && (
@@ -827,7 +830,7 @@ export default function Page() {
             />
           )}
           {!isPlayerMode && !presentMode && <ManualRecordingBar recorder={manual} preparing={preparingRecording} onStart={startGestureRecording} onCopy={copyGestureRecording} onReplay={replayGestureRecording} />}
-          <div style={{ position: 'relative', minHeight: 0, overflow: 'hidden', display: 'grid' }}>
+          <div className="bt-force-dark" style={{ position: 'relative', minHeight: 0, overflow: 'hidden', display: 'grid' }}>
             {runBlock && runBlockVisual?.kind === 'none' && !manualBusy && (
               <div style={{ position: 'absolute', inset: 0, zIndex: 60, display: 'grid' }}>
                 <SessionBlockCard title={runBlock.title} notes={runBlock.notes} durationMin={runBlock.durationMin} />
@@ -840,7 +843,7 @@ export default function Page() {
                   <span style={{
                     fontSize: 10,
                     background: 'rgba(234, 88, 12, 0.2)',
-                    color: '#fdba74',
+                    color: 'var(--bt-orange-text)',
                     padding: '2px 6px',
                     borderRadius: 4,
                     fontWeight: '600',
@@ -848,10 +851,10 @@ export default function Page() {
                   }}>LECTEUR</span>
                 </div>
                 <div className="player-step-info">
-                  <div style={{ fontSize: 9, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  <div style={{ fontSize: 9, color: 'var(--bt-text-dim)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     {formatStepCounter(stepCounterAt(app.state.steps, app.state.activeStep))}
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2, color: '#f3f4f6', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2, color: 'var(--bt-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {app.state.steps[app.state.activeStep]?.label || 'Sans description'}
                   </div>
                 </div>
@@ -994,10 +997,10 @@ export default function Page() {
                 style={{
                   padding: '6px 10px',
                   fontSize: 12,
-                  border: '1px solid #2a2d35',
+                  border: '1px solid var(--bt-border)',
                   borderRadius: 6,
-                  background: showMultiTrack ? 'rgba(216, 90, 48, 0.2)' : '#2f343d',
-                  color: showMultiTrack ? '#fdba74' : '#cbd5e1',
+                  background: showMultiTrack ? 'rgba(216, 90, 48, 0.2)' : 'var(--bt-surface-raised)',
+                  color: showMultiTrack ? 'var(--bt-orange-text)' : 'var(--bt-text-muted)',
                   cursor: 'pointer',
                   fontWeight: 600,
                   whiteSpace: 'nowrap',
@@ -1042,7 +1045,7 @@ export default function Page() {
           )}
         </div>
 
-        {shellVisible && showStepsColumn && (
+        {shellVisible && showStepsColumn && sidebar.activeView === 'court' && (
           sidebar.rightCollapsed ? (
             <aside className="bt-panel bt-panel-right is-collapsed">
               <button type="button" className="bt-icon-btn" onClick={sidebar.toggleRight} title="Afficher les étapes" aria-label="Afficher les étapes">
@@ -1210,7 +1213,7 @@ export default function Page() {
           overflow: hidden;
           /* Plan de travail : plus sombre que les colonnes qui l'encadrent. */
           padding: 10px 12px;
-          background: #14171c;
+          background: var(--bt-canvas);
         }
         /* U05 — barre de déroulé au-dessus du terrain. */
         .center-col.has-session-run {
@@ -1222,9 +1225,10 @@ export default function Page() {
              bleu-gris cohérent avec la sidebar. */
           grid-template-rows: 1fr;
           padding: 0;
-          background: #1a1d23;
-          color: #e5e7eb;
+          background: var(--bt-bg);
+          color: var(--bt-text);
         }
+:root[data-theme="dark"] {
         /* Overrides dark pour la Timeline + Metrics + ScenarioReader +
            CoachDiagnostics sous le court (vue Terrain). Ne touche pas le SVG
            du court lui-même (les couleurs SVG sont des attributs fill/stroke,
@@ -1356,7 +1360,7 @@ export default function Page() {
         .inline-view-scope textarea::placeholder {
           color: #71717a !important;
         }
-        .inline-view-scope [style*="rgb(255, 255, 255)"]:not(input):not(select):not(textarea):not(button[style*="background: rgb(216, 90, 48)"]),
+        .inline-view-scope [style*="background: rgb(255, 255, 255)"]:not(input):not(select):not(textarea):not(button[style*="background: rgb(216, 90, 48)"]),
         .inline-view-scope [style*="background: rgb(255,255,255)"]:not(input):not(select):not(textarea),
         .inline-view-scope [style*="background: #fff"]:not(input):not(select):not(textarea),
         .inline-view-scope [style*="background:#fff"]:not(input):not(select):not(textarea),
@@ -1443,6 +1447,7 @@ export default function Page() {
         .inline-view-scope .playbook-print.playbook-print [style*="color: rgb(71, 85, 105)"] {
           color: #475569 !important;
         }
+}
         .side-col {
           display: flex;
           flex-direction: column;

@@ -19,17 +19,17 @@ interface ParametresPanelProps {
 }
 
 const UI = {
-  page: '#171a20',
-  panel: '#1e232c',
-  panelLift: '#232a35',
-  control: '#252c37',
-  controlHover: '#2d3542',
-  controlOff: '#171c24',
-  border: '#303846',
-  borderStrong: '#465264',
-  text: '#f3f4f6',
-  muted: '#cbd5e1',
-  dim: '#8f9aad',
+  page: 'var(--bt-bg)',
+  panel: 'var(--bt-bg)',
+  panelLift: 'var(--bt-surface)',
+  control: 'var(--bt-surface)',
+  controlHover: 'var(--bt-surface-raised)',
+  controlOff: 'var(--bt-surface)',
+  border: 'var(--bt-border)',
+  borderStrong: 'var(--bt-border-strong)',
+  text: 'var(--bt-text)',
+  muted: 'var(--bt-text-muted)',
+  dim: 'var(--bt-text-dim)',
   accent: '#4ba3ff',
   accentDeep: '#1d75d0',
   orange: '#fb923c',
@@ -64,7 +64,7 @@ const groupStyle: CSSProperties = {
   background: `linear-gradient(180deg, ${UI.panelLift} 0%, ${UI.panel} 100%)`,
   border: `1px solid ${UI.border}`,
   borderRadius: 8,
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 26px rgba(0,0,0,0.12)',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
 };
 
 const groupTitleStyle: CSSProperties = {
@@ -79,7 +79,7 @@ const groupTitleStyle: CSSProperties = {
 
 const categoryGridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
   gap: 10,
 };
 
@@ -91,7 +91,7 @@ const toggleListStyle: CSSProperties = {
 
 const compactGridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(210px, 100%), 1fr))',
   gap: 8,
 };
 
@@ -105,7 +105,7 @@ const inputStyle: CSSProperties = {
   borderRadius: 7,
   background: UI.controlOff,
   color: UI.text,
-  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.25)',
+  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.08)',
 };
 
 /**
@@ -130,7 +130,7 @@ export function ParametresPanel({
   return (
     <Panel theme="defense" title="⚙ Paramètres">
       <InterfaceLevelSelector />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 12 }}>
         <SettingsSection title="Format de jeu">
           <ControlGroup title="Joueurs actifs" accent={UI.accent}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 7 }}>
@@ -623,7 +623,7 @@ export function ParametresPanel({
       <SettingsSection title="Physique & Biomécanique" min="development">
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0' }}>Profil de réalisme</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--bt-text)' }}>Profil de réalisme</span>
             <SegmentButton
               active={state.realismProfile === 'realistic'}
               onClick={() => onPatch({ realismProfile: 'realistic' })}
@@ -663,7 +663,7 @@ export function ParametresPanel({
           />
           {state.screenStiffnessEnabled && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 16 }}>
-              <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 120 }} title="Facteur d'amplification de la pénalité d'écran. 1.0 = legacy, 2.0 = impact violent.">
+              <span style={{ fontSize: 11, color: 'var(--bt-text-muted)', minWidth: 120 }} title="Facteur d'amplification de la pénalité d'écran. 1.0 = legacy, 2.0 = impact violent.">
                 violence d'impact
               </span>
               <input
@@ -678,7 +678,7 @@ export function ParametresPanel({
                 }}
                 style={{ flex: 1 }}
               />
-              <span style={{ fontSize: 10, color: '#94a3b8', minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 10, color: 'var(--bt-text-dim)', minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                 {(state.screenStiffness ?? 1.5).toFixed(1)}
               </span>
             </div>
@@ -721,7 +721,7 @@ export function ParametresPanel({
           />
           {realism.attackerAccelerationEnabled && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 16 }}>
-              <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 120 }} title="Accélération max (m/s²). Plus grand = montées en vitesse plus sèches.">
+              <span style={{ fontSize: 11, color: 'var(--bt-text-muted)', minWidth: 120 }} title="Accélération max (m/s²). Plus grand = montées en vitesse plus sèches.">
                 accélération (m/s²)
               </span>
               <input
@@ -736,7 +736,7 @@ export function ParametresPanel({
                 }}
                 style={{ flex: 1 }}
               />
-              <span style={{ fontSize: 10, color: '#94a3b8', minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 10, color: 'var(--bt-text-dim)', minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                 {(realism.attackerAcceleration ?? 5.0).toFixed(1)}
               </span>
             </div>
@@ -749,7 +749,7 @@ export function ParametresPanel({
           />
           {realism.attackerMomentumEnabled && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 16 }}>
-              <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 120 }} title="Coefficient d'inertie offensive (dérive en virage).">
+              <span style={{ fontSize: 11, color: 'var(--bt-text-muted)', minWidth: 120 }} title="Coefficient d'inertie offensive (dérive en virage).">
                 coefficient de dérive
               </span>
               <input
@@ -764,7 +764,7 @@ export function ParametresPanel({
                 }}
                 style={{ flex: 1 }}
               />
-              <span style={{ fontSize: 10, color: '#94a3b8', minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 10, color: 'var(--bt-text-dim)', minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                 {(realism.attackerMomentum ?? 0.15).toFixed(2)}
               </span>
             </div>
@@ -856,7 +856,7 @@ function SegmentButton({
         background: active
           ? `linear-gradient(180deg, rgba(75,163,255,0.22) 0%, rgba(29,117,208,0.16) 100%)`
           : UI.control,
-        color: active ? '#e8f3ff' : UI.muted,
+        color: active ? UI.text : UI.muted,
         cursor: 'pointer',
         fontSize: 13,
         fontWeight: 850,
@@ -956,9 +956,9 @@ function DarkActionButton({
         minHeight: 38,
         padding: '9px 12px',
         borderRadius: 8,
-        border: `1px solid ${disabled ? '#2d333d' : UI.borderStrong}`,
+        border: `1px solid ${disabled ? 'var(--bt-surface-raised)' : UI.borderStrong}`,
         background: disabled
-          ? '#1b2027'
+          ? 'var(--bt-bg)'
           : `linear-gradient(180deg, ${UI.controlHover} 0%, ${UI.control} 100%)`,
         color: disabled ? '#697386' : UI.text,
         cursor: disabled ? 'default' : 'pointer',
@@ -1006,12 +1006,12 @@ function ToggleCard({
         borderRadius: 8,
         border: `1px solid ${checked ? color : UI.border}`,
         background: checked
-          ? `linear-gradient(135deg, ${color}24 0%, rgba(37,44,55,0.96) 58%, rgba(24,29,37,0.98) 100%)`
+          ? `linear-gradient(135deg, ${color}24 0%, ${color}0a 100%)`
           : UI.controlOff,
         color: checked ? UI.text : UI.muted,
         cursor: 'pointer',
         textAlign: 'left',
-        boxShadow: checked ? `inset 0 0 0 1px ${color}35, 0 8px 18px rgba(0,0,0,0.14)` : 'inset 0 1px 0 rgba(255,255,255,0.03)',
+        boxShadow: checked ? `inset 0 0 0 1px ${color}35, 0 4px 12px rgba(0,0,0,0.08)` : 'none',
         transition: 'border-color 140ms ease, background 140ms ease, box-shadow 140ms ease, transform 140ms ease',
       }}
     >
@@ -1046,8 +1046,8 @@ function SwitchGlyph({ checked, accent }: { checked: boolean; accent: string }) 
         border: `1px solid ${checked ? accent : UI.borderStrong}`,
         background: checked
           ? `linear-gradient(180deg, ${accent} 0%, ${UI.accentDeep} 100%)`
-          : '#11161d',
-        boxShadow: checked ? `0 0 0 3px ${accent}18` : 'inset 0 1px 2px rgba(0,0,0,0.45)',
+          : 'var(--bt-bg)',
+        boxShadow: checked ? `0 0 0 3px ${accent}18` : 'inset 0 1px 2px rgba(0,0,0,0.12)',
         transition: 'background 140ms ease, border-color 140ms ease, box-shadow 140ms ease',
       }}
     >

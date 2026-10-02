@@ -101,10 +101,10 @@ export function SidebarOverflowMenu({
         maxHeight: `calc(100vh - ${portalPos.top + 8}px)`,
         overflowY: 'auto',
         minWidth: 220,
-        background: SIDEBAR.bgActive,
+        background: SIDEBAR.bg,
         border: `1px solid ${SIDEBAR.border}`,
         borderRadius: 8,
-        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+        boxShadow: 'var(--bt-shadow)',
         padding: 4,
         display: 'flex',
         flexDirection: 'column',
@@ -145,7 +145,7 @@ export function SidebarOverflowMenu({
               }
             }}
             label={copied ? '✓ Lien copié !' : '🔗 Partager tactique (lien)'}
-            style={copied ? { color: '#34d399', fontWeight: 650 } : undefined}
+            style={copied ? { color: 'var(--bt-green-text)', fontWeight: 650 } : undefined}
           />
           <Divider />
         </>
@@ -204,7 +204,7 @@ function Item({
         border: 'none',
         background: 'transparent',
         cursor: 'pointer',
-        color: danger ? '#fca5a5' : SIDEBAR.text,
+        color: danger ? 'var(--bt-red-text)' : SIDEBAR.text,
         fontWeight: 500,
         ...style,
       }}

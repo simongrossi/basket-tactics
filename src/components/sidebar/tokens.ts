@@ -1,21 +1,21 @@
 // Tokens de la coque de l'éditeur (barre d'app, rail d'icônes, panneaux
 // latéraux) et de leurs popovers. La zone centrale garde la palette de ui.tsx.
 
-// Palette bleu-gris foncé — pas noir pur, plus chaud et plus lisible.
-// Alignée avec DARK_PANEL pour la cohérence entre panneaux et vues routées.
+// Les couleurs sont des variables CSS (cf. globals.css) : thème clair par
+// défaut, sombre selon le système ou le choix de l'utilisateur.
 export const SIDEBAR = {
-  bg: '#1a1d23',
-  bgHover: '#262a32',
-  bgActive: '#2f343d',
+  bg: 'var(--bt-bg)',
+  bgHover: 'var(--bt-surface)',
+  bgActive: 'var(--bt-surface-raised)',
   /** Fond du plan de travail (derrière le terrain), plus sombre que les colonnes. */
-  canvas: '#14171c',
-  border: '#2a2d35',
-  borderSubtle: '#22252c',
-  text: '#f3f4f6',
-  textMuted: '#cbd5e1',
-  textDim: '#94a3b8',
-  accent: '#a78bfa',
-  accentBg: 'rgba(167, 139, 250, 0.14)',
+  canvas: 'var(--bt-canvas)',
+  border: 'var(--bt-border)',
+  borderSubtle: 'var(--bt-border)',
+  text: 'var(--bt-text)',
+  textMuted: 'var(--bt-text-muted)',
+  textDim: 'var(--bt-text-dim)',
+  accent: 'var(--bt-accent)',
+  accentBg: 'var(--bt-accent-bg)',
   // Largeurs des colonnes
   railWidth: 64,
   panelWidth: 272,

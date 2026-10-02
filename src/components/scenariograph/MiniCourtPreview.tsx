@@ -90,7 +90,7 @@ export function MiniCourtPreview({
           borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
           fontSize: 10,
           fontWeight: 700,
-          color: '#94a3b8',
+          color: 'var(--bt-text-dim)',
           textTransform: 'uppercase',
           letterSpacing: 0.5,
           userSelect: 'none',
@@ -104,7 +104,7 @@ export function MiniCourtPreview({
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: isPlaying ? '#fdba74' : '#fff',
+                color: isPlaying ? 'var(--bt-orange-text)' : '#fff',
                 cursor: 'pointer',
                 padding: 2,
                 display: 'flex',
@@ -120,7 +120,7 @@ export function MiniCourtPreview({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--bt-text-dim)',
               cursor: 'pointer',
               padding: 2,
               display: 'flex',
@@ -135,7 +135,7 @@ export function MiniCourtPreview({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--bt-text-dim)',
               cursor: 'pointer',
               padding: 2,
               display: 'flex',
@@ -152,7 +152,7 @@ export function MiniCourtPreview({
       <div
         style={{
           padding: 8,
-          background: '#1e293b',
+          background: 'var(--bt-surface)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -169,7 +169,7 @@ export function MiniCourtPreview({
           padding: '6px 10px',
           background: 'rgba(0, 0, 0, 0.1)',
           fontSize: 10,
-          color: '#cbd5e1',
+          color: 'var(--bt-text-muted)',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',

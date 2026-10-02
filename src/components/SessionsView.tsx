@@ -48,7 +48,7 @@ interface SessionsViewProps {
 
 const C = {
   bg: DARK_PANEL.bg,
-  bgSidebar: '#161a20',
+  bgSidebar: 'var(--bt-bg)',
   panel: DARK_PANEL.bgSubtle,
   panelRaised: DARK_PANEL.bgRaised,
   border: DARK_PANEL.border,
@@ -571,14 +571,14 @@ function BlockRow({
             value={block.title}
             onChange={(e) => onUpdate({ title: e.target.value })}
             className="session-input"
-            style={{ ...inputBase, flex: 1, minWidth: 120, fontWeight: 700, fontSize: 14, background: '#1c1f26' }}
+            style={{ ...inputBase, flex: 1, minWidth: 120, fontWeight: 700, fontSize: 14, background: 'var(--bt-bg)' }}
           />
           <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: C.muted }}>
             <input
               type="number" min={0} value={block.durationMin}
               onChange={(e) => onUpdate({ durationMin: Math.max(0, parseInt(e.target.value || '0', 10)) })}
               className="session-input"
-              style={{ ...inputBase, width: 56, textAlign: 'right', padding: '4px 6px', background: '#1c1f26' }}
+              style={{ ...inputBase, width: 56, textAlign: 'right', padding: '4px 6px', background: 'var(--bt-bg)' }}
             />
             min
           </label>
@@ -596,7 +596,7 @@ function BlockRow({
           placeholder="Notes / consignes du bloc…"
           rows={block.notes && block.notes.includes('\n') ? Math.min(12, block.notes.split('\n').length + 1) : 2}
           className="session-input block-notes"
-          style={{ ...inputBase, fontSize: 12, color: C.muted, background: '#1c1f26', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}
+          style={{ ...inputBase, fontSize: 12, color: C.muted, background: 'var(--bt-bg)', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}
         />
       </div>
 

@@ -339,7 +339,7 @@ export function ScenarioGraphView({
             <span style={{ fontSize: 13, fontWeight: 800, color: '#f97316', letterSpacing: 0.5 }}>
               SCÉNARIO NODAL
             </span>
-            <span style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
+            <span style={{ fontSize: 10, color: 'var(--bt-text-dim)', marginTop: 2 }}>
               Éditeur Graphique de Jeu
             </span>
           </div>
@@ -347,7 +347,7 @@ export function ScenarioGraphView({
 
         {/* Perspective de Joueur */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--bt-text-dim)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Perspective de vue
           </span>
           <select
@@ -357,8 +357,8 @@ export function ScenarioGraphView({
               fontSize: 12,
               padding: '6px 10px',
               borderRadius: 6,
-              background: '#1e293b',
-              border: '1px solid #334155',
+              background: 'var(--bt-surface)',
+              border: '1px solid var(--bt-border-strong)',
               color: '#fff',
               outline: 'none',
               cursor: 'pointer',
@@ -385,7 +385,7 @@ export function ScenarioGraphView({
                 style={{
                   fontSize: 10,
                   fontWeight: 800,
-                  color: selectedAction.kind === 'offensive' ? '#fdba74' : '#93c5fd',
+                  color: selectedAction.kind === 'offensive' ? 'var(--bt-orange-text)' : 'var(--bt-blue-text)',
                   background: selectedAction.kind === 'offensive' ? 'rgba(253, 186, 116, 0.1)' : 'rgba(147, 197, 253, 0.1)',
                   padding: '3px 8px',
                   borderRadius: 4,
@@ -400,7 +400,7 @@ export function ScenarioGraphView({
 
             {/* Type selector */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--bt-text-dim)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Type d'action
               </span>
               {selectedAction.kind === 'offensive' ? (
@@ -411,8 +411,8 @@ export function ScenarioGraphView({
                     fontSize: 12,
                     padding: '6px 8px',
                     borderRadius: 6,
-                    background: '#1e293b',
-                    border: '1px solid #334155',
+                    background: 'var(--bt-surface)',
+                    border: '1px solid var(--bt-border-strong)',
                     color: '#fff',
                     outline: 'none',
                     cursor: 'pointer',
@@ -432,8 +432,8 @@ export function ScenarioGraphView({
                     fontSize: 12,
                     padding: '6px 8px',
                     borderRadius: 6,
-                    background: '#1e293b',
-                    border: '1px solid #334155',
+                    background: 'var(--bt-surface)',
+                    border: '1px solid var(--bt-border-strong)',
                     color: '#fff',
                     outline: 'none',
                     cursor: 'pointer',
@@ -450,7 +450,7 @@ export function ScenarioGraphView({
 
             {/* Formulaire des paramètres */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--bt-text-dim)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
                 Paramètres
               </span>
               {selectedAction.kind === 'offensive' ? (
@@ -474,7 +474,7 @@ export function ScenarioGraphView({
 
             {/* Reordonner l'action */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--bt-text-dim)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Ordonner
               </span>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -493,7 +493,7 @@ export function ScenarioGraphView({
                     borderRadius: 6,
                     background: selectedActionIndex === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.08)',
-                    color: selectedActionIndex === 0 ? '#475569' : '#cbd5e1',
+                    color: selectedActionIndex === 0 ? 'var(--bt-text-muted)' : 'var(--bt-text-muted)',
                     cursor: selectedActionIndex === 0 ? 'not-allowed' : 'pointer',
                   }}
                 >
@@ -514,7 +514,7 @@ export function ScenarioGraphView({
                     borderRadius: 6,
                     background: selectedActionIndex === currentActions.length - 1 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.08)',
-                    color: selectedActionIndex === currentActions.length - 1 ? '#475569' : '#cbd5e1',
+                    color: selectedActionIndex === currentActions.length - 1 ? 'var(--bt-text-muted)' : 'var(--bt-text-muted)',
                     cursor: selectedActionIndex === currentActions.length - 1 ? 'not-allowed' : 'pointer',
                   }}
                 >
@@ -561,7 +561,7 @@ export function ScenarioGraphView({
                         borderRadius: 6,
                         background: 'rgba(168, 85, 247, 0.1)',
                         border: '1px solid rgba(168, 85, 247, 0.4)',
-                        color: '#c084fc',
+                        color: 'var(--bt-violet-text)',
                         cursor: 'pointer',
                       }}
                     >
@@ -582,7 +582,7 @@ export function ScenarioGraphView({
                       borderRadius: 6,
                       background: 'rgba(139, 92, 246, 0.1)',
                       border: '1px solid rgba(139, 92, 246, 0.4)',
-                      color: '#a78bfa',
+                      color: 'var(--bt-violet-text)',
                       cursor: 'pointer',
                     }}
                   >
@@ -604,7 +604,7 @@ export function ScenarioGraphView({
                   borderRadius: 6,
                   background: 'rgba(239, 68, 68, 0.1)',
                   border: '1px solid rgba(239, 68, 68, 0.4)',
-                  color: '#f87171',
+                  color: 'var(--bt-red-text)',
                   cursor: 'pointer',
                   marginTop: 10,
                 }}
@@ -622,7 +622,7 @@ export function ScenarioGraphView({
                 borderRadius: 8,
                 padding: 16,
                 textAlign: 'center',
-                color: '#94a3b8',
+                color: 'var(--bt-text-dim)',
                 fontSize: 11,
                 lineHeight: 1.5,
               }}
@@ -663,7 +663,7 @@ export function ScenarioGraphView({
                   borderRadius: 6,
                   background: 'rgba(59, 130, 246, 0.1)',
                   border: '1px solid rgba(59, 130, 246, 0.3)',
-                  color: '#60a5fa',
+                  color: 'var(--bt-blue-text)',
                   cursor: 'pointer',
                 }}
               >
@@ -721,7 +721,7 @@ export function ScenarioGraphView({
                   style={{
                     fontSize: 8,
                     fontWeight: 800,
-                    color: '#c4b5fd',
+                    color: 'var(--bt-violet-text)',
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
                   }}
@@ -732,16 +732,16 @@ export function ScenarioGraphView({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2, flexWrap: 'wrap' }}>
                   {activeBranchPath.map((b, i) => (
                     <span key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      {i > 0 && <span style={{ color: '#a78bfa', fontSize: 9 }}>›</span>}
+                      {i > 0 && <span style={{ color: 'var(--bt-violet-text)', fontSize: 9 }}>›</span>}
                       <span
                         onClick={() => onSetActiveBranch(b.id)}
                         style={{
                           fontSize: i === activeBranchPath.length - 1 ? 11 : 9,
                           fontWeight: i === activeBranchPath.length - 1 ? 700 : 500,
-                          color: i === activeBranchPath.length - 1 ? '#fff' : '#c4b5fd',
+                          color: i === activeBranchPath.length - 1 ? '#fff' : 'var(--bt-violet-text)',
                           cursor: i < activeBranchPath.length - 1 ? 'pointer' : 'default',
                           textDecoration: i < activeBranchPath.length - 1 ? 'underline' : 'none',
-                          textDecorationColor: '#a78bfa',
+                          textDecorationColor: 'var(--bt-violet-text)',
                         }}
                       >
                         {b.label || 'Sans nom'}
@@ -827,7 +827,7 @@ function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
       {allParams.map((paramKey) => (
         <div key={paramKey} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+          <span style={{ fontSize: 10, color: 'var(--bt-text-dim)', fontWeight: 600 }}>
             {PARAM_LABELS[paramKey]}{def.requiredParams.includes(paramKey) ? ' *' : ''}
           </span>
           {paramKey === 'chain' ? (
@@ -852,8 +852,8 @@ function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
                 fontSize: 11,
                 padding: '4px 6px',
                 borderRadius: 4,
-                background: '#1e293b',
-                border: '1px solid #334155',
+                background: 'var(--bt-surface)',
+                border: '1px solid var(--bt-border-strong)',
                 color: '#fff',
                 width: '100%',
                 outline: 'none',
@@ -880,7 +880,7 @@ function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
         />
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
-        <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>Libellé personnalisé</span>
+        <span style={{ fontSize: 10, color: 'var(--bt-text-dim)', fontWeight: 600 }}>Libellé personnalisé</span>
         <input
           type="text"
           value={action.label ?? ''}
@@ -890,8 +890,8 @@ function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
             fontSize: 11,
             padding: '4px 6px',
             borderRadius: 4,
-            background: '#1e293b',
-            border: '1px solid #334155',
+            background: 'var(--bt-surface)',
+            border: '1px solid var(--bt-border-strong)',
             color: '#fff',
             width: '100%',
             boxSizing: 'border-box',
@@ -944,8 +944,8 @@ function ChainEditor({
               style={{
                 fontSize: 11,
                 padding: '2px 4px',
-                background: '#1e293b',
-                border: '1px solid #334155',
+                background: 'var(--bt-surface)',
+                border: '1px solid var(--bt-border-strong)',
                 color: '#fff',
                 borderRadius: 4,
                 outline: 'none',
@@ -986,9 +986,9 @@ function ChainEditor({
                 fontSize: 9,
                 padding: '2px 6px',
                 borderRadius: 4,
-                border: '1px solid #475569',
-                background: '#1e293b',
-                color: '#cbd5e1',
+                border: '1px solid var(--bt-border-strong)',
+                background: 'var(--bt-surface)',
+                color: 'var(--bt-text-muted)',
                 cursor: 'pointer',
               }}
             >
@@ -1007,10 +1007,10 @@ function ChainEditor({
           alignSelf: 'flex-start',
           fontSize: 10,
           padding: '3px 8px',
-          border: '1px solid #475569',
+          border: '1px solid var(--bt-border-strong)',
           borderRadius: 4,
           background: 'transparent',
-          color: '#cbd5e1',
+          color: 'var(--bt-text-muted)',
           cursor: 'pointer',
           marginTop: 2,
         }}
