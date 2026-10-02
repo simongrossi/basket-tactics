@@ -1274,12 +1274,12 @@ export function CourtView(props: CourtViewProps) {
           display: 'flex',
           flexDirection: 'column',
           gap: 6,
-          background: 'rgba(30, 41, 59, 0.85)',
+          background: 'var(--bt-bg)',
           backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          border: '1px solid var(--bt-border-strong)',
           padding: 4,
           borderRadius: 8,
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+          boxShadow: 'var(--bt-shadow)',
           zIndex: 40,
         }}
         onPointerDown={(e) => e.stopPropagation()}
@@ -1287,15 +1287,15 @@ export function CourtView(props: CourtViewProps) {
       >
         <button
           onClick={handleZoomIn}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bt-surface-raised)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bt-surface)')}
           style={{
             width: 36,
             height: 36,
             borderRadius: 6,
             border: 'none',
-            background: 'rgba(255, 255, 255, 0.1)',
-            color: '#fff',
+            background: 'var(--bt-surface)',
+            color: 'var(--bt-text)',
             fontSize: 16,
             fontWeight: 'bold',
             cursor: 'pointer',
@@ -1312,15 +1312,15 @@ export function CourtView(props: CourtViewProps) {
         </button>
         <button
           onClick={handleZoomOut}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bt-surface-raised)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bt-surface)')}
           style={{
             width: 36,
             height: 36,
             borderRadius: 6,
             border: 'none',
-            background: 'rgba(255, 255, 255, 0.1)',
-            color: '#fff',
+            background: 'var(--bt-surface)',
+            color: 'var(--bt-text)',
             fontSize: 16,
             fontWeight: 'bold',
             cursor: 'pointer',

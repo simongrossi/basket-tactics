@@ -47,16 +47,16 @@ export function CoachDrawHint({ visible }: { visible: boolean }) {
         maxWidth: 'min(420px, calc(100% - 120px))',
         padding: '8px 14px',
         borderRadius: 8,
-        background: 'rgba(15, 23, 42, 0.88)',
-        border: '1px solid #334155',
-        color: '#f8fafc',
+        background: 'var(--bt-bg)',
+        border: '1px solid var(--bt-border-strong)',
+        color: 'var(--bt-text)',
         fontSize: 12,
         lineHeight: 1.45,
-        boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+        boxShadow: 'var(--bt-shadow)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <strong style={{ color: '#fdba74' }}>Dessiner le système</strong>
+        <strong style={{ color: 'var(--bt-orange-text)' }}>Dessiner le système</strong>
         <button
           type="button"
           className="bt-touch"
@@ -72,10 +72,10 @@ export function CoachDrawHint({ visible }: { visible: boolean }) {
             width: 28,
             height: 28,
             padding: 0,
-            border: '1px solid #475569',
+            border: '1px solid var(--bt-border-strong)',
             borderRadius: 4,
-            background: '#1e293b',
-            color: '#f8fafc',
+            background: 'var(--bt-surface)',
+            color: 'var(--bt-text)',
             cursor: 'pointer',
           }}
         >

@@ -965,7 +965,7 @@ export default function Page() {
             />
           )}
           {!isPlayerMode && !presentMode && <ManualRecordingBar recorder={manual} preparing={preparingRecording} onStart={startGestureRecording} onCopy={copyGestureRecording} onReplay={replayGestureRecording} />}
-          <div className="bt-force-dark" style={{ position: 'relative', minHeight: 0, overflow: 'hidden', display: 'grid' }}>
+          <div className={shellVisible ? undefined : 'bt-force-dark'} style={{ position: 'relative', minHeight: 0, overflow: 'hidden', display: 'grid' }}>
             {runBlock && runBlockVisual?.kind === 'none' && !manualBusy && (
               <div style={{ position: 'absolute', inset: 0, zIndex: 60, display: 'grid' }}>
                 <SessionBlockCard title={runBlock.title} notes={runBlock.notes} durationMin={runBlock.durationMin} />

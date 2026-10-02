@@ -38,8 +38,8 @@
   --bt-stage-border: #2a2d35;
 }
 
-/* `.bt-force-dark` : bandeaux posés sur le terrain, sombres dans les deux
-   thèmes. `.bt-context-menu` : menus ouverts depuis le terrain, qui reprennent
+/* `.bt-force-dark` : terrain en mode lecteur ou plein écran, sombre dans les
+   deux thèmes. `.bt-context-menu` : menus ouverts depuis le terrain, qui reprennent
    le thème de la coque même à l'intérieur d'une zone forcée en sombre. */
 :root[data-theme='dark'],
 :root[data-theme='dark'] .bt-context-menu,
@@ -383,17 +383,16 @@ textarea::placeholder {
 }
 
 .bt-touchbar-btn {
-  /* Posé sur le terrain : reste sombre dans les deux thèmes. */
   pointer-events: auto;
   padding: 6px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(30, 41, 59, 0.9);
-  color: #f8fafc;
+  border: 1px solid var(--bt-border-strong);
+  background: var(--bt-bg);
+  color: var(--bt-text);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  backdrop-filter: blur(8px);
 }
 
 .bt-touchbar-btn[aria-pressed='true'] {
