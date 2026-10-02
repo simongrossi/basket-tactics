@@ -24,7 +24,7 @@ export function SidebarNavItem({ icon: Icon, label, active = false, collapsed = 
         alignItems: 'center',
         gap: 10,
         width: '100%',
-        height: SIDEBAR.itemHeight,
+        minHeight: SIDEBAR.itemHeight,
         padding: collapsed ? `0` : `0 10px`,
         justifyContent: collapsed ? 'center' : 'flex-start',
         border: 'none',

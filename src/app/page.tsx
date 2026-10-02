@@ -7,8 +7,8 @@ import { SHORTCUT_LABELS, scrubTarget, useKeyboardShortcuts, type ShortcutMode }
 import { useMatchLoop } from '@/hooks/useMatchLoop';
 import { useSidebarState } from '@/hooks/useSidebarState';
 import { Sidebar, type ToolGroup } from '@/components/sidebar/Sidebar';
-import { SIDEBAR } from '@/components/sidebar/tokens';
-import { Swords, Shield, ListOrdered, GitBranch, Undo2, Redo2 } from 'lucide-react';
+import { AppTopBar } from '@/components/sidebar/AppTopBar';
+import { Swords, Shield, ListOrdered, GitBranch, Undo2, Redo2, Plus, PanelRightClose } from 'lucide-react';
 import { OffenseToolsPanel } from '@/components/OffenseToolsPanel';
 import { StepsPanel, isPristineInitialStepList } from '@/components/StepsPanel';
 import { ScenarioPanel } from '@/components/ScenarioPanel';
@@ -55,6 +55,16 @@ export default function Page() {
   const app = useAppState();
   const lib = useLibrary();
   const sidebar = useSidebarState();
+  // Écran large : les Étapes ont leur colonne à droite (visibles en même temps
+  // que les outils). Sinon elles rejoignent le rail pour laisser la place au terrain.
+  const [wide, setWide] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1200px)');
+    const sync = () => setWide(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
   const [libraryEntry, setLibraryEntry] = useState({ section: 'saved' as 'saved' | 'templates', key: 0 });
   const currentSavedSystem = lib.library.folders.flatMap((f) => f.systems)
     .find((system) => system.id === app.state.librarySystemId);
@@ -455,6 +465,36 @@ export default function Page() {
     });
   }, [app]);
 
+  const shellVisible = !presentMode && !isPlayerMode && !manualBusy;
+  const showStepsColumn = wide && sidebar.activeView === 'court';
+  const stepsPanel = (
+    <StepsPanel
+      state={app.state}
+      onSetActiveStep={app.setActiveStep}
+      onAddStep={app.addStep}
+      onDuplicateStep={app.duplicateStep}
+      onDeleteStep={app.deleteStep}
+      onSetStepLabel={app.setStepLabel}
+      onPatchStep={app.patchStep}
+      onAddShotReboundStep={app.addShotReboundStep}
+      onConvertStepToAwayPossession={app.convertStepToAwayPossession}
+      onAddOutletPassStep={app.addOutletPassStep}
+      onAddFastBreakSteps={app.addFastBreakSteps}
+      onSetBallCarrier={app.setBallCarrier}
+      onDeleteAnnotation={app.deleteAnnotation}
+      onToggleAnnotationSprint={app.toggleAnnotationSprint}
+      onSetAnnotationFlipSide={app.setAnnotationFlipSide}
+      onAddFeinte={app.addFeinte}
+      onUpdateFeinte={app.updateFeinte}
+      onRemoveFeinte={app.removeFeinte}
+      onConvertToFreeThrow={app.convertStepToFreeThrow}
+      onConvertToInbound={app.convertStepToInbound}
+      onSetInboundDefenseMode={app.setInboundDefenseMode}
+      onAddFreeThrowReboundStep={app.addFreeThrowReboundStep}
+      onConvertToJumpBall={app.convertStepToJumpBall}
+    />
+  );
+
   return (
     <main
       style={{
@@ -462,108 +502,115 @@ export default function Page() {
         maxHeight: '100vh',
         overflow: 'hidden',
         background: '#1a1d23',
-        padding: '8px 12px 10px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
         color: '#e5e7eb',
       }}
     >
-      {!presentMode && !isPlayerMode && !manualBusy && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, fontSize: 12 }}>
-          {sidebar.activeView === 'court' && (
-            <div role="group" aria-label="Historique des modifications" style={{ display: 'flex', gap: 6 }}>
-              <HistoryButton label="Annuler" shortcut={SHORTCUT_LABELS.undo} disabled={!app.canUndo || isPlaying} onClick={app.undo} icon={<Undo2 size={16} aria-hidden />} />
-              <HistoryButton label="Rétablir" shortcut={SHORTCUT_LABELS.redo} disabled={!app.canRedo || isPlaying} onClick={app.redo} icon={<Redo2 size={16} aria-hidden />} />
-            </div>
-          )}
-          <strong>{currentSavedSystem?.name ?? 'Brouillon'}</strong>
-          <span role="status" style={{ color: app.saveStatus === 'error' || lib.saveStatus === 'error' ? '#fca5a5' : '#cbd5e1' }}>
-            {app.saveStatus === 'error' || lib.saveStatus === 'error'
-              ? 'Sauvegarde impossible — exportez votre travail'
-              : app.saveStatus === 'pending' || lib.saveStatus === 'pending'
-                ? 'Sauvegarde en cours…' : 'Brouillon conservé sur cet appareil'}
-          </span>
-          {currentSavedSystem && <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }}
-            onClick={() => lib.updateSystem(currentSavedSystem.id, app.state)}>
-            Enregistrer dans « {currentSavedSystem.name} »
-          </button>}
-          <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }} onClick={() => sidebar.setActiveView('library')}>
-            Enregistrer une copie…
-          </button>
-          {app.hasRecovery && <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }} onClick={app.restoreDraft}>
-            Retrouver le brouillon précédent
-          </button>}
-        </div>
-      )}
-      <div
-        className={presentMode || isPlayerMode || manualBusy ? 'layout-grid presenting' : 'layout-grid'}
-        style={{
-          // Refonte UI — largeur de la sidebar pilotée par useSidebarState.
-          // Le mode présentation force une seule colonne (cf. .presenting).
-          ['--sidebar-w' as string]: `${
-            sidebar.collapsed ? SIDEBAR.widthCollapsed : SIDEBAR.widthExpanded
-          }px`,
-        }}
-      >
-        {!presentMode && !isPlayerMode && !manualBusy && (
-          <Sidebar
-            startActions={<CoachStartActions
-              collapsed={sidebar.collapsed}
-              onCreate={() => {
-                if (!app.resetAll()) return;
-                matchLoop.stop();
-                setIsPlaying(false);
-                setScrubT(null);
-                setPlaybackT(null);
-                setIsPlayerMode(false);
-                sidebar.setActiveView('court');
-              }}
-              onTemplates={() => {
-                setLibraryEntry(entry => ({ section: 'templates', key: entry.key + 1 }));
-                sidebar.setActiveView('library');
-              }}
-              onSessions={() => sidebar.setActiveView('sessions')}
-            />}
+      {shellVisible && (
+        <>
+          <AppTopBar
             activeView={sidebar.activeView}
-            collapsed={sidebar.collapsed}
             onSelectView={(view) => {
               if (view === 'library') setLibraryEntry(entry => ({ section: 'saved', key: entry.key + 1 }));
               sidebar.setActiveView(view);
             }}
-            onToggleCollapse={sidebar.toggleCollapse}
+          />
+          <div className="bt-toolbar">
+            {sidebar.activeView === 'court' && (
+              <>
+                <div role="group" aria-label="Historique des modifications" style={{ display: 'flex', gap: 2 }}>
+                  <HistoryButton label="Annuler" shortcut={SHORTCUT_LABELS.undo} disabled={!app.canUndo || isPlaying} onClick={app.undo} icon={<Undo2 size={16} aria-hidden />} />
+                  <HistoryButton label="Rétablir" shortcut={SHORTCUT_LABELS.redo} disabled={!app.canRedo || isPlaying} onClick={app.redo} icon={<Redo2 size={16} aria-hidden />} />
+                </div>
+                <span className="bt-toolbar-sep" aria-hidden />
+              </>
+            )}
+            <strong className="bt-toolbar-title">{currentSavedSystem?.name ?? 'Brouillon'}</strong>
+            <span role="status" className={`bt-toolbar-status${app.saveStatus === 'error' || lib.saveStatus === 'error' ? ' is-error' : ''}`}>
+              {app.saveStatus === 'error' || lib.saveStatus === 'error'
+                ? 'Sauvegarde impossible — exportez votre travail'
+                : app.saveStatus === 'pending' || lib.saveStatus === 'pending'
+                  ? 'Sauvegarde en cours…' : 'Brouillon conservé sur cet appareil'}
+            </span>
+            <span className="bt-toolbar-spacer" />
+            {app.hasRecovery && <button className="bt-btn" onClick={app.restoreDraft}>
+              Retrouver le brouillon précédent
+            </button>}
+            <button className="bt-btn" onClick={() => sidebar.setActiveView('library')}>
+              Enregistrer une copie…
+            </button>
+            {currentSavedSystem && <button className="bt-btn bt-btn-primary"
+              onClick={() => lib.updateSystem(currentSavedSystem.id, app.state)}>
+              Enregistrer dans « {currentSavedSystem.name} »
+            </button>}
+          <SidebarOverflowMenu
+            presentMode={presentMode}
+            onTogglePresentMode={handleTogglePresentMode}
+            isPlayerMode={isPlayerMode}
+            onTogglePlayerMode={() => setIsPlayerMode((v) => {
+              // Entrer en mode lecteur force la vue terrain : la sidebar
+              // est masquée, sans ça on resterait bloqué sur une vue
+              // routée (Paramètres, Bibliothèque…) sans moyen d'en sortir.
+              if (!v) sidebar.setActiveView('court');
+              return !v;
+            })}
+            onOpenPlayerTimeline={() => setShowPlayerTimeline(true)}
+            onOpenExport={() => setShowExportModal(true)}
+            onExport={handleExport}
+            onImport={handleImport}
+            onReset={app.resetAll}
+            onShare={handleShare}
+            onCopySituation={() => openSituationDialog('copy')}
+            onCopyAnimation={() => openSituationDialog('animation')}
+            onPasteSituation={() => openSituationDialog('import')}
+          />
+          </div>
+        </>
+      )}
+      <div
+        className={presentMode || isPlayerMode || manualBusy ? 'layout-grid presenting' : 'layout-grid'}
+      >
+        {shellVisible && (
+          <Sidebar
+            activeTool={showStepsColumn && sidebar.activeTool === 'steps' ? 'offense' : sidebar.activeTool}
+            panelOpen={sidebar.activeView === 'court' && !sidebar.collapsed}
+            onSelectTool={(id) => {
+              sidebar.setActiveView('court');
+              sidebar.openTool(id);
+            }}
+            onClosePanel={sidebar.toggleCollapse}
             version="0.18.0"
-            overflowMenu={
-              <SidebarOverflowMenu
-                presentMode={presentMode}
-                onTogglePresentMode={handleTogglePresentMode}
-                isPlayerMode={isPlayerMode}
-                onTogglePlayerMode={() => setIsPlayerMode((v) => {
-                  // Entrer en mode lecteur force la vue terrain : la sidebar
-                  // est masquée, sans ça on resterait bloqué sur une vue
-                  // routée (Paramètres, Bibliothèque…) sans moyen d'en sortir.
-                  if (!v) sidebar.setActiveView('court');
-                  return !v;
-                })}
-                onOpenPlayerTimeline={() => setShowPlayerTimeline(true)}
-                onOpenExport={() => setShowExportModal(true)}
-                onExport={handleExport}
-                onImport={handleImport}
-                onReset={app.resetAll}
-                onShare={handleShare}
-                onCopySituation={() => openSituationDialog('copy')}
-                onCopyAnimation={() => openSituationDialog('animation')}
-                onPasteSituation={() => openSituationDialog('import')}
-                collapsed={sidebar.collapsed}
-              />
-            }
             toolGroups={[
+              {
+                id: 'start',
+                icon: Plus,
+                label: 'Démarrer',
+                title: 'Préparer mon entraînement',
+                content: (
+                  <CoachStartActions
+                    onCreate={() => {
+                      if (!app.resetAll()) return;
+                      matchLoop.stop();
+                      setIsPlaying(false);
+                      setScrubT(null);
+                      setPlaybackT(null);
+                      setIsPlayerMode(false);
+                      sidebar.setActiveView('court');
+                    }}
+                    onTemplates={() => {
+                      setLibraryEntry(entry => ({ section: 'templates', key: entry.key + 1 }));
+                      sidebar.setActiveView('library');
+                    }}
+                    onSessions={() => sidebar.setActiveView('sessions')}
+                  />
+                ),
+              },
               {
                 id: 'offense',
                 icon: Swords,
                 label: 'Attaque',
                 accent: '#f97316',
-                defaultOpen: true,
                 content: (
                   <OffenseToolsPanel
                     tool={app.state.tool}
@@ -613,40 +660,7 @@ export default function Page() {
                   />
                 ),
               },
-              {
-                id: 'steps',
-                icon: ListOrdered,
-                label: 'Étapes',
-                accent: '#f97316',
-                defaultOpen: true,
-                content: (
-                  <StepsPanel
-                    state={app.state}
-                    onSetActiveStep={app.setActiveStep}
-                    onAddStep={app.addStep}
-                    onDuplicateStep={app.duplicateStep}
-                    onDeleteStep={app.deleteStep}
-                    onSetStepLabel={app.setStepLabel}
-                    onPatchStep={app.patchStep}
-                    onAddShotReboundStep={app.addShotReboundStep}
-                    onConvertStepToAwayPossession={app.convertStepToAwayPossession}
-                    onAddOutletPassStep={app.addOutletPassStep}
-                    onAddFastBreakSteps={app.addFastBreakSteps}
-                    onSetBallCarrier={app.setBallCarrier}
-                    onDeleteAnnotation={app.deleteAnnotation}
-                    onToggleAnnotationSprint={app.toggleAnnotationSprint}
-                    onSetAnnotationFlipSide={app.setAnnotationFlipSide}
-                    onAddFeinte={app.addFeinte}
-                    onUpdateFeinte={app.updateFeinte}
-                    onRemoveFeinte={app.removeFeinte}
-                    onConvertToFreeThrow={app.convertStepToFreeThrow}
-                    onConvertToInbound={app.convertStepToInbound}
-                    onSetInboundDefenseMode={app.setInboundDefenseMode}
-                    onAddFreeThrowReboundStep={app.addFreeThrowReboundStep}
-                    onConvertToJumpBall={app.convertStepToJumpBall}
-                  />
-                ),
-              },
+              ...(showStepsColumn ? [] : [{ id: 'steps', icon: ListOrdered, label: 'Étapes', accent: '#f97316', content: stepsPanel }]),
               {
                 id: 'scenario',
                 icon: GitBranch,
@@ -1028,6 +1042,27 @@ export default function Page() {
           )}
         </div>
 
+        {shellVisible && showStepsColumn && (
+          sidebar.rightCollapsed ? (
+            <aside className="bt-panel bt-panel-right is-collapsed">
+              <button type="button" className="bt-icon-btn" onClick={sidebar.toggleRight} title="Afficher les étapes" aria-label="Afficher les étapes">
+                <ListOrdered size={17} aria-hidden />
+              </button>
+            </aside>
+          ) : (
+            <aside className="bt-panel bt-panel-right" aria-label="Étapes">
+              <header className="bt-panel-head">
+                <h2>Étapes</h2>
+                <button type="button" className="bt-icon-btn" onClick={sidebar.toggleRight} title="Replier les étapes" aria-label="Replier les étapes">
+                  <PanelRightClose size={16} aria-hidden />
+                </button>
+              </header>
+              <div className="bt-panel-body sidebar-tools-scope">
+                <SidebarThemeProvider dark>{stepsPanel}</SidebarThemeProvider>
+              </div>
+            </aside>
+          )
+        )}
       </div>
 
       <input
@@ -1080,12 +1115,10 @@ export default function Page() {
           __html: `
         .layout-grid {
           display: grid;
-          grid-template-columns: var(--sidebar-w, 240px) 1fr;
+          grid-template-columns: auto minmax(0, 1fr) auto;
           grid-template-rows: minmax(0, 1fr);
-          gap: 10px;
           flex: 1;
           min-height: 0;
-          transition: grid-template-columns 160ms ease;
         }
         .layout-grid.presenting {
           grid-template-columns: 1fr;
@@ -1175,6 +1208,9 @@ export default function Page() {
           min-width: 0;
           min-height: 0;
           overflow: hidden;
+          /* Plan de travail : plus sombre que les colonnes qui l'encadrent. */
+          padding: 10px 12px;
+          background: #14171c;
         }
         /* U05 — barre de déroulé au-dessus du terrain. */
         .center-col.has-session-run {
@@ -1185,8 +1221,8 @@ export default function Page() {
              rangée plein hauteur, pas de timeline ni metrics, fond dark
              bleu-gris cohérent avec la sidebar. */
           grid-template-rows: 1fr;
+          padding: 0;
           background: #1a1d23;
-          border-radius: 8px;
           color: #e5e7eb;
         }
         /* Overrides dark pour la Timeline + Metrics + ScenarioReader +
@@ -1416,11 +1452,6 @@ export default function Page() {
           overflow-y: auto;
           overflow-x: hidden;
         }
-        @media (max-width: 1100px) {
-          .layout-grid:not(.presenting) {
-            grid-template-columns: var(--sidebar-w, 220px) 1fr;
-          }
-        }
         @media (max-width: 900px) {
           main { height: auto !important; max-height: none !important; overflow: auto !important; }
           /* U04 — même spécificité que la règle 1100 px, sinon la barre
@@ -1452,18 +1483,10 @@ function HistoryButton({ label, shortcut, disabled, onClick, icon }: {
       onClick={onClick}
       disabled={disabled}
       title={`${label} (${shortcut})`}
-      className="bt-touch"
-      style={{
-        padding: '4px 10px',
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        border: '1px solid #64748b', borderRadius: 6,
-        background: '#29313e', color: '#f8fafc',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.45 : 1,
-      }}
+      aria-label={label}
+      className="bt-icon-btn"
     >
       {icon}
-      <span>{label}</span>
     </button>
   );
 }

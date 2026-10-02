@@ -1,68 +1,39 @@
 'use client';
 
-import { InterfaceLevelSelector } from '../interface/InterfaceLevel';
 import type { ReactNode } from 'react';
-import type { LucideIcon } from 'lucide-react';
-import type { SidebarView } from '@/hooks/useSidebarState';
+import { PanelLeftClose, type LucideIcon } from 'lucide-react';
 import { SIDEBAR } from './tokens';
-import { SidebarNav } from './SidebarNav';
-import { SidebarFooter } from './SidebarFooter';
 import { SidebarThemeProvider } from './SidebarThemeContext';
-import { SidebarToolGroup } from './SidebarToolGroup';
 
 export type ToolGroup = {
   id: string;
   icon: LucideIcon;
+  /** Libellé court sous l'icône du rail. */
   label: string;
+  /** Titre du panneau (par défaut : le libellé). */
+  title?: string;
   accent?: string;
-  defaultOpen?: boolean;
   content: ReactNode;
 };
 
 type Props = {
-  activeView: SidebarView;
-  collapsed: boolean;
-  onSelectView: (view: SidebarView) => void;
-  onToggleCollapse: () => void;
+  /** Groupes d'outils : une icône du rail chacun, un seul panneau ouvert à la fois. */
+  toolGroups: ToolGroup[];
+  activeTool: string;
+  /** Faux hors vue Terrain ou panneau replié : seul le rail reste affiché. */
+  panelOpen: boolean;
+  onSelectTool: (id: string) => void;
+  onClosePanel: () => void;
   version?: string;
-  /**
-   * Liste des groupes d'outils contextuels (Attaque, Défense, Étapes,
-   * Scénario). Chaque groupe = un item dépliable de la sidebar, visuellement
-   * cohérent avec les items de Vues du dessus.
-   * Rendu uniquement quand activeView === 'court'.
-   */
-  toolGroups?: ToolGroup[];
-  /** Slot pour le menu ⋯ d'actions globales (cf. SidebarOverflowMenu). */
-  overflowMenu?: ReactNode;
-  startActions?: ReactNode;
 };
 
-export function Sidebar({
-  activeView,
-  collapsed,
-  onSelectView,
-  onToggleCollapse,
-  version,
-  toolGroups,
-  overflowMenu,
-  startActions,
-}: Props) {
-  const hasTools = toolGroups != null && toolGroups.length > 0;
-  const showTools = activeView === 'court' && hasTools;
+// Colonne de gauche : rail d'icônes + panneau contextuel du groupe choisi.
+// Recliquer sur l'icône active replie le panneau pour agrandir le terrain.
+export function Sidebar({ toolGroups, activeTool, panelOpen, onSelectTool, onClosePanel, version }: Props) {
+  const active = toolGroups.find((g) => g.id === activeTool) ?? toolGroups[0];
 
   return (
-    <aside
-      style={{
-        background: SIDEBAR.bg,
-        color: SIDEBAR.text,
-        borderRight: `1px solid ${SIDEBAR.border}`,
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        minHeight: 0,
-        overflow: 'hidden',
-      }}
-    >
+    <aside className="bt-left" style={{ color: SIDEBAR.text }}>
       {/*
         Override scoped pour les éléments stylés inline dans les panneaux
         Offense/Defense/Steps/Scenario qui n'utilisent pas SidebarThemeContext.
@@ -214,103 +185,50 @@ export function Sidebar({
           border-color: ${SIDEBAR.border} !important;
         }
       `}} />
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          height: 48,
-          padding: collapsed ? 0 : '0 14px',
-          justifyContent: collapsed ? 'center' : 'flex-start',
-          borderBottom: `1px solid ${SIDEBAR.borderSubtle}`,
-          fontWeight: 700,
-          fontSize: 13,
-          letterSpacing: 0.3,
-          color: SIDEBAR.text,
-          flexShrink: 0,
-        }}
-      >
-        {collapsed ? <Logo /> : <><Logo /><span style={{ marginLeft: 10 }}>basket-tactics</span></>}
-      </div>
+      <nav className="bt-rail" aria-label="Outils">
+        {toolGroups.map((g) => {
+          const pressed = panelOpen && g.id === active?.id;
+          return (
+            <button
+              key={g.id}
+              type="button"
+              className="bt-rail-item"
+              aria-pressed={pressed}
+              title={g.title ?? g.label}
+              onClick={() => (pressed ? onClosePanel() : onSelectTool(g.id))}
+            >
+              <g.icon size={19} strokeWidth={1.9} style={{ color: pressed ? g.accent : undefined }} aria-hidden />
+              <span>{g.label}</span>
+            </button>
+          );
+        })}
+        {version && <span className="bt-rail-version">v{version}</span>}
+      </nav>
 
-      {/* Tout le contenu sous le logo défile d'un bloc : sur un écran de
-          768 px de haut, les entrées + vues laissaient ~30 px aux outils
-          (Attaque / Étapes introuvables). Les outils gardent désormais leur
-          hauteur naturelle et le pied reste fixe. */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <InterfaceLevelSelector compact={collapsed} />
-      {startActions}
-      <div style={{ padding: '10px 0 6px', flexShrink: 0 }}>
-        <SidebarNav activeView={activeView} collapsed={collapsed} onSelect={onSelectView} />
-      </div>
-
-      {showTools && (
-        <>
-          <div
-            style={{
-              height: 1,
-              background: SIDEBAR.borderSubtle,
-              margin: '6px 14px 10px',
-              flexShrink: 0,
-            }}
-          />
-          <div
-            className="sidebar-tools-scope"
-            style={{
-              flex: '1 0 auto',
-              overflowX: 'hidden',
-              padding: '0 6px 10px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 2,
-            }}
-          >
-            {!collapsed && (
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: 1,
-                  color: SIDEBAR.textDim,
-                  textTransform: 'uppercase',
-                  padding: '4px 10px 6px',
-                }}
-              >
-                Outils
-              </div>
-            )}
-            <SidebarThemeProvider dark>
-              {toolGroups!.map((g) => (
-                <SidebarToolGroup
-                  key={g.id}
-                  id={g.id}
-                  icon={g.icon}
-                  label={g.label}
-                  accent={g.accent}
-                  defaultOpen={g.defaultOpen}
-                  collapsed={collapsed}
-                >
-                  {g.content}
-                </SidebarToolGroup>
-              ))}
-            </SidebarThemeProvider>
+      {panelOpen && active && (
+        <section className="bt-panel" aria-label={active.title ?? active.label}>
+          <header className="bt-panel-head">
+            <h2>{active.title ?? active.label}</h2>
+            <button
+              type="button"
+              className="bt-icon-btn"
+              onClick={onClosePanel}
+              title="Replier le panneau"
+              aria-label="Replier le panneau"
+            >
+              <PanelLeftClose size={16} aria-hidden />
+            </button>
+          </header>
+          <div className="bt-panel-body sidebar-tools-scope">
+            <SidebarThemeProvider dark>{active.content}</SidebarThemeProvider>
           </div>
-        </>
+        </section>
       )}
-
-      {!showTools && <div style={{ flex: 1 }} />}
-      </div>
-
-      <SidebarFooter
-        collapsed={collapsed}
-        onToggleCollapse={onToggleCollapse}
-        version={version}
-        overflowMenu={overflowMenu}
-      />
     </aside>
   );
 }
 
-function Logo() {
+export function Logo() {
   // Petit ballon stylisé (SVG inline) pour rester cohérent avec l'esprit du
   // projet et éviter d'ajouter un asset.
   return (
@@ -325,6 +243,7 @@ function Logo() {
         alignItems: 'center',
         justifyContent: 'center',
         boxShadow: '0 0 0 1px rgba(255,255,255,0.08)',
+        flexShrink: 0,
       }}
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c2d12" strokeWidth="2">

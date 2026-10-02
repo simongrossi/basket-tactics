@@ -1,14 +1,14 @@
-// Tokens dark sidebar (Phase 1 refonte UI — sidebar unique gauche).
-// La zone centrale garde la palette claire de ui.tsx, donc ces tokens
-// ne servent QUE pour les composants sidebar/* et leurs popovers.
+// Tokens de la coque de l'éditeur (barre d'app, rail d'icônes, panneaux
+// latéraux) et de leurs popovers. La zone centrale garde la palette de ui.tsx.
 
-// Palette bleu-gris foncé (style Claude dashboard) — pas noir pur, plus chaud
-// et plus lisible. Aligné avec DARK_PANEL pour cohérence entre sidebar et
-// vues routées inline.
+// Palette bleu-gris foncé — pas noir pur, plus chaud et plus lisible.
+// Alignée avec DARK_PANEL pour la cohérence entre panneaux et vues routées.
 export const SIDEBAR = {
   bg: '#1a1d23',
   bgHover: '#262a32',
   bgActive: '#2f343d',
+  /** Fond du plan de travail (derrière le terrain), plus sombre que les colonnes. */
+  canvas: '#14171c',
   border: '#2a2d35',
   borderSubtle: '#22252c',
   text: '#f3f4f6',
@@ -16,9 +16,14 @@ export const SIDEBAR = {
   textDim: '#94a3b8',
   accent: '#a78bfa',
   accentBg: 'rgba(167, 139, 250, 0.14)',
-  // Largeurs
-  widthExpanded: 240,
-  widthCollapsed: 56,
+  // Largeurs des colonnes
+  railWidth: 64,
+  panelWidth: 272,
+  rightWidth: 288,
+  rightCollapsedWidth: 44,
+  // Hauteurs des barres
+  topBarHeight: 48,
+  toolbarHeight: 44,
   // Tailles
   itemHeight: 36,
   iconSize: 17,

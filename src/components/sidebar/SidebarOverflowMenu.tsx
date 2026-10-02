@@ -20,7 +20,6 @@ type Props = {
   onCopySituation?: () => void;
   onCopyAnimation?: () => void;
   onPasteSituation?: () => void;
-  collapsed?: boolean;
 };
 
 export function SidebarOverflowMenu({
@@ -37,23 +36,22 @@ export function SidebarOverflowMenu({
   onCopySituation,
   onCopyAnimation,
   onPasteSituation,
-  collapsed = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [portalPos, setPortalPos] = useState<{ left: number; bottom: number } | null>(null);
+  const [portalPos, setPortalPos] = useState<{ right: number; top: number } | null>(null);
 
   // Recalcule la position du portail quand le menu s'ouvre. Le popup est rendu
   // dans document.body via createPortal pour échapper à overflow:hidden de
-  // la sidebar (sinon le popup est coupé puisque la sidebar le contient).
+  // la barre d'outils.
   useEffect(() => {
     if (!open || !buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
     setPortalPos({
-      left: rect.right + 8,
-      bottom: window.innerHeight - rect.bottom - 4,
+      right: window.innerWidth - rect.right,
+      top: rect.bottom + 6,
     });
   }, [open]);
 
@@ -98,8 +96,10 @@ export function SidebarOverflowMenu({
       }}
       style={{
         position: 'fixed',
-        left: portalPos.left,
-        bottom: portalPos.bottom,
+        right: portalPos.right,
+        top: portalPos.top,
+        maxHeight: `calc(100vh - ${portalPos.top + 8}px)`,
+        overflowY: 'auto',
         minWidth: 220,
         background: SIDEBAR.bgActive,
         border: `1px solid ${SIDEBAR.border}`,
@@ -169,32 +169,13 @@ export function SidebarOverflowMenu({
       <button
         ref={buttonRef}
         type="button"
+        className="bt-icon-btn"
         onClick={() => setOpen((o) => !o)}
         title="Actions globales"
         aria-label="Actions globales"
-        style={{
-          width: 36,
-          height: 36,
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          border: 'none',
-          borderRadius: 6,
-          background: open ? SIDEBAR.bgHover : 'transparent',
-          color: open ? SIDEBAR.text : SIDEBAR.textMuted,
-          cursor: 'pointer',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = SIDEBAR.bgHover;
-          e.currentTarget.style.color = SIDEBAR.text;
-        }}
-        onMouseLeave={(e) => {
-          if (open) return;
-          e.currentTarget.style.background = 'transparent';
-          e.currentTarget.style.color = SIDEBAR.textMuted;
-        }}
+        aria-expanded={open}
       >
-        <MoreHorizontal size={16} />
+        <MoreHorizontal size={16} aria-hidden />
       </button>
       {menuNode && createPortal(menuNode, document.body)}
     </div>

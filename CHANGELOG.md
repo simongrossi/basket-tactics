@@ -6,6 +6,18 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 
 ## [Unreleased]
 
+### UI — coque de l'éditeur en colonnes (2026-10-02, branche `design`)
+
+- **Barre d'app** : marque, vues en onglets-pilules (Terrain, Enchaînements,
+  Fiches, Bibliothèque, Séances, Paramètres, Match simulé), niveau d'interface.
+- **Barre d'outils** : annuler / rétablir en icônes, nom du système, état de
+  sauvegarde, enregistrements et menu ⋯ (qui s'ouvre désormais sous le bouton).
+- **Rail d'icônes + panneau contextuel** à gauche (Démarrer, Attaque, Défense,
+  Scénario) : un seul panneau ouvert, recliquer l'icône active le replie.
+- **Colonne Étapes** à droite, repliable ; sous 1200 px elle rejoint le rail.
+- Classes de coque (`bt-topbar`, `bt-toolbar`, `bt-rail`, `bt-panel`, `bt-btn`,
+  `bt-icon-btn`) dans `globals.css`. Palette sombre conservée.
+
 ### Réalisme — cinématique en unités réelles et tempo selon la distance (2026-09-27)
 
 Suite de l'[audit chiffré](docs/audit-realisme-2026-09-27.md), correctifs 1
