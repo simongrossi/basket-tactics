@@ -15,8 +15,17 @@ Format inspiré de [keep-a-changelog](https://keepachangelog.com). Le projet n'e
 - **Rail d'icônes + panneau contextuel** à gauche (Démarrer, Attaque, Défense,
   Scénario) : un seul panneau ouvert, recliquer l'icône active le replie.
 - **Colonne Étapes** à droite, repliable ; sous 1200 px elle rejoint le rail.
+- **Colonne de droite à onglets** : Étapes | Réglages (format de jeu, durées,
+  visu & légende — variante `quick` de `ParametresPanel`).
+- **Thème clair par défaut, sombre automatique** (`useTheme`, bouton Auto /
+  Clair / Sombre). Couleurs en variables `--bt-*` ; le terrain, ses bandeaux,
+  les menus contextuels et le graphe restent sombres (`.bt-force-dark`).
+- **Recherche globale** (`shell/CommandPalette`, Ctrl/⌘+K ou `/`) : vues,
+  panneaux, outils, actions, systèmes enregistrés, séances, modèles.
+- **Raccourcis de coque** (`useShellShortcuts`) : chiffres = panneaux du rail,
+  Ctrl/⌘+B / Ctrl/⌘+Alt+B = colonnes, Ctrl/⌘+S = enregistrer, `?` = aide-mémoire.
 - Classes de coque (`bt-topbar`, `bt-toolbar`, `bt-rail`, `bt-panel`, `bt-btn`,
-  `bt-icon-btn`) dans `globals.css`. Palette sombre conservée.
+  `bt-icon-btn`, `bt-palette`) dans `globals.css`.
 
 ### Réalisme — cinématique en unités réelles et tempo selon la distance (2026-09-27)
 

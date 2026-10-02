@@ -14,6 +14,8 @@ export type SidebarView =
   | 'settings'
   | 'scenariograph';
 
+export type RightTab = 'steps' | 'settings';
+
 const STORAGE_KEY = 'bt:sidebar:v1';
 
 type Persisted = {
@@ -22,8 +24,10 @@ type Persisted = {
   activeView: SidebarView;
   /** Groupe d'outils affiché dans le panneau contextuel (id du ToolGroup). */
   activeTool: string;
-  /** Colonne de droite (Étapes) repliée. */
+  /** Colonne de droite repliée. */
   rightCollapsed: boolean;
+  /** Onglet affiché dans la colonne de droite. */
+  rightTab: RightTab;
 };
 
 const DEFAULTS: Persisted = {
@@ -31,6 +35,7 @@ const DEFAULTS: Persisted = {
   activeView: 'court',
   activeTool: 'offense',
   rightCollapsed: false,
+  rightTab: 'steps',
 };
 
 function load(): Persisted {
@@ -44,6 +49,7 @@ function load(): Persisted {
       activeView: isView(parsed.activeView) ? parsed.activeView : DEFAULTS.activeView,
       activeTool: typeof parsed.activeTool === 'string' ? parsed.activeTool : DEFAULTS.activeTool,
       rightCollapsed: typeof parsed.rightCollapsed === 'boolean' ? parsed.rightCollapsed : DEFAULTS.rightCollapsed,
+      rightTab: parsed.rightTab === 'settings' ? 'settings' : DEFAULTS.rightTab,
     };
   } catch {
     return DEFAULTS;
@@ -67,6 +73,7 @@ export function useSidebarState() {
   const [activeView, setActiveViewState] = useState<SidebarView>(DEFAULTS.activeView);
   const [activeTool, setActiveTool] = useState<string>(DEFAULTS.activeTool);
   const [rightCollapsed, setRightCollapsed] = useState<boolean>(DEFAULTS.rightCollapsed);
+  const [rightTab, setRightTab] = useState<RightTab>(DEFAULTS.rightTab);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -75,6 +82,7 @@ export function useSidebarState() {
     setActiveViewState(persisted.activeView);
     setActiveTool(persisted.activeTool);
     setRightCollapsed(persisted.rightCollapsed);
+    setRightTab(persisted.rightTab);
     setHydrated(true);
   }, []);
 
@@ -83,12 +91,12 @@ export function useSidebarState() {
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ collapsed, activeView, activeTool, rightCollapsed } satisfies Persisted)
+        JSON.stringify({ collapsed, activeView, activeTool, rightCollapsed, rightTab } satisfies Persisted)
       );
     } catch {
       // ignore (quota, navigation privée)
     }
-  }, [collapsed, activeView, activeTool, rightCollapsed, hydrated]);
+  }, [collapsed, activeView, activeTool, rightCollapsed, rightTab, hydrated]);
 
   const toggleCollapse = useCallback(() => {
     setCollapsed((c) => !c);
@@ -104,9 +112,15 @@ export function useSidebarState() {
     setCollapsed(false);
   }, []);
 
+  /** Affiche un onglet de la colonne de droite (et la déplie). */
+  const openRight = useCallback((tab: RightTab) => {
+    setRightTab(tab);
+    setRightCollapsed(false);
+  }, []);
+
   const toggleRight = useCallback(() => {
     setRightCollapsed((c) => !c);
   }, []);
 
-  return { collapsed, activeView, activeTool, rightCollapsed, toggleCollapse, setActiveView, openTool, toggleRight };
+  return { collapsed, activeView, activeTool, rightCollapsed, rightTab, toggleCollapse, setActiveView, openTool, openRight, toggleRight };
 }

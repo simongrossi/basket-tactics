@@ -188,7 +188,7 @@ export function Sidebar({ toolGroups, activeTool, panelOpen, onSelectTool, onClo
 }
       `}} />
       <nav className="bt-rail" aria-label="Outils">
-        {toolGroups.map((g) => {
+        {toolGroups.map((g, i) => {
           const pressed = panelOpen && g.id === active?.id;
           return (
             <button
@@ -196,7 +196,7 @@ export function Sidebar({ toolGroups, activeTool, panelOpen, onSelectTool, onClo
               type="button"
               className="bt-rail-item"
               aria-pressed={pressed}
-              title={g.title ?? g.label}
+              title={`${g.title ?? g.label} (touche ${i + 1})`}
               onClick={() => (pressed ? onClosePanel() : onSelectTool(g.id))}
             >
               <g.icon size={19} strokeWidth={1.9} style={{ color: pressed ? g.accent : undefined }} aria-hidden />

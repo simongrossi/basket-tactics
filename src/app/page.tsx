@@ -7,8 +7,13 @@ import { SHORTCUT_LABELS, scrubTarget, useKeyboardShortcuts, type ShortcutMode }
 import { useMatchLoop } from '@/hooks/useMatchLoop';
 import { useSidebarState } from '@/hooks/useSidebarState';
 import { Sidebar, type ToolGroup } from '@/components/sidebar/Sidebar';
-import { AppTopBar } from '@/components/sidebar/AppTopBar';
-import { Swords, Shield, ListOrdered, GitBranch, Undo2, Redo2, Plus, PanelRightClose } from 'lucide-react';
+import { AppTopBar, THEME_UI, VIEWS } from '@/components/sidebar/AppTopBar';
+import { CommandPalette, type PaletteItem } from '@/components/shell/CommandPalette';
+import { ShortcutsDialog } from '@/components/shell/ShortcutsDialog';
+import { useShellShortcuts } from '@/hooks/useShellShortcuts';
+import { useTheme } from '@/hooks/useTheme';
+import { CLASSIC_TEMPLATES, LAB_TEMPLATES } from '@/lib/data/templates';
+import { Swords, Shield, ListOrdered, GitBranch, Undo2, Redo2, Plus, PanelRightClose, Search, Keyboard, SlidersHorizontal } from 'lucide-react';
 import { OffenseToolsPanel } from '@/components/OffenseToolsPanel';
 import { StepsPanel, isPristineInitialStepList } from '@/components/StepsPanel';
 import { ScenarioPanel } from '@/components/ScenarioPanel';
@@ -32,7 +37,7 @@ import { PlaybookView } from '@/components/PlaybookView';
 import { PlayerTimelineModal } from '@/components/PlayerTimelineModal';
 import { MultiTrackTimeline } from '@/components/MultiTrackTimeline';
 import { ScenarioGraphView } from '@/components/scenariograph/ScenarioGraphView';
-import { InterfaceGate } from '@/components/interface/InterfaceLevel';
+import { InterfaceGate, useInterfaceLevel } from '@/components/interface/InterfaceLevel';
 import { MetricsBar } from '@/components/MetricsBar';
 import { MetricsChart } from '@/components/MetricsChart';
 import { CoachDiagnosticsOverlay } from '@/components/CoachDiagnosticsOverlay';
@@ -57,6 +62,10 @@ export default function Page() {
   const sidebar = useSidebarState();
   // Écran large : les Étapes ont leur colonne à droite (visibles en même temps
   // que les outils). Sinon elles rejoignent le rail pour laisser la place au terrain.
+  const theme = useTheme();
+  const interfaceLevel = useInterfaceLevel();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [wide, setWide] = useState(true);
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1200px)');
@@ -337,6 +346,23 @@ export default function Page() {
   // U03 — un seul gestionnaire clavier : une touche = une action selon la
   // vue (terrain uniquement), le mode (édition / lecteur / présentation),
   // la lecture en cours et le focus. Voir resolveShortcut.
+  const shellVisible = !presentMode && !isPlayerMode && !manualBusy;
+  // Lus par les raccourcis de la coque ; définis plus bas, à chaque rendu.
+  const shellRef = useRef({ openPanel: (_id: string) => {}, saveSystem: () => {}, railIds: [] as string[] });
+  useShellShortcuts(shellVisible, (action) => {
+    switch (action.type) {
+      case 'palette': setPaletteOpen(true); break;
+      case 'help': setShortcutsOpen(true); break;
+      case 'save': shellRef.current.saveSystem(); break;
+      case 'panel': {
+        const id = shellRef.current.railIds[action.index];
+        if (id) shellRef.current.openPanel(id);
+        break;
+      }
+      case 'toggleLeft': sidebar.toggleCollapse(); break;
+      case 'toggleRight': sidebar.toggleRight(); break;
+    }
+  });
   const shortcutMode: ShortcutMode = presentMode ? 'present' : isPlayerMode ? 'player' : 'edit';
   useKeyboardShortcuts({
     courtVisible: sidebar.activeView === 'court' && !manualBusy,
@@ -465,8 +491,6 @@ export default function Page() {
     });
   }, [app]);
 
-  const shellVisible = !presentMode && !isPlayerMode && !manualBusy;
-  const showStepsColumn = wide;
   const stepsPanel = (
     <StepsPanel
       state={app.state}
@@ -495,6 +519,229 @@ export default function Page() {
     />
   );
 
+  const quickSettings = (
+    <>
+      <ParametresPanel
+        quick
+        state={app.state}
+        onPatch={app.patch}
+        onSetPlayerCount={app.setPlayerCount}
+      />
+      <button type="button" className="bt-btn" style={{ marginTop: 12 }} onClick={() => sidebar.setActiveView('settings')}>
+        Tous les paramètres…
+      </button>
+    </>
+  );
+  // Écran étroit : Étapes et Réglages rejoignent le rail au lieu de la colonne de droite.
+  const toolGroups: ToolGroup[] = [
+    {
+      id: 'start',
+      icon: Plus,
+      label: 'Démarrer',
+      title: 'Préparer mon entraînement',
+      content: (
+        <CoachStartActions
+          onCreate={() => {
+            if (!app.resetAll()) return;
+            matchLoop.stop();
+            setIsPlaying(false);
+            setScrubT(null);
+            setPlaybackT(null);
+            setIsPlayerMode(false);
+            sidebar.setActiveView('court');
+          }}
+          onTemplates={() => {
+            setLibraryEntry(entry => ({ section: 'templates', key: entry.key + 1 }));
+            sidebar.setActiveView('library');
+          }}
+          onSessions={() => sidebar.setActiveView('sessions')}
+        />
+      ),
+    },
+    {
+      id: 'offense',
+      icon: Swords,
+      label: 'Attaque',
+      accent: '#f97316',
+      content: (
+        <OffenseToolsPanel
+          tool={app.state.tool}
+          onSetTool={app.setTool}
+          actionTimingAnchor={actionTimingAnchor}
+          onSetActionTimingAnchor={handleSetActionTimingAnchor}
+        />
+      ),
+    },
+    {
+      id: 'defense',
+      icon: Shield,
+      label: 'Défense',
+      accent: '#3b82f6',
+      content: (
+        <DefensePanel
+          state={app.state}
+          onSetScreenRule={app.setScreenRule}
+          onResetSwitches={app.resetSwitches}
+          onPatch={app.patch}
+          onUpdateRule={app.updateRule}
+          onUpdateAllRules={app.updateAllRules}
+          onResetIndividualOverrides={app.resetIndividualOverrides}
+          onSetDefenseSystem={app.setDefenseSystem}
+          onUpdateZoneConfig={app.updateZoneConfig}
+          onApplyDefensePreset={app.applyDefensePreset}
+          onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
+          onClearAllDefenseOverridesAnimated={app.clearAllDefenseOverridesActiveStepAnimated}
+          matchLoop={matchLoop}
+          matchSpeed={matchSpeed}
+          onSetMatchSpeed={setMatchSpeed}
+          onLoadAiSteps={handleLoadAiSteps}
+          onEnterFullscreenMatch={handleEnterFullscreenMatch}
+          onStartDemoMode={handleStartDemoMode}
+          scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
+          onToggleScriptedDefense={app.toggleScriptedDefense}
+          userDefensePresets={lib.library.defensePresets}
+          onSaveDefensePreset={(name) => lib.saveDefensePreset(app.state, name)}
+          onApplyUserDefensePreset={(preset) => {
+            const {
+              id: _id, name: _name, description: _desc, createdAt: _t,
+              ...defensePatch
+            } = preset;
+            app.patch(defensePatch);
+          }}
+          onDeleteDefensePreset={lib.deleteDefensePreset}
+        />
+      ),
+    },
+    ...(wide ? [] : [{ id: 'steps', icon: ListOrdered, label: 'Étapes', accent: '#f97316', content: stepsPanel }]),
+    {
+      id: 'scenario',
+      icon: GitBranch,
+      label: 'Scénario',
+      accent: '#a78bfa',
+      content: (
+        <ScenarioPanel
+          scriptedActions={app.state.scriptedActions ?? []}
+          scenarioBranches={app.state.scenarioBranches ?? []}
+          activeBranchId={app.state.activeBranchId ?? null}
+          playerCount={app.state.playerCount}
+          onAddAction={app.addScriptedAction}
+          onUpdateAction={app.updateScriptedAction}
+          onDeleteAction={app.deleteScriptedAction}
+          onMoveAction={app.moveScriptedAction}
+          onClearAll={app.clearScriptedActions}
+          onAddDefensiveAction={app.addDefensiveAction}
+          onUpdateDefensiveAction={app.updateDefensiveAction}
+          onDeleteDefensiveAction={app.deleteDefensiveAction}
+          onAddBranch={app.addScenarioBranch}
+          onAddBranches={app.addScenarioBranches}
+          onUpdateBranch={app.updateScenarioBranch}
+          onDeleteBranch={app.deleteScenarioBranch}
+          onSetActiveBranch={app.setActiveBranch}
+          resolvedReadBranchId={app.state.resolvedReadBranchId ?? null}
+          probabilisticReadsEnabled={app.state.probabilisticReadsEnabled}
+          coverageDistribution={app.state.coverageDistribution}
+          rolledCoverage={app.state.rolledCoverage}
+          onToggleProbabilisticReads={app.toggleProbabilisticReads}
+          onSetCoverageDistribution={app.setCoverageDistribution}
+          onRerollCoverage={app.rerollCoverage}
+          continuityLoop={app.state.continuityLoop}
+          onSetContinuityLoop={app.setContinuityLoop}
+          autoReplacementEnabled={app.state.autoReplacementEnabled}
+          autoReplacementDepth={app.state.autoReplacementDepth}
+          onSetAutoReplacement={app.setAutoReplacement}
+        />
+      ),
+    },
+    ...(wide ? [] : [{ id: 'settings', icon: SlidersHorizontal, label: 'Réglages', title: 'Réglages rapides', content: quickSettings }]),
+  ];
+  const activeTool = toolGroups.some((g) => g.id === sidebar.activeTool) ? sidebar.activeTool : 'offense';
+
+  /** Ouvre un panneau où qu'il soit : colonne de droite (écran large) ou rail. */
+  const openPanel = (id: string) => {
+    sidebar.setActiveView('court');
+    if (wide && (id === 'steps' || id === 'settings')) sidebar.openRight(id);
+    else sidebar.openTool(id);
+  };
+  const saveSystem = () => {
+    if (currentSavedSystem) lib.updateSystem(currentSavedSystem.id, app.state);
+    else sidebar.setActiveView('library');
+  };
+  const hasWorkInProgress = app.state.steps.length > 1 || app.state.steps[0].annotations.length > 0;
+  const confirmReplace = (name: string) =>
+    !hasWorkInProgress || window.confirm(`Charger "${name}" ? Le travail en cours sera remplacé.`);
+
+  const buildPaletteItems = (): PaletteItem[] => {
+    const court = (fn: () => void) => () => { sidebar.setActiveView('court'); fn(); };
+    const panels = [...toolGroups, ...(wide ? [
+      { id: 'steps', icon: ListOrdered, label: 'Étapes', title: undefined },
+      { id: 'settings', icon: SlidersHorizontal, label: 'Réglages', title: 'Réglages rapides' },
+    ] : [])];
+    return [
+      ...VIEWS.map((v): PaletteItem => ({
+        id: `view-${v.view}`, group: 'Vues', label: v.label, icon: v.icon,
+        run: () => {
+          if (v.view === 'library') setLibraryEntry(entry => ({ section: 'saved', key: entry.key + 1 }));
+          sidebar.setActiveView(v.view);
+        },
+      })),
+      { id: 'view-simulation', group: 'Vues', label: 'Match simulé', keywords: 'simulation ia', run: () => { window.location.href = '/simulation'; } },
+      ...panels.map((g): PaletteItem => {
+        const railIndex = toolGroups.findIndex((t) => t.id === g.id);
+        return {
+          id: `panel-${g.id}`, group: 'Panneaux', label: g.title ?? g.label, keywords: `${g.label} menu outils`,
+          icon: g.icon, shortcut: railIndex >= 0 ? String(railIndex + 1) : undefined, run: () => openPanel(g.id),
+        };
+      }),
+      ...([
+        ['move', 'Déplacer', 'M'], ['pass', 'Passe', 'P'], ['dribble', 'Dribble', 'D'],
+        ['cut', 'Course', 'R'], ['screen', 'Écran', 'E'], ['text', 'Note', 'T'],
+      ] as const).map(([tool, label, key]): PaletteItem => ({
+        id: `tool-${tool}`, group: 'Outils de dessin', label, shortcut: key, keywords: 'outil tracer dessiner attaque',
+        run: court(() => app.setTool(tool)),
+      })),
+      { id: 'act-new', group: 'Actions', label: 'Créer un système', keywords: 'nouveau vierge reset', run: court(() => { app.resetAll(); }) },
+      { id: 'act-save', group: 'Actions', label: currentSavedSystem ? `Enregistrer dans « ${currentSavedSystem.name} »` : 'Enregistrer le système…', shortcut: 'Ctrl+S', keywords: 'sauvegarder', run: saveSystem },
+      { id: 'act-copy', group: 'Actions', label: 'Enregistrer une copie…', keywords: 'sauvegarder dupliquer', run: () => sidebar.setActiveView('library') },
+      { id: 'act-templates', group: 'Actions', label: 'Partir d’un modèle', keywords: 'templates classiques', run: () => { setLibraryEntry(entry => ({ section: 'templates', key: entry.key + 1 })); sidebar.setActiveView('library'); } },
+      { id: 'act-undo', group: 'Actions', label: 'Annuler', shortcut: 'Ctrl+Z', run: court(app.undo) },
+      { id: 'act-redo', group: 'Actions', label: 'Rétablir', shortcut: 'Ctrl+Y', run: court(app.redo) },
+      { id: 'act-play', group: 'Actions', label: isPlaying ? 'Mettre en pause' : 'Lire l’animation', shortcut: 'Espace', keywords: 'lecture play pause', run: court(handlePlayToggle) },
+      { id: 'act-present', group: 'Actions', label: 'Plein écran', keywords: 'présentation', run: court(handleTogglePresentMode) },
+      { id: 'act-player', group: 'Actions', label: 'Mode lecteur (joueur)', keywords: 'présenter', run: court(() => setIsPlayerMode(true)) },
+      { id: 'act-tracks', group: 'Actions', label: 'Timeline par joueur', keywords: 'pistes', run: () => setShowPlayerTimeline(true) },
+      { id: 'act-export-video', group: 'Actions', label: 'Exporter en GIF / WebM', keywords: 'vidéo animation', run: court(() => setShowExportModal(true)) },
+      { id: 'act-export-json', group: 'Actions', label: 'Exporter en JSON', keywords: 'fichier sauvegarde', run: handleExport },
+      { id: 'act-import-json', group: 'Actions', label: 'Importer un JSON', keywords: 'fichier ouvrir', run: handleImport },
+      { id: 'act-copy-situation', group: 'Actions', label: 'Copier la situation (code)', run: () => openSituationDialog('copy') },
+      { id: 'act-copy-animation', group: 'Actions', label: 'Copier l’animation (code)', run: () => openSituationDialog('animation') },
+      { id: 'act-paste-situation', group: 'Actions', label: 'Coller une situation / animation', run: () => openSituationDialog('import') },
+      { id: 'act-shortcuts', group: 'Actions', label: 'Raccourcis clavier', shortcut: '?', keywords: 'aide touches', run: () => setShortcutsOpen(true) },
+      ...(['auto', 'light', 'dark'] as const).map((mode): PaletteItem => ({
+        id: `theme-${mode}`, group: 'Affichage', label: THEME_UI[mode].label, icon: THEME_UI[mode].icon,
+        hint: theme.mode === mode ? 'actif' : undefined, keywords: 'couleurs apparence mode', run: () => theme.setMode(mode),
+      })),
+      ...([['coach', 'Coach'], ['analysis', 'Analyse'], ['development', 'Développement']] as const).map(([level, label]): PaletteItem => ({
+        id: `level-${level}`, group: 'Affichage', label: `Niveau d’interface : ${label}`,
+        hint: interfaceLevel.level === level ? 'actif' : undefined, run: () => interfaceLevel.setLevel(level),
+      })),
+      ...lib.library.folders.flatMap((folder) => folder.systems.map((sys): PaletteItem => ({
+        id: `system-${sys.id}`, group: 'Mes systèmes', label: sys.name, hint: folder.name,
+        keywords: `${sys.description ?? ''} ${(sys.tags ?? []).join(' ')}`,
+        run: () => { if (confirmReplace(sys.name)) { app.importState(lib.loadSystem(app.state, sys)); sidebar.setActiveView('court'); } },
+      }))),
+      ...getSessions(lib.library).map((session): PaletteItem => ({
+        id: `session-${session.id}`, group: 'Séances', label: session.name, hint: session.date,
+        run: () => { setSelectedSessionId(session.id); sidebar.setActiveView('sessions'); },
+      })),
+      ...[...CLASSIC_TEMPLATES, ...(interfaceLevel.development ? LAB_TEMPLATES : [])].map((t): PaletteItem => ({
+        id: `template-${t.id}`, group: 'Modèles', label: t.name, keywords: `${t.description} ${(t.tags ?? []).join(' ')}`,
+        run: () => { if (confirmReplace(t.name)) { app.loadTemplate(t); sidebar.setActiveView('court'); } },
+      })),
+    ];
+  };
+
+  shellRef.current = { openPanel, saveSystem, railIds: toolGroups.map((g) => g.id) };
+
   return (
     <main
       style={{
@@ -515,6 +762,7 @@ export default function Page() {
               if (view === 'library') setLibraryEntry(entry => ({ section: 'saved', key: entry.key + 1 }));
               sidebar.setActiveView(view);
             }}
+            theme={theme}
           />
           <div className="bt-toolbar">
             {sidebar.activeView === 'court' && (
@@ -534,6 +782,12 @@ export default function Page() {
                   ? 'Sauvegarde en cours…' : 'Brouillon conservé sur cet appareil'}
             </span>
             <span className="bt-toolbar-spacer" />
+            <button type="button" className="bt-search" onClick={() => setPaletteOpen(true)} title="Rechercher (Ctrl/⌘+K ou /)">
+              <Search size={15} aria-hidden />
+              <span>Rechercher un menu, un système…</span>
+              <kbd>Ctrl K</kbd>
+            </button>
+            <span className="bt-toolbar-spacer" />
             {app.hasRecovery && <button className="bt-btn" onClick={app.restoreDraft}>
               Retrouver le brouillon précédent
             </button>}
@@ -544,7 +798,10 @@ export default function Page() {
               onClick={() => lib.updateSystem(currentSavedSystem.id, app.state)}>
               Enregistrer dans « {currentSavedSystem.name} »
             </button>}
-          <SidebarOverflowMenu
+          <button type="button" className="bt-icon-btn" onClick={() => setShortcutsOpen(true)} title="Raccourcis clavier (?)" aria-label="Raccourcis clavier">
+              <Keyboard size={16} aria-hidden />
+            </button>
+            <SidebarOverflowMenu
             presentMode={presentMode}
             onTogglePresentMode={handleTogglePresentMode}
             isPlayerMode={isPlayerMode}
@@ -573,7 +830,7 @@ export default function Page() {
       >
         {shellVisible && (
           <Sidebar
-            activeTool={showStepsColumn && sidebar.activeTool === 'steps' ? 'offense' : sidebar.activeTool}
+            activeTool={activeTool}
             panelOpen={sidebar.activeView === 'court' && !sidebar.collapsed}
             onSelectTool={(id) => {
               sidebar.setActiveView('court');
@@ -581,126 +838,7 @@ export default function Page() {
             }}
             onClosePanel={sidebar.toggleCollapse}
             version="0.18.0"
-            toolGroups={[
-              {
-                id: 'start',
-                icon: Plus,
-                label: 'Démarrer',
-                title: 'Préparer mon entraînement',
-                content: (
-                  <CoachStartActions
-                    onCreate={() => {
-                      if (!app.resetAll()) return;
-                      matchLoop.stop();
-                      setIsPlaying(false);
-                      setScrubT(null);
-                      setPlaybackT(null);
-                      setIsPlayerMode(false);
-                      sidebar.setActiveView('court');
-                    }}
-                    onTemplates={() => {
-                      setLibraryEntry(entry => ({ section: 'templates', key: entry.key + 1 }));
-                      sidebar.setActiveView('library');
-                    }}
-                    onSessions={() => sidebar.setActiveView('sessions')}
-                  />
-                ),
-              },
-              {
-                id: 'offense',
-                icon: Swords,
-                label: 'Attaque',
-                accent: '#f97316',
-                content: (
-                  <OffenseToolsPanel
-                    tool={app.state.tool}
-                    onSetTool={app.setTool}
-                    actionTimingAnchor={actionTimingAnchor}
-                    onSetActionTimingAnchor={handleSetActionTimingAnchor}
-                  />
-                ),
-              },
-              {
-                id: 'defense',
-                icon: Shield,
-                label: 'Défense',
-                accent: '#3b82f6',
-                content: (
-                  <DefensePanel
-                    state={app.state}
-                    onSetScreenRule={app.setScreenRule}
-                    onResetSwitches={app.resetSwitches}
-                    onPatch={app.patch}
-                    onUpdateRule={app.updateRule}
-                    onUpdateAllRules={app.updateAllRules}
-                    onResetIndividualOverrides={app.resetIndividualOverrides}
-                    onSetDefenseSystem={app.setDefenseSystem}
-                    onUpdateZoneConfig={app.updateZoneConfig}
-                    onApplyDefensePreset={app.applyDefensePreset}
-                    onClearAllDefenseOverrides={app.clearAllDefenseOverridesActiveStep}
-                    onClearAllDefenseOverridesAnimated={app.clearAllDefenseOverridesActiveStepAnimated}
-                    matchLoop={matchLoop}
-                    matchSpeed={matchSpeed}
-                    onSetMatchSpeed={setMatchSpeed}
-                    onLoadAiSteps={handleLoadAiSteps}
-                    onEnterFullscreenMatch={handleEnterFullscreenMatch}
-                    onStartDemoMode={handleStartDemoMode}
-                    scriptedDefenseEnabled={app.state.defenseScriptedDirectivesEnabled}
-                    onToggleScriptedDefense={app.toggleScriptedDefense}
-                    userDefensePresets={lib.library.defensePresets}
-                    onSaveDefensePreset={(name) => lib.saveDefensePreset(app.state, name)}
-                    onApplyUserDefensePreset={(preset) => {
-                      const {
-                        id: _id, name: _name, description: _desc, createdAt: _t,
-                        ...defensePatch
-                      } = preset;
-                      app.patch(defensePatch);
-                    }}
-                    onDeleteDefensePreset={lib.deleteDefensePreset}
-                  />
-                ),
-              },
-              ...(showStepsColumn ? [] : [{ id: 'steps', icon: ListOrdered, label: 'Étapes', accent: '#f97316', content: stepsPanel }]),
-              {
-                id: 'scenario',
-                icon: GitBranch,
-                label: 'Scénario',
-                accent: '#a78bfa',
-                content: (
-                  <ScenarioPanel
-                    scriptedActions={app.state.scriptedActions ?? []}
-                    scenarioBranches={app.state.scenarioBranches ?? []}
-                    activeBranchId={app.state.activeBranchId ?? null}
-                    playerCount={app.state.playerCount}
-                    onAddAction={app.addScriptedAction}
-                    onUpdateAction={app.updateScriptedAction}
-                    onDeleteAction={app.deleteScriptedAction}
-                    onMoveAction={app.moveScriptedAction}
-                    onClearAll={app.clearScriptedActions}
-                    onAddDefensiveAction={app.addDefensiveAction}
-                    onUpdateDefensiveAction={app.updateDefensiveAction}
-                    onDeleteDefensiveAction={app.deleteDefensiveAction}
-                    onAddBranch={app.addScenarioBranch}
-                    onAddBranches={app.addScenarioBranches}
-                    onUpdateBranch={app.updateScenarioBranch}
-                    onDeleteBranch={app.deleteScenarioBranch}
-                    onSetActiveBranch={app.setActiveBranch}
-                    resolvedReadBranchId={app.state.resolvedReadBranchId ?? null}
-                    probabilisticReadsEnabled={app.state.probabilisticReadsEnabled}
-                    coverageDistribution={app.state.coverageDistribution}
-                    rolledCoverage={app.state.rolledCoverage}
-                    onToggleProbabilisticReads={app.toggleProbabilisticReads}
-                    onSetCoverageDistribution={app.setCoverageDistribution}
-                    onRerollCoverage={app.rerollCoverage}
-                    continuityLoop={app.state.continuityLoop}
-                    onSetContinuityLoop={app.setContinuityLoop}
-                    autoReplacementEnabled={app.state.autoReplacementEnabled}
-                    autoReplacementDepth={app.state.autoReplacementDepth}
-                    onSetAutoReplacement={app.setAutoReplacement}
-                  />
-                ),
-              },
-            ]}
+            toolGroups={toolGroups}
           />
         )}
 
@@ -1045,23 +1183,29 @@ export default function Page() {
           )}
         </div>
 
-        {shellVisible && showStepsColumn && sidebar.activeView === 'court' && (
+        {shellVisible && wide && sidebar.activeView === 'court' && (
           sidebar.rightCollapsed ? (
             <aside className="bt-panel bt-panel-right is-collapsed">
-              <button type="button" className="bt-icon-btn" onClick={sidebar.toggleRight} title="Afficher les étapes" aria-label="Afficher les étapes">
+              <button type="button" className="bt-icon-btn" onClick={() => sidebar.openRight('steps')} title="Afficher les étapes" aria-label="Afficher les étapes">
                 <ListOrdered size={17} aria-hidden />
+              </button>
+              <button type="button" className="bt-icon-btn" onClick={() => sidebar.openRight('settings')} title="Afficher les réglages" aria-label="Afficher les réglages">
+                <SlidersHorizontal size={17} aria-hidden />
               </button>
             </aside>
           ) : (
-            <aside className="bt-panel bt-panel-right" aria-label="Étapes">
+            <aside className="bt-panel bt-panel-right" aria-label="Étapes et réglages">
               <header className="bt-panel-head">
-                <h2>Étapes</h2>
-                <button type="button" className="bt-icon-btn" onClick={sidebar.toggleRight} title="Replier les étapes" aria-label="Replier les étapes">
+                <div className="bt-tabs" role="tablist" aria-label="Colonne de droite">
+                  <button type="button" role="tab" className="bt-tab" aria-selected={sidebar.rightTab === 'steps'} onClick={() => sidebar.openRight('steps')}>Étapes</button>
+                  <button type="button" role="tab" className="bt-tab" aria-selected={sidebar.rightTab === 'settings'} onClick={() => sidebar.openRight('settings')}>Réglages</button>
+                </div>
+                <button type="button" className="bt-icon-btn" onClick={sidebar.toggleRight} title="Replier la colonne (Ctrl/⌘+Alt+B)" aria-label="Replier la colonne de droite">
                   <PanelRightClose size={16} aria-hidden />
                 </button>
               </header>
-              <div className="bt-panel-body sidebar-tools-scope">
-                <SidebarThemeProvider dark>{stepsPanel}</SidebarThemeProvider>
+              <div className="bt-panel-body sidebar-tools-scope" role="tabpanel">
+                <SidebarThemeProvider dark>{sidebar.rightTab === 'settings' ? quickSettings : stepsPanel}</SidebarThemeProvider>
               </div>
             </aside>
           )
@@ -1075,6 +1219,8 @@ export default function Page() {
         style={{ display: 'none' }}
         onChange={handleFile}
       />
+      {paletteOpen && <CommandPalette items={buildPaletteItems()} onClose={() => setPaletteOpen(false)} />}
+      {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
       {showPlayerTimeline && (
         <PlayerTimelineModal
           state={app.state}
