@@ -674,7 +674,7 @@ export function ScenarioGraphView({
       </div>
 
       {/* Main Workspace (Graph Canvas + Floating Indicators + PiP) */}
-      <div className="bt-force-dark" style={{ flex: 1, position: 'relative', height: '100%' }}>
+      <div style={{ flex: 1, position: 'relative', height: '100%' }}>
         {/* Canvas */}
         <GraphCanvas
           state={state}
@@ -720,7 +720,7 @@ export function ScenarioGraphView({
                   style={{
                     fontSize: 8,
                     fontWeight: 800,
-                    color: 'var(--bt-violet-text)',
+                    color: '#ddd6fe',
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
                   }}
@@ -731,16 +731,16 @@ export function ScenarioGraphView({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2, flexWrap: 'wrap' }}>
                   {activeBranchPath.map((b, i) => (
                     <span key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      {i > 0 && <span style={{ color: 'var(--bt-violet-text)', fontSize: 9 }}>›</span>}
+                      {i > 0 && <span style={{ color: '#ddd6fe', fontSize: 9 }}>›</span>}
                       <span
                         onClick={() => onSetActiveBranch(b.id)}
                         style={{
                           fontSize: i === activeBranchPath.length - 1 ? 11 : 9,
                           fontWeight: i === activeBranchPath.length - 1 ? 700 : 500,
-                          color: i === activeBranchPath.length - 1 ? '#fff' : 'var(--bt-violet-text)',
+                          color: i === activeBranchPath.length - 1 ? '#fff' : '#ddd6fe',
                           cursor: i < activeBranchPath.length - 1 ? 'pointer' : 'default',
                           textDecoration: i < activeBranchPath.length - 1 ? 'underline' : 'none',
-                          textDecorationColor: 'var(--bt-violet-text)',
+                          textDecorationColor: '#ddd6fe',
                         }}
                       >
                         {b.label || 'Sans nom'}
@@ -853,7 +853,7 @@ function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
                 borderRadius: 4,
                 background: 'var(--bt-surface)',
                 border: '1px solid var(--bt-border-strong)',
-                color: '#fff',
+                color: 'var(--bt-text)',
                 width: '100%',
                 outline: 'none',
               }}
@@ -891,7 +891,7 @@ function ActionForm({ action, def, attackerIds, onChange }: ActionFormProps) {
             borderRadius: 4,
             background: 'var(--bt-surface)',
             border: '1px solid var(--bt-border-strong)',
-            color: '#fff',
+            color: 'var(--bt-text)',
             width: '100%',
             boxSizing: 'border-box',
             outline: 'none',
@@ -945,7 +945,7 @@ function ChainEditor({
                 padding: '2px 4px',
                 background: 'var(--bt-surface)',
                 border: '1px solid var(--bt-border-strong)',
-                color: '#fff',
+                color: 'var(--bt-text)',
                 borderRadius: 4,
                 outline: 'none',
               }}

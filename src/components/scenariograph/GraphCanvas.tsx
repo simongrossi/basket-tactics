@@ -405,7 +405,7 @@ export function GraphCanvas({
         <path
           d={d}
           fill="none"
-          stroke={edge.active ? '#ea580c' : '#334155'}
+          stroke={edge.active ? '#ea580c' : 'var(--bt-text-dim)'}
           strokeWidth={edge.active ? 3.5 : 2}
           markerEnd={edge.active ? 'url(#arrow-orange)' : 'url(#arrow-gray)'}
           style={{ transition: 'stroke 0.2s, stroke-width 0.2s' }}
@@ -430,7 +430,7 @@ export function GraphCanvas({
         width: '100%',
         height: '100%',
         position: 'relative',
-        background: '#0f172a',
+        background: 'var(--bt-canvas)',
         overflow: 'hidden',
         cursor: isPanning ? 'grabbing' : 'grab',
         userSelect: 'none',
@@ -441,7 +441,7 @@ export function GraphCanvas({
         style={{
           position: 'absolute',
           inset: 0,
-          backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px)',
+          backgroundImage: 'radial-gradient(var(--bt-border-strong) 1px, transparent 1px)',
           backgroundSize: '20px 20px',
           backgroundPosition: `${transform.x}px ${transform.y}px`,
           pointerEvents: 'none',
@@ -479,7 +479,7 @@ export function GraphCanvas({
             markerHeight={6}
             orient="auto-start-reverse"
           >
-            <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569" />
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--bt-text-dim)" />
           </marker>
         </defs>
 
@@ -497,7 +497,7 @@ export function GraphCanvas({
             transition: border-color 0.15s, box-shadow 0.15s;
           }
           .node-card:hover {
-            box-shadow: 0 0 12px rgba(255, 255, 255, 0.08);
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.18);
           }
         `}</style>
 
@@ -555,8 +555,8 @@ export function GraphCanvas({
             const isNodeInvolvedVal = isNodeInvolved(node, selectedPlayerPerspective);
             const opacity = isNodeInvolvedVal ? 1.0 : 0.25;
 
-            let border = '1px solid rgba(255, 255, 255, 0.1)';
-            let bg = 'rgba(30, 41, 59, 0.7)';
+            let border = '1px solid var(--bt-border-strong)';
+            let bg = 'var(--bt-bg)';
             if (isNodeActive) {
               border = '1px solid #ea580c';
               bg = 'rgba(234, 88, 12, 0.1)';
@@ -566,7 +566,7 @@ export function GraphCanvas({
             }
 
             if (node.type === 'start') {
-              bg = 'rgba(15, 23, 42, 0.8)';
+              bg = 'var(--bt-surface)';
             } else if (node.type === 'trigger') {
               bg = 'rgba(109, 40, 217, 0.75)';
               border = '1px solid rgba(139, 92, 246, 0.3)';
@@ -604,7 +604,7 @@ export function GraphCanvas({
                     background: bg,
                     border,
                     borderRadius: node.type === 'trigger' ? 8 : 6,
-                    color: '#fff',
+                    color: node.type === 'trigger' ? '#fff' : 'var(--bt-text)',
                     padding: '8px 12px',
                     display: 'flex',
                     flexDirection: 'column',
@@ -642,7 +642,7 @@ export function GraphCanvas({
                   ) : node.type === 'trigger' ? (
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: 9, fontWeight: 700, color: '#ddd' }}>{node.label}</div>
-                      <div style={{ fontSize: 8, color: 'var(--bt-violet-text)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ fontSize: 8, color: '#e9d5ff', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {node.triggerBranch?.label || 'Condition'}
                       </div>
                     </div>
@@ -661,7 +661,7 @@ export function GraphCanvas({
                           {node.branchId ? 'Branche' : 'Principal'}
                         </span>
                         {node.stepIdx !== undefined && (
-                          <span style={{ fontSize: 8, background: 'rgba(255,255,255,0.08)', padding: '1px 3px', borderRadius: 2 }}>
+                          <span style={{ fontSize: 8, background: 'var(--bt-surface-raised)', padding: '1px 3px', borderRadius: 2 }}>
                             t={node.stepIdx}
                           </span>
                         )}
@@ -695,7 +695,7 @@ export function GraphCanvas({
                             right: 6,
                             background: 'rgba(249, 115, 22, 0.2)',
                             border: '1px solid rgba(249, 115, 22, 0.4)',
-                            color: '#ffedd5',
+                            color: 'var(--bt-orange-text)',
                             fontSize: 8,
                             fontWeight: 800,
                             padding: '1.5px 5px',
@@ -724,12 +724,11 @@ export function GraphCanvas({
           right: 16,
           display: 'flex',
           gap: 6,
-          background: 'rgba(15, 23, 42, 0.8)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--bt-bg)',
+          border: '1px solid var(--bt-border)',
           borderRadius: 8,
           padding: 4,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+          boxShadow: 'var(--bt-shadow)',
           zIndex: 10,
         }}
       >
@@ -746,7 +745,7 @@ export function GraphCanvas({
             display: 'flex',
             alignItems: 'center',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bt-surface)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >
           <ZoomIn size={14} />
@@ -764,7 +763,7 @@ export function GraphCanvas({
             display: 'flex',
             alignItems: 'center',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bt-surface)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >
           <ZoomOut size={14} />
@@ -782,7 +781,7 @@ export function GraphCanvas({
             display: 'flex',
             alignItems: 'center',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bt-surface)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >
           <RefreshCw size={12} />
