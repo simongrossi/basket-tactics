@@ -10,6 +10,7 @@ import { Sidebar, type ToolGroup } from '@/components/sidebar/Sidebar';
 import { AppTopBar, THEME_UI, VIEWS } from '@/components/sidebar/AppTopBar';
 import { CommandPalette, type PaletteItem } from '@/components/shell/CommandPalette';
 import { ShortcutsDialog } from '@/components/shell/ShortcutsDialog';
+import { CourtSizeToggle, QuickSettings } from '@/components/shell/QuickSettings';
 import { useShellShortcuts } from '@/hooks/useShellShortcuts';
 import { useTheme } from '@/hooks/useTheme';
 import { CLASSIC_TEMPLATES, LAB_TEMPLATES } from '@/lib/data/templates';
@@ -520,17 +521,12 @@ export default function Page() {
   );
 
   const quickSettings = (
-    <>
-      <ParametresPanel
-        quick
-        state={app.state}
-        onPatch={app.patch}
-        onSetPlayerCount={app.setPlayerCount}
-      />
-      <button type="button" className="bt-btn" style={{ marginTop: 12 }} onClick={() => sidebar.setActiveView('settings')}>
-        Tous les paramètres…
-      </button>
-    </>
+    <QuickSettings
+      state={app.state}
+      onPatch={app.patch}
+      onSetPlayerCount={app.setPlayerCount}
+      onOpenAll={() => sidebar.setActiveView('settings')}
+    />
   );
   // Écran étroit : Étapes et Réglages rejoignent le rail au lieu de la colonne de droite.
   const toolGroups: ToolGroup[] = [
@@ -703,6 +699,7 @@ export default function Page() {
       { id: 'act-save', group: 'Actions', label: currentSavedSystem ? `Enregistrer dans « ${currentSavedSystem.name} »` : 'Enregistrer le système…', shortcut: 'Ctrl+S', keywords: 'sauvegarder', run: saveSystem },
       { id: 'act-copy', group: 'Actions', label: 'Enregistrer une copie…', keywords: 'sauvegarder dupliquer', run: () => sidebar.setActiveView('library') },
       { id: 'act-templates', group: 'Actions', label: 'Partir d’un modèle', keywords: 'templates classiques', run: () => { setLibraryEntry(entry => ({ section: 'templates', key: entry.key + 1 })); sidebar.setActiveView('library'); } },
+      { id: 'act-court-size', group: 'Actions', label: app.state.fullCourt ? 'Passer en demi-terrain' : 'Passer en terrain complet', keywords: 'terrain complet demi tout terrain full court', run: court(() => app.patch({ fullCourt: !app.state.fullCourt })) },
       { id: 'act-undo', group: 'Actions', label: 'Annuler', shortcut: 'Ctrl+Z', run: court(app.undo) },
       { id: 'act-redo', group: 'Actions', label: 'Rétablir', shortcut: 'Ctrl+Y', run: court(app.redo) },
       { id: 'act-play', group: 'Actions', label: isPlaying ? 'Mettre en pause' : 'Lire l’animation', shortcut: 'Espace', keywords: 'lecture play pause', run: court(handlePlayToggle) },
@@ -763,6 +760,7 @@ export default function Page() {
               sidebar.setActiveView(view);
             }}
             theme={theme}
+            onHome={() => sidebar.setActiveView('court')}
           />
           <div className="bt-toolbar">
             {sidebar.activeView === 'court' && (
@@ -771,6 +769,8 @@ export default function Page() {
                   <HistoryButton label="Annuler" shortcut={SHORTCUT_LABELS.undo} disabled={!app.canUndo || isPlaying} onClick={app.undo} icon={<Undo2 size={16} aria-hidden />} />
                   <HistoryButton label="Rétablir" shortcut={SHORTCUT_LABELS.redo} disabled={!app.canRedo || isPlaying} onClick={app.redo} icon={<Redo2 size={16} aria-hidden />} />
                 </div>
+                <span className="bt-toolbar-sep" aria-hidden />
+                <CourtSizeToggle state={app.state} onPatch={app.patch} />
                 <span className="bt-toolbar-sep" aria-hidden />
               </>
             )}

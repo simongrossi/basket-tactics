@@ -94,7 +94,7 @@ export default function SimulationPage() {
       }}
     >
       <ToolsScopeStyle />
-      {!presentMode && <AppTopBar activeView="simulation" onSelectView={openEditorView} theme={theme} />}
+      {!presentMode && <AppTopBar activeView="simulation" onSelectView={openEditorView} theme={theme} onHome={() => openEditorView('court')} />}
 
       {/* Terrain au centre, contrôles de simulation dans la colonne de droite */}
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>

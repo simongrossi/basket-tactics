@@ -22,19 +22,21 @@ export const VIEWS: { view: SidebarView; icon: typeof Target; label: string }[] 
 ];
 
 // Barre d'application : marque, navigation entre vues, niveau d'interface.
-export function AppTopBar({ activeView, onSelectView, theme }: {
+export function AppTopBar({ activeView, onSelectView, theme, onHome }: {
   /** `simulation` : la page /simulation, hors des vues de l'éditeur. */
   activeView: SidebarView | 'simulation';
   onSelectView: (view: SidebarView) => void;
   theme: ReturnType<typeof useTheme>;
+  /** Clic sur la marque : retour au terrain. */
+  onHome: () => void;
 }) {
   const ThemeIcon = THEME_UI[theme.mode].icon;
   return (
     <header className="bt-topbar">
-      <div className="bt-brand">
+      <button type="button" className="bt-brand" onClick={onHome} title="Retour au terrain">
         <Logo />
         <span>basket-tactics</span>
-      </div>
+      </button>
       <nav className="bt-nav" aria-label="Vues">
         {VIEWS.map(({ view, icon: Icon, label }) => (
           <button

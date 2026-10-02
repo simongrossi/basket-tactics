@@ -1,7 +1,7 @@
 'use client';
 
 import { InterfaceGate, InterfaceLevelSelector } from './interface/InterfaceLevel';
-import { createContext, useContext, useId, type CSSProperties, type ReactNode } from 'react';
+import { useId, type CSSProperties, type ReactNode } from 'react';
 import type { AppState, PlayerCount, PlayerId } from '@/lib/types';
 import { PLAYER_COUNT_OPTIONS } from '@/lib/logic/players';
 import { Panel, CheckboxLine } from './ui';
@@ -16,13 +16,7 @@ interface ParametresPanelProps {
   onTogglePlayerDisqualified?: (playerId: PlayerId) => void;
   /** F.4 — Réinitialise les disqualifications (= début de partie). */
   onClearDisqualified?: () => void;
-  /** Colonne de droite : seulement les réglages d'usage courant. */
-  quick?: boolean;
 }
-
-/** Sections gardées dans la variante `quick`. */
-const QUICK_SECTIONS = new Set(['Format de jeu', 'Durées', 'Visu & légende']);
-const QuickContext = createContext(false);
 
 const UI = {
   page: 'var(--bt-bg)',
@@ -127,7 +121,6 @@ export function ParametresPanel({
   onAutoPositionOffBall,
   onTogglePlayerDisqualified,
   onClearDisqualified,
-  quick = false,
 }: ParametresPanelProps) {
   // Valeurs cinématiques effectives (preset réaliste résolu) pour que les
   // cases reflètent l'état réel, pas seulement l'override brut.
@@ -135,8 +128,8 @@ export function ParametresPanel({
   // Tempo selon la distance : actif tant qu’aucune durée globale n’est imposée.
   const autoTempo = realism.distanceTempoEnabled && !state.realSpeedMode;
   return (
-    <QuickContext.Provider value={quick}><Panel theme="defense" title="⚙ Paramètres">
-      {!quick && <InterfaceLevelSelector />}
+    <Panel theme="defense" title="⚙ Paramètres">
+      <InterfaceLevelSelector />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 12 }}>
         <SettingsSection title="Format de jeu">
           <ControlGroup title="Joueurs actifs" accent={UI.accent}>
@@ -801,13 +794,11 @@ export function ParametresPanel({
           />
         </div>
       </SettingsSection>
-    </Panel></QuickContext.Provider>
+    </Panel>
   );
 }
 
 function SettingsSection({ title, children, min = 'coach' }: { title: string; children: ReactNode; min?: 'coach' | 'analysis' | 'development' }) {
-  const quick = useContext(QuickContext);
-  if (quick && !QUICK_SECTIONS.has(title)) return null;
   return (
     <InterfaceGate min={min}><section style={sectionStyle}>
       <div style={sectionTitleStyle}>{title}</div>
