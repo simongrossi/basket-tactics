@@ -29,7 +29,7 @@ import { ToolBar } from './ToolBar';
 import { Row, OverrideSliderRow, GazeLockButton } from './sharedRows';
 import { DARK_PANEL } from '../sidebar/SidebarThemeContext';
 
-const BLUE_ACCENT = '#4ba3ff';
+const BLUE_ACCENT = 'var(--bt-accent)';
 const BLUE_TINT_BG = 'rgba(75, 163, 255, 0.13)';
 const BLUE_TINT_BORDER = 'rgba(75, 163, 255, 0.32)';
 const AMBER_TINT_BG = 'rgba(245, 158, 11, 0.15)';
@@ -53,8 +53,8 @@ function MenuSection({
   children: ReactNode;
 }) {
   const metaColors = metaTone === 'amber'
-    ? { color: '#fdba74', background: AMBER_TINT_BG, border: AMBER_TINT_BORDER }
-    : { color: '#bfdbfe', background: BLUE_TINT_BG, border: BLUE_TINT_BORDER };
+    ? { color: 'var(--bt-orange-text)', background: AMBER_TINT_BG, border: AMBER_TINT_BORDER }
+    : { color: 'var(--bt-blue-text)', background: BLUE_TINT_BG, border: BLUE_TINT_BORDER };
 
   return (
     <section
@@ -275,7 +275,7 @@ export function DefenderMenu({
         borderRadius: 12,
         padding: 12,
         zIndex: 1000,
-        boxShadow: '0 18px 48px rgba(0, 0, 0, 0.48)',
+        boxShadow: 'var(--bt-shadow)',
       }}
     >
       <div
@@ -302,7 +302,7 @@ export function DefenderMenu({
               borderRadius: 8,
               background: BLUE_TINT_BG,
               border: `1px solid ${BLUE_TINT_BORDER}`,
-              color: '#bfdbfe',
+              color: 'var(--bt-blue-text)',
               flex: '0 0 auto',
             }}
           >
@@ -410,7 +410,7 @@ export function DefenderMenu({
               borderRadius: 7,
               border: `1px solid ${!hasOverride ? BLUE_ACCENT : DARK_PANEL.border}`,
               background: !hasOverride ? BLUE_ACCENT : DARK_PANEL.bgSubtle,
-              color: !hasOverride ? '#07121f' : DARK_PANEL.textMuted,
+              color: !hasOverride ? 'var(--bt-on-accent)' : DARK_PANEL.textMuted,
               cursor: hasOverride ? 'pointer' : 'default',
               fontWeight: 850,
               display: 'inline-flex',

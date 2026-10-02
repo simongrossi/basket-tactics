@@ -57,7 +57,7 @@ export function ToolBar({
                 background: active
                   ? 'linear-gradient(180deg, #e46338 0%, #c94a23 100%)'
                   : DARK_PANEL.bgSubtle,
-                color: active ? '#fff' : (greyed ? DARK_PANEL.textDim : '#fdba74'),
+                color: active ? '#fff' : (greyed ? DARK_PANEL.textDim : 'var(--bt-orange-text)'),
                 cursor: 'pointer',
                 fontWeight: active ? 800 : 700,
                 display: 'flex',
@@ -88,7 +88,7 @@ export function ToolBar({
             borderRadius: 8,
             border: `1px solid ${actionTimingAnchor === 'end' ? '#D85A30' : DARK_PANEL.border}`,
             background: actionTimingAnchor === 'end' ? 'rgba(216, 90, 48, 0.14)' : DARK_PANEL.bgSubtle,
-            color: actionTimingAnchor === 'end' ? '#fdba74' : DARK_PANEL.textMuted,
+            color: actionTimingAnchor === 'end' ? 'var(--bt-orange-text)' : DARK_PANEL.textMuted,
             fontSize: 12,
             fontWeight: 800,
             cursor: 'pointer',

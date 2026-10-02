@@ -51,7 +51,7 @@ export function AutoActionSubmenu({ state, fromId, onCreate, onClose }: AutoActi
     borderRadius: 4,
     border: `1px solid ${active ? 'rgba(253, 186, 116, 0.35)' : DARK_PANEL.border}`,
     background: active ? 'rgba(216, 90, 48, 0.15)' : DARK_PANEL.bgSubtle,
-    color: active ? '#fdba74' : DARK_PANEL.text,
+    color: active ? 'var(--bt-orange-text)' : DARK_PANEL.text,
     cursor: 'pointer' as const,
     fontWeight: active ? 600 : 400,
   });
@@ -71,7 +71,7 @@ export function AutoActionSubmenu({ state, fromId, onCreate, onClose }: AutoActi
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
-      <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>
+      <div style={{ fontSize: 10, color: 'var(--bt-text-dim)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>
         action auto
       </div>
 
@@ -111,7 +111,7 @@ export function AutoActionSubmenu({ state, fromId, onCreate, onClose }: AutoActi
       )}
       {open === 'screen' && screenTarget !== null && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 8 }}>
-          <div style={{ fontSize: 10, color: '#94a3b8', paddingLeft: 2 }}>
+          <div style={{ fontSize: 10, color: 'var(--bt-text-dim)', paddingLeft: 2 }}>
             côté de {screenTarget}
           </div>
           {(Object.keys(SIDE_LABELS) as ScreenSide[]).map((side) => (

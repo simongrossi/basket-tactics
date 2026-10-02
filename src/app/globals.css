@@ -1,7 +1,8 @@
 /* Thème : clair par défaut. `data-theme` est posé sur <html> par
    useTheme (et par le script anti-flash de layout.tsx) : « dark » quand
    l'utilisateur le choisit, ou en mode automatique si le système est sombre. */
-:root {
+:root,
+.bt-context-menu {
   color-scheme: light;
   --bt-canvas: #eef1f5;
   --bt-bg: #ffffff;
@@ -16,6 +17,7 @@
   --bt-accent: #1d6ec2;
   --bt-accent-strong: #1d6ec2;
   --bt-accent-bg: rgba(29, 110, 194, 0.1);
+  --bt-on-accent: #ffffff;
   --bt-orange: #d85a30;
   --bt-orange-soft: #9a3412;
   --bt-blue-text: #1e40af;
@@ -36,11 +38,12 @@
   --bt-stage-border: #2a2d35;
 }
 
-/* `.bt-force-dark` : éléments posés sur le terrain (menus contextuels,
-   bandeaux, pages de simulation) qui restent sombres dans les deux thèmes. */
+/* `.bt-force-dark` : bandeaux posés sur le terrain, sombres dans les deux
+   thèmes. `.bt-context-menu` : menus ouverts depuis le terrain, qui reprennent
+   le thème de la coque même à l'intérieur d'une zone forcée en sombre. */
 :root[data-theme='dark'],
-.bt-force-dark,
-.bt-context-menu {
+:root[data-theme='dark'] .bt-context-menu,
+.bt-force-dark {
   color-scheme: dark;
   --bt-canvas: #14171c;
   --bt-bg: #1a1d23;
@@ -55,6 +58,7 @@
   --bt-accent: #4ba3ff;
   --bt-accent-strong: #4ba3ff;
   --bt-accent-bg: rgba(75, 163, 255, 0.16);
+  --bt-on-accent: #07121f;
   --bt-orange: #d85a30;
   --bt-orange-soft: #fdba74;
   --bt-blue-text: #93c5fd;
@@ -231,14 +235,11 @@ textarea {
   width: 100%;
   min-height: 34px;
   padding: 0 10px;
-  color-scheme: dark;
   font-size: 13px;
   font-weight: 650;
   line-height: 1.15;
-  border-color: #343b47;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 100%),
-    #262b34;
+  border-color: var(--bt-border-strong);
+  background: var(--bt-bg);
 }
 
 .bt-context-menu input[type='range'] {
@@ -254,10 +255,10 @@ textarea {
   flex: 0 0 auto;
   width: 16px;
   height: 16px;
-  border: 1px solid #343b47;
+  border: 1px solid var(--bt-border-strong);
   border-radius: 50%;
   color: var(--bt-text-dim);
-  background: #20252d;
+  background: var(--bt-surface);
   cursor: help;
 }
 
@@ -269,11 +270,11 @@ textarea {
   z-index: 2000;
   width: min(280px, calc(100vw - 48px));
   padding: 8px 10px;
-  border: 1px solid #3b4452;
+  border: 1px solid var(--bt-border-strong);
   border-radius: 7px;
-  background: #11151b;
+  background: var(--bt-bg);
   color: var(--bt-text);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.48);
+  box-shadow: var(--bt-shadow);
   font-size: 11px;
   font-weight: 500;
   line-height: 1.35;

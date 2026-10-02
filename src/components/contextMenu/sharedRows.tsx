@@ -9,8 +9,8 @@ import type { ReactNode } from 'react';
 import { Info, Lock, RotateCcw } from 'lucide-react';
 import { DARK_PANEL } from '../sidebar/SidebarThemeContext';
 
-const ACCENT = '#fdba74';
-const BLUE_ACCENT = '#4ba3ff';
+const ACCENT = 'var(--bt-orange-text)';
+const BLUE_ACCENT = 'var(--bt-accent)';
 
 function HelpTip({ text }: { text?: string }) {
   if (!text) return null;
@@ -173,7 +173,7 @@ export function GazeLockButton({
         borderRadius: 6,
         border: `1px solid ${active ? BLUE_ACCENT : DARK_PANEL.border}`,
         background: active ? BLUE_ACCENT : DARK_PANEL.bgSubtle,
-        color: active ? '#07121f' : DARK_PANEL.textMuted,
+        color: active ? 'var(--bt-on-accent)' : DARK_PANEL.textMuted,
         cursor: 'pointer',
         fontWeight: active ? 800 : 600,
         whiteSpace: 'nowrap',

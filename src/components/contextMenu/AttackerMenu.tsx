@@ -19,7 +19,7 @@ import { ToolBar } from './ToolBar';
 import { AutoActionSubmenu } from './AutoActionSubmenu';
 import { DARK_PANEL } from '../sidebar/SidebarThemeContext';
 
-const ORANGE_ACCENT = '#fdba74';
+const ORANGE_ACCENT = 'var(--bt-orange-text)';
 const ORANGE_TINT_BG = 'rgba(216, 90, 48, 0.10)';
 const ORANGE_TINT_BORDER = 'rgba(253, 186, 116, 0.28)';
 
@@ -119,6 +119,7 @@ export function AttackerMenu({
   return (
     <div
       ref={ref}
+      className="bt-context-menu"
       style={{
         position: 'absolute',
         left: pos.x,
@@ -130,7 +131,7 @@ export function AttackerMenu({
         padding: 10,
         minWidth: 220,
         zIndex: 1000,
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.45)',
+        boxShadow: 'var(--bt-shadow)',
       }}
     >
       <div style={{ display: 'flex', gap: 6, marginBottom: 10, alignItems: 'center' }}>
@@ -295,7 +296,7 @@ export function AttackerMenu({
           <button
             onClick={() => onSetBodyOrientation(undefined)}
             title="Revenir au calcul auto"
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--bt-text-dim)', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
           >↻</button>
         )}
       </div>
@@ -330,7 +331,7 @@ export function AttackerMenu({
           <button
             onClick={() => onSetGazeOrientation(undefined)}
             title="Revenir au calcul auto"
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--bt-text-dim)', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
           >↻</button>
         )}
       </div>
