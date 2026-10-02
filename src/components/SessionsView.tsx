@@ -56,8 +56,8 @@ const C = {
   text: DARK_PANEL.text,
   muted: DARK_PANEL.textMuted,
   textDim: DARK_PANEL.textDim,
-  accent: '#a78bfa',
-  accentBg: 'rgba(167, 139, 250, 0.14)',
+  accent: 'var(--bt-accent)',
+  accentBg: 'var(--bt-accent-bg)',
   blue: '#60a5fa',
   green: '#34d399',
   red: '#f87171',
@@ -127,9 +127,9 @@ export function SessionsView({
   };
 
   return (
-    <div style={{ display: 'flex', height: '100%', width: '100%', background: C.bg, color: C.text, fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ display: 'flex', height: '100%', width: '100%', background: C.bg, color: C.text }}>
       {/* ===== Liste des séances (gauche) ===== */}
-      <div className="session-no-print" style={{ width: 240, borderRight: `1px solid ${C.border}`, padding: 16, display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto', background: C.bgSidebar }}>
+      <div className="session-no-print" style={{ width: 272, flex: '0 0 272px', borderRight: `1px solid ${C.border}`, padding: 12, display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto', background: C.bgSidebar }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, paddingLeft: 4 }}>
           <CalendarDays size={15} color={C.accent} style={{ opacity: 0.8 }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: C.textDim, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Séances</span>
@@ -365,7 +365,7 @@ function SessionEditor({
   const total = sessionTotalMinutes(session);
 
   return (
-    <div style={{ padding: 24, maxWidth: 880, margin: '0 auto' }}>
+    <div style={{ padding: '16px 20px 24px', maxWidth: 960 }}>
       {/* Barre d'actions (non imprimée) */}
       <div className="session-no-print" style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginBottom: 16, flexWrap: 'wrap' }}>
         <button

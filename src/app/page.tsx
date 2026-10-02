@@ -889,13 +889,13 @@ export default function Page() {
                   width: '100%',
                   height: '100%',
                   overflow: 'auto',
-                  padding: '24px 28px',
+                  padding: '16px 20px 24px',
                   background: 'var(--bt-bg)',
                   borderRadius: 8,
                   boxSizing: 'border-box',
                 }}
               >
-                <div style={{ maxWidth: 1040, margin: '0 auto' }}>
+                <div style={{ maxWidth: 1400 }}>
                   <ParametresPanel
                     state={app.state}
                     onPatch={app.patch}
@@ -927,8 +927,6 @@ export default function Page() {
           )}
           {sidebar.activeView === 'scenariograph' && (
             <SidebarThemeProvider dark>
-              {/* Plan de travail du graphe : sombre dans les deux thèmes. */}
-              <div className="bt-force-dark" style={{ display: 'grid', minHeight: 0 }}>
               <ScenarioGraphView
                 state={app.state}
                 activeStep={app.state.activeStep}
@@ -944,7 +942,6 @@ export default function Page() {
                 onSetContinuityLoop={app.setContinuityLoop}
                 onClose={() => sidebar.setActiveView('court')}
               />
-              </div>
             </SidebarThemeProvider>
           )}
           {sidebar.activeView === 'court' && (

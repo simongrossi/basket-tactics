@@ -292,20 +292,19 @@ export function ScenarioGraphView({
         display: 'flex',
         height: '100%',
         width: '100%',
-        background: '#0f172a',
-        color: '#fff',
+        background: 'var(--bt-bg)',
+        color: 'var(--bt-text)',
         position: 'relative',
-        fontFamily: 'Inter, sans-serif',
       }}
     >
       {/* Panneau Latéral Gauche : Properties Editor */}
       <div
         style={{
-          width: 320,
-          background: 'rgba(15, 23, 42, 0.75)',
-          backdropFilter: 'blur(16px)',
-          borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-          padding: 20,
+          width: 272,
+          flex: '0 0 272px',
+          background: 'var(--bt-bg)',
+          borderRight: '1px solid var(--bt-border)',
+          padding: '12px 14px',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 20,
@@ -320,17 +319,17 @@ export function ScenarioGraphView({
               width: 32,
               height: 32,
               borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.06)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: '#fff',
+              background: 'var(--bt-surface)',
+              border: '1px solid var(--bt-border)',
+              color: 'var(--bt-text)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               transition: 'background 0.2s',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)')}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bt-surface-raised)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bt-surface)')}
             title="Retour au terrain"
           >
             <ArrowLeft size={16} />
@@ -359,7 +358,7 @@ export function ScenarioGraphView({
               borderRadius: 6,
               background: 'var(--bt-surface)',
               border: '1px solid var(--bt-border-strong)',
-              color: '#fff',
+              color: 'var(--bt-text)',
               outline: 'none',
               cursor: 'pointer',
               width: '100%',
@@ -374,7 +373,7 @@ export function ScenarioGraphView({
           </select>
         </div>
 
-        <div style={{ width: '100%', height: 1, background: 'rgba(255, 255, 255, 0.08)', marginBottom: 20 }} />
+        <div style={{ width: '100%', height: 1, background: 'var(--bt-surface)', marginBottom: 20 }} />
 
         {/* Détails de l'action sélectionnée */}
         {selectedAction ? (
@@ -413,7 +412,7 @@ export function ScenarioGraphView({
                     borderRadius: 6,
                     background: 'var(--bt-surface)',
                     border: '1px solid var(--bt-border-strong)',
-                    color: '#fff',
+                    color: 'var(--bt-text)',
                     outline: 'none',
                     cursor: 'pointer',
                   }}
@@ -434,7 +433,7 @@ export function ScenarioGraphView({
                     borderRadius: 6,
                     background: 'var(--bt-surface)',
                     border: '1px solid var(--bt-border-strong)',
-                    color: '#fff',
+                    color: 'var(--bt-text)',
                     outline: 'none',
                     cursor: 'pointer',
                   }}
@@ -470,7 +469,7 @@ export function ScenarioGraphView({
               )}
             </div>
 
-            <div style={{ width: '100%', height: 1, background: 'rgba(255, 255, 255, 0.08)', margin: '10px 0' }} />
+            <div style={{ width: '100%', height: 1, background: 'var(--bt-surface)', margin: '10px 0' }} />
 
             {/* Reordonner l'action */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -617,8 +616,8 @@ export function ScenarioGraphView({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20, flex: 1, justifyContent: 'center' }}>
             <div
               style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
+                background: 'var(--bt-surface)',
+                border: '1px solid var(--bt-border)',
                 borderRadius: 8,
                 padding: 16,
                 textAlign: 'center',
@@ -675,7 +674,7 @@ export function ScenarioGraphView({
       </div>
 
       {/* Main Workspace (Graph Canvas + Floating Indicators + PiP) */}
-      <div style={{ flex: 1, position: 'relative', height: '100%' }}>
+      <div className="bt-force-dark" style={{ flex: 1, position: 'relative', height: '100%' }}>
         {/* Canvas */}
         <GraphCanvas
           state={state}

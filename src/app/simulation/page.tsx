@@ -12,7 +12,10 @@
 // avant le mode match plein écran.
 
 import { useState, useCallback, useEffect } from 'react';
-import Link from 'next/link';
+import { AppTopBar } from '@/components/sidebar/AppTopBar';
+import { ToolsScopeStyle } from '@/components/sidebar/Sidebar';
+import { useTheme } from '@/hooks/useTheme';
+import type { SidebarView } from '@/hooks/useSidebarState';
 import { useAppState } from '@/hooks/useAppState';
 import { useMatchLoop } from '@/hooks/useMatchLoop';
 import { SimulationSection } from '@/components/SimulationSection';
@@ -23,6 +26,16 @@ import type { Step } from '@/lib/types';
 
 export default function SimulationPage() {
   const app = useAppState();
+  const theme = useTheme();
+  // Retour dans l'éditeur sur la vue choisie (préférence lue par useSidebarState).
+  const openEditorView = useCallback((view: SidebarView) => {
+    try {
+      const key = 'bt:sidebar:v1';
+      const saved = JSON.parse(window.localStorage.getItem(key) ?? '{}');
+      window.localStorage.setItem(key, JSON.stringify({ ...saved, activeView: view }));
+    } catch { /* stockage indisponible : l'éditeur s'ouvre sur sa dernière vue */ }
+    window.location.href = '/';
+  }, []);
   const [matchSpeed, setMatchSpeed] = useState(1);
   const matchLoop = useMatchLoop({ baseState: app.state, speed: matchSpeed });
   const [presentMode, setPresentMode] = useState(false);
@@ -70,79 +83,23 @@ export default function SimulationPage() {
 
   return (
     <main
-      className="bt-force-dark"
       style={{
         height: '100vh',
         maxHeight: '100vh',
         overflow: 'hidden',
-        background: '#0f172a',
-        padding: '8px 12px 10px',
+        background: 'var(--bt-bg)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
-        color: '#e5e7eb',
+        color: 'var(--bt-text)',
       }}
     >
-      {/* Header : lien retour + titre */}
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: '6px 12px',
-          background: '#1e293b',
-          borderRadius: 6,
-          flexShrink: 0,
-        }}
-      >
-        <Link
-          href="/"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-            padding: '4px 10px',
-            background: '#334155',
-            color: '#cbd5e1',
-            borderRadius: 4,
-            textDecoration: 'none',
-            fontSize: 12,
-            fontWeight: 600,
-          }}
-        >
-          ← Éditeur
-        </Link>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', letterSpacing: 0.5 }}>
-          🎬 Simulation
-        </div>
-        <div style={{ fontSize: 11, color: '#94a3b8', flex: 1 }}>
-          Mode démo · Play IA live · Monte Carlo · Replay
-        </div>
-      </header>
+      <ToolsScopeStyle />
+      {!presentMode && <AppTopBar activeView="simulation" onSelectView={openEditorView} theme={theme} />}
 
-      {/* Layout principal : terrain à gauche, contrôles à droite */}
-      <div
-        style={{
-          flex: 1,
-          display: 'grid',
-          gridTemplateColumns: '1fr 320px',
-          gap: 10,
-          minHeight: 0,
-        }}
-      >
-        {/* Terrain */}
-        <div
-          style={{
-            position: 'relative',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            background: '#1e293b',
-            borderRadius: 6,
-            overflow: 'auto',
-            padding: 8,
-          }}
-        >
+      {/* Terrain au centre, contrôles de simulation dans la colonne de droite */}
+      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'grid', background: 'var(--bt-canvas)', padding: '10px 12px' }}>
+        <div className="bt-force-dark" style={{ position: 'relative', minHeight: 0, display: 'grid', overflow: 'hidden' }}>
           {matchLoop.matchState && (
             <LiveMatchOverlay
               matchState={matchLoop.matchState}
@@ -187,17 +144,15 @@ export default function SimulationPage() {
           />
         </div>
 
-        {/* Panneau simulation à droite */}
-        <aside
-          style={{
-            background: '#f8fafc',
-            color: '#1e293b',
-            borderRadius: 6,
-            padding: 12,
-            overflowY: 'auto',
-          }}
-        >
+        </div>
+        {!presentMode && (
+        <aside className="bt-panel bt-panel-right" style={{ width: 340, flexBasis: 340 }} aria-label="Simulation">
+          <header className="bt-panel-head">
+            <h2>Match simulé</h2>
+          </header>
+          <div className="bt-panel-body sidebar-tools-scope">
           <SimulationSection
+            open
             state={app.state}
             onLoadAiSteps={handleLoadAiSteps}
             matchLoop={matchLoop}
@@ -206,7 +161,9 @@ export default function SimulationPage() {
             onEnterFullscreenMatch={handleEnterFullscreenMatch}
             onStartDemoMode={handleStartDemoMode}
           />
+          </div>
         </aside>
+        )}
       </div>
     </main>
   );

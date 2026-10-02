@@ -23,7 +23,8 @@ export const VIEWS: { view: SidebarView; icon: typeof Target; label: string }[] 
 
 // Barre d'application : marque, navigation entre vues, niveau d'interface.
 export function AppTopBar({ activeView, onSelectView, theme }: {
-  activeView: SidebarView;
+  /** `simulation` : la page /simulation, hors des vues de l'éditeur. */
+  activeView: SidebarView | 'simulation';
   onSelectView: (view: SidebarView) => void;
   theme: ReturnType<typeof useTheme>;
 }) {
@@ -53,7 +54,8 @@ export function AppTopBar({ activeView, onSelectView, theme }: {
           type="button"
           className="bt-nav-pill"
           title="Match simulé"
-          onClick={() => { window.location.href = '/simulation'; }}
+          aria-current={activeView === 'simulation' ? 'page' : undefined}
+          onClick={() => { if (activeView !== 'simulation') window.location.href = '/simulation'; }}
         >
           <Clapperboard size={15} strokeWidth={2} aria-hidden />
           <span>Match simulé</span>

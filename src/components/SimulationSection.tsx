@@ -70,7 +70,7 @@ const AI_OUTCOME_LABELS: Record<AiPossessionOutcome, string> = {
  * La défense est figée pendant la simulation — limite assumée du MVP.
  * Les softmax(EV/τ=0.3) gouvernent les décisions offensives.
  */
-export function SimulationSection({ state, onLoadAiSteps, matchLoop, matchSpeed, onSetMatchSpeed, onEnterFullscreenMatch, onStartDemoMode }: SimulationSectionProps) {
+export function SimulationSection({ state, onLoadAiSteps, matchLoop, matchSpeed, onSetMatchSpeed, onEnterFullscreenMatch, onStartDemoMode, open }: SimulationSectionProps & { /** Section dépliée d'office (page /simulation). */ open?: boolean }) {
   const c = COLORS.defense;
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [aiSeries, setAiSeries] = useState<AiMatchSeries | null>(null);
@@ -114,7 +114,7 @@ export function SimulationSection({ state, onLoadAiSteps, matchLoop, matchSpeed,
   };
 
   return (
-    <Section theme="defense" label="Simulation & IA">
+    <Section theme="defense" label="Simulation & IA" open={open}>
       <div style={{ fontSize: 11, fontWeight: 700, color: c.accentText, marginBottom: 4 }}>
         Mode IA possession
       </div>

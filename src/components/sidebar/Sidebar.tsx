@@ -34,15 +34,59 @@ export function Sidebar({ toolGroups, activeTool, panelOpen, onSelectTool, onClo
 
   return (
     <aside className="bt-left" style={{ color: SIDEBAR.text }}>
-      {/*
-        Override scoped pour les éléments stylés inline dans les panneaux
-        Offense/Defense/Steps/Scenario qui n'utilisent pas SidebarThemeContext.
-        On cible les inputs et selects (déterministe via type), et les
-        patterns de fond blanc inline pour les boutons / éléments génériques.
-        Les couleurs d'accent (orange/bleu) restent intactes — elles
-        fonctionnent sur dark.
-      */}
-      <style dangerouslySetInnerHTML={{ __html: `
+      <ToolsScopeStyle />
+      <nav className="bt-rail" aria-label="Outils">
+        {toolGroups.map((g, i) => {
+          const pressed = panelOpen && g.id === active?.id;
+          return (
+            <button
+              key={g.id}
+              type="button"
+              className="bt-rail-item"
+              aria-pressed={pressed}
+              title={`${g.title ?? g.label} (touche ${i + 1})`}
+              onClick={() => (pressed ? onClosePanel() : onSelectTool(g.id))}
+            >
+              <g.icon size={19} strokeWidth={1.9} style={{ color: pressed ? g.accent : undefined }} aria-hidden />
+              <span>{g.label}</span>
+            </button>
+          );
+        })}
+        {version && <span className="bt-rail-version">v{version}</span>}
+      </nav>
+
+      {panelOpen && active && (
+        <section className="bt-panel" aria-label={active.title ?? active.label}>
+          <header className="bt-panel-head">
+            <h2>{active.title ?? active.label}</h2>
+            <button
+              type="button"
+              className="bt-icon-btn"
+              onClick={onClosePanel}
+              title="Replier le panneau"
+              aria-label="Replier le panneau"
+            >
+              <PanelLeftClose size={16} aria-hidden />
+            </button>
+          </header>
+          <div className="bt-panel-body sidebar-tools-scope">
+            <SidebarThemeProvider dark>{active.content}</SidebarThemeProvider>
+          </div>
+        </section>
+      )}
+    </aside>
+  );
+}
+
+/**
+ * Surcharges pour les panneaux hérités écrits en clair (styles inline) et
+ * rendus dans `.sidebar-tools-scope` : en thème sombre, fonds blancs, textes
+ * et bordures pâles sont ramenés à la palette de la coque. Les couleurs
+ * d'accent (orange / bleu) restent intactes.
+ */
+export function ToolsScopeStyle() {
+  return (
+    <style dangerouslySetInnerHTML={{ __html: `
         .sidebar-tools-scope .sidebar-tool-section:last-of-type {
           border-bottom: none !important;
         }
@@ -186,47 +230,7 @@ export function Sidebar({ toolGroups, activeTool, panelOpen, onSelectTool, onClo
           border-color: ${SIDEBAR.border} !important;
         }
 }
-      `}} />
-      <nav className="bt-rail" aria-label="Outils">
-        {toolGroups.map((g, i) => {
-          const pressed = panelOpen && g.id === active?.id;
-          return (
-            <button
-              key={g.id}
-              type="button"
-              className="bt-rail-item"
-              aria-pressed={pressed}
-              title={`${g.title ?? g.label} (touche ${i + 1})`}
-              onClick={() => (pressed ? onClosePanel() : onSelectTool(g.id))}
-            >
-              <g.icon size={19} strokeWidth={1.9} style={{ color: pressed ? g.accent : undefined }} aria-hidden />
-              <span>{g.label}</span>
-            </button>
-          );
-        })}
-        {version && <span className="bt-rail-version">v{version}</span>}
-      </nav>
-
-      {panelOpen && active && (
-        <section className="bt-panel" aria-label={active.title ?? active.label}>
-          <header className="bt-panel-head">
-            <h2>{active.title ?? active.label}</h2>
-            <button
-              type="button"
-              className="bt-icon-btn"
-              onClick={onClosePanel}
-              title="Replier le panneau"
-              aria-label="Replier le panneau"
-            >
-              <PanelLeftClose size={16} aria-hidden />
-            </button>
-          </header>
-          <div className="bt-panel-body sidebar-tools-scope">
-            <SidebarThemeProvider dark>{active.content}</SidebarThemeProvider>
-          </div>
-        </section>
-      )}
-    </aside>
+    `}} />
   );
 }
 

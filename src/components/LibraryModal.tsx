@@ -42,14 +42,15 @@ interface LibraryModalProps {
 }
 
 export function LibraryModal(props: LibraryModalProps) {
-  const c = COLORS.offense;
+  const inline = props.mode === 'inline';
+  // Vue routée : filets neutres de la coque ; la modale garde le thème orange.
+  const c = inline ? { ...COLORS.offense, border: 'var(--bt-border)', bg: 'var(--bt-bg)' } : COLORS.offense;
   const {
     library, hasWorkInProgress, onLoadSavedSystem, onLoadTemplate, onSaveCurrent, onSetSystemTags,
     onRenameSystem, onDeleteSystem, onMoveSystem, onCreateFolder, onRenameFolder,
     onDeleteFolder, onExportFolder, onImportFolder, onClose,
     mode = 'modal',
   } = props;
-  const inline = mode === 'inline';
   const { development } = useInterfaceLevel();
   const visibleLabTemplates = development ? LAB_TEMPLATES : [];
 
@@ -147,7 +148,7 @@ export function LibraryModal(props: LibraryModalProps) {
               height: '100%',
               display: 'flex',
               alignItems: 'stretch',
-              justifyContent: 'center',
+              justifyContent: 'flex-start',
               padding: 0,
               boxSizing: 'border-box',
               background: 'var(--bt-bg)',
@@ -164,7 +165,7 @@ export function LibraryModal(props: LibraryModalProps) {
         style={
           inline
             ? {
-                width: '100%', maxWidth: 1100,
+                width: '100%',
                 background: 'var(--bt-bg)',
                 display: 'flex', flexDirection: 'column', overflow: 'hidden',
               }
@@ -211,9 +212,9 @@ export function LibraryModal(props: LibraryModalProps) {
           {/* Sidebar dossiers */}
           <aside
             style={{
-              width: 240, borderRight: `1px solid ${c.border}`, padding: 12,
+              width: inline ? 272 : 240, flex: '0 0 auto', borderRight: `1px solid ${c.border}`, padding: 12,
               overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 4,
-              background: '#fafaf9',
+              background: inline ? 'var(--bt-bg)' : '#fafaf9',
             }}
           >
             <FolderRow
