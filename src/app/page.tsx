@@ -8,7 +8,8 @@ import { useMatchLoop } from '@/hooks/useMatchLoop';
 import { useSidebarState } from '@/hooks/useSidebarState';
 import { Sidebar, type ToolGroup } from '@/components/sidebar/Sidebar';
 import { SIDEBAR } from '@/components/sidebar/tokens';
-import { Swords, Shield, ListOrdered, GitBranch, Undo2, Redo2, Share2 } from 'lucide-react';
+import { Swords, Shield, ListOrdered, GitBranch, Undo2, Redo2, Share2, Sun, Moon } from 'lucide-react';
+import type { StickyModifiers } from '@/hooks/useCourtPointerHandlers';
 import { OffenseToolsPanel } from '@/components/OffenseToolsPanel';
 import { StepsPanel, isPristineInitialStepList } from '@/components/StepsPanel';
 import { ScenarioPanel } from '@/components/ScenarioPanel';
@@ -81,6 +82,34 @@ export default function Page() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showComposerModal, setShowComposerModal] = useState(false);
   const [situationDialog, setSituationDialog] = useState<{ mode: 'copy' | 'animation' | 'gestures' | 'import'; snapshot: SituationSnapshot } | null>(null);
+  const [stickyModifiers, setStickyModifiers] = useState<StickyModifiers>({});
+  const [themeMode, setThemeMode] = useState<'light' | 'dark'>('dark');
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('bt_theme_mode');
+      if (saved === 'light' || saved === 'dark') {
+        setThemeMode(saved);
+        document.documentElement.setAttribute('data-theme', saved);
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    } catch {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  }, []);
+
+  const toggleThemeMode = useCallback(() => {
+    setThemeMode((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem('bt_theme_mode', next);
+        document.documentElement.setAttribute('data-theme', next);
+      } catch {}
+      return next;
+    });
+  }, []);
+
   const manual = useManualRecording();
   const [preparingRecording, setPreparingRecording] = useState(false);
   const recordingGestures = manual.status === 'recording';
@@ -464,12 +493,13 @@ export default function Page() {
         height: '100vh',
         maxHeight: '100vh',
         overflow: 'hidden',
-        background: '#1a1d23',
+        background: 'var(--bt-bg)',
         padding: '8px 12px 10px',
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
-        color: '#e5e7eb',
+        color: 'var(--bt-text)',
+        transition: 'background-color 0.2s ease, color 0.2s ease',
       }}
     >
       {!presentMode && !isPlayerMode && !manualBusy && (
@@ -517,6 +547,32 @@ export default function Page() {
           {app.hasRecovery && <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }} onClick={app.restoreDraft}>
             Retrouver le brouillon précédent
           </button>}
+          {app.state.showCoachDiagnostics !== false && !isPlayerMode && !manualBusy && (
+            <CoachDiagnosticsOverlay diagnostics={coachDiagnostics} inline />
+          )}
+          <button
+            type="button"
+            className="bt-touch"
+            onClick={toggleThemeMode}
+            title={themeMode === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+            style={{
+              marginLeft: 'auto',
+              padding: '5px 10px',
+              borderRadius: 6,
+              border: '1px solid var(--bt-border)',
+              background: 'var(--bt-surface)',
+              color: 'var(--bt-text)',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+          >
+            {themeMode === 'dark' ? <Sun size={14} color="#f59e0b" /> : <Moon size={14} color="#3b82f6" />}
+            <span>{themeMode === 'dark' ? 'Clair' : 'Sombre'}</span>
+          </button>
         </div>
       )}
       <div
@@ -595,6 +651,8 @@ export default function Page() {
                     onSetActionTimingAnchor={handleSetActionTimingAnchor}
                     onApplyStartingFormation={app.applyStartingFormation}
                     onOpenComposer={() => setShowComposerModal(true)}
+                    modifiers={stickyModifiers}
+                    onChangeModifiers={setStickyModifiers}
                   />
                 ),
               },
@@ -875,9 +933,6 @@ export default function Page() {
               visible={!manualBusy && !presentMode && !isPlayerMode && !isPlaying && !matchLoop.matchState
                 && isPristineInitialStepList(app.state)}
             />
-            {app.state.showCoachDiagnostics !== false && !isPlayerMode && !manualBusy && (
-              <CoachDiagnosticsOverlay diagnostics={coachDiagnostics} />
-            )}
             {/* E.1 V1 — HUD compact en overlay quand mode présentation actif
                 pendant un match live. Sans ça l'utilisateur perd toute info
                 (score, shot clock) en passant en plein écran. */}
@@ -957,6 +1012,8 @@ export default function Page() {
               isPlayerMode={isPlayerMode}
               composerOpen={showComposerModal}
               onCloseComposer={() => setShowComposerModal(false)}
+              modifiers={stickyModifiers}
+              onModifiersChange={setStickyModifiers}
             />
             {/* Coaching #1 — télécommande de présentation pas-à-pas, en
                 overlay sur le terrain en mode lecteur (sans match live). */}

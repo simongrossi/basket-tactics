@@ -1,6 +1,7 @@
 'use client';
 
 import type { ActionTimingAnchor, Tool } from '@/lib/types';
+import type { StickyModifiers } from '@/hooks/useCourtPointerHandlers';
 import { Panel, Section, COLORS } from './ui';
 import { useSidebarTheme, DARK_PANEL } from './sidebar/SidebarThemeContext';
 import { TOOL_KEYS } from '@/hooks/useKeyboardShortcuts';
@@ -12,6 +13,8 @@ interface OffenseToolsPanelProps {
   onSetActionTimingAnchor?: (mode: ActionTimingAnchor) => void;
   onApplyStartingFormation?: (formationId: string) => void;
   onOpenComposer?: () => void;
+  modifiers?: StickyModifiers;
+  onChangeModifiers?: (next: StickyModifiers) => void;
 }
 
 const shortcutKeyFor = (tool: Tool): string =>
@@ -177,6 +180,48 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
               onChange={(e) => props.onSetActionTimingAnchor?.(e.target.checked ? 'end' : 'start')}
             />
           </label>
+        )}
+        {props.onChangeModifiers && props.modifiers && (
+          <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            <button
+              type="button"
+              className="bt-touch"
+              onClick={() => props.onChangeModifiers?.({ ...props.modifiers, multiSelect: !props.modifiers?.multiSelect })}
+              title="Sélectionner plusieurs joueurs pour les déplacer ou leur assigner une règle ensemble (équivalent Maj)"
+              style={{
+                padding: '6px 4px',
+                borderRadius: 6,
+                border: `1px solid ${props.modifiers.multiSelect ? c.accent : idleBorder}`,
+                background: props.modifiers.multiSelect ? (dark ? 'rgba(216, 90, 48, 0.25)' : '#ffedd5') : idleBg,
+                color: props.modifiers.multiSelect ? c.accentText : idleText,
+                fontSize: 11,
+                fontWeight: props.modifiers.multiSelect ? 700 : 500,
+                cursor: 'pointer',
+                textAlign: 'center',
+              }}
+            >
+              🔗 Multi-sélection
+            </button>
+            <button
+              type="button"
+              className="bt-touch"
+              onClick={() => props.onChangeModifiers?.({ ...props.modifiers, snap: !props.modifiers?.snap })}
+              title="Aimanter les joueurs aux repères géométriques clés du terrain (équivalent Ctrl/⌘)"
+              style={{
+                padding: '6px 4px',
+                borderRadius: 6,
+                border: `1px solid ${props.modifiers.snap ? c.accent : idleBorder}`,
+                background: props.modifiers.snap ? (dark ? 'rgba(216, 90, 48, 0.25)' : '#ffedd5') : idleBg,
+                color: props.modifiers.snap ? c.accentText : idleText,
+                fontSize: 11,
+                fontWeight: props.modifiers.snap ? 700 : 500,
+                cursor: 'pointer',
+                textAlign: 'center',
+              }}
+            >
+              🧲 Aimanter
+            </button>
+          </div>
         )}
       </Section>
 

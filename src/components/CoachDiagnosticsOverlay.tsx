@@ -6,15 +6,14 @@ import { CoachDiagnostics } from './CoachDiagnostics';
 
 interface Props {
   diagnostics: CoachDiagnostic[];
+  inline?: boolean;
 }
 
 /**
- * Overlay flottant en haut-droite du terrain.
- * Replié : pastille avec compteurs (critique/warning + reads).
- * Déplié : panneau CoachDiagnostics complet + croix pour replier.
- * Le terrain ne change jamais de taille en fonction des diagnostics.
+ * Diagnostics du coach (alertes tactiques et lectures).
+ * Quand inline=true, s'intègre harmonieusement dans la topbar sans masquer le terrain.
  */
-export function CoachDiagnosticsOverlay({ diagnostics }: Props) {
+export function CoachDiagnosticsOverlay({ diagnostics, inline }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -37,7 +36,12 @@ export function CoachDiagnosticsOverlay({ diagnostics }: Props) {
   return (
     <div
       ref={ref}
-      style={{
+      style={inline ? {
+        position: 'relative',
+        display: 'inline-flex',
+        alignItems: 'center',
+        zIndex: 50,
+      } : {
         position: 'absolute',
         top: 8,
         right: 48,
@@ -84,7 +88,15 @@ export function CoachDiagnosticsOverlay({ diagnostics }: Props) {
         </button>
       )}
       {open && (
-        <div style={{ position: 'relative', maxWidth: 360, minWidth: 260 }}>
+        <div style={{
+          position: inline ? 'absolute' : 'relative',
+          top: inline ? 'calc(100% + 6px)' : undefined,
+          right: inline ? 0 : undefined,
+          maxWidth: 360,
+          minWidth: 260,
+          zIndex: 100,
+          boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
+        }}>
           <button
             type="button"
             onClick={() => setOpen(false)}

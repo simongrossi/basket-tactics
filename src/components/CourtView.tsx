@@ -172,6 +172,8 @@ interface CourtViewProps {
   /** Permet au parent de contrôler l'ouverture de l'orchestrateur */
   composerOpen?: boolean;
   onCloseComposer?: () => void;
+  modifiers?: StickyModifiers;
+  onModifiersChange?: (m: StickyModifiers) => void;
 }
 
 export function CourtView(props: CourtViewProps) {
@@ -193,8 +195,17 @@ export function CourtView(props: CourtViewProps) {
   const [spacePressed, setSpacePressed] = useState(false);
   const [zoneRegionMenu, setZoneRegionMenu] = useState<ZoneRegionMenuState | null>(null);
   const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null);
-  // U04 — modificateurs activés au doigt depuis la barre tactile.
-  const [stickyModifiers, setStickyModifiers] = useState<StickyModifiers>({});
+  // U04 — modificateurs activés au doigt depuis la barre tactile ou sidebar.
+  const [internalModifiers, setInternalModifiers] = useState<StickyModifiers>({});
+  const stickyModifiers = props.modifiers ?? internalModifiers;
+  const setStickyModifiers = useCallback((updater: React.SetStateAction<StickyModifiers>) => {
+    if (props.onModifiersChange) {
+      const next = typeof updater === 'function' ? updater(stickyModifiers) : updater;
+      props.onModifiersChange(next);
+    } else {
+      setInternalModifiers(updater);
+    }
+  }, [props.onModifiersChange, stickyModifiers]);
 
   // #4 — Sélection multiple de défenseurs. State éphémère (UI), pas dans
   // AppState (pas de persistance, pas d'undo individuel).
@@ -1297,44 +1308,52 @@ export function CourtView(props: CourtViewProps) {
 
 
 
-      {/* Floating Zoom Controls */}
+      {/* Floating Zoom Controls (discrets, repliés dans l'angle sans masquer le jeu) */}
       <div
         style={{
           position: 'absolute',
-          bottom: 14,
-          right: 14,
+          bottom: 10,
+          right: 10,
           display: 'flex',
           flexDirection: 'column',
-          gap: 6,
-          background: 'rgba(30, 41, 59, 0.85)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          padding: 4,
-          borderRadius: 8,
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+          gap: 4,
+          background: 'rgba(30, 41, 59, 0.45)',
+          backdropFilter: 'blur(6px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          padding: 3,
+          borderRadius: 6,
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
           zIndex: 40,
+          opacity: 0.5,
+          transition: 'opacity 0.2s ease, background 0.2s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.opacity = '1';
+          e.currentTarget.style.background = 'rgba(30, 41, 59, 0.9)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.opacity = '0.5';
+          e.currentTarget.style.background = 'rgba(30, 41, 59, 0.45)';
         }}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={handleZoomIn}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 6,
+            width: 28,
+            height: 28,
+            borderRadius: 4,
             border: 'none',
             background: 'rgba(255, 255, 255, 0.1)',
             color: '#fff',
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: 'bold',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'background 0.2s',
+            transition: 'background 0.15s',
           }}
           title="Zoomer (+)"
           aria-label="Zoomer"
@@ -1344,22 +1363,20 @@ export function CourtView(props: CourtViewProps) {
         </button>
         <button
           onClick={handleZoomOut}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 6,
+            width: 28,
+            height: 28,
+            borderRadius: 4,
             border: 'none',
             background: 'rgba(255, 255, 255, 0.1)',
             color: '#fff',
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: 'bold',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'background 0.2s',
+            transition: 'background 0.15s',
           }}
           title="Dézoomer (-)"
           aria-label="Dézoomer"
@@ -1369,28 +1386,26 @@ export function CourtView(props: CourtViewProps) {
         </button>
         <button
           onClick={handleZoomReset}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 6,
+            width: 28,
+            height: 24,
+            borderRadius: 4,
             border: 'none',
             background: 'rgba(255, 255, 255, 0.1)',
-            color: '#fff',
-            fontSize: 9,
+            color: '#cbd5e1',
+            fontSize: 8,
             fontWeight: 'bold',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'background 0.2s',
+            transition: 'background 0.15s',
           }}
           title="Réinitialiser le zoom"
           aria-label="Réinitialiser le zoom"
           className="bt-touch"
         >
-          RESET
+          1:1
         </button>
       </div>
     </div>
