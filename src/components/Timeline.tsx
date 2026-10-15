@@ -43,6 +43,8 @@ interface TimelineProps {
   onStop?: () => void;
   playbackSpeed?: number;
   onSetPlaybackSpeed?: (s: number) => void;
+  /** Actions additionnelles intégrées dans la barre de contrôle (ex: bouton pistes) */
+  extraActions?: React.ReactNode;
 }
 
 /** Navigation par fractions de transition. La durée réelle de chaque pas
@@ -59,7 +61,7 @@ const SUBFRAMES_COARSE = 10;
  */
 export function Timeline({
   state, onSetActiveStep, onScrub, isPlaying, scrubT, playbackT,
-  onPlayToggle, onStop, playbackSpeed, onSetPlaybackSpeed,
+  onPlayToggle, onStop, playbackSpeed, onSetPlaybackSpeed, extraActions,
 }: TimelineProps) {
   const { development } = useInterfaceLevel();
   const trackRef = useRef<HTMLDivElement>(null);
@@ -410,6 +412,7 @@ export function Timeline({
             </span>
           </div>
         )}
+        {extraActions}
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: TIMELINE_UI.muted, lineHeight: 1.2, alignItems: 'center' }}>
         <span>

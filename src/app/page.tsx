@@ -8,7 +8,7 @@ import { useMatchLoop } from '@/hooks/useMatchLoop';
 import { useSidebarState } from '@/hooks/useSidebarState';
 import { Sidebar, type ToolGroup } from '@/components/sidebar/Sidebar';
 import { SIDEBAR } from '@/components/sidebar/tokens';
-import { Swords, Shield, ListOrdered, GitBranch, Undo2, Redo2, Share2, Sun, Moon } from 'lucide-react';
+import { Swords, Shield, ListOrdered, GitBranch, Undo2, Redo2, Share2, Sun, Moon, Layers, Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import type { StickyModifiers } from '@/hooks/useCourtPointerHandlers';
 import { OffenseToolsPanel } from '@/components/OffenseToolsPanel';
 import { StepsPanel, isPristineInitialStepList } from '@/components/StepsPanel';
@@ -65,6 +65,7 @@ export default function Page() {
   const [playbackT, setPlaybackT] = useState<number | null>(null);
   const [showPlayerTimeline, setShowPlayerTimeline] = useState(false);
   const [showMultiTrack, setShowMultiTrack] = useState(false);
+  const [showMetrics, setShowMetrics] = useState(true);
   const [scrubT, setScrubT] = useState<number | null>(null);
   const [playbackStartT, setPlaybackStartT] = useState(0);
   const [playbackRunId, setPlaybackRunId] = useState(0);
@@ -505,86 +506,164 @@ export default function Page() {
       }}
     >
       {!presentMode && !isPlayerMode && !manualBusy && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, fontSize: 12 }}>
-          {sidebar.activeView === 'court' && (
-            <div role="group" aria-label="Historique des modifications" style={{ display: 'flex', gap: 6 }}>
-              <HistoryButton label="Annuler" shortcut={SHORTCUT_LABELS.undo} disabled={!app.canUndo || isPlaying} onClick={app.undo} icon={<Undo2 size={16} aria-hidden />} />
-              <HistoryButton label="Rétablir" shortcut={SHORTCUT_LABELS.redo} disabled={!app.canRedo || isPlaying} onClick={app.redo} icon={<Redo2 size={16} aria-hidden />} />
+        <header
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            fontSize: 12,
+            minHeight: 36,
+            flexWrap: 'nowrap',
+          }}
+        >
+          {/* Pôle Gauche : Undo/Redo + Titre + Statut */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 auto' }}>
+            {sidebar.activeView === 'court' && (
+              <div role="group" aria-label="Historique des modifications" style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                <HistoryButton label="Annuler" shortcut={SHORTCUT_LABELS.undo} disabled={!app.canUndo || isPlaying} onClick={app.undo} icon={<Undo2 size={15} aria-hidden />} />
+                <HistoryButton label="Rétablir" shortcut={SHORTCUT_LABELS.redo} disabled={!app.canRedo || isPlaying} onClick={app.redo} icon={<Redo2 size={15} aria-hidden />} />
+              </div>
+            )}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+              <strong style={{ fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {currentSavedSystem?.name ?? 'Brouillon'}
+              </strong>
+              <span
+                role="status"
+                title={
+                  app.saveStatus === 'error' || lib.saveStatus === 'error'
+                    ? 'Sauvegarde impossible — exportez votre travail'
+                    : app.saveStatus === 'pending' || lib.saveStatus === 'pending'
+                      ? 'Sauvegarde en cours…' : 'Brouillon conservé localement'
+                }
+                style={{
+                  fontSize: 11,
+                  whiteSpace: 'nowrap',
+                  color: app.saveStatus === 'error' || lib.saveStatus === 'error'
+                    ? '#fca5a5'
+                    : app.saveStatus === 'pending' || lib.saveStatus === 'pending'
+                      ? '#fdba74'
+                      : 'var(--bt-text-dim)',
+                }}
+              >
+                {app.saveStatus === 'pending' || lib.saveStatus === 'pending' ? '• synchro…' : '• sauvegardé'}
+              </span>
+            </div>
+            {app.hasRecovery && (
+              <button
+                className="bt-touch"
+                style={{
+                  padding: '3px 8px',
+                  border: '1px solid var(--bt-btn-border)',
+                  borderRadius: 6,
+                  background: 'var(--bt-btn-bg)',
+                  color: 'var(--bt-btn-text)',
+                  cursor: 'pointer',
+                  fontSize: 11,
+                  flexShrink: 0,
+                }}
+                onClick={app.restoreDraft}
+              >
+                Restaurer brouillon
+              </button>
+            )}
+          </div>
+
+          {/* Pôle Centre : Diagnostics coach inline */}
+          {app.state.showCoachDiagnostics !== false && !isPlayerMode && !manualBusy && (
+            <div style={{ flexShrink: 0 }}>
+              <CoachDiagnosticsOverlay diagnostics={coachDiagnostics} inline />
             </div>
           )}
-          <strong>{currentSavedSystem?.name ?? 'Brouillon'}</strong>
-          <span role="status" style={{ color: app.saveStatus === 'error' || lib.saveStatus === 'error' ? '#fca5a5' : '#cbd5e1' }}>
-            {app.saveStatus === 'error' || lib.saveStatus === 'error'
-              ? 'Sauvegarde impossible — exportez votre travail'
-              : app.saveStatus === 'pending' || lib.saveStatus === 'pending'
-                ? 'Sauvegarde en cours…' : 'Brouillon conservé sur cet appareil'}
-          </span>
-          {currentSavedSystem && <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid var(--bt-btn-border)', borderRadius: 6, background: 'var(--bt-btn-bg)', color: 'var(--bt-btn-text)', cursor: 'pointer' }}
-            onClick={() => lib.updateSystem(currentSavedSystem.id, app.state)}>
-            Enregistrer dans « {currentSavedSystem.name} »
-          </button>}
-          <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid var(--bt-btn-border)', borderRadius: 6, background: 'var(--bt-btn-bg)', color: 'var(--bt-btn-text)', cursor: 'pointer' }} onClick={() => sidebar.setActiveView('library')}>
-            Enregistrer une copie…
-          </button>
-          <button
-            className="bt-touch"
-            style={{
-              padding: '4px 12px',
-              border: '1px solid rgba(59, 130, 246, 0.45)',
-              borderRadius: 6,
-              background: 'linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%)',
-              color: '#ffffff',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              fontWeight: 650,
-            }}
-            onClick={() => setShowShareModal(true)}
-            title="Partager le système (lien direct, code ou prompt IA)"
-          >
-            <Share2 size={13} />
-            <span>Partager</span>
-          </button>
-          {app.hasRecovery && <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid var(--bt-btn-border)', borderRadius: 6, background: 'var(--bt-btn-bg)', color: 'var(--bt-btn-text)', cursor: 'pointer' }} onClick={app.restoreDraft}>
-            Retrouver le brouillon précédent
-          </button>}
-          {app.state.showCoachDiagnostics !== false && !isPlayerMode && !manualBusy && (
-            <CoachDiagnosticsOverlay diagnostics={coachDiagnostics} inline />
-          )}
-          <button
-            type="button"
-            className="bt-touch"
-            onClick={toggleThemeMode}
-            title={themeMode === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
-            style={{
-              marginLeft: 'auto',
-              padding: '5px 12px',
-              borderRadius: 6,
-              border: '1px solid var(--bt-border)',
-              background: 'var(--bt-surface)',
-              color: 'var(--bt-text)',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              fontSize: 12,
-              fontWeight: 650,
-            }}
-          >
-            {themeMode === 'dark' ? (
-              <>
-                <Moon size={14} color="#a78bfa" />
-                <span>Mode sombre</span>
-              </>
-            ) : (
-              <>
-                <Sun size={14} color="#ea580c" />
-                <span>Mode clair</span>
-              </>
+
+          {/* Pôle Droite : Actions système, Partage et Thème */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            {currentSavedSystem && (
+              <button
+                className="bt-touch"
+                style={{
+                  padding: '4px 10px',
+                  border: '1px solid var(--bt-btn-border)',
+                  borderRadius: 6,
+                  background: 'var(--bt-btn-bg)',
+                  color: 'var(--bt-btn-text)',
+                  cursor: 'pointer',
+                  fontSize: 11,
+                  fontWeight: 500,
+                }}
+                onClick={() => lib.updateSystem(currentSavedSystem.id, app.state)}
+                title={`Enregistrer les modifications dans ${currentSavedSystem.name}`}
+              >
+                Enregistrer
+              </button>
             )}
-          </button>
-        </div>
+            <button
+              className="bt-touch"
+              style={{
+                padding: '4px 10px',
+                border: '1px solid var(--bt-btn-border)',
+                borderRadius: 6,
+                background: 'var(--bt-btn-bg)',
+                color: 'var(--bt-btn-text)',
+                cursor: 'pointer',
+                fontSize: 11,
+              }}
+              onClick={() => sidebar.setActiveView('library')}
+              title="Enregistrer sous un nouveau nom dans la bibliothèque"
+            >
+              Enregistrer sous…
+            </button>
+            <button
+              className="bt-touch"
+              style={{
+                padding: '4px 10px',
+                border: '1px solid rgba(59, 130, 246, 0.45)',
+                borderRadius: 6,
+                background: 'linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%)',
+                color: '#ffffff',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                fontWeight: 600,
+                fontSize: 11,
+              }}
+              onClick={() => setShowShareModal(true)}
+              title="Partager le système (lien direct, code ou prompt IA)"
+            >
+              <Share2 size={13} />
+              <span>Partager</span>
+            </button>
+            <button
+              type="button"
+              className="bt-touch"
+              onClick={toggleThemeMode}
+              title={themeMode === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+              aria-label={themeMode === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+              style={{
+                width: 30,
+                height: 30,
+                padding: 0,
+                borderRadius: 6,
+                border: '1px solid var(--bt-border)',
+                background: 'var(--bt-surface)',
+                color: 'var(--bt-text)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {themeMode === 'dark' ? (
+                <Moon size={15} color="#a78bfa" />
+              ) : (
+                <Sun size={15} color="#ea580c" />
+              )}
+            </button>
+          </div>
+        </header>
       )}
       <div
         className={presentMode || isPlayerMode || manualBusy ? 'layout-grid presenting' : 'layout-grid'}
@@ -1046,48 +1125,72 @@ export default function Page() {
             />
           )}
           {!isPlayerMode && !manualBusy && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ flex: 1 }}>
-              <Timeline
-                state={app.state}
-                onSetActiveStep={app.setActiveStep}
-                onScrub={setScrubT}
-                isPlaying={isPlaying}
-                scrubT={scrubT}
-                playbackT={playbackT}
-                onPlayToggle={handlePlayToggle}
-                onStop={() => {
-                  setIsPlaying(false);
-                  setPlaybackT(null);
-                  setScrubT(null);
-                  setPlaybackStartT(0);
-                  app.setActiveStep(0);
-                }}
-                playbackSpeed={playbackSpeed}
-                onSetPlaybackSpeed={setPlaybackSpeed}
-              />
-            </div>
-            {!isPlayerMode && (
-              <button
-                onClick={() => setShowMultiTrack((v) => !v)}
-                title={showMultiTrack ? 'Masquer les pistes joueurs' : 'Afficher les pistes joueurs (multi-track)'}
-                className="bt-touch"
-                style={{
-                  padding: '6px 10px',
-                  fontSize: 12,
-                  border: '1px solid var(--bt-btn-border)',
-                  borderRadius: 6,
-                  background: showMultiTrack ? 'rgba(216, 90, 48, 0.15)' : 'var(--bt-btn-bg)',
-                  color: showMultiTrack ? 'var(--bt-orange)' : 'var(--bt-btn-text)',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {showMultiTrack ? '▼' : '▲'} pistes
-              </button>
-            )}
-          </div>
+            <Timeline
+              state={app.state}
+              onSetActiveStep={app.setActiveStep}
+              onScrub={setScrubT}
+              isPlaying={isPlaying}
+              scrubT={scrubT}
+              playbackT={playbackT}
+              onPlayToggle={handlePlayToggle}
+              onStop={() => {
+                setIsPlaying(false);
+                setPlaybackT(null);
+                setScrubT(null);
+                setPlaybackStartT(0);
+                app.setActiveStep(0);
+              }}
+              playbackSpeed={playbackSpeed}
+              onSetPlaybackSpeed={setPlaybackSpeed}
+              extraActions={
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <button
+                    onClick={() => setShowMultiTrack((v) => !v)}
+                    title={showMultiTrack ? 'Masquer les pistes joueurs (Multi-track)' : 'Afficher les pistes joueurs (Multi-track)'}
+                    className="bt-touch"
+                    style={{
+                      padding: '3px 8px',
+                      fontSize: 11,
+                      border: `1px solid ${showMultiTrack ? 'rgba(234, 88, 12, 0.4)' : 'var(--bt-border)'}`,
+                      borderRadius: 6,
+                      background: showMultiTrack ? 'rgba(234, 88, 12, 0.12)' : 'var(--bt-surface)',
+                      color: showMultiTrack ? 'var(--bt-orange)' : 'var(--bt-text-muted)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <Layers size={13} />
+                    <span>Pistes</span>
+                  </button>
+                  {metrics && (
+                    <button
+                      onClick={() => setShowMetrics((v) => !v)}
+                      title={showMetrics ? 'Masquer les métriques' : 'Afficher les métriques tactiques'}
+                      className="bt-touch"
+                      style={{
+                        padding: '3px 8px',
+                        fontSize: 11,
+                        border: `1px solid ${showMetrics ? 'rgba(59, 130, 246, 0.4)' : 'var(--bt-border)'}`,
+                        borderRadius: 6,
+                        background: showMetrics ? 'rgba(59, 130, 246, 0.12)' : 'var(--bt-surface)',
+                        color: showMetrics ? 'var(--bt-accent)' : 'var(--bt-text-muted)',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <Activity size={13} />
+                      <span>Stats</span>
+                    </button>
+                  )}
+                </div>
+              }
+            />
           )}
           {showMultiTrack && !isPlayerMode && !manualBusy && (
             <MultiTrackTimeline
@@ -1111,7 +1214,9 @@ export default function Page() {
               onSetQuality={app.setAnnotationQuality}
             />
           )}
-          {metrics && !isPlayerMode && !manualBusy && <MetricsBar playerCount={app.state.playerCount} metrics={metrics} bestAction={bestAction} screenAction={screenAction} />}
+          {metrics && showMetrics && !isPlayerMode && !manualBusy && (
+            <MetricsBar playerCount={app.state.playerCount} metrics={metrics} bestAction={bestAction} screenAction={screenAction} />
+          )}
           {!isPlayerMode && !manualBusy && (
             <InterfaceGate min="analysis"><MetricsChart
               state={app.state}
