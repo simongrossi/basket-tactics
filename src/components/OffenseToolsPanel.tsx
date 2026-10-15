@@ -93,34 +93,60 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
   return (
     <Panel theme="offense" title="⚪ Attaque">
       <Section theme="offense" label="Actions" open>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 5,
+          }}
+        >
           {TOOLS.map((t) => {
             const active = props.tool === t.value;
+            const shortcut = shortcutKeyFor(t.value);
             return (
               <button
                 key={t.value}
                 onClick={() => props.onSetTool(t.value)}
-                title={`Outil ${t.label} (touche ${shortcutKeyFor(t.value)})`}
+                title={`Outil ${t.label} (touche ${shortcut})`}
                 aria-pressed={active}
                 className="bt-touch"
                 style={{
-                  flex: '1 0 calc(33% - 4px)',
                   fontSize: 11,
-                  padding: '6px 6px',
+                  padding: '7px 8px',
                   borderRadius: 6,
-                  border: `1px solid ${active ? c.accent : idleBorder}`,
+                  border: `1.5px solid ${active ? c.accent : idleBorder}`,
                   background: active ? '#c2410c' : idleBg,
                   color: active ? '#fff' : idleText,
                   cursor: 'pointer',
-                  fontWeight: 500,
-                  display: 'inline-flex',
+                  fontWeight: active ? 650 : 500,
+                  display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 5,
+                  justifyContent: 'space-between',
+                  boxShadow: active ? '0 1px 4px rgba(194, 65, 12, 0.35)' : 'none',
+                  transition: 'all 0.12s ease',
                 }}
               >
-                <ToolIcon tool={t.value} color={active ? '#fff' : idleText} />
-                {t.label}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                  <ToolIcon tool={t.value} color={active ? '#fff' : idleText} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {t.label}
+                  </span>
+                </div>
+                {shortcut && (
+                  <kbd
+                    style={{
+                      fontSize: 9,
+                      padding: '1px 4px',
+                      borderRadius: 3,
+                      background: active ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.06)',
+                      color: active ? '#ffffff' : 'inherit',
+                      fontWeight: 700,
+                      fontFamily: 'monospace',
+                    }}
+                  >
+                    {shortcut}
+                  </kbd>
+                )}
               </button>
             );
           })}

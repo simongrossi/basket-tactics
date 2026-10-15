@@ -1,7 +1,7 @@
 'use client';
 
 import { InterfaceLevelSelector } from '../interface/InterfaceLevel';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import type { SidebarView } from '@/hooks/useSidebarState';
 import { SIDEBAR } from './tokens';
@@ -49,6 +49,21 @@ export function Sidebar({
   startActions,
   dark = true,
 }: Props) {
+  const [activeToolTab, setActiveToolTab] = useState<string>(() => {
+    try {
+      return localStorage.getItem('bt_active_tool_tab') || 'offense';
+    } catch {
+      return 'offense';
+    }
+  });
+
+  const handleSelectTab = (id: string) => {
+    setActiveToolTab(id);
+    try {
+      localStorage.setItem('bt_active_tool_tab', id);
+    } catch {}
+  };
+
   const hasTools = toolGroups != null && toolGroups.length > 0;
   const showTools = activeView === 'court' && hasTools;
 
@@ -300,19 +315,108 @@ export function Sidebar({
               </div>
             )}
             <SidebarThemeProvider dark={dark}>
-              {toolGroups!.map((g) => (
-                <SidebarToolGroup
-                  key={g.id}
-                  id={g.id}
-                  icon={g.icon}
-                  label={g.label}
-                  accent={g.accent}
-                  defaultOpen={g.defaultOpen}
-                  collapsed={collapsed}
-                >
-                  {g.content}
-                </SidebarToolGroup>
-              ))}
+              {!collapsed ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {/* Onglets rapides pour naviguer entre Attaque, Défense, Étapes, Scénario */}
+                  <div
+                    role="tablist"
+                    aria-label="Sélecteur d'outils"
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(4, 1fr)',
+                      gap: 3,
+                      background: SIDEBAR.bgHover,
+                      padding: 3,
+                      borderRadius: 7,
+                    }}
+                  >
+                    {toolGroups!.map((g) => {
+                      const isActive = activeToolTab === g.id;
+                      const Icon = g.icon;
+                      return (
+                        <button
+                          key={g.id}
+                          role="tab"
+                          aria-selected={isActive}
+                          onClick={() => handleSelectTab(g.id)}
+                          title={g.label}
+                          className="bt-touch"
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 2,
+                            padding: '6px 2px',
+                            borderRadius: 5,
+                            border: 'none',
+                            background: isActive ? SIDEBAR.bgActive : 'transparent',
+                            color: isActive ? SIDEBAR.text : SIDEBAR.textMuted,
+                            cursor: 'pointer',
+                            fontSize: 10,
+                            fontWeight: isActive ? 700 : 500,
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <Icon size={14} style={{ color: isActive ? (g.accent ?? 'inherit') : 'inherit' }} />
+                          <span style={{ fontSize: 9, lineHeight: 1 }}>{g.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Contenu du groupe d'outils actif */}
+                  {(() => {
+                    const activeGroup = toolGroups!.find((g) => g.id === activeToolTab) ?? toolGroups![0];
+                    if (!activeGroup) return null;
+                    return (
+                      <div
+                        role="tabpanel"
+                        id={`tool-panel-${activeGroup.id}`}
+                        style={{
+                          padding: '4px 2px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                        }}
+                      >
+                        {activeGroup.content}
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {toolGroups!.map((g) => {
+                    const isActive = activeToolTab === g.id;
+                    const Icon = g.icon;
+                    return (
+                      <button
+                        key={g.id}
+                        onClick={() => {
+                          handleSelectTab(g.id);
+                          onToggleCollapse();
+                        }}
+                        title={`${g.label} (cliquez pour ouvrir)`}
+                        className="bt-touch"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '100%',
+                          height: SIDEBAR.itemHeight,
+                          border: 'none',
+                          background: isActive ? SIDEBAR.bgActive : 'transparent',
+                          color: isActive ? (g.accent ?? SIDEBAR.text) : SIDEBAR.textMuted,
+                          cursor: 'pointer',
+                          borderRadius: 6,
+                        }}
+                      >
+                        <Icon size={SIDEBAR.iconSize} strokeWidth={2} />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </SidebarThemeProvider>
           </div>
         </>
