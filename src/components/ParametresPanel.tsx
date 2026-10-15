@@ -361,6 +361,119 @@ export function ParametresPanel({
       )}
 
       <SettingsSection title="Visu & légende">
+        {/* Presets rapides de clarté visuelle */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Mode d’affichage rapide
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+            <button
+              type="button"
+              className="bt-touch"
+              onClick={() => onPatch({
+                showHelpLines: false,
+                showPassLanes: false,
+                showMatchups: false,
+                showGhosts: false,
+                showActionOrder: false,
+                showCoachDiagnostics: true,
+                showThreats: false,
+                showBestAction: false,
+                showTacticalMetrics: false,
+                showHeatmap: false,
+                showFieldOfViewAll: false,
+                showFieldOfViewAllDefenders: false,
+                showFieldOfViewAllAttackers: false,
+                showHelpDebug: false,
+                showScreenDebug: false,
+              })}
+              title="Affichage épuré : joueurs, ballon et trajectoires essentielles sans encombrement"
+              style={{
+                padding: '6px 4px',
+                fontSize: 11,
+                fontWeight: 600,
+                borderRadius: 6,
+                border: '1px solid #334155',
+                background: (!state.showHelpLines && !state.showPassLanes && !state.showMatchups && !state.showHeatmap && !state.showFieldOfViewAll) ? '#1e293b' : '#0f172a',
+                color: (!state.showHelpLines && !state.showPassLanes && !state.showMatchups && !state.showHeatmap && !state.showFieldOfViewAll) ? '#38bdf8' : '#cbd5e1',
+                cursor: 'pointer',
+              }}
+            >
+              🌿 Épuré
+            </button>
+
+            <button
+              type="button"
+              className="bt-touch"
+              onClick={() => onPatch({
+                showHelpLines: true,
+                showPassLanes: true,
+                showMatchups: true,
+                showGhosts: false,
+                showActionOrder: true,
+                showCoachDiagnostics: true,
+                showThreats: false,
+                showBestAction: false,
+                showTacticalMetrics: false,
+                showHeatmap: false,
+                showFieldOfViewAll: false,
+                showFieldOfViewAllDefenders: false,
+                showFieldOfViewAllAttackers: false,
+                showHelpDebug: false,
+                showScreenDebug: false,
+              })}
+              title="Affichage tactique recommandé : aides, lignes de passe, matchups et lecture coach"
+              style={{
+                padding: '6px 4px',
+                fontSize: 11,
+                fontWeight: 600,
+                borderRadius: 6,
+                border: '1px solid #334155',
+                background: (state.showHelpLines && state.showPassLanes && state.showMatchups && !state.showHeatmap && !state.showFieldOfViewAll) ? '#1e293b' : '#0f172a',
+                color: (state.showHelpLines && state.showPassLanes && state.showMatchups && !state.showHeatmap && !state.showFieldOfViewAll) ? '#38bdf8' : '#cbd5e1',
+                cursor: 'pointer',
+              }}
+            >
+              🎯 Tactique
+            </button>
+
+            <button
+              type="button"
+              className="bt-touch"
+              onClick={() => onPatch({
+                showHelpLines: true,
+                showPassLanes: true,
+                showMatchups: true,
+                showGhosts: true,
+                showActionOrder: true,
+                showCoachDiagnostics: true,
+                showThreats: true,
+                showBestAction: true,
+                showTacticalMetrics: true,
+                showHeatmap: false,
+                showFieldOfViewAll: false,
+                showFieldOfViewAllDefenders: true,
+                showFieldOfViewAllAttackers: false,
+                showHelpDebug: false,
+                showScreenDebug: false,
+              })}
+              title="Affichage expert / analyse : toutes les métriques, menaces, visions et fantômes N-1"
+              style={{
+                padding: '6px 4px',
+                fontSize: 11,
+                fontWeight: 600,
+                borderRadius: 6,
+                border: '1px solid #334155',
+                background: (state.showThreats || state.showBestAction || state.showTacticalMetrics) ? '#1e293b' : '#0f172a',
+                color: (state.showThreats || state.showBestAction || state.showTacticalMetrics) ? '#38bdf8' : '#cbd5e1',
+                cursor: 'pointer',
+              }}
+            >
+              🔬 Expert
+            </button>
+          </div>
+        </div>
+
         <div style={categoryGridStyle}>
           <ToggleGroup title="Équipes affichées" accent={UI.orange}>
             <ToggleCard

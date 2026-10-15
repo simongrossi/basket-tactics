@@ -59,30 +59,55 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
     const len = Math.hypot(dx, dy) || 1;
     const nx = -dy / len;
     const ny = dx / len;
+    const BAR_HALF = 12; // barre en T bien marquée
     const trail = hasWaypoints ? (
       <path
         d={polylinePath(annotationPoints(annotation))}
         fill="none"
-        stroke="#FBBF24"
-        strokeWidth={2.5}
+        stroke="#F59E0B"
+        strokeWidth={3}
+        strokeLinecap="round"
+        filter="url(#tactical-shadow)"
         opacity={preview ? 0.5 : 1}
       />
     ) : (
-      <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke="#FBBF24" strokeWidth={2.5} opacity={preview ? 0.5 : 1} />
+      <line
+        x1={from.x}
+        y1={from.y}
+        x2={to.x}
+        y2={to.y}
+        stroke="#F59E0B"
+        strokeWidth={3}
+        strokeLinecap="round"
+        filter="url(#tactical-shadow)"
+        opacity={preview ? 0.5 : 1}
+      />
     );
     return (
-      <>
+      <g className="tactical-screen">
         {trail}
+        {/* Barre en T d'impact d'écran avec contraste sombre de fond */}
         <line
-          x1={to.x + nx * 10}
-          y1={to.y + ny * 10}
-          x2={to.x - nx * 10}
-          y2={to.y - ny * 10}
-          stroke="#FBBF24"
-          strokeWidth={4}
-          opacity={preview ? 0.5 : 1}
+          x1={to.x + nx * BAR_HALF}
+          y1={to.y + ny * BAR_HALF}
+          x2={to.x - nx * BAR_HALF}
+          y2={to.y - ny * BAR_HALF}
+          stroke="#78350F"
+          strokeWidth={6}
+          strokeLinecap="round"
+          opacity={preview ? 0.3 : 0.6}
         />
-      </>
+        <line
+          x1={to.x + nx * BAR_HALF}
+          y1={to.y + ny * BAR_HALF}
+          x2={to.x - nx * BAR_HALF}
+          y2={to.y - ny * BAR_HALF}
+          stroke="#FBBF24"
+          strokeWidth={4.5}
+          strokeLinecap="round"
+          opacity={preview ? 0.6 : 1}
+        />
+      </g>
     );
   }
 
@@ -93,14 +118,27 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
       ? polylinePath(visualPoints)
       : dribbleWavePath(from, visualTo);
     return (
-      <>
+      <g className="tactical-dribble">
+        {/* Trait de contraste sous la trajectoire de dribble */}
         <path
           d={d}
           fill="none"
-          stroke="#D85A30"
-          strokeWidth={2.5}
+          stroke="#7C2D12"
+          strokeWidth={4.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={preview ? 0.25 : 0.5}
+        />
+        <path
+          d={d}
+          fill="none"
+          stroke="#EA580C"
+          strokeWidth={2.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
           markerEnd="url(#arrow-orange)"
-          opacity={preview ? 0.5 : 1}
+          filter="url(#tactical-shadow)"
+          opacity={preview ? 0.6 : 1}
         />
         {(annotation.feintes ?? []).map((tF, fi) => {
           const pts = annotationPoints(annotation);
@@ -113,27 +151,27 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
               r={4}
               fill="#fbbf24"
               stroke="#92400e"
-              strokeWidth={1}
+              strokeWidth={1.2}
               opacity={preview ? 0.5 : 0.95}
               pointerEvents="none"
             />
           );
         })}
-      </>
+      </g>
     );
   }
 
   if (type === 'pass') {
     return (
-      <>
+      <g className="tactical-pass">
         {/* Trait de contraste sombre sous les tirets pour lisibilité tout-terrain */}
         {hasWaypoints && visualPoints ? (
           <path
             d={polylinePath(visualPoints)}
             fill="none"
-            stroke="#4A1504"
-            strokeWidth={4.5}
-            strokeDasharray="7 4"
+            stroke="#3B0D00"
+            strokeWidth={5}
+            strokeDasharray="8 5"
             strokeLinecap="round"
             opacity={preview ? 0.3 : 0.65}
           />
@@ -143,23 +181,24 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
             y1={from.y}
             x2={visualTo.x}
             y2={visualTo.y}
-            stroke="#4A1504"
-            strokeWidth={4.5}
-            strokeDasharray="7 4"
+            stroke="#3B0D00"
+            strokeWidth={5}
+            strokeDasharray="8 5"
             strokeLinecap="round"
             opacity={preview ? 0.3 : 0.65}
           />
         )}
-        {/* Ligne principale orange flashy avec tirets nets et pointe contrastée */}
+        {/* Ligne principale orange vif avec tirets nets et pointe contrastée */}
         {hasWaypoints && visualPoints ? (
           <path
             d={polylinePath(visualPoints)}
             fill="none"
             stroke="#FF5500"
-            strokeWidth={3}
-            strokeDasharray="7 4"
+            strokeWidth={3.2}
+            strokeDasharray="8 5"
             strokeLinecap="round"
             markerEnd="url(#arrow-pass)"
+            filter="url(#tactical-shadow)"
             opacity={preview ? 0.6 : 1}
           />
         ) : (
@@ -169,18 +208,19 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
             x2={visualTo.x}
             y2={visualTo.y}
             stroke="#FF5500"
-            strokeWidth={3}
-            strokeDasharray="7 4"
+            strokeWidth={3.2}
+            strokeDasharray="8 5"
             strokeLinecap="round"
             markerEnd="url(#arrow-pass)"
+            filter="url(#tactical-shadow)"
             opacity={preview ? 0.6 : 1}
           />
         )}
-      </>
+      </g>
     );
   }
 
-  // cut (et fallback)
+  // cut (et fallback) : course sans ballon
   const feinteMarkers = (annotation.feintes ?? []).map((tF, fi) => {
     const pts = annotationPoints(annotation);
     const pos = samplePolyline(pts, tF);
@@ -192,7 +232,7 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
         r={4}
         fill="#fbbf24"
         stroke="#92400e"
-        strokeWidth={1}
+        strokeWidth={1.2}
         opacity={preview ? 0.5 : 0.95}
         pointerEvents="none"
       />
@@ -200,32 +240,56 @@ export function AnnotationView({ annotation, preview }: AnnotationProps) {
   });
   if (hasWaypoints && visualPoints) {
     return (
-      <>
+      <g className="tactical-cut">
+        <path
+          d={polylinePath(visualPoints)}
+          fill="none"
+          stroke="#78350F"
+          strokeWidth={4.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={preview ? 0.25 : 0.45}
+        />
         <path
           d={polylinePath(visualPoints)}
           fill="none"
           stroke="#FBBF24"
-          strokeWidth={2.5}
+          strokeWidth={2.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
           markerEnd="url(#arrow-gray)"
-          opacity={preview ? 0.5 : 1}
+          filter="url(#tactical-shadow)"
+          opacity={preview ? 0.6 : 1}
         />
         {feinteMarkers}
-      </>
+      </g>
     );
   }
   return (
-    <>
+    <g className="tactical-cut">
+      <line
+        x1={from.x}
+        y1={from.y}
+        x2={visualTo.x}
+        y2={visualTo.y}
+        stroke="#78350F"
+        strokeWidth={4.5}
+        strokeLinecap="round"
+        opacity={preview ? 0.25 : 0.45}
+      />
       <line
         x1={from.x}
         y1={from.y}
         x2={visualTo.x}
         y2={visualTo.y}
         stroke="#FBBF24"
-        strokeWidth={2.5}
+        strokeWidth={2.8}
+        strokeLinecap="round"
         markerEnd="url(#arrow-gray)"
-        opacity={preview ? 0.5 : 1}
+        filter="url(#tactical-shadow)"
+        opacity={preview ? 0.6 : 1}
       />
       {feinteMarkers}
-    </>
+    </g>
   );
 }

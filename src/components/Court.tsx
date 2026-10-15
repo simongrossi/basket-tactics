@@ -266,38 +266,48 @@ export function CourtBackground({ fullCourt = false, attackingDirection = 'up' }
 export function ArrowMarkers() {
   return (
     <defs>
+      {/* Filtre d'ombre douce sous les tracés et annotations tactiques pour le détachement du parquet */}
+      <filter id="tactical-shadow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#000000" floodOpacity="0.4" />
+      </filter>
+
+      {/* Flèche dribble / ballon (orange dynamique) */}
       <marker
         id="arrow-orange"
         viewBox="0 0 10 10"
-        refX={9}
+        refX={8.5}
         refY={5}
-        markerWidth={8}
-        markerHeight={8}
+        markerWidth={7.5}
+        markerHeight={7.5}
         orient="auto-start-reverse"
       >
-        <path d="M 0 0 L 10 5 L 0 10 z" fill="#D85A30" />
+        <path d="M 0 1.5 L 9 5 L 0 8.5 L 2.5 5 z" fill="#EA580C" stroke="#7C2D12" strokeWidth={0.5} strokeLinejoin="round" />
       </marker>
+
+      {/* Flèche de passe (orange vif avec bordure sombre contrastée) */}
       <marker
         id="arrow-pass"
         viewBox="0 0 10 10"
         refX={8}
         refY={5}
-        markerWidth={9}
-        markerHeight={9}
+        markerWidth={8.5}
+        markerHeight={8.5}
         orient="auto-start-reverse"
       >
-        <path d="M 0 1 L 9 5 L 0 9 z" fill="#FF5500" stroke="#7A1D00" strokeWidth={0.8} />
+        <path d="M 0 1 L 9 5 L 0 9 L 2 5 z" fill="#FF5500" stroke="#4A1504" strokeWidth={0.7} strokeLinejoin="round" />
       </marker>
+
+      {/* Flèche de cut / déplacement sans ballon (or/ambre élégant) */}
       <marker
         id="arrow-gray"
         viewBox="0 0 10 10"
-        refX={9}
+        refX={8.5}
         refY={5}
-        markerWidth={8}
-        markerHeight={8}
+        markerWidth={7.5}
+        markerHeight={7.5}
         orient="auto-start-reverse"
       >
-        <path d="M 0 0 L 10 5 L 0 10 z" fill="#FBBF24" />
+        <path d="M 0 1.5 L 9 5 L 0 8.5 L 2.5 5 z" fill="#FBBF24" stroke="#78350F" strokeWidth={0.5} strokeLinejoin="round" />
       </marker>
     </defs>
   );
