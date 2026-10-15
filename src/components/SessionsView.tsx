@@ -47,21 +47,21 @@ interface SessionsViewProps {
 }
 
 const C = {
-  bg: DARK_PANEL.bg,
-  bgSidebar: '#161a20',
-  panel: DARK_PANEL.bgSubtle,
-  panelRaised: DARK_PANEL.bgRaised,
-  border: DARK_PANEL.border,
-  borderSubtle: DARK_PANEL.borderSubtle,
-  text: DARK_PANEL.text,
-  muted: DARK_PANEL.textMuted,
-  textDim: DARK_PANEL.textDim,
-  accent: '#a78bfa',
-  accentBg: 'rgba(167, 139, 250, 0.14)',
-  blue: '#60a5fa',
-  green: '#34d399',
-  red: '#f87171',
-  violet: '#a78bfa',
+  bg: 'var(--bt-bg)',
+  bgSidebar: 'var(--bt-sidebar-bg)',
+  panel: 'var(--bt-surface)',
+  panelRaised: 'var(--bt-surface-raised)',
+  border: 'var(--bt-border)',
+  borderSubtle: 'var(--bt-sidebar-border)',
+  text: 'var(--bt-text)',
+  muted: 'var(--bt-text-muted)',
+  textDim: 'var(--bt-text-dim)',
+  accent: 'var(--bt-accent)',
+  accentBg: 'var(--bt-sidebar-accent-bg)',
+  blue: '#3b82f6',
+  green: '#10b981',
+  red: '#ef4444',
+  violet: '#8b5cf6',
 };
 
 export function SessionsView({
@@ -213,7 +213,7 @@ export function SessionsView({
       <style>{`
         .session-input:focus {
           border-color: ${C.accent} !important;
-          background: #1c1f26 !important;
+          background: var(--bt-control-bg) !important;
         }
         .session-btn-primary {
           background: ${C.accent} !important;
@@ -571,14 +571,14 @@ function BlockRow({
             value={block.title}
             onChange={(e) => onUpdate({ title: e.target.value })}
             className="session-input"
-            style={{ ...inputBase, flex: 1, minWidth: 120, fontWeight: 700, fontSize: 14, background: '#1c1f26' }}
+            style={{ ...inputBase, flex: 1, minWidth: 120, fontWeight: 700, fontSize: 14 }}
           />
           <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: C.muted }}>
             <input
               type="number" min={0} value={block.durationMin}
               onChange={(e) => onUpdate({ durationMin: Math.max(0, parseInt(e.target.value || '0', 10)) })}
               className="session-input"
-              style={{ ...inputBase, width: 56, textAlign: 'right', padding: '4px 6px', background: '#1c1f26' }}
+              style={{ ...inputBase, width: 56, textAlign: 'right', padding: '4px 6px' }}
             />
             min
           </label>
@@ -596,7 +596,7 @@ function BlockRow({
           placeholder="Notes / consignes du bloc…"
           rows={block.notes && block.notes.includes('\n') ? Math.min(12, block.notes.split('\n').length + 1) : 2}
           className="session-input block-notes"
-          style={{ ...inputBase, fontSize: 12, color: C.muted, background: '#1c1f26', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}
+          style={{ ...inputBase, fontSize: 12, color: C.text, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}
         />
       </div>
 

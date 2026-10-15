@@ -213,7 +213,7 @@ export function LibraryModal(props: LibraryModalProps) {
             style={{
               width: 240, borderRight: `1px solid ${c.border}`, padding: 12,
               overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 4,
-              background: '#fafaf9',
+              background: 'var(--bt-sidebar-bg)',
             }}
           >
             <FolderRow
@@ -288,15 +288,17 @@ export function LibraryModal(props: LibraryModalProps) {
                           title={`Filtrer par #${tag} (${count} systèmes)`}
                           style={{
                             fontSize: 11,
-                            padding: '2px 6px',
+                            padding: '3px 8px',
                             borderRadius: 999,
-                            border: active ? '1px solid #a78bfa' : '1px solid #2a2d35',
-                            background: active ? 'rgba(167, 139, 250, 0.22)' : 'transparent',
-                            color: active ? '#f3f4f6' : '#cbd5e1',
+                            border: active ? '1px solid var(--bt-accent)' : '1px solid var(--bt-border)',
+                            background: active ? 'var(--bt-sidebar-accent-bg)' : 'transparent',
+                            color: active ? 'var(--bt-accent)' : 'var(--bt-text)',
+                            fontWeight: active ? 600 : 500,
                             cursor: 'pointer',
+                            transition: 'all 120ms ease',
                           }}
                         >
-                          #{tag} <span style={{ opacity: 0.6 }}>{count}</span>
+                          #{tag} <span style={{ opacity: 0.65, fontSize: 10 }}>{count}</span>
                         </button>
                       );
                     })}
@@ -455,8 +457,8 @@ export function LibraryModal(props: LibraryModalProps) {
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{
-                    fontSize: 13, fontWeight: 600,
-                    color: inline ? '#f3f4f6' : c.accentText,
+                    fontSize: 14, fontWeight: 700,
+                    color: 'var(--bt-text)',
                   }}>
                     {userFolder.name} · {userFolder.systems.length} système(s)
                   </div>
@@ -600,9 +602,9 @@ function darkPrimaryBtn(accent: string): React.CSSProperties {
     padding: '6px 12px',
     fontSize: 12,
     fontWeight: 600,
-    border: `1px solid ${accent}`,
+    border: '1px solid transparent',
     borderRadius: 6,
-    background: accent,
+    background: 'var(--bt-accent)',
     color: '#fff',
     cursor: 'pointer',
   };
@@ -612,10 +614,10 @@ function darkSecondaryBtn(): React.CSSProperties {
     padding: '6px 12px',
     fontSize: 12,
     fontWeight: 500,
-    border: '1px solid #2a2d35',
+    border: '1px solid var(--bt-btn-border)',
     borderRadius: 6,
-    background: 'transparent',
-    color: '#cbd5e1',
+    background: 'var(--bt-btn-bg)',
+    color: 'var(--bt-btn-text)',
     cursor: 'pointer',
   };
 }
@@ -626,8 +628,6 @@ function FolderRow({
   label: string; count: number; active: boolean;
   onClick: () => void; onRename?: () => void; onDelete?: () => void;
 }) {
-  // Aligné sur le style des items de la sidebar gauche (Terrain, Playbook…) :
-  // ligne 34px, fond dark hover/active, accent violet, texte clair.
   return (
     <div
       onClick={onClick}
@@ -635,21 +635,21 @@ function FolderRow({
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
         padding: '0 10px', height: 34, borderRadius: 6, cursor: 'pointer',
-        background: active ? 'rgba(167, 139, 250, 0.14)' : 'transparent',
-        color: active ? '#f3f4f6' : '#cbd5e1',
-        fontSize: 13, fontWeight: active ? 600 : 500,
+        background: active ? 'var(--bt-sidebar-accent-bg)' : 'transparent',
+        color: active ? 'var(--bt-accent)' : 'var(--bt-text)',
+        fontSize: 13, fontWeight: active ? 700 : 500,
         transition: 'background 120ms ease, color 120ms ease',
       }}
       onMouseEnter={(e) => {
         if (!active) {
-          e.currentTarget.style.background = '#262a32';
-          e.currentTarget.style.color = '#f3f4f6';
+          e.currentTarget.style.background = 'var(--bt-sidebar-hover)';
+          e.currentTarget.style.color = 'var(--bt-text)';
         }
       }}
       onMouseLeave={(e) => {
         if (!active) {
           e.currentTarget.style.background = 'transparent';
-          e.currentTarget.style.color = '#cbd5e1';
+          e.currentTarget.style.color = 'var(--bt-text)';
         }
       }}
     >
@@ -808,8 +808,8 @@ function NewFolderForm({
           inline
             ? {
                 marginTop: 6, padding: '8px 10px', fontSize: 12,
-                border: '1px dashed #2a2d35', borderRadius: 6,
-                background: 'transparent', color: '#cbd5e1', cursor: 'pointer',
+                border: '1px dashed var(--bt-border)', borderRadius: 6,
+                background: 'transparent', color: 'var(--bt-text-dim)', cursor: 'pointer',
                 textAlign: 'left',
               }
             : {
@@ -841,7 +841,7 @@ function NewFolderForm({
     <div
       style={{
         marginTop: 6, padding: 8, borderRadius: 6,
-        border: `1px solid #2a2d35`, background: '#181a20',
+        border: `1px solid var(--bt-border)`, background: 'var(--bt-surface)',
         display: 'flex', flexDirection: 'column', gap: 6,
       }}
     >
@@ -857,7 +857,7 @@ function NewFolderForm({
         }}
         style={{
           fontSize: 12, padding: '4px 6px', borderRadius: 4,
-          background: '#0f1117', color: '#f3f4f6', border: '1px solid #2a2d35',
+          background: 'var(--bt-control-bg)', color: 'var(--bt-text)', border: '1px solid var(--bt-border)',
         }}
       />
       <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>

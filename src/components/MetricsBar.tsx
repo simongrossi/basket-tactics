@@ -24,9 +24,9 @@ const ACTION_LABELS: Record<OffensiveAction['type'], string> = {
 };
 
 const BAR_UI = {
-  bg: '#20252d',
-  border: '#343b47',
-  textDim: '#94a3b8',
+  bg: 'var(--bt-surface)',
+  border: 'var(--bt-border)',
+  textDim: 'var(--bt-text-dim)',
 } as const;
 
 export function MetricsBar({ metrics, bestAction, screenAction, playerCount = 5 }: MetricsBarProps) {
@@ -116,10 +116,10 @@ export function MetricsBar({ metrics, bestAction, screenAction, playerCount = 5 
 type Tone = 'good' | 'warn' | 'bad' | 'neutral';
 
 const TONE_STYLES: Record<Tone, { bg: string; fg: string; border: string }> = {
-  good: { bg: 'rgba(52, 211, 153, 0.14)', fg: '#6ee7b7', border: 'rgba(52, 211, 153, 0.26)' },
-  warn: { bg: 'rgba(251, 191, 36, 0.14)', fg: '#fbbf24', border: 'rgba(251, 191, 36, 0.25)' },
-  bad: { bg: 'rgba(248, 113, 113, 0.14)', fg: '#fca5a5', border: 'rgba(248, 113, 113, 0.28)' },
-  neutral: { bg: '#252b34', fg: '#cbd5e1', border: '#343b47' },
+  good: { bg: 'rgba(52, 211, 153, 0.16)', fg: '#059669', border: 'rgba(52, 211, 153, 0.35)' },
+  warn: { bg: 'rgba(251, 191, 36, 0.16)', fg: '#d97706', border: 'rgba(251, 191, 36, 0.35)' },
+  bad: { bg: 'rgba(248, 113, 113, 0.16)', fg: '#dc2626', border: 'rgba(248, 113, 113, 0.35)' },
+  neutral: { bg: 'var(--bt-control-bg)', fg: 'var(--bt-text)', border: 'var(--bt-border)' },
 };
 
 function Pill({
