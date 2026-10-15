@@ -83,6 +83,7 @@ import { DetectionBadgesOverlay } from './court/DetectionBadgesOverlay';
 import { TextNotesLayer } from './court/TextNotesLayer';
 import { TextNotePopup } from './court/TextNotePopup';
 import { CourtTouchBar } from './court/CourtTouchBar';
+import { PlayComposerModal } from './court/PlayComposerModal';
 import type { StickyModifiers } from '@/hooks/useCourtPointerHandlers';
 import type { CoachDiagnostic } from '@/lib/logic/coachDiagnostics';
 
@@ -216,6 +217,9 @@ export function CourtView(props: CourtViewProps) {
     noteIdx: number | null;
     initialText: string;
   } | null>(null);
+
+  // Popover d'orchestration tactique d'étape (Play Composer).
+  const [composerOpen, setComposerOpen] = useState(false);
 
   // Fermer le popup quand l'utilisateur change d'outil.
   useEffect(() => {
@@ -1267,8 +1271,23 @@ export function CourtView(props: CourtViewProps) {
           onCancelPendingAuto={cancelPendingAuto}
           selectedDefenders={selectedDefenders}
           onClearSelection={clearDefenderSelection}
+          onOpenComposer={props.gesturesOnly ? undefined : () => setComposerOpen(true)}
         />
       )}
+
+      {/* Popover / Modal Orchestrateur tactique d'étape (Play Composer) */}
+      <PlayComposerModal
+        state={state}
+        isOpen={composerOpen && !readOnly && !props.isPlaying}
+        onClose={() => setComposerOpen(false)}
+        onApplyPlan={(actions, nextCarrier) => {
+          if (editingBlocked) return;
+          actions.forEach((a) => props.onAddAnnotation(a));
+          if (nextCarrier && nextCarrier !== activeBallCarrier(state.steps[state.activeStep], state.playerCount)) {
+            props.onSetBallCarrier(nextCarrier);
+          }
+        }}
+      />
 
       {/* Floating Zoom Controls */}
       <div
