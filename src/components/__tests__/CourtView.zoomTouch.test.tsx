@@ -106,7 +106,7 @@ describe('CourtView Touch & Zoom/Pan interaction tests', () => {
     const svg = container.querySelector('svg')!;
     const o1 = container.querySelector('g[data-id="O1"]')!;
     fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
-    act(() => vi.advanceTimersByTime(590));
+    act(() => vi.advanceTimersByTime(370));
     // Petit déplacement : le menu reste prévu, le dernier move attend son rAF.
     fireEvent.pointerMove(svg, { pointerId: 1, clientX: 304, clientY: 470 });
     expect(props.onMoveAttackerDuringDrag).not.toHaveBeenCalled();

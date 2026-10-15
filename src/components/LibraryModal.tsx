@@ -2,7 +2,8 @@
 
 import { useInterfaceLevel } from './interface/InterfaceLevel';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, useMemo } from 'react';
+import { Search, X } from 'lucide-react';
 import { CLASSIC_TEMPLATES, LAB_TEMPLATES, type Template } from '@/lib/data/templates';
 import type { UserLibrary, SavedSystem, SavedFolder } from '@/lib/data/library';
 import { collectTagCounts, normalizeTag } from '@/lib/data/library';
@@ -60,6 +61,7 @@ export function LibraryModal(props: LibraryModalProps) {
    *  pour le rendu du pane de droite (affiche tous les systèmes matchant
    *  ce tag, toutes sources confondues : classiques + lab + user). */
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [renameTarget, setRenameTarget] = useState<
     | { kind: 'system'; id: string; current: string }
     | { kind: 'folder'; id: string; current: string }
@@ -93,6 +95,29 @@ export function LibraryModal(props: LibraryModalProps) {
     ...visibleLabTemplates,
     ...library.folders.flatMap((f) => f.systems),
   ]).map((t) => t.tag);
+
+  // Recherche textuelle transverse (nom, description, tags, défense)
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const searchResults = useMemo(() => {
+    if (!normalizedQuery) return null;
+    const matchText = (text?: string) => text ? text.toLowerCase().includes(normalizedQuery) : false;
+    const matchTags = (tags?: string[]) => tags ? tags.some((tg) => tg.toLowerCase().includes(normalizedQuery)) : false;
+
+    const templates = [...CLASSIC_TEMPLATES, ...visibleLabTemplates].filter(
+      (t) => matchText(t.name) || matchText(t.description) || matchTags(t.tags)
+    );
+    const userSystems = library.folders.flatMap((f) =>
+      f.systems
+        .filter((s) => matchText(s.name) || matchText(s.description) || matchTags(s.tags))
+        .map((s) => ({ sys: s, folder: f }))
+    );
+
+    return {
+      templates,
+      userSystems,
+      total: templates.length + userSystems.length,
+    };
+  }, [normalizedQuery, visibleLabTemplates, library.folders]);
 
   const handleLoadSaved = (sys: SavedSystem) => {
     if (hasWorkInProgress) {
@@ -145,12 +170,15 @@ export function LibraryModal(props: LibraryModalProps) {
           ? {
               width: '100%',
               height: '100%',
+              maxHeight: '100%',
+              minHeight: 0,
               display: 'flex',
               alignItems: 'stretch',
               justifyContent: 'center',
               padding: 0,
               boxSizing: 'border-box',
               background: 'var(--bt-bg)',
+              overflow: 'hidden',
             }
           : {
               position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)',
@@ -164,7 +192,7 @@ export function LibraryModal(props: LibraryModalProps) {
         style={
           inline
             ? {
-                width: '100%', maxWidth: 1100,
+                width: '100%', maxWidth: 1100, height: '100%', maxHeight: '100%', minHeight: 0,
                 background: 'var(--bt-bg)',
                 display: 'flex', flexDirection: 'column', overflow: 'hidden',
               }
@@ -207,7 +235,7 @@ export function LibraryModal(props: LibraryModalProps) {
           </header>
         )}
 
-        <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        <div style={{ display: 'flex', flex: 1, minHeight: 0, height: '100%', overflow: 'hidden' }}>
           {/* Sidebar dossiers */}
           <aside
             style={{
@@ -309,8 +337,145 @@ export function LibraryModal(props: LibraryModalProps) {
           </aside>
 
           {/* Pane systèmes */}
-          <div style={{ flex: 1, padding: 16, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {selectedTag ? (
+          <div style={{ flex: 1, padding: 16, overflowY: 'auto', minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* 🔍 Barre de recherche transverse */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '6px 12px',
+                borderRadius: 8,
+                background: 'var(--bt-surface)',
+                border: '1px solid var(--bt-border)',
+                flexShrink: 0,
+              }}
+            >
+              <Search size={15} style={{ color: 'var(--bt-text-dim)', flexShrink: 0 }} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Rechercher un système par nom, description ou tag..."
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: 13,
+                  color: 'var(--bt-text)',
+                  minWidth: 0,
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  title="Effacer la recherche"
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    color: 'var(--bt-text-dim)',
+                    padding: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 4,
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Rendu conditionnel : 1) Recherche active, 2) Filtre tag actif, 3) Dossier sélectionné */}
+            {searchResults ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: inline ? '#f3f4f6' : c.accentText }}>
+                    🔍 Recherche « {searchQuery.trim()} » · {searchResults.total} résultat{searchResults.total > 1 ? 's' : ''}
+                  </div>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    style={{
+                      fontSize: 11,
+                      padding: '2px 8px',
+                      border: '1px solid var(--bt-border)',
+                      borderRadius: 4,
+                      background: 'transparent',
+                      color: 'var(--bt-text-dim)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Effacer la recherche
+                  </button>
+                </div>
+                {searchResults.total === 0 ? (
+                  <div style={{ fontSize: 12, color: '#a8a29e', padding: 24, textAlign: 'center', fontStyle: 'italic' }}>
+                    Aucun système ne correspond à votre recherche.
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                      gap: 10,
+                    }}
+                  >
+                    {searchResults.templates.map((t) => (
+                      <button
+                        key={`tpl-${t.id}`}
+                        onClick={() => handleLoadTemplate(t)}
+                        title={`Charger ${t.name}`}
+                        style={{
+                          textAlign: 'left', padding: 12, borderRadius: 8,
+                          border: `1px solid ${c.border}`, background: '#fff',
+                          cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6,
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{
+                            width: 26, height: 26, borderRadius: 6, background: c.accent,
+                            color: '#fff', display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', fontSize: 11, fontWeight: 700,
+                          }}>
+                            {t.steps.length}
+                          </div>
+                          <div style={{ fontWeight: 700, color: c.accentText, fontSize: 13 }}>
+                            {t.name}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 11, color: '#57534e', lineHeight: 1.4 }}>
+                          {t.description}
+                        </div>
+                        <div style={{ fontSize: 10, color: '#94a3b8' }}>
+                          {(t.tags ?? []).map((tg) => `#${tg}`).join(' ')}
+                        </div>
+                      </button>
+                    ))}
+                    {searchResults.userSystems.map(({ sys: s, folder }) => (
+                      <SystemCard
+                        key={`usr-${s.id}`}
+                        system={s}
+                        accent={c.accent}
+                        accentText={c.accentText}
+                        border={c.border}
+                        bg={c.bg}
+                        onLoad={() => handleLoadSaved(s)}
+                        onRename={() => setRenameTarget({ kind: 'system', id: s.id, current: s.name })}
+                        onDelete={() => {
+                          if (confirm(`Supprimer le système "${s.name}" ?`)) onDeleteSystem(s.id);
+                        }}
+                        otherFolders={library.folders.filter((f) => f.id !== folder.id)}
+                        onMove={(target) => onMoveSystem(s.id, target)}
+                        onSetTags={onSetSystemTags}
+                        allTagSuggestions={allTagSuggestions}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : selectedTag ? (
               (() => {
                 // Mode filtre par tag — mélange templates + user systems.
                 const matchingTemplates = [...CLASSIC_TEMPLATES, ...visibleLabTemplates].filter(
