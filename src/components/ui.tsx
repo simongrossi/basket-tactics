@@ -76,8 +76,8 @@ export function Panel({ theme, title, children, fill }: PanelProps) {
   return (
     <aside
       style={{
-        background: '#fff',
-        border: `1px solid ${c.border}`,
+        background: 'var(--bt-surface, #fff)',
+        border: `1px solid var(--bt-border, ${c.border})`,
         borderRadius: 10,
         padding: 10,
         display: 'flex',
@@ -86,7 +86,7 @@ export function Panel({ theme, title, children, fill }: PanelProps) {
         minHeight: 0,
         overflow: 'hidden',
         flex: fill ? '1 1 0' : '0 0 auto',
-        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04)',
+        boxShadow: 'var(--bt-panel-shadow, 0 1px 3px rgba(15, 23, 42, 0.04))',
       }}
     >
       <div
@@ -95,16 +95,16 @@ export function Panel({ theme, title, children, fill }: PanelProps) {
           alignItems: 'center',
           gap: 8,
           paddingBottom: 6,
-          borderBottom: `1px solid ${c.border}`,
+          borderBottom: `1px solid var(--bt-border, ${c.border})`,
         }}
       >
         <div style={{ width: 4, height: 16, background: accent, borderRadius: 2 }} />
         <div
           style={{
-            fontSize: 12,
-            fontWeight: 700,
+            fontSize: 13,
+            fontWeight: 750,
             letterSpacing: '-0.01em',
-            color: 'accentText' in c ? c.accentText : c.text,
+            color: 'var(--bt-text, #0f172a)',
           }}
         >
           {title}

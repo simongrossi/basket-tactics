@@ -389,13 +389,13 @@ export function ParametresPanel({
               })}
               title="Affichage épuré : joueurs, ballon et trajectoires essentielles sans encombrement"
               style={{
-                padding: '6px 4px',
-                fontSize: 11,
-                fontWeight: 600,
+                padding: '7px 4px',
+                fontSize: 12,
+                fontWeight: 650,
                 borderRadius: 6,
-                border: '1px solid #334155',
-                background: (!state.showHelpLines && !state.showPassLanes && !state.showMatchups && !state.showHeatmap && !state.showFieldOfViewAll) ? '#1e293b' : '#0f172a',
-                color: (!state.showHelpLines && !state.showPassLanes && !state.showMatchups && !state.showHeatmap && !state.showFieldOfViewAll) ? '#38bdf8' : '#cbd5e1',
+                border: `1px solid ${(!state.showHelpLines && !state.showPassLanes && !state.showMatchups && !state.showHeatmap && !state.showFieldOfViewAll) ? UI.accent : UI.border}`,
+                background: (!state.showHelpLines && !state.showPassLanes && !state.showMatchups && !state.showHeatmap && !state.showFieldOfViewAll) ? 'color-mix(in srgb, var(--bt-accent, #3b82f6) 18%, var(--bt-card-bg, #1e232c))' : UI.controlOff,
+                color: (!state.showHelpLines && !state.showPassLanes && !state.showMatchups && !state.showHeatmap && !state.showFieldOfViewAll) ? UI.text : UI.muted,
                 cursor: 'pointer',
               }}
             >
@@ -424,13 +424,13 @@ export function ParametresPanel({
               })}
               title="Affichage tactique recommandé : aides, lignes de passe, matchups et lecture coach"
               style={{
-                padding: '6px 4px',
-                fontSize: 11,
-                fontWeight: 600,
+                padding: '7px 4px',
+                fontSize: 12,
+                fontWeight: 650,
                 borderRadius: 6,
-                border: '1px solid #334155',
-                background: (state.showHelpLines && state.showPassLanes && state.showMatchups && !state.showHeatmap && !state.showFieldOfViewAll) ? '#1e293b' : '#0f172a',
-                color: (state.showHelpLines && state.showPassLanes && state.showMatchups && !state.showHeatmap && !state.showFieldOfViewAll) ? '#38bdf8' : '#cbd5e1',
+                border: `1px solid ${(state.showHelpLines && state.showPassLanes && state.showMatchups && !state.showHeatmap && !state.showFieldOfViewAll) ? UI.accent : UI.border}`,
+                background: (state.showHelpLines && state.showPassLanes && state.showMatchups && !state.showHeatmap && !state.showFieldOfViewAll) ? 'color-mix(in srgb, var(--bt-accent, #3b82f6) 18%, var(--bt-card-bg, #1e232c))' : UI.controlOff,
+                color: (state.showHelpLines && state.showPassLanes && state.showMatchups && !state.showHeatmap && !state.showFieldOfViewAll) ? UI.text : UI.muted,
                 cursor: 'pointer',
               }}
             >
@@ -459,13 +459,13 @@ export function ParametresPanel({
               })}
               title="Affichage expert / analyse : toutes les métriques, menaces, visions et fantômes N-1"
               style={{
-                padding: '6px 4px',
-                fontSize: 11,
-                fontWeight: 600,
+                padding: '7px 4px',
+                fontSize: 12,
+                fontWeight: 650,
                 borderRadius: 6,
-                border: '1px solid #334155',
-                background: (state.showThreats || state.showBestAction || state.showTacticalMetrics) ? '#1e293b' : '#0f172a',
-                color: (state.showThreats || state.showBestAction || state.showTacticalMetrics) ? '#38bdf8' : '#cbd5e1',
+                border: `1px solid ${(state.showThreats || state.showBestAction || state.showTacticalMetrics) ? UI.accent : UI.border}`,
+                background: (state.showThreats || state.showBestAction || state.showTacticalMetrics) ? 'color-mix(in srgb, var(--bt-accent, #3b82f6) 18%, var(--bt-card-bg, #1e232c))' : UI.controlOff,
+                color: (state.showThreats || state.showBestAction || state.showTacticalMetrics) ? UI.text : UI.muted,
                 cursor: 'pointer',
               }}
             >
@@ -579,13 +579,13 @@ export function ParametresPanel({
                       className="bt-touch"
                       onClick={() => onPatch({ courtTheme: th.id as 'classic' | 'blackboard' | 'modern' })}
                       style={{
-                        padding: '5px 2px',
-                        fontSize: 10,
+                        padding: '6px 4px',
+                        fontSize: 11,
                         fontWeight: active ? 700 : 500,
-                        borderRadius: 5,
-                        border: active ? '1px solid #38bdf8' : '1px solid #334155',
-                        background: active ? '#1e293b' : '#0f172a',
-                        color: active ? '#38bdf8' : '#cbd5e1',
+                        borderRadius: 6,
+                        border: `1px solid ${active ? UI.accent : UI.border}`,
+                        background: active ? 'color-mix(in srgb, var(--bt-accent, #3b82f6) 18%, var(--bt-card-bg, #1e232c))' : UI.controlOff,
+                        color: active ? UI.text : UI.muted,
                         cursor: 'pointer',
                       }}
                     >

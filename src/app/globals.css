@@ -1,45 +1,4 @@
 :root {
-  --bt-bg: #171a20;
-  --bt-surface: #1f242c;
-  --bt-surface-raised: #262b34;
-  --bt-surface-hover: #303744;
-  --bt-border: #343b47;
-  --bt-border-strong: #465061;
-  --bt-text: #f3f4f6;
-  --bt-text-muted: #cbd5e1;
-  --bt-text-dim: #94a3b8;
-  --bt-accent: #378add;
-  --bt-accent-strong: #4ba3ff;
-  --bt-orange: #d85a30;
-  --bt-orange-soft: #fdba74;
-
-  /* Sidebar & views */
-  --bt-sidebar-bg: #1a1d23;
-  --bt-sidebar-border: #2a2d35;
-  --bt-sidebar-hover: #262a32;
-  --bt-sidebar-active: #2f343d;
-  --bt-sidebar-text: #f3f4f6;
-  --bt-sidebar-muted: #cbd5e1;
-  --bt-sidebar-dim: #94a3b8;
-  --bt-sidebar-accent-bg: rgba(167, 139, 250, 0.14);
-
-  /* Topbar & buttons */
-  --bt-btn-bg: #29313e;
-  --bt-btn-border: #64748b;
-  --bt-btn-text: #f8fafc;
-
-  /* Parametres & menus */
-  --bt-card-bg: #1e232c;
-  --bt-card-bg-lift: #232a35;
-  --bt-control-bg: #252c37;
-  --bt-control-hover: #2d3542;
-  --bt-control-off: #171c24;
-  --bt-panel-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 26px rgba(0,0,0,0.12);
-  --bt-input-shadow: inset 0 1px 2px rgba(0,0,0,0.25);
-  --bt-accent-deep: #1d75d0;
-}
-
-[data-theme='light'] {
   --bt-bg: #f8fafc;
   --bt-surface: #ffffff;
   --bt-surface-raised: #f1f5f9;
@@ -78,6 +37,47 @@
   --bt-panel-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 10px 24px -4px rgba(0,0,0,0.04);
   --bt-input-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
   --bt-accent-deep: #1e40af;
+}
+
+[data-theme='dark'] {
+  --bt-bg: #171a20;
+  --bt-surface: #1f242c;
+  --bt-surface-raised: #262b34;
+  --bt-surface-hover: #303744;
+  --bt-border: #343b47;
+  --bt-border-strong: #465061;
+  --bt-text: #f3f4f6;
+  --bt-text-muted: #cbd5e1;
+  --bt-text-dim: #94a3b8;
+  --bt-accent: #378add;
+  --bt-accent-strong: #4ba3ff;
+  --bt-orange: #d85a30;
+  --bt-orange-soft: #fdba74;
+
+  /* Sidebar & views */
+  --bt-sidebar-bg: #1a1d23;
+  --bt-sidebar-border: #2a2d35;
+  --bt-sidebar-hover: #262a32;
+  --bt-sidebar-active: #2f343d;
+  --bt-sidebar-text: #f3f4f6;
+  --bt-sidebar-muted: #cbd5e1;
+  --bt-sidebar-dim: #94a3b8;
+  --bt-sidebar-accent-bg: rgba(167, 139, 250, 0.14);
+
+  /* Topbar & buttons */
+  --bt-btn-bg: #29313e;
+  --bt-btn-border: #64748b;
+  --bt-btn-text: #f8fafc;
+
+  /* Parametres & menus */
+  --bt-card-bg: #1e232c;
+  --bt-card-bg-lift: #232a35;
+  --bt-control-bg: #252c37;
+  --bt-control-hover: #2d3542;
+  --bt-control-off: #171c24;
+  --bt-panel-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 26px rgba(0,0,0,0.12);
+  --bt-input-shadow: inset 0 1px 2px rgba(0,0,0,0.25);
+  --bt-accent-deep: #1d75d0;
 }
 
 * {
