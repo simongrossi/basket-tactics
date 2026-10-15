@@ -11,6 +11,7 @@ interface OffenseToolsPanelProps {
   actionTimingAnchor?: ActionTimingAnchor;
   onSetActionTimingAnchor?: (mode: ActionTimingAnchor) => void;
   onApplyStartingFormation?: (formationId: string) => void;
+  onOpenComposer?: () => void;
 }
 
 const shortcutKeyFor = (tool: Tool): string =>
@@ -121,6 +122,32 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
             );
           })}
         </div>
+        {props.onOpenComposer && (
+          <button
+            type="button"
+            className="bt-touch"
+            onClick={props.onOpenComposer}
+            title="Orchestrateur tactique d'étape : définir les actions combinées (écrans, coupes, passes) en 1 clic sans dessiner"
+            style={{
+              width: '100%',
+              marginTop: 8,
+              padding: '8px 10px',
+              borderRadius: 6,
+              border: '1px solid rgba(234, 88, 12, 0.45)',
+              background: 'linear-gradient(180deg, rgba(234, 88, 12, 0.22) 0%, rgba(194, 65, 12, 0.28) 100%)',
+              color: '#fb923c',
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+          >
+            <span>⚡ Orchestrer l'étape</span>
+          </button>
+        )}
         {props.onSetActionTimingAnchor && (
           <label
             title="Coché : le tracé arrive au moment courant de la timeline. Décoché : il démarre au moment courant."

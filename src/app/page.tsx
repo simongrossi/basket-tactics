@@ -8,7 +8,7 @@ import { useMatchLoop } from '@/hooks/useMatchLoop';
 import { useSidebarState } from '@/hooks/useSidebarState';
 import { Sidebar, type ToolGroup } from '@/components/sidebar/Sidebar';
 import { SIDEBAR } from '@/components/sidebar/tokens';
-import { Swords, Shield, ListOrdered, GitBranch, Undo2, Redo2 } from 'lucide-react';
+import { Swords, Shield, ListOrdered, GitBranch, Undo2, Redo2, Share2 } from 'lucide-react';
 import { OffenseToolsPanel } from '@/components/OffenseToolsPanel';
 import { StepsPanel, isPristineInitialStepList } from '@/components/StepsPanel';
 import { ScenarioPanel } from '@/components/ScenarioPanel';
@@ -38,6 +38,7 @@ import { MetricsChart } from '@/components/MetricsChart';
 import { CoachDiagnosticsOverlay } from '@/components/CoachDiagnosticsOverlay';
 import { ExportModal } from '@/components/ExportModal';
 import { SituationCodeModal } from '@/components/SituationCodeModal';
+import { CourtShareModal } from '@/components/CourtShareModal';
 import { ManualRecordingBar } from '@/components/ManualRecordingBar';
 import { useManualRecording } from '@/hooks/useManualRecording';
 import type { SituationSnapshot } from '@/lib/state/situationCode';
@@ -77,6 +78,8 @@ export default function Page() {
   // E.2 — Ouverture de la modal d'export. La modal elle-même drive
   // `setExportT` quand l'utilisateur clique "Démarrer".
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showComposerModal, setShowComposerModal] = useState(false);
   const [situationDialog, setSituationDialog] = useState<{ mode: 'copy' | 'animation' | 'gestures' | 'import'; snapshot: SituationSnapshot } | null>(null);
   const manual = useManualRecording();
   const [preparingRecording, setPreparingRecording] = useState(false);
@@ -491,6 +494,26 @@ export default function Page() {
           <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }} onClick={() => sidebar.setActiveView('library')}>
             Enregistrer une copie…
           </button>
+          <button
+            className="bt-touch"
+            style={{
+              padding: '4px 12px',
+              border: '1px solid rgba(59, 130, 246, 0.45)',
+              borderRadius: 6,
+              background: 'linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%)',
+              color: '#ffffff',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              fontWeight: 650,
+            }}
+            onClick={() => setShowShareModal(true)}
+            title="Partager le système (lien direct, code ou prompt IA)"
+          >
+            <Share2 size={13} />
+            <span>Partager</span>
+          </button>
           {app.hasRecovery && <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }} onClick={app.restoreDraft}>
             Retrouver le brouillon précédent
           </button>}
@@ -571,6 +594,7 @@ export default function Page() {
                     actionTimingAnchor={actionTimingAnchor}
                     onSetActionTimingAnchor={handleSetActionTimingAnchor}
                     onApplyStartingFormation={app.applyStartingFormation}
+                    onOpenComposer={() => setShowComposerModal(true)}
                   />
                 ),
               },
@@ -931,6 +955,8 @@ export default function Page() {
               exportT={exportT}
               externalSvgRef={courtSvgRef}
               isPlayerMode={isPlayerMode}
+              composerOpen={showComposerModal}
+              onCloseComposer={() => setShowComposerModal(false)}
             />
             {/* Coaching #1 — télécommande de présentation pas-à-pas, en
                 overlay sur le terrain en mode lecteur (sans match live). */}
@@ -1064,6 +1090,18 @@ export default function Page() {
           svgRef={courtSvgRef}
           setExportT={setExportT}
           onClose={() => setShowExportModal(false)}
+        />
+      )}
+      {showShareModal && (
+        <CourtShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          state={app.state}
+          situationView={{
+            source: matchLoop.matchState ? 'live' : (scrubT != null || playbackT != null ? 'timeline' : 'editor'),
+            time: scrubT ?? playbackT ?? null,
+            frame: displayedCourt?.state === app.state ? displayedCourt.frame : undefined,
+          }}
         />
       )}
       {situationDialog && (

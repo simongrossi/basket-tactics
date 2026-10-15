@@ -38,8 +38,6 @@ import { CourtBackground, ArrowMarkers } from './Court';
 import { Ball } from './Player';
 import { AnnotationView } from './Annotations';
 import { AnnotationHandles } from './court/AnnotationHandles';
-import { CourtShareModal } from './CourtShareModal';
-import { Share2 } from 'lucide-react';
 import {
   Matchups,
   HelpLines,
@@ -171,6 +169,9 @@ interface CourtViewProps {
   gesturesOnly?: boolean;
   /** Coordonnées enregistrées à afficher telles quelles pendant un replay. */
   recordedFrame?: ManualGestureFrame | null;
+  /** Permet au parent de contrôler l'ouverture de l'orchestrateur */
+  composerOpen?: boolean;
+  onCloseComposer?: () => void;
 }
 
 export function CourtView(props: CourtViewProps) {
@@ -194,7 +195,6 @@ export function CourtView(props: CourtViewProps) {
   const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null);
   // U04 — modificateurs activés au doigt depuis la barre tactile.
   const [stickyModifiers, setStickyModifiers] = useState<StickyModifiers>({});
-  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   // #4 — Sélection multiple de défenseurs. State éphémère (UI), pas dans
   // AppState (pas de persistance, pas d'undo individuel).
@@ -1281,8 +1281,11 @@ export function CourtView(props: CourtViewProps) {
       {/* Popover / Modal Orchestrateur tactique d'étape (Play Composer) */}
       <PlayComposerModal
         state={state}
-        isOpen={composerOpen && !readOnly && !props.isPlaying}
-        onClose={() => setComposerOpen(false)}
+        isOpen={(props.composerOpen !== undefined ? props.composerOpen : composerOpen) && !readOnly && !props.isPlaying}
+        onClose={() => {
+          setComposerOpen(false);
+          props.onCloseComposer?.();
+        }}
         onApplyPlan={(actions, nextCarrier) => {
           if (editingBlocked) return;
           actions.forEach((a) => props.onAddAnnotation(a));
@@ -1292,64 +1295,7 @@ export function CourtView(props: CourtViewProps) {
         }}
       />
 
-      {/* Bouton Partage flottant (en haut à droite du terrain) */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 14,
-          right: 14,
-          zIndex: 40,
-        }}
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          onClick={() => setShareModalOpen(true)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 7,
-            padding: '7px 13px',
-            borderRadius: 8,
-            border: '1px solid rgba(59, 130, 246, 0.4)',
-            background: 'linear-gradient(180deg, rgba(37, 99, 235, 0.92) 0%, rgba(29, 78, 216, 0.94) 100%)',
-            color: '#ffffff',
-            fontSize: 12,
-            fontWeight: 700,
-            cursor: 'pointer',
-            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(8px)',
-            transition: 'transform 0.12s ease, filter 0.12s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.filter = 'brightness(1.1)';
-            e.currentTarget.style.transform = 'translateY(-1px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.filter = 'none';
-            e.currentTarget.style.transform = 'none';
-          }}
-          title="Partager le système et la situation (lien direct, code ou prompt IA)"
-          aria-label="Partager la situation"
-          className="bt-touch"
-        >
-          <Share2 size={15} />
-          <span>Partager</span>
-        </button>
-      </div>
 
-      {/* Modal de partage interactif / IA */}
-      <CourtShareModal
-        isOpen={shareModalOpen}
-        onClose={() => setShareModalOpen(false)}
-        state={state}
-        situationView={{
-          source: props.liveMatchState ? 'live' : (props.scrubT != null || props.playbackT != null ? 'timeline' : 'editor'),
-          time: props.scrubT ?? props.playbackT ?? null,
-          frame,
-        }}
-      />
 
       {/* Floating Zoom Controls */}
       <div

@@ -317,11 +317,11 @@ textarea::placeholder {
 .bt-court-touchbar {
   position: absolute;
   left: 14px;
-  top: 14px;
-  right: 72px;
+  bottom: 14px;
+  max-width: calc(100% - 130px);
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: flex-end;
   gap: 6px;
   pointer-events: none;
   z-index: 30;

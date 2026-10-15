@@ -63,22 +63,6 @@ export function CourtTouchBar(props: CourtTouchBarProps) {
           hint="Dessiner la trajectoire du doigt : courbe, V-cut, L-cut (équivalent Maj)"
         />
       )}
-      {props.onOpenComposer && (
-        <button
-          type="button"
-          className="bt-touch bt-touchbar-btn"
-          onClick={props.onOpenComposer}
-          title="Composer tactiquement l'étape sans dessiner (actions coordonnées)"
-          style={{
-            background: 'rgba(234, 88, 12, 0.25)',
-            borderColor: '#ea580c',
-            color: '#fb923c',
-            fontWeight: 600,
-          }}
-        >
-          ⚡ Orchestrer
-        </button>
-      )}
       {selectionCount > 0 && (
         <button type="button" className="bt-touch bt-touchbar-btn" onClick={props.onClearSelection}>
           Désélectionner ({selectionCount})

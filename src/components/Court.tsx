@@ -33,8 +33,8 @@ interface CourtBackgroundProps {
 
 const THEME_STYLES = {
   classic: {
-    floor: '#9a7a5a',
-    paint: '#7a5538',
+    floor: '#e8c99b',
+    paint: '#c97a3a',
     line: '#FFFFFF',
     ring: '#ea580c',
   },
