@@ -335,7 +335,7 @@ export function CourtView(props: CourtViewProps) {
     state.steps[state.activeStep]?.textNotes ?? [];
 
   // Pointer/drag + tracé d'annotation + marquee.
-  const { pending, snapTarget, marquee, pendingAutoSourceId, cancelPendingAuto, svgPoint, onPointerDown, onPointerMove, onPointerUp } =
+  const { pending, dragging, snapTarget, marquee, pendingAutoSourceId, cancelPendingAuto, svgPoint, onPointerDown, onPointerMove, onPointerUp } =
     useCourtPointerHandlers({
       state: pointerState,
       svgRef,
@@ -553,7 +553,15 @@ export function CourtView(props: CourtViewProps) {
           display: 'block',
           touchAction: 'none',
           userSelect: 'none',
-          cursor: spacePressed ? 'grab' : undefined,
+          cursor: spacePressed
+            ? (dragging ? 'grabbing' : 'grab')
+            : dragging
+              ? 'grabbing'
+              : pending || ['pass', 'cut', 'dribble', 'screen'].includes(pointerState.tool)
+                ? 'crosshair'
+                : pointerState.tool === 'text'
+                  ? 'text'
+                  : 'default',
         }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

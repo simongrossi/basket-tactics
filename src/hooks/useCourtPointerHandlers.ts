@@ -598,7 +598,7 @@ export function useCourtPointerHandlers(
             onOpenContextMenu(id, e.clientX, e.clientY);
           }
           setPending(null);
-        }, 600);
+        }, 380);
       }
 
       // A.3 — Outil 'note' : tout clic ouvre le popup (création si zone vide,
