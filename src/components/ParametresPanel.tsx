@@ -563,6 +563,38 @@ export function ParametresPanel({
           </ToggleGroup>
 
           <ToggleGroup title="Terrain & champs" accent={UI.cyan}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, gridColumn: 'span 2' }}>
+              <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>Style du parquet</span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                {[
+                  { id: 'classic', label: '🪵 Bois FIBA' },
+                  { id: 'blackboard', label: '⬛ Ardoise' },
+                  { id: 'modern', label: '🏢 Moderne' },
+                ].map((th) => {
+                  const active = (state.courtTheme ?? 'classic') === th.id;
+                  return (
+                    <button
+                      key={th.id}
+                      type="button"
+                      className="bt-touch"
+                      onClick={() => onPatch({ courtTheme: th.id as 'classic' | 'blackboard' | 'modern' })}
+                      style={{
+                        padding: '5px 2px',
+                        fontSize: 10,
+                        fontWeight: active ? 700 : 500,
+                        borderRadius: 5,
+                        border: active ? '1px solid #38bdf8' : '1px solid #334155',
+                        background: active ? '#1e293b' : '#0f172a',
+                        color: active ? '#38bdf8' : '#cbd5e1',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {th.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <ToggleCard
               checked={state.fullCourt}
               label="terrain complet"

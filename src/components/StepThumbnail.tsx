@@ -56,7 +56,11 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
       style={{ width: '100%', height: 'auto', display: 'block' }}
     >
       <ArrowMarkers />
-      <CourtBackground fullCourt={state.fullCourt} attackingDirection={state.attackingDirection} />
+      <CourtBackground
+        fullCourt={state.fullCourt}
+        attackingDirection={state.attackingDirection}
+        courtTheme={state.courtTheme}
+      />
       {state.defenseSystem === 'zone' && showDefense && (() => {
         const activeDefenders = new Set(getActiveDefenderIds(state.playerCount));
         const base = getZoneLayout(state.zoneConfig.type, state.zoneConfig.verticalOffset ?? 0);

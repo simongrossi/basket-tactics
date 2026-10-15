@@ -25,9 +25,31 @@ interface CourtBackgroundProps {
    *  et un indicateur bleu sobre autour du panier protégé. Sans effet
    *  en demi-terrain (le panier est toujours en haut). */
   attackingDirection?: 'up' | 'down';
+  /** Thème visuel du parquet : 'classic' (bois FIBA), 'blackboard' (tactique sombre), 'modern' (parquet bi-ton). */
+  courtTheme?: 'classic' | 'blackboard' | 'modern';
 }
 
-const LINE_COLOR = '#FFFFFF';
+const THEME_STYLES = {
+  classic: {
+    floor: '#9a7a5a',
+    paint: '#7a5538',
+    line: '#FFFFFF',
+    ring: '#ea580c',
+  },
+  blackboard: {
+    floor: '#181e26',
+    paint: '#242e3b',
+    line: '#e2e8f0',
+    ring: '#f97316',
+  },
+  modern: {
+    floor: '#475569',
+    paint: '#334155',
+    line: '#f8fafc',
+    ring: '#ea580c',
+  },
+} as const;
+
 const LINE_WIDTH = 3;
 
 /**
@@ -35,9 +57,11 @@ const LINE_WIDTH = 3;
  * du panier en haut. Les fonctions de symétrie pour le terrain complet
  * miroitent ce demi-terrain autour de y = MIDLINE_Y.
  */
-function HalfCourt() {
+function HalfCourt({ theme = 'classic' }: { theme?: 'classic' | 'blackboard' | 'modern' }) {
   const cx = 300;
   const baseY = 20; // ligne de fond
+  const colors = THEME_STYLES[theme] ?? THEME_STYLES.classic;
+  const lineColor = colors.line;
 
   return (
     <>
@@ -47,8 +71,8 @@ function HalfCourt() {
         y={PAINT.y1}
         width={PAINT.x2 - PAINT.x1}
         height={PAINT.y2 - PAINT.y1}
-        fill="#7a5538"
-        stroke={LINE_COLOR}
+        fill={colors.paint}
+        stroke={lineColor}
         strokeWidth={LINE_WIDTH}
       />
 
@@ -60,7 +84,7 @@ function HalfCourt() {
         cy={FT_LINE_Y}
         r={FT_CIRCLE_RADIUS}
         fill="none"
-        stroke={LINE_COLOR}
+        stroke={lineColor}
         strokeWidth={LINE_WIDTH}
         strokeDasharray="6 6"
       />
@@ -69,7 +93,7 @@ function HalfCourt() {
       <path
         d={`M ${cx - RESTRICTED_AREA_RADIUS} ${HOOP.y} A ${RESTRICTED_AREA_RADIUS} ${RESTRICTED_AREA_RADIUS} 0 0 0 ${cx + RESTRICTED_AREA_RADIUS} ${HOOP.y}`}
         fill="none"
-        stroke={LINE_COLOR}
+        stroke={lineColor}
         strokeWidth={LINE_WIDTH - 1}
       />
 
@@ -79,7 +103,7 @@ function HalfCourt() {
         y1={baseY}
         x2={CORNER_3PT_X_LEFT}
         y2={CORNER_3PT_Y}
-        stroke={LINE_COLOR}
+        stroke={lineColor}
         strokeWidth={LINE_WIDTH}
       />
       <line
@@ -87,13 +111,13 @@ function HalfCourt() {
         y1={baseY}
         x2={CORNER_3PT_X_RIGHT}
         y2={CORNER_3PT_Y}
-        stroke={LINE_COLOR}
+        stroke={lineColor}
         strokeWidth={LINE_WIDTH}
       />
       <path
         d={`M ${CORNER_3PT_X_LEFT} ${CORNER_3PT_Y} A ${THREE_POINT_RADIUS} ${THREE_POINT_RADIUS} 0 0 0 ${CORNER_3PT_X_RIGHT} ${CORNER_3PT_Y}`}
         fill="none"
-        stroke={LINE_COLOR}
+        stroke={lineColor}
         strokeWidth={LINE_WIDTH}
       />
 
@@ -106,8 +130,8 @@ function HalfCourt() {
         y={BACKBOARD_Y - 3}
         width={BACKBOARD_HALF_WIDTH * 2}
         height={6}
-        fill={LINE_COLOR}
-        stroke={LINE_COLOR}
+        fill={lineColor}
+        stroke={lineColor}
         strokeWidth={1}
         rx={1}
       />
@@ -117,7 +141,7 @@ function HalfCourt() {
         y1={BACKBOARD_Y}
         x2={cx}
         y2={HOOP.y - HOOP_RADIUS}
-        stroke={LINE_COLOR}
+        stroke={lineColor}
         strokeWidth={2}
       />
 
@@ -127,7 +151,7 @@ function HalfCourt() {
         cy={HOOP.y}
         r={HOOP_RADIUS}
         fill="none"
-        stroke="#E24B4A"
+        stroke={colors.ring}
         strokeWidth={2.5}
       />
 
@@ -137,8 +161,8 @@ function HalfCourt() {
         const y = baseY + m * 37;
         return (
           <g key={m}>
-            <rect x={PAINT.x1 - 5} y={y - 1} width={5} height={3} fill={LINE_COLOR} />
-            <rect x={PAINT.x2} y={y - 1} width={5} height={3} fill={LINE_COLOR} />
+            <rect x={PAINT.x1 - 5} y={y - 1} width={5} height={3} fill={lineColor} />
+            <rect x={PAINT.x2} y={y - 1} width={5} height={3} fill={lineColor} />
           </g>
         );
       })}
@@ -146,15 +170,18 @@ function HalfCourt() {
   );
 }
 
-export function CourtBackground({ fullCourt = false, attackingDirection = 'up' }: CourtBackgroundProps) {
+export function CourtBackground({ fullCourt = false, attackingDirection = 'up', courtTheme = 'classic' }: CourtBackgroundProps) {
   const totalHeight = fullCourt ? FULL_COURT_HEIGHT : COURT.height;
   const totalInner = fullCourt ? FULL_COURT_HEIGHT - 40 : 520;
   const attackedHoop = attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP;
   const protectedHoop = attackingDirection === 'down' ? HOOP : HOOP_OPPOSITE;
+  const colors = THEME_STYLES[courtTheme] ?? THEME_STYLES.classic;
+  const lineColor = colors.line;
+
   return (
     <>
       {/* Fond du SVG */}
-      <rect x={0} y={0} width={COURT.width} height={totalHeight} fill="#9a7a5a" />
+      <rect x={0} y={0} width={COURT.width} height={totalHeight} fill={colors.floor} />
 
       {/* Bordure extérieure du terrain (touches + ligne de fond) */}
       <rect
@@ -163,17 +190,17 @@ export function CourtBackground({ fullCourt = false, attackingDirection = 'up' }
         width={560}
         height={totalInner}
         fill="none"
-        stroke={LINE_COLOR}
+        stroke={lineColor}
         strokeWidth={LINE_WIDTH}
       />
 
-      <HalfCourt />
+      <HalfCourt theme={courtTheme} />
 
       {fullCourt ? (
         <>
           {/* Demi-terrain symétrique en bas */}
           <g transform={`translate(0 ${2 * MIDLINE_Y}) scale(1 -1)`}>
-            <HalfCourt />
+            <HalfCourt theme={courtTheme} />
           </g>
           {/* Ligne médiane + cercle central plein */}
           <line
@@ -181,7 +208,7 @@ export function CourtBackground({ fullCourt = false, attackingDirection = 'up' }
             y1={MIDLINE_Y}
             x2={580}
             y2={MIDLINE_Y}
-            stroke={LINE_COLOR}
+            stroke={lineColor}
             strokeWidth={LINE_WIDTH}
           />
           <circle
@@ -189,7 +216,7 @@ export function CourtBackground({ fullCourt = false, attackingDirection = 'up' }
             cy={MIDLINE_Y}
             r={CENTER_CIRCLE_RADIUS}
             fill="none"
-            stroke={LINE_COLOR}
+            stroke={lineColor}
             strokeWidth={LINE_WIDTH}
           />
           {/* Indicateurs panier actif (visé par l'attaque) vs protégé (côté défense).
@@ -246,7 +273,7 @@ export function CourtBackground({ fullCourt = false, attackingDirection = 'up' }
             y1={MIDLINE_Y}
             x2={580}
             y2={MIDLINE_Y}
-            stroke={LINE_COLOR}
+            stroke={lineColor}
             strokeWidth={LINE_WIDTH}
           />
           <circle
@@ -254,7 +281,7 @@ export function CourtBackground({ fullCourt = false, attackingDirection = 'up' }
             cy={MIDLINE_Y}
             r={CENTER_CIRCLE_RADIUS}
             fill="none"
-            stroke={LINE_COLOR}
+            stroke={lineColor}
             strokeWidth={LINE_WIDTH}
           />
         </>

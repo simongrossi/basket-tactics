@@ -543,7 +543,11 @@ export function CourtView(props: CourtViewProps) {
       >
         <ArrowMarkers />
         <g ref={contentRef} transform={`translate(${transform.x}, ${transform.y}) scale(${transform.scale})`}>
-          <CourtBackground fullCourt={state.fullCourt} attackingDirection={state.attackingDirection} />
+          <CourtBackground
+            fullCourt={state.fullCourt}
+            attackingDirection={state.attackingDirection}
+            courtTheme={state.courtTheme}
+          />
 
         {/* #2 — Feedback visuel snap-to-grid pendant le drag avec Ctrl/Cmd. */}
         <SnapGuideOverlay

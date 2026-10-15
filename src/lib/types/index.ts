@@ -1318,6 +1318,8 @@ export interface AppState {
   pressConfig?: PressConfig;
   offBallScreenRule: OffBallScreenRule;
   fullCourt: boolean;
+  /** Style et thème visuel du parquet : 'classic' (bois franc FIBA), 'blackboard' (ardoise/tactique contrastée), 'modern' (parquet bi-ton contemporain). */
+  courtTheme?: 'classic' | 'blackboard' | 'modern';
   showPassLanes: boolean;
   /** Mode fantôme : affiche en transparence les positions de l'étape N-1
    *  pendant l'édition de l'étape N. Visualise les vecteurs de déplacement. */
