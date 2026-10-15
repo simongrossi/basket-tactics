@@ -364,6 +364,25 @@ export function useAppState() {
     });
   }, [setStateWithHistory]);
 
+  /** Applique une formation de départ prédéfinie (5-Out, Horns, 4-Out 1-In, etc.) sur l'étape active. */
+  const applyStartingFormation = useCallback((formationId: string) => {
+    setStateWithHistory((s) => {
+      const step = s.steps[s.activeStep];
+      if (!step) return s;
+      const { STARTING_FORMATIONS } = require('@/lib/data/startingFormations');
+      const form = STARTING_FORMATIONS.find((f: { id: string }) => f.id === formationId);
+      if (!form) return s;
+      let next = s;
+      (Object.keys(form.positions) as AttackerId[]).forEach((id) => {
+        if (form.positions[id]) {
+          next = moveAttackerInState(next, id, form.positions[id]!);
+        }
+      });
+      return next;
+    });
+  }, [setStateWithHistory]);
+
+
   // -- Annotations --
   const addAnnotation = useCallback((annotation: Annotation, options?: AddAnnotationOptions) => {
     setStateWithHistory((s) => annotationTx.addAnnotation(s, annotation, options));
@@ -872,6 +891,7 @@ export function useAppState() {
     loadTemplate,
     clearDefenseOverride,
     autoPositionOffBall,
+    applyStartingFormation,
     applyDefensePreset,
     addScriptedAction,
     updateScriptedAction,

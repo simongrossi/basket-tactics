@@ -10,6 +10,7 @@ interface OffenseToolsPanelProps {
   onSetTool: (t: Tool) => void;
   actionTimingAnchor?: ActionTimingAnchor;
   onSetActionTimingAnchor?: (mode: ActionTimingAnchor) => void;
+  onApplyStartingFormation?: (formationId: string) => void;
 }
 
 const shortcutKeyFor = (tool: Tool): string =>
@@ -151,6 +152,41 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
           </label>
         )}
       </Section>
+
+      {props.onApplyStartingFormation && (
+        <Section theme="offense" label="Formations de départ (1 clic)" open>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+            {[
+              { id: '5-out', label: '5-Out Open' },
+              { id: '4-out-1-in', label: '4-Out 1-In' },
+              { id: 'horns', label: 'Horns (Cornes)' },
+              { id: '1-4-high', label: '1-4 High' },
+              { id: '1-4-low', label: '1-4 Low' },
+            ].map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className="bt-touch"
+                onClick={() => props.onApplyStartingFormation?.(f.id)}
+                title={`Disposer instantanément l'équipe en ${f.label}`}
+                style={{
+                  fontSize: 11,
+                  padding: '6px 4px',
+                  borderRadius: 5,
+                  border: `1px solid ${idleBorder}`,
+                  background: idleBg,
+                  color: idleText,
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  textAlign: 'center',
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </Section>
+      )}
     </Panel>
   );
 }

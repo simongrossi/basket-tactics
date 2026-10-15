@@ -570,6 +570,7 @@ export default function Page() {
                     onSetTool={app.setTool}
                     actionTimingAnchor={actionTimingAnchor}
                     onSetActionTimingAnchor={handleSetActionTimingAnchor}
+                    onApplyStartingFormation={app.applyStartingFormation}
                   />
                 ),
               },
