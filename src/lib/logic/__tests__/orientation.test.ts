@@ -4,6 +4,7 @@ import {
   computeAttackerOrientation,
   lerpAngleDeg,
 } from '../orientation';
+import { rotateTowardsAngle } from '../angles';
 import { HEAD_TURN_LIMIT_DEG, FIELD_OF_VIEW_HALF_ANGLE_DEG } from '../vision';
 
 const HOOP = { x: 300, y: 75 };
@@ -446,5 +447,28 @@ describe('C.6 — bodyOrientationMode "open-weighted"', () => {
     // Tolérance 20° pour tenir compte du blendAngleDeg (interpolation
     // angulaire qui n'est pas un lerp scalaire).
     expect(Math.abs(angleDiff(r.bodyOrientation, 180))).toBeLessThan(20);
+  });
+});
+
+describe('rotateTowardsAngle — limite de vitesse angulaire réaliste', () => {
+  it('tourne progressivement vers la cible par tranche maxDeltaDeg', () => {
+    // 0° vers 90° avec un budget de 30°
+    const step1 = rotateTowardsAngle(0, 90, 30);
+    expect(step1).toBe(30);
+    const step2 = rotateTowardsAngle(step1, 90, 30);
+    expect(step2).toBe(60);
+    const step3 = rotateTowardsAngle(step2, 90, 30);
+    expect(step3).toBe(90);
+  });
+
+  it('prend le chemin angulaire le plus court', () => {
+    // 10° vers 350° : plus court par l'arrière (-20°), pas par l'avant (+340°)
+    const step = rotateTowardsAngle(10, 350, 15);
+    expect(step).toBe(355); // 10 - 15 = -5 = 355°
+  });
+
+  it('atteint directement la cible si l’écart est inférieur au budget', () => {
+    const res = rotateTowardsAngle(100, 105, 10);
+    expect(res).toBe(105);
   });
 });

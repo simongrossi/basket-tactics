@@ -29,3 +29,15 @@ export function angleFromNorth(from: { x: number; y: number }, to: { x: number; 
   return (Math.atan2(dx, -dy) * 180) / Math.PI;
 }
 
+/**
+ * Pivote progressivement `current` vers `target` avec une limite de vitesse
+ * angulaire `maxDeltaDeg` (chemin le plus court).
+ * Préserve la continuité et évite les sauts instantanés de rotation.
+ */
+export function rotateTowardsAngle(current: number, target: number, maxDeltaDeg: number): number {
+  const diff = angleDiff(target, current);
+  if (Math.abs(diff) <= maxDeltaDeg) {
+    return normalizeAngle(target);
+  }
+  return normalizeAngle(current + Math.sign(diff) * maxDeltaDeg);
+}

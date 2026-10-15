@@ -57,7 +57,7 @@ import {
   restToRestProgress,
 } from './kinematicLimits';
 import { attackerTrajectoryAt, type MovementType } from '../playbackTrajectory';
-import { lerpAngleDeg } from '../angles';
+import { lerpAngleDeg, rotateTowardsAngle } from '../angles';
 import { buildStep0DetectionPositions } from '../step0Detection';
 import { closeoutEasing } from '../closeoutEasing';
 import { blitzReleaseEasing } from '../blitzReleaseEasing';
@@ -1380,6 +1380,20 @@ export function resolveFrameAt(
     ? buildDefenderMotionMemory(defPos, options.prevFrame, defenderIds, motionResult?.stats, motionDtSec, defenderTargets, defenderMaxStep)
     : undefined;
   recomputeDefenseFrameOrientations(state, off, carrier, defPos, defA);
+
+  // Turn-rate limiter : si options.prevFrame existe (lecture playback continue),
+  // on bride la vitesse angulaire max du buste et du regard pour éviter les flips
+  // instantanés irréalistes (ex: 540°/s max).
+  if (options.prevFrame?.defPos && motionDtSec > 0) {
+    const maxAngularStepDeg = Math.max(15, 540 * motionDtSec);
+    defenderIds.forEach((id) => {
+      const curSlot = defPos[id];
+      const prevSlot = options.prevFrame?.defPos?.[id];
+      if (!curSlot || !prevSlot) return;
+      curSlot.orientation = rotateTowardsAngle(prevSlot.orientation, curSlot.orientation, maxAngularStepDeg);
+      curSlot.gazeOrientation = rotateTowardsAngle(prevSlot.gazeOrientation, curSlot.gazeOrientation, maxAngularStepDeg);
+    });
+  }
   profiler?.lap('rateLimiter');
 
   // ---------------------------------------------------------------------
