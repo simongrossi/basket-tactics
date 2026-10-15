@@ -677,6 +677,7 @@ export default function Page() {
       >
         {!presentMode && !isPlayerMode && !manualBusy && (
           <Sidebar
+            dark={themeMode === 'dark'}
             startActions={<CoachStartActions
               collapsed={sidebar.collapsed}
               onCreate={() => {

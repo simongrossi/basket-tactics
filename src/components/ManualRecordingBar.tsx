@@ -10,7 +10,16 @@ interface Props {
   onReplay: () => void;
 }
 
-const buttonStyle = { background: '#29313e', color: '#f8fafc', border: '1px solid #64748b', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 12 };
+const buttonStyle = {
+  background: 'var(--bt-btn-bg)',
+  color: 'var(--bt-btn-text)',
+  border: '1px solid var(--bt-btn-border)',
+  borderRadius: 6,
+  padding: '6px 10px',
+  cursor: 'pointer',
+  fontSize: 12,
+  fontWeight: 500,
+};
 const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
 
 export function ManualRecordingBar({ recorder, preparing, onStart, onCopy, onReplay }: Props) {
@@ -36,7 +45,22 @@ export function ManualRecordingBar({ recorder, preparing, onStart, onCopy, onRep
   }
 
   return (
-    <div role="group" aria-label="Enregistrement des gestes" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, padding: '6px 8px', background: '#20252e', border: `1px solid ${recording ? '#f87171' : '#384152'}`, borderRadius: 8, color: '#e5e7eb', fontSize: 12 }}>
+    <div
+      role="group"
+      aria-label="Enregistrement des gestes"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 8,
+        padding: '6px 8px',
+        background: 'var(--bt-surface)',
+        border: `1px solid ${recording ? '#f87171' : 'var(--bt-border)'}`,
+        borderRadius: 8,
+        color: 'var(--bt-text)',
+        fontSize: 12,
+      }}
+    >
       {recording ? <>
         <strong style={{ color: '#fca5a5' }}>● Enregistrement · {seconds(recorder.elapsedMs)}</strong>
         <span>Déplacez les joueurs. La réaction de la défense est enregistrée aussi.</span>

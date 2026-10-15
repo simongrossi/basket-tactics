@@ -530,13 +530,14 @@ export function CourtView(props: CourtViewProps) {
       }}
       style={{
         position: 'relative',
-        background: '#262a32',
+        background: 'var(--bt-court-bg)',
         borderRadius: 12,
         padding: 6,
         minHeight: 0,
         minWidth: 0,
         overflow: 'hidden',
-        border: '1px solid #2a2d35',
+        border: '1px solid var(--bt-court-border)',
+        transition: 'background-color 0.2s ease, border-color 0.2s ease',
       }}
     >
       <svg
@@ -1317,23 +1318,23 @@ export function CourtView(props: CourtViewProps) {
           display: 'flex',
           flexDirection: 'column',
           gap: 4,
-          background: 'rgba(30, 41, 59, 0.45)',
+          background: 'var(--bt-zoom-bg)',
           backdropFilter: 'blur(6px)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          border: '1px solid var(--bt-court-border)',
           padding: 3,
           borderRadius: 6,
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
           zIndex: 40,
-          opacity: 0.5,
+          opacity: 0.7,
           transition: 'opacity 0.2s ease, background 0.2s ease',
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.opacity = '1';
-          e.currentTarget.style.background = 'rgba(30, 41, 59, 0.9)';
+          e.currentTarget.style.background = 'var(--bt-zoom-hover)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.opacity = '0.5';
-          e.currentTarget.style.background = 'rgba(30, 41, 59, 0.45)';
+          e.currentTarget.style.opacity = '0.7';
+          e.currentTarget.style.background = 'var(--bt-zoom-bg)';
         }}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
@@ -1345,8 +1346,8 @@ export function CourtView(props: CourtViewProps) {
             height: 28,
             borderRadius: 4,
             border: 'none',
-            background: 'rgba(255, 255, 255, 0.1)',
-            color: '#fff',
+            background: 'var(--bt-zoom-btn)',
+            color: 'var(--bt-zoom-text)',
             fontSize: 14,
             fontWeight: 'bold',
             cursor: 'pointer',
@@ -1368,8 +1369,8 @@ export function CourtView(props: CourtViewProps) {
             height: 28,
             borderRadius: 4,
             border: 'none',
-            background: 'rgba(255, 255, 255, 0.1)',
-            color: '#fff',
+            background: 'var(--bt-zoom-btn)',
+            color: 'var(--bt-zoom-text)',
             fontSize: 14,
             fontWeight: 'bold',
             cursor: 'pointer',
@@ -1391,8 +1392,8 @@ export function CourtView(props: CourtViewProps) {
             height: 24,
             borderRadius: 4,
             border: 'none',
-            background: 'rgba(255, 255, 255, 0.1)',
-            color: '#cbd5e1',
+            background: 'var(--bt-zoom-btn)',
+            color: 'var(--bt-zoom-text)',
             fontSize: 8,
             fontWeight: 'bold',
             cursor: 'pointer',

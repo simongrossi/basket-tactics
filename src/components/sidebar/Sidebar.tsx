@@ -35,6 +35,7 @@ type Props = {
   /** Slot pour le menu ⋯ d'actions globales (cf. SidebarOverflowMenu). */
   overflowMenu?: ReactNode;
   startActions?: ReactNode;
+  dark?: boolean;
 };
 
 export function Sidebar({
@@ -46,6 +47,7 @@ export function Sidebar({
   toolGroups,
   overflowMenu,
   startActions,
+  dark = true,
 }: Props) {
   const hasTools = toolGroups != null && toolGroups.length > 0;
   const showTools = activeView === 'court' && hasTools;
@@ -197,6 +199,41 @@ export function Sidebar({
         html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid #fecaca"] {
           border-color: ${SIDEBAR.border} !important;
         }
+
+        /* En mode clair : neutraliser les boutons hardcodés avec fond sombre #262a32 / #20252e */
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: #262a32"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background:#262a32"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: rgb(38, 42, 50)"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: #29313e"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: #20252e"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: #1f242c"] {
+          background: #ffffff !important;
+          color: #1e293b !important;
+          border-color: #cbd5e1 !important;
+        }
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: rgba(252, 165, 165, 0.10)"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: rgba(252, 165, 165, 0.1)"] {
+          background: #fef2f2 !important;
+          color: #dc2626 !important;
+          border-color: #fca5a5 !important;
+        }
+        html[data-theme="light"] .sidebar-tools-scope button[style*="color: #cbd5e1"],
+        html[data-theme="light"] .sidebar-tools-scope button[style*="color:#cbd5e1"] {
+          color: #334155 !important;
+        }
+        html[data-theme="light"] .sidebar-tools-scope button[style*="color: #86efac"] {
+          color: #15803d !important;
+        }
+        html[data-theme="light"] .sidebar-tools-scope button[style*="color: #fca5a5"] {
+          color: #b91c1c !important;
+        }
+        html[data-theme="light"] .sidebar-tools-scope button[style*="color: #c4b5fd"] {
+          color: #6d28d9 !important;
+        }
+        html[data-theme="light"] .sidebar-tools-scope button[style*="color: #fbbf24"],
+        html[data-theme="light"] .sidebar-tools-scope button[style*="color: #fcd34d"] {
+          color: #b45309 !important;
+        }
       `}} />
       <div
         style={{
@@ -262,7 +299,7 @@ export function Sidebar({
                 Outils
               </div>
             )}
-            <SidebarThemeProvider dark>
+            <SidebarThemeProvider dark={dark}>
               {toolGroups!.map((g) => (
                 <SidebarToolGroup
                   key={g.id}
