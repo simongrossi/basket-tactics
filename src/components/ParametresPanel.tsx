@@ -601,6 +601,12 @@ export function ParametresPanel({
               sample="court" color={UI.accent}
               onChange={(v) => onPatch({ fullCourt: v })}
             />
+            <ToggleCard
+              checked={!!state.showSpacingSpots}
+              label="repères spacing"
+              sample="ring-dashed" color={UI.accent}
+              onChange={(v) => onPatch({ showSpacingSpots: v })}
+            />
             <InterfaceGate min="analysis"><ToggleCard
               checked={!!state.showFieldOfViewAll}
               label="champ vision (tous)"

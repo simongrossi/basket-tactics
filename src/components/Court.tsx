@@ -27,6 +27,8 @@ interface CourtBackgroundProps {
   attackingDirection?: 'up' | 'down';
   /** Thème visuel du parquet : 'classic' (bois FIBA), 'blackboard' (tactique sombre), 'modern' (parquet bi-ton). */
   courtTheme?: 'classic' | 'blackboard' | 'modern';
+  /** Affiche les repères de spacing (Corners, Wings, Slots, Dunker spots, Nail) */
+  showSpacingSpots?: boolean;
 }
 
 const THEME_STYLES = {
@@ -170,13 +172,31 @@ function HalfCourt({ theme = 'classic' }: { theme?: 'classic' | 'blackboard' | '
   );
 }
 
-export function CourtBackground({ fullCourt = false, attackingDirection = 'up', courtTheme = 'classic' }: CourtBackgroundProps) {
+export function CourtBackground({
+  fullCourt = false,
+  attackingDirection = 'up',
+  courtTheme = 'classic',
+  showSpacingSpots = false,
+}: CourtBackgroundProps) {
   const totalHeight = fullCourt ? FULL_COURT_HEIGHT : COURT.height;
   const totalInner = fullCourt ? FULL_COURT_HEIGHT - 40 : 520;
   const attackedHoop = attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP;
   const protectedHoop = attackingDirection === 'down' ? HOOP : HOOP_OPPOSITE;
   const colors = THEME_STYLES[courtTheme] ?? THEME_STYLES.classic;
   const lineColor = colors.line;
+
+  // Spots tactiques de spacing fondamentaux (Corners, Wings, Slots, Dunker spots, Nail)
+  const SPACING_SPOTS = [
+    { name: 'Corner G', x: 53, y: 80 },
+    { name: 'Corner D', x: 547, y: 80 },
+    { name: 'Wing G', x: 75, y: 220 },
+    { name: 'Wing D', x: 525, y: 220 },
+    { name: 'Slot G', x: 195, y: 380 },
+    { name: 'Slot D', x: 405, y: 380 },
+    { name: 'Dunker G', x: 195, y: 90 },
+    { name: 'Dunker D', x: 405, y: 90 },
+    { name: 'Nail', x: 300, y: 235 },
+  ];
 
   return (
     <>
@@ -195,6 +215,37 @@ export function CourtBackground({ fullCourt = false, attackingDirection = 'up', 
       />
 
       <HalfCourt theme={courtTheme} />
+
+      {/* Repères discrets de spacing (spots tactiques du coach) */}
+      {showSpacingSpots && (
+        <g pointerEvents="none" opacity={0.65}>
+          {SPACING_SPOTS.map((s) => (
+            <g key={s.name}>
+              <circle
+                cx={s.x}
+                cy={s.y}
+                r={8}
+                fill="none"
+                stroke={lineColor}
+                strokeWidth={1.5}
+                strokeDasharray="2 2"
+              />
+              <circle cx={s.x} cy={s.y} r={2} fill={lineColor} />
+              <text
+                x={s.x}
+                y={s.y + 16}
+                textAnchor="middle"
+                fontSize={9}
+                fontWeight={600}
+                fill={lineColor}
+                opacity={0.8}
+              >
+                {s.name}
+              </text>
+            </g>
+          ))}
+        </g>
+      )}
 
       {fullCourt ? (
         <>

@@ -547,6 +547,7 @@ export function CourtView(props: CourtViewProps) {
             fullCourt={state.fullCourt}
             attackingDirection={state.attackingDirection}
             courtTheme={state.courtTheme}
+            showSpacingSpots={state.showSpacingSpots}
           />
 
         {/* #2 — Feedback visuel snap-to-grid pendant le drag avec Ctrl/Cmd. */}

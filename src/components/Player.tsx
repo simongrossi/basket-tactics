@@ -906,22 +906,30 @@ export function Ball({ pos, carrierPos, inFlight }: BallProps) {
   const hasZ = p.z !== undefined;
   const z = p.z ?? 0;
 
-  // Calcul dynamique de l'ombre portée
+  // Calcul dynamique de l'ombre portée au sol
   const showShadow = inFlight || (hasZ && z < 25);
   let shadowY = p.y + 14;
+  let shadowX = p.x;
   let shadowRx = 6;
-  let shadowRy = 1.5;
-  let shadowOpacity = 0.25;
+  let shadowRy = 2;
+  let shadowOpacity = 0.28;
 
-  if (hasZ) {
-    shadowY = inFlight ? p.y + z + 14 : p.y + 1.64 * z - 11;
+  if (hasZ && inFlight) {
+    // En vol : l'ombre reste au sol (y + z), s'élargit et devient plus douce quand le ballon monte
+    shadowY = p.y + z + 12;
+    shadowX = p.x - z * 0.15; // légère projection lumineuse angulaire
+    shadowRx = Math.max(3, 7 * (1 + z / 80));
+    shadowRy = Math.max(1, 2.5 * (1 + z / 80));
+    shadowOpacity = Math.max(0.08, 0.35 * Math.exp(-z / 60));
+  } else if (hasZ) {
+    shadowY = p.y + 1.64 * z - 11;
     shadowRx = Math.max(2, 6 * (1 - z / 140));
     shadowRy = Math.max(0.5, 1.5 * (1 - z / 140));
     shadowOpacity = Math.max(0.04, 0.3 * (1 - z / 120));
   }
 
-  // Rayon du ballon avec effet 3D subtil
-  const r = hasZ ? 7.5 + Math.min(3, z * 0.02) : (inFlight ? 8.5 : 7.5);
+  // Rayon du ballon avec effet 3D subtil (grossit quand il monte vers la caméra)
+  const r = hasZ ? 7.5 + Math.min(3.5, z * 0.035) : (inFlight ? 8.5 : 7.5);
   const seamColor = '#1F140A';
 
   return (
@@ -929,7 +937,7 @@ export function Ball({ pos, carrierPos, inFlight }: BallProps) {
       {/* Ombre portée au sol */}
       {showShadow && (
         <ellipse
-          cx={p.x}
+          cx={shadowX}
           cy={shadowY}
           rx={shadowRx}
           ry={shadowRy}
