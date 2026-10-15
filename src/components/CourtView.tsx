@@ -71,7 +71,7 @@ import { ThreatOverlay } from './overlays/ThreatOverlay';
 import { BestActionOverlay } from './overlays/BestActionOverlay';
 import { GhostLayer } from './overlays/GhostLayer';
 import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offense';
-import { getActiveDefenderIds, isActiveAttacker } from '@/lib/logic/players';
+import { getActiveDefenderIds, isActiveAttacker, activeBallCarrier } from '@/lib/logic/players';
 import { useCourtFrame, type DisplayedCourtFrame } from '@/hooks/useCourtFrame';
 import type { DefenderPursuit } from '@/hooks/useAppState';
 import { useCourtPointerHandlers } from '@/hooks/useCourtPointerHandlers';

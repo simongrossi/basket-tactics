@@ -1384,7 +1384,7 @@ export function resolveFrameAt(
   // Turn-rate limiter : si options.prevFrame existe (lecture playback continue),
   // on bride la vitesse angulaire max du buste et du regard pour éviter les flips
   // instantanés irréalistes (ex: 540°/s max).
-  if (options.prevFrame?.defPos && motionDtSec > 0) {
+  if (options.prevFrame?.defPos && motionDtSec != null && motionDtSec > 0) {
     const maxAngularStepDeg = Math.max(15, 540 * motionDtSec);
     defenderIds.forEach((id) => {
       const curSlot = defPos[id];

@@ -1125,7 +1125,7 @@ function DarkActionButton({
 
 type LegendSample =
   | 'line' | 'line-thick' | 'dashed' | 'dashed-thin'
-  | 'circle' | 'circle-dashed' | 'ring' | 'ring-solid' | 'dot' | 'num' | 'gradient' | 'court';
+  | 'circle' | 'circle-dashed' | 'ring' | 'ring-dashed' | 'ring-solid' | 'dot' | 'num' | 'gradient' | 'court';
 
 function ToggleCard({
   checked,
@@ -1239,6 +1239,9 @@ function Swatch({ color, sample }: { color: string; sample: LegendSample }) {
         <circle cx="13" cy="8" r="4.5" fill="none" stroke={color} strokeWidth="1.6" strokeDasharray="2 2" />
       )}
       {sample === 'ring' && <circle cx="13" cy="8" r="4.5" fill="none" stroke={color} strokeWidth="2.4" />}
+      {sample === 'ring-dashed' && (
+        <circle cx="13" cy="8" r="4.5" fill="none" stroke={color} strokeWidth="2" strokeDasharray="2.5 2" />
+      )}
       {sample === 'ring-solid' && (
         <>
           <circle cx="10" cy="8" r="4.5" fill="none" stroke={color} strokeWidth="2.2" />
