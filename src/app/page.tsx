@@ -517,11 +517,11 @@ export default function Page() {
               : app.saveStatus === 'pending' || lib.saveStatus === 'pending'
                 ? 'Sauvegarde en cours…' : 'Brouillon conservé sur cet appareil'}
           </span>
-          {currentSavedSystem && <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }}
+          {currentSavedSystem && <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid var(--bt-btn-border)', borderRadius: 6, background: 'var(--bt-btn-bg)', color: 'var(--bt-btn-text)', cursor: 'pointer' }}
             onClick={() => lib.updateSystem(currentSavedSystem.id, app.state)}>
             Enregistrer dans « {currentSavedSystem.name} »
           </button>}
-          <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }} onClick={() => sidebar.setActiveView('library')}>
+          <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid var(--bt-btn-border)', borderRadius: 6, background: 'var(--bt-btn-bg)', color: 'var(--bt-btn-text)', cursor: 'pointer' }} onClick={() => sidebar.setActiveView('library')}>
             Enregistrer une copie…
           </button>
           <button
@@ -544,7 +544,7 @@ export default function Page() {
             <Share2 size={13} />
             <span>Partager</span>
           </button>
-          {app.hasRecovery && <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid #64748b', borderRadius: 6, background: '#29313e', color: '#f8fafc', cursor: 'pointer' }} onClick={app.restoreDraft}>
+          {app.hasRecovery && <button className="bt-touch" style={{ padding: '4px 12px', border: '1px solid var(--bt-btn-border)', borderRadius: 6, background: 'var(--bt-btn-bg)', color: 'var(--bt-btn-text)', cursor: 'pointer' }} onClick={app.restoreDraft}>
             Retrouver le brouillon précédent
           </button>}
           {app.state.showCoachDiagnostics !== false && !isPlayerMode && !manualBusy && (
@@ -776,7 +776,7 @@ export default function Page() {
         <div className={`center-col${sidebar.activeView !== 'court' ? ' center-col-view inline-view-scope' : sessionRun ? ' has-session-run' : ''}`}
           style={{ gridTemplateRows: sidebar.activeView === 'court' ? `${sessionRun && runSession && !manualBusy ? 'auto ' : ''}${!isPlayerMode && !presentMode ? 'auto ' : ''}minmax(0, 1fr)${!manualBusy ? ' auto auto' : ''}` : undefined }}>
           {sidebar.activeView === 'playbook' && (
-            <SidebarThemeProvider dark>
+            <SidebarThemeProvider dark={themeMode === 'dark'}>
               <PlaybookView
                 state={app.state}
                 mode="inline"
@@ -785,7 +785,7 @@ export default function Page() {
             </SidebarThemeProvider>
           )}
           {sidebar.activeView === 'library' && (
-            <SidebarThemeProvider dark>
+            <SidebarThemeProvider dark={themeMode === 'dark'}>
               <LibraryModal
                 key={libraryEntry.key}
                 initialSection={libraryEntry.section}
@@ -814,14 +814,14 @@ export default function Page() {
             </SidebarThemeProvider>
           )}
           {sidebar.activeView === 'settings' && (
-            <SidebarThemeProvider dark>
+            <SidebarThemeProvider dark={themeMode === 'dark'}>
               <div
                 style={{
                   width: '100%',
                   height: '100%',
                   overflow: 'auto',
                   padding: '24px 28px',
-                  background: '#171a20',
+                  background: 'var(--bt-bg)',
                   borderRadius: 8,
                   boxSizing: 'border-box',
                 }}
@@ -840,7 +840,7 @@ export default function Page() {
             </SidebarThemeProvider>
           )}
           {sidebar.activeView === 'sessions' && (
-            <SidebarThemeProvider dark>
+            <SidebarThemeProvider dark={themeMode === 'dark'}>
               <SessionsView
                 library={lib.library}
                 onCreateSession={lib.createSession}
@@ -857,7 +857,7 @@ export default function Page() {
             </SidebarThemeProvider>
           )}
           {sidebar.activeView === 'scenariograph' && (
-            <SidebarThemeProvider dark>
+            <SidebarThemeProvider dark={themeMode === 'dark'}>
               <ScenarioGraphView
                 state={app.state}
                 activeStep={app.state.activeStep}
@@ -1552,8 +1552,8 @@ function HistoryButton({ label, shortcut, disabled, onClick, icon }: {
       style={{
         padding: '4px 10px',
         display: 'inline-flex', alignItems: 'center', gap: 6,
-        border: '1px solid #64748b', borderRadius: 6,
-        background: '#29313e', color: '#f8fafc',
+        border: '1px solid var(--bt-btn-border)', borderRadius: 6,
+        background: 'var(--bt-btn-bg)', color: 'var(--bt-btn-text)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.45 : 1,
       }}

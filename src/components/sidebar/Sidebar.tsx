@@ -66,20 +66,17 @@ export function Sidebar({
       {/*
         Override scoped pour les éléments stylés inline dans les panneaux
         Offense/Defense/Steps/Scenario qui n'utilisent pas SidebarThemeContext.
-        On cible les inputs et selects (déterministe via type), et les
-        patterns de fond blanc inline pour les boutons / éléments génériques.
-        Les couleurs d'accent (orange/bleu) restent intactes — elles
-        fonctionnent sur dark.
+        En dark mode, on neutralise les fonds blancs / textes sombres.
       */}
       <style dangerouslySetInnerHTML={{ __html: `
         .sidebar-tools-scope .sidebar-tool-section:last-of-type {
           border-bottom: none !important;
         }
-        .sidebar-tools-scope select,
-        .sidebar-tools-scope input[type="text"],
-        .sidebar-tools-scope input[type="number"],
-        .sidebar-tools-scope input[type="search"],
-        .sidebar-tools-scope textarea {
+        html:not([data-theme="light"]) .sidebar-tools-scope select,
+        html:not([data-theme="light"]) .sidebar-tools-scope input[type="text"],
+        html:not([data-theme="light"]) .sidebar-tools-scope input[type="number"],
+        html:not([data-theme="light"]) .sidebar-tools-scope input[type="search"],
+        html:not([data-theme="light"]) .sidebar-tools-scope textarea {
           background: ${SIDEBAR.bgActive} !important;
           color: ${SIDEBAR.text} !important;
           border-color: ${SIDEBAR.border} !important;
@@ -95,122 +92,109 @@ export function Sidebar({
           max-width: 100%;
           box-sizing: border-box;
         }
-        .sidebar-tools-scope input::placeholder,
-        .sidebar-tools-scope textarea::placeholder {
+        html:not([data-theme="light"]) .sidebar-tools-scope input::placeholder,
+        html:not([data-theme="light"]) .sidebar-tools-scope textarea::placeholder {
           color: ${SIDEBAR.textDim} !important;
         }
-        .sidebar-tools-scope [style*="rgb(255, 255, 255)"]:not(input):not(select):not(textarea),
-        .sidebar-tools-scope [style*="rgb(255,255,255)"]:not(input):not(select):not(textarea),
-        .sidebar-tools-scope [style*="background: #fff"]:not(input):not(select):not(textarea),
-        .sidebar-tools-scope [style*="background:#fff"]:not(input):not(select):not(textarea),
-        .sidebar-tools-scope [style*="background: #FFFFFF"]:not(input):not(select):not(textarea),
-        .sidebar-tools-scope [style*="background: #ffffff"]:not(input):not(select):not(textarea) {
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="rgb(255, 255, 255)"]:not(input):not(select):not(textarea),
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="rgb(255,255,255)"]:not(input):not(select):not(textarea),
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: #fff"]:not(input):not(select):not(textarea),
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background:#fff"]:not(input):not(select):not(textarea),
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: #FFFFFF"]:not(input):not(select):not(textarea),
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: #ffffff"]:not(input):not(select):not(textarea) {
           background: ${SIDEBAR.bgActive} !important;
         }
-        /* Cream backgrounds des thèmes accent (offense orange #fff7ed,
-           defense bleu #eff6ff) — survivent à l'override blanc puisqu'ils
-           NE sont pas blancs. Doivent passer aussi en dark pour cohérence
-           (active step row dans StepsPanel, panneau pinned dans Defense). */
-        .sidebar-tools-scope [style*="background: rgb(255, 247, 237)"],
-        .sidebar-tools-scope [style*="background: #fff7ed"],
-        .sidebar-tools-scope [style*="background: rgb(255, 237, 213)"],
-        .sidebar-tools-scope [style*="background: #ffedd5"],
-        .sidebar-tools-scope [style*="background: rgb(239, 246, 255)"],
-        .sidebar-tools-scope [style*="background: #eff6ff"],
-        .sidebar-tools-scope [style*="background: rgb(219, 234, 254)"],
-        .sidebar-tools-scope [style*="background: #dbeafe"] {
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: rgb(255, 247, 237)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: #fff7ed"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: rgb(255, 237, 213)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: #ffedd5"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: rgb(239, 246, 255)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: #eff6ff"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: rgb(219, 234, 254)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: #dbeafe"] {
           background: ${SIDEBAR.bgActive} !important;
         }
-        .sidebar-tools-scope [style*="color: rgb(71, 85, 105)"],
-        .sidebar-tools-scope [style*="color: #475569"],
-        .sidebar-tools-scope [style*="color:#475569"],
-        .sidebar-tools-scope [style*="color: rgb(100, 116, 139)"],
-        .sidebar-tools-scope [style*="color: #64748b"],
-        .sidebar-tools-scope [style*="color: rgb(51, 65, 85)"],
-        .sidebar-tools-scope [style*="color: #334155"],
-        .sidebar-tools-scope [style*="color: rgb(31, 41, 55)"],
-        .sidebar-tools-scope [style*="color: #1f2937"] {
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: rgb(71, 85, 105)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: #475569"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color:#475569"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: rgb(100, 116, 139)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: #64748b"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: rgb(51, 65, 85)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: #334155"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: rgb(31, 41, 55)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: #1f2937"] {
           color: ${SIDEBAR.text} !important;
         }
-        .sidebar-tools-scope [style*="color: rgb(120, 113, 108)"],
-        .sidebar-tools-scope [style*="color: #78716c"],
-        .sidebar-tools-scope [style*="color: rgb(148, 163, 184)"],
-        .sidebar-tools-scope [style*="color: #94a3b8"] {
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: rgb(120, 113, 108)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: #78716c"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: rgb(148, 163, 184)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: #94a3b8"] {
           color: ${SIDEBAR.textMuted} !important;
         }
-        /* Bordures pâles fréquentes */
-        .sidebar-tools-scope [style*="border: 1px solid rgb(203, 213, 225)"],
-        .sidebar-tools-scope [style*="border: 1px solid #cbd5e1"],
-        .sidebar-tools-scope [style*="border: 1px solid rgb(226, 232, 240)"],
-        .sidebar-tools-scope [style*="border: 1px solid #e2e8f0"] {
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid rgb(203, 213, 225)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid #cbd5e1"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid rgb(226, 232, 240)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid #e2e8f0"] {
           border-color: ${SIDEBAR.border} !important;
         }
-        /* Backgrounds gris pâles utilisés pour les zones repliées / passives */
-        .sidebar-tools-scope [style*="background: rgb(241, 245, 249)"],
-        .sidebar-tools-scope [style*="background: #f1f5f9"],
-        .sidebar-tools-scope [style*="background: rgb(248, 250, 252)"],
-        .sidebar-tools-scope [style*="background: #f8fafc"],
-        .sidebar-tools-scope [style*="background: rgb(250, 250, 249)"],
-        .sidebar-tools-scope [style*="background: #fafaf9"] {
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: rgb(241, 245, 249)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: #f1f5f9"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: rgb(248, 250, 252)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: #f8fafc"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: rgb(250, 250, 249)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="background: #fafaf9"] {
           background: ${SIDEBAR.bg} !important;
         }
-        /* Bordures saturées (rouge BLOB, ambre LF, vert LF+, violet jump ball)
-           → neutralisées en bordure dark subtile. Évite l'effet "alarmes
-           colorées" sur fond sombre. */
-        .sidebar-tools-scope [style*="border: 1px solid rgb(220, 38, 38)"],
-        .sidebar-tools-scope [style*="border: 1px solid #dc2626"],
-        .sidebar-tools-scope [style*="border: 1px solid rgb(245, 158, 11)"],
-        .sidebar-tools-scope [style*="border: 1px solid #f59e0b"],
-        .sidebar-tools-scope [style*="border: 1px solid rgb(16, 185, 129)"],
-        .sidebar-tools-scope [style*="border: 1px solid #10b981"],
-        .sidebar-tools-scope [style*="border: 1px solid rgb(124, 58, 237)"],
-        .sidebar-tools-scope [style*="border: 1px solid #7c3aed"],
-        .sidebar-tools-scope [style*="border: 1px solid rgb(216, 90, 48)"],
-        .sidebar-tools-scope [style*="border: 1px solid #D85A30"],
-        .sidebar-tools-scope [style*="border: 1px solid rgb(55, 138, 221)"],
-        .sidebar-tools-scope [style*="border: 1px solid #378ADD"] {
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid rgb(220, 38, 38)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid #dc2626"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid rgb(245, 158, 11)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid #f59e0b"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid rgb(16, 185, 129)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid #10b981"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid rgb(124, 58, 237)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid #7c3aed"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid rgb(216, 90, 48)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid #D85A30"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid rgb(55, 138, 221)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid #378ADD"] {
           border-color: ${SIDEBAR.border} !important;
         }
-        /* Textes saturés (rouge/ambre/vert/violet/orange/bleu foncés) →
-           versions claires de la même teinte pour rester lisibles sur dark
-           ET préserver le sens. */
-        .sidebar-tools-scope [style*="color: rgb(127, 29, 29)"],
-        .sidebar-tools-scope [style*="color: #7f1d1d"],
-        .sidebar-tools-scope [style*="color: rgb(153, 27, 27)"],
-        .sidebar-tools-scope [style*="color: #991b1b"] {
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: rgb(127, 29, 29)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: #7f1d1d"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: rgb(153, 27, 27)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: #991b1b"] {
           color: #fca5a5 !important;
         }
-        .sidebar-tools-scope [style*="color: rgb(146, 64, 14)"],
-        .sidebar-tools-scope [style*="color: #92400e"],
-        .sidebar-tools-scope [style*="color: rgb(180, 83, 9)"],
-        .sidebar-tools-scope [style*="color: #b45309"] {
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: rgb(146, 64, 14)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: #92400e"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: rgb(180, 83, 9)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: #b45309"] {
           color: #fbbf24 !important;
         }
-        .sidebar-tools-scope [style*="color: rgb(6, 95, 70)"],
-        .sidebar-tools-scope [style*="color: #065f46"] {
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: rgb(6, 95, 70)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: #065f46"] {
           color: #6ee7b7 !important;
         }
-        .sidebar-tools-scope [style*="color: rgb(91, 33, 182)"],
-        .sidebar-tools-scope [style*="color: #5b21b6"] {
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: rgb(91, 33, 182)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: #5b21b6"] {
           color: #c4b5fd !important;
         }
-        .sidebar-tools-scope [style*="color: rgb(124, 45, 18)"],
-        .sidebar-tools-scope [style*="color: #7c2d12"] {
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: rgb(124, 45, 18)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: #7c2d12"] {
           color: #fdba74 !important;
         }
-        .sidebar-tools-scope [style*="color: rgb(30, 58, 138)"],
-        .sidebar-tools-scope [style*="color: #1e3a8a"],
-        .sidebar-tools-scope [style*="color: rgb(30, 64, 175)"],
-        .sidebar-tools-scope [style*="color: #1e40af"] {
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: rgb(30, 58, 138)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: #1e3a8a"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: rgb(30, 64, 175)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="color: #1e40af"] {
           color: #93c5fd !important;
         }
-        /* Bordures pastel chips (vert clair, ambre clair, rouge clair) */
-        .sidebar-tools-scope [style*="border: 1px solid rgb(167, 243, 208)"],
-        .sidebar-tools-scope [style*="border: 1px solid #a7f3d0"],
-        .sidebar-tools-scope [style*="border: 1px solid rgb(253, 230, 138)"],
-        .sidebar-tools-scope [style*="border: 1px solid #fde68a"],
-        .sidebar-tools-scope [style*="border: 1px solid rgb(254, 202, 202)"],
-        .sidebar-tools-scope [style*="border: 1px solid #fecaca"] {
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid rgb(167, 243, 208)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid #a7f3d0"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid rgb(253, 230, 138)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid #fde68a"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid rgb(254, 202, 202)"],
+        html:not([data-theme="light"]) .sidebar-tools-scope [style*="border: 1px solid #fecaca"] {
           border-color: ${SIDEBAR.border} !important;
         }
       `}} />

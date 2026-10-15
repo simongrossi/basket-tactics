@@ -6,16 +6,16 @@
 // et plus lisible. Aligné avec DARK_PANEL pour cohérence entre sidebar et
 // vues routées inline.
 export const SIDEBAR = {
-  bg: '#1a1d23',
-  bgHover: '#262a32',
-  bgActive: '#2f343d',
-  border: '#2a2d35',
-  borderSubtle: '#22252c',
-  text: '#f3f4f6',
-  textMuted: '#cbd5e1',
-  textDim: '#94a3b8',
-  accent: '#a78bfa',
-  accentBg: 'rgba(167, 139, 250, 0.14)',
+  bg: 'var(--bt-sidebar-bg, #1a1d23)',
+  bgHover: 'var(--bt-sidebar-hover, #262a32)',
+  bgActive: 'var(--bt-sidebar-active, #2f343d)',
+  border: 'var(--bt-sidebar-border, #2a2d35)',
+  borderSubtle: 'var(--bt-sidebar-border, #22252c)',
+  text: 'var(--bt-sidebar-text, #f3f4f6)',
+  textMuted: 'var(--bt-sidebar-muted, #cbd5e1)',
+  textDim: 'var(--bt-sidebar-dim, #94a3b8)',
+  accent: 'var(--bt-accent, #a78bfa)',
+  accentBg: 'var(--bt-sidebar-accent-bg, rgba(167, 139, 250, 0.14))',
   // Largeurs
   widthExpanded: 240,
   widthCollapsed: 56,

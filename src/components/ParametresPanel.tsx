@@ -19,19 +19,19 @@ interface ParametresPanelProps {
 }
 
 const UI = {
-  page: '#171a20',
-  panel: '#1e232c',
-  panelLift: '#232a35',
-  control: '#252c37',
-  controlHover: '#2d3542',
-  controlOff: '#171c24',
-  border: '#303846',
-  borderStrong: '#465264',
-  text: '#f3f4f6',
-  muted: '#cbd5e1',
-  dim: '#8f9aad',
-  accent: '#4ba3ff',
-  accentDeep: '#1d75d0',
+  page: 'var(--bt-bg, #171a20)',
+  panel: 'var(--bt-card-bg, #1e232c)',
+  panelLift: 'var(--bt-card-bg-lift, #232a35)',
+  control: 'var(--bt-control-bg, #252c37)',
+  controlHover: 'var(--bt-control-hover, #2d3542)',
+  controlOff: 'var(--bt-control-off, #171c24)',
+  border: 'var(--bt-border, #303846)',
+  borderStrong: 'var(--bt-border-strong, #465264)',
+  text: 'var(--bt-text, #f3f4f6)',
+  muted: 'var(--bt-text-muted, #cbd5e1)',
+  dim: 'var(--bt-text-dim, #8f9aad)',
+  accent: 'var(--bt-accent-strong, #4ba3ff)',
+  accentDeep: 'var(--bt-accent-deep, #1d75d0)',
   orange: '#fb923c',
   green: '#34d399',
   amber: '#fbbf24',
@@ -64,7 +64,7 @@ const groupStyle: CSSProperties = {
   background: `linear-gradient(180deg, ${UI.panelLift} 0%, ${UI.panel} 100%)`,
   border: `1px solid ${UI.border}`,
   borderRadius: 8,
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 26px rgba(0,0,0,0.12)',
+  boxShadow: 'var(--bt-panel-shadow, 0 10px 26px rgba(0,0,0,0.12))',
 };
 
 const groupTitleStyle: CSSProperties = {
@@ -105,7 +105,7 @@ const inputStyle: CSSProperties = {
   borderRadius: 7,
   background: UI.controlOff,
   color: UI.text,
-  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.25)',
+  boxShadow: 'var(--bt-input-shadow, inset 0 1px 2px rgba(0,0,0,0.25))',
 };
 
 /**
@@ -1007,7 +1007,7 @@ function SegmentButton({
         background: active
           ? `linear-gradient(180deg, rgba(75,163,255,0.22) 0%, rgba(29,117,208,0.16) 100%)`
           : UI.control,
-        color: active ? '#e8f3ff' : UI.muted,
+        color: active ? UI.text : UI.muted,
         cursor: 'pointer',
         fontSize: 13,
         fontWeight: 850,
@@ -1041,7 +1041,7 @@ function PlayerToggleButton({
         borderRadius: 8,
         border: `1px solid ${active ? 'rgba(248, 113, 113, 0.62)' : UI.border}`,
         background: active ? 'rgba(248, 113, 113, 0.16)' : UI.control,
-        color: active ? '#fecaca' : UI.muted,
+        color: active ? '#ef4444' : UI.muted,
         cursor: 'pointer',
         fontSize: 11,
         fontWeight: active ? 850 : 750,
@@ -1107,11 +1107,11 @@ function DarkActionButton({
         minHeight: 38,
         padding: '9px 12px',
         borderRadius: 8,
-        border: `1px solid ${disabled ? '#2d333d' : UI.borderStrong}`,
+        border: `1px solid ${disabled ? UI.border : UI.borderStrong}`,
         background: disabled
-          ? '#1b2027'
+          ? UI.controlOff
           : `linear-gradient(180deg, ${UI.controlHover} 0%, ${UI.control} 100%)`,
-        color: disabled ? '#697386' : UI.text,
+        color: disabled ? UI.dim : UI.text,
         cursor: disabled ? 'default' : 'pointer',
         textAlign: 'left',
         fontSize: 12,
@@ -1157,12 +1157,12 @@ function ToggleCard({
         borderRadius: 8,
         border: `1px solid ${checked ? color : UI.border}`,
         background: checked
-          ? `linear-gradient(135deg, ${color}24 0%, rgba(37,44,55,0.96) 58%, rgba(24,29,37,0.98) 100%)`
+          ? `color-mix(in srgb, ${color} 16%, ${UI.panel})`
           : UI.controlOff,
         color: checked ? UI.text : UI.muted,
         cursor: 'pointer',
         textAlign: 'left',
-        boxShadow: checked ? `inset 0 0 0 1px ${color}35, 0 8px 18px rgba(0,0,0,0.14)` : 'inset 0 1px 0 rgba(255,255,255,0.03)',
+        boxShadow: checked ? `inset 0 0 0 1px ${color}35, 0 8px 18px rgba(0,0,0,0.06)` : 'inset 0 1px 0 rgba(255,255,255,0.03)',
         transition: 'border-color 140ms ease, background 140ms ease, box-shadow 140ms ease, transform 140ms ease',
       }}
     >
@@ -1197,8 +1197,8 @@ function SwitchGlyph({ checked, accent }: { checked: boolean; accent: string }) 
         border: `1px solid ${checked ? accent : UI.borderStrong}`,
         background: checked
           ? `linear-gradient(180deg, ${accent} 0%, ${UI.accentDeep} 100%)`
-          : '#11161d',
-        boxShadow: checked ? `0 0 0 3px ${accent}18` : 'inset 0 1px 2px rgba(0,0,0,0.45)',
+          : UI.controlHover,
+        boxShadow: checked ? `0 0 0 3px ${accent}18` : 'inset 0 1px 2px rgba(0,0,0,0.2)',
         transition: 'background 140ms ease, border-color 140ms ease, box-shadow 140ms ease',
       }}
     >
