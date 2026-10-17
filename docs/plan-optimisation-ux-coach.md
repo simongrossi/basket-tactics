@@ -48,13 +48,13 @@
 
 ---
 
-### 💡 Idées restantes / Vague 3 potentielle (NON FAIT — À décider selon tes retours)
-- [ ] **P10 — Mini-guide visuel au premier lancement (Onboarding 30 secondes)**
-  - Ajouter une petite carte d'accueil non-bloquante (ou 3 bulles numérotées `1. Choisis un outil` → `2. Glisse sur un joueur` → `3. Clique sur + Étape`) pour un utilisateur qui ouvre l'application pour la toute première fois.
-- [ ] **P11 — Aperçu visuel (miniatures terrain) dans la Bibliothèque (`LibraryModal.tsx`)**
-  - Afficher une mini-vignette SVG de la position de départ sur chaque carte de système dans la Bibliothèque pour reconnaître un système d'un coup d'œil sans lire toute la description.
-- [ ] **P12 — Regroupement des boutons d'export/partage dans le Header**
-  - Sur les petits écrans (< 1100 px de large), regrouper `Partager`, `Capturer mouv.` et `Enregistrer sous…` dans un menu déroulant `Exporter / Partager ▾` pour éviter que le Header ne passe sur 2 lignes.
+### ✅ Vague 3 — Onboarding visuel, Miniatures Bibliothèque & Header compact (FAIT)
+- [x] **P10 — Guide visuel au premier lancement (`CoachDrawHint.tsx`)**
+  - Refonte en 3 cartes numérotées côte à côte (`① Choisir l'outil` → `② Tracer sur le terrain` → `③ Enchaîner`) qui disparaissent automatiquement dès le premier tracé.
+- [x] **P11 — Aperçu visuel (miniatures terrain) dans la Bibliothèque (`LibraryModal.tsx`)**
+  - Ajout d'un composant `CourtPreviewThumbnail` qui dessine en SVG la raquette, l'arc à 3 points, le placement initial des 5 joueurs et les premières flèches sur chaque carte de modèle et de système sauvegardé.
+- [x] **P12 — Regroupement des actions secondaires dans le Header (`page.tsx`)**
+  - Mise en avant des 3 actions clés (`📺 Présenter`, `💾 Sauvegarder / Enregistrer`, `Partager`) et regroupement de `📁 Enregistrer sous…`, `● Capturer mouvements (direct)`, `🎬 Exporter (Vidéo, GIF, PDF)…` et `📋 Coller un code de situation…` dans un menu déroulant propre **`Plus ▾`**.
 
 ---
 
@@ -71,6 +71,6 @@
 | **P7** | **Refonte bas du panneau Défense** | `DefensePanel.tsx` | ✅ Fait | Fin des 6 colonnes écrasées et du bloc épinglé géant |
 | **P8** | **Menus clic-droit joueurs progressifs** | `AttackerMenu.tsx`, `DefenderMenu.tsx`, `ToolBar.tsx` | ✅ Fait | Clic-droit plus court, réglages fins en tiroir |
 | **P9** | **Polissage Scénario & Paramètres** | `ScenarioPanel.tsx`, `ParametresPanel.tsx` | ✅ Fait | Noms d'actions traduits, fin du doublon de mode |
-| **P10** | **Onboarding 3 étapes premier contact** | `CoachDrawHint.tsx` / `page.tsx` | ⏳ À décider | Prise en main immédiate sans tutoriel externe |
-| **P11** | **Miniatures visuelles dans Bibliothèque** | `LibraryModal.tsx` | ⏳ À décider | Repérage visuel instantané des systèmes |
-| **P12** | **Menu compact Export/Partage Header** | `page.tsx` | ⏳ À décider | Header sur 1 seule ligne même sur petit écran |
+| **P10** | **Onboarding 3 étapes premier contact** | `CoachDrawHint.tsx` | ✅ Fait | Prise en main immédiate en 3 cartes visuelles |
+| **P11** | **Miniatures visuelles dans Bibliothèque** | `LibraryModal.tsx` | ✅ Fait | Repérage visuel instantané des systèmes |
+| **P12** | **Menu compact `Plus ▾` dans le Header** | `page.tsx` | ✅ Fait | Header sur 1 seule ligne même sur petit écran |

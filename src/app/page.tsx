@@ -596,32 +596,8 @@ export default function Page() {
             </div>
           )}
 
-          {/* Pôle Droite : Actions système, Présentation, Partage et Thème */}
+          {/* Pôle Droite : Actions système, Présentation, Partage et Menu Outils */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <button
-              type="button"
-              className="bt-touch"
-              style={{
-                height: 28,
-                padding: '0 9px',
-                border: '1px solid var(--bt-btn-border)',
-                borderRadius: 6,
-                background: 'var(--bt-btn-bg)',
-                color: 'var(--bt-btn-text)',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                fontSize: 11,
-                fontWeight: 500,
-                opacity: 0.9,
-              }}
-              onClick={startGestureRecording}
-              title="Capturer en direct les déplacements à la souris et la réaction défensive (jusqu'à 60 s)"
-            >
-              <span style={{ color: '#ef4444', fontSize: 10 }}>●</span>
-              <span>Capturer mouv.</span>
-            </button>
             <button
               type="button"
               className="bt-touch"
@@ -648,7 +624,8 @@ export default function Page() {
               <span>📺</span>
               <span>Présenter</span>
             </button>
-            {currentSavedSystem && (
+
+            {currentSavedSystem ? (
               <button
                 className="bt-touch"
                 style={{
@@ -669,27 +646,29 @@ export default function Page() {
               >
                 💾 Enregistrer
               </button>
+            ) : (
+              <button
+                className="bt-touch"
+                style={{
+                  height: 28,
+                  padding: '0 10px',
+                  border: '1px solid var(--bt-btn-border)',
+                  borderRadius: 6,
+                  background: 'var(--bt-btn-bg)',
+                  color: 'var(--bt-btn-text)',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  fontSize: 11,
+                  fontWeight: 600,
+                }}
+                onClick={() => sidebar.setActiveView('library')}
+                title="Enregistrer ce système dans la bibliothèque"
+              >
+                💾 Sauvegarder…
+              </button>
             )}
-            <button
-              className="bt-touch"
-              style={{
-                height: 28,
-                padding: '0 10px',
-                border: '1px solid var(--bt-btn-border)',
-                borderRadius: 6,
-                background: 'var(--bt-btn-bg)',
-                color: 'var(--bt-btn-text)',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                fontSize: 11,
-                fontWeight: currentSavedSystem ? 500 : 600,
-              }}
-              onClick={() => sidebar.setActiveView('library')}
-              title="Enregistrer ce système dans la bibliothèque"
-            >
-              {currentSavedSystem ? 'Enregistrer sous…' : '💾 Sauvegarder…'}
-            </button>
+
             <button
               className="bt-touch"
               style={{
@@ -712,6 +691,136 @@ export default function Page() {
               <Share2 size={13} />
               <span>Partager</span>
             </button>
+
+            <details className="bt-context-details" style={{ position: 'relative' }}>
+              <summary
+                className="bt-touch"
+                title="Plus d'actions (Capturer mouvements, Exporter vidéo/PDF, Enregistrer sous…)"
+                style={{
+                  height: 28,
+                  padding: '0 8px',
+                  border: '1px solid var(--bt-btn-border)',
+                  borderRadius: 6,
+                  background: 'var(--bt-btn-bg)',
+                  color: 'var(--bt-btn-text)',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  userSelect: 'none',
+                }}
+              >
+                <span>Plus ▾</span>
+              </summary>
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: 'calc(100% + 6px)',
+                  minWidth: 215,
+                  padding: 6,
+                  borderRadius: 8,
+                  background: 'var(--bt-surface)',
+                  border: '1px solid var(--bt-border)',
+                  boxShadow: '0 10px 28px rgba(0, 0, 0, 0.28)',
+                  zIndex: 200,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 3,
+                }}
+              >
+                {currentSavedSystem && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      (e.currentTarget.closest('details') as HTMLDetailsElement | null)?.removeAttribute('open');
+                      sidebar.setActiveView('library');
+                    }}
+                    style={{
+                      textAlign: 'left',
+                      padding: '6px 8px',
+                      borderRadius: 5,
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--bt-text)',
+                      fontSize: 11.5,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    📁 Enregistrer sous…
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    (e.currentTarget.closest('details') as HTMLDetailsElement | null)?.removeAttribute('open');
+                    startGestureRecording();
+                  }}
+                  style={{
+                    textAlign: 'left',
+                    padding: '6px 8px',
+                    borderRadius: 5,
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--bt-text)',
+                    fontSize: 11.5,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                  title="Capturer en direct les déplacements à la souris et la réaction défensive (jusqu'à 60 s)"
+                >
+                  <span style={{ color: '#ef4444', fontSize: 10 }}>●</span>
+                  <span>Capturer mouvements (direct)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    (e.currentTarget.closest('details') as HTMLDetailsElement | null)?.removeAttribute('open');
+                    setShowExportModal(true);
+                  }}
+                  style={{
+                    textAlign: 'left',
+                    padding: '6px 8px',
+                    borderRadius: 5,
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--bt-text)',
+                    fontSize: 11.5,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
+                >
+                  🎬 Exporter (Vidéo, GIF, PDF)…
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    (e.currentTarget.closest('details') as HTMLDetailsElement | null)?.removeAttribute('open');
+                    openSituationDialog('import');
+                  }}
+                  style={{
+                    textAlign: 'left',
+                    padding: '6px 8px',
+                    borderRadius: 5,
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--bt-text)',
+                    fontSize: 11.5,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
+                >
+                  📋 Coller un code de situation…
+                </button>
+              </div>
+            </details>
+
             <button
               type="button"
               className="bt-touch"

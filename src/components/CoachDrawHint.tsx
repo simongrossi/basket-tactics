@@ -40,23 +40,24 @@ export function CoachDrawHint({ visible }: { visible: boolean }) {
         left: '50%',
         // En haut, sous les boutons du terrain : le bas est occupé par le
         // porteur (O1) dans les placements de départ.
-        top: 58,
+        top: 52,
         transform: 'translateX(-50%)',
         zIndex: 15,
         pointerEvents: 'none',
-        maxWidth: 'min(420px, calc(100% - 120px))',
-        padding: '8px 14px',
-        borderRadius: 8,
-        background: 'rgba(15, 23, 42, 0.88)',
-        border: '1px solid #334155',
+        maxWidth: 'min(520px, calc(100% - 100px))',
+        padding: '10px 14px',
+        borderRadius: 10,
+        background: 'rgba(15, 23, 42, 0.90)',
+        backdropFilter: 'blur(8px)',
+        border: '1px solid rgba(251, 146, 60, 0.38)',
         color: '#f8fafc',
         fontSize: 12,
-        lineHeight: 1.45,
-        boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+        lineHeight: 1.4,
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <strong style={{ color: '#fdba74' }}>Dessiner le système</strong>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
+        <strong style={{ color: '#fdba74', fontSize: 12.5 }}>🏀 Créer ton système en 3 gestes</strong>
         <button
           type="button"
           className="bt-touch"
@@ -69,24 +70,33 @@ export function CoachDrawHint({ visible }: { visible: boolean }) {
             display: 'grid',
             placeItems: 'center',
             flexShrink: 0,
-            width: 28,
-            height: 28,
+            width: 24,
+            height: 24,
             padding: 0,
             border: '1px solid #475569',
-            borderRadius: 4,
+            borderRadius: 6,
             background: '#1e293b',
             color: '#f8fafc',
             cursor: 'pointer',
           }}
         >
-          <X size={16} aria-hidden="true" />
+          <X size={14} aria-hidden="true" />
         </button>
       </div>
-      <ol style={{ margin: '4px 0 0', paddingLeft: 18 }}>
-        <li>Choisis une action dans <b>Attaque</b> : Course, Passe, Dribble, Écran.</li>
-        <li>Glisse depuis un joueur jusqu’à sa destination.</li>
-        <li>Clique sur <b>+ Étape</b> (ou <b>+ étape</b>) pour dessiner la suite sans changer d’onglet.</li>
-      </ol>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6 }}>
+        <div style={{ padding: '6px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ color: '#fdba74', fontWeight: 800, fontSize: 11, marginBottom: 2 }}>① Choisir l'outil</div>
+          <div style={{ fontSize: 11, color: '#e2e8f0' }}>Clique sur <b>Passe</b>, <b>Course</b>, <b>Dribble</b> ou <b>Écran</b>.</div>
+        </div>
+        <div style={{ padding: '6px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ color: '#fdba74', fontWeight: 800, fontSize: 11, marginBottom: 2 }}>② Tracer sur le terrain</div>
+          <div style={{ fontSize: 11, color: '#e2e8f0' }}>Glisse depuis un joueur jusqu’à sa cible.</div>
+        </div>
+        <div style={{ padding: '6px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ color: '#fdba74', fontWeight: 800, fontSize: 11, marginBottom: 2 }}>③ Enchaîner</div>
+          <div style={{ fontSize: 11, color: '#e2e8f0' }}>Clique sur <b>+ étape</b> pour dessiner la suite.</div>
+        </div>
+      </div>
     </div>
   );
 }

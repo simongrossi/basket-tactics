@@ -152,7 +152,7 @@ export function ScenarioPanel(props: ScenarioPanelProps) {
   // boucle, et attaquants actifs pour la roue de rotation.
   const offActionsForLoop = props.scriptedActions
     .map((a, i) => ({ a, i }))
-    .filter((x) => x.a.kind === 'offensive');
+    .filter((x): x is { a: OffensiveScriptedAction; i: number } => x.a.kind === 'offensive');
   const loopActive = !!props.continuityLoop;
   const loop = props.continuityLoop;
   const rotation = loop?.rotation ?? attackerIds;

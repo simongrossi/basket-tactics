@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState, useMemo } from 'react';
 import { Search, X } from 'lucide-react';
 import { CLASSIC_TEMPLATES, LAB_TEMPLATES, type Template } from '@/lib/data/templates';
 import type { UserLibrary, SavedSystem, SavedFolder } from '@/lib/data/library';
+import type { Step, AttackerId } from '@/lib/types';
 import { collectTagCounts, normalizeTag } from '@/lib/data/library';
 import { COLORS } from './ui';
 
@@ -434,22 +435,26 @@ export function LibraryModal(props: LibraryModalProps) {
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{
-                            width: 26, height: 26, borderRadius: 6, background: c.accent,
-                            color: '#fff', display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', fontSize: 11, fontWeight: 700,
-                          }}>
-                            {t.steps.length}
-                          </div>
-                          <div style={{ fontWeight: 700, color: c.accentText, fontSize: 13 }}>
-                            {t.name}
+                          <CourtPreviewThumbnail step={t.steps[0]} />
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{
+                                padding: '1px 6px', borderRadius: 4, background: c.accent,
+                                color: '#fff', fontSize: 10, fontWeight: 700, flexShrink: 0,
+                              }}>
+                                {t.steps.length} ét.
+                              </span>
+                              <div style={{ fontWeight: 700, color: c.accentText, fontSize: 13 }}>
+                                {t.name}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: 10, color: '#94a3b8' }}>
+                              {(t.tags ?? []).map((tg) => `#${tg}`).join(' ')}
+                            </div>
                           </div>
                         </div>
                         <div style={{ fontSize: 11, color: '#57534e', lineHeight: 1.4 }}>
                           {t.description}
-                        </div>
-                        <div style={{ fontSize: 10, color: '#94a3b8' }}>
-                          {(t.tags ?? []).map((tg) => `#${tg}`).join(' ')}
                         </div>
                       </button>
                     ))}
@@ -529,22 +534,26 @@ export function LibraryModal(props: LibraryModalProps) {
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <div style={{
-                                width: 26, height: 26, borderRadius: 6, background: c.accent,
-                                color: '#fff', display: 'flex', alignItems: 'center',
-                                justifyContent: 'center', fontSize: 11, fontWeight: 700,
-                              }}>
-                                {t.steps.length}
-                              </div>
-                              <div style={{ fontWeight: 700, color: c.accentText, fontSize: 13 }}>
-                                {t.name}
+                              <CourtPreviewThumbnail step={t.steps[0]} />
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{
+                                    padding: '1px 6px', borderRadius: 4, background: c.accent,
+                                    color: '#fff', fontSize: 10, fontWeight: 700, flexShrink: 0,
+                                  }}>
+                                    {t.steps.length} ét.
+                                  </span>
+                                  <div style={{ fontWeight: 700, color: c.accentText, fontSize: 13 }}>
+                                    {t.name}
+                                  </div>
+                                </div>
+                                <div style={{ fontSize: 10, color: '#94a3b8' }}>
+                                  {(t.tags ?? []).map((tg) => `#${tg}`).join(' ')}
+                                </div>
                               </div>
                             </div>
                             <div style={{ fontSize: 11, color: '#57534e', lineHeight: 1.4 }}>
                               {t.description}
-                            </div>
-                            <div style={{ fontSize: 10, color: '#94a3b8' }}>
-                              {(t.tags ?? []).map((tg) => `#${tg}`).join(' ')}
                             </div>
                           </button>
                         ))}
@@ -598,17 +607,26 @@ export function LibraryModal(props: LibraryModalProps) {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div
-                          style={{
-                            width: 26, height: 26, borderRadius: 6, background: c.accent,
-                            color: '#fff', display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', fontSize: 11, fontWeight: 700,
-                          }}
-                        >
-                          {t.steps.length}
-                        </div>
-                        <div style={{ fontWeight: 700, color: c.accentText, fontSize: 13 }}>
-                          {t.name}
+                        <CourtPreviewThumbnail step={t.steps[0]} />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span
+                              style={{
+                                padding: '1px 6px', borderRadius: 4, background: c.accent,
+                                color: '#fff', fontSize: 10, fontWeight: 700, flexShrink: 0,
+                              }}
+                            >
+                              {t.steps.length} ét.
+                            </span>
+                            <div style={{ fontWeight: 700, color: c.accentText, fontSize: 13 }}>
+                              {t.name}
+                            </div>
+                          </div>
+                          {(t.tags ?? []).length > 0 && (
+                            <div style={{ fontSize: 10, color: '#94a3b8' }}>
+                              {(t.tags ?? []).map((tg) => `#${tg}`).join(' ')}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div style={{ fontSize: 11, color: '#57534e', lineHeight: 1.4 }}>
@@ -1053,6 +1071,63 @@ function NewFolderForm({
   );
 }
 
+function CourtPreviewThumbnail({ step }: { step?: Step }) {
+  if (!step) return null;
+  const attackerIds: AttackerId[] = ['O1', 'O2', 'O3', 'O4', 'O5'];
+  return (
+    <svg
+      viewBox="0 0 600 560"
+      width={54}
+      height={50}
+      aria-hidden="true"
+      style={{
+        flexShrink: 0,
+        borderRadius: 6,
+        background: '#1e2430',
+        border: '1px solid #cbd5e1',
+      }}
+    >
+      {/* Raquette */}
+      <rect x={209} y={0} width={182} height={215} fill="rgba(234, 88, 12, 0.14)" stroke="#64748b" strokeWidth={10} />
+      {/* Ligne à 3 points simplifiée */}
+      <path d="M 33 0 L 33 140 A 267 267 0 0 0 567 140 L 567 0" fill="none" stroke="#64748b" strokeWidth={10} />
+      {/* Panier */}
+      <circle cx={300} cy={75} r={16} fill="none" stroke="#f97316" strokeWidth={12} />
+      {/* Tracés de l'étape 1 */}
+      {(step.annotations ?? []).slice(0, 4).map((a, idx) => (
+        <line
+          key={idx}
+          x1={a.from.x}
+          y1={a.from.y}
+          x2={a.to.x}
+          y2={a.to.y}
+          stroke={a.type === 'pass' ? '#fbbf24' : '#f8fafc'}
+          strokeWidth={14}
+          strokeDasharray={a.type === 'pass' ? '24 18' : undefined}
+          opacity={0.75}
+        />
+      ))}
+      {/* Joueurs offensifs */}
+      {attackerIds.map((id) => {
+        const pos = step.off?.[id];
+        if (!pos) return null;
+        const isCarrier = step.ballCarrier === id;
+        return (
+          <circle
+            key={id}
+            cx={pos.x}
+            cy={pos.y}
+            r={isCarrier ? 28 : 22}
+            fill={isCarrier ? '#fb923c' : '#ea580c'}
+            stroke="#ffffff"
+            strokeWidth={isCarrier ? 10 : 6}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
 function SystemCard({
   system, accent, accentText, border, bg,
   onLoad, onRename, onDelete, onMove, otherFolders,
@@ -1091,17 +1166,25 @@ function SystemCard({
         title={`Charger ${system.name}`}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 116 }}>
-          <div
-            style={{
-              width: 26, height: 26, borderRadius: 6, background: accent,
-              color: '#fff', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: 11, fontWeight: 700,
-            }}
-          >
-            {system.steps.length}
-          </div>
-          <div style={{ fontWeight: 700, color: accentText, fontSize: 13 }}>
-            {system.name}
+          <CourtPreviewThumbnail step={system.steps[0]} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span
+                style={{
+                  padding: '1px 6px', borderRadius: 4, background: accent,
+                  color: '#fff', fontSize: 10, fontWeight: 700, flexShrink: 0,
+                }}
+              >
+                {system.steps.length} ét.
+              </span>
+              <div style={{ fontWeight: 700, color: accentText, fontSize: 13 }}>
+                {system.name}
+              </div>
+            </div>
+            <div style={{ fontSize: 10, color: '#78716c' }}>
+              {system.defenseSystem === 'zone' ? `zone ${system.zoneConfig.type.replace('zone-', '')}` : 'individuelle'} ·
+              {' '}sauvegardé {new Date(system.updatedAt).toLocaleDateString('fr-FR')}
+            </div>
           </div>
         </div>
         {system.description && (
@@ -1109,10 +1192,6 @@ function SystemCard({
             {system.description}
           </div>
         )}
-        <div style={{ fontSize: 10, color: '#78716c' }}>
-          {system.defenseSystem === 'zone' ? `zone ${system.zoneConfig.type.replace('zone-', '')}` : 'individuelle'} ·
-          {' '}sauvegardé {new Date(system.updatedAt).toLocaleDateString('fr-FR')}
-        </div>
       </button>
       {/* Éditeur de tags inline. Hors du <button> pour ne pas déclencher onLoad. */}
       <div onClick={(e) => e.stopPropagation()}>
