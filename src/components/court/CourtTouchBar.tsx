@@ -239,47 +239,97 @@ export function CourtTouchBar(props: CourtTouchBarProps) {
               </button>
             </>
           )}
+          {tool === 'move' && (
+            <>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 1,
+                  height: 18,
+                  background: 'var(--bt-touchbar-border)',
+                  margin: '0 3px',
+                }}
+              />
+              <ToggleButton
+                pressed={!!modifiers.multiSelect}
+                onClick={() => toggle('multiSelect')}
+                label="Sélection multiple"
+                hint="Touchez des défenseurs ou glissez sur le vide pour les entourer (équivalent Maj)"
+              />
+              <ToggleButton
+                pressed={!!modifiers.snap}
+                onClick={() => toggle('snap')}
+                label="Aimanter"
+                hint="Placer le joueur sur les repères du terrain (équivalent Ctrl/⌘)"
+              />
+            </>
+          )}
+          {FREEHAND_TOOLS.includes(tool) && (
+            <>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 1,
+                  height: 18,
+                  background: 'var(--bt-touchbar-border)',
+                  margin: '0 3px',
+                }}
+              />
+              <ToggleButton
+                pressed={!!modifiers.freehand}
+                onClick={() => toggle('freehand')}
+                label="Tracé libre"
+                hint="Dessiner la trajectoire du doigt : courbe, V-cut, L-cut (équivalent Maj)"
+              />
+            </>
+          )}
         </div>
       )}
 
-      {tool === 'move' && (
+      {/* Quand onSetTool n'est pas fourni ou en mode gesturesOnly, afficher les toggles dans leur conteneur */}
+      {(!onSetTool || gesturesOnly) && (
         <>
-          <ToggleButton
-            pressed={!!modifiers.multiSelect}
-            onClick={() => toggle('multiSelect')}
-            label="Sélection multiple"
-            hint="Touchez des défenseurs ou glissez sur le vide pour les entourer (équivalent Maj)"
-          />
-          <ToggleButton
-            pressed={!!modifiers.snap}
-            onClick={() => toggle('snap')}
-            label="Aimanter"
-            hint="Placer le joueur sur les repères du terrain (équivalent Ctrl/⌘)"
-          />
+          {tool === 'move' && (
+            <>
+              <ToggleButton
+                pressed={!!modifiers.multiSelect}
+                onClick={() => toggle('multiSelect')}
+                label="Sélection multiple"
+                hint="Touchez des défenseurs ou glissez sur le vide pour les entourer (équivalent Maj)"
+              />
+              <ToggleButton
+                pressed={!!modifiers.snap}
+                onClick={() => toggle('snap')}
+                label="Aimanter"
+                hint="Placer le joueur sur les repères du terrain (équivalent Ctrl/⌘)"
+              />
+            </>
+          )}
+          {FREEHAND_TOOLS.includes(tool) && (
+            <ToggleButton
+              pressed={!!modifiers.freehand}
+              onClick={() => toggle('freehand')}
+              label="Tracé libre"
+              hint="Dessiner la trajectoire du doigt : courbe, V-cut, L-cut (équivalent Maj)"
+            />
+          )}
         </>
       )}
-      {FREEHAND_TOOLS.includes(tool) && (
-        <ToggleButton
-          pressed={!!modifiers.freehand}
-          onClick={() => toggle('freehand')}
-          label="Tracé libre"
-          hint="Dessiner la trajectoire du doigt : courbe, V-cut, L-cut (équivalent Maj)"
-        />
-      )}
+
       {selectionCount > 0 && (
-        <button type="button" className="bt-touch bt-touchbar-btn" onClick={props.onClearSelection}>
+        <button type="button" className="bt-touchbar-btn" onClick={props.onClearSelection}>
           Désélectionner ({selectionCount})
         </button>
       )}
       {props.pendingAutoSourceId && (
-        <button type="button" className="bt-touch bt-touchbar-btn" onClick={props.onCancelPendingAuto}>
+        <button type="button" className="bt-touchbar-btn" onClick={props.onCancelPendingAuto}>
           Annuler la passe de {props.pendingAutoSourceId}
         </button>
       )}
       {props.annotationCount > 0 && (
         <button
           type="button"
-          className="bt-touch bt-touchbar-btn"
+          className="bt-touchbar-btn"
           onClick={props.onDeleteLastAnnotation}
           title="Supprimer la dernière flèche de l’étape (Suppr)"
         >
@@ -299,10 +349,25 @@ function ToggleButton({ pressed, onClick, label, hint }: {
   return (
     <button
       type="button"
-      className="bt-touch bt-touchbar-btn"
+      className="bt-touchbar-btn"
       aria-pressed={pressed}
       onClick={onClick}
       title={hint}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '4px 8px',
+        borderRadius: 6,
+        border: pressed ? '1px solid #fdba74' : '1px solid transparent',
+        background: pressed ? '#d85a30' : 'transparent',
+        color: pressed ? '#ffffff' : 'var(--bt-touchbar-text)',
+        fontSize: 11,
+        fontWeight: pressed ? 700 : 600,
+        cursor: 'pointer',
+        boxShadow: 'none',
+        transition: 'all 0.12s ease',
+      }}
     >
       {label}
     </button>

@@ -160,7 +160,7 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
           <div
             style={{
               marginTop: 8,
-              padding: '6px 6px',
+              padding: '5px 6px',
               borderRadius: 6,
               border: `1px solid ${idleBorder}`,
               background: idleBg,
@@ -168,19 +168,21 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: 4,
+              minWidth: 0,
             }}
           >
             {props.onPrevStep && props.onNextStep && (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 1, minWidth: 0, flex: '1 1 auto' }}>
                 <button
                   type="button"
                   onClick={props.onPrevStep}
                   disabled={!props.canPrevStep}
                   title="Étape précédente (←)"
                   aria-label="Étape précédente"
-                  className="bt-touch"
                   style={{
-                    padding: '4px',
+                    width: 24,
+                    height: 24,
+                    padding: 0,
                     borderRadius: 4,
                     border: 'none',
                     background: 'transparent',
@@ -189,12 +191,26 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
                     opacity: props.canPrevStep ? 1 : 0.35,
                     display: 'inline-flex',
                     alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
                   }}
                 >
                   <ChevronLeft size={14} />
                 </button>
-                <span style={{ fontSize: 10.5, fontWeight: 700, color: idleText, whiteSpace: 'nowrap', minWidth: 52, textAlign: 'center' }}>
-                  {props.stepIndicator || 'Étape 1'}
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    color: idleText,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    textAlign: 'center',
+                    flex: '1 1 auto',
+                    minWidth: 0,
+                  }}
+                >
+                  {props.stepIndicator === 'Placement de départ' ? 'Départ' : (props.stepIndicator || 'Étape 1')}
                 </span>
                 <button
                   type="button"
@@ -202,9 +218,10 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
                   disabled={!props.canNextStep}
                   title="Étape suivante (→)"
                   aria-label="Étape suivante"
-                  className="bt-touch"
                   style={{
-                    padding: '4px',
+                    width: 24,
+                    height: 24,
+                    padding: 0,
                     borderRadius: 4,
                     border: 'none',
                     background: 'transparent',
@@ -213,6 +230,8 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
                     opacity: props.canNextStep ? 1 : 0.35,
                     display: 'inline-flex',
                     alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
                   }}
                 >
                   <ChevronRight size={14} />
@@ -223,17 +242,16 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
               type="button"
               onClick={props.onAddStep}
               title="Valider cette étape et préparer l'étape suivante (+ étape)"
-              className="bt-touch"
               style={{
-                flex: 1,
+                flexShrink: 0,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 4,
-                padding: '6px 8px',
+                padding: '5px 9px',
                 borderRadius: 5,
                 border: '1px solid #ea580c',
-                background: '#ea580c',
+                background: 'linear-gradient(180deg, #f97316 0%, #ea580c 100%)',
                 color: '#fff',
                 fontSize: 11,
                 fontWeight: 700,
@@ -242,7 +260,7 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
               }}
             >
               <Plus size={13} strokeWidth={2.5} />
-              <span>Étape suiv.</span>
+              <span>Étape</span>
             </button>
           </div>
         )}
