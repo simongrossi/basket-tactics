@@ -525,7 +525,7 @@ export default function Page() {
                 <HistoryButton label="Rétablir" shortcut={SHORTCUT_LABELS.redo} disabled={!app.canRedo || isPlaying} onClick={app.redo} icon={<Redo2 size={15} aria-hidden />} />
               </div>
             )}
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
               <strong style={{ fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {currentSavedSystem?.name ?? 'Brouillon'}
               </strong>
@@ -554,12 +554,15 @@ export default function Page() {
               <button
                 className="bt-touch"
                 style={{
-                  padding: '3px 8px',
+                  height: 28,
+                  padding: '0 8px',
                   border: '1px solid var(--bt-btn-border)',
                   borderRadius: 6,
                   background: 'var(--bt-btn-bg)',
                   color: 'var(--bt-btn-text)',
                   cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
                   fontSize: 11,
                   flexShrink: 0,
                 }}
@@ -579,16 +582,43 @@ export default function Page() {
 
           {/* Pôle Droite : Actions système, Partage et Thème */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            <button
+              type="button"
+              className="bt-touch"
+              style={{
+                height: 28,
+                padding: '0 10px',
+                border: '1px solid var(--bt-btn-border)',
+                borderRadius: 6,
+                background: 'var(--bt-btn-bg)',
+                color: 'var(--bt-btn-text)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                fontSize: 11,
+                fontWeight: 500,
+                opacity: 0.9,
+              }}
+              onClick={startGestureRecording}
+              title="Enregistrer les déplacements de souris et la réaction défensive pour partager ou déboguer"
+            >
+              <span style={{ color: '#ef4444', fontSize: 10 }}>●</span>
+              <span>Enregistrer les gestes</span>
+            </button>
             {currentSavedSystem && (
               <button
                 className="bt-touch"
                 style={{
-                  padding: '4px 10px',
+                  height: 28,
+                  padding: '0 10px',
                   border: '1px solid var(--bt-btn-border)',
                   borderRadius: 6,
                   background: 'var(--bt-btn-bg)',
                   color: 'var(--bt-btn-text)',
                   cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
                   fontSize: 11,
                   fontWeight: 500,
                 }}
@@ -601,12 +631,15 @@ export default function Page() {
             <button
               className="bt-touch"
               style={{
-                padding: '4px 10px',
+                height: 28,
+                padding: '0 10px',
                 border: '1px solid var(--bt-btn-border)',
                 borderRadius: 6,
                 background: 'var(--bt-btn-bg)',
                 color: 'var(--bt-btn-text)',
                 cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
                 fontSize: 11,
               }}
               onClick={() => sidebar.setActiveView('library')}
@@ -617,7 +650,8 @@ export default function Page() {
             <button
               className="bt-touch"
               style={{
-                padding: '4px 10px',
+                height: 28,
+                padding: '0 10px',
                 border: '1px solid rgba(59, 130, 246, 0.45)',
                 borderRadius: 6,
                 background: 'linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%)',
@@ -642,8 +676,8 @@ export default function Page() {
               title={themeMode === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
               aria-label={themeMode === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
               style={{
-                width: 30,
-                height: 30,
+                width: 28,
+                height: 28,
                 padding: 0,
                 borderRadius: 6,
                 border: '1px solid var(--bt-border)',
@@ -1656,12 +1690,14 @@ function HistoryButton({ label, shortcut, disabled, onClick, icon }: {
       title={`${label} (${shortcut})`}
       className="bt-touch"
       style={{
-        padding: '4px 10px',
+        height: 28,
+        padding: '0 10px',
         display: 'inline-flex', alignItems: 'center', gap: 6,
         border: '1px solid var(--bt-btn-border)', borderRadius: 6,
         background: 'var(--bt-btn-bg)', color: 'var(--bt-btn-text)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.45 : 1,
+        fontSize: 12,
       }}
     >
       {icon}

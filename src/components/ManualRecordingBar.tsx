@@ -29,19 +29,7 @@ export function ManualRecordingBar({ recorder, preparing, onStart, onCopy, onRep
   const isActive = recording || previewing || !!recorder.snapshot;
 
   if (!isActive && !preparing) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '2px 4px' }}>
-        <button
-          type="button"
-          style={{ ...buttonStyle, padding: '3px 8px', fontSize: 11, opacity: 0.8 }}
-          onClick={onStart}
-          title="Enregistrer les déplacements de souris et la réaction défensive pour partager ou déboguer"
-          className="bt-touch"
-        >
-          ● Enregistrer les gestes
-        </button>
-      </div>
-    );
+    return null;
   }
 
   return (
