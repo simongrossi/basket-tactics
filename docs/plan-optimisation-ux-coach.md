@@ -1,110 +1,76 @@
 # Plan d'Optimisation UX / UI — Espace, Lisibilité & Parcours Coach Débutant
 
-> **Objectif** : Libérer un maximum d'espace pour le terrain et les outils tactiques, éliminer les allers-retours inutiles entre onglets, et purger le jargon technique pour rendre l'application immédiatement naturelle pour tout coach ou joueur débutant.
+> **Principe directeur** : **Ne supprimer aucune fonctionnalité**, mais optimiser l'espace, hiérarchiser les menus (tiroirs repliables, niveaux *Coach / Analyse / Dev*) et remplacer le jargon interne par un vocabulaire terrain immédiatement compréhensible.
 
 ---
 
-## Ordre de priorité & Logique d'exécution
+## Journal d'avancement (Fait vs À faire)
 
-L'ordre ci-dessous suit une logique **« Impact maximal × Friction minimale »** :
-1. **D'abord libérer l'espace physique** (P1) pour que les outils respirent sans scroller.
-2. **Ensuite fluidifier le geste principal du coach** (P2 : dessiner étape après étape sans changer d'onglet).
-3. **Puis nettoyer le bruit visuel et le jargon** dans les panneaux (P3 : Étapes, Attaque, Défense).
-4. **Enfin réorganiser les barres périphériques** (P4 : Header & Timeline/Stats) et **guider le premier contact** (P5).
-
----
-
-## Priorité 1 — Libérer l'espace vertical dans la Sidebar (Gain : ~220 px)
-
-### Pourquoi en premier ?
-Sur un écran standard (portable 13–15" ou tablette paysage, hauteur 768–900 px), le haut de la barre latérale gauche empile **3 blocs fixes** (`Niveau d'interface` + `Préparer mon entraînement` + `Vues` à 7 lignes) qui consomment plus de 360 px de hauteur. Il ne reste parfois que 250 px pour les outils (`Attaque`, `Défense`, `Étapes`, `Scénario`), obligeant le coach à scroller constamment.
-
-### Actions concrètes :
-1. **Compacter le sélecteur `Niveau d'interface`** (`src/components/interface/InterfaceLevel.tsx`) :
-   - Remplacer le gros bloc `<select>` + paragraphe descriptif de 3 lignes par un **sélecteur segmenté compact sur 1 ligne** (`Coach` | `Analyse` | `Dev`) avec infobulle au survol, ou le déplacer dans le `Header` / `SidebarFooter`.
-2. **Supprimer la redondance entre `Préparer mon entraînement` et `Vues`** (`src/components/sidebar/CoachStartActions.tsx` & `SidebarNav.tsx`) :
-   - Actuellement, *Partir d'un modèle* ouvre `Bibliothèque` et *Préparer une séance* ouvre `Séances`, qui sont déjà juste en dessous dans `Vues`.
-   - Fusionner en gardant un bouton d'action rapide **`+ Nouveau système`** en haut, suivi d'une **grille compacte 2 colonnes** pour les Vues (ex. `🏀 Terrain`, `📚 Bibliothèque`, `📋 Fiches`, `📅 Séances`, `🔀 Enchaînements`, `⚙️ Paramètres`).
-3. **Filtrer les vues avancées selon le niveau d'interface** :
-   - En mode **Coach** (défaut débutant), masquer ou regrouper `Enchaînements` (graphe de scénario) et `Match simulé` pour ne garder que l'essentiel : *Terrain, Bibliothèque, Fiches systèmes, Séances, Paramètres*.
-
----
-
-## Priorité 2 — Le flux « Zéro changement d'onglet » (Créer un système de A à Z)
-
-### Pourquoi en deuxième ?
-Aujourd'hui, le parcours d'un coach qui dessine un système est haché :
-1. Il est dans l'onglet **Attaque** → il choisit `Passe` ou `Course` et trace sur le terrain.
-2. Pour passer à l'étape 2, il doit quitter **Attaque**, cliquer sur l'onglet **Étapes**, scroller en bas, cliquer sur **`+ étape`**.
-3. Puis recliquer sur l'onglet **Attaque** pour choisir l'outil suivant.
-
-### Actions concrètes :
-1. **Ajouter un bouton `+ Étape suivante` directement dans la `Timeline`** (`src/components/Timeline.tsx`) :
-   - À côté des contrôles de lecture et des points d'étapes en bas du terrain, ajouter un bouton **`+ Étape`** (et navigation `◀ Étape N/M ▶`). C'est l'endroit le plus naturel visuellement puisque les étapes s'y affichent.
-2. **Ajouter une barre d'étape rapide en bas du panneau `Attaque`** (`src/components/OffenseToolsPanel.tsx`) :
-   - Afficher un mini-rappel de l'étape courante avec un bouton **`+ Ajouter l'étape suivante`** directement sous les outils de tracé (`Déplacer`, `Passe`, `Dribble`, `Course`, `Écran`).
-   - **Résultat** : Un débutant peut dessiner un système complet en 5 étapes sans **jamais** quitter l'onglet Attaque.
+### ✅ Vague 1 — Fondations Espace & Parcours principal (FAIT)
+- [x] **P1 — Libérer l'espace vertical dans la Sidebar (~220 px gagnés)**
+  - Sélecteur de mode compacté sur 1 ligne (`Mode : [🏀 Coach | 📊 Analyse | 🔧 Développement]`) dans `src/components/interface/InterfaceLevel.tsx`.
+  - Actions rapides d'accueil compactées sur 1 ligne (`+ Nouveau` | `Modèles`) dans `src/components/sidebar/CoachStartActions.tsx`.
+  - Navigation `Vues` passée en grille 2 colonnes compacte (`Terrain`, `Biblio`, `Fiches`, `Séances`, `Réglages`) et masquage des vues expertes (`Graphe`, `Match IA`) en mode *Coach* dans `src/components/sidebar/SidebarNav.tsx`.
+- [x] **P2 — Flux « Zéro changement d'onglet » (Créer un système de A à Z)**
+  - Ajout d'une barre d'étape directe (`◀ Étape X/Y ▶` + `+ Étape suiv.`) dans `src/components/OffenseToolsPanel.tsx`.
+  - Ajout d'un bouton `+ Étape` directement dans la `Timeline` (`src/components/Timeline.tsx`).
+- [x] **P3 — Désencombrer le panneau « Étapes » et éliminer le jargon**
+  - Regroupement des 12 boutons de remises en jeu et cas particuliers dans un tiroir repliable `⚙️ Situations spéciales & Remises` (fermé par défaut sauf si actif) dans `src/components/StepsPanel.tsx`.
+  - Conditionnement des horloges fines par étape (`durée`, `quart`, `24s rest.`) au mode `📊 Analyse`.
+  - Suppression des codes internes (`A11`, `A11 V3`).
+- [x] **P4 — Lisibilité des boutons « Attaque » et « Défense » (Haut de panneau)**
+  - Boutons d'outils offensifs agrandis (`38 px`) et capitalisés (`Déplacer`, `Passe`, `Dribble`, `Course`, `Écran`, `Note`), option `Ancrer à la fin de l'action` réservée au mode `📊 Analyse`.
+  - Remplacement de `🧠 ⚡ rapide` et `🧠 ▶ réel` par `↺ Replacer en auto` et `▶ Animer le retour` dans `src/components/DefensePanel.tsx`.
+  - Traduction des couvertures d'écrans en français clair avec terme anglais entre parenthèses.
+- [x] **P5 — Alléger le Header et agrandir le terrain**
+  - Barre `Stats` (`MetricsBar`) masquée par défaut à l'ouverture (activable en 1 clic via le bouton `Stats` de la timeline) dans `src/app/page.tsx`.
+  - Ajout du bouton `📺 Présenter` directement dans le Header.
+  - Renommage de `● Enregistrer les gestes` en `● Capturer mouv.` pour éviter toute confusion avec `💾 Enregistrer`.
 
 ---
 
-## Priorité 3 — Désencombrer le panneau « Étapes » et éliminer le jargon technique
-
-### Pourquoi en troisième ?
-Dans `src/components/StepsPanel.tsx`, dès qu'une étape est sélectionnée, l'utilisateur voit apparaître **plus de 12 boutons de cas particuliers** et des termes de développement interne (`TIR (A11)`, `BLOB`, `SLOB bas`, `SLOB haut`, `shot clk`, `quart (s)`, `durée (s)`). Pour un coach débutant, cela donne une impression de complexité intimidante.
-
-### Actions concrètes :
-1. **Ranger les situations spéciales dans un accordéon replié par défaut** :
-   - Créer une section dépliable **`⚙️ Situations spéciales & Remises en jeu`** (fermée par défaut, ou ouverte automatiquement uniquement si l'étape active utilise déjà une situation spéciale).
-   - Y loger : *Remise ligne de fond (BLOB)*, *Remise touche avant (SLOB)*, *Remise touche arrière*, *Lancer franc*, *Entre-deux*, *Possession adverse*.
-2. **Conditionner les horloges fines au mode `Analyse`** :
-   - Masquer en mode *Coach* les 3 champs numériques par étape (`durée (s)`, `quart (s)`, `shot clk`) ainsi que les options fines de feinte par pourcentage, ou les placer dans un petit tiroir `⏱ Timings de l'étape`.
-3. **Purger les codes de spécification interne et traduire clairement** :
-   - `TIR (A11)` → **`Fin de possession (Tir)`** (`✅ Tir réussi`, `❌ Tir manqué`, `🛑 Tir contré`).
-   - `étape rebond auto (A11)` → **`🏀 Générer le rebond automatique`**.
-   - `outlet → transition adverse (A11 V3)` → **`🔄 Relance & contre-attaque adverse`**.
-
----
-
-## Priorité 4 — Lisibilité des boutons « Attaque » et « Défense »
-
-### Pourquoi en quatrième ?
-Les boutons d'outils quotidiens manquent parfois de hiérarchie visuelle ou utilisent des raccourcis cryptiques.
-
-### Actions concrètes :
-1. **Panneau `Attaque` (`src/components/OffenseToolsPanel.tsx`)** :
-   - **Agrandir les 6 boutons d'outils** (`Déplacer`, `Passe`, `Dribble`, `Course`, `Écran`, `Note`) : majuscule initiale, hauteur accrue (`38–42 px`), icône plus lisible.
-   - **Clarifier la case `fin d'action`** : La remplacer par un sélecteur explicite ou la masquer en mode *Coach* (en mode Coach, un tracé part toujours du début de l'étape).
-2. **Panneau `Défense` (`src/components/DefensePanel.tsx`)** :
-   - **Remplacer `🧠 ⚡ rapide` et `🧠 ▶ réel`** : Lorsqu'un défenseur a été déplacé à la main, afficher un bandeau clair : **`X défenseur(s) placé(s) manuellement`** avec deux boutons compréhensibles : **`↺ Replacer (auto)`** et **`▶ Animer le retour`**.
-   - **Traduire le jargon des listes déroulantes** :
-     - `Rotation après un tag` → **`Après l'aide intérieure (tag)`**
-     - `scram switch` → **`Échange de soutien (scram switch)`**
-     - `peel-switch` → **`Changement retardé (peel switch)`**
+### ✅ Vague 2 — Terrain, Menus contextuels & Panneaux secondaires (FAIT)
+- [x] **P6 — Barre d'outils flottante directement sur le terrain**
+  - Intégration d'une pilule d'outils rapides (`Déplacer`, `Passe`, `Dribble`, `Course`, `Écran`, `Note`, `Combiner`) dans `src/components/court/CourtTouchBar.tsx`, accessible même quand la barre latérale est sur l'onglet `Défense`, `Étapes` ou repliée.
+- [x] **P7 — Alléger le bas de l'onglet « Défense » (`DefensePanel.tsx`)**
+  - Section `Appliquer à tous (5)` passée en accordéon replié par défaut (`defaultOpen={false}`) au lieu d'être épinglée ouverte.
+  - Traduction complète des termes bruts (`sag` → *Flotter en aide (sag)*, `stunt` → *Feinte d'aide (stunt)*, `deny-3q` → *Contester 3/4 (deny)*, `topside` → *Forcer milieu (topside)*).
+  - Refonte de `Règles par joueur` en cartes sur 2 lignes lisibles au lieu de 6 colonnes écrasées dans 220 px.
+  - Suppression du jargon `Sauvegardes utilisateur (rules + screens + B/C settings)` → `Mes profils défensifs`.
+  - Lien `🎬 Ouvrir le laboratoire de simulation →` conditionné au mode `📊 Analyse`.
+- [x] **P8 — Épurer les menus clic-droit sur les joueurs (`AttackerMenu.tsx`, `DefenderMenu.tsx`, `ToolBar.tsx`)**
+  - Dans `AttackerMenu.tsx` : regroupement de `Athlétisme`, `Orient. corps` et `Orient. regard` dans un tiroir repliable `⚙ Posture & athlétisme` (ouvert automatiquement si un réglage est actif), traduction des profils offensifs et libellés d'action clairs (`🏀 Donner le ballon`, `🧱 Forcer comme poseur d'écran`).
+  - Dans `ToolBar.tsx` : outils capitalisés et case `Ancrer à la fin de l'action` réservée au mode `📊 Analyse`.
+  - Dans `DefenderMenu.tsx` : traduction et harmonisation de tous les intitulés et listes déroulantes en français clair.
+- [x] **P9 — Polir « Scénario » (`ScenarioPanel.tsx`) et « Paramètres » (`ParametresPanel.tsx`)**
+  - Dans `ScenarioPanel.tsx` : affichage du vrai nom français des actions FIBA dans les listes déroulantes de continuité (au lieu de l'identifiant technique brut) et conditionnement de `🎲 Lecture probabiliste` au mode `📊 Analyse`.
+  - Dans `ParametresPanel.tsx` : suppression du doublon `<InterfaceLevelSelector />` en haut de page.
 
 ---
 
-## Priorité 5 — Alléger le Header et la zone sous le terrain (`page.tsx` & `MetricsBar.tsx`)
-
-### Pourquoi en cinquième ?
-La barre supérieure et le bas de l'écran mélangent des fonctions d'édition, d'analyse mathématique et de débogage.
-
-### Actions concrètes :
-1. **Gagner de la hauteur pour le terrain (masquer `Stats` par défaut en mode Coach)** :
-   - Actuellement, `showMetrics` est à `true` par défaut (`raquette`, `écart max`, `écart moy`, `en retard`, `passes`). Cela mange une ligne complète sous la timeline.
-   - En mode **Coach**, initialiser `showMetrics = false` (le bouton `📊 Stats` reste disponible à droite de la timeline pour l'afficher en 1 clic).
-2. **Réorganiser la barre supérieure (`Header`)** :
-   - **Clarifier la sauvegarde** : Regrouper `Enregistrer` et `Enregistrer sous…` proprement.
-   - **Promouvoir le mode Présentation / Joueur** : Ajouter un bouton visible **`📺 Présenter`** dans le header (au lieu de le cacher dans le menu `⋯` tout en bas à gauche de la sidebar).
-   - **Déplacer `● Enregistrer les gestes`** : Ce bouton sert surtout à capturer des mouvements à la souris (BTG1). Placé juste à côté de `Enregistrer` (le système), il induit les débutants en erreur (« Est-ce que ça enregistre mon système ? »). Le renommer **`🎥 Capturer mouvements`** ou le déplacer dans le menu d'outils / partage.
+### 💡 Idées restantes / Vague 3 potentielle (NON FAIT — À décider selon tes retours)
+- [ ] **P10 — Mini-guide visuel au premier lancement (Onboarding 30 secondes)**
+  - Ajouter une petite carte d'accueil non-bloquante (ou 3 bulles numérotées `1. Choisis un outil` → `2. Glisse sur un joueur` → `3. Clique sur + Étape`) pour un utilisateur qui ouvre l'application pour la toute première fois.
+- [ ] **P11 — Aperçu visuel (miniatures terrain) dans la Bibliothèque (`LibraryModal.tsx`)**
+  - Afficher une mini-vignette SVG de la position de départ sur chaque carte de système dans la Bibliothèque pour reconnaître un système d'un coup d'œil sans lire toute la description.
+- [ ] **P12 — Regroupement des boutons d'export/partage dans le Header**
+  - Sur les petits écrans (< 1100 px de large), regrouper `Partager`, `Capturer mouv.` et `Enregistrer sous…` dans un menu déroulant `Exporter / Partager ▾` pour éviter que le Header ne passe sur 2 lignes.
 
 ---
 
-## Tableau récapitulatif pour prise de décision
+## Tableau récapitulatif global
 
-| Priorité | Lot | Fichiers principaux | Effort | Gain UX / Espace |
+| Priorité | Lot | Fichiers principaux | Statut | Gain UX / Espace |
 | :--- | :--- | :--- | :---: | :--- |
-| **P1** | **Espace Sidebar & Navigation** | `Sidebar.tsx`, `SidebarNav.tsx`, `CoachStartActions.tsx`, `InterfaceLevel.tsx` | Moyen | **+220 px verticaux**, fin du doublon de menus |
-| **P2** | **Flux « Zéro changement d'onglet »** | `OffenseToolsPanel.tsx`, `Timeline.tsx`, `page.tsx` | Faible | Création d'étapes **2× plus rapide** pour débutants |
-| **P3** | **Nettoyage Panneau Étapes & Jargon** | `StepsPanel.tsx` | Faible | **-70% d'encombrement visuel** sur l'étape active |
-| **P4** | **Lisibilité boutons Attaque & Défense** | `OffenseToolsPanel.tsx`, `DefensePanel.tsx` | Faible | Compréhension immédiate sans lire les infobulles |
-| **P5** | **Header épuré & Terrain agrandi** | `page.tsx`, `MetricsBar.tsx`, `SidebarOverflowMenu.tsx` | Faible | Terrain plus grand, bouton **Présenter** accessible |
+| **P1** | **Espace Sidebar & Navigation** | `Sidebar.tsx`, `SidebarNav.tsx`, `CoachStartActions.tsx`, `InterfaceLevel.tsx` | ✅ Fait | **+220 px verticaux**, fin du doublon de menus |
+| **P2** | **Flux « Zéro changement d'onglet »** | `OffenseToolsPanel.tsx`, `Timeline.tsx`, `page.tsx` | ✅ Fait | Création d'étapes **2× plus rapide** |
+| **P3** | **Nettoyage Panneau Étapes & Jargon** | `StepsPanel.tsx` | ✅ Fait | **-70% d'encombrement visuel** sur l'étape active |
+| **P4** | **Lisibilité boutons Attaque & Défense** | `OffenseToolsPanel.tsx`, `DefensePanel.tsx` | ✅ Fait | Compréhension immédiate sans jargon |
+| **P5** | **Header épuré & Terrain agrandi** | `page.tsx`, `MetricsBar.tsx`, `SidebarOverflowMenu.tsx` | ✅ Fait | Terrain plus grand, bouton **Présenter** accessible |
+| **P6** | **Barre d'outils flottante sur le terrain** | `CourtTouchBar.tsx`, `CourtView.tsx` | ✅ Fait | Changement d'outil en 1 clic depuis n'importe quel onglet |
+| **P7** | **Refonte bas du panneau Défense** | `DefensePanel.tsx` | ✅ Fait | Fin des 6 colonnes écrasées et du bloc épinglé géant |
+| **P8** | **Menus clic-droit joueurs progressifs** | `AttackerMenu.tsx`, `DefenderMenu.tsx`, `ToolBar.tsx` | ✅ Fait | Clic-droit plus court, réglages fins en tiroir |
+| **P9** | **Polissage Scénario & Paramètres** | `ScenarioPanel.tsx`, `ParametresPanel.tsx` | ✅ Fait | Noms d'actions traduits, fin du doublon de mode |
+| **P10** | **Onboarding 3 étapes premier contact** | `CoachDrawHint.tsx` / `page.tsx` | ⏳ À décider | Prise en main immédiate sans tutoriel externe |
+| **P11** | **Miniatures visuelles dans Bibliothèque** | `LibraryModal.tsx` | ⏳ À décider | Repérage visuel instantané des systèmes |
+| **P12** | **Menu compact Export/Partage Header** | `page.tsx` | ⏳ À décider | Header sur 1 seule ligne même sur petit écran |

@@ -1283,6 +1283,8 @@ export function CourtView(props: CourtViewProps) {
       {!props.isPlaying && !props.isPlayerMode && !readOnly && (
         <CourtTouchBar
           tool={pointerState.tool}
+          onSetTool={props.onSetTool}
+          gesturesOnly={props.gesturesOnly}
           modifiers={stickyModifiers}
           onChangeModifiers={setStickyModifiers}
           annotationCount={props.gesturesOnly ? 0 : actionsOfStep(state.steps, state.activeStep).length}

@@ -463,8 +463,8 @@ export function DefenderMenu({
 
 
         <Row
-          label="profil"
-          title="Applique un profil de rôle (stopper, helper, denier). Seuls les champs définis par le profil sont écrasés ; les overrides individuels sont préservés."
+          label="Profil rôle"
+          title="Applique un profil de rôle (stopper, helper, denier). Seuls les champs définis par le profil sont écrasés ; les consignes individuelles sont préservées."
         >
           <select
             value=""
@@ -473,7 +473,7 @@ export function DefenderMenu({
               if (profile) onApplyProfile(profile);
             }}
           >
-            <option value="" disabled>choisir un profil</option>
+            <option value="" disabled>Choisir un profil…</option>
             {DEFENDER_PROFILES.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
@@ -481,7 +481,7 @@ export function DefenderMenu({
         </Row>
         {onSetSpeedProfile && (
           <Row
-            label="athlétisme"
+            label="Athlétisme"
             title="Vitesse et démarrage du défenseur : élite ×1,3, lent ×0,7. Joue sur sa vitesse maximale et, en lecture, sur son accélération au départ."
           >
             <select
@@ -492,18 +492,18 @@ export function DefenderMenu({
                 onSetSpeedProfile(v === 'standard' ? undefined : (v as 'elite' | 'lent'));
               }}
             >
-              <option value="elite">élite</option>
-              <option value="standard">standard</option>
-              <option value="lent">lent</option>
+              <option value="elite">Élite (rapide)</option>
+              <option value="standard">Standard</option>
+              <option value="lent">Lourd / lent</option>
             </select>
           </Row>
         )}
       </MenuSection>
 
-      <MenuSection title="Défense" icon={Shield}>
+      <MenuSection title="Défense directe & Aide" icon={Shield}>
         <Row
-          label="aide %"
-          title="Intensité de l'aide quand un trigger est actif. 0 = ne quitte jamais son homme. 100 = bouge complètement vers la cible d'aide."
+          label="Aide %"
+          title="Intensité de l'aide quand un déclencheur est actif. 0 = ne quitte jamais son homme. 100 = bouge complètement vers la cible d'aide."
         >
           <input
             type="range"
@@ -519,99 +519,99 @@ export function DefenderMenu({
           </span>
         </Row>
         <Row
-          label="mode aide"
+          label="Mode d'aide"
           title="Comportement d'aide individuel. Auto = standard selon le côté ballon. Toujours aider = aide à fond partout. Passif = garde son homme plus longtemps. Désactivé = n'aide jamais."
         >
           <select
             value={rule.helpMode ?? 'auto'}
             onChange={(e) => onUpdate({ helpMode: e.target.value as DefenderRule['helpMode'] })}
           >
-            <option value="auto">auto (selon côté ballon)</option>
-            <option value="aggressive">toujours aider</option>
-            <option value="passive">passif (garde son homme)</option>
-            <option value="disabled">désactivé (n'aide jamais)</option>
+            <option value="auto">Automatique (selon côté ballon)</option>
+            <option value="aggressive">Toujours aider (agressif)</option>
+            <option value="passive">Passif (garde son homme)</option>
+            <option value="disabled">Désactivé (n'aide jamais)</option>
           </select>
         </Row>
         <Row
-          label="priorité"
+          label="Priorité"
           title="Cible quand ce défenseur aide. Protéger raquette = vise le bloc bas le plus chargé. Rester sur homme = aide légère. Ligne de passe = se rabat entre son homme et le porteur."
         >
           <select
             value={rule.priority}
             onChange={(e) => onUpdate({ priority: e.target.value as DefenderRule['priority'] })}
           >
-            <option value="paint">protéger raquette</option>
-            <option value="man">rester sur homme</option>
-            <option value="passlane">ligne de passe</option>
+            <option value="paint">Protéger la raquette</option>
+            <option value="man">Rester sur son homme</option>
+            <option value="passlane">Couper la ligne de passe</option>
           </select>
         </Row>
         <Row
-          label="vs porteur"
-          title="Comportement quand ce défenseur défend le porteur : pression, bumper, contest, drop ou orientation vers un côté."
+          label="Sur porteur"
+          title="Comportement quand ce défenseur défend le porteur : pression, contenir, contestation, recul ou orientation vers un côté."
         >
           <select
             value={rule.vsCarrier}
             onChange={(e) => onUpdate({ vsCarrier: e.target.value as DefenderRule['vsCarrier'] })}
           >
-            <option value="coller">coller (pression)</option>
-            <option value="bumper">bumper (entre lui & panier)</option>
-            <option value="contester">contester (recul actif)</option>
-            <option value="reculer">reculer (drop)</option>
-            <option value="topside">topside (force milieu)</option>
-            <option value="baseline">baseline (force ligne de fond)</option>
-            <option value="main-faible">main faible (force sa main faible)</option>
+            <option value="coller">Coller (pression haute)</option>
+            <option value="bumper">Contenir (entre lui et panier)</option>
+            <option value="contester">Contester le tir (recul actif)</option>
+            <option value="reculer">Reculer (drop)</option>
+            <option value="topside">Forcer milieu (topside)</option>
+            <option value="baseline">Forcer ligne de fond (baseline)</option>
+            <option value="main-faible">Forcer main faible</option>
           </select>
         </Row>
       </MenuSection>
 
-      <CollapsibleMenuSection title="Hors ballon" icon={Users}>
+      <CollapsibleMenuSection title="Hors-ballon & Écrans" icon={Users}>
         <Row
-          label="stance"
-          title="Position quand ce défenseur ne défend pas le porteur : aide classique, derrière, stunt, denial ou fronting."
+          label="Posture"
+          title="Position quand ce défenseur ne défend pas le porteur : aide classique, derrière, feinte d'aide, contestation de passe ou devant."
         >
           <select
             value={rule.offBallStance ?? 'sag'}
             onChange={(e) => onUpdate({ offBallStance: e.target.value as DefenderRule['offBallStance'] })}
           >
-            <option value="sag">sag (aide raquette)</option>
-            <option value="behind">derrière (entre lui & panier)</option>
-            <option value="stunt">stunt (fake d'aide)</option>
-            <option value="deny-3q">3/4 deny (pied dans la passe)</option>
-            <option value="fronting">devant (full denial)</option>
+            <option value="sag">Flotter en aide (sag)</option>
+            <option value="behind">Derrière (entre lui et panier)</option>
+            <option value="stunt">Feinte d'aide (stunt)</option>
+            <option value="deny-3q">Contester 3/4 (deny)</option>
+            <option value="fronting">Passer devant (fronting)</option>
           </select>
         </Row>
         <Row
-          label="vs écran"
-          title="Réaction individuelle sur écran porteur. Auto utilise la règle globale ; les autres options forcent une couverture précise."
+          label="Sur écran"
+          title="Réaction individuelle sur écran porteur. Auto utilise la règle d'équipe ; les autres options forcent une couverture précise."
         >
           <select
             value={rule.screenNav ?? 'auto'}
             onChange={(e) => onUpdate({ screenNav: e.target.value as DefenderRule['screenNav'] })}
           >
-            <option value="auto">auto (règle globale)</option>
-            <option value="over">over (par-dessus)</option>
-            <option value="under">under (en dessous)</option>
-            <option value="switch">switch (échange)</option>
-            <option value="hedge">hedge (show & recover)</option>
-            <option value="drop">drop (recul)</option>
-            <option value="blitz">blitz (piège)</option>
-            <option value="ice">ice / no-middle</option>
-            <option value="weak">weak (under léger)</option>
-            <option value="peel-switch">peel switch</option>
+            <option value="auto">Auto (règle d'équipe)</option>
+            <option value="over">Passer au-dessus (over)</option>
+            <option value="under">Passer en dessous (under)</option>
+            <option value="switch">Changer (switch)</option>
+            <option value="hedge">Sortir fort (hedge)</option>
+            <option value="drop">Reculer (drop)</option>
+            <option value="blitz">Trapper à deux (blitz)</option>
+            <option value="ice">Forcer ligne de fond (ice)</option>
+            <option value="weak">Forcer main faible (weak)</option>
+            <option value="peel-switch">Changement retardé (peel switch)</option>
           </select>
         </Row>
         <OverrideSliderRow
-          label="distance"
+          label="Distance (px)"
           min={15}
           max={150}
           step={5}
           value={rule.distance}
           onChange={(v) => onUpdate({ distance: v })}
           onReset={() => onUpdate({ distance: undefined })}
-          title="Distance individuelle défenseur ↔ son homme (px). 15 = hard deny (~0.4 m), 40 = standard, 100 = sag, 150 = deep help (~4 m). Clampée à PLAYER_MIN_CLEARANCE_PX côté moteur."
+          title="Distance individuelle défenseur ↔ son homme (px). 15 = très serré (~0,4 m), 40 = standard, 100 = flottement, 150 = aide profonde (~4 m)."
         />
         <OverrideSliderRow
-          label="closeout ×"
+          label="Closeout ×"
           min={1}
           max={2}
           step={0.1}
@@ -621,28 +621,28 @@ export function DefenderMenu({
           title="Multiplicateur de vitesse quand le ballon arrive sur son homme. 1 = pas de boost, 2 = très agressif."
         />
         <OverrideSliderRow
-          label="denial"
+          label="Contestation"
           min={0}
           max={1}
           step={0.05}
           value={rule.denyAggressiveness}
           onChange={(v) => onUpdate({ denyAggressiveness: v })}
           onReset={() => onUpdate({ denyAggressiveness: undefined })}
-          title="Force du marquage en avant sur la ligne de passe. 0 = ignore, 1 = full denial assumé."
+          title="Force du marquage en avant sur la ligne de passe. 0 = ignore, 1 = contestation totale."
         />
         <OverrideSliderRow
-          label="hedge agr."
+          label="Sortie hedge"
           min={0}
           max={100}
           step={5}
           value={rule.hedgeAggression}
           onChange={(v) => onUpdate({ hedgeAggression: v })}
           onReset={() => onUpdate({ hedgeAggression: undefined })}
-          title="Agressivité du show (hedge) de CE défenseur (0-100). Override le réglage global. Pertinent quand screenRule = hedge. 0 = soft (reste bas), 100 = hard (sort fort sur le porteur)."
+          title="Agressivité de la sortie (hedge) de CE défenseur (0-100). 0 = reste bas, 100 = sort très haut sur le porteur."
         />
         <Row
-          label="ancre weak-side"
-          title="Force CE défenseur comme ancre weak-side (protection raquette côté faible), au lieu de la désignation auto. Nécessite l'option 'ancre weak-side' activée dans le panneau défense."
+          label="Ancre côté aide"
+          title="Force CE défenseur comme protecteur de cercle côté faible, au lieu de la désignation automatique."
         >
           <input
             type="checkbox"

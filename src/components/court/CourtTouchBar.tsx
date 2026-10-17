@@ -6,9 +6,13 @@
 
 import type { AttackerId, DefenderId, Tool } from '@/lib/types';
 import type { StickyModifiers } from '@/hooks/useCourtPointerHandlers';
+import { Move, SendHorizontal, Waves, Route, PanelTop, StickyNote, Sparkles } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 interface CourtTouchBarProps {
   tool: Tool;
+  onSetTool?: (t: Tool) => void;
+  gesturesOnly?: boolean;
   modifiers: StickyModifiers;
   onChangeModifiers: (next: StickyModifiers) => void;
   /** Nombre de flèches de l'étape affichée (0 = bouton masqué). */
@@ -24,8 +28,17 @@ interface CourtTouchBarProps {
 
 const FREEHAND_TOOLS: Tool[] = ['dribble', 'cut', 'screen'];
 
+const QUICK_TOOLS: { value: Tool; label: string; shortKey: string; Icon: LucideIcon }[] = [
+  { value: 'move', label: 'Déplacer', shortKey: '1', Icon: Move },
+  { value: 'pass', label: 'Passe', shortKey: '2', Icon: SendHorizontal },
+  { value: 'dribble', label: 'Dribble', shortKey: '3', Icon: Waves },
+  { value: 'cut', label: 'Course', shortKey: '4', Icon: Route },
+  { value: 'screen', label: 'Écran', shortKey: '5', Icon: PanelTop },
+  { value: 'text', label: 'Note', shortKey: '6', Icon: StickyNote },
+];
+
 export function CourtTouchBar(props: CourtTouchBarProps) {
-  const { tool, modifiers, onChangeModifiers } = props;
+  const { tool, onSetTool, gesturesOnly, modifiers, onChangeModifiers } = props;
   const toggle = (key: keyof StickyModifiers) =>
     onChangeModifiers({ ...modifiers, [key]: !modifiers[key] });
 
@@ -39,6 +52,80 @@ export function CourtTouchBar(props: CourtTouchBarProps) {
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
+      {/* Pilule d'outils rapides sur le terrain — accessible quel que soit l'onglet ouvert */}
+      {onSetTool && !gesturesOnly && (
+        <div
+          role="group"
+          aria-label="Outils de tracé rapides"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 2,
+            padding: 3,
+            borderRadius: 8,
+            background: 'var(--bt-touchbar-bg)',
+            border: '1px solid var(--bt-touchbar-border)',
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.14)',
+            pointerEvents: 'auto',
+          }}
+        >
+          {QUICK_TOOLS.map(({ value, label, shortKey, Icon }) => {
+            const active = tool === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => onSetTool(value)}
+                title={`${label} (touche ${shortKey})`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '4px 8px',
+                  borderRadius: 6,
+                  border: active ? '1px solid #fdba74' : '1px solid transparent',
+                  background: active ? '#d85a30' : 'transparent',
+                  color: active ? '#ffffff' : 'var(--bt-touchbar-text)',
+                  fontSize: 11,
+                  fontWeight: active ? 700 : 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.12s ease',
+                }}
+              >
+                <Icon size={13} strokeWidth={2.3} />
+                <span>{label}</span>
+              </button>
+            );
+          })}
+          {props.onOpenComposer && (
+            <button
+              type="button"
+              onClick={props.onOpenComposer}
+              title="Assistant de combinaison tactique d'étape"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '4px 8px',
+                marginLeft: 2,
+                borderRadius: 6,
+                border: '1px solid rgba(251, 146, 60, 0.35)',
+                background: 'rgba(234, 88, 12, 0.14)',
+                color: 'var(--bt-orange-soft, #fb923c)',
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              <Sparkles size={12} strokeWidth={2.3} />
+              <span>Combiner</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {tool === 'move' && (
         <>
           <ToggleButton

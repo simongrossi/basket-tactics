@@ -21,12 +21,12 @@ import { DARK_PANEL, useSidebarTheme } from '../sidebar/SidebarThemeContext';
 
 
 const PROFILE_LABELS: Record<OffensiveProfile, string> = {
-  creator:      'créateur (meneur)',
-  shooter:      'tireur (3pts fiable)',
-  slasher:      'slasher (drive)',
-  'rim-roller': 'rim-roller (5/4 rouleur)',
-  'stretch-big':'stretch big (4 shooter)',
-  'non-shooter':'non-shooter (laisser)',
+  creator:      'Créateur (meneur / porteur)',
+  shooter:      'Tireur 3 pts fiable',
+  slasher:      'Pénétrant (drive / slasher)',
+  'rim-roller': 'Intérieur rouleur (5/4)',
+  'stretch-big':'Intérieur tireur (stretch 4)',
+  'non-shooter':'Non-tireur (on peut flotter)',
 };
 
 export interface AttackerMenuProps {
@@ -185,17 +185,17 @@ export function AttackerMenu({
       />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <Item
-          label={isCarrier ? '✓ porteur (étape active)' : 'marquer comme porteur'}
+          label={isCarrier ? '✓ Porteur du ballon (étape active)' : '🏀 Donner le ballon (porteur)'}
           onClick={onMakeCarrier}
           disabled={isCarrier}
         />
         {isForcedScreener ? (
-          <Item label="↻ libérer (ne plus forcer)" onClick={onClearForcedScreener} />
+          <Item label="↻ Ne plus forcer comme poseur d'écran" onClick={onClearForcedScreener} />
         ) : (
-          <Item label="forcer comme poseur d'écran" onClick={onForceScreener} />
+          <Item label="🧱 Forcer comme poseur d'écran" onClick={onForceScreener} />
         )}
         <Item
-          label="effacer ses annotations"
+          label="🗑 Effacer ses tracés sur cette étape"
           onClick={onClearAnnotations}
           disabled={!hasAnnotations}
         />
@@ -221,9 +221,9 @@ export function AttackerMenu({
           background: orangeTintBg,
           border: `1px solid ${orangeTintBorder}`,
         }}
-        title="Profil offensif. Module la qualité de tir (un shooter tire mieux), l'aide adverse (un défenseur ne quitte pas un shooter mais peut sagger un non-shooter) et le closeout (plus rapide sur un shooter). Visible aussi dans les diagnostics coach."
+        title="Profil offensif. Influence la qualité de tir, l'aide adverse (un défenseur colle un tireur mais flotte sur un non-tireur) et la vitesse de contestation (closeout)."
       >
-        <span style={{ fontSize: 11, color: orangeAccent, width: 88, fontWeight: 500 }}>profil off.</span>
+        <span style={{ fontSize: 11, color: orangeAccent, width: 88, fontWeight: 600 }}>Profil joueur</span>
         <select
           value={offensiveProfile}
           onChange={(e) => onSetOffensiveProfile(e.target.value as OffensiveProfile)}
@@ -246,121 +246,150 @@ export function AttackerMenu({
           background: orangeTintBg,
           border: `1px solid ${orangeTintBorder}`,
         }}
-        title="Phy.O — Tier athlétique. Module la sensibilité aux virages (elite ralentit moins dans les courbes, lent ralentit plus). Effet visible quand le profil de vitesse offensif est activé dans Paramètres."
+        title="Main forte de l'attaquant. Un défenseur réglé sur « forcer main faible » se décale pour l'orienter vers son autre main."
       >
-        <span style={{ fontSize: 11, color: orangeAccent, width: 88, fontWeight: 500 }}>
-          tier athl.
-        </span>
-        <select
-          value={attackerSpeedTier ?? 'auto'}
-          onChange={(e) => {
-            const v = e.target.value;
-            onSetAttackerSpeedTier(
-              v === 'auto' ? undefined : (v as AttackerSpeedTier),
-            );
-          }}
-          style={{ flex: 1, fontSize: 11 }}
-        >
-          <option value="auto">auto (standard)</option>
-          <option value="elite">elite</option>
-          <option value="standard">standard</option>
-          <option value="lent">lent</option>
-        </select>
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          marginTop: 6,
-          padding: '5px 6px',
-          borderRadius: 4,
-          background: orangeTintBg,
-          border: `1px solid ${orangeTintBorder}`,
-        }}
-        title="Override absolu de l'orientation du corps en degrés (0–360°). Si défini, écrase le calcul auto (porteur → panier, idle → ballon, etc.)."
-      >
-        <span style={{ fontSize: 11, color: orangeAccent, width: 88, fontWeight: 500 }}>orient. corps</span>
-        <input
-          type="range"
-          min={0}
-          max={359}
-          step={5}
-          value={bodyOrientation ?? 0}
-          onChange={(e) => onSetBodyOrientation(parseInt(e.target.value))}
-          style={{ flex: 1 }}
-        />
-        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: bodyOrientation !== undefined ? orangeAccent : DARK_PANEL.textDim, fontWeight: bodyOrientation !== undefined ? 600 : 400 }}>
-          {bodyOrientation !== undefined ? `${bodyOrientation}°` : 'auto'}
-        </span>
-        {bodyOrientation !== undefined && (
-          <button
-            onClick={() => onSetBodyOrientation(undefined)}
-            title="Revenir au calcul auto"
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
-          >↻</button>
-        )}
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          marginTop: 6,
-          padding: '5px 6px',
-          borderRadius: 4,
-          background: orangeTintBg,
-          border: `1px solid ${orangeTintBorder}`,
-        }}
-        title="Override absolu de l'orientation du regard en degrés (0–360°). Sera CLAMPÉ à ±75° du corps effectif."
-      >
-        <span style={{ fontSize: 11, color: orangeAccent, width: 88, fontWeight: 500 }}>orient. regard</span>
-        <input
-          type="range"
-          min={0}
-          max={359}
-          step={5}
-          value={gazeOrientation ?? 0}
-          onChange={(e) => onSetGazeOrientation(parseInt(e.target.value))}
-          style={{ flex: 1 }}
-        />
-        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: gazeOrientation !== undefined ? orangeAccent : DARK_PANEL.textDim, fontWeight: gazeOrientation !== undefined ? 600 : 400 }}>
-          {gazeOrientation !== undefined ? `${gazeOrientation}°` : 'auto'}
-        </span>
-        {gazeOrientation !== undefined && (
-          <button
-            onClick={() => onSetGazeOrientation(undefined)}
-            title="Revenir au calcul auto"
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
-          >↻</button>
-        )}
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          marginTop: 6,
-          padding: '5px 6px',
-          borderRadius: 4,
-          background: orangeTintBg,
-          border: `1px solid ${orangeTintBorder}`,
-        }}
-        title="Main dominante de l'attaquant. Un défenseur réglé « sur porteur : main faible » se décale côté main forte pour le forcer sur sa main faible (droitier → on le pousse à gauche, gaucher → à droite)."
-      >
-        <span style={{ fontSize: 11, color: orangeAccent, width: 88, fontWeight: 500 }}>main dom.</span>
+        <span style={{ fontSize: 11, color: orangeAccent, width: 88, fontWeight: 600 }}>Main forte</span>
         <select
           value={dominantHand}
           onChange={(e) => onSetDominantHand(e.target.value as DominantHand)}
           style={{ flex: 1, fontSize: 11 }}
         >
-          <option value="right">droitier</option>
-          <option value="left">gaucher</option>
+          <option value="right">Droitier</option>
+          <option value="left">Gaucher</option>
         </select>
       </div>
+
+      <details
+        className="bt-context-details"
+        open={attackerSpeedTier !== undefined || bodyOrientation !== undefined || gazeOrientation !== undefined ? true : undefined}
+        style={{
+          marginTop: 8,
+          paddingTop: 8,
+          borderTop: `1px solid ${DARK_PANEL.borderSubtle}`,
+        }}
+      >
+        <summary
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            userSelect: 'none',
+            fontSize: 11,
+            fontWeight: 700,
+            color: DARK_PANEL.textMuted,
+          }}
+        >
+          <span>⚙ Posture & athlétisme</span>
+          <span
+            className="bt-context-details-state"
+            aria-hidden="true"
+            style={{ color: DARK_PANEL.textDim, fontSize: 10, fontWeight: 600 }}
+          />
+        </summary>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '5px 6px',
+              borderRadius: 4,
+              background: orangeTintBg,
+              border: `1px solid ${orangeTintBorder}`,
+            }}
+            title="Niveau athlétique : influence le maintien de vitesse dans les courbes et changements de direction."
+          >
+            <span style={{ fontSize: 11, color: orangeAccent, width: 88, fontWeight: 500 }}>
+              Athlétisme
+            </span>
+            <select
+              value={attackerSpeedTier ?? 'auto'}
+              onChange={(e) => {
+                const v = e.target.value;
+                onSetAttackerSpeedTier(
+                  v === 'auto' ? undefined : (v as AttackerSpeedTier),
+                );
+              }}
+              style={{ flex: 1, fontSize: 11 }}
+            >
+              <option value="auto">Auto (standard)</option>
+              <option value="elite">Élite (explosif)</option>
+              <option value="standard">Standard</option>
+              <option value="lent">Lourd / lent</option>
+            </select>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '5px 6px',
+              borderRadius: 4,
+              background: orangeTintBg,
+              border: `1px solid ${orangeTintBorder}`,
+            }}
+            title="Orientation manuelle des épaules en degrés (0–360°). Par défaut (auto), le joueur fait face au panier ou au ballon."
+          >
+            <span style={{ fontSize: 11, color: orangeAccent, width: 88, fontWeight: 500 }}>Orient. corps</span>
+            <input
+              type="range"
+              min={0}
+              max={359}
+              step={5}
+              value={bodyOrientation ?? 0}
+              onChange={(e) => onSetBodyOrientation(parseInt(e.target.value))}
+              style={{ flex: 1 }}
+            />
+            <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: bodyOrientation !== undefined ? orangeAccent : DARK_PANEL.textDim, fontWeight: bodyOrientation !== undefined ? 600 : 400 }}>
+              {bodyOrientation !== undefined ? `${bodyOrientation}°` : 'auto'}
+            </span>
+            {bodyOrientation !== undefined && (
+              <button
+                onClick={() => onSetBodyOrientation(undefined)}
+                title="Revenir au calcul automatique"
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
+              >↻</button>
+            )}
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '5px 6px',
+              borderRadius: 4,
+              background: orangeTintBg,
+              border: `1px solid ${orangeTintBorder}`,
+            }}
+            title="Orientation manuelle de la tête et du regard en degrés (0–360°, limitée anatomiquement à ±75° par rapport aux épaules)."
+          >
+            <span style={{ fontSize: 11, color: orangeAccent, width: 88, fontWeight: 500 }}>Orient. regard</span>
+            <input
+              type="range"
+              min={0}
+              max={359}
+              step={5}
+              value={gazeOrientation ?? 0}
+              onChange={(e) => onSetGazeOrientation(parseInt(e.target.value))}
+              style={{ flex: 1 }}
+            />
+            <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: gazeOrientation !== undefined ? orangeAccent : DARK_PANEL.textDim, fontWeight: gazeOrientation !== undefined ? 600 : 400 }}>
+              {gazeOrientation !== undefined ? `${gazeOrientation}°` : 'auto'}
+            </span>
+            {gazeOrientation !== undefined && (
+              <button
+                onClick={() => onSetGazeOrientation(undefined)}
+                title="Revenir au calcul automatique"
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
+              >↻</button>
+            )}
+          </div>
+        </div>
+      </details>
 
       {isForcedScreener && (
         <div
@@ -374,7 +403,7 @@ export function AttackerMenu({
             borderRadius: 4,
           }}
         >
-          Forcé comme poseur sur cette étape — l'auto-detection de proximité est désactivée.
+          Forcé comme poseur sur cette étape — la détection automatique de proximité est désactivée.
         </div>
       )}
     </div>

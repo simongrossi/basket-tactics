@@ -191,4 +191,12 @@ describe('CourtView — barre tactile (U04)', () => {
     renderCourt('move', { readOnly: true });
     expect(screen.queryByRole('toolbar', { name: 'Commandes tactiles du terrain' })).toBeNull();
   });
+
+  it('permet de changer d’outil de tracé directement depuis la barre du terrain', () => {
+    const { props } = renderCourt('move');
+    const passBtn = screen.getByRole('button', { name: 'Passe' });
+    expect(passBtn.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(passBtn);
+    expect(props.onSetTool).toHaveBeenCalledWith('pass');
+  });
 });

@@ -7,6 +7,7 @@ import type { ActionTimingAnchor, Tool } from '@/lib/types';
 import type { LucideIcon } from 'lucide-react';
 import { Move, PanelTop, Route, SendHorizontal, Waves } from 'lucide-react';
 import { DARK_PANEL, useSidebarTheme } from '../sidebar/SidebarThemeContext';
+import { InterfaceGate } from '../interface/InterfaceLevel';
 
 
 export interface ToolBarProps {
@@ -21,11 +22,11 @@ export interface ToolBarProps {
 }
 
 const TOOL_DEFS: { value: Tool; label: string; Icon: LucideIcon }[] = [
-  { value: 'move', label: 'déplacer', Icon: Move },
-  { value: 'pass', label: 'passe', Icon: SendHorizontal },
-  { value: 'dribble', label: 'dribble', Icon: Waves },
-  { value: 'cut', label: 'course', Icon: Route },
-  { value: 'screen', label: 'écran', Icon: PanelTop },
+  { value: 'move', label: 'Déplacer', Icon: Move },
+  { value: 'pass', label: 'Passe', Icon: SendHorizontal },
+  { value: 'dribble', label: 'Dribble', Icon: Waves },
+  { value: 'cut', label: 'Course', Icon: Route },
+  { value: 'screen', label: 'Écran', Icon: PanelTop },
 ];
 
 export function ToolBar({
@@ -83,32 +84,34 @@ export function ToolBar({
         })}
       </div>
       {onSetActionTimingAnchor && (
-        <label
-          title="Coché : le tracé arrive au moment courant de la timeline. Décoché : il démarre au moment courant."
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 8,
-            marginBottom: 10,
-            padding: '6px 8px',
-            borderRadius: 8,
-            border: `1px solid ${actionTimingAnchor === 'end' ? '#D85A30' : DARK_PANEL.border}`,
-            background: timingBg,
-            color: actionTimingAnchor === 'end' ? inactiveOrange : DARK_PANEL.textMuted,
-            fontSize: 12,
-            fontWeight: 800,
-            cursor: 'pointer',
-            userSelect: 'none',
-          }}
-        >
-          <span>fin d'action</span>
-          <input
-            type="checkbox"
-            checked={actionTimingAnchor === 'end'}
-            onChange={(e) => onSetActionTimingAnchor(e.target.checked ? 'end' : 'start')}
-          />
-        </label>
+        <InterfaceGate min="analysis">
+          <label
+            title="Coché : le tracé arrive au moment courant de la timeline. Décoché : il démarre au moment courant."
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              marginBottom: 10,
+              padding: '6px 8px',
+              borderRadius: 8,
+              border: `1px solid ${actionTimingAnchor === 'end' ? '#D85A30' : DARK_PANEL.border}`,
+              background: timingBg,
+              color: actionTimingAnchor === 'end' ? inactiveOrange : DARK_PANEL.textMuted,
+              fontSize: 12,
+              fontWeight: 800,
+              cursor: 'pointer',
+              userSelect: 'none',
+            }}
+          >
+            <span>Ancrer à la fin de l'action</span>
+            <input
+              type="checkbox"
+              checked={actionTimingAnchor === 'end'}
+              onChange={(e) => onSetActionTimingAnchor(e.target.checked ? 'end' : 'start')}
+            />
+          </label>
+        </InterfaceGate>
       )}
     </>
   );

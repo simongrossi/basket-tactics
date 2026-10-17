@@ -1208,14 +1208,15 @@ export function DefensePanel(props: DefensePanelProps) {
       )}
 
       {/* ========================================================================
-          PINNED 3 — Appliquer à tous (adaptatif individuelle / zone)
+          SECONDARY — Appliquer à tous (adaptatif individuelle / zone, replié par défaut)
           ====================================================================== */}
       <AccordionSection
         id="defense-apply-all"
         theme="defense"
         label={`Appliquer à tous (${defenderIds.length})`}
         icon="🎯"
-        variant="pinned"
+        variant="secondary"
+        defaultOpen={false}
       >
         <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 6 }}>
           Pousse la même consigne sur les {defenderIds.length} défenseurs en un clic.
@@ -1223,7 +1224,7 @@ export function DefensePanel(props: DefensePanelProps) {
 
         {isMan ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <MassRow label="aide %">
+            <MassRow label="Aide %">
               <input
                 type="number"
                 min={0}
@@ -1237,67 +1238,67 @@ export function DefensePanel(props: DefensePanelProps) {
                 }}
                 onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                 style={{ fontSize: 11, height: 22, padding: '0 3px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                title="Saisir 0–100 puis Enter pour appliquer"
+                title="Saisir 0–100 puis Entrée pour appliquer"
               />
             </MassRow>
-            <MassRow label="priorité">
+            <MassRow label="Priorité">
               <MassSelect
                 onPick={(v) => props.onUpdateAllRules({ priority: v as any })}
-                options={[['paint', 'raquette'], ['man', 'homme'], ['passlane', 'passe']]}
+                options={[['paint', 'Protéger raquette'], ['man', 'Rester sur homme'], ['passlane', 'Ligne de passe']]}
               />
             </MassRow>
-            <MassRow label="vs porteur">
+            <MassRow label="Sur porteur">
               <MassSelect
                 onPick={(v) => props.onUpdateAllRules({ vsCarrier: v as any })}
                 options={[
-                  ['coller', 'coller'], ['bumper', 'bumper'], ['contester', 'contester'],
-                  ['reculer', 'reculer'], ['topside', 'topside'], ['baseline', 'baseline'],
-                  ['main-faible', 'main faible'],
+                  ['coller', 'Coller (pression)'], ['bumper', 'Contenir (bumper)'], ['contester', 'Contester le tir'],
+                  ['reculer', 'Reculer (drop)'], ['topside', 'Forcer milieu (topside)'], ['baseline', 'Forcer ligne de fond'],
+                  ['main-faible', 'Forcer main faible'],
                 ]}
               />
             </MassRow>
-            <MassRow label="hors-ballon">
+            <MassRow label="Hors-ballon">
               <MassSelect
                 onPick={(v) => props.onUpdateAllRules({ offBallStance: v as any })}
                 options={[
-                  ['sag', 'sag'], ['behind', 'derrière'], ['stunt', 'stunt'],
-                  ['deny-3q', '3/4 deny'], ['fronting', 'devant'],
+                  ['sag', 'Flotter en aide (sag)'], ['behind', 'Derrière son homme'], ['stunt', 'Feinte d’aide (stunt)'],
+                  ['deny-3q', 'Contester 3/4 (deny)'], ['fronting', 'Passer devant (fronting)'],
                 ]}
               />
             </MassRow>
-            <MassRow label="écran">
+            <MassRow label="Sur écran">
               <MassSelect
                 onPick={(v) => props.onUpdateAllRules({ screenNav: v === 'auto' ? undefined : v as any })}
                 options={[
-                  ['auto', 'auto (global)'], ['over', 'over'], ['under', 'under'], ['switch', 'switch'],
-                  ['hedge', 'hedge'], ['drop', 'drop'], ['blitz', 'blitz'],
+                  ['auto', 'Auto (règle d’équipe)'], ['over', 'Passer au-dessus (over)'], ['under', 'Passer en dessous (under)'], ['switch', 'Changer (switch)'],
+                  ['hedge', 'Sortir fort (hedge)'], ['drop', 'Reculer (drop)'], ['blitz', 'Trapper à deux (blitz)'],
                 ]}
               />
             </MassRow>
-            <MassRow label="aide mode">
+            <MassRow label="Mode d'aide">
               <MassSelect
                 onPick={(v) => props.onUpdateAllRules({ helpMode: v as any })}
                 options={[
-                  ['auto', 'auto'], ['aggressive', 'agressif'], ['passive', 'passif'], ['disabled', 'désactivé'],
+                  ['auto', 'Automatique'], ['aggressive', 'Agressif (toujours aider)'], ['passive', 'Passif (garder son homme)'], ['disabled', 'Désactivé (zéro aide)'],
                 ]}
               />
             </MassRow>
-            <MassRow label="regard">
+            <MassRow label="Regard">
               <MassSelect
                 onPick={(v) => props.onUpdateAllRules({ gazeLock: v === 'auto' ? undefined : v as any })}
                 options={[
-                  ['auto', 'auto'], ['opponent', '🔒 mon homme'],
-                  ['ball-carrier', '🔒 le porteur'], ['both', '🔒 les deux'],
+                  ['auto', 'Automatique'], ['opponent', '🔒 Son homme marqué'],
+                  ['ball-carrier', '🔒 Le porteur de balle'], ['both', '🔒 Voir les deux'],
                 ]}
               />
             </MassRow>
-            <MassRow label="corps">
+            <MassRow label="Posture corps">
               <MassSelect
                 onPick={(v) => props.onUpdateAllRules({ bodyOrientationMode: v === 'auto' ? undefined : v as any })}
                 options={[
-                  ['auto', 'auto'], ['open', 'ouvert'], ['open-weighted', 'ouvert pondéré'],
-                  ['face-man', 'face homme'], ['face-ball', 'face porteur'],
-                  ['pass-lane-flat', 'passe à plat'], ['pass-lane-perp', 'passe perpend.'],
+                  ['auto', 'Automatique'], ['open', 'Ouvert (homme + ballon)'], ['open-weighted', 'Ouvert pondéré'],
+                  ['face-man', 'Face à son homme'], ['face-ball', 'Face au porteur'],
+                  ['pass-lane-flat', 'Ligne de passe à plat'], ['pass-lane-perp', 'Ligne de passe perpend.'],
                 ]}
               />
             </MassRow>
@@ -1305,9 +1306,9 @@ export function DefensePanel(props: DefensePanelProps) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginBottom: 4 }}>
-              En zone : les sliders agissent sur la zone globale. Les rotations s'appliquent à tous.
+              En zone : les curseurs agissent sur la zone globale. Les rotations s'appliquent à tous.
             </div>
-            <MassRow label="pression bal.">
+            <MassRow label="Pression bal.">
               <input
                 type="number"
                 min={0}
@@ -1321,10 +1322,10 @@ export function DefensePanel(props: DefensePanelProps) {
                 }}
                 onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                 style={{ fontSize: 11, height: 22, padding: '0 3px', width: '100%', boxSizing: 'border-box' }}
-                title="Saisir 0–100 puis Enter pour appliquer"
+                title="Saisir 0–100 puis Entrée pour appliquer"
               />
             </MassRow>
-            <MassRow label="rotation">
+            <MassRow label="Rotation">
               <input
                 type="number"
                 min={40}
@@ -1340,7 +1341,7 @@ export function DefensePanel(props: DefensePanelProps) {
                 style={{ fontSize: 11, height: 22, padding: '0 3px', width: '100%', boxSizing: 'border-box' }}
               />
             </MassRow>
-            <MassRow label="aide raq.">
+            <MassRow label="Aide raq.">
               <input
                 type="number"
                 min={0}
@@ -1375,9 +1376,9 @@ export function DefensePanel(props: DefensePanelProps) {
                 cursor: 'pointer',
                 width: '100%',
               }}
-              title="Efface les overrides individuels (distance, vit. max, closeout, denial, screenNav). Tous retombent sur les sliders globaux."
+              title="Efface les consignes individuelles (distance, vitesse max, closeout, contestation, écran). Tous reviennent aux consignes d'équipe."
             >
-              ↻ Réinitialiser overrides individuels
+              ↻ Réinitialiser les consignes individuelles
             </button>
           )}
         </div>
@@ -1390,90 +1391,103 @@ export function DefensePanel(props: DefensePanelProps) {
         <AccordionSection
           id="defense-individual-rules"
           theme="defense"
-          label="Règles individuelles"
+          label="Règles par joueur"
           icon="👤"
           variant="neutral"
           defaultOpen={false}
         >
-          <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 2 }}>
-            Astuce : clic-droit sur un défenseur pour ouvrir un menu rapide.
+          <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 6 }}>
+            Astuce : fais un clic-droit sur un défenseur sur le terrain pour son menu complet.
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '24px 36px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: 3, fontSize: 10, color: '#94a3b8' }}>
-            <span></span>
-            <span>aide</span>
-            <span>prio.</span>
-            <span>vs porteur</span>
-            <span>hors-bal.</span>
-            <span>écran</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {defenderIds.map((dId) => {
+              const r = state.rules[dId];
+              return (
+                <div
+                  key={dId}
+                  style={{
+                    padding: '6px 7px',
+                    borderRadius: 6,
+                    border: '1px solid #2d3544',
+                    background: '#1c212b',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                  }}
+                >
+                  <div style={{ display: 'grid', gridTemplateColumns: '28px 54px minmax(0,1fr) minmax(0,1fr)', gap: 4, alignItems: 'center', fontSize: 11 }}>
+                    <span style={{ fontWeight: 800, color: c.accentText }}>{dId}</span>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 10, color: '#94a3b8' }} title="Pourcentage d'aide">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={5}
+                        value={r.helpPct}
+                        onChange={(e) =>
+                          props.onUpdateRule(dId, { helpPct: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) })
+                        }
+                        style={{ fontSize: 11, height: 22, padding: '0 3px', width: 36 }}
+                      />
+                      <span>%</span>
+                    </label>
+                    <select
+                      value={r.vsCarrier}
+                      onChange={(e) => props.onUpdateRule(dId, { vsCarrier: e.target.value as any })}
+                      style={{ fontSize: 10, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
+                      title="Consigne sur le porteur de balle"
+                    >
+                      <option value="coller">Porteur : Coller</option>
+                      <option value="bumper">Porteur : Contenir</option>
+                      <option value="contester">Porteur : Contester</option>
+                      <option value="reculer">Porteur : Reculer</option>
+                      <option value="topside">Porteur : Forcer milieu</option>
+                      <option value="baseline">Porteur : Forcer fond</option>
+                      <option value="main-faible">Porteur : Main faible</option>
+                    </select>
+                    <select
+                      value={r.offBallStance ?? 'sag'}
+                      onChange={(e) => props.onUpdateRule(dId, { offBallStance: e.target.value as any })}
+                      style={{ fontSize: 10, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
+                      title="Posture hors-ballon"
+                    >
+                      <option value="sag">Hors-bal. : Aide (Sag)</option>
+                      <option value="behind">Hors-bal. : Derrière</option>
+                      <option value="stunt">Hors-bal. : Feinte (Stunt)</option>
+                      <option value="deny-3q">Hors-bal. : Deny 3/4</option>
+                      <option value="fronting">Hors-bal. : Devant</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 4, alignItems: 'center', paddingLeft: 28 }}>
+                    <select
+                      value={r.priority}
+                      onChange={(e) => props.onUpdateRule(dId, { priority: e.target.value as any })}
+                      style={{ fontSize: 10, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
+                      title="Priorité d'aide"
+                    >
+                      <option value="paint">Prio : Raquette</option>
+                      <option value="man">Prio : Son homme</option>
+                      <option value="passlane">Prio : Ligne passe</option>
+                    </select>
+                    <select
+                      value={r.screenNav ?? 'auto'}
+                      onChange={(e) => props.onUpdateRule(dId, { screenNav: e.target.value as any })}
+                      style={{ fontSize: 10, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
+                      title="Passage d'écran individuel"
+                    >
+                      <option value="auto">Écran : Auto</option>
+                      <option value="over">Écran : Au-dessus (Over)</option>
+                      <option value="under">Écran : En dessous (Under)</option>
+                      <option value="switch">Écran : Switch</option>
+                      <option value="hedge">Écran : Sortir (Hedge)</option>
+                      <option value="drop">Écran : Reculer (Drop)</option>
+                      <option value="blitz">Écran : Trappe (Blitz)</option>
+                    </select>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          {defenderIds.map((dId) => {
-            const r = state.rules[dId];
-            return (
-              <div
-                key={dId}
-                style={{ display: 'grid', gridTemplateColumns: '24px 36px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: 3, alignItems: 'center', fontSize: 11 }}
-              >
-                <span style={{ fontWeight: 500, color: c.accentText }}>{dId}</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={5}
-                  value={r.helpPct}
-                  onChange={(e) =>
-                    props.onUpdateRule(dId, { helpPct: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) })
-                  }
-                  style={{ fontSize: 11, height: 22, padding: '0 3px' }}
-                />
-                <select
-                  value={r.priority}
-                  onChange={(e) => props.onUpdateRule(dId, { priority: e.target.value as any })}
-                  style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                >
-                  <option value="paint">raquette</option>
-                  <option value="man">homme</option>
-                  <option value="passlane">passe</option>
-                </select>
-                <select
-                  value={r.vsCarrier}
-                  onChange={(e) => props.onUpdateRule(dId, { vsCarrier: e.target.value as any })}
-                  style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                >
-                  <option value="coller">coller</option>
-                  <option value="bumper">bumper</option>
-                  <option value="contester">contester</option>
-                  <option value="reculer">reculer</option>
-                  <option value="topside">topside</option>
-                  <option value="baseline">baseline</option>
-                  <option value="main-faible">main faible</option>
-                </select>
-                <select
-                  value={r.offBallStance ?? 'sag'}
-                  onChange={(e) => props.onUpdateRule(dId, { offBallStance: e.target.value as any })}
-                  style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                >
-                  <option value="sag">sag</option>
-                  <option value="behind">derrière</option>
-                  <option value="stunt">stunt</option>
-                  <option value="deny-3q">3/4 deny</option>
-                  <option value="fronting">devant</option>
-                </select>
-                <select
-                  value={r.screenNav ?? 'auto'}
-                  onChange={(e) => props.onUpdateRule(dId, { screenNav: e.target.value as any })}
-                  style={{ fontSize: 11, height: 22, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                >
-                  <option value="auto">auto</option>
-                  <option value="over">over</option>
-                  <option value="under">under</option>
-                  <option value="switch">switch</option>
-                  <option value="hedge">hedge</option>
-                  <option value="drop">drop</option>
-                  <option value="blitz">blitz</option>
-                </select>
-              </div>
-            );
-          })}
         </AccordionSection>
       )}
 
@@ -1481,38 +1495,37 @@ export function DefensePanel(props: DefensePanelProps) {
         <AccordionSection
           id="defense-zone-info"
           theme="defense"
-          label="Règles individuelles"
+          label="Règles par joueur"
           icon="👤"
           variant="neutral"
           defaultOpen={false}
         >
           <div style={{ fontSize: 11, color: '#94a3b8', padding: 4, fontStyle: 'italic' }}>
-            En zone, les défenseurs n'ont pas de matchup individuel.
-            Activer <strong>✎ mode édition zones</strong> dans le Système pour
-            ajuster les homePos / régions.
+            En défense de zone, les défenseurs couvrent une région plutôt qu'un joueur fixe.
+            Active <strong>✎ Ajuster les zones sur le terrain</strong> plus haut pour personnaliser leurs positions de base.
           </div>
         </AccordionSection>
       )}
 
       {/* ========================================================================
-          SECONDARY — Mes presets (sauvegardes utilisateur, B5)
+          SECONDARY — Mes profils sauvegardés (B5)
           ====================================================================== */}
       {props.onSaveDefensePreset && (
         <AccordionSection
           id="defense-user-presets"
           theme="defense"
-          label="Mes presets"
+          label="Mes profils défensifs"
           icon="💾"
           variant="secondary"
           defaultOpen={false}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
             <span style={{ fontSize: 10, color: '#cbd5e1' }}>
-              Sauvegardes utilisateur (rules + screens + B/C settings)
+              Enregistre tes réglages d'équipe et d'écrans favoris
             </span>
             <button
               onClick={() => {
-                const name = prompt('Nom du preset défensif :', '');
+                const name = prompt('Nom du profil défensif :', '');
                 if (name && name.trim()) {
                   props.onSaveDefensePreset!(name.trim());
                 }
@@ -1527,14 +1540,14 @@ export function DefensePanel(props: DefensePanelProps) {
                 cursor: 'pointer',
                 fontWeight: 600,
               }}
-              title="Sauvegarder l'état défensif actuel comme preset perso"
+              title="Sauvegarder les réglages défensifs actuels comme profil réutilisable"
             >
-              💾 sauvegarder
+              💾 Sauvegarder
             </button>
           </div>
           {(props.userDefensePresets ?? []).length === 0 ? (
             <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', padding: '4px 0' }}>
-              Aucun preset perso. Clique 💾 pour capturer l'état actuel.
+              Aucun profil sauvegardé. Clique sur 💾 Sauvegarder pour mémoriser ta défense actuelle.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -1553,7 +1566,7 @@ export function DefensePanel(props: DefensePanelProps) {
                 >
                   <button
                     onClick={() => {
-                      if (confirm(`Appliquer le preset perso "${preset.name}" ?`)) {
+                      if (confirm(`Appliquer le profil "${preset.name}" ?`)) {
                         props.onApplyUserDefensePreset!(preset);
                       }
                     }}
@@ -1578,7 +1591,7 @@ export function DefensePanel(props: DefensePanelProps) {
                         props.onDeleteDefensePreset!(preset.id);
                       }
                     }}
-                    title="Supprimer ce preset"
+                    title="Supprimer ce profil"
                     style={{
                       fontSize: 10,
                       padding: '0 4px',
@@ -1598,33 +1611,33 @@ export function DefensePanel(props: DefensePanelProps) {
       )}
 
       {/* ========================================================================
-          SECONDARY — Lien vers page /simulation dédiée
-          (la section Simulation a été migrée vers une page séparée pour ne pas
-          encombrer l'éditeur. Voir src/app/simulation/page.tsx)
+          SECONDARY — Lien vers page /simulation dédiée (visible en mode Analyse/Dev)
           ====================================================================== */}
-      <div style={{ marginTop: 12, padding: '8px 10px' }}>
-        <a
-          href="/simulation"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            padding: '8px 12px',
-            background: 'linear-gradient(180deg, #6366f1, #4338ca)',
-            color: '#fff',
-            borderRadius: 5,
-            textDecoration: 'none',
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: 0.3,
-            boxShadow: '0 1px 2px rgba(67, 56, 202, 0.3)',
-          }}
-          title="Mode démo, Play IA live, Monte Carlo, replay — tout sur une page dédiée"
-        >
-          🎬 Ouvrir la simulation →
-        </a>
-      </div>
+      <InterfaceGate min="analysis">
+        <div style={{ marginTop: 12, padding: '8px 10px' }}>
+          <a
+            href="/simulation"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '8px 12px',
+              background: 'linear-gradient(180deg, #6366f1, #4338ca)',
+              color: '#fff',
+              borderRadius: 5,
+              textDecoration: 'none',
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: 0.3,
+              boxShadow: '0 1px 2px rgba(67, 56, 202, 0.3)',
+            }}
+            title="Mode démo, Play IA live, Monte Carlo, replay — tout sur une page dédiée"
+          >
+            🎬 Ouvrir le laboratoire de simulation →
+          </a>
+        </div>
+      </InterfaceGate>
     </Panel>
   );
 }

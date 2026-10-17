@@ -1,6 +1,6 @@
 'use client';
 
-import { InterfaceGate, InterfaceLevelSelector } from './interface/InterfaceLevel';
+import { InterfaceGate } from './interface/InterfaceLevel';
 import { useId, type CSSProperties, type ReactNode } from 'react';
 import type { AppState, PlayerCount, PlayerId } from '@/lib/types';
 import { PLAYER_COUNT_OPTIONS } from '@/lib/logic/players';
@@ -129,7 +129,6 @@ export function ParametresPanel({
   const autoTempo = realism.distanceTempoEnabled && !state.realSpeedMode;
   return (
     <Panel theme="defense" title="⚙ Paramètres">
-      <InterfaceLevelSelector />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
         <SettingsSection title="Format de jeu">
           <ControlGroup title="Joueurs actifs" accent={UI.accent}>
