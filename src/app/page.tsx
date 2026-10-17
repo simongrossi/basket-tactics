@@ -519,22 +519,36 @@ export default function Page() {
         >
           {/* Pôle Gauche : Logo/Marque + Undo/Redo + Titre + Statut */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 auto' }}>
-            <div
+            <button
+              type="button"
+              onClick={() => {
+                setIsPlayerMode(false);
+                setPresentMode(false);
+                sidebar.setActiveView('court');
+              }}
+              title="Revenir au terrain principal (Accueil)"
+              aria-label="Revenir au terrain principal"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 8,
                 flexShrink: 0,
-                paddingRight: 8,
+                padding: '4px 10px 4px 4px',
+                marginRight: 2,
+                border: 'none',
                 borderRight: '1px solid var(--bt-border)',
+                borderRadius: '6px 0 0 6px',
+                background: 'transparent',
+                cursor: 'pointer',
                 userSelect: 'none',
+                transition: 'opacity 0.15s ease',
               }}
             >
               <Logo />
               <span style={{ fontWeight: 800, fontSize: 13, letterSpacing: -0.2, color: 'var(--bt-text)' }}>
                 basket-tactics
               </span>
-            </div>
+            </button>
             {sidebar.activeView === 'court' && (
               <div role="group" aria-label="Historique des modifications" style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 <HistoryButton label="Annuler" shortcut={SHORTCUT_LABELS.undo} disabled={!app.canUndo || isPlaying} onClick={app.undo} icon={<Undo2 size={15} aria-hidden />} />
@@ -1192,7 +1206,17 @@ export default function Page() {
             )}
             {isPlayerMode && (
               <div className="player-header">
-                <div className="player-brand">
+                <button
+                  type="button"
+                  className="player-brand"
+                  onClick={() => {
+                    setIsPlayerMode(false);
+                    setPresentMode(false);
+                    sidebar.setActiveView('court');
+                  }}
+                  title="Revenir au terrain principal (Accueil)"
+                  style={{ cursor: 'pointer' }}
+                >
                   <span style={{ color: '#ea580c' }}>🏀</span> Basket Tactics
                   <span style={{
                     fontSize: 10,
@@ -1203,7 +1227,7 @@ export default function Page() {
                     fontWeight: '600',
                     marginLeft: 6,
                   }}>LECTEUR</span>
-                </div>
+                </button>
                 <div className="player-step-info">
                   <div style={{ fontSize: 9, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     {formatStepCounter(stepCounterAt(app.state.steps, app.state.activeStep))}
