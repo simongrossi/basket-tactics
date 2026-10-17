@@ -1084,7 +1084,13 @@ export function CourtView(props: CourtViewProps) {
             />
           );
         })()}
-        <Ball pos={frame.ballPos} inFlight={frame.ballInFlight} />
+        <Ball
+          pos={frame.ballPos}
+          carrierPos={frame.off[frame.carrier]}
+          carrierOrientation={frame.attVisuals[frame.carrier]?.orientation}
+          dominantHand={state.attackerHands?.[frame.carrier] ?? 'right'}
+          inFlight={frame.ballInFlight}
+        />
         {analysis && threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="badges" />}
 
         {/* #4 — Rectangle de sélection (marquee) pendant Shift+drag dans le vide. */}

@@ -102,15 +102,15 @@ describe('Player anatomical poses (Sprite V2)', () => {
     expect(handXs[0] + handXs[1]).toBeCloseTo(200, 1);
   });
 
-  it('pose dribble actif (isActivelyDribbling) — asymétrie verticale : une main SOUS le centre', () => {
+  it('pose dribble actif (isActivelyDribbling) — asymétrie verticale et bras strictement devant le corps (jamais dans le dos)', () => {
     const { container } = renderPlayer({ isCarrier: true, isActivelyDribbling: true });
     const handYs = getHandCircleYs(container);
     expect(handYs.length).toBe(2);
-    // Asymétrie : une main est largement plus basse que l'autre
+    // Asymétrie : le bras qui dribble s'étend nettement plus vers l'avant que le bras de protection
     const ySpread = Math.abs(handYs[0] - handYs[1]);
     expect(ySpread).toBeGreaterThan(r); // au moins r de différence verticale
-    // Au moins une main est SOUS pos.y (cy > 100)
-    expect(handYs.some((y) => y > 100)).toBe(true);
+    // Invariant anatomique (Règle 3) : aucun bras dans le dos (toutes les mains devant le buste, cy < 100)
+    expect(handYs.every((y) => y < 100)).toBe(true);
   });
 
   it('pose screener (isScreening) — 2 paths se croisant (les x finaux opposés)', () => {
@@ -156,21 +156,16 @@ describe('Player anatomical poses (Sprite V2)', () => {
   it('latéralité gaucher (dribble actif dominantHand=left) — main dribble bascule à gauche', () => {
     const right = renderPlayer({ isCarrier: true, isActivelyDribbling: true, dominantHand: 'right' });
     const left = renderPlayer({ isCarrier: true, isActivelyDribbling: true, dominantHand: 'left' });
-    // Main dribble (droitier) : cx = pos.x + r*0.4 = 106.4
-    // Main dribble (gaucher) : cx = pos.x - r*0.4 = 93.6
-    // Récupère les cx puis trouve le plus extrême (vraie main dribble basse).
     const rightHandYs = getHandCircleYs(right.container);
     const rightHandXs = getHandCircleXs(right.container);
+    const leftHandYsArr = getHandCircleYs(left.container);
     const leftHandXs = getHandCircleXs(left.container);
-    // L'index de la main DRIBBLE = celui dont cy > 100 (la plus basse)
-    const rDribbleIdx = rightHandYs.findIndex((y) => y > 100);
-    expect(rDribbleIdx).toBeGreaterThanOrEqual(0);
+    // La main DRIBBLE est celle qui est la plus avancée devant le corps (cy minimal)
+    const rDribbleIdx = rightHandYs[0] < rightHandYs[1] ? 0 : 1;
+    const lDribbleIdx = leftHandYsArr[0] < leftHandYsArr[1] ? 0 : 1;
     // Pour le droitier, dribble à droite (cx > 100)
     expect(rightHandXs[rDribbleIdx]).toBeGreaterThan(100);
-    // Pour le gaucher, dribble à gauche (cx < 100) — l'index peut différer.
-    // On cherche la main basse dans le gaucher.
-    const leftHandYsArr = getHandCircleYs(left.container);
-    const lDribbleIdx = leftHandYsArr.findIndex((y) => y > 100);
+    // Pour le gaucher, dribble à gauche (cx < 100)
     expect(leftHandXs[lDribbleIdx]).toBeLessThan(100);
   });
 });

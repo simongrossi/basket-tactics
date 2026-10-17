@@ -285,17 +285,17 @@ export function Player({
                 </>
               );
             } else if (isCarrier && !isShooting && isActivelyDribbling) {
-              // Posture Dribble ACTIF — asymétrie : main dominante descend
-              // vers le ballon (Bezier qui plonge devant le corps), main
-              // non-dominante en stiff arm horizontal latéral. handSign
-              // inverse les côtés pour gaucher.
+              // Posture Dribble ACTIF — asymétrie : main dominante pousse le
+              // ballon devant l'épaule dominante (en avant du buste, jamais
+              // dans le dos), main non-dominante en protection latérale-avant
+              // (barrière/stiff arm). handSign inverse les côtés pour gaucher.
               const sDribble = handSign;  // côté main qui dribble
-              const sStiff = -handSign;   // côté stiff arm
+              const sStiff = -handSign;   // côté bras de protection
               return (
                 <>
-                  {/* Bras non-dominant (stiff arm latéral) */}
+                  {/* Bras non-dominant (protection latérale-avant / stiff arm) */}
                   <path
-                    d={`M ${pos.x + sStiff * r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + sStiff * r * 1.55} ${pos.y - r * 0.1} ${pos.x + sStiff * r * 1.7} ${pos.y + r * 0.0}`}
+                    d={`M ${pos.x + sStiff * r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + sStiff * r * 1.45} ${pos.y - r * 0.25} ${pos.x + sStiff * r * 1.55} ${pos.y - r * 0.35}`}
                     fill="none"
                     stroke={stroke}
                     strokeWidth={strokeWidth + 2.5}
@@ -303,18 +303,18 @@ export function Player({
                     strokeLinejoin="round"
                   />
                   <path
-                    d={`M ${pos.x + sStiff * r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + sStiff * r * 1.55} ${pos.y - r * 0.1} ${pos.x + sStiff * r * 1.7} ${pos.y + r * 0.0}`}
+                    d={`M ${pos.x + sStiff * r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + sStiff * r * 1.45} ${pos.y - r * 0.25} ${pos.x + sStiff * r * 1.55} ${pos.y - r * 0.35}`}
                     fill="none"
                     stroke={fill}
                     strokeWidth={strokeWidth}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
-                  <circle cx={pos.x + sStiff * r * 1.7} cy={pos.y + r * 0.0} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+                  <circle cx={pos.x + sStiff * r * 1.55} cy={pos.y - r * 0.35} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
 
-                  {/* Bras dominant (dribble bas) */}
+                  {/* Bras dominant (dribble actif devant l'épaule dominante) */}
                   <path
-                    d={`M ${pos.x + sDribble * r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + sDribble * r * 1.1} ${pos.y + r * 0.7} ${pos.x + sDribble * r * 0.4} ${pos.y + r * 1.5}`}
+                    d={`M ${pos.x + sDribble * r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + sDribble * r * 1.35} ${pos.y - r * 0.75} ${pos.x + sDribble * r * 0.95} ${pos.y - r * 1.45}`}
                     fill="none"
                     stroke={stroke}
                     strokeWidth={strokeWidth + 2.5}
@@ -322,14 +322,14 @@ export function Player({
                     strokeLinejoin="round"
                   />
                   <path
-                    d={`M ${pos.x + sDribble * r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + sDribble * r * 1.1} ${pos.y + r * 0.7} ${pos.x + sDribble * r * 0.4} ${pos.y + r * 1.5}`}
+                    d={`M ${pos.x + sDribble * r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + sDribble * r * 1.35} ${pos.y - r * 0.75} ${pos.x + sDribble * r * 0.95} ${pos.y - r * 1.45}`}
                     fill="none"
                     stroke={fill}
                     strokeWidth={strokeWidth}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
-                  <circle cx={pos.x + sDribble * r * 0.4} cy={pos.y + r * 1.5} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+                  <circle cx={pos.x + sDribble * r * 0.95} cy={pos.y - r * 1.45} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
                 </>
               );
             } else if (isCarrier && !isShooting) {
@@ -893,14 +893,34 @@ function screenPhaseLabel(phase: ScreenContactPhase): string {
 interface BallProps {
   /** Position du ballon (déjà calculée — incluant offset main ou trajectoire en l'air) */
   pos?: Point;
-  /** Pour rétrocompat : position du porteur, on applique l'offset main ici. Ignoré si `pos` est fourni. */
+  /** Position du porteur pour ancrer le ballon dans sa main dominante selon son orientation corporelle. */
   carrierPos?: Point;
+  /** Orientation du buste du porteur (en degrés depuis le nord, sens horaire). */
+  carrierOrientation?: number;
+  /** Main dominante du porteur ('right' | 'left'). */
+  dominantHand?: 'right' | 'left';
   /** True quand le ballon est en l'air (passe en cours). Visuel renforcé. */
   inFlight?: boolean;
 }
 
-export function Ball({ pos, carrierPos, inFlight }: BallProps) {
-  const p = pos ?? (carrierPos ? { x: carrierPos.x + 16, y: carrierPos.y - 16 } : undefined);
+export function Ball({ pos, carrierPos, carrierOrientation, dominantHand, inFlight }: BallProps) {
+  let p = pos;
+  if (!inFlight && carrierPos && carrierOrientation !== undefined) {
+    const handSign = dominantHand === 'left' ? -1 : 1;
+    const localX = handSign * 16;
+    const localY = -16;
+    const rad = (carrierOrientation * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    p = {
+      x: carrierPos.x + localX * cos - localY * sin,
+      y: carrierPos.y + localX * sin + localY * cos,
+      ...(pos?.z !== undefined ? { z: pos.z } : {}),
+    };
+  } else if (!p && carrierPos) {
+    const handSign = dominantHand === 'left' ? -1 : 1;
+    p = { x: carrierPos.x + handSign * 16, y: carrierPos.y - 16 };
+  }
   if (!p) return null;
 
   const hasZ = p.z !== undefined;

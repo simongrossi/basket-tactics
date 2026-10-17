@@ -64,12 +64,17 @@ describe('attackerVisuals — orientation porteur après déplacement', () => {
     expect(visuals[carrier].orientation).toBeCloseTo(expectedTowardHoop, 1);
   });
 
-  it('avec annotation dribble : le porteur dans la direction du dribble', () => {
+  it('avec annotation dribble : le porteur oriente son buste dans la direction du dribble et lève le regard vers le panier (clampé à ±75°)', () => {
     const { state, carrier, endPos } = buildTwoStepWithCarrierMove(true);
     const visuals = computeAttackerVisuals(state, 1);
+    const hoop = getDefenseHoop(state);
     // delta = endPos - startPos = (+200, -100). Extrapolation = endPos + delta = (700, 300).
     const expectedTowardDribble = angleFromNorth(endPos.x, endPos.y, 700, 300);
     expect(visuals[carrier].orientation).toBeCloseTo(expectedTowardDribble, 1);
+    // Le regard tourne vers le panier dans la limite anatomique ±75° du buste
+    const expectedTowardHoop = angleFromNorth(endPos.x, endPos.y, hoop.x, hoop.y);
+    const gazeToHoopDiff = Math.abs(((visuals[carrier].gazeOrientation - expectedTowardHoop + 540) % 360) - 180);
+    expect(gazeToHoopDiff).toBeLessThan(25);
   });
 
   it('pendant la lecture (resolveTimelineFrame à mi-étape), un joueur déplacé manuellement s’oriente dans le sens de sa course', () => {

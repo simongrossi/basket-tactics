@@ -162,7 +162,11 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
           <AnnotationView key={i} annotation={a} />
         ))}
       </g>
-      <Ball carrierPos={off[carrier]} />
+      <Ball
+        carrierPos={off[carrier]}
+        carrierOrientation={attVisuals[carrier]?.orientation}
+        dominantHand={state.attackerHands?.[carrier] ?? 'right'}
+      />
       <ActionOrderBadges step={{ ...step, off, ballCarrier: carrier, annotations: visibleAnnotations }} />
     </svg>
   );

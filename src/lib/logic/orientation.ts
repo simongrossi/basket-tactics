@@ -282,7 +282,16 @@ export function computeAttackerOrientation(input: AttackerOrientationInput): Ori
     gazeTarget = gazeTargetPos;
   } else if (role === 'carrier') {
     const dribbleDir = detectDribbleTarget(attackerPos, prevPos);
-    gazeTarget = dribbleDir ?? hoop;
+    if (dribbleDir) {
+      // Un porteur en dribble oriente ses épaules dans le sens de sa course
+      // (dribbleDir) mais tourne la tête vers le panier pour lire le jeu
+      // (tant qu'il ne tourne pas complètement le dos au cercle, <= 135°).
+      // Le clamp ±75° (`clampGazeToFrontal`) maintient l'invariant anatomique cou/épaules.
+      const hoopAngle = angleFromNorth(attackerPos, hoop);
+      gazeTarget = Math.abs(angleDiff(hoopAngle, bodyOrientation)) <= 135 ? hoop : dribbleDir;
+    } else {
+      gazeTarget = hoop;
+    }
   } else if (role === 'passer' && receiverPos) {
     gazeTarget = receiverPos;
   } else if (role === 'cutter' && nextPos) {
