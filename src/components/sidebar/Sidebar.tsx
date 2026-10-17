@@ -245,9 +245,23 @@ export function Sidebar({
         html[data-theme="light"] .sidebar-tools-scope button[style*="color: #c4b5fd"] {
           color: #6d28d9 !important;
         }
-        html[data-theme="light"] .sidebar-tools-scope button[style*="color: #fbbf24"],
-        html[data-theme="light"] .sidebar-tools-scope button[style*="color: #fcd34d"] {
-          color: #b45309 !important;
+        /* Scrollbar moderne et discrète pour le volet gauche */
+        .sidebar-scroll-area {
+          scrollbar-width: thin;
+          scrollbar-color: var(--bt-border) transparent;
+        }
+        .sidebar-scroll-area::-webkit-scrollbar {
+          width: 5px;
+        }
+        .sidebar-scroll-area::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .sidebar-scroll-area::-webkit-scrollbar-thumb {
+          background: var(--bt-border);
+          border-radius: 4px;
+        }
+        .sidebar-scroll-area::-webkit-scrollbar-thumb:hover {
+          background: var(--bt-text-dim);
         }
       `}} />
       <div
@@ -272,7 +286,7 @@ export function Sidebar({
           768 px de haut, les entrées + vues laissaient ~30 px aux outils
           (Attaque / Étapes introuvables). Les outils gardent désormais leur
           hauteur naturelle et le pied reste fixe. */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div className="sidebar-scroll-area" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <InterfaceLevelSelector compact={collapsed} />
       {startActions}
       <div style={{ padding: '10px 0 6px', flexShrink: 0 }}>
@@ -316,8 +330,8 @@ export function Sidebar({
             )}
             <SidebarThemeProvider dark={dark}>
               {!collapsed ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {/* Onglets rapides pour naviguer entre Attaque, Défense, Étapes, Scénario */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minHeight: 0 }}>
+                  {/* Onglets rapides pour naviguer entre Attaque, Défense, Étapes, Scénario (Sticky) */}
                   <div
                     role="tablist"
                     aria-label="Sélecteur d'outils"
@@ -328,6 +342,10 @@ export function Sidebar({
                       background: SIDEBAR.bgHover,
                       padding: 3,
                       borderRadius: 7,
+                      position: 'sticky',
+                      top: 0,
+                      zIndex: 10,
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
                     }}
                   >
                     {toolGroups!.map((g) => {
@@ -374,7 +392,7 @@ export function Sidebar({
                         role="tabpanel"
                         id={`tool-panel-${activeGroup.id}`}
                         style={{
-                          padding: '4px 2px',
+                          padding: '4px 2px 16px',
                           display: 'flex',
                           flexDirection: 'column',
                         }}
