@@ -1062,8 +1062,7 @@ export default function Page() {
           />
         )}
 
-        <div className={`center-col${sidebar.activeView !== 'court' ? ' center-col-view inline-view-scope' : sessionRun ? ' has-session-run' : ''}`}
-          style={{ gridTemplateRows: sidebar.activeView === 'court' ? `${sessionRun && runSession && !manualBusy ? 'auto ' : ''}${!isPlayerMode && !presentMode ? 'auto ' : ''}minmax(0, 1fr)${!manualBusy ? ' auto auto' : ''}` : undefined }}>
+        <div className={`center-col${sidebar.activeView !== 'court' ? ' center-col-view inline-view-scope' : sessionRun ? ' has-session-run' : ''}`}>
           {sidebar.activeView === 'playbook' && (
             <SidebarThemeProvider dark={themeMode === 'dark'}>
               <PlaybookView
@@ -1185,7 +1184,7 @@ export default function Page() {
             />
           )}
           {!isPlayerMode && !presentMode && <ManualRecordingBar recorder={manual} preparing={preparingRecording} onStart={startGestureRecording} onCopy={copyGestureRecording} onReplay={replayGestureRecording} />}
-          <div style={{ position: 'relative', minHeight: 0, overflow: 'hidden', display: 'grid' }}>
+          <div style={{ position: 'relative', flex: '1 1 0%', minHeight: 0, overflow: 'hidden', display: 'grid' }}>
             {runBlock && runBlockVisual?.kind === 'none' && !manualBusy && (
               <div style={{ position: 'absolute', inset: 0, zIndex: 60, display: 'grid' }}>
                 <SessionBlockCard title={runBlock.title} notes={runBlock.notes} durationMin={runBlock.durationMin} />
@@ -1304,6 +1303,11 @@ export default function Page() {
               modifiers={stickyModifiers}
               onModifiersChange={setStickyModifiers}
               dark={themeMode === 'dark'}
+              onAddStep={app.addStep}
+              onSetActiveStep={(idx) => {
+                setScrubT(null);
+                app.setActiveStep(idx);
+              }}
             />
             {/* Coaching #1 — télécommande de présentation pas-à-pas, en
                 overlay sur le terrain en mode lecteur (sans match live). */}
@@ -1582,20 +1586,17 @@ export default function Page() {
           }
         }
         .center-col {
-          display: grid;
-          grid-template-rows: minmax(0, 1fr) auto auto;
+          display: flex;
+          flex-direction: column;
           gap: 6px;
           min-width: 0;
           min-height: 0;
           overflow: hidden;
         }
-        /* U05 — barre de déroulé au-dessus du terrain. */
-        .center-col.has-session-run {
-          grid-template-rows: auto minmax(0, 1fr) auto auto;
-        }
         .center-col.center-col-view {
           /* Vues routées (Playbook, Bibliothèque, Paramètres) : une seule
              rangée plein hauteur, pas de timeline ni metrics. */
+          display: grid;
           grid-template-rows: 1fr;
           background: var(--bt-bg);
           border-radius: 8px;

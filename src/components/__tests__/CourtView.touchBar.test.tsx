@@ -199,4 +199,17 @@ describe('CourtView — barre tactile (U04)', () => {
     fireEvent.click(passBtn);
     expect(props.onSetTool).toHaveBeenCalledWith('pass');
   });
+
+  it('permet d’ajouter une étape (+ Étape) directement depuis la barre du terrain', () => {
+    const onAddStep = vi.fn();
+    const onSetActiveStep = vi.fn();
+    renderCourt('move', { onAddStep, onSetActiveStep });
+    expect(screen.getByText('Placement de départ')).toBeTruthy();
+    const addStepBtn = screen.getByRole('button', { name: /Étape$/ });
+    fireEvent.click(addStepBtn);
+    expect(onAddStep).toHaveBeenCalledTimes(1);
+  });
 });
+
+
+

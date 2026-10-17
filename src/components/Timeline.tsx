@@ -401,19 +401,20 @@ export function Timeline({
             onClick={onAddStep}
             disabled={isPlaying}
             className="bt-touch"
-            title="Ajouter une étape à la suite (+ étape)"
+            title="Valider l'étape actuelle et ajouter l'étape suivante (+ Étape)"
             style={{
-              padding: '4px 8px',
+              padding: '4px 10px',
               fontSize: 11,
               fontWeight: 700,
               borderRadius: 6,
-              border: '1px solid rgba(234, 88, 12, 0.5)',
-              background: 'rgba(234, 88, 12, 0.14)',
-              color: TIMELINE_UI.orange,
+              border: '1px solid #ea580c',
+              background: 'linear-gradient(180deg, #f97316 0%, #ea580c 100%)',
+              color: '#ffffff',
               cursor: isPlaying ? 'not-allowed' : 'pointer',
               opacity: isPlaying ? 0.45 : 1,
               flex: '0 0 auto',
               whiteSpace: 'nowrap',
+              boxShadow: '0 1px 4px rgba(234, 88, 12, 0.3)',
             }}
           >
             + Étape

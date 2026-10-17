@@ -6,7 +6,7 @@
 
 import type { AttackerId, DefenderId, Tool } from '@/lib/types';
 import type { StickyModifiers } from '@/hooks/useCourtPointerHandlers';
-import { Move, SendHorizontal, Waves, Route, PanelTop, StickyNote, Sparkles } from 'lucide-react';
+import { Move, SendHorizontal, Waves, Route, PanelTop, StickyNote, Sparkles, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 interface CourtTouchBarProps {
@@ -24,6 +24,13 @@ interface CourtTouchBarProps {
   onClearSelection: () => void;
   /** Ouvre le popover d'orchestration tactique d'étape */
   onOpenComposer?: () => void;
+  /** Progression d'étape directe sur le terrain (Déplacer > + Étape > Passe > + Étape...) */
+  stepIndicator?: string;
+  canPrevStep?: boolean;
+  canNextStep?: boolean;
+  onPrevStep?: () => void;
+  onNextStep?: () => void;
+  onAddStep?: () => void;
 }
 
 const FREEHAND_TOOLS: Tool[] = ['dribble', 'cut', 'screen'];
@@ -122,6 +129,115 @@ export function CourtTouchBar(props: CourtTouchBarProps) {
               <Sparkles size={12} strokeWidth={2.3} />
               <span>Combiner</span>
             </button>
+          )}
+          {props.onAddStep && (
+            <>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 1,
+                  height: 18,
+                  background: 'var(--bt-touchbar-border)',
+                  margin: '0 3px',
+                }}
+              />
+              {props.stepIndicator && (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    marginRight: 2,
+                  }}
+                >
+                  {props.onPrevStep && (
+                    <button
+                      type="button"
+                      onClick={props.onPrevStep}
+                      disabled={!props.canPrevStep}
+                      title="Étape précédente (←)"
+                      aria-label="Étape précédente"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 22,
+                        height: 22,
+                        padding: 0,
+                        borderRadius: 5,
+                        border: 'none',
+                        background: 'transparent',
+                        color: 'var(--bt-touchbar-text)',
+                        cursor: props.canPrevStep ? 'pointer' : 'not-allowed',
+                        opacity: props.canPrevStep ? 0.9 : 0.3,
+                      }}
+                    >
+                      <ChevronLeft size={14} strokeWidth={2.4} />
+                    </button>
+                  )}
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      color: 'var(--bt-touchbar-text)',
+                      padding: '0 3px',
+                      whiteSpace: 'nowrap',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {props.stepIndicator}
+                  </span>
+                  {props.onNextStep && (
+                    <button
+                      type="button"
+                      onClick={props.onNextStep}
+                      disabled={!props.canNextStep}
+                      title="Étape suivante (→)"
+                      aria-label="Étape suivante"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 22,
+                        height: 22,
+                        padding: 0,
+                        borderRadius: 5,
+                        border: 'none',
+                        background: 'transparent',
+                        color: 'var(--bt-touchbar-text)',
+                        cursor: props.canNextStep ? 'pointer' : 'not-allowed',
+                        opacity: props.canNextStep ? 0.9 : 0.3,
+                      }}
+                    >
+                      <ChevronRight size={14} strokeWidth={2.4} />
+                    </button>
+                  )}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={props.onAddStep}
+                title="Valider l'étape actuelle et ajouter l'étape suivante (+ Étape)"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  border: '1px solid #ea580c',
+                  background: 'linear-gradient(180deg, #f97316 0%, #ea580c 100%)',
+                  color: '#ffffff',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 4px rgba(234, 88, 12, 0.35)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <Plus size={13} strokeWidth={2.6} />
+                <span>Étape</span>
+              </button>
+            </>
           )}
         </div>
       )}
