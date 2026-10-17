@@ -83,10 +83,11 @@ export function CoachDrawHint({ visible }: { visible: boolean }) {
         </button>
       </div>
       <ol style={{ margin: '4px 0 0', paddingLeft: 18 }}>
-        <li>Choisis une action dans <b>Attaque</b> : course, passe, dribble, écran.</li>
+        <li>Choisis une action dans <b>Attaque</b> : Course, Passe, Dribble, Écran.</li>
         <li>Glisse depuis un joueur jusqu’à sa destination.</li>
-        <li>Clique <b>+ étape</b> (panneau Étapes) pour dessiner la suite.</li>
+        <li>Clique sur <b>+ Étape</b> (ou <b>+ étape</b>) pour dessiner la suite sans changer d’onglet.</li>
       </ol>
     </div>
   );
 }
+

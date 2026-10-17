@@ -5,6 +5,7 @@ import type { AppState, AttackerId, InboundDefenseMode, InboundSide } from '@/li
 import { activeBallCarrier, getActiveAttackerIds, isActiveAttacker } from '@/lib/logic/players';
 import { actionsOfStep } from '@/lib/logic/stepActions';
 import { getVisibleStepRows as getVisibleStepRowsOf, stepCounterAt, type StepRow } from '@/lib/logic/stepNumbering';
+import { InterfaceGate } from './interface/InterfaceLevel';
 import { Panel, Section, Button, COLORS } from './ui';
 
 interface StepsPanelProps {
@@ -212,7 +213,8 @@ export function StepsPanel(props: StepsPanelProps) {
                   <span style={{ marginLeft: 'auto' }}>{visibleAnnotations.length} annot.</span>
                 </div>
                 {/* Horloges per-step (B.1 duration, F.4 clockSeconds, F.5 shotClockRemaining).
-                    Visible uniquement sur l'étape active, et seulement si onPatchStep est branché. */}
+                    Visible uniquement sur l'étape active en mode Analyse/Dev, et seulement si onPatchStep est branché. */}
+                <InterfaceGate min="analysis">
                 {isActive && props.onPatchStep && (
                   <div
                     onClick={(e) => e.stopPropagation()}
@@ -225,7 +227,7 @@ export function StepsPanel(props: StepsPanelProps) {
                       color: '#94a3b8',
                     }}
                   >
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }} title="B.1 — durée narrative de cette étape (s). Vide = défaut global.">
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }} title="Durée narrative de cette étape (s). Vide = défaut global.">
                       <span>durée (s)</span>
                       <input
                         type="number"
@@ -241,7 +243,7 @@ export function StepsPanel(props: StepsPanelProps) {
                         style={{ fontSize: 10, padding: '2px 4px' }}
                       />
                     </label>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }} title="F.4 — secondes restantes au chrono du quart à ce step. Vide = règle inactive.">
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }} title="Secondes restantes au chrono du quart à cette étape.">
                       <span>quart (s)</span>
                       <input
                         type="number"
@@ -257,8 +259,8 @@ export function StepsPanel(props: StepsPanelProps) {
                         style={{ fontSize: 10, padding: '2px 4px' }}
                       />
                     </label>
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }} title="F.5 — secondes restantes au shot clock à ce step. Vide = règle inactive.">
-                      <span>shot clk</span>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }} title="Secondes restantes aux 24s à cette étape.">
+                      <span>24s rest.</span>
                       <input
                         type="number"
                         min={0}
@@ -276,6 +278,7 @@ export function StepsPanel(props: StepsPanelProps) {
                     </label>
                   </div>
                 )}
+                </InterfaceGate>
                 {/* G.2 — Sprint boost contextuel (toggle sur step actif) */}
                 {isActive && props.onPatchStep && (
                   <label
@@ -569,393 +572,401 @@ export function StepsPanel(props: StepsPanelProps) {
             <Trash2 size={13} strokeWidth={2} /> suppr.
           </button>
         </div>
-        {/* A11 V1 — Saisie tir : 3 boutons (made / missed / annuler) sur step actif.
-            Phase 1 = juste les inputs. Phase 2 ajoutera le bouton "étape rebond auto"
-            quand shotOutcome === 'missed'. */}
-        {props.onPatchStep && (() => {
+        {/* Section repliée par défaut pour éviter de noyer le coach débutant sous 12 boutons de cas particuliers */}
+        {(() => {
           const activeStep = props.state.steps[props.state.activeStep];
-          if (!activeStep || activeStep.isInterpolated) return null;
-          const outcome = activeStep.shotOutcome;
+          const hasSpecialContext = !!(
+            activeStep?.shotOutcome ||
+            activeStep?.outletPassPending ||
+            activeStep?.reboundType ||
+            activeStep?.viewSide === 'away' ||
+            activeStep?.context
+          );
           return (
-            <div style={{ marginTop: 4 }}>
-              <div style={{ fontSize: 9, color: '#94a3b8', marginBottom: 3, letterSpacing: 0.3 }}>
-                TIR (A11)
-              </div>
-              <div style={{ display: 'flex', gap: 3 }}>
-                <button
-                  type="button"
-                  onClick={() => props.onPatchStep!(props.state.activeStep, {
-                    shotOutcome: outcome === 'made' ? undefined : 'made',
-                    shotPos: outcome === 'made' ? undefined : (activeStep.shotPos ?? activeStep.off[activeStep.ballCarrier]),
-                  })}
-                  title="Marque ce step comme tir réussi. Cliquer à nouveau pour annuler."
-                  style={{
-                    flex: 1,
-                    fontSize: 10,
-                    padding: '4px 6px',
-                    borderRadius: 4,
-                    border: `1.5px solid ${outcome === 'made' ? '#22c55e' : 'rgba(34, 197, 94, 0.35)'}`,
-                    background: outcome === 'made' ? '#22c55e' : '#262a32',
-                    color: outcome === 'made' ? '#fff' : '#86efac',
-                    cursor: 'pointer',
-                    fontWeight: outcome === 'made' ? 700 : 500,
-                  }}
-                >
-                  ✅ {outcome === 'made' ? 'RÉUSSI' : 'réussi'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => props.onPatchStep!(props.state.activeStep, {
-                    shotOutcome: outcome === 'missed' ? undefined : 'missed',
-                    shotPos: outcome === 'missed' ? undefined : (activeStep.shotPos ?? activeStep.off[activeStep.ballCarrier]),
-                  })}
-                  title="Marque ce step comme tir manqué. Débloque le bouton 'étape rebond auto'."
-                  style={{
-                    flex: 1,
-                    fontSize: 10,
-                    padding: '4px 6px',
-                    borderRadius: 4,
-                    border: `1.5px solid ${outcome === 'missed' ? '#dc2626' : 'rgba(252, 165, 165, 0.35)'}`,
-                    background: outcome === 'missed' ? '#dc2626' : '#262a32',
-                    color: outcome === 'missed' ? '#fff' : '#fca5a5',
-                    cursor: 'pointer',
-                    fontWeight: outcome === 'missed' ? 700 : 500,
-                  }}
-                >
-                  ❌ {outcome === 'missed' ? 'MANQUÉ' : 'manqué'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => props.onPatchStep!(props.state.activeStep, {
-                    shotOutcome: outcome === 'blocked' ? undefined : 'blocked',
-                    shotPos: outcome === 'blocked' ? undefined : (activeStep.shotPos ?? activeStep.off[activeStep.ballCarrier]),
-                  })}
-                  title="V2 — Marque ce step comme tir contré. Sur étape rebond auto, le défenseur le plus proche du shooter récupère directement (= possession défensive)."
-                  style={{
-                    flex: 1,
-                    fontSize: 10,
-                    padding: '4px 6px',
-                    borderRadius: 4,
-                    border: `1.5px solid ${outcome === 'blocked' ? '#a855f7' : 'rgba(196, 181, 253, 0.35)'}`,
-                    background: outcome === 'blocked' ? '#a855f7' : '#262a32',
-                    color: outcome === 'blocked' ? '#fff' : '#c4b5fd',
-                    cursor: 'pointer',
-                    fontWeight: outcome === 'blocked' ? 700 : 500,
-                  }}
-                >
-                  🛑 {outcome === 'blocked' ? 'CONTRÉ' : 'contré'}
-                </button>
-              </div>
-              {outcome && (
-                <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 3, fontStyle: 'italic' }}>
-                  Step marqué comme tir {outcome === 'made' ? 'réussi' : 'manqué'}.
-                  Cliquer à nouveau pour annuler.
+            <div style={{ marginTop: 8 }}>
+              <Section theme="offense" label="⚙️ Situations spéciales & Remises" open={hasSpecialContext}>
+                {props.onPatchStep && activeStep && !activeStep.isInterpolated && (() => {
+                  const outcome = activeStep.shotOutcome;
+                  return (
+                    <div style={{ marginTop: 2 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', marginBottom: 4 }}>
+                        Issue d&apos;un tir sur cette étape
+                      </div>
+                      <div style={{ display: 'flex', gap: 3 }}>
+                        <button
+                          type="button"
+                          onClick={() => props.onPatchStep!(props.state.activeStep, {
+                            shotOutcome: outcome === 'made' ? undefined : 'made',
+                            shotPos: outcome === 'made' ? undefined : (activeStep.shotPos ?? activeStep.off[activeStep.ballCarrier]),
+                          })}
+                          title="Marque cette étape comme tir réussi. Cliquer à nouveau pour annuler."
+                          style={{
+                            flex: 1,
+                            fontSize: 10,
+                            padding: '4px 6px',
+                            borderRadius: 4,
+                            border: `1.5px solid ${outcome === 'made' ? '#22c55e' : 'rgba(34, 197, 94, 0.35)'}`,
+                            background: outcome === 'made' ? '#22c55e' : '#262a32',
+                            color: outcome === 'made' ? '#fff' : '#86efac',
+                            cursor: 'pointer',
+                            fontWeight: outcome === 'made' ? 700 : 500,
+                          }}
+                        >
+                          ✅ {outcome === 'made' ? 'RÉUSSI' : 'Réussi'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => props.onPatchStep!(props.state.activeStep, {
+                            shotOutcome: outcome === 'missed' ? undefined : 'missed',
+                            shotPos: outcome === 'missed' ? undefined : (activeStep.shotPos ?? activeStep.off[activeStep.ballCarrier]),
+                          })}
+                          title="Marque cette étape comme tir manqué. Permet de générer le rebond automatique."
+                          style={{
+                            flex: 1,
+                            fontSize: 10,
+                            padding: '4px 6px',
+                            borderRadius: 4,
+                            border: `1.5px solid ${outcome === 'missed' ? '#dc2626' : 'rgba(252, 165, 165, 0.35)'}`,
+                            background: outcome === 'missed' ? '#dc2626' : '#262a32',
+                            color: outcome === 'missed' ? '#fff' : '#fca5a5',
+                            cursor: 'pointer',
+                            fontWeight: outcome === 'missed' ? 700 : 500,
+                          }}
+                        >
+                          ❌ {outcome === 'missed' ? 'MANQUÉ' : 'Manqué'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => props.onPatchStep!(props.state.activeStep, {
+                            shotOutcome: outcome === 'blocked' ? undefined : 'blocked',
+                            shotPos: outcome === 'blocked' ? undefined : (activeStep.shotPos ?? activeStep.off[activeStep.ballCarrier]),
+                          })}
+                          title="Marque cette étape comme tir contré."
+                          style={{
+                            flex: 1,
+                            fontSize: 10,
+                            padding: '4px 6px',
+                            borderRadius: 4,
+                            border: `1.5px solid ${outcome === 'blocked' ? '#a855f7' : 'rgba(196, 181, 253, 0.35)'}`,
+                            background: outcome === 'blocked' ? '#a855f7' : '#262a32',
+                            color: outcome === 'blocked' ? '#fff' : '#c4b5fd',
+                            cursor: 'pointer',
+                            fontWeight: outcome === 'blocked' ? 700 : 500,
+                          }}
+                        >
+                          🛑 {outcome === 'blocked' ? 'CONTRÉ' : 'Contré'}
+                        </button>
+                      </div>
+                      {outcome && (
+                        <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 3, fontStyle: 'italic' }}>
+                          Étape marquée comme tir {outcome === 'made' ? 'réussi' : outcome === 'blocked' ? 'contré' : 'manqué'}.
+                          Cliquer à nouveau pour annuler.
+                        </div>
+                      )}
+                      {(outcome === 'missed' || outcome === 'blocked') && props.onAddShotReboundStep && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const msg = outcome === 'blocked'
+                              ? 'Générer une étape post-contre ? Le défenseur le plus proche du tireur récupère directement.'
+                              : 'Générer une étape de rebond automatique ? Écrans de retardement (box-out) + rebondeur identifié.';
+                            if (confirm(msg)) {
+                              props.onAddShotReboundStep!();
+                            }
+                          }}
+                          title="Ajoute une étape post-tir : défenseurs au box-out et récupération du rebond."
+                          style={{
+                            width: '100%',
+                            fontSize: 10,
+                            padding: '5px 6px',
+                            borderRadius: 4,
+                            border: '1px solid #f59e0b',
+                            background: '#262a32',
+                            color: '#fbbf24',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            marginTop: 4,
+                          }}
+                        >
+                          🏀 Générer l&apos;étape {outcome === 'blocked' ? 'post-contre' : 'de rebond'} auto
+                        </button>
+                      )}
+                      {activeStep.outletPassPending && props.onAddOutletPassStep && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm('Générer la transition adverse ? Passe de relance (outlet) jouée + étape adverse insérée.')) {
+                              props.onAddOutletPassStep!();
+                            }
+                          }}
+                          title="Enchaîne automatiquement : passe de relance + étape d'attaque adverse."
+                          style={{
+                            width: '100%',
+                            fontSize: 10,
+                            padding: '5px 6px',
+                            borderRadius: 4,
+                            border: '1px solid #dc2626',
+                            background: '#262a32',
+                            color: '#fca5a5',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            marginTop: 4,
+                          }}
+                        >
+                          🔄 Relance → transition adverse
+                        </button>
+                      )}
+                      {activeStep.reboundType === 'defensive' && props.onAddFastBreakSteps && (
+                        <button
+                          type="button"
+                          onClick={() => props.onAddFastBreakSteps!()}
+                          title="Génère une contre-attaque (passe de relance + sprint des 3 couloirs)."
+                          style={{
+                            width: '100%',
+                            fontSize: 10,
+                            padding: '5px 6px',
+                            borderRadius: 4,
+                            border: '1px solid #f59e0b',
+                            background: '#262a32',
+                            color: '#fcd34d',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            marginTop: 4,
+                          }}
+                        >
+                          ⚡ Contre-attaque (relance + couloirs)
+                        </button>
+                      )}
+                      {props.onConvertStepToAwayPossession && (() => {
+                        const isAway = activeStep.viewSide === 'away';
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isAway) {
+                                if (confirm('Repasser cette étape en possession normale ?')) {
+                                  props.onPatchStep?.(props.state.activeStep, { viewSide: 'home' });
+                                }
+                              } else {
+                                if (confirm('Convertir cette étape en possession adverse ? Inversion verticale des positions.')) {
+                                  props.onConvertStepToAwayPossession!({ mode: 'replace' });
+                                }
+                              }
+                            }}
+                            title={isAway
+                              ? 'Étape actuellement en possession adverse. Cliquer pour revenir en mode normal.'
+                              : 'Convertit cette étape en possession adverse.'
+                            }
+                            style={{
+                              width: '100%',
+                              fontSize: 10,
+                              padding: '5px 6px',
+                              borderRadius: 4,
+                              border: `1px solid ${isAway ? '#22c55e' : '#dc2626'}`,
+                              background: '#262a32',
+                              color: isAway ? '#86efac' : '#fca5a5',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              marginTop: 4,
+                            }}
+                          >
+                            {isAway ? '↩ Revenir en possession normale' : '↩ Passer en possession adverse'}
+                          </button>
+                        );
+                      })()}
+                    </div>
+                  );
+                })()}
+
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', marginTop: 6, marginBottom: 2 }}>
+                  Remises en jeu & Situations arrêtées
                 </div>
-              )}
-              {(outcome === 'missed' || outcome === 'blocked') && props.onAddShotReboundStep && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const msg = outcome === 'blocked'
-                      ? 'Générer une étape post-contre ? Le défenseur le plus proche du shooter récupère directement.'
-                      : 'Générer une étape de rebond automatique ? Box-out défensif + rebondeur identifié par modèle probabiliste.';
-                    if (confirm(msg)) {
-                      props.onAddShotReboundStep!();
-                    }
-                  }}
-                  title="A11 V1+V2 — Ajoute une étape post-tir : défenseurs en box-out, rebondeur identifié (computeRebound si manqué, contreur proche si bloqué)."
-                  style={{
-                    width: '100%',
-                    fontSize: 10,
-                    padding: '5px 6px',
-                    borderRadius: 4,
-                    border: '1px solid #f59e0b',
-                    background: '#262a32',
-                    color: '#fbbf24',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    marginTop: 4,
-                  }}
-                >
-                  🏀 étape {outcome === 'blocked' ? 'post-contre' : 'rebond'} auto (A11)
-                </button>
-              )}
-              {/* A11 V3 — Bouton "outlet → transition" combiné : clear le
-                  flag outletPassPending et génère le step adverse en 1 clic.
-                  Visible UNIQUEMENT quand outletPassPending: true (= rebond
-                  défensif récent). */}
-              {activeStep.outletPassPending && props.onAddOutletPassStep && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm('Générer la transition adverse ? Outlet pass joué + step adverse inséré (positions inversées verticalement).')) {
-                      props.onAddOutletPassStep!();
-                    }
-                  }}
-                  title="A11 V3 — Chaîne automatique : clear outletPassPending + ajoute step adverse (mirror y=540). Suite naturelle d'un rebond défensif."
-                  style={{
-                    width: '100%',
-                    fontSize: 10,
-                    padding: '5px 6px',
-                    borderRadius: 4,
-                    border: '1px solid #dc2626',
-                    background: '#262a32',
-                    color: '#fca5a5',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    marginTop: 4,
-                  }}
-                >
-                  🔄 outlet → transition adverse (A11 V3)
-                </button>
-              )}
-              {/* Transition sous-projet 1 — fast-break full-court : outlet +
-                  sprint des couloirs vers le panier opposé. Visible sur un
-                  rebond défensif. */}
-              {activeStep.reboundType === 'defensive' && props.onAddFastBreakSteps && (
-                <button
-                  type="button"
-                  onClick={() => props.onAddFastBreakSteps!()}
-                  title="Génère un fast-break (outlet + sprint des 3 couloirs vers le panier opposé, full-court). L'équipe qui rebondit court."
-                  style={{
-                    width: '100%',
-                    fontSize: 10,
-                    padding: '5px 6px',
-                    borderRadius: 4,
-                    border: '1px solid #f59e0b',
-                    background: '#262a32',
-                    color: '#fcd34d',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    marginTop: 4,
-                  }}
-                >
-                  ⚡ fast-break (outlet + sprint couloirs)
-                </button>
-              )}
-              {/* E.1 stage 2b — Bouton libre "Convertir en possession adverse"
-                  disponible sur tout step actif. Permet d'éditer un scénario
-                  en partant directement d'une phase adverse, ou de basculer
-                  un step home → away (et inverse). */}
-              {props.onConvertStepToAwayPossession && (() => {
-                const isAway = activeStep.viewSide === 'away';
-                return (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isAway) {
-                        if (confirm('Repasser ce step en mode "home" ? Les positions restent inchangées (juste l\'affichage).')) {
-                          props.onPatchStep?.(props.state.activeStep, { viewSide: 'home' });
+
+                {props.onConvertToInbound && (
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('Convertir cette étape en remise ligne de fond (BLOB) ?')) {
+                          props.onConvertToInbound!('inbound-baseline');
                         }
-                      } else {
-                        if (confirm('Convertir CE step en phase adverse ? Mirror vertical des positions autour de y=540 (= demi-court).')) {
-                          props.onConvertStepToAwayPossession!({ mode: 'replace' });
+                      }}
+                      style={inboundButtonStyle}
+                      title="Remise en jeu ligne de fond (BLOB) — passeur sous le panier."
+                    >
+                      ⏱ Fond (BLOB)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('Convertir cette étape en remise sur la touche en zone avant (SLOB bas) ?')) {
+                          props.onConvertToInbound!('inbound-sideline-low');
                         }
-                      }
-                    }}
-                    title={isAway
-                      ? 'Step actuellement en mode adverse. Cliquer pour revenir en home (affichage uniquement).'
-                      : 'Convertit ce step en phase adverse (mirror vertical des positions).'
-                    }
-                    style={{
-                      width: '100%',
-                      fontSize: 10,
-                      padding: '5px 6px',
-                      borderRadius: 4,
-                      border: `1px solid ${isAway ? '#22c55e' : '#dc2626'}`,
-                      background: '#262a32',
-                      color: isAway ? '#86efac' : '#fca5a5',
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                      marginTop: 4,
-                    }}
-                  >
-                    {isAway ? '↩ revenir en mode home' : '↩ convertir en phase adverse'}
-                  </button>
-                );
-              })()}
+                      }}
+                      style={inboundButtonStyle}
+                      title="Remise en jeu touche zone offensive (SLOB bas)."
+                    >
+                      ⏱ Touche av.
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('Convertir cette étape en remise sur la touche en zone arrière (SLOB haut) ?')) {
+                          props.onConvertToInbound!('inbound-sideline-high');
+                        }
+                      }}
+                      style={inboundButtonStyle}
+                      title="Remise en jeu touche zone arrière / transition (SLOB haut)."
+                    >
+                      ⏱ Touche arr.
+                    </button>
+                  </div>
+                )}
+
+                {props.onConvertToFreeThrow && (
+                  <div style={{ marginTop: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('Convertir cette étape en lancer franc ? Les joueurs seront placés autour de la raquette.')) {
+                          props.onConvertToFreeThrow!();
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        fontSize: 10,
+                        padding: '4px 6px',
+                        borderRadius: 4,
+                        border: '1px solid #f59e0b',
+                        background: '#262a32',
+                        color: '#fbbf24',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                      }}
+                      title="Place les joueurs sur les emplacements réglementaires de lancer franc."
+                    >
+                      🏀 Placer en lancer franc
+                    </button>
+                  </div>
+                )}
+
+                {props.onAddFreeThrowReboundStep &&
+                  props.state.steps[props.state.activeStep]?.context === 'free-throw' && (
+                    <div style={{ marginTop: 4, display: 'flex', gap: 3 }}>
+                      <button
+                        type="button"
+                        onClick={() => props.onAddFreeThrowReboundStep!(true)}
+                        title="Ajoute une étape après lancer franc réussi (remise / transition)."
+                        style={{
+                          flex: 1,
+                          fontSize: 10,
+                          padding: '4px 4px',
+                          borderRadius: 4,
+                          border: '1px solid #10b981',
+                          background: '#262a32',
+                          color: '#065f46',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          minWidth: 0,
+                        }}
+                      >
+                        🏀 +1 LF réussi
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => props.onAddFreeThrowReboundStep!(false)}
+                        title="Ajoute une étape après lancer franc manqué (rebond)."
+                        style={{
+                          flex: 1,
+                          fontSize: 10,
+                          padding: '4px 4px',
+                          borderRadius: 4,
+                          border: '1px solid #f59e0b',
+                          background: '#262a32',
+                          color: '#fbbf24',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          minWidth: 0,
+                        }}
+                      >
+                        ⚠ LF manqué + rebond
+                      </button>
+                    </div>
+                  )}
+
+                {props.onConvertToJumpBall && (
+                  <div style={{ marginTop: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('Convertir cette étape en entre-deux ? Place les joueurs autour du cercle central.')) {
+                          props.onConvertToJumpBall!();
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        fontSize: 10,
+                        padding: '4px 6px',
+                        borderRadius: 4,
+                        border: '1px solid #7c3aed',
+                        background: '#262a32',
+                        color: '#5b21b6',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                      }}
+                      title="Place les joueurs en configuration d'entre-deux au cercle central."
+                    >
+                      🆙 Placer en entre-deux
+                    </button>
+                  </div>
+                )}
+
+                {props.onSetInboundDefenseMode &&
+                  props.state.steps[props.state.activeStep] &&
+                  (props.state.steps[props.state.activeStep].context === 'inbound-baseline' ||
+                    props.state.steps[props.state.activeStep].context === 'inbound-sideline-low' ||
+                    props.state.steps[props.state.activeStep].context === 'inbound-sideline-high') && (
+                    <div style={{ marginTop: 6, padding: '4px 6px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 4 }}>
+                      <div style={{ fontSize: 9, fontWeight: 600, color: '#fca5a5', marginBottom: 3, letterSpacing: 0.3 }}>
+                        🛡 DÉFENSE SUR REMISE
+                      </div>
+                      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                        {([
+                          { mode: 'man' as const, label: 'Individuelle', title: 'Homme-à-homme standard face à face.' },
+                          { mode: 'face-guard' as const, label: 'Face-guard', title: 'Refus de passe sur le receveur principal.' },
+                          { mode: 'deny-deny' as const, label: 'Tout contester', title: 'Tous les défenseurs contestent les lignes de passe.' },
+                          { mode: 'zone-press' as const, label: 'Trappe remise', title: 'Prise à deux sur le passeur + contestation + 1 défenseur en couverture.' },
+                        ]).map(({ mode, label, title }) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => props.onSetInboundDefenseMode!(mode)}
+                            title={title}
+                            style={{
+                              flex: '1 1 auto',
+                              fontSize: 9,
+                              padding: '3px 6px',
+                              borderRadius: 3,
+                              border: '1px solid #fca5a5',
+                              background: '#262a32',
+                              color: '#fca5a5',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              minWidth: 0,
+                            }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+              </Section>
             </div>
           );
         })()}
-        {props.onConvertToFreeThrow && (
-          <div style={{ marginTop: 4 }}>
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm('Convertir cette étape en lancer franc ? Les 10 joueurs seront repositionnés sur les emplacements réglementaires.')) {
-                  props.onConvertToFreeThrow!();
-                }
-              }}
-              style={{
-                width: '100%',
-                fontSize: 10,
-                padding: '4px 6px',
-                borderRadius: 4,
-                border: '1px solid #f59e0b',
-                background: '#262a32',
-                color: '#fbbf24',
-                cursor: 'pointer',
-                fontWeight: 600,
-              }}
-              title="Force les 10 positions sur les 6 slots du couloir LF + tireur + outlets 3pt. Marque le step comme context='free-throw'."
-            >
-              🏀 convertir en lancer franc
-            </button>
-          </div>
-        )}
-        {/* F.2 — boutons post-lancer : visibles uniquement si step actif est LF */}
-        {props.onAddFreeThrowReboundStep &&
-          props.state.steps[props.state.activeStep]?.context === 'free-throw' && (
-            <div style={{ marginTop: 4, display: 'flex', gap: 3 }}>
-              <button
-                type="button"
-                onClick={() => props.onAddFreeThrowReboundStep!(true)}
-                title="Ajoute un step post-lancer : LF réussi, transition adverse."
-                style={{
-                  flex: 1,
-                  fontSize: 10,
-                  padding: '4px 4px',
-                  borderRadius: 4,
-                  border: '1px solid #10b981',
-                  background: '#262a32',
-                  color: '#065f46',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  minWidth: 0,
-                }}
-              >
-                🏀 +1 LF réussi
-              </button>
-              <button
-                type="button"
-                onClick={() => props.onAddFreeThrowReboundStep!(false)}
-                title="Ajoute un step post-lancer : LF manqué, course-rebond."
-                style={{
-                  flex: 1,
-                  fontSize: 10,
-                  padding: '4px 4px',
-                  borderRadius: 4,
-                  border: '1px solid #f59e0b',
-                  background: '#262a32',
-                  color: '#fbbf24',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  minWidth: 0,
-                }}
-              >
-                ⚠ LF manqué + rebond
-              </button>
-            </div>
-          )}
-        {props.onConvertToInbound && (
-          <div style={{ marginTop: 4, display: 'flex', gap: 3 }}>
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm('Convertir cette étape en remise ligne de fond (BLOB) ? Box set classique.')) {
-                  props.onConvertToInbound!('inbound-baseline');
-                }
-              }}
-              style={inboundButtonStyle}
-              title="Remise ligne de fond (BLOB). Passeur derrière le panier, 4 attaquants en Box set, défenseurs face-à-face."
-            >
-              ⏱ BLOB
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm('Convertir cette étape en remise de touche côté offensif (SLOB low) ?')) {
-                  props.onConvertToInbound!('inbound-sideline-low');
-                }
-              }}
-              style={inboundButtonStyle}
-              title="Remise touche côté offensif. Passeur sur la touche au niveau du free throw line étendu."
-            >
-              ⏱ SLOB bas
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm('Convertir cette étape en remise de touche côté défensif (SLOB transition) ?')) {
-                  props.onConvertToInbound!('inbound-sideline-high');
-                }
-              }}
-              style={inboundButtonStyle}
-              title="Remise touche côté défensif (transition, advance the ball)."
-            >
-              ⏱ SLOB haut
-            </button>
-          </div>
-        )}
-        {/* E.2 — bouton entre-deux (jump ball) */}
-        {props.onConvertToJumpBall && (
-          <div style={{ marginTop: 4 }}>
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm('Convertir cette étape en entre-deux (jump ball) ? Pose 10 joueurs autour du cercle central, 2 sauteurs au centre.')) {
-                  props.onConvertToJumpBall!();
-                }
-              }}
-              style={{
-                width: '100%',
-                fontSize: 10,
-                padding: '4px 6px',
-                borderRadius: 4,
-                border: '1px solid #7c3aed',
-                background: '#262a32',
-                color: '#5b21b6',
-                cursor: 'pointer',
-                fontWeight: 600,
-              }}
-              title="Pose le setup canonique d'entre-deux : O1 + D1 sauteurs au cercle central, 4+4 joueurs autour en arc."
-            >
-              🆙 entre-deux (jump ball)
-            </button>
-          </div>
-        )}
-        {/* Defensive inbound mode : visible uniquement si step actif est inbound */}
-        {props.onSetInboundDefenseMode &&
-          props.state.steps[props.state.activeStep] &&
-          (props.state.steps[props.state.activeStep].context === 'inbound-baseline' ||
-            props.state.steps[props.state.activeStep].context === 'inbound-sideline-low' ||
-            props.state.steps[props.state.activeStep].context === 'inbound-sideline-high') && (
-            <div style={{ marginTop: 6, padding: '4px 6px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 4 }}>
-              <div style={{ fontSize: 9, fontWeight: 600, color: '#fca5a5', marginBottom: 3, letterSpacing: 0.3 }}>
-                🛡 DÉFENSE SUR REMISE
-              </div>
-              <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                {([
-                  { mode: 'man' as const, label: 'man', title: 'Man-to-man face à face standard.' },
-                  { mode: 'face-guard' as const, label: 'face-guard', title: 'Refus de passe sur le receveur principal (shooter le plus proche du passeur).' },
-                  { mode: 'deny-deny' as const, label: 'deny tout', title: 'Tous les défenseurs sur les lignes de passe (refus systématique).' },
-                  { mode: 'zone-press' as const, label: 'zone press', title: 'Trap sur le passeur + denials + 1 sweeper arrière.' },
-                ]).map(({ mode, label, title }) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => props.onSetInboundDefenseMode!(mode)}
-                    title={title}
-                    style={{
-                      flex: '1 1 auto',
-                      fontSize: 9,
-                      padding: '3px 6px',
-                      borderRadius: 3,
-                      border: '1px solid #fca5a5',
-                      background: '#262a32',
-                      color: '#fca5a5',
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                      minWidth: 0,
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
       </Section>
     </Panel>
   );
 }
+

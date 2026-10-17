@@ -181,9 +181,9 @@ export function DefensePanel(props: DefensePanelProps) {
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
             <span
               style={{ fontSize: 10, color: '#cbd5e1', flex: '0 0 48px' }}
-              title="Après un tag sur pick-and-roll : qui garde le roller une fois l'écran terminé. Les défenseurs en rotation (tag, X-out, stunt) finissent leur rotation au lieu de repartir d'un coup, et les duels échangés se rendent leurs hommes quand le ballon ressort."
+              title="Après une aide intérieure (tag) sur pick-and-roll : qui garde le pivot plongeant une fois l'écran terminé."
             >
-              Après tag
+              Aide PnR
             </span>
             <select
               value={state.rotationMemory ?? 'off'}
@@ -196,9 +196,9 @@ export function DefensePanel(props: DefensePanelProps) {
               style={{ flex: '1 1 0%', minWidth: 0, fontSize: 11, padding: '3px 4px' }}
             >
               <option value="off">recalcul à chaque étape</option>
-              <option value="auto">auto : le plus proche garde le roller</option>
-              <option value="stay">le tagueur garde le roller</option>
-              <option value="recover">le tagueur revient sur son homme</option>
+              <option value="auto">auto : le plus proche garde le pivot</option>
+              <option value="stay">l&apos;aide garde le pivot (switch)</option>
+              <option value="recover">l&apos;aide revient sur son joueur</option>
             </select>
           </div>
         )}
@@ -252,11 +252,9 @@ export function DefensePanel(props: DefensePanelProps) {
         icon="🎯"
         variant="pinned"
       >
-        {/* Boutons "Tout en auto" — 2 variantes :
-            - rapide : instantané, pour le coach qui bosse vite
-            - réel : anime le retour des défenseurs à leur position auto sur
-              ~700 ms (pédagogique, pour montrer aux joueurs ce que devrait
-              être la réaction défensive correcte) */}
+        {/* Boutons "Replacer en auto" — affichés clairement quand des défenseurs ont été déplacés à la main :
+            - Replacer en auto : instantané
+            - Animer le retour : anime le retour des défenseurs sur ~700 ms (pédagogique) */}
         {(() => {
           const cur = state.steps[state.activeStep];
           const activeDefenders = new Set(defenderIds);
@@ -265,7 +263,7 @@ export function DefensePanel(props: DefensePanelProps) {
             : 0;
           const disabled = overrideCount === 0;
           const countLabel = overrideCount > 0
-            ? `(${overrideCount} manuel${overrideCount > 1 ? 's' : ''})`
+            ? `${overrideCount} défenseur${overrideCount > 1 ? 's' : ''} placé${overrideCount > 1 ? 's' : ''} à la main`
             : '';
           const baseStyle = {
             fontSize: 11,
@@ -282,31 +280,31 @@ export function DefensePanel(props: DefensePanelProps) {
           } as const;
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+              {overrideCount > 0 && (
+                <div style={{ fontSize: 10, color: '#93c5fd', textAlign: 'center', fontWeight: 600 }}>
+                  ✋ {countLabel}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 4 }}>
                 <button
                   type="button"
                   onClick={props.onClearAllDefenseOverrides}
                   disabled={disabled}
-                  title="Libère tous les défenseurs en placement manuel sur cette étape — instantané."
+                  title="Replace immédiatement tous les défenseurs sur leur position tactique automatique."
                   style={baseStyle}
                 >
-                  🧠 ⚡ rapide
+                  ↺ Replacer en auto
                 </button>
                 <button
                   type="button"
                   onClick={props.onClearAllDefenseOverridesAnimated}
                   disabled={disabled}
-                  title="Libère tous les défenseurs en placement manuel — anime le retour à leur position auto (pour montrer aux joueurs)."
+                  title="Anime le retour des défenseurs vers leur position automatique (idéal pour montrer la rotation aux joueurs)."
                   style={baseStyle}
                 >
-                  🧠 ▶ réel
+                  ▶ Animer le retour
                 </button>
               </div>
-              {overrideCount > 0 && (
-                <div style={{ fontSize: 10, color: '#94a3b8', textAlign: 'center' }}>
-                  {countLabel}
-                </div>
-              )}
             </div>
           );
         })()}
@@ -565,22 +563,22 @@ export function DefensePanel(props: DefensePanelProps) {
       >
         {/* Consigne écran porteur (toujours visible, central pour démos) */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <span style={{ fontSize: 10, color: '#cbd5e1', flex: '0 0 48px' }}>écran</span>
+          <span style={{ fontSize: 10, color: '#cbd5e1', flex: '0 0 48px' }}>Écran</span>
           <select
             value={state.screenRule}
             onChange={(e) => props.onSetScreenRule(e.target.value as ScreenRule)}
             style={{ flex: '1 1 0%', minWidth: 0, fontSize: 11, padding: '3px 4px' }}
-            title="Comment la défense gère un écran porteur (over, under, switch, hedge, drop, blitz, ice, weak, peel-switch)"
+            title="Comment la défense gère un écran sur le porteur de balle (Pick & Roll)"
           >
-            <option value="over">over (par-dessus)</option>
-            <option value="under">under (en dessous)</option>
-            <option value="switch">switch (échange)</option>
-            <option value="hedge">hedge (show & recover)</option>
-            <option value="drop">drop (recul)</option>
-            <option value="blitz">blitz (piège)</option>
-            <option value="ice">ice / no-middle (force baseline)</option>
-            <option value="weak">weak (under léger, recover shooter)</option>
-            <option value="peel-switch">peel switch (drop puis switch)</option>
+            <option value="over">Passer au-dessus (Over)</option>
+            <option value="under">Passer en dessous (Under)</option>
+            <option value="switch">Changer de joueur (Switch)</option>
+            <option value="hedge">Sortir fort puis revenir (Hedge)</option>
+            <option value="drop">Reculer vers la raquette (Drop)</option>
+            <option value="blitz">Prise à deux sur porteur (Blitz)</option>
+            <option value="ice">Forcer ligne de fond (Ice / No-middle)</option>
+            <option value="weak">Orienter main faible (Weak)</option>
+            <option value="peel-switch">Changement retardé (Peel switch)</option>
           </select>
         </div>
 

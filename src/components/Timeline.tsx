@@ -33,6 +33,7 @@ const TIMELINE_UI = {
 interface TimelineProps {
   state: AppState;
   onSetActiveStep: (idx: number) => void;
+  onAddStep?: () => void;
   onScrub?: (t: number | null) => void;
   isPlaying: boolean;
   scrubT: number | null;
@@ -60,7 +61,7 @@ const SUBFRAMES_COARSE = 10;
  * - barre top : ▶/⏸/■ et slider de vitesse à côté du scrub track
  */
 export function Timeline({
-  state, onSetActiveStep, onScrub, isPlaying, scrubT, playbackT,
+  state, onSetActiveStep, onAddStep, onScrub, isPlaying, scrubT, playbackT,
   onPlayToggle, onStop, playbackSpeed, onSetPlaybackSpeed, extraActions,
 }: TimelineProps) {
   const { development } = useInterfaceLevel();
@@ -394,6 +395,30 @@ export function Timeline({
           </>
         )}
         {trackEl}
+        {onAddStep && (
+          <button
+            type="button"
+            onClick={onAddStep}
+            disabled={isPlaying}
+            className="bt-touch"
+            title="Ajouter une étape à la suite (+ étape)"
+            style={{
+              padding: '4px 8px',
+              fontSize: 11,
+              fontWeight: 700,
+              borderRadius: 6,
+              border: '1px solid rgba(234, 88, 12, 0.5)',
+              background: 'rgba(234, 88, 12, 0.14)',
+              color: TIMELINE_UI.orange,
+              cursor: isPlaying ? 'not-allowed' : 'pointer',
+              opacity: isPlaying ? 0.45 : 1,
+              flex: '0 0 auto',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            + Étape
+          </button>
+        )}
         {hasControls && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: '0 0 auto' }}>
             <input

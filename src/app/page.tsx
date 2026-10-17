@@ -65,7 +65,7 @@ export default function Page() {
   const [playbackT, setPlaybackT] = useState<number | null>(null);
   const [showPlayerTimeline, setShowPlayerTimeline] = useState(false);
   const [showMultiTrack, setShowMultiTrack] = useState(false);
-  const [showMetrics, setShowMetrics] = useState(true);
+  const [showMetrics, setShowMetrics] = useState(false);
   const [scrubT, setScrubT] = useState<number | null>(null);
   const [playbackStartT, setPlaybackStartT] = useState(0);
   const [playbackRunId, setPlaybackRunId] = useState(0);
@@ -596,14 +596,14 @@ export default function Page() {
             </div>
           )}
 
-          {/* Pôle Droite : Actions système, Partage et Thème */}
+          {/* Pôle Droite : Actions système, Présentation, Partage et Thème */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <button
               type="button"
               className="bt-touch"
               style={{
                 height: 28,
-                padding: '0 10px',
+                padding: '0 9px',
                 border: '1px solid var(--bt-btn-border)',
                 borderRadius: 6,
                 background: 'var(--bt-btn-bg)',
@@ -617,10 +617,36 @@ export default function Page() {
                 opacity: 0.9,
               }}
               onClick={startGestureRecording}
-              title="Enregistrer les déplacements de souris et la réaction défensive pour partager ou déboguer"
+              title="Capturer en direct les déplacements à la souris et la réaction défensive (jusqu'à 60 s)"
             >
               <span style={{ color: '#ef4444', fontSize: 10 }}>●</span>
-              <span>Enregistrer les gestes</span>
+              <span>Capturer mouv.</span>
+            </button>
+            <button
+              type="button"
+              className="bt-touch"
+              style={{
+                height: 28,
+                padding: '0 9px',
+                border: '1px solid var(--bt-btn-border)',
+                borderRadius: 6,
+                background: 'var(--bt-btn-bg)',
+                color: 'var(--bt-btn-text)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                fontSize: 11,
+                fontWeight: 600,
+              }}
+              onClick={() => {
+                sidebar.setActiveView('court');
+                setIsPlayerMode(true);
+              }}
+              title="Passer en mode Présentation / Joueur (terrain grand format avec télécommande pas-à-pas)"
+            >
+              <span>📺</span>
+              <span>Présenter</span>
             </button>
             {currentSavedSystem && (
               <button
@@ -636,12 +662,12 @@ export default function Page() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   fontSize: 11,
-                  fontWeight: 500,
+                  fontWeight: 600,
                 }}
                 onClick={() => lib.updateSystem(currentSavedSystem.id, app.state)}
                 title={`Enregistrer les modifications dans ${currentSavedSystem.name}`}
               >
-                Enregistrer
+                💾 Enregistrer
               </button>
             )}
             <button
@@ -657,11 +683,12 @@ export default function Page() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 fontSize: 11,
+                fontWeight: currentSavedSystem ? 500 : 600,
               }}
               onClick={() => sidebar.setActiveView('library')}
-              title="Enregistrer sous un nouveau nom dans la bibliothèque"
+              title="Enregistrer ce système dans la bibliothèque"
             >
-              Enregistrer sous…
+              {currentSavedSystem ? 'Enregistrer sous…' : '💾 Sauvegarder…'}
             </button>
             <button
               className="bt-touch"
@@ -794,6 +821,18 @@ export default function Page() {
                     onOpenComposer={() => setShowComposerModal(true)}
                     modifiers={stickyModifiers}
                     onChangeModifiers={setStickyModifiers}
+                    stepIndicator={formatStepCounter(stepCounterAt(app.state.steps, app.state.activeStep))}
+                    canPrevStep={app.state.activeStep > 0}
+                    canNextStep={app.state.activeStep < app.state.steps.length - 1}
+                    onPrevStep={() => {
+                      setScrubT(null);
+                      app.setActiveStep(Math.max(0, app.state.activeStep - 1));
+                    }}
+                    onNextStep={() => {
+                      setScrubT(null);
+                      app.setActiveStep(Math.min(app.state.steps.length - 1, app.state.activeStep + 1));
+                    }}
+                    onAddStep={app.addStep}
                   />
                 ),
               },
@@ -1179,6 +1218,7 @@ export default function Page() {
             <Timeline
               state={app.state}
               onSetActiveStep={app.setActiveStep}
+              onAddStep={app.addStep}
               onScrub={setScrubT}
               isPlaying={isPlaying}
               scrubT={scrubT}

@@ -1,9 +1,11 @@
 'use client';
 
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ActionTimingAnchor, Tool } from '@/lib/types';
 import type { StickyModifiers } from '@/hooks/useCourtPointerHandlers';
 import { Panel, Section, COLORS } from './ui';
 import { useSidebarTheme, DARK_PANEL } from './sidebar/SidebarThemeContext';
+import { InterfaceGate } from './interface/InterfaceLevel';
 import { TOOL_KEYS } from '@/hooks/useKeyboardShortcuts';
 
 interface OffenseToolsPanelProps {
@@ -15,47 +17,54 @@ interface OffenseToolsPanelProps {
   onOpenComposer?: () => void;
   modifiers?: StickyModifiers;
   onChangeModifiers?: (next: StickyModifiers) => void;
+  /** Contrôles d'étape rapides pour dessiner sans changer d'onglet */
+  stepIndicator?: string;
+  canPrevStep?: boolean;
+  canNextStep?: boolean;
+  onPrevStep?: () => void;
+  onNextStep?: () => void;
+  onAddStep?: () => void;
 }
 
 const shortcutKeyFor = (tool: Tool): string =>
   (Object.keys(TOOL_KEYS).find((k) => TOOL_KEYS[k] === tool) ?? '').toUpperCase();
 
 const TOOLS: { value: Tool; label: string }[] = [
-  { value: 'move', label: 'déplacer' },
-  { value: 'pass', label: 'passe' },
-  { value: 'dribble', label: 'dribble' },
-  { value: 'cut', label: 'course' },
-  { value: 'screen', label: 'écran' },
-  { value: 'text', label: 'note' },
+  { value: 'move', label: 'Déplacer' },
+  { value: 'pass', label: 'Passe' },
+  { value: 'dribble', label: 'Dribble' },
+  { value: 'cut', label: 'Course' },
+  { value: 'screen', label: 'Écran' },
+  { value: 'text', label: 'Note' },
 ];
 
 function ToolIcon({ tool, color }: { tool: Tool; color: string }) {
   switch (tool) {
     case 'move':
       return (
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-          <path d="M8 2 v12 M2 8 h12 M5 5 L2 8 L5 11 M11 5 L14 8 L11 11 M5 5 L8 2 L11 5 M5 11 L8 14 L11 11" stroke={color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+          <path d="M8 2 v12 M2 8 h12 M5 5 L2 8 L5 11 M11 5 L14 8 L11 11 M5 5 L8 2 L11 5 M5 11 L8 14 L11 11" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     case 'pass':
       return (
         <svg width="22" height="10" viewBox="0 0 22 10" fill="none">
-          <line x1="1" y1="5" x2="16" y2="5" stroke={color} strokeWidth="1.6" strokeDasharray="2 2.5" strokeLinecap="round" />
-          <path d="M15 1 L20 5 L15 9" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          <line x1="1" y1="5" x2="16" y2="5" stroke={color} strokeWidth="1.7" strokeDasharray="2 2.5" strokeLinecap="round" />
+          <path d="M15 1 L20 5 L15 9" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none" />
         </svg>
       );
     case 'dribble':
       return (
         <svg width="22" height="10" viewBox="0 0 22 10" fill="none">
-          <path d="M1 5 Q3 0 5 5 T9 5 T13 5 T17 5" stroke={color} strokeWidth="1.6" fill="none" strokeLinecap="round" />
-          <path d="M16 1 L20 5 L16 9" stroke={color} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M1 5 Q3 0 5 5 T9 5 T13 5 T17 5" stroke={color} strokeWidth="1.7" fill="none" strokeLinecap="round" />
+          <path d="M16 1 L20 5 L16 9" stroke={color} strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     case 'cut':
       return (
         <svg width="22" height="10" viewBox="0 0 22 10" fill="none">
-          <line x1="1" y1="5" x2="16" y2="5" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
-          <path d="M15 1 L20 5 L15 9" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          <line x1="1" y1="5" x2="16" y2="5" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
+          <path d="M15 1 L20 5 L15 9" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none" />
         </svg>
       );
     case 'text':
@@ -69,20 +78,14 @@ function ToolIcon({ tool, color }: { tool: Tool; color: string }) {
       );
     case 'screen':
       return (
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-          <line x1="8" y1="2" x2="8" y2="11" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+          <line x1="8" y1="2" x2="8" y2="11" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
           <line x1="3" y1="12" x2="13" y2="12" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
         </svg>
       );
   }
 }
 
-/**
- * Refonte UI Livraison 1 — panneau gauche colonne tactique :
- * outils d'édition (déplacer / passe / dribble / course / écran).
- *
- * La liste des étapes a été extraite dans `StepsPanel` (colonne droite).
- */
 export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
   const c = COLORS.offense;
   const { dark } = useSidebarTheme();
@@ -92,7 +95,7 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
   const actionTimingAnchor = props.actionTimingAnchor ?? 'start';
   return (
     <Panel theme="offense" title="⚪ Attaque">
-      <Section theme="offense" label="Actions" open>
+      <Section theme="offense" label="Tracer sur le terrain" open>
         <div
           style={{
             display: 'grid',
@@ -111,14 +114,14 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
                 aria-pressed={active}
                 className="bt-touch"
                 style={{
-                  fontSize: 11,
-                  padding: '7px 8px',
+                  fontSize: 12,
+                  padding: '8px 8px',
                   borderRadius: 6,
                   border: `1.5px solid ${active ? c.accent : idleBorder}`,
                   background: active ? '#c2410c' : idleBg,
                   color: active ? '#fff' : idleText,
                   cursor: 'pointer',
-                  fontWeight: active ? 650 : 500,
+                  fontWeight: active ? 700 : 500,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -151,6 +154,99 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
             );
           })}
         </div>
+
+        {/* Contrôle d'étape rapide : dessiner étape par étape sans quitter l'onglet Attaque */}
+        {props.onAddStep && (
+          <div
+            style={{
+              marginTop: 8,
+              padding: '6px 6px',
+              borderRadius: 6,
+              border: `1px solid ${idleBorder}`,
+              background: idleBg,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 4,
+            }}
+          >
+            {props.onPrevStep && props.onNextStep && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                <button
+                  type="button"
+                  onClick={props.onPrevStep}
+                  disabled={!props.canPrevStep}
+                  title="Étape précédente (←)"
+                  aria-label="Étape précédente"
+                  className="bt-touch"
+                  style={{
+                    padding: '4px',
+                    borderRadius: 4,
+                    border: 'none',
+                    background: 'transparent',
+                    color: idleText,
+                    cursor: props.canPrevStep ? 'pointer' : 'not-allowed',
+                    opacity: props.canPrevStep ? 1 : 0.35,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: idleText, whiteSpace: 'nowrap', minWidth: 52, textAlign: 'center' }}>
+                  {props.stepIndicator || 'Étape 1'}
+                </span>
+                <button
+                  type="button"
+                  onClick={props.onNextStep}
+                  disabled={!props.canNextStep}
+                  title="Étape suivante (→)"
+                  aria-label="Étape suivante"
+                  className="bt-touch"
+                  style={{
+                    padding: '4px',
+                    borderRadius: 4,
+                    border: 'none',
+                    background: 'transparent',
+                    color: idleText,
+                    cursor: props.canNextStep ? 'pointer' : 'not-allowed',
+                    opacity: props.canNextStep ? 1 : 0.35,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={props.onAddStep}
+              title="Valider cette étape et préparer l'étape suivante (+ étape)"
+              className="bt-touch"
+              style={{
+                flex: 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                padding: '6px 8px',
+                borderRadius: 5,
+                border: '1px solid #ea580c',
+                background: '#ea580c',
+                color: '#fff',
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Plus size={13} strokeWidth={2.5} />
+              <span>Étape suiv.</span>
+            </button>
+          </div>
+        )}
+
         {props.onOpenComposer && (
           <button
             type="button"
@@ -159,13 +255,13 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
             title="Orchestrateur tactique d'étape : définir les actions combinées (écrans, coupes, passes) en 1 clic sans dessiner"
             style={{
               width: '100%',
-              marginTop: 8,
-              padding: '8px 10px',
+              marginTop: 6,
+              padding: '7px 10px',
               borderRadius: 6,
               border: '1px solid rgba(234, 88, 12, 0.45)',
               background: 'linear-gradient(180deg, rgba(234, 88, 12, 0.22) 0%, rgba(194, 65, 12, 0.28) 100%)',
               color: '#fb923c',
-              fontSize: 12,
+              fontSize: 11.5,
               fontWeight: 700,
               cursor: 'pointer',
               display: 'flex',
@@ -174,41 +270,45 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
               gap: 6,
             }}
           >
-            <span>⚡ Orchestrer l'étape</span>
+            <span>⚡ Assistant d&apos;étape (1 clic)</span>
           </button>
         )}
-        {props.onSetActionTimingAnchor && (
-          <label
-            title="Coché : le tracé arrive au moment courant de la timeline. Décoché : il démarre au moment courant."
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 8,
-              marginTop: 8,
-              padding: '6px 8px',
-              borderRadius: 6,
-              border: `1px solid ${actionTimingAnchor === 'end' ? c.accent : idleBorder}`,
-              background: actionTimingAnchor === 'end'
-                ? (dark ? 'rgba(216, 90, 48, 0.18)' : '#fff7ed')
-                : idleBg,
-              color: actionTimingAnchor === 'end' ? c.accentText : idleText,
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: 'pointer',
-              userSelect: 'none',
-            }}
-          >
-            <span>fin d'action</span>
-            <input
-              type="checkbox"
-              checked={actionTimingAnchor === 'end'}
-              onChange={(e) => props.onSetActionTimingAnchor?.(e.target.checked ? 'end' : 'start')}
-            />
-          </label>
-        )}
+
+        <InterfaceGate min="analysis">
+          {props.onSetActionTimingAnchor && (
+            <label
+              title="Coché : le tracé arrive au moment courant de la timeline. Décoché : il démarre au moment courant."
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+                marginTop: 6,
+                padding: '6px 8px',
+                borderRadius: 6,
+                border: `1px solid ${actionTimingAnchor === 'end' ? c.accent : idleBorder}`,
+                background: actionTimingAnchor === 'end'
+                  ? (dark ? 'rgba(216, 90, 48, 0.18)' : '#fff7ed')
+                  : idleBg,
+                color: actionTimingAnchor === 'end' ? c.accentText : idleText,
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}
+            >
+              <span>Ancrer à la fin de l&apos;action</span>
+              <input
+                type="checkbox"
+                checked={actionTimingAnchor === 'end'}
+                onChange={(e) => props.onSetActionTimingAnchor?.(e.target.checked ? 'end' : 'start')}
+              />
+            </label>
+          )}
+        </InterfaceGate>
+
         {props.onChangeModifiers && props.modifiers && (
-          <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+          <div style={{ marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
             <button
               type="button"
               className="bt-touch"
@@ -252,14 +352,14 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
       </Section>
 
       {props.onApplyStartingFormation && (
-        <Section theme="offense" label="Formations de départ (1 clic)" open>
+        <Section theme="offense" label="Placement de départ (1 clic)" open>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
             {[
-              { id: '5-out', label: '5-Out Open' },
+              { id: '5-out', label: '5-Out (Ouvert)' },
               { id: '4-out-1-in', label: '4-Out 1-In' },
               { id: 'horns', label: 'Horns (Cornes)' },
-              { id: '1-4-high', label: '1-4 High' },
-              { id: '1-4-low', label: '1-4 Low' },
+              { id: '1-4-high', label: '1-4 Haut' },
+              { id: '1-4-low', label: '1-4 Bas' },
             ].map((f) => (
               <button
                 key={f.id}
@@ -288,3 +388,4 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
     </Panel>
   );
 }
+
