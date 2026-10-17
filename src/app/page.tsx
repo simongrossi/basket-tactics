@@ -6,7 +6,7 @@ import { useLibrary } from '@/hooks/useLibrary';
 import { SHORTCUT_LABELS, scrubTarget, useKeyboardShortcuts, type ShortcutMode } from '@/hooks/useKeyboardShortcuts';
 import { useMatchLoop } from '@/hooks/useMatchLoop';
 import { useSidebarState } from '@/hooks/useSidebarState';
-import { Sidebar, type ToolGroup } from '@/components/sidebar/Sidebar';
+import { Sidebar, Logo, type ToolGroup } from '@/components/sidebar/Sidebar';
 import { SIDEBAR } from '@/components/sidebar/tokens';
 import { Swords, Shield, ListOrdered, GitBranch, Undo2, Redo2, Share2, Sun, Moon, Layers, Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import type { StickyModifiers } from '@/hooks/useCourtPointerHandlers';
@@ -517,8 +517,24 @@ export default function Page() {
             flexWrap: 'nowrap',
           }}
         >
-          {/* Pôle Gauche : Undo/Redo + Titre + Statut */}
+          {/* Pôle Gauche : Logo/Marque + Undo/Redo + Titre + Statut */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 auto' }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                flexShrink: 0,
+                paddingRight: 8,
+                borderRight: '1px solid var(--bt-border)',
+                userSelect: 'none',
+              }}
+            >
+              <Logo />
+              <span style={{ fontWeight: 800, fontSize: 13, letterSpacing: -0.2, color: 'var(--bt-text)' }}>
+                basket-tactics
+              </span>
+            </div>
             {sidebar.activeView === 'court' && (
               <div role="group" aria-label="Historique des modifications" style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 <HistoryButton label="Annuler" shortcut={SHORTCUT_LABELS.undo} disabled={!app.canUndo || isPlaying} onClick={app.undo} icon={<Undo2 size={15} aria-hidden />} />

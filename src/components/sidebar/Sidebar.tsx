@@ -264,29 +264,12 @@ export function Sidebar({
           background: var(--bt-text-dim);
         }
       `}} />
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          height: 48,
-          padding: collapsed ? 0 : '0 14px',
-          justifyContent: collapsed ? 'center' : 'flex-start',
-          borderBottom: `1px solid ${SIDEBAR.borderSubtle}`,
-          fontWeight: 700,
-          fontSize: 13,
-          letterSpacing: 0.3,
-          color: SIDEBAR.text,
-          flexShrink: 0,
-        }}
-      >
-        {collapsed ? <Logo /> : <><Logo /><span style={{ marginLeft: 10 }}>basket-tactics</span></>}
-      </div>
 
       {/* Tout le contenu sous le logo défile d'un bloc : sur un écran de
           768 px de haut, les entrées + vues laissaient ~30 px aux outils
           (Attaque / Étapes introuvables). Les outils gardent désormais leur
           hauteur naturelle et le pied reste fixe. */}
-      <div className="sidebar-scroll-area" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div className="sidebar-scroll-area" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', paddingTop: 6 }}>
       <InterfaceLevelSelector compact={collapsed} />
       {startActions}
       <div style={{ padding: '10px 0 6px', flexShrink: 0 }}>
@@ -453,7 +436,7 @@ export function Sidebar({
   );
 }
 
-function Logo() {
+export function Logo() {
   // Petit ballon stylisé (SVG inline) pour rester cohérent avec l'esprit du
   // projet et éviter d'ajouter un asset.
   return (
