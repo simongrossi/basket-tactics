@@ -21,6 +21,7 @@ import type {
 } from '@/lib/types';
 import {
   computeAttackerVisuals,
+  computeInterpolatedAttackerVisuals,
   effectiveDefensePositions,
   followDefendersAtFrame,
   getDefenseHoop,
@@ -58,6 +59,7 @@ import {
 } from './kinematicLimits';
 import { attackerTrajectoryAt, type MovementType } from '../playbackTrajectory';
 import { lerpAngleDeg, rotateTowardsAngle } from '../angles';
+import { clampGazeToFrontal } from '../vision';
 import { buildStep0DetectionPositions } from '../step0Detection';
 import { closeoutEasing } from '../closeoutEasing';
 import { blitzReleaseEasing } from '../blitzReleaseEasing';
@@ -1391,7 +1393,15 @@ export function resolveFrameAt(
       const prevSlot = options.prevFrame?.defPos?.[id];
       if (!curSlot || !prevSlot) return;
       curSlot.orientation = rotateTowardsAngle(prevSlot.orientation, curSlot.orientation, maxAngularStepDeg);
-      curSlot.gazeOrientation = rotateTowardsAngle(prevSlot.gazeOrientation, curSlot.gazeOrientation, maxAngularStepDeg);
+      curSlot.gazeOrientation = clampGazeToFrontal(
+        rotateTowardsAngle(prevSlot.gazeOrientation, curSlot.gazeOrientation, maxAngularStepDeg),
+        curSlot.orientation
+      );
+      const rad = (curSlot.gazeOrientation * Math.PI) / 180;
+      curSlot.facing = {
+        x: curSlot.x + Math.sin(rad) * 30,
+        y: curSlot.y - Math.cos(rad) * 30,
+      };
     });
   }
   profiler?.lap('rateLimiter');
@@ -1442,6 +1452,44 @@ export function resolveFrameAt(
   profiler?.lap('ball');
   const profile = profiler?.finish();
 
+  const attVisuals = computeInterpolatedAttackerVisuals({
+    state,
+    idxA,
+    idxB,
+    localT,
+    off,
+    offA,
+    offB,
+    prevOff: options.prevFrame?.off,
+    defPos: plainDefPositions(defPos),
+    carrier,
+    carrierA,
+    ballPos: ball.pos,
+    screen,
+    offBallScreens,
+    attackerIsScreening,
+  });
+
+  if (options.prevFrame?.attVisuals && motionDtSec != null && motionDtSec > 0) {
+    const maxAngularStepDeg = Math.max(15, 540 * motionDtSec);
+    attackerIds.forEach((id) => {
+      const curVis = attVisuals[id];
+      const prevVis = options.prevFrame?.attVisuals?.[id];
+      const curPos = off[id];
+      if (!curVis || !prevVis || !curPos) return;
+      curVis.orientation = rotateTowardsAngle(prevVis.orientation, curVis.orientation, maxAngularStepDeg);
+      curVis.gazeOrientation = clampGazeToFrontal(
+        rotateTowardsAngle(prevVis.gazeOrientation, curVis.gazeOrientation, maxAngularStepDeg),
+        curVis.orientation
+      );
+      const rad = (curVis.gazeOrientation * Math.PI) / 180;
+      curVis.facing = {
+        x: curPos.x + Math.sin(rad) * 30,
+        y: curPos.y - Math.cos(rad) * 30,
+      };
+    });
+  }
+
   return {
     t: clamped,
     off,
@@ -1452,7 +1500,7 @@ export function resolveFrameAt(
     stepIdx: options.stepIdx ?? idxA,
     ballPos: ball.pos,
     ballInFlight: ball.inFlight,
-    attVisuals: computeAttackerVisuals(state, idxB),
+    attVisuals,
     attackerIsScreening,
     attackerMovementType,
     screenMemory: Object.keys(nextScreenMemory).length > 0 ? nextScreenMemory : undefined,

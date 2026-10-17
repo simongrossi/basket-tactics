@@ -15,6 +15,7 @@ import type { AnnotationType, Step } from '@/lib/types';
 import { makeInitialState } from '@/lib/data/initial';
 import { computeAttackerVisuals } from '@/lib/logic/attackerVisuals';
 import { getDefenseHoop } from '@/lib/logic/engine';
+import { resolveTimelineFrame } from '@/lib/logic/playback/frameResolver';
 
 function angleFromNorth(fromX: number, fromY: number, toX: number, toY: number): number {
   const dx = toX - fromX;
@@ -69,5 +70,46 @@ describe('attackerVisuals — orientation porteur après déplacement', () => {
     // delta = endPos - startPos = (+200, -100). Extrapolation = endPos + delta = (700, 300).
     const expectedTowardDribble = angleFromNorth(endPos.x, endPos.y, 700, 300);
     expect(visuals[carrier].orientation).toBeCloseTo(expectedTowardDribble, 1);
+  });
+
+  it('pendant la lecture (resolveTimelineFrame à mi-étape), un joueur déplacé manuellement s’oriente dans le sens de sa course', () => {
+    const { state, carrier, startPos, endPos } = buildTwoStepWithCarrierMove(false);
+    // Déplaçons aussi un non-porteur (O2) manuellement sans flèche
+    const o2Start = { x: 120, y: 420 };
+    const o2End = { x: 120, y: 180 }; // course franche vers la ligne de fond (0°)
+    state.steps[0].off.O2 = o2Start;
+    state.steps[1].off.O2 = o2End;
+
+    const midFrame = resolveTimelineFrame(state, 0.5)!;
+    expect(midFrame).not.toBeNull();
+
+    // O2 (coupeur manuel sans flèche) court vers (120, 180) -> buste orienté dans le sens de course (~0°)
+    const o2ExpectedCourse = angleFromNorth(o2Start.x, o2Start.y, o2End.x, o2End.y);
+    const o2Diff = Math.abs(((midFrame.attVisuals.O2.orientation - o2ExpectedCourse + 540) % 360) - 180);
+    expect(o2Diff).toBeLessThan(20);
+
+    // Le porteur déplacé manuellement entre l'étape 0 et l'étape 1 s'oriente aussi vers son déplacement pendant la course
+    const carrierExpectedCourse = angleFromNorth(startPos.x, startPos.y, endPos.x, endPos.y);
+    const carrierDiff = Math.abs(((midFrame.attVisuals[carrier].orientation - carrierExpectedCourse + 540) % 360) - 180);
+    expect(carrierDiff).toBeLessThan(25);
+  });
+
+  it('sur la dernière étape créée (+ Étape puis déplacement manuel d’un non-porteur), le joueur garde le buste dans le sens de sa course et regarde vers le porteur ou devant lui', () => {
+    const s = makeInitialState();
+    const step0: Step = {
+      ...s.steps[0],
+      off: { ...s.steps[0].off, O1: { x: 300, y: 420 }, O2: { x: 120, y: 420 } },
+    };
+    const step1: Step = {
+      ...step0,
+      off: { ...step0.off, O2: { x: 120, y: 200 } }, // O2 déplacé vers le panier (0°)
+    };
+    const state = { ...s, steps: [step0, step1], activeStep: 1 };
+    const visuals = computeAttackerVisuals(state, 1);
+    // Buste de O2 orienté dans le sens de sa course (0°)
+    expect(visuals.O2.orientation).toBeCloseTo(0, 1);
+    // Regard dans la limite anatomique ±75° du buste
+    const gazeDiff = Math.abs(((visuals.O2.gazeOrientation - visuals.O2.orientation + 540) % 360) - 180);
+    expect(gazeDiff).toBeLessThanOrEqual(75.01);
   });
 });

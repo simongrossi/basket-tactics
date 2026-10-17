@@ -267,7 +267,7 @@ export function persistDetectedSwitchesThroughStep(
 // `computeAttackerVisuals` a été extrait dans `./attackerVisuals.ts`.
 // Ré-export pour ne pas casser les imports historiques (CourtView, StepThumbnail,
 // frameResolver pointent encore vers `./engine`).
-export { computeAttackerVisuals } from './attackerVisuals';
+export { computeAttackerVisuals, computeInterpolatedAttackerVisuals } from './attackerVisuals';
 
 /** Réduit un record de cibles défensives riches en plain `DefenderPositions`
  *  (juste x/y). Helper partagé entre engine.ts et attackerVisuals.ts. */

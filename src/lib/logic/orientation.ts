@@ -198,6 +198,9 @@ export interface AttackerOrientationInput {
   hoop: Point;
   receiverPos?: Point;
   nextPos?: Point;
+  /** Cible optionnelle du regard (ex. en course : regarder devant soi ou vers
+   *  le porteur de balle, sous réserve du clamp anatomique ±75° du corps). */
+  gazeTargetPos?: Point;
   screenTargetDefPos?: Point;
   /** Position du même attaquant à l'étape précédente, pour détecter le dribble
    *  (carrier qui se déplace > 30 px → orientation dans la direction du
@@ -210,7 +213,7 @@ export interface AttackerOrientationInput {
 }
 
 export function computeAttackerOrientation(input: AttackerOrientationInput): OrientationResult {
-  const { attackerPos, role, ballPos, hoop, receiverPos, nextPos, screenTargetDefPos, prevPos, manualBody, manualGaze } = input;
+  const { attackerPos, role, ballPos, hoop, receiverPos, nextPos, gazeTargetPos, screenTargetDefPos, prevPos, manualBody, manualGaze } = input;
 
   // ---------------------------------------------------------------------------
   // 1. Cibles des bras — par rôle.
@@ -275,13 +278,20 @@ export function computeAttackerOrientation(input: AttackerOrientationInput): Ori
   // 3. Gaze + clamp anatomique.
   // ---------------------------------------------------------------------------
   let gazeTarget: Point;
-  if (role === 'carrier') {
+  if (gazeTargetPos) {
+    gazeTarget = gazeTargetPos;
+  } else if (role === 'carrier') {
     const dribbleDir = detectDribbleTarget(attackerPos, prevPos);
     gazeTarget = dribbleDir ?? hoop;
   } else if (role === 'passer' && receiverPos) {
     gazeTarget = receiverPos;
   } else if (role === 'cutter' && nextPos) {
-    gazeTarget = nextPos;
+    // Un coupeur oriente son buste dans le sens de sa course (nextPos) et
+    // tourne la tête vers le porteur de balle s'il est visible dans son cône
+    // frontal (±90°), sinon regarde devant lui (nextPos). Le clamp ±75°
+    // garantit dans tous les cas que le regard ne part jamais derrière la tête.
+    const ballAngle = angleFromNorth(attackerPos, ballPos);
+    gazeTarget = Math.abs(angleDiff(ballAngle, bodyOrientation)) <= 90 ? ballPos : nextPos;
   } else if (role === 'screener' && screenTargetDefPos) {
     gazeTarget = screenTargetDefPos;
   } else if (role === 'shooter' || role === 'post-shot-recovery') {
@@ -401,40 +411,45 @@ function computeDefenderBodyOrientation(input: {
     }
   }
 
+  let stanceBody: number;
   if (isCarrierDefender) {
-    return manAngle;
-  }
-
-  if (pnrRole === 'tag' || pnrRole === 'stunt') {
+    stanceBody = manAngle;
+  } else if (pnrRole === 'tag' || pnrRole === 'stunt') {
     // Rotation d'aide : épaules franchement côté ballon, sans perdre totalement
     // le recover vers l'homme original.
-    return blendAngleDeg(manAngle, ballAngle, 0.75);
-  }
-  if (pnrRole === 'x-out') {
+    stanceBody = blendAngleDeg(manAngle, ballAngle, 0.75);
+  } else if (pnrRole === 'x-out') {
     // X-out : course de rotation vers le ballon, mais le corps reste un peu
     // plus ouvert pour lire la passe suivante.
-    return blendAngleDeg(manAngle, ballAngle, 0.6);
+    stanceBody = blendAngleDeg(manAngle, ballAngle, 0.6);
+  } else {
+    switch (stance) {
+      case 'fronting':
+        // Full denial : le défenseur est entre homme et ballon, poitrine vers la
+        // passe pour interdire l'entrée. Le contact homme reste via bras/corps.
+        stanceBody = ballAngle;
+        break;
+      case 'deny-3q':
+        // 3/4 deny : pied/main dans la ligne de passe, hanches ouvertes.
+        stanceBody = blendAngleDeg(manAngle, ballAngle, 0.65);
+        break;
+      case 'stunt':
+        // Fake d'aide : plus proche d'un show vers le ballon que d'un marquage pur.
+        stanceBody = blendAngleDeg(manAngle, ballAngle, 0.7);
+        break;
+      case 'behind':
+        // Strictement entre homme et panier : priorité à contenir l'homme.
+        stanceBody = manAngle;
+        break;
+      case 'sag':
+      default:
+        // Ball-you-man : midpoint angulaire, non biaisé par la distance des cibles.
+        stanceBody = blendAngleDeg(manAngle, ballAngle, 0.5);
+        break;
+    }
   }
 
-  switch (stance) {
-    case 'fronting':
-      // Full denial : le défenseur est entre homme et ballon, poitrine vers la
-      // passe pour interdire l'entrée. Le contact homme reste via bras/corps.
-      return ballAngle;
-    case 'deny-3q':
-      // 3/4 deny : pied/main dans la ligne de passe, hanches ouvertes.
-      return blendAngleDeg(manAngle, ballAngle, 0.65);
-    case 'stunt':
-      // Fake d'aide : plus proche d'un show vers le ballon que d'un marquage pur.
-      return blendAngleDeg(manAngle, ballAngle, 0.7);
-    case 'behind':
-      // Strictement entre homme et panier : priorité à contenir l'homme.
-      return manAngle;
-    case 'sag':
-    default:
-      // Ball-you-man : midpoint angulaire, non biaisé par la distance des cibles.
-      return blendAngleDeg(manAngle, ballAngle, 0.5);
-  }
+  return stanceBody;
 }
 
 function blendAngleDeg(a: number, b: number, t: number): number {

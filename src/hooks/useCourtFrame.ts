@@ -31,6 +31,7 @@ import {
   computeAttackerVisuals,
   effectiveDefensePositions,
   getMatchupsAt,
+  recomputeDefenseFrameOrientations,
 } from '@/lib/logic/engine';
 import { detectScreen, detectOffBallScreens } from '@/lib/logic/screens';
 import { activeBallCarrier, activeOffense } from '@/lib/logic/players';
@@ -312,28 +313,33 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     // ease-out cubique : f(t) = 1 - (1-t)³
     const eased = 1 - Math.pow(1 - raw, 3);
     const blended: ComputedDefense = { ...staticFrame.defPos };
+    const prevDefPositions: Record<string, Point> = {};
     (Object.keys(blended) as DefenderId[]).forEach((id) => {
       const target = staticFrame.defPos[id];
       const from = defenseReleaseTransition.fromPositions[id];
       if (!from || !target) return;
+      prevDefPositions[id] = { x: from.x, y: from.y };
       blended[id] = {
         ...target,
         x: from.x + (target.x - from.x) * eased,
         y: from.y + (target.y - from.y) * eased,
       };
     });
+    recomputeDefenseFrameOrientations(state, staticFrame.off, staticFrame.carrier, blended, prevDefPositions);
     return { ...staticFrame, defPos: blended };
     // releaseTick force l'invalidation à chaque rAF tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defenseReleaseTransition, staticFrame, releaseTick, replaying]);
+  }, [defenseReleaseTransition, staticFrame, releaseTick, replaying, state]);
 
   // === V1+V2+V3 — Poursuite défenseur pendant drag attaquant ===============
   // Maintient les positions défenseurs avec un cap de vitesse modulé (footwork,
   // fatigue en option). Après release, le rattrapage continue jusqu'à la
   // cible, sans reset vers le snapshot initial ni délai de téléportation.
   const livePositionsRef = useRef<Record<DefenderId, Point>>({} as Record<DefenderId, Point>);
+  const prevLivePositionsRef = useRef<Record<DefenderId, Point>>({} as Record<DefenderId, Point>);
   const lastTickRef = useRef<number>(0);
   const lastAttackerPosRef = useRef<Record<string, Point>>({});
+  const attackerLiveHeadingRef = useRef<Record<string, { dx: number; dy: number; updatedAtMs: number }>>({});
   const pivotLatencyRef = useRef<Record<DefenderId, number>>({} as Record<DefenderId, number>);
   const fatigueRef = useRef<Record<DefenderId, number>>({} as Record<DefenderId, number>);
   const pursuitSnapshotRef = useRef<DefenderPursuit['snapshot'] | null>(null);
@@ -343,7 +349,9 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
   useEffect(() => {
     if (replaying || !defenderPursuit) {
       livePositionsRef.current = {} as Record<DefenderId, Point>;
+      prevLivePositionsRef.current = {} as Record<DefenderId, Point>;
       lastAttackerPosRef.current = {};
+      attackerLiveHeadingRef.current = {};
       pivotLatencyRef.current = {} as Record<DefenderId, number>;
       fatigueRef.current = {} as Record<DefenderId, number>;
       pursuitSnapshotRef.current = null;
@@ -355,10 +363,19 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     if (pursuitSnapshotRef.current !== defenderPursuit.snapshot) {
       pursuitSnapshotRef.current = defenderPursuit.snapshot;
       livePositionsRef.current = {} as Record<DefenderId, Point>;
+      prevLivePositionsRef.current = {} as Record<DefenderId, Point>;
       for (const [id, p] of Object.entries(defenderPursuit.snapshot)) {
-        if (p) livePositionsRef.current[id as DefenderId] = { ...p };
+        if (p) {
+          livePositionsRef.current[id as DefenderId] = { ...p };
+          prevLivePositionsRef.current[id as DefenderId] = { ...p };
+        }
       }
       lastAttackerPosRef.current = {};
+      attackerLiveHeadingRef.current = {};
+      const initOff = activeOffense(stateRef.current.steps[stateRef.current.activeStep].off, stateRef.current.playerCount);
+      (Object.entries(initOff) as [string, Point][]).forEach(([aid, pos]) => {
+        lastAttackerPosRef.current[aid] = { x: pos.x, y: pos.y };
+      });
       pivotLatencyRef.current = {} as Record<DefenderId, number>;
       fatigueRef.current = {} as Record<DefenderId, number>;
       pursuitSettledRef.current = false;
@@ -391,8 +408,10 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
         const live = livePositionsRef.current[id];
         if (!live) {
           livePositionsRef.current[id] = { x: target[id].x, y: target[id].y };
+          prevLivePositionsRef.current[id] = { x: target[id].x, y: target[id].y };
           return;
         }
+        prevLivePositionsRef.current[id] = { x: live.x, y: live.y };
         const t = target[id];
         const baseMaxPxPerMs = Math.max(0, cur.rules[id]?.maxSpeed ?? cur.defenseMaxSpeed)
           / Math.max(100, stepDurationMs);
@@ -492,8 +511,25 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
         }
       });
 
-      // Mémoriser la position attaquant pour détection pivot au prochain tick.
+      // Mémoriser la position et le cap de déplacement de l'attaquant en direct.
       (Object.entries(off) as [string, Point][]).forEach(([aid, pos]) => {
+        const prevAtt = lastAttackerPosRef.current[aid];
+        if (prevAtt) {
+          const adx = pos.x - prevAtt.x;
+          const ady = pos.y - prevAtt.y;
+          const adist = Math.hypot(adx, ady);
+          if (adist > 0.75) {
+            const prevHeading = attackerLiveHeadingRef.current[aid];
+            const smoothDx = prevHeading ? prevHeading.dx * 0.45 + (adx / adist) * 0.55 : adx / adist;
+            const smoothDy = prevHeading ? prevHeading.dy * 0.45 + (ady / adist) * 0.55 : ady / adist;
+            const len = Math.hypot(smoothDx, smoothDy) || 1;
+            attackerLiveHeadingRef.current[aid] = {
+              dx: smoothDx / len,
+              dy: smoothDy / len,
+              updatedAtMs: now,
+            };
+          }
+        }
         lastAttackerPosRef.current[aid] = { x: pos.x, y: pos.y };
       });
 
@@ -520,15 +556,119 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
     // Le premier rendu doit déjà afficher le snapshot, avant le premier rAF.
     const positions = newPursuit ? defenderPursuit.snapshot : livePositionsRef.current;
     const blended: ComputedDefense = { ...staticFrame.defPos };
+    const prevDefForOrient: Record<string, Point> = {};
     (Object.keys(blended) as DefenderId[]).forEach((id) => {
       const live = positions[id];
       if (!live) return;
+      const targetSlot = staticFrame.defPos[id];
+      const prevLive = prevLivePositionsRef.current[id];
+      const distToTarget = targetSlot ? Math.hypot(targetSlot.x - live.x, targetSlot.y - live.y) : 0;
+      if (distToTarget > 3 && targetSlot) {
+        prevDefForOrient[id] = {
+          x: live.x - (targetSlot.x - live.x),
+          y: live.y - (targetSlot.y - live.y),
+        };
+      } else if (prevLive) {
+        prevDefForOrient[id] = prevLive;
+      }
       blended[id] = { ...blended[id], x: live.x, y: live.y };
     });
-    return { ...staticFrame, defPos: blended };
+    recomputeDefenseFrameOrientations(state, staticFrame.off, staticFrame.carrier, blended, prevDefForOrient);
+    // Si un défenseur est en pleine course de rattrapage (distToTarget > 25 px)
+    // et que sa stance statique lui ferait tourner le dos à sa course (> 85°),
+    // on ouvre ses épaules dans le sens de sa course tout en gardant un oeil sur le jeu.
+    const hoop = getDefenseHoop(state);
+    const ballPos = staticFrame.off[staticFrame.carrier];
+    (Object.keys(blended) as DefenderId[]).forEach((id) => {
+      const slot = blended[id];
+      const targetSlot = staticFrame.defPos[id];
+      const rule = state.rules[id];
+      if (!slot || !targetSlot || rule?.bodyOrientation != null) return;
+      const dx = targetSlot.x - slot.x;
+      const dy = targetSlot.y - slot.y;
+      const distToTarget = Math.hypot(dx, dy);
+      if (distToTarget > 25) {
+        const moveAngle = (Math.atan2(dx, -dy) * 180) / Math.PI;
+        const diff = ((slot.orientation - moveAngle) % 360 + 540) % 360 - 180;
+        if (Math.abs(diff) > 85) {
+          const sideSign = diff >= 0 ? 1 : -1;
+          const runBody = ((moveAngle + sideSign * 45) % 360 + 360) % 360;
+          const recomputed = computeDefenderOrientation({
+            defenderPos: { x: slot.x, y: slot.y },
+            manPos: staticFrame.off[slot.matchedTo] ?? { x: targetSlot.x, y: targetSlot.y },
+            ballPos: ballPos ?? { x: slot.x, y: slot.y },
+            isCarrierDefender: slot.isCarrierDefender,
+            stance: rule?.offBallStance,
+            vsCarrier: rule?.vsCarrier,
+            pnrRole: slot.pnrRole,
+            manualBody: runBody,
+            gazeLock: rule?.gazeLock,
+            hoop,
+          });
+          slot.orientation = recomputed.bodyOrientation;
+          slot.gazeOrientation = recomputed.gazeOrientation;
+          slot.facing = recomputed.facing;
+          slot.armBallSide = recomputed.armBallSide;
+          slot.armManSide = recomputed.armManSide;
+        }
+      }
+    });
+
+    // Orientation en direct des attaquants déplacés manuellement à la souris :
+    // pendant le drag actif, l'attaquant s'oriente dans le sens de sa course
+    // et regarde devant lui ou vers le porteur de balle.
+    let liveAttVisuals = staticFrame.attVisuals;
+    if (defenderPursuit.active) {
+      const now = performance.now();
+      const hoop = getDefenseHoop(state);
+      const ballPos = staticFrame.off[staticFrame.carrier];
+      let hasLiveAttackerMove = false;
+      const nextAttVisuals: ComputedAttackerVisuals = { ...staticFrame.attVisuals };
+      (Object.keys(staticFrame.off) as AttackerId[]).forEach((aid) => {
+        const heading = attackerLiveHeadingRef.current[aid];
+        if (!heading || now - heading.updatedAtMs > 220) return;
+        const attPos = staticFrame.off[aid];
+        if (!attPos) return;
+        hasLiveAttackerMove = true;
+        const isCarrier = aid === staticFrame.carrier;
+        const targetAhead = {
+          x: attPos.x + heading.dx * 60,
+          y: attPos.y + heading.dy * 60,
+        };
+        const prevBehind = {
+          x: attPos.x - heading.dx * 60,
+          y: attPos.y - heading.dy * 60,
+        };
+        const manualOverride = state.attackerOrientations?.[aid];
+        const r = computeAttackerOrientation({
+          attackerPos: attPos,
+          role: isCarrier ? 'carrier' : 'cutter',
+          ballPos: ballPos ?? attPos,
+          hoop,
+          nextPos: isCarrier ? undefined : targetAhead,
+          prevPos: isCarrier ? prevBehind : undefined,
+          manualBody: manualOverride?.body,
+          manualGaze: manualOverride?.gaze,
+        });
+        nextAttVisuals[aid] = {
+          orientation: r.bodyOrientation,
+          gazeOrientation: r.gazeOrientation,
+          facing: r.facing,
+          armBallSide: r.armBallSide,
+          armManSide: r.armManSide,
+          isActivelyDribbling: isCarrier,
+          isPostShotRecovery: false,
+        };
+      });
+      if (hasLiveAttackerMove) {
+        liveAttVisuals = nextAttVisuals;
+      }
+    }
+
+    return { ...staticFrame, defPos: blended, attVisuals: liveAttVisuals };
     // pursuitTick force l'invalidation à chaque rAF.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defenderPursuit, staticFrame, pursuitTick, state.activeStep, replaying]);
+  }, [defenderPursuit, staticFrame, pursuitTick, state.activeStep, replaying, state]);
 
   // B4 — Frame "match live" construite depuis `MatchState`. Priorité
   // maximale : quand un match IA tourne (ou est en pause à mi-possession),
