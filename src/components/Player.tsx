@@ -89,6 +89,10 @@ interface PlayerProps {
   /** Sprite V2 — pose recovery post-shot (ex-tireur du step précédent).
    *  2 bras tendus haut symétriques (follow-through). Dure 1 step entier. */
   isPostShotRecovery?: boolean;
+  /** Sprite V3 — pose passeur (follow-through de passe à 2 mains vers le receveur). */
+  isPassing?: boolean;
+  /** Sprite V3 — pose coupeur en course (foulée dynamique, bras pompés avant/côté). */
+  isCutting?: boolean;
 }
 
 export function Player({
@@ -133,11 +137,14 @@ export function Player({
   dominantHand,
   isActivelyDribbling,
   isPostShotRecovery,
+  isPassing,
+  isCutting,
   name,
   number,
   showName = true,
 }: PlayerProps) {
   const fill = isAttacker ? '#D85A30' : '#378ADD';
+  const jerseyTrim = isAttacker ? '#FED7AA' : '#BAE6FD';
 
   let stroke = isAttacker ? '#4A1B0C' : '#042C53';
   let strokeWidth = 2;
@@ -180,7 +187,7 @@ export function Player({
 
   // Couleurs de peau et détails pour la proposition C
   const skinFill = '#FFE0B2';
-  const hairFill = '#475569';
+  const hairFill = '#334155';
 
   // Latéralité : sign appliqué aux x relatifs (offset depuis pos.x) sur les
   // poses asymétriques (shooter, dribble actif). +1 = droitier (défaut),
@@ -472,19 +479,141 @@ export function Player({
                   <circle cx={pos.x + r * 0.4} cy={pos.y - r * 1.7} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
                 </>
               );
+            } else if (isPassing) {
+              // Posture Passeur (chest/push pass follow-through) : 2 bras tendus
+              // vers l'avant qui convergent vers la ligne de passe.
+              return (
+                <>
+                  {/* Bras gauche de passe */}
+                  <path
+                    d={`M ${pos.x - r * 1.0625} ${pos.y - r * 0.125} Q ${pos.x - r * 0.95} ${pos.y - r * 0.85} ${pos.x - r * 0.55} ${pos.y - r * 1.5}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth + 2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d={`M ${pos.x - r * 1.0625} ${pos.y - r * 0.125} Q ${pos.x - r * 0.95} ${pos.y - r * 0.85} ${pos.x - r * 0.55} ${pos.y - r * 1.5}`}
+                    fill="none"
+                    stroke={fill}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx={pos.x - r * 0.55} cy={pos.y - r * 1.5} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+
+                  {/* Bras droit de passe */}
+                  <path
+                    d={`M ${pos.x + r * 1.0625} ${pos.y - r * 0.125} Q ${pos.x + r * 0.95} ${pos.y - r * 0.85} ${pos.x + r * 0.55} ${pos.y - r * 1.5}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth + 2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d={`M ${pos.x + r * 1.0625} ${pos.y - r * 0.125} Q ${pos.x + r * 0.95} ${pos.y - r * 0.85} ${pos.x + r * 0.55} ${pos.y - r * 1.5}`}
+                    fill="none"
+                    stroke={fill}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx={pos.x + r * 0.55} cy={pos.y - r * 1.5} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+                </>
+              );
+            } else if (isCutting) {
+              // Posture Coupeur en course (running stride) : foulée athlétique
+              // avec bras fléchis près du buste (un bras d'attaque devant,
+              // l'autre en appel d'équilibre côté/avant, jamais dans le dos).
+              const sLead = handSign;
+              const sTrail = -handSign;
+              return (
+                <>
+                  {/* Bras d'appel (côté/avant fléchi) */}
+                  <path
+                    d={`M ${pos.x + sTrail * r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + sTrail * r * 1.38} ${pos.y - r * 0.32} ${pos.x + sTrail * r * 1.18} ${pos.y - r * 0.72}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth + 2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d={`M ${pos.x + sTrail * r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + sTrail * r * 1.38} ${pos.y - r * 0.32} ${pos.x + sTrail * r * 1.18} ${pos.y - r * 0.72}`}
+                    fill="none"
+                    stroke={fill}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx={pos.x + sTrail * r * 1.18} cy={pos.y - r * 0.72} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+
+                  {/* Bras d'attaque (foulée avant) */}
+                  <path
+                    d={`M ${pos.x + sLead * r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + sLead * r * 1.25} ${pos.y - r * 0.72} ${pos.x + sLead * r * 0.85} ${pos.y - r * 1.35}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={strokeWidth + 2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d={`M ${pos.x + sLead * r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + sLead * r * 1.25} ${pos.y - r * 0.72} ${pos.x + sLead * r * 0.85} ${pos.y - r * 1.35}`}
+                    fill="none"
+                    stroke={fill}
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx={pos.x + sLead * r * 0.85} cy={pos.y - r * 1.35} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+                </>
+              );
             } else {
-              // Posture Stance Standard / Droit d'aide.
-              // Bras à r * 1.4 (mains à 25.6 px du centre, envergure 51 px =
-              // 1.38 m). Cohérent avec le sprite pictographique stylisé (torse
-              // déformé ×1.4) : ratio bras/torse = 1.6x. Choix entre l'ancien
-              // r*1.4375 trop court ("cartoon trapu") et r*2.0 trop long
-              // ("tentacules" — envergure dépassait largement la largeur du
-              // panier visuellement).
+              // Posture Stance Standard / Droit d'aide / Contestation (deny).
+              // Si `armBallSide` et `armManSide` sont fournis par le moteur,
+              // chaque bras s'oriente dynamiquement vers sa cible respective
+              // (ligne de passe vs joueur marqué) tout en restant dans le
+              // demi-cercle avant (jamais dans le dos). Sinon : stance symétrique.
+              let leftHandX = pos.x - r * 1.4;
+              let leftHandY = pos.y - r * 1.25;
+              let leftCtrlX = pos.x - r * 1.4;
+              let leftCtrlY = pos.y - r * 0.55;
+
+              let rightHandX = pos.x + r * 1.4;
+              let rightHandY = pos.y - r * 1.25;
+              let rightCtrlX = pos.x + r * 1.4;
+              let rightCtrlY = pos.y - r * 0.55;
+
+              if (armBallSide && armManSide) {
+                const relA = Math.max(-78, Math.min(78, angleDiff(angleFromNorth(pos, armBallSide), bodyOrientation)));
+                const relB = Math.max(-78, Math.min(78, angleDiff(angleFromNorth(pos, armManSide), bodyOrientation)));
+                // Si les deux cibles sont distinctes (ex: open stance, deny-3q, tag),
+                // le bras gauche prend la cible la plus à gauche et le bras droit la plus à droite.
+                if (Math.abs(relA - relB) > 8) {
+                  const leftRel = Math.min(relA, relB);
+                  const rightRel = Math.max(relA, relB);
+                  const leftAngleRad = ((Math.min(-16, leftRel * 0.65 - 14)) * Math.PI) / 180;
+                  const rightAngleRad = ((Math.max(16, rightRel * 0.65 + 14)) * Math.PI) / 180;
+                  const reach = r * 1.65;
+                  leftHandX = pos.x + Math.sin(leftAngleRad) * reach;
+                  leftHandY = pos.y - Math.cos(leftAngleRad) * reach;
+                  leftCtrlX = pos.x - r * 1.25 + Math.sin(leftAngleRad) * (r * 0.35);
+                  leftCtrlY = pos.y - Math.cos(leftAngleRad) * (r * 0.55);
+
+                  rightHandX = pos.x + Math.sin(rightAngleRad) * reach;
+                  rightHandY = pos.y - Math.cos(rightAngleRad) * reach;
+                  rightCtrlX = pos.x + r * 1.25 + Math.sin(rightAngleRad) * (r * 0.35);
+                  rightCtrlY = pos.y - Math.cos(rightAngleRad) * (r * 0.55);
+                }
+              }
+
               return (
                 <>
                   {/* Bras gauche */}
                   <path
-                    d={`M ${pos.x - r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x - r * 1.4} ${pos.y - r * 0.55} ${pos.x - r * 1.4} ${pos.y - r * 1.25}`}
+                    d={`M ${pos.x - r * 1.125} ${pos.y - r * 0.0625} Q ${leftCtrlX} ${leftCtrlY} ${leftHandX} ${leftHandY}`}
                     fill="none"
                     stroke={stroke}
                     strokeWidth={strokeWidth + 2.5}
@@ -492,18 +621,18 @@ export function Player({
                     strokeLinejoin="round"
                   />
                   <path
-                    d={`M ${pos.x - r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x - r * 1.4} ${pos.y - r * 0.55} ${pos.x - r * 1.4} ${pos.y - r * 1.25}`}
+                    d={`M ${pos.x - r * 1.125} ${pos.y - r * 0.0625} Q ${leftCtrlX} ${leftCtrlY} ${leftHandX} ${leftHandY}`}
                     fill="none"
                     stroke={fill}
                     strokeWidth={strokeWidth}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
-                  <circle cx={pos.x - r * 1.4} cy={pos.y - r * 1.25} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+                  <circle cx={leftHandX} cy={leftHandY} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
 
                   {/* Bras droit */}
                   <path
-                    d={`M ${pos.x + r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + r * 1.4} ${pos.y - r * 0.55} ${pos.x + r * 1.4} ${pos.y - r * 1.25}`}
+                    d={`M ${pos.x + r * 1.125} ${pos.y - r * 0.0625} Q ${rightCtrlX} ${rightCtrlY} ${rightHandX} ${rightHandY}`}
                     fill="none"
                     stroke={stroke}
                     strokeWidth={strokeWidth + 2.5}
@@ -511,59 +640,85 @@ export function Player({
                     strokeLinejoin="round"
                   />
                   <path
-                    d={`M ${pos.x + r * 1.125} ${pos.y - r * 0.0625} Q ${pos.x + r * 1.4} ${pos.y - r * 0.55} ${pos.x + r * 1.4} ${pos.y - r * 1.25}`}
+                    d={`M ${pos.x + r * 1.125} ${pos.y - r * 0.0625} Q ${rightCtrlX} ${rightCtrlY} ${rightHandX} ${rightHandY}`}
                     fill="none"
                     stroke={fill}
                     strokeWidth={strokeWidth}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
-                  <circle cx={pos.x + r * 1.4} cy={pos.y - r * 1.25} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
+                  <circle cx={rightHandX} cy={rightHandY} r={3} fill={skinFill} stroke={stroke} strokeWidth={1} />
                 </>
               );
             }
           })()}
           
-          {/* Torse */}
+          {/* Torse (maillot basket avec épaules galbées) */}
           <path
             d={`M ${pos.x - r * 1.0625} ${pos.y + r * 0.0625} C ${pos.x - r * 1.125} ${pos.y - r * 0.5}, ${pos.x + r * 1.125} ${pos.y - r * 0.5}, ${pos.x + r * 1.0625} ${pos.y + r * 0.0625} C ${pos.x + r * 0.8125} ${pos.y + r * 0.5}, ${pos.x - r * 0.8125} ${pos.y + r * 0.5}, ${pos.x - r * 1.0625} ${pos.y + r * 0.0625} Z`}
             fill={fill}
             stroke={stroke}
             strokeWidth={strokeWidth}
           />
-          {/* Col de maillot */}
+          {/* Emmanchures / bordures d'épaules du maillot basket (distingue immédiatement l'avant/arrière du buste) */}
           <path
-            d={`M ${pos.x - r * 0.625} ${pos.y - r * 0.344} Q ${pos.x} ${pos.y - r * 0.156} ${pos.x + r * 0.625} ${pos.y - r * 0.344}`}
+            d={`M ${pos.x - r * 0.82} ${pos.y - r * 0.34} Q ${pos.x - r * 0.72} ${pos.y + r * 0.04} ${pos.x - r * 0.84} ${pos.y + r * 0.32}`}
             fill="none"
-            stroke={stroke}
-            strokeWidth={1.5}
+            stroke={jerseyTrim}
+            strokeWidth={1.3}
+            strokeLinecap="round"
+            opacity={0.75}
+          />
+          <path
+            d={`M ${pos.x + r * 0.82} ${pos.y - r * 0.34} Q ${pos.x + r * 0.72} ${pos.y + r * 0.04} ${pos.x + r * 0.84} ${pos.y + r * 0.32}`}
+            fill="none"
+            stroke={jerseyTrim}
+            strokeWidth={1.3}
+            strokeLinecap="round"
+            opacity={0.75}
+          />
+          {/* Col de maillot en V/U sur l'avant de la poitrine */}
+          <path
+            d={`M ${pos.x - r * 0.58} ${pos.y - r * 0.36} Q ${pos.x} ${pos.y - r * 0.14} ${pos.x + r * 0.58} ${pos.y - r * 0.36}`}
+            fill="none"
+            stroke={jerseyTrim}
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            opacity={0.9}
           />
         </g>
 
-        {/* Tête (tête + oreilles + cheveux + nez) : tourne selon finalGaze */}
+        {/* Tête (tête + oreilles + cheveux + nez/visière directionnelle) : tourne selon finalGaze */}
         <g transform={`rotate(${finalGaze}, ${pos.x}, ${pos.y})`}>
           {/* Oreilles */}
           <ellipse cx={pos.x - r * 0.46875} cy={pos.y - r * 0.1875} rx={r * 0.09375} ry={r * 0.1875} fill={skinFill} stroke={stroke} strokeWidth={1} />
           <ellipse cx={pos.x + r * 0.46875} cy={pos.y - r * 0.1875} rx={r * 0.09375} ry={r * 0.1875} fill={skinFill} stroke={stroke} strokeWidth={1} />
-          
+
+          {/* Nez / Pointe directionnelle du regard (placée devant le visage pour indiquer clairement où regarde le joueur) */}
+          <polygon
+            points={`${pos.x},${pos.y - r * 0.98} ${pos.x - r * 0.19},${pos.y - r * 0.58} ${pos.x + r * 0.19},${pos.y - r * 0.58}`}
+            fill={skinFill}
+            stroke={stroke}
+            strokeWidth={1.3}
+            strokeLinejoin="round"
+          />
+
           {/* Tête principale */}
           <ellipse cx={pos.x} cy={pos.y - r * 0.1875} rx={r * 0.45} ry={r * 0.5} fill={skinFill} stroke={stroke} strokeWidth={strokeWidth} />
-          
-          {/* Cheveux */}
+
+          {/* Bandeau / Visière frontale contrastée (marque le front et la direction du regard) */}
           <path
-            d={`M ${pos.x - r * 0.425} ${pos.y - r * 0.281} C ${pos.x - r * 0.469} ${pos.y - r * 0.6875}, ${pos.x + r * 0.469} ${pos.y - r * 0.6875}, ${pos.x + r * 0.425} ${pos.y - r * 0.281} C ${pos.x + r * 0.3125} ${pos.y - r * 0.4375}, ${pos.x - r * 0.3125} ${pos.y - r * 0.4375}, ${pos.x - r * 0.425} ${pos.y - r * 0.281} Z`}
-            fill={hairFill}
+            d={`M ${pos.x - r * 0.39} ${pos.y - r * 0.36} Q ${pos.x} ${pos.y - r * 0.56} ${pos.x + r * 0.39} ${pos.y - r * 0.36}`}
+            fill="none"
+            stroke={fill}
+            strokeWidth={2.2}
+            strokeLinecap="round"
           />
-          
-          {/* Nez (indicateur de regard) — agrandi + couleur contrastée pour
-           *  bien voir la direction du regard. Triangle rouge avec outline
-           *  noir. Avant : fill skinFill (orangé clair → peu visible). */}
-          <polygon
-            points={`${pos.x},${pos.y - r * 1.0} ${pos.x - r * 0.18},${pos.y - r * 0.6} ${pos.x + r * 0.18},${pos.y - r * 0.6}`}
-            fill="#E24B4A"
-            stroke="#000000"
-            strokeWidth={1}
-            strokeLinejoin="round"
+
+          {/* Cheveux (calotte sur le dessus/arrière du crâne) */}
+          <path
+            d={`M ${pos.x - r * 0.42} ${pos.y - r * 0.22} C ${pos.x - r * 0.46} ${pos.y + r * 0.25}, ${pos.x + r * 0.46} ${pos.y + r * 0.25}, ${pos.x + r * 0.42} ${pos.y - r * 0.22} C ${pos.x + r * 0.28} ${pos.y - r * 0.36}, ${pos.x - r * 0.28} ${pos.y - r * 0.36}, ${pos.x - r * 0.42} ${pos.y - r * 0.22} Z`}
+            fill={hairFill}
           />
         </g>
       </g>

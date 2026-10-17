@@ -658,6 +658,8 @@ export function useCourtFrame(opts: UseCourtFrameOptions): UseCourtFrameResult {
           armManSide: r.armManSide,
           isActivelyDribbling: isCarrier,
           isPostShotRecovery: false,
+          isPassing: false,
+          isCutting: !isCarrier,
         };
       });
       if (hasLiveAttackerMove) {

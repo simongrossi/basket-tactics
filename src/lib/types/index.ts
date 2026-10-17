@@ -930,6 +930,10 @@ export interface ComputedAttacker {
    *  post-tir. Permet d'afficher une pose follow-through (2 bras tendus haut)
    *  au step suivant le release. Détection : `role === 'post-shot-recovery'`. */
   isPostShotRecovery?: boolean;
+  /** Sprite V3 — passeur en follow-through de passe vers le receveur. */
+  isPassing?: boolean;
+  /** Sprite V3 — coupeur en pleine course (foulée de course dynamique). */
+  isCutting?: boolean;
 }
 export type ComputedAttackerVisuals = Record<AttackerId, ComputedAttacker>;
 

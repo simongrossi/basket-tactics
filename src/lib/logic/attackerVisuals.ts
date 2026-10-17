@@ -172,6 +172,8 @@ export function computeAttackerVisuals(
       armManSide: r.armManSide,
       isActivelyDribbling,
       isPostShotRecovery: role === 'post-shot-recovery',
+      isPassing: role === 'passer',
+      isCutting: role === 'cutter',
     };
   });
 
@@ -350,6 +352,8 @@ export function computeInterpolatedAttackerVisuals(params: {
       armManSide: r.armManSide,
       isActivelyDribbling,
       isPostShotRecovery: role === 'post-shot-recovery',
+      isPassing: role === 'passer',
+      isCutting: role === 'cutter',
     };
   });
 

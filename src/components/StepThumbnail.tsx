@@ -104,6 +104,8 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     dominantHand={state.attackerHands?.[id] ?? 'right'}
                     isActivelyDribbling={attVisuals[id]?.isActivelyDribbling}
                     isPostShotRecovery={attVisuals[id]?.isPostShotRecovery}
+                    isPassing={attVisuals[id]?.isPassing}
+                    isCutting={attVisuals[id]?.isCutting}
                     name={state.playerNames?.[id]}
                     number={state.playerNumbers?.[id]}
                     showName={state.showPlayerNames !== false}
@@ -147,6 +149,8 @@ export function StepThumbnail({ state, stepIdx, showDefense = true }: StepThumbn
                     dominantHand={state.attackerHands?.[id] ?? 'right'}
                     isActivelyDribbling={attVisuals[id]?.isActivelyDribbling}
                     isPostShotRecovery={attVisuals[id]?.isPostShotRecovery}
+                    isPassing={attVisuals[id]?.isPassing}
+                    isCutting={attVisuals[id]?.isCutting}
                     name={state.playerNames?.[id]}
                     number={state.playerNumbers?.[id]}
                     showName={state.showPlayerNames !== false}

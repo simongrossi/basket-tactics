@@ -92,6 +92,8 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
               dominantHand={state.attackerHands?.[id] ?? 'right'}
               isActivelyDribbling={frame.attVisuals[id]?.isActivelyDribbling}
               isPostShotRecovery={frame.attVisuals[id]?.isPostShotRecovery}
+              isPassing={frame.attVisuals[id]?.isPassing}
+              isCutting={frame.attVisuals[id]?.isCutting}
               name={state.playerNames?.[id]}
               number={state.playerNumbers?.[id]}
               showName={state.showPlayerNames !== false}
@@ -166,6 +168,8 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
             dominantHand={state.attackerHands?.[id] ?? 'right'}
             isActivelyDribbling={frame.attVisuals[id]?.isActivelyDribbling}
             isPostShotRecovery={frame.attVisuals[id]?.isPostShotRecovery}
+            isPassing={frame.attVisuals[id]?.isPassing}
+            isCutting={frame.attVisuals[id]?.isCutting}
             name={state.playerNames?.[id]}
             number={state.playerNumbers?.[id]}
             showName={state.showPlayerNames !== false}

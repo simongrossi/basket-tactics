@@ -168,4 +168,42 @@ describe('Player anatomical poses (Sprite V2)', () => {
     // Pour le gaucher, dribble à gauche (cx < 100)
     expect(leftHandXs[lDribbleIdx]).toBeLessThan(100);
   });
+
+  it('pose passeur (isPassing) — 2 bras tendus vers l’avant (follow-through symétrique)', () => {
+    const { container } = renderPlayer({ isPassing: true });
+    const handYs = getHandCircleYs(container);
+    const handXs = getHandCircleXs(container);
+    expect(handYs.length).toBe(2);
+    expect(handYs[0]).toBeCloseTo(handYs[1], 1);
+    expect(handYs[0]).toBeLessThan(80); // bras bien tendus vers l'avant (cy = 100 - 24 = 76)
+    expect(handXs[0] + handXs[1]).toBeCloseTo(200, 1);
+  });
+
+  it('pose coupeur en course (isCutting) — foulée dynamique avec bras tous devant le buste', () => {
+    const { container } = renderPlayer({ isCutting: true, dominantHand: 'right' });
+    const handYs = getHandCircleYs(container);
+    expect(handYs.length).toBe(2);
+    // Asymétrie de foulée
+    expect(Math.abs(handYs[0] - handYs[1])).toBeGreaterThan(r * 0.4);
+    // Aucun bras dans le dos (cy < 100)
+    expect(handYs.every((y) => y < 100)).toBe(true);
+  });
+
+  it('stance dynamique (armBallSide / armManSide) — oriente chaque bras vers sa cible tout en restant dans le demi-cercle avant', () => {
+    const { container } = renderPlayer({
+      isAttacker: false,
+      orientation: 0,
+      armBallSide: { x: 40, y: 70 },  // cible côté gauche-avant
+      armManSide: { x: 180, y: 95 },  // cible côté droit-latéral
+    });
+    const handYs = getHandCircleYs(container);
+    const handXs = getHandCircleXs(container);
+    expect(handYs.length).toBe(2);
+    // Les deux bras restent dans le demi-cercle avant (cy <= 100)
+    expect(handYs.every((y) => y <= 100)).toBe(true);
+    // Asymétrie d'ouverture entre la cible haute-gauche et la cible latérale-droite
+    expect(Math.abs(handYs[0] - handYs[1])).toBeGreaterThan(2);
+    expect(handXs[0]).toBeLessThan(100);
+    expect(handXs[1]).toBeGreaterThan(100);
+  });
 });
