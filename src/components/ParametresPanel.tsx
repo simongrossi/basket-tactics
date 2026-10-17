@@ -773,7 +773,7 @@ export function ParametresPanel({
       <SettingsSection title="Physique & Biomécanique" min="development">
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0' }}>Profil de réalisme</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: UI.text }}>Profil de réalisme</span>
             <SegmentButton
               active={state.realismProfile === 'realistic'}
               onClick={() => onPatch({ realismProfile: 'realistic' })}
@@ -813,7 +813,7 @@ export function ParametresPanel({
           />
           {state.screenStiffnessEnabled && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 16 }}>
-              <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 120 }} title="Facteur d'amplification de la pénalité d'écran. 1.0 = legacy, 2.0 = impact violent.">
+              <span style={{ fontSize: 11, color: UI.muted, minWidth: 120 }} title="Facteur d'amplification de la pénalité d'écran. 1.0 = legacy, 2.0 = impact violent.">
                 violence d'impact
               </span>
               <input
@@ -828,7 +828,7 @@ export function ParametresPanel({
                 }}
                 style={{ flex: 1 }}
               />
-              <span style={{ fontSize: 10, color: '#94a3b8', minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 10, color: UI.dim, minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                 {(state.screenStiffness ?? 1.5).toFixed(1)}
               </span>
             </div>
@@ -871,7 +871,7 @@ export function ParametresPanel({
           />
           {realism.attackerAccelerationEnabled && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 16 }}>
-              <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 120 }} title="Accélération max (m/s²). Plus grand = montées en vitesse plus sèches.">
+              <span style={{ fontSize: 11, color: UI.muted, minWidth: 120 }} title="Accélération max (m/s²). Plus grand = montées en vitesse plus sèches.">
                 accélération (m/s²)
               </span>
               <input
@@ -886,7 +886,7 @@ export function ParametresPanel({
                 }}
                 style={{ flex: 1 }}
               />
-              <span style={{ fontSize: 10, color: '#94a3b8', minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 10, color: UI.dim, minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                 {(realism.attackerAcceleration ?? 5.0).toFixed(1)}
               </span>
             </div>
@@ -899,7 +899,7 @@ export function ParametresPanel({
           />
           {realism.attackerMomentumEnabled && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 16 }}>
-              <span style={{ fontSize: 11, color: '#cbd5e1', minWidth: 120 }} title="Coefficient d'inertie offensive (dérive en virage).">
+              <span style={{ fontSize: 11, color: UI.muted, minWidth: 120 }} title="Coefficient d'inertie offensive (dérive en virage).">
                 coefficient de dérive
               </span>
               <input
@@ -914,7 +914,7 @@ export function ParametresPanel({
                 }}
                 style={{ flex: 1 }}
               />
-              <span style={{ fontSize: 10, color: '#94a3b8', minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 10, color: UI.dim, minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                 {(realism.attackerMomentum ?? 0.15).toFixed(2)}
               </span>
             </div>

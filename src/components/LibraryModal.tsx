@@ -393,7 +393,7 @@ export function LibraryModal(props: LibraryModalProps) {
             {searchResults ? (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: inline ? '#f3f4f6' : c.accentText }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: inline ? 'var(--bt-text)' : c.accentText }}>
                     🔍 Recherche « {searchQuery.trim()} » · {searchResults.total} résultat{searchResults.total > 1 ? 's' : ''}
                   </div>
                   <button
@@ -495,7 +495,7 @@ export function LibraryModal(props: LibraryModalProps) {
                 return (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: inline ? '#f3f4f6' : c.accentText }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: inline ? 'var(--bt-text)' : c.accentText }}>
                         🏷 #{selectedTag} · {total} système{total > 1 ? 's' : ''}
                       </div>
                       <button
@@ -503,8 +503,8 @@ export function LibraryModal(props: LibraryModalProps) {
                         title="Retirer le filtre"
                         style={{
                           fontSize: 11, padding: '2px 8px',
-                          border: '1px solid #94a3b8', borderRadius: 4,
-                          background: 'transparent', color: '#cbd5e1', cursor: 'pointer',
+                          border: '1px solid var(--bt-border)', borderRadius: 4,
+                          background: 'transparent', color: 'var(--bt-text-dim)', cursor: 'pointer',
                         }}
                       >
                         × retirer le filtre

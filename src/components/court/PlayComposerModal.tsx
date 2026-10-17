@@ -159,11 +159,11 @@ export function PlayComposerModal({ state, isOpen, onClose, onApplyPlan }: PlayC
         style={{
           width: '100%',
           maxWidth: 480,
-          background: '#1e293b',
+          background: 'var(--bt-surface, #1e293b)',
           borderRadius: 12,
-          border: '1px solid #334155',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)',
-          color: '#f8fafc',
+          border: '1px solid var(--bt-border, #334155)',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.25)',
+          color: 'var(--bt-text, #f8fafc)',
           display: 'flex',
           flexDirection: 'column',
           maxHeight: '90vh',
@@ -177,15 +177,15 @@ export function PlayComposerModal({ state, isOpen, onClose, onApplyPlan }: PlayC
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '12px 16px',
-            borderBottom: '1px solid #334155',
-            background: '#0f172a',
+            borderBottom: '1px solid var(--bt-border, #334155)',
+            background: 'var(--bt-card-bg-lift, #0f172a)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 18 }}>⚡</span>
             <div>
               <div style={{ fontWeight: 700, fontSize: 14 }}>Orchestrateur Tactique</div>
-              <div style={{ fontSize: 10, color: '#94a3b8' }}>
+              <div style={{ fontSize: 10, color: 'var(--bt-text-dim, #94a3b8)' }}>
                 Composez les mouvements de l’étape #{state.activeStep + 1} en un clic
               </div>
             </div>
@@ -197,7 +197,7 @@ export function PlayComposerModal({ state, isOpen, onClose, onApplyPlan }: PlayC
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--bt-text-dim, #94a3b8)',
               fontSize: 18,
               cursor: 'pointer',
               padding: 4,
@@ -229,9 +229,9 @@ export function PlayComposerModal({ state, isOpen, onClose, onApplyPlan }: PlayC
                       borderRadius: 6,
                       fontSize: 12,
                       fontWeight: isSelected ? 700 : 500,
-                      border: isSelected ? '2px solid #ea580c' : '1px solid #334155',
-                      background: isSelected ? 'rgba(234, 88, 12, 0.2)' : '#0f172a',
-                      color: isSelected ? '#fb923c' : '#cbd5e1',
+                      border: isSelected ? '2px solid #ea580c' : '1px solid var(--bt-border, #334155)',
+                      background: isSelected ? 'rgba(234, 88, 12, 0.16)' : 'var(--bt-control-bg, #0f172a)',
+                      color: isSelected ? '#ea580c' : 'var(--bt-text-muted, #cbd5e1)',
                       cursor: 'pointer',
                     }}
                   >
@@ -243,8 +243,8 @@ export function PlayComposerModal({ state, isOpen, onClose, onApplyPlan }: PlayC
           </div>
 
           {/* Section 2 : Action du porteur */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: '#0f172a', padding: 10, borderRadius: 8, border: '1px solid #334155' }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#fb923c' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--bt-control-bg, #0f172a)', padding: 10, borderRadius: 8, border: '1px solid var(--bt-border, #334155)' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#ea580c' }}>
               Action du porteur ({carrier})
             </span>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
@@ -253,9 +253,9 @@ export function PlayComposerModal({ state, isOpen, onClose, onApplyPlan }: PlayC
                 value={drafts[carrier]?.carrierAction}
                 onChange={(e) => updateDraft(carrier, { carrierAction: e.target.value as PlayerActionDraft['carrierAction'] })}
                 style={{
-                  background: '#1e293b',
-                  color: '#f8fafc',
-                  border: '1px solid #475569',
+                  background: 'var(--bt-surface, #1e293b)',
+                  color: 'var(--bt-text, #f8fafc)',
+                  border: '1px solid var(--bt-border-strong, #475569)',
                   borderRadius: 6,
                   padding: '6px 8px',
                   fontSize: 11,
@@ -273,8 +273,8 @@ export function PlayComposerModal({ state, isOpen, onClose, onApplyPlan }: PlayC
                   value={drafts[carrier]?.passTarget}
                   onChange={(e) => updateDraft(carrier, { passTarget: e.target.value as AttackerId })}
                   style={{
-                    background: '#1e293b',
-                    color: '#f8fafc',
+                    background: 'var(--bt-surface, #1e293b)',
+                    color: 'var(--bt-text, #f8fafc)',
                     border: '1px solid #ea580c',
                     borderRadius: 6,
                     padding: '6px 8px',
@@ -297,8 +297,8 @@ export function PlayComposerModal({ state, isOpen, onClose, onApplyPlan }: PlayC
                   value={drafts[carrier]?.dribbleSpot}
                   onChange={(e) => updateDraft(carrier, { dribbleSpot: e.target.value })}
                   style={{
-                    background: '#1e293b',
-                    color: '#f8fafc',
+                    background: 'var(--bt-surface, #1e293b)',
+                    color: 'var(--bt-text, #f8fafc)',
                     border: '1px solid #ea580c',
                     borderRadius: 6,
                     padding: '6px 8px',
@@ -317,7 +317,7 @@ export function PlayComposerModal({ state, isOpen, onClose, onApplyPlan }: PlayC
 
           {/* Section 3 : Actions simultanées sans ballon */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--bt-accent, #38bdf8)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               🏃 2. Mouvements sans ballon
             </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -333,21 +333,21 @@ export function PlayComposerModal({ state, isOpen, onClose, onApplyPlan }: PlayC
                         gridTemplateColumns: '36px 1fr 1fr',
                         gap: 6,
                         alignItems: 'center',
-                        background: '#0f172a',
+                        background: 'var(--bt-control-bg, #0f172a)',
                         padding: '6px 8px',
                         borderRadius: 6,
-                        border: '1px solid #334155',
+                        border: '1px solid var(--bt-border, #334155)',
                       }}
                     >
-                      <span style={{ fontWeight: 700, fontSize: 12, color: '#38bdf8' }}>{id}</span>
+                      <span style={{ fontWeight: 700, fontSize: 12, color: 'var(--bt-accent, #38bdf8)' }}>{id}</span>
                       <select
                         className="bt-touch"
                         value={d?.offBallAction}
                         onChange={(e) => updateDraft(id, { offBallAction: e.target.value as OffBallActionType })}
                         style={{
-                          background: '#1e293b',
-                          color: '#f8fafc',
-                          border: '1px solid #475569',
+                          background: 'var(--bt-surface, #1e293b)',
+                          color: 'var(--bt-text, #f8fafc)',
+                          border: '1px solid var(--bt-border-strong, #475569)',
                           borderRadius: 6,
                           padding: '4px 6px',
                           fontSize: 11,
@@ -365,9 +365,9 @@ export function PlayComposerModal({ state, isOpen, onClose, onApplyPlan }: PlayC
                           value={d.screenTarget}
                           onChange={(e) => updateDraft(id, { screenTarget: e.target.value as AttackerId })}
                           style={{
-                            background: '#1e293b',
-                            color: '#f8fafc',
-                            border: '1px solid #38bdf8',
+                            background: 'var(--bt-surface, #1e293b)',
+                            color: 'var(--bt-text, #f8fafc)',
+                            border: '1px solid var(--bt-accent, #38bdf8)',
                             borderRadius: 6,
                             padding: '4px 6px',
                             fontSize: 11,
@@ -387,9 +387,9 @@ export function PlayComposerModal({ state, isOpen, onClose, onApplyPlan }: PlayC
                           value={d.spotTarget}
                           onChange={(e) => updateDraft(id, { spotTarget: e.target.value })}
                           style={{
-                            background: '#1e293b',
-                            color: '#f8fafc',
-                            border: '1px solid #38bdf8',
+                            background: 'var(--bt-surface, #1e293b)',
+                            color: 'var(--bt-text, #f8fafc)',
+                            border: '1px solid var(--bt-accent, #38bdf8)',
                             borderRadius: 6,
                             padding: '4px 6px',
                             fontSize: 11,
@@ -402,7 +402,7 @@ export function PlayComposerModal({ state, isOpen, onClose, onApplyPlan }: PlayC
                           ))}
                         </select>
                       ) : (
-                        <div style={{ fontSize: 10, color: '#64748b', fontStyle: 'italic', paddingLeft: 4 }}>
+                        <div style={{ fontSize: 10, color: 'var(--bt-text-dim, #64748b)', fontStyle: 'italic', paddingLeft: 4 }}>
                           {d?.offBallAction === 'basket' ? 'Course directe panier' : 'Immobile'}
                         </div>
                       )}
@@ -420,8 +420,8 @@ export function PlayComposerModal({ state, isOpen, onClose, onApplyPlan }: PlayC
             justifyContent: 'flex-end',
             gap: 8,
             padding: '10px 16px',
-            borderTop: '1px solid #334155',
-            background: '#0f172a',
+            borderTop: '1px solid var(--bt-border, #334155)',
+            background: 'var(--bt-card-bg-lift, #0f172a)',
           }}
         >
           <button
@@ -432,9 +432,9 @@ export function PlayComposerModal({ state, isOpen, onClose, onApplyPlan }: PlayC
               padding: '6px 12px',
               fontSize: 12,
               borderRadius: 6,
-              border: '1px solid #475569',
+              border: '1px solid var(--bt-border-strong, #475569)',
               background: 'transparent',
-              color: '#cbd5e1',
+              color: 'var(--bt-text-muted, #cbd5e1)',
               cursor: 'pointer',
             }}
           >

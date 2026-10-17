@@ -215,13 +215,24 @@ export function Sidebar({
           border-color: ${SIDEBAR.border} !important;
         }
 
-        /* En mode clair : neutraliser les boutons hardcodés avec fond sombre #262a32 / #20252e */
+        /* En mode clair : neutraliser les boutons et cartes hardcodés avec fond sombre */
         html[data-theme="light"] .sidebar-tools-scope [style*="background: #262a32"],
         html[data-theme="light"] .sidebar-tools-scope [style*="background:#262a32"],
         html[data-theme="light"] .sidebar-tools-scope [style*="background: rgb(38, 42, 50)"],
         html[data-theme="light"] .sidebar-tools-scope [style*="background: #29313e"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: rgb(41, 49, 62)"],
         html[data-theme="light"] .sidebar-tools-scope [style*="background: #20252e"],
-        html[data-theme="light"] .sidebar-tools-scope [style*="background: #1f242c"] {
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: rgb(32, 37, 46)"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: #1f242c"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: rgb(31, 36, 44)"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: #1c212b"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: rgb(28, 33, 43)"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: #1f2329"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: rgb(31, 35, 41)"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: #1e293b"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: rgb(30, 41, 59)"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: #0f172a"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="background: rgb(15, 23, 42)"] {
           background: #ffffff !important;
           color: #1e293b !important;
           border-color: #cbd5e1 !important;
@@ -232,18 +243,35 @@ export function Sidebar({
           color: #dc2626 !important;
           border-color: #fca5a5 !important;
         }
-        html[data-theme="light"] .sidebar-tools-scope button[style*="color: #cbd5e1"],
-        html[data-theme="light"] .sidebar-tools-scope button[style*="color:#cbd5e1"] {
+        html[data-theme="light"] .sidebar-tools-scope [style*="color: #cbd5e1"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="color:#cbd5e1"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="color: rgb(203, 213, 225)"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="color: #e5e7eb"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="color: rgb(229, 231, 235)"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="color: #e2e8f0"],
+        html[data-theme="light"] .sidebar-tools-scope [style*="color: rgb(226, 232, 240)"] {
           color: #334155 !important;
         }
-        html[data-theme="light"] .sidebar-tools-scope button[style*="color: #86efac"] {
+        html[data-theme="light"] .sidebar-tools-scope button[style*="color: #86efac"],
+        html[data-theme="light"] .sidebar-tools-scope button[style*="color: rgb(134, 239, 172)"] {
           color: #15803d !important;
         }
-        html[data-theme="light"] .sidebar-tools-scope button[style*="color: #fca5a5"] {
+        html[data-theme="light"] .sidebar-tools-scope button[style*="color: #fca5a5"],
+        html[data-theme="light"] .sidebar-tools-scope button[style*="color: rgb(252, 165, 165)"] {
           color: #b91c1c !important;
         }
-        html[data-theme="light"] .sidebar-tools-scope button[style*="color: #c4b5fd"] {
+        html[data-theme="light"] .sidebar-tools-scope button[style*="color: #c4b5fd"],
+        html[data-theme="light"] .sidebar-tools-scope button[style*="color: rgb(196, 181, 253)"] {
           color: #6d28d9 !important;
+        }
+        html[data-theme="light"] .sidebar-tools-scope select,
+        html[data-theme="light"] .sidebar-tools-scope input[type="text"],
+        html[data-theme="light"] .sidebar-tools-scope input[type="number"],
+        html[data-theme="light"] .sidebar-tools-scope input[type="search"],
+        html[data-theme="light"] .sidebar-tools-scope textarea {
+          background: #ffffff !important;
+          color: #0f172a !important;
+          border-color: #cbd5e1 !important;
         }
         /* Scrollbar moderne et discrète pour le volet gauche */
         .sidebar-scroll-area {

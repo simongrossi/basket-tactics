@@ -887,7 +887,7 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: '#262a32',
+          background: 'var(--bt-surface, #262a32)',
           borderRadius: 12,
           width: 'min(640px, 100%)',
           maxHeight: '85vh',
@@ -900,7 +900,7 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
         <div
           style={{
             padding: '14px 18px',
-            borderBottom: `1px solid ${c.border}`,
+            borderBottom: `1px solid var(--bt-border, ${c.border})`,
             display: 'flex',
             alignItems: 'center',
             gap: 12,
@@ -913,13 +913,13 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
             onClick={onClose}
             style={{
               fontSize: 13, padding: '4px 10px', borderRadius: 6,
-              border: '1px solid #e2e8f0', background: '#262a32', cursor: 'pointer', color: '#cbd5e1',
+              border: '1px solid var(--bt-border, #e2e8f0)', background: 'var(--bt-control-bg, #262a32)', cursor: 'pointer', color: 'var(--bt-text-muted, #cbd5e1)',
             }}
             title="Fermer (Échap)"
           >✕</button>
         </div>
 
-        <div style={{ padding: '10px 18px', borderBottom: `1px solid ${c.border}` }}>
+        <div style={{ padding: '10px 18px', borderBottom: `1px solid var(--bt-border, ${c.border})` }}>
           <input
             type="text"
             value={filter}
@@ -931,7 +931,9 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
               fontSize: 13,
               padding: '7px 10px',
               borderRadius: 6,
-              border: '1px solid #cbd5e1',
+              border: '1px solid var(--bt-border, #cbd5e1)',
+              background: 'var(--bt-control-bg, #1f242c)',
+              color: 'var(--bt-text, #f3f4f6)',
               outline: 'none',
             }}
           />
@@ -966,8 +968,8 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
                         fontSize: 12,
                         padding: '8px 10px',
                         borderRadius: 6,
-                        border: `1px solid ${c.border}`,
-                        background: '#262a32',
+                        border: `1px solid var(--bt-border, ${c.border})`,
+                        background: 'var(--bt-control-bg, #262a32)',
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
@@ -998,7 +1000,7 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
             return (
               <div style={{ marginBottom: 14 }}>
                 <div style={{
-                  fontSize: 10, color: '#93c5fd', textTransform: 'uppercase',
+                  fontSize: 10, color: 'var(--bt-accent, #93c5fd)', textTransform: 'uppercase',
                   marginBottom: 6, letterSpacing: 0.5, fontWeight: 600,
                 }}>
                   🛡️ Défense (libre)
@@ -1014,11 +1016,11 @@ function AddActionModal({ onClose, onPick, onPickDefensive }: AddActionModalProp
                         style={{
                           textAlign: 'left', fontSize: 12,
                           padding: '8px 10px',
-                          border: '1px solid #dbeafe', borderRadius: 6,
-                          background: '#262a32', cursor: 'pointer',
+                          border: '1px solid var(--bt-border, #dbeafe)', borderRadius: 6,
+                          background: 'var(--bt-control-bg, #262a32)', cursor: 'pointer',
                         }}
                       >
-                        <div style={{ fontWeight: 600, color: '#93c5fd' }}>{def.label}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--bt-accent, #93c5fd)' }}>{def.label}</div>
                         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{def.description}</div>
                       </button>
                     );
