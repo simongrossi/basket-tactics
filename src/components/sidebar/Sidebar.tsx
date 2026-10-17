@@ -249,6 +249,8 @@ export function Sidebar({
         .sidebar-scroll-area {
           scrollbar-width: thin;
           scrollbar-color: var(--bt-border) transparent;
+          overscroll-behavior: contain;
+          -webkit-overflow-scrolling: touch;
         }
         .sidebar-scroll-area::-webkit-scrollbar {
           width: 5px;
@@ -269,10 +271,10 @@ export function Sidebar({
           768 px de haut, les entrées + vues laissaient ~30 px aux outils
           (Attaque / Étapes introuvables). Les outils gardent désormais leur
           hauteur naturelle et le pied reste fixe. */}
-      <div className="sidebar-scroll-area" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', paddingTop: 6 }}>
+      <div className="sidebar-scroll-area" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', paddingTop: 4 }}>
       <InterfaceLevelSelector compact={collapsed} />
       {startActions}
-      <div style={{ padding: '10px 0 6px', flexShrink: 0 }}>
+      <div style={{ padding: '6px 0 4px', flexShrink: 0 }}>
         <SidebarNav activeView={activeView} collapsed={collapsed} onSelect={onSelectView} />
       </div>
 
@@ -282,7 +284,7 @@ export function Sidebar({
             style={{
               height: 1,
               background: SIDEBAR.borderSubtle,
-              margin: '6px 14px 10px',
+              margin: '4px 12px 6px',
               flexShrink: 0,
             }}
           />
@@ -297,20 +299,6 @@ export function Sidebar({
               gap: 2,
             }}
           >
-            {!collapsed && (
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: 1,
-                  color: SIDEBAR.textDim,
-                  textTransform: 'uppercase',
-                  padding: '4px 10px 6px',
-                }}
-              >
-                Outils
-              </div>
-            )}
             <SidebarThemeProvider dark={dark}>
               {!collapsed ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minHeight: 0 }}>
@@ -375,7 +363,7 @@ export function Sidebar({
                         role="tabpanel"
                         id={`tool-panel-${activeGroup.id}`}
                         style={{
-                          padding: '4px 2px 16px',
+                          padding: '4px 2px 48px',
                           display: 'flex',
                           flexDirection: 'column',
                         }}

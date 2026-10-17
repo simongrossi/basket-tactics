@@ -45,75 +45,17 @@ interface PanelProps {
   fill?: boolean;
 }
 
-export function Panel({ theme, title, children, fill }: PanelProps) {
-  const c = COLORS[theme];
-  const accent = 'accent' in c ? c.accent : '#94a3b8';
-  const { dark } = useSidebarTheme();
-
-  // En mode dark/sidebar : on retire complètement le chrome du Panel (carte,
-  // bordure, gros titre avec filet d'accent). Reste : un label discret SIDEBAR
-  // section-style (uppercase, petite caps, accent color en tiret coloré
-  // optionnel) et le contenu plat. Le but est d'éviter les "mini-navs"
-  // empilées dans la nav.
-  if (dark) {
-    // En mode dark/sidebar, le SidebarToolGroup parent fournit déjà le
-    // header (icône + label + chevron), donc le Panel ne dessine plus
-    // son propre titre/cadre. Reste : juste les enfants dans un flow
-    // vertical serré.
-    return (
-      <section
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 6,
-        }}
-      >
-        {children}
-      </section>
-    );
-  }
-
+export function Panel({ children }: PanelProps) {
   return (
-    <aside
+    <section
       style={{
-        background: 'var(--bt-surface, #fff)',
-        border: `1px solid var(--bt-border, ${c.border})`,
-        borderRadius: 10,
-        padding: 10,
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
-        minHeight: 0,
-        overflow: 'hidden',
-        flex: fill ? '1 1 0' : '0 0 auto',
-        boxShadow: 'var(--bt-panel-shadow, 0 1px 3px rgba(15, 23, 42, 0.04))',
+        gap: 6,
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          paddingBottom: 6,
-          borderBottom: `1px solid var(--bt-border, ${c.border})`,
-        }}
-      >
-        <div style={{ width: 4, height: 16, background: accent, borderRadius: 2 }} />
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 750,
-            letterSpacing: '-0.01em',
-            color: 'var(--bt-text, #0f172a)',
-          }}
-        >
-          {title}
-        </div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, overflow: 'auto', minHeight: 0 }}>
-        {children}
-      </div>
-    </aside>
+      {children}
+    </section>
   );
 }
 
