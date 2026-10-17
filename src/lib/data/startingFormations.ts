@@ -6,6 +6,41 @@ export interface StartingFormation {
   name: string;
   description: string;
   positions: AttackerPositions;
+  /** True si créée par l'utilisateur */
+  isCustom?: boolean;
+}
+
+const CUSTOM_FORMATIONS_KEY = 'basket-tactics-custom-formations-v1';
+
+export function loadCustomStartingFormations(): StartingFormation[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(CUSTOM_FORMATIONS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomStartingFormation(formation: StartingFormation): StartingFormation[] {
+  if (typeof window === 'undefined') return [];
+  const current = loadCustomStartingFormations().filter((f) => f.id !== formation.id);
+  const next = [...current, { ...formation, isCustom: true }];
+  try {
+    window.localStorage.setItem(CUSTOM_FORMATIONS_KEY, JSON.stringify(next));
+  } catch {}
+  return next;
+}
+
+export function deleteCustomStartingFormation(id: string): StartingFormation[] {
+  if (typeof window === 'undefined') return [];
+  const next = loadCustomStartingFormations().filter((f) => f.id !== id);
+  try {
+    window.localStorage.setItem(CUSTOM_FORMATIONS_KEY, JSON.stringify(next));
+  } catch {}
+  return next;
 }
 
 export const STARTING_FORMATIONS: StartingFormation[] = [

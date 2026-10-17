@@ -478,3 +478,61 @@ export function setInboundDefenseMode(
   };
   return { ...s, steps };
 }
+
+/**
+ * Fige les positions d'attaque et de défense actuelles comme la position de départ (Étape 0)
+ * du système.
+ *
+ * - Si on est déjà sur l'étape 0 : met à jour `s.steps[0].off` et `s.defenseInitial` (si des overrides existent),
+ *   et vide les annotations éventuelles pour avoir un départ propre.
+ * - Si on est sur une étape k > 0 : copie les positions d'attaque et défense actuelles dans l'étape 0,
+ *   efface les étapes intermédiaires (ou remplace l'étape 0), et replace l'utilisateur sur l'étape 0.
+ */
+export function setStartingPositionFromCurrentStep(s: AppState): AppState {
+  const cur = s.steps[s.activeStep];
+  if (!cur) return s;
+
+  const currentOff = structuredClone(cur.off);
+  const currentCarrier = cur.ballCarrier;
+  const currentDefOverrides = cur.defenseOverrides ? structuredClone(cur.defenseOverrides) : undefined;
+
+  let newDefenseInitial = s.defenseInitial;
+  if (currentDefOverrides) {
+    newDefenseInitial = {
+      ...s.defenseInitial,
+      ...currentDefOverrides,
+    };
+  }
+
+  // Si on est sur l'étape 0 : on fige simplement l'étape 0 avec ces positions
+  if (s.activeStep === 0) {
+    const step0: Step = {
+      ...cur,
+      off: currentOff,
+      ballCarrier: currentCarrier,
+      annotations: [],
+      defenseOverrides: undefined,
+    };
+    const steps = [step0, ...s.steps.slice(1)];
+    return {
+      ...s,
+      steps,
+      defenseInitial: newDefenseInitial,
+    };
+  }
+
+  // Si on est sur une étape ultérieure et qu'on souhaite que cette étape devienne le départ du système
+  const newStep0: Step = {
+    off: currentOff,
+    ballCarrier: currentCarrier,
+    annotations: [],
+  };
+
+  return {
+    ...s,
+    steps: [newStep0],
+    activeStep: 0,
+    defenseInitial: newDefenseInitial,
+  };
+}
+

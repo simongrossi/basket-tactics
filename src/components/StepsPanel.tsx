@@ -1,6 +1,7 @@
 'use client';
 
-import { Plus, Copy, Trash2 } from 'lucide-react';
+import { Plus, Copy, Trash2, BookmarkCheck } from 'lucide-react';
+
 import type { AppState, AttackerId, InboundDefenseMode, InboundSide } from '@/lib/types';
 import { activeBallCarrier, getActiveAttackerIds, isActiveAttacker } from '@/lib/logic/players';
 import { actionsOfStep } from '@/lib/logic/stepActions';
@@ -15,6 +16,9 @@ interface StepsPanelProps {
   onDuplicateStep: () => void;
   onDeleteStep: () => void;
   onSetStepLabel: (idx: number, label: string) => void;
+  /** Fige la disposition actuelle comme le départ (Étape 0) du système */
+  onSetStartingPosition?: () => void;
+
   /** B.1 / F.4 / F.5 — patch partiel d'un step (duration, clockSeconds,
    *  shotClockRemaining…). Utilisé pour les inputs d'horloges sur le step
    *  actif. */
@@ -572,6 +576,33 @@ export function StepsPanel(props: StepsPanelProps) {
             <Trash2 size={13} strokeWidth={2} /> suppr.
           </button>
         </div>
+        {props.onSetStartingPosition && (
+          <button
+            type="button"
+            onClick={props.onSetStartingPosition}
+            title="Figer la disposition actuelle des joueurs comme la position de départ (Étape 0) du système"
+            style={{
+              width: '100%',
+              marginTop: 6,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              fontSize: 11.5,
+              fontWeight: 650,
+              padding: '6px 10px',
+              borderRadius: 6,
+              border: '1px solid #fed7aa',
+              background: 'rgba(234, 88, 12, 0.08)',
+              color: '#c2410c',
+              cursor: 'pointer',
+            }}
+          >
+            <BookmarkCheck size={14} strokeWidth={2.4} />
+            <span>Figer la position de départ du système</span>
+          </button>
+        )}
+
         {/* Section repliée par défaut pour éviter de noyer le coach débutant sous 12 boutons de cas particuliers */}
         {(() => {
           const activeStep = props.state.steps[props.state.activeStep];

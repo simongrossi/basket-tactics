@@ -201,4 +201,36 @@ describe('stepTransforms', () => {
       expect(s1.steps[s1.activeStep].ballCarrier).toBe('O3');
     });
   });
+
+  describe('setStartingPositionFromCurrentStep', () => {
+    it("fige les positions de l'étape active sur l'étape 0 et defenseInitial", () => {
+      const s0 = makeInitialState();
+      const customOff = {
+        ...s0.steps[0].off,
+        O1: { x: 300, y: 350 },
+      };
+      const s1 = {
+        ...s0,
+        steps: [
+          s0.steps[0],
+          {
+            ...s0.steps[0],
+            off: customOff,
+            ballCarrier: 'O2' as const,
+            defenseOverrides: { D1: { x: 300, y: 300 } },
+          },
+        ],
+        activeStep: 1,
+      };
+
+      const result = stepTx.setStartingPositionFromCurrentStep(s1);
+      expect(result.activeStep).toBe(0);
+      expect(result.steps.length).toBe(1);
+      expect(result.steps[0].off.O1).toEqual({ x: 300, y: 350 });
+      expect(result.steps[0].ballCarrier).toBe('O2');
+      expect(result.defenseInitial?.D1).toEqual({ x: 300, y: 300 });
+      expect(result.steps[0].annotations).toEqual([]);
+    });
+  });
 });
+

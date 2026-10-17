@@ -1,12 +1,21 @@
 'use client';
 
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { ActionTimingAnchor, Tool } from '@/lib/types';
+import { useState, useEffect } from 'react';
+
+import { Plus, ChevronLeft, ChevronRight, BookmarkCheck, BookmarkPlus, Trash2 } from 'lucide-react';
+import type { ActionTimingAnchor, AttackerPositions, Tool } from '@/lib/types';
 import type { StickyModifiers } from '@/hooks/useCourtPointerHandlers';
 import { Panel, Section, COLORS } from './ui';
 import { useSidebarTheme, DARK_PANEL } from './sidebar/SidebarThemeContext';
 import { InterfaceGate } from './interface/InterfaceLevel';
 import { TOOL_KEYS } from '@/hooks/useKeyboardShortcuts';
+import {
+  STARTING_FORMATIONS,
+  loadCustomStartingFormations,
+  saveCustomStartingFormation,
+  deleteCustomStartingFormation,
+  type StartingFormation,
+} from '@/lib/data/startingFormations';
 
 interface OffenseToolsPanelProps {
   tool: Tool;
@@ -24,7 +33,11 @@ interface OffenseToolsPanelProps {
   onPrevStep?: () => void;
   onNextStep?: () => void;
   onAddStep?: () => void;
+  /** Fige la disposition courante comme le départ (Étape 0) du système */
+  onSetStartingPosition?: () => void;
+  currentAttackerPositions?: AttackerPositions;
 }
+
 
 const shortcutKeyFor = (tool: Tool): string =>
   (Object.keys(TOOL_KEYS).find((k) => TOOL_KEYS[k] === tool) ?? '').toUpperCase();
@@ -370,8 +383,40 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
       </Section>
 
       {props.onApplyStartingFormation && (
-        <Section theme="offense" label="Placement de départ (1 clic)" open>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+        <Section theme="offense" label="Placement de départ" open>
+          {props.onSetStartingPosition && (
+            <button
+              type="button"
+              className="bt-touch"
+              onClick={props.onSetStartingPosition}
+              title="Figer la disposition actuelle des joueurs comme la position de départ (Étape 0) du système"
+              style={{
+                width: '100%',
+                marginBottom: 8,
+                padding: '7px 10px',
+                borderRadius: 6,
+                border: '1px solid #ea580c',
+                background: 'linear-gradient(180deg, #f97316 0%, #ea580c 100%)',
+                color: '#fff',
+                fontSize: 11.5,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                boxShadow: '0 1px 4px rgba(234, 88, 12, 0.35)',
+              }}
+            >
+              <BookmarkCheck size={14} strokeWidth={2.4} />
+              <span>Figer comme début de système</span>
+            </button>
+          )}
+
+          <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+            Formations classiques
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginBottom: 8 }}>
             {[
               { id: '5-out', label: '5-Out (Ouvert)' },
               { id: '4-out-1-in', label: '4-Out 1-In' },
@@ -401,9 +446,208 @@ export function OffenseToolsPanel(props: OffenseToolsPanelProps) {
               </button>
             ))}
           </div>
+
+          <CustomFormationsManager
+            currentPositions={props.currentAttackerPositions}
+            onApply={props.onApplyStartingFormation}
+            idleBorder={idleBorder}
+            idleBg={idleBg}
+            idleText={idleText}
+          />
         </Section>
       )}
     </Panel>
   );
 }
+
+function CustomFormationsManager({
+  currentPositions,
+  onApply,
+  idleBorder,
+  idleBg,
+  idleText,
+}: {
+  currentPositions?: AttackerPositions;
+  onApply?: (id: string) => void;
+  idleBorder: string;
+  idleBg: string;
+  idleText: string;
+}) {
+  const [customList, setCustomList] = useState<StartingFormation[]>([]);
+  const [isAdding, setIsAdding] = useState(false);
+  const [presetName, setPresetName] = useState('');
+
+  useEffect(() => {
+    setCustomList(loadCustomStartingFormations());
+  }, []);
+
+  const handleSave = () => {
+    if (!presetName.trim() || !currentPositions) return;
+    const newFormation: StartingFormation = {
+      id: `custom-${Date.now()}`,
+      name: presetName.trim(),
+      description: 'Formation personnalisée enregistrée par le coach.',
+      positions: structuredClone(currentPositions),
+    };
+    const updated = saveCustomStartingFormation(newFormation);
+    setCustomList(updated);
+    setPresetName('');
+    setIsAdding(false);
+  };
+
+  const handleDelete = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = deleteCustomStartingFormation(id);
+    setCustomList(updated);
+  };
+
+  return (
+    <div style={{ marginTop: 6, borderTop: `1px solid ${idleBorder}`, paddingTop: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <span style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          Mes formations ({customList.length})
+        </span>
+        {!isAdding && currentPositions && (
+          <button
+            type="button"
+            onClick={() => setIsAdding(true)}
+            title="Enregistrer la disposition actuelle en tant que formation réutilisable"
+            style={{
+              border: 'none',
+              background: 'transparent',
+              color: '#ea580c',
+              fontSize: 10.5,
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3,
+              padding: 0,
+            }}
+          >
+            <BookmarkPlus size={12} strokeWidth={2.4} />
+            <span>+ Enregistrer</span>
+          </button>
+        )}
+      </div>
+
+      {isAdding && (
+        <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+          <input
+            type="text"
+            value={presetName}
+            placeholder="Nom du départ (ex: Box, Stagger...)"
+            onChange={(e) => setPresetName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSave();
+              if (e.key === 'Escape') setIsAdding(false);
+            }}
+            autoFocus
+            style={{
+              flex: 1,
+              fontSize: 11,
+              padding: '3px 6px',
+              borderRadius: 4,
+              border: '1px solid #ea580c',
+              background: idleBg,
+              color: idleText,
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!presetName.trim()}
+            style={{
+              fontSize: 10.5,
+              fontWeight: 700,
+              padding: '3px 8px',
+              borderRadius: 4,
+              border: 'none',
+              background: '#ea580c',
+              color: '#fff',
+              cursor: presetName.trim() ? 'pointer' : 'not-allowed',
+              opacity: presetName.trim() ? 1 : 0.5,
+            }}
+          >
+            OK
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsAdding(false)}
+            style={{
+              fontSize: 10.5,
+              padding: '3px 6px',
+              borderRadius: 4,
+              border: `1px solid ${idleBorder}`,
+              background: idleBg,
+              color: '#94a3b8',
+              cursor: 'pointer',
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {customList.length > 0 ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+          {customList.map((f) => (
+            <div
+              key={f.id}
+              onClick={() => onApply?.(f.id)}
+              title={`Appliquer "${f.name}"`}
+              style={{
+                fontSize: 11,
+                padding: '5px 6px',
+                borderRadius: 5,
+                border: `1px solid ${idleBorder}`,
+                background: idleBg,
+                color: idleText,
+                cursor: 'pointer',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 4,
+              }}
+            >
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {f.name}
+              </span>
+              <button
+                type="button"
+                onClick={(e) => handleDelete(f.id, e)}
+                title="Supprimer cette formation enregistrée"
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#ef4444';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = '#94a3b8';
+                }}
+              >
+                <Trash2 size={12} strokeWidth={2} />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        !isAdding && (
+          <div style={{ fontSize: 10.5, color: '#94a3b8', fontStyle: 'italic', padding: '2px 0' }}>
+            Aucun départ personnalisé. Placez vos joueurs et cliquez sur + Enregistrer.
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
 

@@ -956,9 +956,12 @@ export default function Page() {
                       app.setActiveStep(Math.min(app.state.steps.length - 1, app.state.activeStep + 1));
                     }}
                     onAddStep={app.addStep}
+                    onSetStartingPosition={app.setStartingPositionFromCurrentStep}
+                    currentAttackerPositions={app.state.steps[app.state.activeStep]?.off}
                   />
                 ),
               },
+
               {
                 id: 'defense',
                 icon: Shield,
@@ -1030,6 +1033,7 @@ export default function Page() {
                     onSetInboundDefenseMode={app.setInboundDefenseMode}
                     onAddFreeThrowReboundStep={app.addFreeThrowReboundStep}
                     onConvertToJumpBall={app.convertStepToJumpBall}
+                    onSetStartingPosition={app.setStartingPositionFromCurrentStep}
                   />
                 ),
               },
@@ -1328,6 +1332,7 @@ export default function Page() {
               onModifiersChange={setStickyModifiers}
               dark={themeMode === 'dark'}
               onAddStep={app.addStep}
+              onSetStartingPosition={app.setStartingPositionFromCurrentStep}
               onSetActiveStep={(idx) => {
                 setScrubT(null);
                 app.setActiveStep(idx);

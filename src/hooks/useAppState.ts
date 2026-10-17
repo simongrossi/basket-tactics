@@ -43,7 +43,8 @@ import type { DefensePreset } from '@/lib/data/defensePresets';
 import type { DefenderProfile } from '@/lib/data/defenderProfiles';
 import { persistDetectedSwitchesThroughStep } from '@/lib/logic/engine';
 import { moveAttackerInState, moveDefenderInState } from '@/lib/logic/playerMove';
-import { STARTING_FORMATIONS } from '@/lib/data/startingFormations';
+import { STARTING_FORMATIONS, loadCustomStartingFormations } from '@/lib/data/startingFormations';
+
 import { loadFromStorage, saveToStorage, RECOVERY_KEY } from '@/lib/state/persistence';
 import { decompressStateFromUrl, parseSharedHash } from '@/lib/state/urlCompression';
 import { computeOffBallPositions } from '@/lib/logic/autoOffense';
@@ -370,7 +371,8 @@ export function useAppState() {
     setStateWithHistory((s) => {
       const step = s.steps[s.activeStep];
       if (!step) return s;
-      const form = STARTING_FORMATIONS.find((f) => f.id === formationId);
+      const allFormations = [...STARTING_FORMATIONS, ...loadCustomStartingFormations()];
+      const form = allFormations.find((f) => f.id === formationId);
       if (!form) return s;
       let next = s;
       (Object.keys(form.positions) as AttackerId[]).forEach((id) => {
@@ -381,6 +383,12 @@ export function useAppState() {
       return next;
     });
   }, [setStateWithHistory]);
+
+  /** Fige les positions actuelles (attaque et défense) comme position de départ (Étape 0) du système */
+  const setStartingPositionFromCurrentStep = useCallback(() => {
+    setStateWithHistory(stepTx.setStartingPositionFromCurrentStep);
+  }, [setStateWithHistory]);
+
 
 
   // -- Annotations --
@@ -892,6 +900,7 @@ export function useAppState() {
     clearDefenseOverride,
     autoPositionOffBall,
     applyStartingFormation,
+    setStartingPositionFromCurrentStep,
     applyDefensePreset,
     addScriptedAction,
     updateScriptedAction,

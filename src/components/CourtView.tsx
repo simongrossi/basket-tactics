@@ -178,7 +178,9 @@ interface CourtViewProps {
   /** Progression d'étape rapide directement depuis la barre du terrain */
   onAddStep?: () => void;
   onSetActiveStep?: (idx: number) => void;
+  onSetStartingPosition?: () => void;
 }
+
 
 export function CourtView(props: CourtViewProps) {
   const { analysis, development } = useInterfaceLevel();
@@ -1314,8 +1316,10 @@ export function CourtView(props: CourtViewProps) {
           onPrevStep={props.onSetActiveStep ? () => props.onSetActiveStep!(Math.max(0, state.activeStep - 1)) : undefined}
           onNextStep={props.onSetActiveStep ? () => props.onSetActiveStep!(Math.min(state.steps.length - 1, state.activeStep + 1)) : undefined}
           onAddStep={props.gesturesOnly ? undefined : props.onAddStep}
+          onSetStartingPosition={props.gesturesOnly ? undefined : props.onSetStartingPosition}
         />
       )}
+
 
       {/* Popover / Modal Orchestrateur tactique d'étape (Play Composer) */}
       <PlayComposerModal

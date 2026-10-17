@@ -6,8 +6,9 @@
 
 import type { AttackerId, DefenderId, Tool } from '@/lib/types';
 import type { StickyModifiers } from '@/hooks/useCourtPointerHandlers';
-import { Move, SendHorizontal, Waves, Route, PanelTop, StickyNote, Sparkles, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Move, SendHorizontal, Waves, Route, PanelTop, StickyNote, Sparkles, Plus, ChevronLeft, ChevronRight, BookmarkCheck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+
 
 interface CourtTouchBarProps {
   tool: Tool;
@@ -31,7 +32,10 @@ interface CourtTouchBarProps {
   onPrevStep?: () => void;
   onNextStep?: () => void;
   onAddStep?: () => void;
+  /** Fige la disposition courante comme le départ (Étape 0) du système */
+  onSetStartingPosition?: () => void;
 }
+
 
 const FREEHAND_TOOLS: Tool[] = ['dribble', 'cut', 'screen'];
 
@@ -237,8 +241,34 @@ export function CourtTouchBar(props: CourtTouchBarProps) {
                 <Plus size={13} strokeWidth={2.6} />
                 <span>Étape</span>
               </button>
+              {props.onSetStartingPosition && (
+                <button
+                  type="button"
+                  onClick={props.onSetStartingPosition}
+                  title="Figer la disposition actuelle des joueurs comme la position de départ (Étape 0) du système"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    border: '1px solid var(--bt-border)',
+                    background: 'var(--bt-surface)',
+                    color: 'var(--bt-text)',
+                    fontSize: 11,
+                    fontWeight: 650,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    marginLeft: 2,
+                  }}
+                >
+                  <BookmarkCheck size={13} strokeWidth={2.3} color="#ea580c" />
+                  <span>Figer départ</span>
+                </button>
+              )}
             </>
           )}
+
           {tool === 'move' && (
             <>
               <span
