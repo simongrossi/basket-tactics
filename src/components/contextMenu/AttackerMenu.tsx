@@ -17,11 +17,8 @@ import type {
 import { useClampedPosition } from './popupHooks';
 import { ToolBar } from './ToolBar';
 import { AutoActionSubmenu } from './AutoActionSubmenu';
-import { DARK_PANEL } from '../sidebar/SidebarThemeContext';
+import { DARK_PANEL, useSidebarTheme } from '../sidebar/SidebarThemeContext';
 
-const ORANGE_ACCENT = '#fdba74';
-const ORANGE_TINT_BG = 'rgba(216, 90, 48, 0.10)';
-const ORANGE_TINT_BORDER = 'rgba(253, 186, 116, 0.28)';
 
 const PROFILE_LABELS: Record<OffensiveProfile, string> = {
   creator:      'créateur (meneur)',
@@ -82,6 +79,11 @@ export function AttackerMenu({
 }: AttackerMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
   const pos = useClampedPosition(x, y, ref);
+  const { dark } = useSidebarTheme();
+  const orangeAccent = dark ? '#fdba74' : '#c2410c';
+  const orangeTintBg = dark ? 'rgba(216, 90, 48, 0.10)' : 'rgba(234, 88, 12, 0.08)';
+  const orangeTintBorder = dark ? 'rgba(253, 186, 116, 0.28)' : 'rgba(234, 88, 12, 0.25)';
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (!ref.current) return;
@@ -119,6 +121,7 @@ export function AttackerMenu({
   return (
     <div
       ref={ref}
+      className="bt-context-menu"
       style={{
         position: 'absolute',
         left: pos.x,
@@ -130,7 +133,7 @@ export function AttackerMenu({
         padding: 10,
         minWidth: 220,
         zIndex: 1000,
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.45)',
+        boxShadow: dark ? '0 4px 16px rgba(0, 0, 0, 0.45)' : '0 10px 25px rgba(0, 0, 0, 0.12)',
       }}
     >
       <div style={{ display: 'flex', gap: 6, marginBottom: 10, alignItems: 'center' }}>
@@ -215,12 +218,12 @@ export function AttackerMenu({
           marginTop: 8,
           padding: '5px 6px',
           borderRadius: 4,
-          background: ORANGE_TINT_BG,
-          border: `1px solid ${ORANGE_TINT_BORDER}`,
+          background: orangeTintBg,
+          border: `1px solid ${orangeTintBorder}`,
         }}
         title="Profil offensif. Module la qualité de tir (un shooter tire mieux), l'aide adverse (un défenseur ne quitte pas un shooter mais peut sagger un non-shooter) et le closeout (plus rapide sur un shooter). Visible aussi dans les diagnostics coach."
       >
-        <span style={{ fontSize: 11, color: ORANGE_ACCENT, width: 88, fontWeight: 500 }}>profil off.</span>
+        <span style={{ fontSize: 11, color: orangeAccent, width: 88, fontWeight: 500 }}>profil off.</span>
         <select
           value={offensiveProfile}
           onChange={(e) => onSetOffensiveProfile(e.target.value as OffensiveProfile)}
@@ -240,12 +243,12 @@ export function AttackerMenu({
           marginTop: 6,
           padding: '5px 6px',
           borderRadius: 4,
-          background: ORANGE_TINT_BG,
-          border: `1px solid ${ORANGE_TINT_BORDER}`,
+          background: orangeTintBg,
+          border: `1px solid ${orangeTintBorder}`,
         }}
         title="Phy.O — Tier athlétique. Module la sensibilité aux virages (elite ralentit moins dans les courbes, lent ralentit plus). Effet visible quand le profil de vitesse offensif est activé dans Paramètres."
       >
-        <span style={{ fontSize: 11, color: ORANGE_ACCENT, width: 88, fontWeight: 500 }}>
+        <span style={{ fontSize: 11, color: orangeAccent, width: 88, fontWeight: 500 }}>
           tier athl.
         </span>
         <select
@@ -273,12 +276,12 @@ export function AttackerMenu({
           marginTop: 6,
           padding: '5px 6px',
           borderRadius: 4,
-          background: ORANGE_TINT_BG,
-          border: `1px solid ${ORANGE_TINT_BORDER}`,
+          background: orangeTintBg,
+          border: `1px solid ${orangeTintBorder}`,
         }}
         title="Override absolu de l'orientation du corps en degrés (0–360°). Si défini, écrase le calcul auto (porteur → panier, idle → ballon, etc.)."
       >
-        <span style={{ fontSize: 11, color: ORANGE_ACCENT, width: 88, fontWeight: 500 }}>orient. corps</span>
+        <span style={{ fontSize: 11, color: orangeAccent, width: 88, fontWeight: 500 }}>orient. corps</span>
         <input
           type="range"
           min={0}
@@ -288,7 +291,7 @@ export function AttackerMenu({
           onChange={(e) => onSetBodyOrientation(parseInt(e.target.value))}
           style={{ flex: 1 }}
         />
-        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: bodyOrientation !== undefined ? ORANGE_ACCENT : DARK_PANEL.textDim, fontWeight: bodyOrientation !== undefined ? 600 : 400 }}>
+        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: bodyOrientation !== undefined ? orangeAccent : DARK_PANEL.textDim, fontWeight: bodyOrientation !== undefined ? 600 : 400 }}>
           {bodyOrientation !== undefined ? `${bodyOrientation}°` : 'auto'}
         </span>
         {bodyOrientation !== undefined && (
@@ -308,12 +311,12 @@ export function AttackerMenu({
           marginTop: 6,
           padding: '5px 6px',
           borderRadius: 4,
-          background: ORANGE_TINT_BG,
-          border: `1px solid ${ORANGE_TINT_BORDER}`,
+          background: orangeTintBg,
+          border: `1px solid ${orangeTintBorder}`,
         }}
         title="Override absolu de l'orientation du regard en degrés (0–360°). Sera CLAMPÉ à ±75° du corps effectif."
       >
-        <span style={{ fontSize: 11, color: ORANGE_ACCENT, width: 88, fontWeight: 500 }}>orient. regard</span>
+        <span style={{ fontSize: 11, color: orangeAccent, width: 88, fontWeight: 500 }}>orient. regard</span>
         <input
           type="range"
           min={0}
@@ -323,7 +326,7 @@ export function AttackerMenu({
           onChange={(e) => onSetGazeOrientation(parseInt(e.target.value))}
           style={{ flex: 1 }}
         />
-        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: gazeOrientation !== undefined ? ORANGE_ACCENT : DARK_PANEL.textDim, fontWeight: gazeOrientation !== undefined ? 600 : 400 }}>
+        <span style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: gazeOrientation !== undefined ? orangeAccent : DARK_PANEL.textDim, fontWeight: gazeOrientation !== undefined ? 600 : 400 }}>
           {gazeOrientation !== undefined ? `${gazeOrientation}°` : 'auto'}
         </span>
         {gazeOrientation !== undefined && (
@@ -343,12 +346,12 @@ export function AttackerMenu({
           marginTop: 6,
           padding: '5px 6px',
           borderRadius: 4,
-          background: ORANGE_TINT_BG,
-          border: `1px solid ${ORANGE_TINT_BORDER}`,
+          background: orangeTintBg,
+          border: `1px solid ${orangeTintBorder}`,
         }}
         title="Main dominante de l'attaquant. Un défenseur réglé « sur porteur : main faible » se décale côté main forte pour le forcer sur sa main faible (droitier → on le pousse à gauche, gaucher → à droite)."
       >
-        <span style={{ fontSize: 11, color: ORANGE_ACCENT, width: 88, fontWeight: 500 }}>main dom.</span>
+        <span style={{ fontSize: 11, color: orangeAccent, width: 88, fontWeight: 500 }}>main dom.</span>
         <select
           value={dominantHand}
           onChange={(e) => onSetDominantHand(e.target.value as DominantHand)}

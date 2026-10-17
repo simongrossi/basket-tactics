@@ -27,13 +27,10 @@ import { DEFENDER_PROFILES, type DefenderProfile } from '@/lib/data/defenderProf
 import { useClampedPosition, useDraggablePopup } from './popupHooks';
 import { ToolBar } from './ToolBar';
 import { Row, OverrideSliderRow, GazeLockButton } from './sharedRows';
-import { DARK_PANEL } from '../sidebar/SidebarThemeContext';
+import { DARK_PANEL, useSidebarTheme } from '../sidebar/SidebarThemeContext';
 
-const BLUE_ACCENT = '#4ba3ff';
-const BLUE_TINT_BG = 'rgba(75, 163, 255, 0.13)';
-const BLUE_TINT_BORDER = 'rgba(75, 163, 255, 0.32)';
-const AMBER_TINT_BG = 'rgba(245, 158, 11, 0.15)';
-const AMBER_TINT_BORDER = 'rgba(252, 211, 77, 0.35)';
+const BLUE_ACCENT_DARK = '#4ba3ff';
+const BLUE_ACCENT_LIGHT = '#2563eb';
 
 type IconComponent = LucideIcon;
 
@@ -52,9 +49,19 @@ function MenuSection({
   first?: boolean;
   children: ReactNode;
 }) {
+  const { dark } = useSidebarTheme();
   const metaColors = metaTone === 'amber'
-    ? { color: '#fdba74', background: AMBER_TINT_BG, border: AMBER_TINT_BORDER }
-    : { color: '#bfdbfe', background: BLUE_TINT_BG, border: BLUE_TINT_BORDER };
+    ? {
+        color: dark ? '#fdba74' : '#b45309',
+        background: dark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.12)',
+        border: dark ? 'rgba(252, 211, 77, 0.35)' : 'rgba(217, 119, 6, 0.35)',
+      }
+    : {
+        color: dark ? '#bfdbfe' : '#1d4ed8',
+        background: dark ? 'rgba(75, 163, 255, 0.13)' : 'rgba(37, 99, 235, 0.08)',
+        border: dark ? 'rgba(75, 163, 255, 0.32)' : 'rgba(37, 99, 235, 0.25)',
+      };
+
 
   return (
     <section
@@ -256,6 +263,8 @@ export function DefenderMenu({
 
   const placementTone = hasOverride ? 'amber' : 'blue';
   const placementMeta = hasOverride ? 'manuel' : 'auto';
+  const { dark } = useSidebarTheme();
+  const blueAccent = dark ? BLUE_ACCENT_DARK : BLUE_ACCENT_LIGHT;
 
   return (
     <div
@@ -275,7 +284,7 @@ export function DefenderMenu({
         borderRadius: 12,
         padding: 12,
         zIndex: 1000,
-        boxShadow: '0 18px 48px rgba(0, 0, 0, 0.48)',
+        boxShadow: dark ? '0 18px 48px rgba(0, 0, 0, 0.48)' : '0 12px 32px rgba(0, 0, 0, 0.15)',
       }}
     >
       <div
@@ -300,9 +309,9 @@ export function DefenderMenu({
               width: 28,
               height: 28,
               borderRadius: 8,
-              background: BLUE_TINT_BG,
-              border: `1px solid ${BLUE_TINT_BORDER}`,
-              color: '#bfdbfe',
+              background: dark ? 'rgba(75, 163, 255, 0.13)' : 'rgba(37, 99, 235, 0.08)',
+              border: `1px solid ${dark ? 'rgba(75, 163, 255, 0.32)' : 'rgba(37, 99, 235, 0.25)'}`,
+              color: dark ? '#bfdbfe' : '#2563eb',
               flex: '0 0 auto',
             }}
           >
@@ -340,7 +349,7 @@ export function DefenderMenu({
 
       {/* Roster Customization Section */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, alignItems: 'center' }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: BLUE_ACCENT, width: 44, textTransform: 'uppercase' }}>Roster</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: blueAccent, width: 44, textTransform: 'uppercase' }}>Roster</span>
         <input
           type="text"
           placeholder="N°"
@@ -376,6 +385,7 @@ export function DefenderMenu({
         />
       </div>
 
+
       <ToolBar
         tool={tool}
         onSetTool={onSetTool}
@@ -392,8 +402,12 @@ export function DefenderMenu({
             gap: 6,
             padding: 5,
             borderRadius: 9,
-            background: hasOverride ? AMBER_TINT_BG : BLUE_TINT_BG,
-            border: `1px solid ${hasOverride ? AMBER_TINT_BORDER : BLUE_TINT_BORDER}`,
+            background: hasOverride
+              ? (dark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.10)')
+              : (dark ? 'rgba(75, 163, 255, 0.13)' : 'rgba(37, 99, 235, 0.08)'),
+            border: `1px solid ${hasOverride
+              ? (dark ? 'rgba(252, 211, 77, 0.35)' : 'rgba(217, 119, 6, 0.30)')
+              : (dark ? 'rgba(75, 163, 255, 0.32)' : 'rgba(37, 99, 235, 0.22)')}`,
           }}
         >
           <button
@@ -408,9 +422,9 @@ export function DefenderMenu({
             style={{
               minHeight: 34,
               borderRadius: 7,
-              border: `1px solid ${!hasOverride ? BLUE_ACCENT : DARK_PANEL.border}`,
-              background: !hasOverride ? BLUE_ACCENT : DARK_PANEL.bgSubtle,
-              color: !hasOverride ? '#07121f' : DARK_PANEL.textMuted,
+              border: `1px solid ${!hasOverride ? blueAccent : DARK_PANEL.border}`,
+              background: !hasOverride ? blueAccent : DARK_PANEL.bgSubtle,
+              color: !hasOverride ? (dark ? '#07121f' : '#ffffff') : DARK_PANEL.textMuted,
               cursor: hasOverride ? 'pointer' : 'default',
               fontWeight: 850,
               display: 'inline-flex',
@@ -430,9 +444,9 @@ export function DefenderMenu({
             style={{
               minHeight: 34,
               borderRadius: 7,
-              border: `1px solid ${hasOverride ? '#d97706' : DARK_PANEL.border}`,
-              background: hasOverride ? '#f59e0b' : DARK_PANEL.bgSubtle,
-              color: hasOverride ? '#1f1300' : DARK_PANEL.textDim,
+              border: `1px solid ${hasOverride ? (dark ? '#d97706' : '#b45309') : DARK_PANEL.border}`,
+              background: hasOverride ? (dark ? '#f59e0b' : '#d97706') : DARK_PANEL.bgSubtle,
+              color: hasOverride ? '#ffffff' : DARK_PANEL.textDim,
               cursor: 'default',
               fontWeight: 850,
               display: 'inline-flex',
@@ -446,6 +460,7 @@ export function DefenderMenu({
             manuel
           </button>
         </div>
+
 
         <Row
           label="profil"
@@ -659,7 +674,7 @@ export function DefenderMenu({
               fontSize: 12,
               minWidth: 44,
               textAlign: 'right',
-              color: rule.orientation ? BLUE_ACCENT : DARK_PANEL.textDim,
+              color: rule.orientation ? blueAccent : DARK_PANEL.textDim,
               fontWeight: rule.orientation ? 850 : 700,
             }}
           >
@@ -727,7 +742,7 @@ export function DefenderMenu({
               fontSize: 12,
               minWidth: 44,
               textAlign: 'right',
-              color: rule.bodyOrientation !== undefined ? BLUE_ACCENT : DARK_PANEL.textDim,
+              color: rule.bodyOrientation !== undefined ? blueAccent : DARK_PANEL.textDim,
               fontWeight: rule.bodyOrientation !== undefined ? 850 : 700,
             }}
           >

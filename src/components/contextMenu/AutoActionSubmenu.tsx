@@ -14,7 +14,9 @@ import {
   generateAutoAnnotation,
   type ScreenSide,
 } from '@/lib/logic/autoActions/generateAutoAnnotation';
-import { DARK_PANEL } from '../sidebar/SidebarThemeContext';
+import { DARK_PANEL, useSidebarTheme } from '../sidebar/SidebarThemeContext';
+
+
 
 interface AutoActionSubmenuProps {
   state: AppState;
@@ -33,6 +35,7 @@ const SIDE_LABELS: Record<ScreenSide, string> = {
 export function AutoActionSubmenu({ state, fromId, onCreate, onClose }: AutoActionSubmenuProps) {
   const [open, setOpen] = useState<'pass' | 'screen' | null>(null);
   const [screenTarget, setScreenTarget] = useState<AttackerId | null>(null);
+  const { dark } = useSidebarTheme();
 
   const targets = getActiveAttackerIds(state.playerCount).filter((id) => id !== fromId);
 
@@ -49,9 +52,9 @@ export function AutoActionSubmenu({ state, fromId, onCreate, onClose }: AutoActi
     fontSize: 12,
     padding: '6px 8px',
     borderRadius: 4,
-    border: `1px solid ${active ? 'rgba(253, 186, 116, 0.35)' : DARK_PANEL.border}`,
-    background: active ? 'rgba(216, 90, 48, 0.15)' : DARK_PANEL.bgSubtle,
-    color: active ? '#fdba74' : DARK_PANEL.text,
+    border: `1px solid ${active ? (dark ? 'rgba(253, 186, 116, 0.35)' : 'rgba(234, 88, 12, 0.35)') : DARK_PANEL.border}`,
+    background: active ? (dark ? 'rgba(216, 90, 48, 0.15)' : 'rgba(234, 88, 12, 0.10)') : DARK_PANEL.bgSubtle,
+    color: active ? (dark ? '#fdba74' : '#c2410c') : DARK_PANEL.text,
     cursor: 'pointer' as const,
     fontWeight: active ? 600 : 400,
   });
@@ -68,6 +71,7 @@ export function AutoActionSubmenu({ state, fromId, onCreate, onClose }: AutoActi
     color: DARK_PANEL.textMuted,
     cursor: 'pointer' as const,
   };
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>

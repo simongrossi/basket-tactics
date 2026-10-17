@@ -1194,6 +1194,7 @@ export default function Page() {
               onCloseComposer={() => setShowComposerModal(false)}
               modifiers={stickyModifiers}
               onModifiersChange={setStickyModifiers}
+              dark={themeMode === 'dark'}
             />
             {/* Coaching #1 — télécommande de présentation pas-à-pas, en
                 overlay sur le terrain en mode lecteur (sans match live). */}

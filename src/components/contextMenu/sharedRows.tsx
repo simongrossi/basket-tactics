@@ -7,10 +7,8 @@
 
 import type { ReactNode } from 'react';
 import { Info, Lock, RotateCcw } from 'lucide-react';
-import { DARK_PANEL } from '../sidebar/SidebarThemeContext';
+import { DARK_PANEL, useSidebarTheme } from '../sidebar/SidebarThemeContext';
 
-const ACCENT = '#fdba74';
-const BLUE_ACCENT = '#4ba3ff';
 
 function HelpTip({ text }: { text?: string }) {
   if (!text) return null;
@@ -85,6 +83,8 @@ export function OverrideSliderRow({
   onReset: () => void;
   title?: string;
 }) {
+  const { dark } = useSidebarTheme();
+  const accent = dark ? '#fdba74' : '#c2410c';
   const overridden = value !== undefined;
   const display = overridden ? value!.toFixed(step < 1 ? 2 : 0) : 'global';
   return (
@@ -105,7 +105,7 @@ export function OverrideSliderRow({
           minWidth: 0,
           fontSize: 12,
           lineHeight: 1.15,
-          color: overridden ? ACCENT : DARK_PANEL.textMuted,
+          color: overridden ? accent : DARK_PANEL.textMuted,
           fontWeight: overridden ? 700 : 600,
         }}
       >
@@ -122,7 +122,7 @@ export function OverrideSliderRow({
           onChange={(e) => onChange(parseFloat(e.target.value))}
           style={{ flex: 1, minWidth: 0, opacity: overridden ? 1 : 0.55 }}
         />
-        <span style={{ fontSize: 12, color: overridden ? ACCENT : DARK_PANEL.textDim, minWidth: 44, textAlign: 'right', fontWeight: overridden ? 700 : 600 }}>
+        <span style={{ fontSize: 12, color: overridden ? accent : DARK_PANEL.textDim, minWidth: 44, textAlign: 'right', fontWeight: overridden ? 700 : 600 }}>
           {display}
         </span>
         {overridden && (
@@ -161,6 +161,8 @@ export function GazeLockButton({
   active: boolean;
   onClick: () => void;
 }) {
+  const { dark } = useSidebarTheme();
+  const blueAccent = dark ? '#4ba3ff' : '#2563eb';
   return (
     <button
       type="button"
@@ -171,9 +173,9 @@ export function GazeLockButton({
         fontSize: 12,
         padding: '5px 8px',
         borderRadius: 6,
-        border: `1px solid ${active ? BLUE_ACCENT : DARK_PANEL.border}`,
-        background: active ? BLUE_ACCENT : DARK_PANEL.bgSubtle,
-        color: active ? '#07121f' : DARK_PANEL.textMuted,
+        border: `1px solid ${active ? blueAccent : DARK_PANEL.border}`,
+        background: active ? blueAccent : DARK_PANEL.bgSubtle,
+        color: active ? (dark ? '#07121f' : '#ffffff') : DARK_PANEL.textMuted,
         cursor: 'pointer',
         fontWeight: active ? 800 : 600,
         whiteSpace: 'nowrap',

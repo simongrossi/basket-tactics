@@ -6,7 +6,8 @@
 import type { ActionTimingAnchor, Tool } from '@/lib/types';
 import type { LucideIcon } from 'lucide-react';
 import { Move, PanelTop, Route, SendHorizontal, Waves } from 'lucide-react';
-import { DARK_PANEL } from '../sidebar/SidebarThemeContext';
+import { DARK_PANEL, useSidebarTheme } from '../sidebar/SidebarThemeContext';
+
 
 export interface ToolBarProps {
   tool: Tool;
@@ -34,6 +35,12 @@ export function ToolBar({
   onSetActionTimingAnchor,
   defenderContext,
 }: ToolBarProps) {
+  const { dark } = useSidebarTheme();
+  const inactiveOrange = dark ? '#fdba74' : '#c2410c';
+  const timingBg = actionTimingAnchor === 'end'
+    ? (dark ? 'rgba(216, 90, 48, 0.16)' : 'rgba(234, 88, 12, 0.12)')
+    : DARK_PANEL.bgSubtle;
+
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 6, marginBottom: 8 }}>
@@ -57,7 +64,7 @@ export function ToolBar({
                 background: active
                   ? 'linear-gradient(180deg, #e46338 0%, #c94a23 100%)'
                   : DARK_PANEL.bgSubtle,
-                color: active ? '#fff' : (greyed ? DARK_PANEL.textDim : '#fdba74'),
+                color: active ? '#fff' : (greyed ? DARK_PANEL.textDim : inactiveOrange),
                 cursor: 'pointer',
                 fontWeight: active ? 800 : 700,
                 display: 'flex',
@@ -87,8 +94,8 @@ export function ToolBar({
             padding: '6px 8px',
             borderRadius: 8,
             border: `1px solid ${actionTimingAnchor === 'end' ? '#D85A30' : DARK_PANEL.border}`,
-            background: actionTimingAnchor === 'end' ? 'rgba(216, 90, 48, 0.14)' : DARK_PANEL.bgSubtle,
-            color: actionTimingAnchor === 'end' ? '#fdba74' : DARK_PANEL.textMuted,
+            background: timingBg,
+            color: actionTimingAnchor === 'end' ? inactiveOrange : DARK_PANEL.textMuted,
             fontSize: 12,
             fontWeight: 800,
             cursor: 'pointer',
@@ -106,3 +113,4 @@ export function ToolBar({
     </>
   );
 }
+

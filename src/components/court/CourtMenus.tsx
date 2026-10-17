@@ -28,6 +28,8 @@ import { applyZoneOverrides, getZoneLayout, mirrorZoneLayout } from '@/lib/data/
 import { ContextMenu } from '../ContextMenu';
 import { ZoneRegionMenu } from '../overlays/ZoneEditOverlay';
 
+import { SidebarThemeProvider } from '../sidebar/SidebarThemeContext';
+
 export type CtxMenuState =
   | { kind: 'defender'; dId: DefenderId; x: number; y: number }
   | { kind: 'attacker'; oId: AttackerId; x: number; y: number };
@@ -35,7 +37,9 @@ export type CtxMenuState =
 export type ZoneRegionMenuState = { regionId: string; x: number; y: number };
 
 interface CourtMenusProps {
+  dark?: boolean;
   state: AppState;
+
   frame: PlaybackFrame;
   ctxMenu: CtxMenuState | null;
   zoneRegionMenu: ZoneRegionMenuState | null;
@@ -97,7 +101,7 @@ export function CourtMenus(props: CourtMenusProps) {
   } = props;
 
   return (
-    <>
+    <SidebarThemeProvider dark={props.dark ?? false}>
       {ctxMenu?.kind === 'defender' && (
         <ContextMenu
           kind="defender"
@@ -183,6 +187,6 @@ export function CourtMenus(props: CourtMenusProps) {
           />
         );
       })()}
-    </>
+    </SidebarThemeProvider>
   );
 }

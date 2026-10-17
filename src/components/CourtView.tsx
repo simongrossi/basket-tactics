@@ -174,6 +174,7 @@ interface CourtViewProps {
   onCloseComposer?: () => void;
   modifiers?: StickyModifiers;
   onModifiersChange?: (m: StickyModifiers) => void;
+  dark?: boolean;
 }
 
 export function CourtView(props: CourtViewProps) {
@@ -1276,6 +1277,7 @@ export function CourtView(props: CourtViewProps) {
         onClearZoneOverride={props.onClearZoneOverride}
         onSetPlayerName={props.onSetPlayerName}
         onSetPlayerNumber={props.onSetPlayerNumber}
+        dark={props.dark}
       />}
 
       {!props.isPlaying && !props.isPlayerMode && !readOnly && (
