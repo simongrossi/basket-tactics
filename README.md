@@ -1,66 +1,119 @@
+<div align="center">
+
 # 🏀 Basket Tactics
 
-Simulateur tactique de basket-ball pour visualiser des systèmes offensifs et observer la **réaction d'une défense entièrement paramétrable**. Tu construis ton système en étapes, tu règles le comportement de chaque défenseur, et le moteur calcule à la volée où ils devraient se trouver. Tout est interactif, vectoriel, et tient dans une page Next.js client-only.
+**Le tableau tactique du coach de basket — avec une défense qui réagit vraiment.**
 
-> Pas de backend, pas de compte, pas de tracking. Tu lances `npm run dev`, c'est joué.
+Dessine ton système en quelques gestes, regarde la défense se placer toute seule,
+puis présente-le à tes joueurs, imprime la fiche et prépare ta séance.
 
-**Version affichée : 0.18.0** (septembre 2026). Usage premier : **préparer, expliquer et présenter des systèmes à ses joueurs** (création pas à pas, modèles, présentation, fiches, séances d'entraînement). La simulation défensive et le match simulé restent disponibles en arrière-plan. Historique détaillé : [CHANGELOG.md](CHANGELOG.md).
+[![Essayer l'app](https://img.shields.io/badge/▶_Essayer_l'app-basket--tactics.vercel.app-ea580c?style=for-the-badge)](https://basket-tactics.vercel.app/)
 
----
+![Version](https://img.shields.io/badge/version-0.18.0-0f172a?style=flat-square)
+![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=flat-square&logo=nextdotjs)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white)
+![Licence](https://img.shields.io/badge/licence-tous_droits_réservés-b91c1c?style=flat-square)
 
-## Démarrage rapide
+<br>
 
-```bash
-git clone https://github.com/simongrossi/basket-tactics.git
-cd basket-tactics
-npm install
-npm run dev          # → http://localhost:3000
-```
+<a href="https://basket-tactics.vercel.app/"><img src="docs/screenshots/terrain.png" alt="Éditeur de Basket Tactics : un Spain PNR en cours, avec l'écran porteur, le back-screen et la réaction de la défense" width="100%"></a>
 
-Autres commandes utiles :
+<sub>Spain PNR, étape 2 : O5 pose l'écran sur O1, O4 vient poser le back-screen sur D5 — la défense est calculée en direct.</sub>
 
-```bash
-npm run type-check   # tsc --noEmit
-npm test             # Vitest — moteur, transforms, hooks et composants
-npm run test:watch   # Vitest en mode watch
-npm run build        # build de production statique
-```
+</div>
 
 ---
 
-## Ce qu'on peut faire
+## Pourquoi Basket Tactics ?
 
-### Préparer un entraînement (niveau d'interface « Coach »)
+Un tableau blanc montre où vont **tes** joueurs. Basket Tactics montre aussi ce que fait **la défense** — et c'est là que se joue un système.
 
-- **Créer un système** étape par étape : choisir une action (course, passe, dribble, écran, note), glisser depuis un joueur, puis « + étape » pour la suite. **Ce qui est dessiné sur une étape se joue pendant cette étape** — passes comprises (le ballon reste chez le passeur sur l'étape où la flèche est dessinée).
-- **Partir d'un modèle** : 31 systèmes classiques — sets (PNR central, Horns flare, Spain PNR, UCLA, Floppy, Hammer, Iverson, Stagger, PNR aile…), 17 remises en jeu BLOB/SLOB, 3 attaques de zone, exercice Philadelphia.
-- **Préparer une séance** : blocs chronométrés (systèmes, exercices, blocs libres), fiche imprimable, puis **déroulé guidé** (bloc précédent / suivant, minuteur, consignes, variantes).
-- **Présenter** : mode lecteur plein terrain, étape par étape (◀ / ▶, espace), masquage d'une équipe.
-- **Fiches systèmes** imprimables (PDF via le navigateur), **partage** par lien, export JSON / GIF / WebM, bibliothèque locale avec enregistrement et brouillon protégé.
-- **Partager par code** : situation `BT1`, animation des étapes `BTA1`, ou gestes manuels `BTG1`. Les commandes de copie/import sont dans **Actions globales (…)** ; l’enregistrement des gestes démarre au-dessus du terrain. Capture jusqu’à 60 s, puis relecture avec pause et curseur. [Mode d’emploi](docs/SITUATION-CODE.md).
-- **Déplacer sans saut au relâchement** : les défenseurs poursuivent leur cible depuis leur position affichée, avec une vitesse limitée. Le guidage « Dessiner le système » peut être fermé et ce choix est mémorisé sur l’appareil.
-- Tablette : édition au doigt (barre tactile, cibles 44 px, appui long = clic droit).
-
-### Défense
-
-- Homme à homme / zone (2-3, 1-3-1, 3-2, match-up), presse, junk (box-and-1), presets défensifs en tête du panneau.
-- Couvertures d'écran porteur et non-porteur, aides, règles individuelles par défenseur, placement manuel par étape.
-
-### Analyse et développement (niveaux « Analyse » / « Développement »)
-
-- Métriques en mètres et secondes, lignes de passe, champs de vision, triangles de vision défensive, lecture coach (diagnostics).
-- Lectures réactives (l'attaque choisit sa suite selon la couverture), continuité motion, éditeur nodal des variantes.
-- Match simulé (Play IA), paramètres physiques et outils de diagnostic.
+- **Pas de compte, pas d'installation, pas de tracking.** Tout tourne dans le navigateur, tes systèmes restent sur ton appareil.
+- **Pensé pour le coach** : créer, expliquer et présenter un système en quelques minutes, sur ordinateur comme sur tablette.
+- **Un vrai moteur tactique** derrière : homme à homme, zones, couvertures d'écran, aides et rotations calculées étape par étape.
 
 ---
 
-## Interface
+## Fonctionnalités
 
-Barre latérale (entrées coach, vues, outils Attaque / Défense / Étapes / Scénario) à gauche, terrain au centre avec Annuler / Rétablir au-dessus et la timeline dessous. Sous 900 px : terrain pleine largeur en tête, outils dessous.
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### ✏️ Dessiner un système
+Choisis une action (course, passe, dribble, écran, note), glisse depuis un joueur, puis **+ Étape** pour la suite. Formations de départ en un clic (5-Out, Horns, 1-4…), assistant d'étape, annuler / rétablir.
+
+</td>
+<td width="50%" valign="top">
+
+### 📚 31 systèmes prêts à l'emploi
+PNR central, Horns flare, Spain PNR, UCLA, Floppy, Hammer, Stagger, attaques de zone, 17 remises en jeu BLOB / SLOB… Recherche, tags et dossiers personnels.
+
+</td>
+</tr>
+<tr>
+<td colspan="2"><img src="docs/screenshots/bibliotheque.png" alt="Bibliothèque de systèmes classiques avec filtres par catégorie" width="100%"></td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### 🛡️ Une défense entièrement paramétrable
+Homme à homme, zones 2-3 / 1-3-1 / 3-2 / match-up, presse, box-and-1. Couvertures d'écran (hedge, switch, drop…), aides, rotations en cascade et repli en transition. Mode clair ou sombre.
+
+<img src="docs/screenshots/defense-sombre.png" alt="Panneau défense en mode sombre" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
+### 📺 Présenter à l'équipe
+Mode lecteur plein terrain, étape par étape au clavier ou à la télécommande, avec la consigne de chaque étape bien visible.
+
+<img src="docs/screenshots/presentation.png" alt="Mode présentation plein écran" width="100%">
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### 🖨️ Fiches systèmes
+Playbook imprimable (PDF via le navigateur) : toutes les étapes, la défense, la légende et le minutage.
+
+<img src="docs/screenshots/fiches.png" alt="Fiche système imprimable" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
+### 🗓️ Séances d'entraînement
+Blocs chronométrés (systèmes, exercices, blocs libres), fiche imprimable, puis déroulé guidé avec minuteur.
+
+<img src="docs/screenshots/seances.png" alt="Préparation d'une séance d'entraînement" width="100%">
+
+</td>
+</tr>
+</table>
+
+**Et aussi** : partage par lien ou par code (`BT1`, `BTA1`, `BTG1`), export GIF / WebM / JSON, enregistrement des gestes en direct (jusqu'à 60 s), édition au doigt sur tablette, métriques en mètres et secondes, lignes de passe et champs de vision (niveau « Analyse »), match simulé (niveau « Développement »).
 
 ---
 
-## Architecture en 30 secondes
+## Sous le capot
+
+- **Moteur pur** — `src/lib/logic/` ne dépend ni de React ni du DOM : on lui passe l'état, il rend les positions calculées. Chaque réglage recalcule instantanément toutes les étapes.
+- **Physique réaliste** — vitesses en m/s, départs progressifs, freinages, contournement des écrans par trajectoire courbe.
+- **Aucune superposition de joueurs** — toutes les paires gardent un espacement minimal, garanti par des tests d'invariants ([détails](docs/PLAYER-CLEARANCE.md)).
+- **SVG natif** — vectoriel, net à toutes les tailles et à l'export, sans Canvas ni librairie graphique.
+- **Testé** — moteur, transformations d'état, hooks et composants couverts par Vitest.
+
+| Stack | |
+|---|---|
+| Framework | Next.js 14 (App Router), application 100 % client |
+| Langage | React 18, TypeScript strict |
+| Rendu | SVG natif |
+| Persistance | `localStorage` (aucun serveur) |
+| Tests | Vitest + Testing Library |
+
+<details>
+<summary><b>Architecture</b></summary>
 
 ```
 src/
@@ -69,72 +122,47 @@ src/
 │                           #   PlaybookView, SessionsView, sidebar/, court/…
 ├── hooks/                  # useAppState (état + historique), lecture, bibliothèque
 └── lib/
-    ├── data/               # modèles (templates, remises en jeu, anti-zone,
+    ├── data/               # modèles (systèmes, remises en jeu, anti-zone,
     │                       #   exercices), séances, bibliothèque, terrain
-    ├── logic/              # MOTEUR PUR — pas de React : défense, écrans,
-    │                       #   lecture (playback/), match/, numérotation des étapes
-    ├── state/transforms/   # transformations pures de l'état (testées sans React)
+    ├── logic/              # MOTEUR PUR — défense, écrans, lecture (playback/),
+    │                       #   match/, numérotation des étapes
+    ├── state/transforms/   # transformations pures de l'état
     └── types/              # types stricts
 ```
 
-**Le moteur est pur**. `src/lib/logic/` ne dépend de rien (ni React, ni DOM). Tu lui passes l'état, il te rend les positions calculées. Conséquence : testable isolément, ré-utilisable côté serveur, et chaque modif d'un paramètre recalcule instantanément toutes les étapes.
+</details>
 
----
-
-## Documentation
-
-Toute la doc technique vit dans [`docs/`](docs/) :
+<details>
+<summary><b>Documentation technique</b></summary>
 
 | Fichier | Sujet |
 |---------|-------|
 | [`docs/architecture.md`](docs/architecture.md) | Stack, structure des dossiers, flux de données |
 | [`docs/data-model.md`](docs/data-model.md) | Forme de l'`AppState`, types, persistance |
-| [`docs/concepts-basket.md`](docs/concepts-basket.md) | Vocabulaire basket modélisé (stances, screens, switches, zone, triggers, lateness) |
-| [`docs/GAME-ENGINE.md`](docs/GAME-ENGINE.md) | **Cartographie complète du moteur** : individuel / collectif / physique |
-| [`docs/physics.md`](docs/physics.md) | Constantes physiques centralisées avec sémantique en mètres réels |
-| [`docs/logique-defensive.md`](docs/logique-defensive.md) | Pipeline du moteur étape par étape, formules, points d'extension |
-| [`docs/orientation-anti-teleport.md`](docs/orientation-anti-teleport.md) | Orientation calculée des joueurs, anti-téléportation, fixes basket récents |
-| [`docs/ui-design.md`](docs/ui-design.md) | Choix visuels, layout, conventions de tracé |
-| [`docs/menu-reference.md`](docs/menu-reference.md) | Référence exhaustive de chaque réglage de l'interface |
-| [`docs/bibliotheque-systemes.md`](docs/bibliotheque-systemes.md) | Format des templates, comment en ajouter |
-| [`docs/export-pdf.md`](docs/export-pdf.md) | Comment fonctionne l'export PDF |
-| [`docs/SITUATION-CODE.md`](docs/SITUATION-CODE.md) | Codes de situation, animations et enregistrements des gestes ; diagnostic de positions |
-| [`docs/testing.md`](docs/testing.md) | Stack Vitest, couverture des tests, conventions |
-| [`docs/keyboard-shortcuts.md`](docs/keyboard-shortcuts.md) | Référence des raccourcis clavier |
+| [`docs/concepts-basket.md`](docs/concepts-basket.md) | Vocabulaire basket modélisé |
+| [`docs/GAME-ENGINE.md`](docs/GAME-ENGINE.md) | Cartographie complète du moteur |
+| [`docs/physics.md`](docs/physics.md) | Constantes physiques en mètres réels |
+| [`docs/logique-defensive.md`](docs/logique-defensive.md) | Pipeline défensif étape par étape |
+| [`docs/ui-design.md`](docs/ui-design.md) | Choix visuels et conventions de tracé |
+| [`docs/menu-reference.md`](docs/menu-reference.md) | Référence de chaque réglage de l'interface |
+| [`docs/SITUATION-CODE.md`](docs/SITUATION-CODE.md) | Codes de situation, animations et gestes |
+| [`docs/keyboard-shortcuts.md`](docs/keyboard-shortcuts.md) | Raccourcis clavier |
+| [`docs/testing.md`](docs/testing.md) | Stack de tests et conventions |
 
-Pour reprendre le projet, lis dans cet ordre : `architecture.md` → `concepts-basket.md` → `GAME-ENGINE.md` → `logique-defensive.md` (détail).
+Historique des évolutions : [`CHANGELOG.md`](CHANGELOG.md).
 
-Vision produit et chantiers à venir : [`ROADMAP.md`](ROADMAP.md). Historique des évolutions de comportement : [`CHANGELOG.md`](CHANGELOG.md). Backlog technique et notes au fil de l'eau : [`IDEAS.md`](IDEAS.md).
+</details>
 
 ---
 
-## Décisions structurantes
+## Retours
 
-- **Moteur pur** (`lib/logic/`) — aucune dépendance React, testable et réutilisable.
-- **Défense automatique calculée** — le système garde les placements initiaux et les overrides explicites. Les codes `BTG1` conservent aussi les positions affichées pour une relecture de diagnostic ; elles ne deviennent pas des overrides du brouillon.
-- **Override manuel par étape** — l'utilisateur peut imposer la position d'un défenseur sur une étape donnée (`Step.defenseOverrides`), le moteur la respecte.
-- **Switches persistés sur l'étape** où ils ont lieu, cumulés via `getMatchupsAt()`.
-- **Path-aware avoidance** — pendant l'animation, les défenseurs contournent les poseurs d'écran via une courbe Bezier (pas un push réactif), avec ralentissement au sommet.
-- **Aucune superposition de joueurs** — toutes les paires (coéquipiers, adversaires, défenseur sur son homme) gardent 34 px entre centres. Règle inviolable : [docs/PLAYER-CLEARANCE.md](docs/PLAYER-CLEARANCE.md).
-- **SVG natif plutôt que Canvas** — vectoriel, simple, lisible à l'export, performance largement suffisante.
-
----
-
-## Tech
-
-- **Next.js 14** (App Router) — application 100 % client-only
-- **React 18**, **TypeScript** strict
-- **SVG natif** — pas de Konva, pas de Canvas, pas de lib UI
-- **localStorage** pour la persistance
-
----
-
-## Statut
-
-Projet personnel en évolution — priorités et chantiers ouverts dans [`ROADMAP.md`](ROADMAP.md) (section « Priorisation »), plan de consolidation en cours dans [`PLAN-COACH.md`](PLAN-COACH.md). Contributions, retours et idées bienvenus via les issues.
+Projet personnel en développement actif. Une idée, un bug, un système qui se comporte bizarrement ? Ouvre une [issue](https://github.com/simongrossi/basket-tactics/issues) — tous les retours de coachs sont les bienvenus.
 
 ---
 
 ## Licence
 
-© 2026 Simon Grossi — **Tous droits réservés.** Le code est consultable publiquement, mais toute copie, modification, redistribution ou réutilisation est interdite sans autorisation écrite. Voir [`LICENSE`](LICENSE).
+© 2026 Simon Grossi — **Tous droits réservés.**
+
+Le code source est consultable publiquement, mais **aucune copie, modification, redistribution ni réutilisation** n'est autorisée sans accord écrit préalable. Voir [`LICENSE`](LICENSE). Pour toute demande : simon.grossi@gmail.com.
