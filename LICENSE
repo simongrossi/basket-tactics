@@ -1,21 +1,51 @@
-MIT License
+Copyright (c) 2026 Simon Grossi. Tous droits réservés. / All rights reserved.
 
-Copyright (c) 2026 Simon Grossi
+FRANÇAIS
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Ce logiciel, son code source, sa documentation et ses ressources
+(ci-après « le Logiciel ») sont la propriété exclusive de Simon Grossi
+et sont protégés par le droit d'auteur.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Le code source est rendu publiquement consultable à titre informatif
+uniquement. Aucune licence n'est accordée, expressément ou implicitement.
+Sans l'autorisation écrite préalable du titulaire des droits, il est
+interdit de :
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+  - copier, reproduire ou réutiliser tout ou partie du Logiciel ;
+  - modifier, adapter, traduire le Logiciel ou créer des œuvres dérivées ;
+  - distribuer, publier, sous-licencier, vendre ou louer le Logiciel ;
+  - héberger, exécuter ou mettre à disposition le Logiciel, ou un service
+    basé sur celui-ci, à des tiers ;
+  - utiliser le Logiciel, ou des parties de celui-ci, pour entraîner
+    des modèles d'intelligence artificielle.
+
+La seule consultation du code sur la plateforme qui l'héberge, ainsi que
+les droits strictement imposés par les conditions d'utilisation de cette
+plateforme, restent permis.
+
+Pour toute demande d'autorisation : simon.grossi@gmail.com
+
+ENGLISH
+
+This software, its source code, documentation and assets (the
+"Software") are the exclusive property of Simon Grossi and are protected
+by copyright law.
+
+The source code is made publicly viewable for informational purposes
+only. No license is granted, express or implied. Without the prior
+written permission of the copyright holder, you may not:
+
+  - copy, reproduce or reuse all or any part of the Software;
+  - modify, adapt, translate the Software or create derivative works;
+  - distribute, publish, sublicense, sell or rent the Software;
+  - host, run or make available the Software, or any service based on
+    it, to third parties;
+  - use the Software, or any part of it, to train artificial
+    intelligence models.
+
+Viewing the code on the platform hosting it, and any rights strictly
+required by that platform's terms of service, remain permitted.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+
+For permission requests: simon.grossi@gmail.com

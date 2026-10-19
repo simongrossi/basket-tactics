@@ -132,3 +132,9 @@ Vision produit et chantiers à venir : [`ROADMAP.md`](ROADMAP.md). Historique de
 ## Statut
 
 Projet personnel en évolution — priorités et chantiers ouverts dans [`ROADMAP.md`](ROADMAP.md) (section « Priorisation »), plan de consolidation en cours dans [`PLAN-COACH.md`](PLAN-COACH.md). Contributions, retours et idées bienvenus via les issues.
+
+---
+
+## Licence
+
+© 2026 Simon Grossi — **Tous droits réservés.** Le code est consultable publiquement, mais toute copie, modification, redistribution ou réutilisation est interdite sans autorisation écrite. Voir [`LICENSE`](LICENSE).
