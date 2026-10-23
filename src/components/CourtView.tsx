@@ -88,8 +88,15 @@ import { PlayComposerModal } from './court/PlayComposerModal';
 import type { StickyModifiers } from '@/hooks/useCourtPointerHandlers';
 import type { CoachDiagnostic } from '@/lib/logic/coachDiagnostics';
 
-interface CourtViewProps {
-  onFrameChange?: (snapshot: DisplayedCourtFrame) => void;
+/** Libellés des types de trajectoire dans la barre de sélection. */
+const ANNOTATION_SELECTION_LABELS: Record<string, string> = {
+  pass: 'Passe',
+  dribble: 'Dribble',
+  cut: 'Course',
+  screen: 'Écran',
+};
+
+interface CourtViewProps {  onFrameChange?: (snapshot: DisplayedCourtFrame) => void;
   state: AppState;
   /** A.4 — Diagnostics coach déjà calculés en amont (page.tsx).
    *  Le composant en filtre les patterns visuellement importants
@@ -101,6 +108,8 @@ interface CourtViewProps {
   onMoveAttackerDuringDrag?: (id: AttackerId, x: number, y: number) => void;
   onMoveDefenderDuringDrag?: (id: DefenderId, x: number, y: number) => void;
   onCommitPlayerDrag?: () => void;
+  /** Échap pendant un déplacement : restaure l'état d'avant le geste. */
+  onCancelPlayerDrag?: () => void;
   onBeginDefenderPursuit?: (displayed?: Partial<Record<DefenderId, Point>>) => void;
   onEndDefenderPursuit?: () => void;
   /** Cf. useHistorizedState.registerPendingFlush : termine une fin de course
@@ -230,6 +239,12 @@ export function CourtView(props: CourtViewProps) {
   }, []);
   const clearDefenderSelection = useCallback(() => setSelectedDefenders(new Set()), []);
 
+  // Sélection simple (état éphémère, hors AppState) : un joueur OU une
+  // trajectoire. Elle sert de retour visuel et de cible aux actions
+  // contextuelles (suppression, édition), sans passer par un drag.
+  const [selectedPlayerId, setSelectedPlayerId] = useState<PlayerId | null>(null);
+  const [selectedAnnotation, setSelectedAnnotation] = useState<{ stepIdx: number; index: number } | null>(null);
+
   // A.3 — État du popup d'édition de note. null = fermé.
   const [textPopup, setTextPopup] = useState<{
     mode: 'create' | 'edit';
@@ -252,7 +267,15 @@ export function CourtView(props: CourtViewProps) {
     setCtxMenu(null);
     setZoneRegionMenu(null);
     setTextPopup(null);
+    setSelectedPlayerId(null);
+    setSelectedAnnotation(null);
   }, [editingBlocked]);
+
+  // La sélection de trajectoire suit l'étape affichée : elle est abandonnée
+  // dès qu'on change d'étape ou d'outil.
+  useEffect(() => {
+    setSelectedAnnotation(null);
+  }, [state.activeStep, state.tool]);
 
   // Key listeners for spacebar tracking
   useEffect(() => {
@@ -305,15 +328,19 @@ export function CourtView(props: CourtViewProps) {
     };
   }, []);
 
-  // Esc clear la sélection.
+  // Esc clear les sélections (le geste en cours est géré en amont par le
+  // hook, qui intercepte Échap en capture tant qu'un drag/tracé est actif).
   useEffect(() => {
-    if (selectedDefenders.size === 0) return;
+    if (selectedDefenders.size === 0 && !selectedPlayerId && !selectedAnnotation) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') clearDefenderSelection();
+      if (e.key !== 'Escape') return;
+      clearDefenderSelection();
+      setSelectedPlayerId(null);
+      setSelectedAnnotation(null);
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedDefenders.size, clearDefenderSelection]);
+  }, [selectedDefenders.size, selectedPlayerId, selectedAnnotation, clearDefenderSelection]);
 
   // Frame courante (statique / scrub / play) + threats.
   const { frame, threatData } = useCourtFrame({
@@ -342,13 +369,16 @@ export function CourtView(props: CourtViewProps) {
     state.steps[state.activeStep]?.textNotes ?? [];
 
   // Pointer/drag + tracé d'annotation + marquee.
-  const { pending, dragging, snapTarget, marquee, pendingAutoSourceId, cancelPendingAuto, svgPoint, onPointerDown, onPointerMove, onPointerUp } =
+  const { pending, dragging, snapTarget, marquee, pendingAutoSourceId, cancelPendingAuto, pressFeedback, svgPoint, onPointerDown, onPointerMove, onPointerUp } =
     useCourtPointerHandlers({
       state: pointerState,
       svgRef,
       isPlaying: props.isPlaying,
       isPlayerMode: props.isPlayerMode || readOnly,
       disableLongPress: editingBlocked,
+      onSelectPlayer: (id) => { if (!editingBlocked) setSelectedPlayerId(id); },
+      onSelectAnnotation: (selection) => { if (!editingBlocked) setSelectedAnnotation(selection); },
+      onCancelPlayerDrag: () => { if (!editingBlocked) props.onCancelPlayerDrag?.(); },
       onBeginPlayerDrag: () => { if (!readOnlyRef.current) props.onBeginPlayerDrag?.(); },
       onCommitPlayerDrag: () => { if (!readOnlyRef.current) props.onCommitPlayerDrag?.(); },
       onBeginDefenderPursuit: (displayed) => { if (!readOnlyRef.current) props.onBeginDefenderPursuit?.(displayed); },
@@ -414,9 +444,10 @@ export function CourtView(props: CourtViewProps) {
       contentRef,
     });
 
-  // Clic-droit : suppression directe sur une annotation, sinon ouverture
-  // du context menu du joueur sous le curseur (avec fallback proximité si
-  // un poseur d'écran masque le data-id).
+  // Clic-droit : sélectionne la trajectoire (la suppression passe par la
+  // barre contextuelle, jamais par un clic droit direct), sinon ouvre le
+  // menu du joueur sous le curseur (avec fallback proximité si un poseur
+  // d'écran masque le data-id).
   const onContextMenu = (e: React.MouseEvent) => {
     if (editingBlocked) {
       e.preventDefault();
@@ -427,10 +458,12 @@ export function CourtView(props: CourtViewProps) {
     const annoStepStr = annotationG?.getAttribute('data-annotation-step');
     if (annoIdxStr !== null && annoIdxStr !== undefined) {
       e.preventDefault();
-      props.onDeleteAnnotation(
-        parseInt(annoIdxStr, 10),
-        annoStepStr != null ? parseInt(annoStepStr, 10) : undefined,
-      );
+      const index = parseInt(annoIdxStr, 10);
+      const stepIdx = annoStepStr != null ? parseInt(annoStepStr, 10) : state.activeStep;
+      if (Number.isFinite(index) && Number.isFinite(stepIdx)) {
+        setSelectedAnnotation({ stepIdx, index });
+        setSelectedPlayerId(null);
+      }
       return;
     }
 
@@ -478,8 +511,25 @@ export function CourtView(props: CourtViewProps) {
     else if (oId) setCtxMenu({ kind: 'attacker', oId, x, y });
   };
 
-  const handleZoomIn = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  /** Convertit un point du repère terrain en coordonnées écran relatives au
+   *  conteneur du terrain (positionnement des barres HTML flottantes).
+   *  Null si le SVG n'est pas mesurable (SSR / tests sans layout). */
+  const screenPointFromCourt = useCallback((p: Point): Point | null => {
+    const svg = svgRef.current;
+    const content = contentRef.current;
+    if (!svg || !content || typeof content.getScreenCTM !== 'function') return null;
+    const ctm = content.getScreenCTM();
+    if (!ctm || !Number.isFinite(ctm.a)) return null;
+    const pt = svg.createSVGPoint();
+    pt.x = p.x;
+    pt.y = p.y;
+    const screen = pt.matrixTransform(ctm);
+    const wrap = svg.parentElement?.getBoundingClientRect();
+    if (!wrap) return null;
+    return { x: screen.x - wrap.left, y: screen.y - wrap.top };
+  }, []);
+
+  const handleZoomIn = (e: React.MouseEvent) => {    e.stopPropagation();
     const svg = svgRef.current;
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
@@ -695,7 +745,48 @@ export function CourtView(props: CourtViewProps) {
         )}
 
         {/* ---- Sprites joueurs ---- */}
-        <CourtPlayersLayer state={state} frame={frame} selectedDefenders={selectedDefenders} />
+        <CourtPlayersLayer
+          state={state}
+          frame={frame}
+          selectedDefenders={selectedDefenders}
+          selectedPlayerId={selectedPlayerId}
+        />
+
+        {/* Anneau de progression de l'appui long : le coach voit que le menu
+            va s'ouvrir s'il maintient encore un instant. */}
+        {pressFeedback && !editingBlocked && (
+          <g pointerEvents="none" aria-hidden="true">
+            <circle
+              cx={pressFeedback.x}
+              cy={pressFeedback.y}
+              r={PLAYER_RADIUS + 6}
+              fill="none"
+              stroke="#06b6d4"
+              strokeWidth={2.5}
+              opacity={0.25}
+            />
+            <circle
+              cx={pressFeedback.x}
+              cy={pressFeedback.y}
+              r={PLAYER_RADIUS + 6}
+              fill="none"
+              stroke="#06b6d4"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              pathLength={100}
+              strokeDasharray="100 100"
+              strokeDashoffset={100}
+            >
+              <animate
+                attributeName="stroke-dashoffset"
+                from="100"
+                to="0"
+                dur="0.38s"
+                fill="freeze"
+              />
+            </circle>
+          </g>
+        )}
 
         {/* ---- Overlays avant (au-dessus des sprites) ---- */}
         {/* F.4 — Disqualifications : croix rouge sur les sprites des
@@ -997,17 +1088,29 @@ export function CourtView(props: CourtViewProps) {
             )
             .map(({ annotation: a, index, stepIdx: annoStep }) => {
               const hasWps = !!a.waypoints && a.waypoints.length > 0;
+              const isSelected = !!selectedAnnotation
+                && selectedAnnotation.stepIdx === annoStep
+                && selectedAnnotation.index === index;
               return (
-                <g key={`${annoStep}-${index}`} data-annotation-idx={index} data-annotation-step={annoStep} style={{ cursor: editingBlocked ? undefined : 'context-menu' }}>
+                <g
+                  key={`${annoStep}-${index}`}
+                  data-annotation-idx={index}
+                  data-annotation-step={annoStep}
+                  data-annotation-selected={isSelected ? 'true' : undefined}
+                  style={{
+                    cursor: editingBlocked ? undefined : 'pointer',
+                    filter: isSelected ? 'drop-shadow(0 0 3px rgba(6, 182, 212, 0.95))' : undefined,
+                  }}
+                >
                   <AnnotationView annotation={a} />
-                  {/* Hit-test invisible : élargit la zone de clic-droit pour
-                      la suppression depuis le terrain (courbe ou droite). */}
+                  {/* Hit-test invisible : élargit la zone de sélection au
+                      doigt (courbe ou droite). */}
                   {hasWps ? (
                     <path
                       d={polylinePath([a.from, ...a.waypoints!, a.to])}
                       fill="none"
                       stroke="transparent"
-                      strokeWidth={18}
+                      strokeWidth={28}
                       strokeLinecap="round"
                     />
                   ) : (
@@ -1017,7 +1120,7 @@ export function CourtView(props: CourtViewProps) {
                       x2={a.to.x}
                       y2={a.to.y}
                       stroke="transparent"
-                      strokeWidth={18}
+                      strokeWidth={28}
                       strokeLinecap="round"
                     />
                   )}
@@ -1034,6 +1137,7 @@ export function CourtView(props: CourtViewProps) {
           <AnnotationHandles
             annotations={state.steps[frame.stepIdx].annotations}
             stepIdx={frame.stepIdx}
+            only={selectedAnnotation}
             isHidden={(a) => isArrivalMovement(state.steps[frame.stepIdx], a)}
             svgPoint={svgPoint}
             onCommitFrom={(annoIdx, p) => props.onSetAnnotationFrom(frame.stepIdx, annoIdx, p)}
@@ -1233,6 +1337,92 @@ export function CourtView(props: CourtViewProps) {
           </button>
         </div>
       )}
+
+      {/* Barre d'actions de la trajectoire sélectionnée : la suppression est
+          désormais explicite (plus de clic droit destructif). */}
+      {selectedAnnotation && !editingBlocked && (() => {
+        const step = state.steps[selectedAnnotation.stepIdx];
+        const anno = step?.annotations[selectedAnnotation.index];
+        if (!anno) return null;
+        const pos = screenPointFromCourt({
+          x: (anno.from.x + anno.to.x) / 2,
+          y: (anno.from.y + anno.to.y) / 2,
+        });
+        if (!pos) return null;
+        const wrapW = svgRef.current?.parentElement?.clientWidth ?? 600;
+        const left = Math.max(130, Math.min(pos.x, Math.max(130, wrapW - 130)));
+        const label = ANNOTATION_SELECTION_LABELS[anno.type] ?? anno.type;
+        return (
+          <div
+            role="toolbar"
+            aria-label="Actions sur la trajectoire"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'absolute',
+              left,
+              top: Math.max(8, pos.y - 14),
+              transform: 'translate(-50%, -100%)',
+              zIndex: 45,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '4px 6px',
+              borderRadius: 8,
+              background: 'var(--bt-surface)',
+              border: '1px solid var(--bt-border)',
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.22)',
+              fontSize: 11,
+              fontWeight: 600,
+              color: 'var(--bt-text)',
+              whiteSpace: 'nowrap',
+              maxWidth: 'calc(100% - 16px)',
+            }}
+          >
+            <span>
+              {label} · {anno.fromId}
+              {anno.toId ? ` → ${anno.toId}` : ''}
+            </span>
+            <button
+              type="button"
+              className="bt-touch"
+              onClick={() => {
+                props.onDeleteAnnotation(selectedAnnotation.index, selectedAnnotation.stepIdx);
+                setSelectedAnnotation(null);
+              }}
+              style={{
+                border: '1px solid rgba(239, 68, 68, 0.5)',
+                background: 'rgba(239, 68, 68, 0.12)',
+                color: '#ef4444',
+                borderRadius: 5,
+                padding: '3px 8px',
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              Supprimer
+            </button>
+            <button
+              type="button"
+              className="bt-touch"
+              aria-label="Fermer la sélection"
+              onClick={() => setSelectedAnnotation(null)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--bt-text-dim)',
+                borderRadius: 5,
+                padding: '3px 6px',
+                fontSize: 12,
+                cursor: 'pointer',
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        );
+      })()}
 
       {development && state.showScreenDebug && (
         <ScreenPlayerDebugPanel frame={frame} selectedDefenders={selectedDefenders} />

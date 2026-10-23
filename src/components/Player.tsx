@@ -201,9 +201,9 @@ export function Player({
        *  La désambiguïsation des chevauchements attaquant/défenseur se fait côté
        *  useCourtPointerHandlers via `findPlayerAt(pt)` (priorité attaquant). */}
       <circle cx={pos.x} cy={pos.y} r={22} fill="rgba(0,0,0,0)" />
-      {/* #4 — Halo de sélection multiple (cyan pointillé). Rendu en
-       *  premier pour passer sous tous les autres anneaux. */}
-      {isSelected && !isAttacker && (
+      {/* Halo de sélection (joueur seul ou multi-sélection défenseur).
+       *  Rendu en premier pour passer sous tous les autres anneaux. */}
+      {isSelected && (
         <circle
           cx={pos.x}
           cy={pos.y}

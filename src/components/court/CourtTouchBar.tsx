@@ -40,12 +40,12 @@ interface CourtTouchBarProps {
 const FREEHAND_TOOLS: Tool[] = ['dribble', 'cut', 'screen'];
 
 const QUICK_TOOLS: { value: Tool; label: string; shortKey: string; Icon: LucideIcon }[] = [
-  { value: 'move', label: 'Déplacer', shortKey: '1', Icon: Move },
-  { value: 'pass', label: 'Passe', shortKey: '2', Icon: SendHorizontal },
-  { value: 'dribble', label: 'Dribble', shortKey: '3', Icon: Waves },
-  { value: 'cut', label: 'Course', shortKey: '4', Icon: Route },
-  { value: 'screen', label: 'Écran', shortKey: '5', Icon: PanelTop },
-  { value: 'text', label: 'Note', shortKey: '6', Icon: StickyNote },
+  { value: 'move', label: 'Déplacer', shortKey: 'M', Icon: Move },
+  { value: 'pass', label: 'Passe', shortKey: 'P', Icon: SendHorizontal },
+  { value: 'dribble', label: 'Dribble', shortKey: 'D', Icon: Waves },
+  { value: 'cut', label: 'Course', shortKey: 'R', Icon: Route },
+  { value: 'screen', label: 'Écran', shortKey: 'E', Icon: PanelTop },
+  { value: 'text', label: 'Note', shortKey: 'T', Icon: StickyNote },
 ];
 
 export function CourtTouchBar(props: CourtTouchBarProps) {

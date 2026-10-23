@@ -108,6 +108,7 @@ export function useAppState() {
     canRedo,
     beginPlayerDrag: beginHistoryDrag,
     commitPlayerDrag,
+    cancelPlayerDrag: cancelHistoryDrag,
     registerPendingFlush: registerPendingGestureFlush,
   } = useHistorizedState(makeAppInitialState);
   const [hydrated, setHydrated] = useState(false);
@@ -130,6 +131,10 @@ export function useAppState() {
     setDefenderPursuit(null);
     beginHistoryDrag();
   }, [beginHistoryDrag]);
+  const cancelPlayerDrag = useCallback(() => {
+    setDefenderPursuit(null);
+    cancelHistoryDrag();
+  }, [cancelHistoryDrag]);
   // Auto-cleanup : on nullifie le transition quand sa durée est écoulée.
   useEffect(() => {
     if (!defenseReleaseTransition) return;
@@ -829,6 +834,7 @@ export function useAppState() {
     moveDefender,
     beginPlayerDrag,
     commitPlayerDrag,
+    cancelPlayerDrag,
     registerPendingGestureFlush,
     moveAttackerDuringDrag,
     moveDefenderDuringDrag,

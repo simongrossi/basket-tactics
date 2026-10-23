@@ -70,6 +70,13 @@ interface UseCourtPointerHandlersOptions {
   frameDefPos?: Partial<Record<DefenderId, Point>>;
   /** Fermeture du context menu sur n'importe quel pointerDown gauche. */
   onClearContextMenu: () => void;
+  // ----- Sélection simple (état éphémère géré par CourtView) -----
+  /** Sélection d'un joueur au tap (ou null pour désélectionner). */
+  onSelectPlayer?: (id: PlayerId | null) => void;
+  /** Sélection d'une trajectoire au clic (ou null pour désélectionner). */
+  onSelectAnnotation?: (selection: { stepIdx: number; index: number } | null) => void;
+  /** Échap pendant un déplacement : restaure l'état d'avant le geste. */
+  onCancelPlayerDrag?: () => void;
   // ----- #4 Sélection multiple -----
   /** IDs défenseurs actuellement sélectionnés (visuel + drag groupé). */
   selectedDefenders?: Set<DefenderId>;
@@ -113,6 +120,10 @@ export interface MarqueeRect {
   y2: number;
 }
 
+/** Tolérance de « tap » : en dessous, on sélectionne ; au-delà, on déplace.
+ *  6 px ≈ la précision d'un doigt posé. Évite qu'un tap déplace le joueur. */
+const TAP_SLOP_PX = 6;
+
 export interface UseCourtPointerHandlersResult {
   pending: PendingAnnotation | null;
   dragging: { id: PlayerId; isDef: boolean } | null;
@@ -130,6 +141,9 @@ export interface UseCourtPointerHandlersResult {
   pendingAutoSourceId: AttackerId | null;
   /** Abandonne la passe auto en attente (bouton tactile, équivalent d'Échap). */
   cancelPendingAuto: () => void;
+  /** Position (repère terrain) de l'appui en cours, pour l'anneau de
+   *  progression de l'appui long. Null hors appui. */
+  pressFeedback: Point | null;
   /** Helper pour convertir un événement clavier/souris en point SVG.
    *  Exposé pour permettre au caller de l'utiliser dans d'autres handlers
    *  (ex. context menu). */
@@ -162,6 +176,9 @@ export function useCourtPointerHandlers(
     frameOff,
     frameDefPos,
     onClearContextMenu,
+    onSelectPlayer,
+    onSelectAnnotation,
+    onCancelPlayerDrag,
     selectedDefenders,
     onToggleDefenderSelection,
     onSetDefenderSelection,
@@ -196,6 +213,33 @@ export function useCourtPointerHandlers(
    *  l'annotation via generateAutoAnnotation. */
   const [pendingAutoSourceId, setPendingAutoSourceId] = useState<AttackerId | null>(null);
 
+  // ----- Appui en cours (avant le seuil de tap) -------------------------
+  // Le drag n'est armé qu'après TAP_SLOP_PX : un tap sélectionne sans
+  // déplacer, et l'ancre d'historique n'est prise qu'au vrai départ du geste.
+  const pressRef = useRef<{
+    id: PlayerId;
+    isDef: boolean;
+    startX: number;
+    startY: number;
+    dragging: boolean;
+    /** Positions initiales des défenseurs d'un drag groupé (si applicable). */
+    group: { initial: Point; others: Map<DefenderId, Point> } | null;
+  } | null>(null);
+  /** Position de l'anneau d'appui long (null hors appui). */
+  const [pressFeedback, setPressFeedback] = useState<Point | null>(null);
+
+  const clearPress = useCallback(() => {
+    pressRef.current = null;
+    setPressFeedback(null);
+  }, []);
+
+  const onSelectPlayerRef = useRef(onSelectPlayer);
+  onSelectPlayerRef.current = onSelectPlayer;
+  const onSelectAnnotationRef = useRef(onSelectAnnotation);
+  onSelectAnnotationRef.current = onSelectAnnotation;
+  const onCancelPlayerDragRef = useRef(onCancelPlayerDrag);
+  onCancelPlayerDragRef.current = onCancelPlayerDrag;
+
   // Escape annule le mode auto en attente (pas de side-effect dans le DOM).
   useEffect(() => {
     if (!pendingAutoSourceId) return;
@@ -226,10 +270,9 @@ export function useCourtPointerHandlers(
 
   const longPressTimerRef = useRef<number | null>(null);
   const longPressTriggeredRef = useRef<boolean>(false);
-  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
   const activePointersRef = useRef<Map<number, Point>>(new Map());
   const lastGestureRef = useRef<{ distance: number; midpoint: Point } | null>(null);
-  const panStartRef = useRef<{ clientX: number; clientY: number; transformX: number; transformY: number } | null>(null);
+  const panStartRef = useRef<{ clientX: number; clientY: number; transformX: number; transformY: number; moved: boolean } | null>(null);
 
   useEffect(() => {
     if (!disableLongPress) return;
@@ -276,19 +319,34 @@ export function useCourtPointerHandlers(
     (pt: Point): PlayerId | null => {
       const cur = state.steps[state.activeStep];
       const off = frameOff ?? activeOffense(cur.off, state.playerCount);
-      for (const id in off) {
-        const pos = off[id as AttackerId];
-        if (pos && distance(pos, pt) < PLAYER_PICK_RADIUS_PX) return id as AttackerId;
-      }
       const activeDefenders = new Set(getActiveDefenderIds(state.playerCount));
       const defPositions = frameDefPos ?? state.defenseInitial;
+      // Le joueur LE PLUS PROCHE gagne (et non le premier de l'ordre
+      // d'itération, qui faisait saisir O1 quand on visait O3). À distance
+      // égale, l'attaquant reste prioritaire : il est scanné en premier et
+      // on ne remplace que sur une distance strictement inférieure.
+      let bestId: PlayerId | null = null;
+      let bestDist = PLAYER_PICK_RADIUS_PX;
+      for (const id in off) {
+        const pos = off[id as AttackerId];
+        if (!pos) continue;
+        const d = distance(pos, pt);
+        if (d < bestDist) {
+          bestDist = d;
+          bestId = id as AttackerId;
+        }
+      }
       for (const id in defPositions) {
         if (!activeDefenders.has(id as DefenderId)) continue;
         const pos = defPositions[id as DefenderId];
-        if (pos && distance(pos, pt) < PLAYER_PICK_RADIUS_PX)
-          return id as DefenderId;
+        if (!pos) continue;
+        const d = distance(pos, pt);
+        if (d < bestDist) {
+          bestDist = d;
+          bestId = id as DefenderId;
+        }
       }
-      return null;
+      return bestId;
     },
     [frameDefPos, frameOff, state]
   );
@@ -498,12 +556,77 @@ export function useCourtPointerHandlers(
     flushSettling();
   }, [flushSettling, processDragStep, setDragging]);
 
+  /** Échap : abandonne le geste en cours. Un déplacement est restauré à sa
+   *  position d'avant le geste (sans entrée d'historique) ; un tracé est
+   *  simplement jeté ; un pan revient au cadrage de départ. */
+  const cancelGesture = useCallback(() => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    if (dragRafRef.current !== null) {
+      cancelAnimationFrame(dragRafRef.current);
+      dragRafRef.current = null;
+    }
+    const wasDragging = !!pressRef.current?.dragging;
+    pressRef.current = null;
+    setPressFeedback(null);
+    setSnapTarget(null);
+    groupDragInitialRef.current = null;
+    dragMoveRef.current = null;
+    isSettlingRef.current = null;
+    lastDragPointRef.current = null;
+    lastDragTimeRef.current = 0;
+    lastVelocityRef.current = null;
+    plantDecelRef.current = 0;
+    setDragging(null);
+    if (wasDragging) {
+      onCancelPlayerDragRef.current?.();
+      onEndDefenderPursuitRef.current?.();
+    }
+    if (panStartRef.current) {
+      onTransformChange({
+        scale: transformRef.current.scale,
+        x: panStartRef.current.transformX,
+        y: panStartRef.current.transformY,
+      });
+      panStartRef.current = null;
+    }
+    marqueeStartRef.current = null;
+    setMarquee(null);
+    setPending(null);
+  }, [onTransformChange, setDragging]);
+
+  // Échap annule le geste en cours. En capture pour ne pas déclencher aussi
+  // la désélection globale quand un geste est actif.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      const gestureActive = !!pressRef.current || !!pending
+        || !!marqueeStartRef.current || !!panStartRef.current;
+      if (!gestureActive) return;
+      e.preventDefault();
+      e.stopPropagation();
+      cancelGesture();
+    };
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
+  }, [cancelGesture, pending]);
+
+  // Changement d'outil pendant un appui : on termine proprement le geste
+  // (commit s'il était déjà armé) puis on abandonne l'appui, pour ne pas
+  // laisser une ancre d'historique ouverte avec l'ancien outil.
+  useEffect(() => {
+    if (!pressRef.current) return;
+    if (pressRef.current.dragging) finishPlayerDrag({ settle: false });
+    clearPress();
+  }, [state.tool, clearPress, finishPlayerDrag]);
+
   // Démontage (changement de vue) : un geste encore en fin de course est
   // terminé tout de suite — sinon position finale, commit et fin de poursuite
   // sont perdus, et l'ancre d'historique reste ouverte pour le geste suivant.
   const flushSettlingRef = useRef(flushSettling);
-  flushSettlingRef.current = flushSettling;
-  useEffect(() => {
+  flushSettlingRef.current = flushSettling;  useEffect(() => {
     if (!registerPendingGestureFlush) return;
     registerPendingGestureFlush(() => {
       if (isSettlingRef.current) flushSettlingRef.current();
@@ -530,6 +653,7 @@ export function useCourtPointerHandlers(
         const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
         lastGestureRef.current = { distance: d, midpoint: mid };
         finishPlayerDrag({ settle: false });
+        clearPress();
         setPending(null);
         if (longPressTimerRef.current !== null) {
           window.clearTimeout(longPressTimerRef.current);
@@ -545,6 +669,7 @@ export function useCourtPointerHandlers(
           clientY: e.clientY,
           transformX: transformRef.current.x,
           transformY: transformRef.current.y,
+          moved: false,
         };
         svgRef.current?.setPointerCapture(e.pointerId);
         if (longPressTimerRef.current !== null) {
@@ -564,41 +689,25 @@ export function useCourtPointerHandlers(
       const pt = svgPoint(e);
       const id = findPlayerAt(pt) ?? (target?.getAttribute('data-id') as PlayerId | null);
 
-      const isPanTrigger =
-        spacePressed ||
-        e.button === 1 ||
-        (state.tool === 'move' && !id && !e.shiftKey && !stickyMulti);
-
-      if (isPanTrigger) {
+      const forcePan = spacePressed || e.button === 1;
+      const startPan = () => {
         panStartRef.current = {
           clientX: e.clientX,
           clientY: e.clientY,
           transformX: transformRef.current.x,
           transformY: transformRef.current.y,
+          moved: false,
         };
         svgRef.current?.setPointerCapture(e.pointerId);
         if (longPressTimerRef.current !== null) {
           window.clearTimeout(longPressTimerRef.current);
           longPressTimerRef.current = null;
         }
-        return;
-      }
+      };
 
-      if (!disableLongPress && e.button === 0 && id) {
-        touchStartPosRef.current = { x: e.clientX, y: e.clientY };
-        longPressTriggeredRef.current = false;
-        if (longPressTimerRef.current !== null) {
-          window.clearTimeout(longPressTimerRef.current);
-        }
-        longPressTimerRef.current = window.setTimeout(() => {
-          longPressTimerRef.current = null;
-          longPressTriggeredRef.current = true;
-          finishPlayerDrag({ settle: false });
-          if (onOpenContextMenu) {
-            onOpenContextMenu(id, e.clientX, e.clientY);
-          }
-          setPending(null);
-        }, 380);
+      if (forcePan) {
+        startPan();
+        return;
       }
 
       // A.3 — Outil 'note' : tout clic ouvre le popup (création si zone vide,
@@ -614,14 +723,30 @@ export function useCourtPointerHandlers(
         return;
       }
 
-      if (state.tool === 'move') {
-        // Picking : priorise findPlayerAt(pt) qui retourne l'ATTAQUANT en
-        // priorité quand un attaquant et un défenseur sont à portée du clic.
-        // Évite le bug où le défenseur (rendu au-dessus dans le SVG) intercepte
-        // le drag sur un attaquant superposé (sprite Prop A élargi). Fallback
-        // sur le data-id du SVG si proximity-pick ne trouve rien.
-        // (L'id a déjà été calculé plus haut dans ce handler)
+      // Sélection d'une trajectoire au clic (outil Déplacer, aucune cible
+      // joueur sous le doigt). Le clic droit sélectionne aussi : la
+      // suppression n'est plus instantanée.
+      if (state.tool === 'move' && !id && !e.shiftKey && !stickyMulti) {
+        const annoEl = (e.target as Element).closest('g[data-annotation-idx]');
+        if (annoEl) {
+          const idx = Number(annoEl.getAttribute('data-annotation-idx'));
+          const stepAttr = annoEl.getAttribute('data-annotation-step');
+          const stepIdx = stepAttr != null ? Number(stepAttr) : state.activeStep;
+          if (Number.isFinite(idx) && Number.isFinite(stepIdx)) {
+            onSelectAnnotationRef.current?.({ stepIdx, index: idx });
+            onSelectPlayerRef.current?.(null);
+            return;
+          }
+        }
+      }
 
+      // Clic dans le vide, sans modificateur : déplacer le terrain.
+      if (state.tool === 'move' && !id && !e.shiftKey && !stickyMulti) {
+        startPan();
+        return;
+      }
+
+      if (state.tool === 'move') {
         // #4 — Sélection multiple (mode move uniquement, ne conflicte pas
         // avec le Shift+freehand des autres tools).
         if (e.shiftKey || stickyMulti) {
@@ -639,23 +764,19 @@ export function useCourtPointerHandlers(
           }
         }
 
-        // Click dans le vide sans shift → clear sélection si existante.
-        if (!id) {
-          if (selectedDefenders && selectedDefenders.size > 0) {
-            onClearDefenderSelection?.();
-          }
-          return;
-        }
+        // Vide sans shift : déjà traité plus haut (pan). Garde-fou.
+        if (!id) return;
 
-        // Click sur défenseur SÉLECTIONNÉ (sans shift) → drag groupé.
+        // Click sur défenseur SÉLECTIONNÉ (sans shift) → préparer un drag
+        // groupé. Les positions initiales sont mémorisées ; le drag n'est
+        // armé qu'après le seuil de tap.
+        let group: { initial: Point; others: Map<DefenderId, Point> } | null = null;
         if (
           id.startsWith('D') &&
           selectedDefenders &&
           selectedDefenders.has(id as DefenderId) &&
           selectedDefenders.size >= 2
         ) {
-          // Partir des positions affichées, y compris pendant une poursuite :
-          // les ancrages initiaux peuvent être très loin des joueurs visibles.
           const stepDef = state.steps[state.activeStep]?.defenseOverrides;
           const others = new Map<DefenderId, Point>();
           selectedDefenders.forEach((dId) => {
@@ -664,41 +785,42 @@ export function useCourtPointerHandlers(
             if (p) others.set(dId, { x: p.x, y: p.y });
           });
           const anchorPos = frameDefPos?.[id as DefenderId] ?? stepDef?.[id as DefenderId] ?? state.defenseInitial[id as DefenderId];
-          groupDragInitialRef.current = {
-            anchorId: id as DefenderId,
-            initial: { x: anchorPos.x, y: anchorPos.y },
-            others,
-          };
-          onBeginPlayerDrag?.();
-          lastDragPointRef.current = null;
-          lastDragTimeRef.current = 0;
-          dragMoveRef.current = null;
-          setDragging({ id, isDef: true });
-          svgRef.current?.setPointerCapture(e.pointerId);
-          return;
-        }
-
-        // Click sur joueur non sélectionné → drag single + clear sélection.
-        if (selectedDefenders && selectedDefenders.size > 0) {
+          if (anchorPos) group = { initial: { x: anchorPos.x, y: anchorPos.y }, others };
+        } else if (selectedDefenders && selectedDefenders.size > 0) {
           onClearDefenderSelection?.();
         }
-        if (!target) return;
-        onBeginPlayerDrag?.();
-        // Poursuite défenseur : si l'utilisateur drag un ATTAQUANT,
-        // capturer les positions défenseurs et activer le rAF loop pursuit
-        // (cap vitesse modulé, V1+V2+V3 dans useCourtFrame).
-        if (!id!.startsWith('D')) {
-          onBeginDefenderPursuit?.(frameDefPos);
-          const initialAttPos = frameOff?.[id as AttackerId] ?? state.steps[state.activeStep]?.off[id as AttackerId];
-          lastDragPointRef.current = initialAttPos ? { x: initialAttPos.x, y: initialAttPos.y } : null;
-        } else {
-          lastDragPointRef.current = null;
+
+        // Simple appui : sélection immédiate (halo), déplacement seulement
+        // après TAP_SLOP_PX.
+        onSelectPlayerRef.current?.(id);
+        onSelectAnnotationRef.current?.(null);
+        pressRef.current = {
+          id,
+          isDef: id.startsWith('D'),
+          startX: e.clientX,
+          startY: e.clientY,
+          dragging: false,
+          group,
+        };
+        const feedbackPos = frameOff?.[id as AttackerId] ?? frameDefPos?.[id as DefenderId] ?? null;
+        setPressFeedback(feedbackPos ? { x: feedbackPos.x, y: feedbackPos.y } : null);
+
+        if (!disableLongPress && e.button === 0) {
+          longPressTriggeredRef.current = false;
+          if (longPressTimerRef.current !== null) {
+            window.clearTimeout(longPressTimerRef.current);
+          }
+          longPressTimerRef.current = window.setTimeout(() => {
+            longPressTimerRef.current = null;
+            longPressTriggeredRef.current = true;
+            clearPress();
+            // Retour haptique : le coach sait que le menu s'ouvre.
+            if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+              navigator.vibrate(12);
+            }
+            onOpenContextMenu?.(id, e.clientX, e.clientY);
+          }, 380);
         }
-        lastDragTimeRef.current = performance.now();
-        lastVelocityRef.current = null;
-        plantDecelRef.current = 0;
-        dragMoveRef.current = null;
-        setDragging({ id: id as PlayerId, isDef: id!.startsWith('D') });
         svgRef.current?.setPointerCapture(e.pointerId);
         return;
       }
@@ -744,7 +866,7 @@ export function useCourtPointerHandlers(
       });
       svgRef.current?.setPointerCapture(e.pointerId);
     },
-    [disableLongPress, findPlayerAt, finishPlayerDrag, frameOff, frameDefPos, isPlaying, isPlayerMode, onAddAnnotation, onBeginPlayerDrag, onBeginDefenderPursuit, onClearContextMenu, onClearDefenderSelection, onOpenContextMenu, onTextToolClick, onToggleDefenderSelection, pendingAutoSourceId, selectedDefenders, setDragging, spacePressed, state, stickyFreehand, stickyMulti, svgPoint, svgRef, textNotes]
+    [clearPress, disableLongPress, findPlayerAt, finishPlayerDrag, frameDefPos, frameOff, isPlaying, isPlayerMode, onAddAnnotation, onClearContextMenu, onClearDefenderSelection, onOpenContextMenu, onTextToolClick, onToggleDefenderSelection, pendingAutoSourceId, selectedDefenders, spacePressed, state, stickyFreehand, stickyMulti, svgPoint, svgRef, textNotes]
   );
 
   const onPointerMove = useCallback(
@@ -784,21 +906,13 @@ export function useCourtPointerHandlers(
         const start = panStartRef.current;
         const dx = e.clientX - start.clientX;
         const dy = e.clientY - start.clientY;
+        if (Math.hypot(dx, dy) > TAP_SLOP_PX) start.moved = true;
         onTransformChange({
           scale: transformRef.current.scale,
           x: start.transformX + dx,
           y: start.transformY + dy,
         });
         return;
-      }
-
-      if (touchStartPosRef.current && longPressTimerRef.current !== null) {
-        const dx = e.clientX - touchStartPosRef.current.x;
-        const dy = e.clientY - touchStartPosRef.current.y;
-        if (Math.hypot(dx, dy) > 10) {
-          window.clearTimeout(longPressTimerRef.current);
-          longPressTimerRef.current = null;
-        }
       }
 
       const pt = svgPoint(e);
@@ -815,7 +929,39 @@ export function useCourtPointerHandlers(
         return;
       }
 
-      if (dragging && state.tool === 'move') {
+      const press = pressRef.current;
+      if (press && state.tool === 'move') {
+        if (!press.dragging) {
+          const movedPx = Math.hypot(e.clientX - press.startX, e.clientY - press.startY);
+          if (movedPx <= TAP_SLOP_PX) return; // encore un tap : le joueur ne bouge pas
+          // Seuil franchi : le tap devient un drag. On arme l'historique et
+          // la poursuite défensive seulement maintenant (pas au pointerdown).
+          if (longPressTimerRef.current !== null) {
+            window.clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+          }
+          press.dragging = true;
+          onBeginPlayerDrag?.();
+          if (press.group) {
+            groupDragInitialRef.current = {
+              anchorId: press.id as DefenderId,
+              initial: press.group.initial,
+              others: press.group.others,
+            };
+          }
+          if (!press.isDef) {
+            onBeginDefenderPursuit?.(frameDefPos);
+            const initialAttPos = frameOff?.[press.id as AttackerId] ?? state.steps[state.activeStep]?.off[press.id as AttackerId];
+            lastDragPointRef.current = initialAttPos ? { x: initialAttPos.x, y: initialAttPos.y } : null;
+          } else {
+            lastDragPointRef.current = null;
+          }
+          lastDragTimeRef.current = performance.now();
+          lastVelocityRef.current = null;
+          plantDecelRef.current = 0;
+          dragMoveRef.current = null;
+          setDragging({ id: press.id, isDef: press.isDef });
+        }
         const maxY = state.fullCourt ? FULL_COURT_INNER_MAX_Y : COURT.innerMaxY;
         let x = clamp(pt.x, COURT.marginX, COURT.innerMaxX);
         let y = clamp(pt.y, COURT.marginY, maxY);
@@ -848,7 +994,7 @@ export function useCourtPointerHandlers(
             );
           });
         }
-        queueDragMove(dragging.id, dragging.isDef, Math.round(x), Math.round(y));
+        queueDragMove(press.id, press.isDef, Math.round(x), Math.round(y));
         return;
       }
       if (pending) {
@@ -873,7 +1019,7 @@ export function useCourtPointerHandlers(
         }
       }
     },
-    [dragging, findPlayerAt, pending, queueDragMove, snapTarget, state.attackingDirection, state.fullCourt, state.tool, stickySnap, svgPoint]
+    [findPlayerAt, frameDefPos, frameOff, onBeginDefenderPursuit, onBeginPlayerDrag, pending, queueDragMove, setDragging, snapTarget, state.activeStep, state.attackingDirection, state.fullCourt, state.steps, state.tool, stickySnap, svgPoint]
   );
 
   const onPointerUp = useCallback(
@@ -889,15 +1035,24 @@ export function useCourtPointerHandlers(
       }
 
       if (panStartRef.current) {
+        const pan = panStartRef.current;
         panStartRef.current = null;
         svgRef.current?.releasePointerCapture(e.pointerId);
+        // Un « pan » qui n'a pas bougé est en réalité un clic dans le vide :
+        // il désélectionne (joueur, trajectoire, multi-sélection).
+        if (!pan.moved) {
+          onSelectPlayerRef.current?.(null);
+          onSelectAnnotationRef.current?.(null);
+          onClearDefenderSelection?.();
+        }
         return;
       }
 
       const wasLongPress = longPressTriggeredRef.current;
       longPressTriggeredRef.current = false;
       if (wasLongPress) {
-        svgRef.current?.releasePointerCapture(e.pointerId);
+        svgRef.current?.releasePointerCapture?.(e.pointerId);
+        clearPress();
         return;
       }
 
@@ -925,7 +1080,16 @@ export function useCourtPointerHandlers(
         return;
       }
 
-      if (dragging) {
+      const press = pressRef.current;
+      // Tap simple (sous le seuil) : la sélection a déjà été posée au
+      // pointerdown ; aucun déplacement, aucune entrée d'historique.
+      if (press && !press.dragging) {
+        clearPress();
+        svgRef.current?.releasePointerCapture?.(e.pointerId);
+        return;
+      }
+
+      if (press?.dragging) {
         const pt = svgPoint(e);
         const maxY = state.fullCourt ? FULL_COURT_INNER_MAX_Y : COURT.innerMaxY;
         let x = clamp(pt.x, COURT.marginX, COURT.innerMaxX);
@@ -958,8 +1122,9 @@ export function useCourtPointerHandlers(
           });
           groupDragInitialRef.current = null;
         }
-        queueDragMove(dragging.id, dragging.isDef, Math.round(x), Math.round(y));
+        queueDragMove(press.id, press.isDef, Math.round(x), Math.round(y));
         finishPlayerDrag({ settle: e.type !== 'pointercancel' });
+        clearPress();
         return;
       }
       if (pending) {
@@ -995,11 +1160,12 @@ export function useCourtPointerHandlers(
       }
     },
     [
-      dragging,
+      clearPress,
       finishPlayerDrag,
       marquee,
       annotationFullT,
       onAddAnnotation,
+      onClearDefenderSelection,
       onMoveDefender,
       onMoveDefenderDuringDrag,
       onSetDefenderSelection,
@@ -1026,6 +1192,7 @@ export function useCourtPointerHandlers(
     marquee,
     pendingAutoSourceId,
     cancelPendingAuto,
+    pressFeedback,
     svgPoint,
     onPointerDown,
     onPointerMove,

@@ -493,11 +493,17 @@ export default function Page() {
   return (
     <main
       style={{
-        height: '100vh',
-        maxHeight: '100vh',
+        // dvh : sur iPad/iPhone, 100vh inclut la barre d'outils du navigateur
+        // et coupait le bas de la timeline. Les safe-areas évitent l'encoche
+        // et la barre de gestes.
+        height: '100dvh',
+        maxHeight: '100dvh',
         overflow: 'hidden',
         background: 'var(--bt-bg)',
-        padding: '8px 12px 10px',
+        paddingTop: 'calc(8px + env(safe-area-inset-top))',
+        paddingRight: 'calc(12px + env(safe-area-inset-right))',
+        paddingBottom: 'calc(10px + env(safe-area-inset-bottom))',
+        paddingLeft: 'calc(12px + env(safe-area-inset-left))',
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
@@ -1268,7 +1274,10 @@ export default function Page() {
               onFrameChange={handleCourtFrame}
               state={replayingGestures && manual.snapshot ? manual.snapshot.state : app.state}
               recordedFrame={manual.replayFrame}
-              readOnly={replayingGestures || preparingRecording}
+              // En mode présentation, le terrain est verrouillé : sans cela,
+              // un drag ou un clic droit modifiait le système alors que le
+              // header (et donc Annuler) est masqué.
+              readOnly={replayingGestures || preparingRecording || presentMode}
               gesturesOnly={recordingGestures}
               diagnostics={isPlayerMode || manualBusy ? [] : coachDiagnostics}
               onMoveAttacker={app.moveAttacker}
@@ -1277,6 +1286,7 @@ export default function Page() {
               onMoveAttackerDuringDrag={(id, x, y) => { manual.recordEvent({ type: 'move', id, x, y }); app.moveAttackerDuringDrag(id, x, y); }}
               onMoveDefenderDuringDrag={(id, x, y) => { manual.recordEvent({ type: 'move', id, x, y }); app.moveDefenderDuringDrag(id, x, y); }}
               onCommitPlayerDrag={() => { app.commitPlayerDrag(); manual.recordEvent({ type: 'end' }); }}
+              onCancelPlayerDrag={app.cancelPlayerDrag}
               onBeginDefenderPursuit={app.beginDefenderPursuit}
               onEndDefenderPursuit={app.endDefenderPursuit}
               registerPendingGestureFlush={app.registerPendingGestureFlush}

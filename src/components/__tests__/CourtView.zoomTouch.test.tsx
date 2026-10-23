@@ -96,26 +96,28 @@ function renderCourt(overrides: Partial<ComponentProps<typeof CourtView>> = {}) 
 }
 
 describe('CourtView Touch & Zoom/Pan interaction tests', () => {
-  it('termine le drag et sa poursuite avant d’ouvrir le menu par appui long', () => {
-    const calls: string[] = [];
+  it('un appui long immobile ouvre le menu sans déplacer le joueur', () => {
     const { container, props } = renderCourt({
-      onMoveAttackerDuringDrag: vi.fn(() => calls.push('move')),
-      onCommitPlayerDrag: vi.fn(() => calls.push('commit')),
-      onEndDefenderPursuit: vi.fn(() => calls.push('end')),
+      onBeginPlayerDrag: vi.fn(),
     });
+    const o1 = container.querySelector('g[data-id="O1"]')!;
+    fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
+    act(() => vi.advanceTimersByTime(400));
+    // Le menu contextuel attaquant est ouvert (O1 est porteur au départ).
+    expect(screen.queryByText(/ballon/i)).not.toBeNull();
+    // Aucun déplacement n'a été armé par le simple maintien.
+    expect(props.onBeginPlayerDrag).not.toHaveBeenCalled();
+    expect(props.onMoveAttackerDuringDrag).not.toHaveBeenCalled();
+  });
+
+  it('un appui qui bouge devient un drag et annule l’appui long', () => {
+    const { container, props } = renderCourt();
     const svg = container.querySelector('svg')!;
     const o1 = container.querySelector('g[data-id="O1"]')!;
     fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
-    act(() => vi.advanceTimersByTime(370));
-    // Petit déplacement : le menu reste prévu, le dernier move attend son rAF.
-    fireEvent.pointerMove(svg, { pointerId: 1, clientX: 304, clientY: 470 });
-    expect(props.onMoveAttackerDuringDrag).not.toHaveBeenCalled();
-    act(() => vi.advanceTimersByTime(10));
-    expect(props.onMoveAttackerDuringDrag).toHaveBeenCalledWith('O1', 304, 470);
-    expect(calls).toEqual(['move', 'commit', 'end']);
-    fireEvent.pointerUp(svg, { pointerId: 1, clientX: 304, clientY: 470 });
-    act(() => vi.advanceTimersByTime(100));
-    expect(calls).toEqual(['move', 'commit', 'end']);
+    fireEvent.pointerMove(svg, { pointerId: 1, clientX: 320, clientY: 470 });
+    act(() => vi.advanceTimersByTime(400));
+    expect(screen.queryByText(/ballon/i)).toBeNull();
   });
 
   it('flush et termine le drag attaquant lorsque le second doigt commence un pincement', () => {
@@ -152,6 +154,7 @@ describe('CourtView Touch & Zoom/Pan interaction tests', () => {
     const svg = container.querySelector('svg')!;
     const o1 = container.querySelector('g[data-id="O1"]')!;
     fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
+    fireEvent.pointerMove(svg, { pointerId: 1, clientX: 380, clientY: 470 });
     fireEvent.pointerUp(svg, { pointerId: 1, clientX: 420, clientY: 470 });
     expect(props.onCommitPlayerDrag).not.toHaveBeenCalled();
     act(() => vi.advanceTimersByTime(1500));
@@ -168,6 +171,7 @@ describe('CourtView Touch & Zoom/Pan interaction tests', () => {
     const svg = container.querySelector('svg')!;
     const o1 = container.querySelector('g[data-id="O1"]')!;
     fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
+    fireEvent.pointerMove(svg, { pointerId: 1, clientX: 380, clientY: 470 });
     fireEvent.pointerUp(svg, { pointerId: 1, clientX: 420, clientY: 470 });
     act(() => vi.advanceTimersByTime(50));
     expect(props.onCommitPlayerDrag).not.toHaveBeenCalled();
@@ -185,6 +189,7 @@ describe('CourtView Touch & Zoom/Pan interaction tests', () => {
     const svg = container.querySelector('svg')!;
     const o1 = container.querySelector('g[data-id="O1"]')!;
     fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
+    fireEvent.pointerMove(svg, { pointerId: 1, clientX: 380, clientY: 470 });
     fireEvent.pointerUp(svg, { pointerId: 1, clientX: 420, clientY: 470 });
     act(() => vi.advanceTimersByTime(50));
     expect(props.onCommitPlayerDrag).not.toHaveBeenCalled();

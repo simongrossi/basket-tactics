@@ -43,6 +43,9 @@ export interface HistorizedState {
   canRedo: boolean;
   beginPlayerDrag: () => void;
   commitPlayerDrag: () => void;
+  /** Annule un drag en cours (Échap) : restaure l'état d'avant le geste
+   *  sans créer d'entrée d'historique. */
+  cancelPlayerDrag: () => void;
   /** Enregistre (ou retire avec `null`) la fonction qui termine un geste
    *  encore ouvert. Elle doit être sans effet s'il n'y a rien à terminer. */
   registerPendingFlush: (flush: (() => void) | null) => void;
@@ -109,6 +112,15 @@ export function useHistorizedState(initializer: () => AppState): HistorizedState
     bumpHistory();
   }, []);
 
+  const cancelPlayerDrag = useCallback(() => {
+    const anchor = dragHistoryAnchorRef.current;
+    dragHistoryAnchorRef.current = null;
+    if (!anchor) return;
+    // Retour exact à la position d'avant le geste, sans passer par l'historique.
+    setState(anchor);
+    bumpHistory();
+  }, []);
+
   const undo = useCallback(() => {
     flushPendingGesture();
     setState((cur) => undoFromHistory(historyRef.current, cur));
@@ -132,6 +144,7 @@ export function useHistorizedState(initializer: () => AppState): HistorizedState
     canRedo: historyRef.current.future.length > 0,
     beginPlayerDrag,
     commitPlayerDrag,
+    cancelPlayerDrag,
     registerPendingFlush,
   };
 }

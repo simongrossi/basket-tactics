@@ -11,13 +11,14 @@ describe('useCourtPointerHandlers drag physics', () => {
     vi.useFakeTimers();
   });
 
-  function setup() {
+  function setup(mutate?: (s: AppState) => void) {
     const state: AppState = {
       ...makeInitialState(),
       tool: 'move',
       activeStep: 0,
     };
     state.steps[0].off.O1 = { x: 300, y: 400 };
+    mutate?.(state);
 
     let currentPt = { x: 0, y: 0 };
     const svgRef = {
@@ -42,6 +43,8 @@ describe('useCourtPointerHandlers drag physics', () => {
     const onMoveDefender = vi.fn();
     const onMoveDefenderDuringDrag = vi.fn();
     const onCommitPlayerDrag = vi.fn();
+    const onCancelPlayerDrag = vi.fn();
+    const onSelectPlayer = vi.fn();
     const onEndDefenderPursuit = vi.fn();
     const onClearContextMenu = vi.fn();
     const onTransformChange = vi.fn();
@@ -56,6 +59,8 @@ describe('useCourtPointerHandlers drag physics', () => {
         onMoveDefender,
         onMoveDefenderDuringDrag,
         onCommitPlayerDrag,
+        onCancelPlayerDrag,
+        onSelectPlayer,
         onEndDefenderPursuit,
         onClearContextMenu,
         onTransformChange,
@@ -71,6 +76,8 @@ describe('useCourtPointerHandlers drag physics', () => {
       onMoveAttacker,
       onMoveAttackerDuringDrag,
       onCommitPlayerDrag,
+      onCancelPlayerDrag,
+      onSelectPlayer,
       onEndDefenderPursuit,
     };
   }
@@ -88,6 +95,15 @@ describe('useCourtPointerHandlers drag physics', () => {
 
     act(() => {
       hook.result.current.onPointerDown(downEvent);
+    });
+
+    // Franchir le seuil de tap : sans ce mouvement, c'est une sélection.
+    act(() => {
+      hook.result.current.onPointerMove({
+        clientX: 340,
+        clientY: 400,
+        pointerId: 1,
+      } as React.PointerEvent);
     });
 
     const upEvent = {
@@ -164,5 +180,105 @@ describe('useCourtPointerHandlers drag physics', () => {
     const lastCall = calls[calls.length - 1];
     expect(lastCall[0]).toBe('O1');
     expect(lastCall[2]).toBeLessThan(400); // has moved North
+  });
+
+  it('un tap sous le seuil sélectionne le joueur sans le déplacer', () => {
+    const { hook, onSelectPlayer, onMoveAttackerDuringDrag, onCommitPlayerDrag } = setup();
+
+    act(() => {
+      hook.result.current.onPointerDown({
+        button: 0,
+        clientX: 300,
+        clientY: 400,
+        pointerId: 1,
+        target: { closest: () => ({ getAttribute: () => 'O1' }) } as any,
+      } as React.PointerEvent);
+    });
+    // 3 px : sous le seuil de 6 px.
+    act(() => {
+      hook.result.current.onPointerMove({
+        clientX: 303,
+        clientY: 400,
+        pointerId: 1,
+      } as React.PointerEvent);
+    });
+    act(() => {
+      hook.result.current.onPointerUp({
+        button: 0,
+        clientX: 303,
+        clientY: 400,
+        pointerId: 1,
+        target: { closest: () => null } as any,
+      } as React.PointerEvent);
+    });
+
+    expect(onSelectPlayer).toHaveBeenCalledWith('O1');
+    expect(onMoveAttackerDuringDrag).not.toHaveBeenCalled();
+    expect(onCommitPlayerDrag).not.toHaveBeenCalled();
+  });
+
+  it('sélectionne le joueur le plus proche, pas le premier de la liste', () => {
+    const { hook, onSelectPlayer } = setup((s) => {
+      // O2 est le plus proche du clic, O1 est plus loin mais dans le rayon.
+      s.steps[0].off.O1 = { x: 300, y: 400 };
+      s.steps[0].off.O2 = { x: 318, y: 400 };
+    });
+
+    act(() => {
+      hook.result.current.onPointerDown({
+        button: 0,
+        clientX: 315,
+        clientY: 400,
+        pointerId: 1,
+        target: { closest: () => ({ getAttribute: () => 'O1' }) } as any,
+      } as React.PointerEvent);
+    });
+    act(() => {
+      hook.result.current.onPointerUp({
+        button: 0,
+        clientX: 315,
+        clientY: 400,
+        pointerId: 1,
+        target: { closest: () => null } as any,
+      } as React.PointerEvent);
+    });
+
+    expect(onSelectPlayer).toHaveBeenCalledWith('O2');
+  });
+
+  it('Échap annule le déplacement en cours sans commit', () => {
+    const { hook, onCancelPlayerDrag, onCommitPlayerDrag, onMoveAttackerDuringDrag } = setup();
+
+    act(() => {
+      hook.result.current.onPointerDown({
+        button: 0,
+        clientX: 300,
+        clientY: 400,
+        pointerId: 1,
+        target: { closest: () => ({ getAttribute: () => 'O1' }) } as any,
+      } as React.PointerEvent);
+    });
+    act(() => {
+      hook.result.current.onPointerMove({
+        clientX: 360,
+        clientY: 400,
+        pointerId: 1,
+      } as React.PointerEvent);
+    });
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+
+    expect(onCancelPlayerDrag).toHaveBeenCalledTimes(1);
+    expect(onCommitPlayerDrag).not.toHaveBeenCalled();
+
+    // La file rAF éventuelle ne doit plus produire de déplacement.
+    const callsAfterCancel = onMoveAttackerDuringDrag.mock.calls.length;
+    act(() => {
+      for (let i = 0; i < 10; i++) vi.advanceTimersByTime(16);
+    });
+    expect(onMoveAttackerDuringDrag.mock.calls.length).toBe(callsAfterCancel);
+    expect(onCommitPlayerDrag).not.toHaveBeenCalled();
   });
 });

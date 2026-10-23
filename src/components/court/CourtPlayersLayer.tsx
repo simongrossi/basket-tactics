@@ -22,6 +22,8 @@ interface CourtPlayersLayerProps {
   frame: PlaybackFrame;
   /** #4 — IDs défenseurs sélectionnés (visuel highlight cyan). */
   selectedDefenders?: Set<DefenderId>;
+  /** Sélection simple (attaquant ou défenseur) : halo cyan. */
+  selectedPlayerId?: import('@/lib/types').PlayerId | null;
 }
 
 /** Retourne un gazeOrientation de remplacement (en degrés, convention horaire
@@ -46,7 +48,7 @@ function screenerGazeOverride(id: AttackerId, frame: PlaybackFrame): number | un
   return (Math.atan2(dx, -dy) * 180) / Math.PI;
 }
 
-export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlayersLayerProps) {
+export function CourtPlayersLayer({ state, frame, selectedDefenders, selectedPlayerId }: CourtPlayersLayerProps) {
   const screenerIds = new Set<AttackerId>();
   if (frame.screen?.screener) screenerIds.add(frame.screen.screener);
   frame.offBallScreens.forEach((s) => screenerIds.add(s.screener));
@@ -79,6 +81,7 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
               pos={pos}
               isAttacker
               isForcedScreener={id === forcedScreenerId}
+              isSelected={id === selectedPlayerId}
               showLockBadges={state.showLockBadges !== false}
               showForcedScreenerBadge={state.showForcedScreenerBadge !== false}
               orientation={frame.attVisuals[id]?.orientation}
@@ -136,7 +139,7 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
             showLateRing={state.showLateRing !== false}
             showCloseoutRing={state.showCloseoutRing !== false}
             showDenyingRing={state.showDenyingRing !== false}
-            isSelected={selectedDefenders?.has(id)}
+            isSelected={selectedDefenders?.has(id) || id === selectedPlayerId}
             name={state.playerNames?.[id]}
             number={state.playerNumbers?.[id]}
             showName={state.showPlayerNames !== false}
@@ -155,6 +158,7 @@ export function CourtPlayersLayer({ state, frame, selectedDefenders }: CourtPlay
             pos={frame.off[id]}
             isAttacker
             isForcedScreener={id === forcedScreenerId}
+            isSelected={id === selectedPlayerId}
             showLockBadges={state.showLockBadges !== false}
             showForcedScreenerBadge={state.showForcedScreenerBadge !== false}
             orientation={frame.attVisuals[id]?.orientation}

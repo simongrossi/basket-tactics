@@ -30,6 +30,8 @@ interface DragState {
 interface AnnotationHandlesProps {
   annotations: Annotation[];
   stepIdx?: number;
+  /** Si fourni, n'affiche que les poignées de cette annotation (sélection). */
+  only?: { stepIdx: number; index: number } | null;
   /** Renvoie le point SVG correspondant à l'événement pointer (factorisé par
    *  useCourtPointerHandlers, on ré-utilise la même fonction). */
   svgPoint: (evt: React.PointerEvent) => Point;
@@ -83,6 +85,9 @@ export function AnnotationHandles(props: AnnotationHandlesProps) {
     <g aria-label="annotation-handles">
       {annotations.map((a, annoIdx) => {
         if (!isMovement(a) || props.isHidden?.(a)) return null;
+        // Sélection active : on ne montre que la trajectoire choisie, pour
+        // éviter l'empilement de poignées sur une étape chargée.
+        if (props.only && (props.only.index !== annoIdx || props.only.stepIdx !== props.stepIdx)) return null;
         const dragging = drag?.annoIdx === annoIdx ? drag : null;
         const from = dragging?.kind === 'from' && previewPoint ? previewPoint : a.from;
         const to = dragging?.kind === 'to' && previewPoint ? previewPoint : a.to;

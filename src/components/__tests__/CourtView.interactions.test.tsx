@@ -168,6 +168,11 @@ describe('CourtView interactions', () => {
       clientX: 300,
       clientY: 380,
     });
+    fireEvent.pointerMove(svg!, {
+      pointerId: 2,
+      clientX: 310,
+      clientY: 390,
+    });
     fireEvent.pointerCancel(svg!, {
       pointerId: 2,
       clientX: 310,
@@ -178,7 +183,7 @@ describe('CourtView interactions', () => {
     expect(onCommitPlayerDrag).toHaveBeenCalledTimes(1);
   });
 
-  it('clic-droit sur une annotation courbe ou une de ses poignées supprime l’annotation', () => {
+  it('clic-droit sur une annotation courbe la sélectionne sans la supprimer', () => {
     const onDeleteAnnotation = vi.fn();
     const state: AppState = makeInitialState();
     state.steps[0].annotations = [
@@ -198,14 +203,17 @@ describe('CourtView interactions', () => {
     const hitPath = annoGroup?.querySelector('path[stroke="transparent"]');
     expect(hitPath).not.toBeNull();
 
-    // Clic-droit sur le tracé courbe
+    // Clic-droit sur le tracé courbe : sélection, pas suppression.
     fireEvent.contextMenu(hitPath!);
-    expect(onDeleteAnnotation).toHaveBeenCalledWith(0, 0);
+    expect(onDeleteAnnotation).not.toHaveBeenCalled();
+    expect(
+      container.querySelector('g[data-annotation-idx="0"]')?.getAttribute('data-annotation-selected')
+    ).toBe('true');
 
-    // Clic-droit sur une poignée waypoint
+    // Clic-droit sur une poignée waypoint : sélection conservée, pas de suppression.
     const handleWp = container.querySelector('g[aria-label="annotation-handles"] circle[fill="#2563eb"]');
     expect(handleWp).not.toBeNull();
     fireEvent.contextMenu(handleWp!);
-    expect(onDeleteAnnotation).toHaveBeenCalledTimes(2);
+    expect(onDeleteAnnotation).not.toHaveBeenCalled();
   });
 });

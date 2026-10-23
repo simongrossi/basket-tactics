@@ -80,10 +80,12 @@ describe('CourtView recording and replay interaction guards', () => {
     const o1 = container.querySelector('g[data-id="O1"]')!;
     fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
     act(() => vi.advanceTimersByTime(900));
-    expect(props.onBeginPlayerDrag).toHaveBeenCalledTimes(1);
+    // Pas de drag tant que le doigt n'a pas franchi le seuil de tap.
+    expect(props.onBeginPlayerDrag).not.toHaveBeenCalled();
     expect(props.onCommitPlayerDrag).not.toHaveBeenCalled();
     expect(props.onEndDefenderPursuit).not.toHaveBeenCalled();
     fireEvent.pointerMove(svg, { pointerId: 1, clientX: 340, clientY: 430 });
+    expect(props.onBeginPlayerDrag).toHaveBeenCalledTimes(1);
     fireEvent.pointerUp(svg, { pointerId: 1, clientX: 340, clientY: 430 });
     // Relâchement normal : le joueur termine sa course à vitesse athlétique.
     act(() => vi.advanceTimersByTime(1000));
@@ -108,6 +110,7 @@ describe('CourtView recording and replay interaction guards', () => {
     fireEvent.pointerDown(container.querySelector('g[data-id="D1"]')!, {
       button: 0, pointerId: 1, clientX: positions.D1.x, clientY: positions.D1.y,
     });
+    fireEvent.pointerMove(svg, { pointerId: 1, clientX: positions.D1.x + 20, clientY: positions.D1.y + 10 });
     fireEvent.pointerUp(svg, { pointerId: 1, clientX: positions.D1.x + 20, clientY: positions.D1.y + 10 });
     expect(props.onMoveDefenderDuringDrag).toHaveBeenCalledWith('D1', positions.D1.x + 20, positions.D1.y + 10);
     expect(props.onMoveDefenderDuringDrag).toHaveBeenCalledWith('D2', Math.round(positions.D2.x + 20), Math.round(positions.D2.y + 10));

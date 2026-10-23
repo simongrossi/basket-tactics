@@ -84,6 +84,7 @@ describe('CourtView — barre tactile (U04)', () => {
     expect(toggle('Aimanter').getAttribute('aria-pressed')).toBe('true');
 
     fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
+    fireEvent.pointerMove(svg, { pointerId: 1, clientX: 305, clientY: 440 });
     fireEvent.pointerUp(svg, { pointerId: 1, clientX: 305, clientY: 440 });
     // Relâchement normal : fin de course à vitesse athlétique.
     act(() => vi.advanceTimersByTime(1000));
@@ -98,6 +99,7 @@ describe('CourtView — barre tactile (U04)', () => {
     const svg = container.querySelector('svg')!;
     const o1 = container.querySelector('g[data-id="O1"]')!;
     fireEvent.pointerDown(o1, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
+    fireEvent.pointerMove(svg, { pointerId: 1, clientX: 305, clientY: 440 });
     fireEvent.pointerUp(svg, { pointerId: 1, clientX: 305, clientY: 440 });
     act(() => vi.advanceTimersByTime(1000));
     vi.useRealTimers();
