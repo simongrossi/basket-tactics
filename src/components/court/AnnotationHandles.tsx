@@ -29,6 +29,7 @@ interface DragState {
 
 interface AnnotationHandlesProps {
   annotations: Annotation[];
+  stepIdx?: number;
   /** Renvoie le point SVG correspondant à l'événement pointer (factorisé par
    *  useCourtPointerHandlers, on ré-utilise la même fonction). */
   svgPoint: (evt: React.PointerEvent) => Point;
@@ -87,7 +88,7 @@ export function AnnotationHandles(props: AnnotationHandlesProps) {
         const to = dragging?.kind === 'to' && previewPoint ? previewPoint : a.to;
 
         return (
-          <g key={annoIdx} data-anno-idx={annoIdx}>
+          <g key={annoIdx} data-anno-idx={annoIdx} data-annotation-idx={annoIdx} data-annotation-step={props.stepIdx}>
             <circle
               cx={from.x}
               cy={from.y}

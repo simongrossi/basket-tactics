@@ -177,4 +177,35 @@ describe('CourtView interactions', () => {
     expect(onMoveDefenderDuringDrag).toHaveBeenCalledWith('D1' as DefenderId, 310, 390);
     expect(onCommitPlayerDrag).toHaveBeenCalledTimes(1);
   });
+
+  it('clic-droit sur une annotation courbe ou une de ses poignées supprime l’annotation', () => {
+    const onDeleteAnnotation = vi.fn();
+    const state: AppState = makeInitialState();
+    state.steps[0].annotations = [
+      {
+        type: 'cut',
+        fromId: 'O1',
+        from: { x: 300, y: 470 },
+        to: { x: 450, y: 300 },
+        waypoints: [{ x: 380, y: 420 }, { x: 420, y: 360 }],
+      },
+    ];
+    const { container } = renderCourt({ state, onDeleteAnnotation });
+    const annoGroup = container.querySelector('g[data-annotation-idx="0"]');
+    expect(annoGroup).not.toBeNull();
+
+    // Vérifie la présence du path hit-test invisible
+    const hitPath = annoGroup?.querySelector('path[stroke="transparent"]');
+    expect(hitPath).not.toBeNull();
+
+    // Clic-droit sur le tracé courbe
+    fireEvent.contextMenu(hitPath!);
+    expect(onDeleteAnnotation).toHaveBeenCalledWith(0, 0);
+
+    // Clic-droit sur une poignée waypoint
+    const handleWp = container.querySelector('g[aria-label="annotation-handles"] circle[fill="#2563eb"]');
+    expect(handleWp).not.toBeNull();
+    fireEvent.contextMenu(handleWp!);
+    expect(onDeleteAnnotation).toHaveBeenCalledTimes(2);
+  });
 });

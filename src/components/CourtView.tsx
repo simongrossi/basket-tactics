@@ -65,6 +65,7 @@ import {
   PLAYER_RADIUS,
 } from '@/lib/data/court';
 import { distance } from '@/lib/logic/geometry';
+import { polylinePath } from '@/lib/logic/polyline';
 import { ActionOrderBadges } from './overlays/ActionOrderBadges';
 import { HeatmapOverlay } from './overlays/HeatmapOverlay';
 import { ThreatOverlay } from './overlays/ThreatOverlay';
@@ -994,22 +995,35 @@ export function CourtView(props: CourtViewProps) {
               isActiveAttacker(annotation.fromId, state.playerCount) &&
               (!annotation.toId || isActiveAttacker(annotation.toId, state.playerCount))
             )
-            .map(({ annotation: a, index, stepIdx: annoStep }) => (
-              <g key={`${annoStep}-${index}`} data-annotation-idx={index} data-annotation-step={annoStep} style={{ cursor: editingBlocked ? undefined : 'context-menu' }}>
-                <AnnotationView annotation={a} />
-                {/* Hit-test invisible : élargit la zone de clic-droit pour
-                    la suppression depuis le terrain. */}
-                <line
-                  x1={a.from.x}
-                  y1={a.from.y}
-                  x2={a.to.x}
-                  y2={a.to.y}
-                  stroke="transparent"
-                  strokeWidth={14}
-                  strokeLinecap="round"
-                />
-              </g>
-            ))}
+            .map(({ annotation: a, index, stepIdx: annoStep }) => {
+              const hasWps = !!a.waypoints && a.waypoints.length > 0;
+              return (
+                <g key={`${annoStep}-${index}`} data-annotation-idx={index} data-annotation-step={annoStep} style={{ cursor: editingBlocked ? undefined : 'context-menu' }}>
+                  <AnnotationView annotation={a} />
+                  {/* Hit-test invisible : élargit la zone de clic-droit pour
+                      la suppression depuis le terrain (courbe ou droite). */}
+                  {hasWps ? (
+                    <path
+                      d={polylinePath([a.from, ...a.waypoints!, a.to])}
+                      fill="none"
+                      stroke="transparent"
+                      strokeWidth={18}
+                      strokeLinecap="round"
+                    />
+                  ) : (
+                    <line
+                      x1={a.from.x}
+                      y1={a.from.y}
+                      x2={a.to.x}
+                      y2={a.to.y}
+                      stroke="transparent"
+                      strokeWidth={18}
+                      strokeLinecap="round"
+                    />
+                  )}
+                </g>
+              );
+            })}
           {!editingBlocked && pending && pending.from && <AnnotationView annotation={pending as Annotation} preview />}
         </g>
 
@@ -1019,6 +1033,7 @@ export function CourtView(props: CourtViewProps) {
         {!editingBlocked && !props.isPlaying && state.steps[frame.stepIdx] && (
           <AnnotationHandles
             annotations={state.steps[frame.stepIdx].annotations}
+            stepIdx={frame.stepIdx}
             isHidden={(a) => isArrivalMovement(state.steps[frame.stepIdx], a)}
             svgPoint={svgPoint}
             onCommitFrom={(annoIdx, p) => props.onSetAnnotationFrom(frame.stepIdx, annoIdx, p)}
