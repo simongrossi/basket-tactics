@@ -40,16 +40,72 @@ interface AnnotationHandlesProps {
   onCommitWaypoint: (annoIdx: number, wpIdx: number, p: Point) => void;
   /** Annotations stockées ici mais affichées sur une autre étape (arrivées). */
   isHidden?: (a: Annotation) => boolean;
+  /** Échelle écran courante (px CSS par unité terrain). */
+  screenScale?: number;
 }
 
 const HANDLE_R = 6;
 const WP_R = 5;
+
+interface HandleDotProps {
+  cx: number;
+  cy: number;
+  /** Rayon visuel (unités terrain). */
+  r: number;
+  fill: string;
+  strokeWidth: number;
+  /** Rayon de la cible invisible : ≥ 44 px écran de diamètre. */
+  hitR: number;
+  title: string;
+  onDown: (e: React.PointerEvent) => void;
+  onMove: (e: React.PointerEvent) => void;
+  onUp: (e: React.PointerEvent) => void;
+}
+
+/** Poignée = petit disque visible + large cible invisible. La cible est
+ *  dimensionnée en pixels écran par l'appelant, pour rester confortable au
+ *  doigt même quand le terrain est réduit ou dézoomé. */
+function HandleDot({ cx, cy, r, fill, strokeWidth, hitR, title, onDown, onMove, onUp }: HandleDotProps) {
+  return (
+    <g>
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill={fill}
+        fillOpacity={0.85}
+        stroke="#fff"
+        strokeWidth={strokeWidth}
+        pointerEvents="none"
+      />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={hitR}
+        fill="rgba(0,0,0,0)"
+        style={{ cursor: 'grab' }}
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
+      >
+        <title>{title}</title>
+      </circle>
+    </g>
+  );
+}
 
 export function AnnotationHandles(props: AnnotationHandlesProps) {
   const { annotations, svgPoint, onCommitFrom, onCommitTo, onCommitWaypoint } = props;
   const [drag, setDrag] = useState<DragState | null>(null);
   const [previewPoint, setPreviewPoint] = useState<Point | null>(null);
   const captureTargetRef = useRef<SVGElement | null>(null);
+  // Tailles en pixels écran : 18 px de diamètre visuel minimum, 44 px de
+  // cible tactile minimum.
+  const scale = Math.max(0.1, props.screenScale ?? 1);
+  const handleR = Math.max(HANDLE_R, 9 / scale);
+  const wpR = Math.max(WP_R, 7 / scale);
+  const hitR = Math.max(handleR + 3, 22 / scale);
 
   const startDrag = useCallback((e: React.PointerEvent, ds: DragState) => {
     e.stopPropagation();
@@ -94,58 +150,46 @@ export function AnnotationHandles(props: AnnotationHandlesProps) {
 
         return (
           <g key={annoIdx} data-anno-idx={annoIdx} data-annotation-idx={annoIdx} data-annotation-step={props.stepIdx}>
-            <circle
+            <HandleDot
               cx={from.x}
               cy={from.y}
-              r={HANDLE_R}
+              r={handleR}
               fill="#22c55e"
-              fillOpacity={0.85}
-              stroke="#fff"
               strokeWidth={1.5}
-              style={{ cursor: 'grab' }}
-              onPointerDown={(e) => startDrag(e, { annoIdx, kind: 'from' })}
-              onPointerMove={onMove}
-              onPointerUp={onUp}
-              onPointerCancel={onUp}
-            >
-              <title>début ({a.type})</title>
-            </circle>
-            <circle
+              hitR={hitR}
+              title={`début (${a.type})`}
+              onDown={(e) => startDrag(e, { annoIdx, kind: 'from' })}
+              onMove={onMove}
+              onUp={onUp}
+            />
+            <HandleDot
               cx={to.x}
               cy={to.y}
-              r={HANDLE_R}
+              r={handleR}
               fill="#dc2626"
-              fillOpacity={0.85}
-              stroke="#fff"
               strokeWidth={1.5}
-              style={{ cursor: 'grab' }}
-              onPointerDown={(e) => startDrag(e, { annoIdx, kind: 'to' })}
-              onPointerMove={onMove}
-              onPointerUp={onUp}
-              onPointerCancel={onUp}
-            >
-              <title>fin ({a.type})</title>
-            </circle>
+              hitR={hitR}
+              title={`fin (${a.type})`}
+              onDown={(e) => startDrag(e, { annoIdx, kind: 'to' })}
+              onMove={onMove}
+              onUp={onUp}
+            />
             {(a.waypoints ?? []).map((wp, wpIdx) => {
               const live = dragging?.kind === 'wp' && dragging.wpIdx === wpIdx && previewPoint ? previewPoint : wp;
               return (
-                <circle
+                <HandleDot
                   key={wpIdx}
                   cx={live.x}
                   cy={live.y}
-                  r={WP_R}
+                  r={wpR}
                   fill="#2563eb"
-                  fillOpacity={0.8}
-                  stroke="#fff"
                   strokeWidth={1.2}
-                  style={{ cursor: 'grab' }}
-                  onPointerDown={(e) => startDrag(e, { annoIdx, kind: 'wp', wpIdx })}
-                  onPointerMove={onMove}
-                  onPointerUp={onUp}
-                  onPointerCancel={onUp}
-                >
-                  <title>point intermédiaire {wpIdx + 1}</title>
-                </circle>
+                  hitR={hitR}
+                  title={`point intermédiaire ${wpIdx + 1}`}
+                  onDown={(e) => startDrag(e, { annoIdx, kind: 'wp', wpIdx })}
+                  onMove={onMove}
+                  onUp={onUp}
+                />
               );
             })}
           </g>

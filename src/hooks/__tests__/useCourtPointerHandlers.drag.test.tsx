@@ -11,7 +11,7 @@ describe('useCourtPointerHandlers drag physics', () => {
     vi.useFakeTimers();
   });
 
-  function setup(mutate?: (s: AppState) => void) {
+  function setup(mutate?: (s: AppState) => void, options?: { screenScale?: number }) {
     const state: AppState = {
       ...makeInitialState(),
       tool: 'move',
@@ -66,6 +66,7 @@ describe('useCourtPointerHandlers drag physics', () => {
         onTransformChange,
         transform: { scale: 1, x: 0, y: 0 },
         contentRef,
+        screenScale: options?.screenScale,
         onAddAnnotation: vi.fn(),
       })
     );
@@ -246,8 +247,59 @@ describe('useCourtPointerHandlers drag physics', () => {
     expect(onSelectPlayer).toHaveBeenCalledWith('O2');
   });
 
-  it('Échap annule le déplacement en cours sans commit', () => {
-    const { hook, onCancelPlayerDrag, onCommitPlayerDrag, onMoveAttackerDuringDrag } = setup();
+  it('agrandit la cible tactile quand le terrain est réduit (échelle 0,5)', () => {
+    const { hook, onSelectPlayer } = setup(undefined, { screenScale: 0.5 });
+
+    // 30 unités : hors de l'ancien rayon de 22, dans la cible 44 px écran.
+    act(() => {
+      hook.result.current.onPointerDown({
+        button: 0,
+        clientX: 330,
+        clientY: 400,
+        pointerId: 1,
+        target: { closest: () => null } as any,
+      } as React.PointerEvent);
+    });
+    act(() => {
+      hook.result.current.onPointerUp({
+        button: 0,
+        clientX: 330,
+        clientY: 400,
+        pointerId: 1,
+        target: { closest: () => null } as any,
+      } as React.PointerEvent);
+    });
+
+    expect(onSelectPlayer).toHaveBeenCalledWith('O1');
+  });
+
+  it('garde un rayon souris serré à l’échelle écran 1', () => {
+    const { hook, onSelectPlayer } = setup();
+
+    act(() => {
+      hook.result.current.onPointerDown({
+        button: 0,
+        clientX: 330,
+        clientY: 400,
+        pointerId: 1,
+        target: { closest: () => null } as any,
+      } as React.PointerEvent);
+    });
+    act(() => {
+      hook.result.current.onPointerUp({
+        button: 0,
+        clientX: 330,
+        clientY: 400,
+        pointerId: 1,
+        target: { closest: () => null } as any,
+      } as React.PointerEvent);
+    });
+
+    // Un clic dans le vide désélectionne ; il ne doit pas saisir O1.
+    expect(onSelectPlayer).not.toHaveBeenCalledWith('O1');
+  });
+
+  it('Échap annule le déplacement en cours sans commit', () => {    const { hook, onCancelPlayerDrag, onCommitPlayerDrag, onMoveAttackerDuringDrag } = setup();
 
     act(() => {
       hook.result.current.onPointerDown({

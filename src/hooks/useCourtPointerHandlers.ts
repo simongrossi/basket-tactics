@@ -105,6 +105,9 @@ interface UseCourtPointerHandlersOptions {
    *  sélection multiple (Maj en outil déplacer). */
   stickyModifiers?: StickyModifiers;
   contentRef: React.RefObject<SVGGElement | null>;
+  /** Échelle écran courante (px CSS par unité terrain). Sert à garder une
+   *  cible de préhension d'au moins 44 px de diamètre, quel que soit le zoom. */
+  screenScale?: number;
 }
 
 export interface StickyModifiers {
@@ -191,10 +194,18 @@ export function useCourtPointerHandlers(
     spacePressed,
     stickyModifiers,
     contentRef,
+    screenScale = 1,
   } = opts;
   const stickyFreehand = !!stickyModifiers?.freehand;
   const stickySnap = !!stickyModifiers?.snap;
   const stickyMulti = !!stickyModifiers?.multiSelect;
+
+  /** Rayon de préhension en unités terrain. On vise 44 px CSS de diamètre
+   *  (norme tactile), sans jamais descendre sous l'ancien rayon souris. */
+  const pickRadiusUnits = Math.max(
+    PLAYER_PICK_RADIUS_PX,
+    22 / Math.max(0.1, screenScale)
+  );
 
   const [dragging, setDraggingState] = useState<{ id: PlayerId; isDef: boolean } | null>(null);
   const draggingRef = useRef<typeof dragging>(null);
@@ -326,7 +337,7 @@ export function useCourtPointerHandlers(
       // égale, l'attaquant reste prioritaire : il est scanné en premier et
       // on ne remplace que sur une distance strictement inférieure.
       let bestId: PlayerId | null = null;
-      let bestDist = PLAYER_PICK_RADIUS_PX;
+      let bestDist = pickRadiusUnits;
       for (const id in off) {
         const pos = off[id as AttackerId];
         if (!pos) continue;
@@ -348,7 +359,7 @@ export function useCourtPointerHandlers(
       }
       return bestId;
     },
-    [frameDefPos, frameOff, state]
+    [frameDefPos, frameOff, pickRadiusUnits, state]
   );
 
   const stateRef = useRef(state);

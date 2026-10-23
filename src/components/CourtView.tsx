@@ -19,7 +19,7 @@ import { useInterfaceLevel } from './interface/InterfaceLevel';
 // La logique métier vit dans les hooks et sous-composants ; ce fichier est
 // surtout du câblage.
 
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useState, useRef, useCallback, useMemo } from 'react';
 import type { ManualGestureFrame } from '@/lib/state/manualGestures';
 import type {
   AppState,
@@ -208,6 +208,10 @@ export function CourtView(props: CourtViewProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const contentRef = useRef<SVGGElement>(null);
   const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
+  // Échelle écran réelle (px CSS par unité terrain), viewBox + zoom compris.
+  // Sert à dimensionner les cibles tactiles en PIXELS ÉCRAN : sur téléphone
+  // le terrain est réduit (~0,59), donc 22 unités ne font que ~13 px.
+  const [screenScale, setScreenScale] = useState(1);
   const [spacePressed, setSpacePressed] = useState(false);
   const [zoneRegionMenu, setZoneRegionMenu] = useState<ZoneRegionMenuState | null>(null);
   const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null);
@@ -328,6 +332,36 @@ export function CourtView(props: CourtViewProps) {
     };
   }, []);
 
+  // Échelle écran : recalculée au zoom, au passage demi/terrain complet et
+  // au redimensionnement. Elle pilote les rayons de préhension.
+  useLayoutEffect(() => {
+    const svg = svgRef.current;
+    const content = contentRef.current;
+    if (!svg || !content) return;
+    let raf = 0;
+    const read = () => {
+      if (typeof content.getScreenCTM !== 'function') return;
+      const ctm = content.getScreenCTM();
+      if (!ctm || !Number.isFinite(ctm.a) || !Number.isFinite(ctm.b)) return;
+      const s = Math.hypot(ctm.a, ctm.b);
+      if (!(s > 0)) return;
+      setScreenScale((prev) => (Math.abs(prev - s) > 0.001 ? s : prev));
+    };
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(read);
+    };
+    read();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedule) : null;
+    ro?.observe(svg);
+    window.addEventListener('resize', schedule);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro?.disconnect();
+      window.removeEventListener('resize', schedule);
+    };
+  }, [transform, state.fullCourt]);
+
   // Esc clear les sélections (le geste en cours est géré en amont par le
   // hook, qui intercepte Échap en capture tant qu'un drag/tracé est actif).
   useEffect(() => {
@@ -442,6 +476,7 @@ export function CourtView(props: CourtViewProps) {
       spacePressed,
       stickyModifiers,
       contentRef,
+      screenScale,
     });
 
   // Clic-droit : sélectionne la trajectoire (la suppression passe par la
@@ -481,11 +516,12 @@ export function CourtView(props: CourtViewProps) {
       // Fallback : cherche le joueur le plus proche du point cliqué (couvre
       // le cas où un poseur d'écran est rendu au-dessus, masquant le data-id).
       const pt = svgPoint(e);
+      const pickRadius = Math.max(PLAYER_RADIUS + 6, 22 / Math.max(0.1, screenScale));
       let bestDist = Infinity;
       (Object.entries(frame.defPos) as [DefenderId, ComputedDefense[DefenderId]][]).forEach(
         ([id, p]) => {
           const d = distance(pt, { x: p.x, y: p.y });
-          if (d < PLAYER_RADIUS + 6 && d < bestDist) {
+          if (d < pickRadius && d < bestDist) {
             bestDist = d;
             dId = id;
             oId = null;
@@ -494,7 +530,7 @@ export function CourtView(props: CourtViewProps) {
       );
       (Object.entries(frame.off) as [AttackerId, Point][]).forEach(([id, p]) => {
         const d = distance(pt, p);
-        if (d < PLAYER_RADIUS + 6 && d < bestDist) {
+        if (d < pickRadius && d < bestDist) {
           bestDist = d;
           oId = id;
           dId = null;
@@ -1110,7 +1146,7 @@ export function CourtView(props: CourtViewProps) {
                       d={polylinePath([a.from, ...a.waypoints!, a.to])}
                       fill="none"
                       stroke="transparent"
-                      strokeWidth={28}
+                      strokeWidth={Math.max(28, 44 / Math.max(0.1, screenScale))}
                       strokeLinecap="round"
                     />
                   ) : (
@@ -1120,7 +1156,7 @@ export function CourtView(props: CourtViewProps) {
                       x2={a.to.x}
                       y2={a.to.y}
                       stroke="transparent"
-                      strokeWidth={28}
+                      strokeWidth={Math.max(28, 44 / Math.max(0.1, screenScale))}
                       strokeLinecap="round"
                     />
                   )}
@@ -1138,6 +1174,7 @@ export function CourtView(props: CourtViewProps) {
             annotations={state.steps[frame.stepIdx].annotations}
             stepIdx={frame.stepIdx}
             only={selectedAnnotation}
+            screenScale={screenScale}
             isHidden={(a) => isArrivalMovement(state.steps[frame.stepIdx], a)}
             svgPoint={svgPoint}
             onCommitFrom={(annoIdx, p) => props.onSetAnnotationFrom(frame.stepIdx, annoIdx, p)}
