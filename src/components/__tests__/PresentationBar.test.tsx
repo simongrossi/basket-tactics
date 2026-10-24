@@ -75,4 +75,33 @@ describe('PresentationBar', () => {
     const { getByLabelText } = renderBar(0, { isPlaying: true });
     expect(getByLabelText('Arrêter')).toBeTruthy();
   });
+
+  it('expose scrub, boucle, vitesse et retour au début quand le parent les fournit', () => {
+    const onScrub = vi.fn();
+    const onToggleLoop = vi.fn();
+    const onSetSpeed = vi.fn();
+    const onRestart = vi.fn();
+    const { getByLabelText } = renderBar(0, {
+      onScrub,
+      onToggleLoop,
+      onSetSpeed,
+      onRestart,
+      speed: 1,
+      loop: true,
+      scrubT: 1.5,
+    });
+
+    expect(getByLabelText('Lecture en boucle').getAttribute('aria-pressed')).toBe('true');
+    fireEvent.change(getByLabelText('Position dans le système'), { target: { value: '2' } });
+    expect(onScrub).toHaveBeenCalledWith(2);
+
+    fireEvent.click(getByLabelText('Lecture en boucle'));
+    expect(onToggleLoop).toHaveBeenCalledOnce();
+
+    fireEvent.change(getByLabelText('Vitesse de lecture'), { target: { value: '1.5' } });
+    expect(onSetSpeed).toHaveBeenCalledWith(1.5);
+
+    fireEvent.click(getByLabelText('Revenir au début'));
+    expect(onRestart).toHaveBeenCalledOnce();
+  });
 });

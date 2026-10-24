@@ -112,6 +112,9 @@ interface CourtViewProps {  onFrameChange?: (snapshot: DisplayedCourtFrame) => v
   onCommitPlayerDrag?: () => void;
   /** Échap pendant un déplacement : restaure l'état d'avant le geste. */
   onCancelPlayerDrag?: () => void;
+  /** Signale qu'un geste direct (drag joueur) est en cours : le parent peut
+   *  geler les calculs lourds (diagnostics, métriques) pendant le geste. */
+  onGestureActiveChange?: (active: boolean) => void;
   onBeginDefenderPursuit?: (displayed?: Partial<Record<DefenderId, Point>>) => void;
   onEndDefenderPursuit?: () => void;
   /** Cf. useHistorizedState.registerPendingFlush : termine une fin de course
@@ -138,6 +141,8 @@ interface CourtViewProps {  onFrameChange?: (snapshot: DisplayedCourtFrame) => v
   onSetAnnotationFrom: (stepIdx: number, annoIdx: number, point: { x: number; y: number }) => void;
   onSetAnnotationTo: (stepIdx: number, annoIdx: number, point: { x: number; y: number }) => void;
   onSetAnnotationWaypoint: (stepIdx: number, annoIdx: number, wpIdx: number, point: { x: number; y: number }) => void;
+  /** Ajoute un point de courbure (poignée de milieu). */
+  onAddAnnotationWaypoint?: (stepIdx: number, annoIdx: number, point: { x: number; y: number }) => void;
   onSetTool: (t: Tool) => void;
   onSetActionTimingAnchor?: (mode: ActionTimingAnchor) => void;
   onSetPlayerName: (id: PlayerId, name: string) => void;
@@ -522,6 +527,15 @@ export function CourtView(props: CourtViewProps) {
       screenScale,
     });
 
+  // Signale au parent qu'un drag est actif (gel des diagnostics pendant le
+  // geste). Le callback passe par une ref pour ne pas relancer l'effet.
+  const onGestureActiveRef = useRef(props.onGestureActiveChange);
+  onGestureActiveRef.current = props.onGestureActiveChange;
+  useEffect(() => {
+    onGestureActiveRef.current?.(!!dragging);
+  }, [dragging]);
+  useEffect(() => () => onGestureActiveRef.current?.(false), []);
+
   // Clic-droit : sélectionne la trajectoire (la suppression passe par la
   // barre contextuelle, jamais par un clic droit direct), sinon ouvre le
   // menu du joueur sous le curseur (avec fallback proximité si un poseur
@@ -807,7 +821,7 @@ export function CourtView(props: CourtViewProps) {
         {/* Anneaux de menace — rendus AVANT les sprites pour que les icônes
             joueur passent par-dessus l'anneau (visuel plus propre). */}
         {analysis && threatData && <ThreatOverlay off={frame.off} threats={threatData} show layer="rings" />}
-        {state.showGhosts && state.activeStep > 0 && !props.isPlaying && props.scrubT == null && (
+        {state.showGhosts && state.activeStep > 0 && !props.isPlaying && props.scrubT == null && !dragging && (
           <GhostLayer state={state} stepIdx={state.activeStep - 1} currentStepIdx={state.activeStep} />
         )}
 
@@ -1213,6 +1227,7 @@ export function CourtView(props: CourtViewProps) {
             onCommitWaypoint={(annoIdx, wpIdx, p) =>
               props.onSetAnnotationWaypoint(frame.stepIdx, annoIdx, wpIdx, p)
             }
+            onAddWaypoint={(annoIdx, p) => props.onAddAnnotationWaypoint?.(frame.stepIdx, annoIdx, p)}
           />
         )}
 

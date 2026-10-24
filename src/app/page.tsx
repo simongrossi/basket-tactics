@@ -62,6 +62,8 @@ export default function Page() {
     .find((system) => system.id === app.state.librarySystemId);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  // Lecture en boucle (mode présentation : rejouer le système en continu).
+  const [loopPlayback, setLoopPlayback] = useState(false);
   const [playbackT, setPlaybackT] = useState<number | null>(null);
   const [showPlayerTimeline, setShowPlayerTimeline] = useState(false);
   const [showMultiTrack, setShowMultiTrack] = useState(false);
@@ -253,6 +255,10 @@ export default function Page() {
   }, [sessionRun, app, sessionRunState, sidebar]);
 
   const [displayedCourt, setDisplayedCourt] = useState<DisplayedCourtFrame | null>(null);
+  // Vrai pendant un drag direct : on gèle l'analyse lourde pour ne pas la
+  // recalculer à chaque frame (24 règles + métriques + meilleure action).
+  const [courtGestureActive, setCourtGestureActive] = useState(false);
+  const analysisCacheRef = useRef<ReturnType<typeof computeFrameCoachAnalysis> | null>(null);
   const handleCourtFrame = useCallback((displayed: DisplayedCourtFrame) => {
     setDisplayedCourt(displayed);
     manual.capture(displayed.frame);
@@ -289,9 +295,17 @@ export default function Page() {
     manual.replay();
   }, [matchLoop.stop, manual.replay]);
   const analysis = useMemo(() => {
-    if (!displayedCourt || displayedCourt.state !== app.state) return null;
-    return computeFrameCoachAnalysis(app.state, displayedCourt.frame, displayedCourt.dynamic);
-  }, [app.state, displayedCourt]);
+    if (!displayedCourt) return null;
+    // Pendant un geste, l'image bouge à chaque frame mais l'analyse ne sert
+    // pas à le guider : on garde la dernière valeur connue.
+    if (courtGestureActive && analysisCacheRef.current) return analysisCacheRef.current;
+    if (displayedCourt.state !== app.state) {
+      return courtGestureActive ? analysisCacheRef.current : null;
+    }
+    const next = computeFrameCoachAnalysis(app.state, displayedCourt.frame, displayedCourt.dynamic);
+    analysisCacheRef.current = next;
+    return next;
+  }, [app.state, courtGestureActive, displayedCourt]);
   const metrics = analysis?.metrics ?? null;
   const bestAction = analysis?.bestAction ?? null;
   const coachDiagnostics = analysis?.diagnostics ?? [];
@@ -1286,6 +1300,7 @@ export default function Page() {
               onMoveAttacker={app.moveAttacker}
               onMoveDefender={app.moveDefender}
               onBeginPlayerDrag={() => { app.beginPlayerDrag(); manual.recordEvent({ type: 'begin' }); }}
+              onGestureActiveChange={setCourtGestureActive}
               onMoveAttackerDuringDrag={(id, x, y) => { manual.recordEvent({ type: 'move', id, x, y }); app.moveAttackerDuringDrag(id, x, y); }}
               onMoveDefenderDuringDrag={(id, x, y) => { manual.recordEvent({ type: 'move', id, x, y }); app.moveDefenderDuringDrag(id, x, y); }}
               onCommitPlayerDrag={() => { app.commitPlayerDrag(); manual.recordEvent({ type: 'end' }); }}
@@ -1317,6 +1332,7 @@ export default function Page() {
               onSetAnnotationFrom={app.setAnnotationFrom}
               onSetAnnotationTo={app.setAnnotationTo}
               onSetAnnotationWaypoint={app.setAnnotationWaypoint}
+              onAddAnnotationWaypoint={app.addAnnotationWaypoint}
               onSetTool={app.setTool}
               onSetActionTimingAnchor={handleSetActionTimingAnchor}
               isPlaying={isPlaying}
@@ -1327,6 +1343,15 @@ export default function Page() {
               playbackRunId={playbackRunId}
               onPlaybackTick={setPlaybackT}
               onPlaybackEnd={() => {
+                // Boucle : on relance depuis le début sans repasser par
+                // l'état « arrêté » (le coach enchaîne les relectures).
+                if (loopPlayback) {
+                  setPlaybackT(0);
+                  setPlaybackStartT(0);
+                  setPlaybackRunId(id => id + 1);
+                  app.setActiveStep(0);
+                  return;
+                }
                 setIsPlaying(false);
                 setPlaybackT(null);
                 setPlaybackStartT(0);
@@ -1360,6 +1385,24 @@ export default function Page() {
                 onSetActiveStep={app.setActiveStep}
                 onTogglePlay={handlePlayToggle}
                 isPlaying={isPlaying}
+                scrubT={scrubT}
+                playbackT={playbackT}
+                onScrub={(t) => {
+                  setIsPlaying(false);
+                  setPlaybackT(null);
+                  setScrubT(t);
+                  app.setActiveStep(Math.round(t));
+                }}
+                speed={playbackSpeed}
+                onSetSpeed={setPlaybackSpeed}
+                loop={loopPlayback}
+                onToggleLoop={() => setLoopPlayback(v => !v)}
+                onRestart={() => {
+                  setIsPlaying(false);
+                  setPlaybackT(null);
+                  setScrubT(0);
+                  app.setActiveStep(0);
+                }}
               />
             )}
           </div>

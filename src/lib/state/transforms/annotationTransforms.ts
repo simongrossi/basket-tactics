@@ -6,6 +6,7 @@
 // rester accessibles via `annotationTx.*`.
 
 export {
+  addAnnotationWaypoint,
   setAnnotationFrom,
   setAnnotationTo,
   setAnnotationWaypoint,

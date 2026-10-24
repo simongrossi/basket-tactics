@@ -504,6 +504,15 @@ export function useAppState() {
     [setStateWithHistory]
   );
 
+  const addAnnotationWaypoint = useCallback(
+    (stepIdx: number, annoIdx: number, point: { x: number; y: number }) => {
+      setStateWithHistory((s) =>
+        annotationTx.addAnnotationWaypoint(s, stepIdx, annoIdx, point)
+      );
+    },
+    [setStateWithHistory]
+  );
+
   const addFeinte = useCallback(
     (stepIdx: number, annIdx: number, t: number) => {
       setStateWithHistory((s) => annotationTx.addFeinte(s, stepIdx, annIdx, t));
@@ -852,6 +861,7 @@ export function useAppState() {
     setAnnotationFrom,
     setAnnotationTo,
     setAnnotationWaypoint,
+    addAnnotationWaypoint,
     setAnnotationFlipSide,
     addFeinte,
     updateFeinte,

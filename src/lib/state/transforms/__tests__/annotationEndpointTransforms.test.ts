@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { makeInitialState, makeStep } from '@/lib/data/initial';
 import { addAnnotation } from '../annotationTransforms';
 import {
+  addAnnotationWaypoint,
   setAnnotationFrom,
   setAnnotationTo,
   setAnnotationWaypoint,
@@ -154,5 +155,55 @@ describe('no-op cases', () => {
     const s = stateWithTwoSteps();
     const next = setAnnotationFrom(s, 0, 99, { x: 100, y: 100 });
     expect(next).toBe(s);
+  });
+});
+
+describe('addAnnotationWaypoint', () => {
+  it('ajoute un point de courbure clampé au terrain, sans toucher aux joueurs', () => {
+    const s = stateWithTwoSteps();
+    const ann: Annotation = {
+      type: 'cut',
+      fromId: 'O3',
+      from: { x: s.steps[0].off.O3.x, y: s.steps[0].off.O3.y },
+      to: { x: 500, y: 480 },
+    };
+    const s1 = addAnnotation(s, ann);
+    const idx = s1.steps[0].annotations.length - 1;
+    const before = s1.steps[0].off;
+    const next = addAnnotationWaypoint(s1, 0, idx, { x: 400, y: 400 });
+
+    expect(next.steps[0].annotations[idx].waypoints).toEqual([{ x: 400, y: 400 }]);
+    // Aucun joueur n'est déplacé par un point de courbure.
+    expect(next.steps[0].off).toEqual(before);
+  });
+
+  it('clamp un point hors terrain', () => {
+    const s = stateWithTwoSteps();
+    const ann: Annotation = {
+      type: 'dribble',
+      fromId: 'O3',
+      from: { x: s.steps[0].off.O3.x, y: s.steps[0].off.O3.y },
+      to: { x: 500, y: 480 },
+    };
+    const s1 = addAnnotation(s, ann);
+    const idx = s1.steps[0].annotations.length - 1;
+    const next = addAnnotationWaypoint(s1, 0, idx, { x: -500, y: 9999 });
+    const wp = next.steps[0].annotations[idx].waypoints?.[0];
+    expect(wp?.x).toBeGreaterThanOrEqual(0);
+    expect(wp?.y).toBeLessThanOrEqual(560);
+  });
+
+  it('ignore une annotation pass', () => {
+    const s = stateWithTwoSteps();
+    const pass: Annotation = {
+      type: 'pass',
+      fromId: 'O1',
+      toId: 'O3',
+      from: { x: s.steps[0].off.O1.x, y: s.steps[0].off.O1.y },
+      to: { x: s.steps[0].off.O3.x, y: s.steps[0].off.O3.y },
+    };
+    const s1 = addAnnotation(s, pass);
+    const idx = s1.steps[0].annotations.length - 1;
+    expect(addAnnotationWaypoint(s1, 0, idx, { x: 300, y: 300 })).toBe(s1);
   });
 });

@@ -142,6 +142,36 @@ export function setAnnotationTo(
   return { ...s, steps };
 }
 
+/** Ajoute un point de courbure à une annotation de mouvement. Sert à
+ *  « courber » une trajectoire droite en un geste : la poignée de milieu
+ *  appelle cette fonction puis traîne le point créé. */
+export function addAnnotationWaypoint(
+  s: AppState,
+  stepIdx: number,
+  annoIdx: number,
+  point: Point,
+): AppState {
+  const step = s.steps[stepIdx];
+  if (!step) return s;
+  const anno = step.annotations[annoIdx];
+  if (!anno) return s;
+  if (anno.type !== 'cut' && anno.type !== 'dribble' && anno.type !== 'screen') return s;
+
+  const target = clampToCourt(s, point);
+  const waypoints = [...(anno.waypoints ?? []), target];
+  const steps = s.steps.map((st, i) =>
+    i === stepIdx
+      ? {
+          ...st,
+          annotations: st.annotations.map((a, j) =>
+            j === annoIdx ? { ...a, waypoints } : a,
+          ),
+        }
+      : st,
+  );
+  return { ...s, steps };
+}
+
 /** Déplace un waypoint intermédiaire d'une annotation de mouvement. Pas de
  *  cascade, pas de push-out : un waypoint est un hint de courbure, pas une
  *  position joueur. On clampe juste aux limites du terrain. */

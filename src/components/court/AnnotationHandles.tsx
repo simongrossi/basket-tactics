@@ -38,6 +38,8 @@ interface AnnotationHandlesProps {
   onCommitFrom: (annoIdx: number, p: Point) => void;
   onCommitTo: (annoIdx: number, p: Point) => void;
   onCommitWaypoint: (annoIdx: number, wpIdx: number, p: Point) => void;
+  /** Ajoute un point de courbure à une trajectoire droite (poignée milieu). */
+  onAddWaypoint?: (annoIdx: number, p: Point) => void;
   /** Annotations stockées ici mais affichées sur une autre étape (arrivées). */
   isHidden?: (a: Annotation) => boolean;
   /** Échelle écran courante (px CSS par unité terrain). */
@@ -116,6 +118,20 @@ export function AnnotationHandles(props: AnnotationHandlesProps) {
     setPreviewPoint(svgPoint(e));
   }, [svgPoint]);
 
+  /** Poignée de courbure : crée le waypoint au milieu du segment puis le
+   *  traîne immédiatement. Les deux opérations sont deux entrées d'historique
+   *  (création + déplacement), toutes deux annulables. */
+  const startCurveDrag = useCallback((e: React.PointerEvent, annoIdx: number, mid: Point) => {
+    if (!props.onAddWaypoint) return;
+    e.stopPropagation();
+    e.preventDefault();
+    props.onAddWaypoint(annoIdx, mid);
+    captureTargetRef.current = e.currentTarget as SVGElement;
+    captureTargetRef.current.setPointerCapture(e.pointerId);
+    setDrag({ annoIdx, kind: 'wp', wpIdx: 0 });
+    setPreviewPoint(svgPoint(e));
+  }, [props.onAddWaypoint, svgPoint]);
+
   const onMove = useCallback((e: React.PointerEvent) => {
     if (!drag) return;
     e.stopPropagation();
@@ -174,6 +190,37 @@ export function AnnotationHandles(props: AnnotationHandlesProps) {
               onMove={onMove}
               onUp={onUp}
             />
+            {(a.waypoints ?? []).length === 0 && props.onAddWaypoint && (() => {
+              const mid = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+              return (
+                <g>
+                  <circle
+                    cx={mid.x}
+                    cy={mid.y}
+                    r={Math.max(3, wpR * 0.65)}
+                    fill="var(--bt-surface, #fff)"
+                    stroke="#2563eb"
+                    strokeWidth={1.2}
+                    strokeDasharray="2 2"
+                    opacity={0.9}
+                    pointerEvents="none"
+                  />
+                  <circle
+                    cx={mid.x}
+                    cy={mid.y}
+                    r={hitR}
+                    fill="rgba(0,0,0,0)"
+                    style={{ cursor: 'copy' }}
+                    onPointerDown={(e) => startCurveDrag(e, annoIdx, mid)}
+                    onPointerMove={onMove}
+                    onPointerUp={onUp}
+                    onPointerCancel={onUp}
+                  >
+                    <title>Courber la trajectoire</title>
+                  </circle>
+                </g>
+              );
+            })()}
             {(a.waypoints ?? []).map((wp, wpIdx) => {
               const live = dragging?.kind === 'wp' && dragging.wpIdx === wpIdx && previewPoint ? previewPoint : wp;
               return (
