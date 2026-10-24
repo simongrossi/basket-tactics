@@ -5,6 +5,7 @@ Vision produit forward-looking.
 - Pour l'**historique des évolutions de comportement** (livré, daté, structuré), voir [CHANGELOG.md](CHANGELOG.md).
 - Pour la **cartographie du moteur de jeu** (individuel / collectif / physique), voir [docs/GAME-ENGINE.md](docs/GAME-ENGINE.md).
 - Pour le **backlog technique fin et notes de développement**, voir [IDEAS.md](IDEAS.md).
+- Pour le **backlog UX/interaction** (validation appareils, actions destructives, partage, perf), voir [docs/plan-prochaines-etapes.md](docs/plan-prochaines-etapes.md).
 
 Statuts : 🟢 fait · 🟡 en cours · ⚪ à faire
 

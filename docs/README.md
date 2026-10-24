@@ -19,6 +19,8 @@ Cette documentation couvre tous les aspects du projet, de l'architecture à la s
 | [../CHANGELOG.md](../CHANGELOG.md) | Historique des évolutions de comportement, structuré par milestones |
 | [simulation.md](simulation.md) | Modèle de menace, EV des actions, Monte Carlo possessions (PPP/eFG%) |
 | [ui-design.md](ui-design.md) | Choix visuels, layout 3 colonnes, codes couleur, conventions de tracé |
+| [interaction-model.md](interaction-model.md) | **Modèle d'interaction du terrain** : repères, gestes, sélection, modes, caméra |
+| [plan-prochaines-etapes.md](plan-prochaines-etapes.md) | **Backlog UX/interaction** : validation appareils, actions destructives, partage, perf |
 | [menu-reference.md](menu-reference.md) | Référence exhaustive de chaque réglage du panneau |
 | [bibliotheque-systemes.md](bibliotheque-systemes.md) | Templates fournis, format pour en ajouter |
 | [export-pdf.md](export-pdf.md) | Comment fonctionne l'export playbook |
