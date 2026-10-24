@@ -434,8 +434,9 @@ export function useCourtPointerHandlers(
 
     // Vitesse maximale athlétique pour les attaquants :
     // 240 px/s sans ballon (~6.5 m/s), 190 px/s avec ballon (~5.1 m/s).
-    if (!move.isDef && last) {
-      const curState = stateRef.current;
+    // Désactivable (réglages) pour un placement direct au doigt.
+    const curState = stateRef.current;
+    if (!move.isDef && last && curState.dragSpeedCapEnabled !== false) {
       const isCarrier = curState.steps[curState.activeStep]?.ballCarrier === move.id;
       let maxSpeedPxPerSec = isCarrier ? 190 : 240;
 

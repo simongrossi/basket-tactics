@@ -770,6 +770,17 @@ export function ParametresPanel({
         </div>
       </SettingsSection>
 
+      <SettingsSection title="Interaction">
+        <div style={{ display: 'grid', gap: 8 }}>
+          <CheckboxLine
+            checked={state.dragSpeedCapEnabled !== false}
+            label="Plafonner la vitesse pendant le glisser"
+            onChange={(v) => onPatch({ dragSpeedCapEnabled: v })}
+            title="Activé (défaut) : le joueur court vers le doigt à vitesse athlétique, comme sur un terrain. Désactivé : le joueur colle au doigt pour un placement direct et rapide."
+          />
+        </div>
+      </SettingsSection>
+
       <SettingsSection title="Physique & Biomécanique" min="development">
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>

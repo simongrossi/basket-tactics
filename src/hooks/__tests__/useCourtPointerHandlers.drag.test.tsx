@@ -299,6 +299,32 @@ describe('useCourtPointerHandlers drag physics', () => {
     expect(onSelectPlayer).not.toHaveBeenCalledWith('O1');
   });
 
+  it('sans plafond de vitesse, le joueur suit le doigt immédiatement', () => {
+    const { hook, onMoveAttackerDuringDrag } = setup((s) => {
+      s.dragSpeedCapEnabled = false;
+    });
+
+    act(() => {
+      hook.result.current.onPointerDown({
+        button: 0,
+        clientX: 300,
+        clientY: 400,
+        pointerId: 1,
+        target: { closest: () => ({ getAttribute: () => 'O1' }) } as any,
+      } as React.PointerEvent);
+    });
+    act(() => {
+      hook.result.current.onPointerMove({
+        clientX: 500,
+        clientY: 400,
+        pointerId: 1,
+      } as React.PointerEvent);
+      vi.advanceTimersByTime(32);
+    });
+
+    expect(onMoveAttackerDuringDrag).toHaveBeenLastCalledWith('O1', 500, 400);
+  });
+
   it('Échap annule le déplacement en cours sans commit', () => {    const { hook, onCancelPlayerDrag, onCommitPlayerDrag, onMoveAttackerDuringDrag } = setup();
 
     act(() => {

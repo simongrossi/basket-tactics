@@ -1009,6 +1009,10 @@ export interface AppState {
   /** Appuis, regard et fatigue pendant le drag attaquant (mode édition).
    *  La continuité et la limite de vitesse restent actives sans cette option. */
   defenderDragInertiaEnabled?: boolean;
+  /** Plafonne la vitesse du sprite attaquant pendant un glisser (physique
+   *  réaliste : le joueur « court » vers le doigt). Défaut `true`.
+   *  `false` = placement direct, le joueur colle au doigt. */
+  dragSpeedCapEnabled?: boolean;
   /** Format de jeu actif : 2x2, 3x3, 4x4 ou 5x5.
    *  Les joueurs hors format restent en mémoire, mais le moteur, les rendus
    *  et les contrôles les ignorent pour éviter tout comportement fantôme. */

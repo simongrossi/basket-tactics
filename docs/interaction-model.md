@@ -110,7 +110,8 @@ Annuler visible).
   stockées sur l'étape suivante (`stepActions`), donc un simple échange de
   `Step` déplacerait les actions hors de leur étape. À concevoir avec un
   remappage des annotations avant de l'exposer.
-- Le plafond de vitesse du drag attaquant est voulu (physique) ; il n'est
-  pas encore désactivable par réglage.
+- Le plafond de vitesse du drag attaquant est voulu (physique). Il est
+  désactivable dans Réglages → Interaction (`dragSpeedCapEnabled`) pour un
+  placement direct au doigt.
 - Validation tactile réelle (iPhone/iPad/Android) à faire : les tests jsdom
   ne valident pas l'ergonomie au doigt.

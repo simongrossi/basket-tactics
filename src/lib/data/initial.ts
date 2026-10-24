@@ -118,6 +118,9 @@ export function makeInitialState(): AppState {
       O5: 'stretch-big',
     },
     realSpeedMode: false,
+    // Plafond de vitesse pendant le glisser d'un attaquant : choix physique
+    // par défaut, désactivable dans les réglages pour un placement direct.
+    dragSpeedCapEnabled: true,
     // Flags du groupe cinématique laissés `undefined` (et non `false`) pour
     // que le resolver `resolveRealismFlags` puisse appliquer le preset
     // réaliste via `?? preset` — un `false` explicite serait un override
