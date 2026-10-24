@@ -87,6 +87,7 @@ export function CourtTouchBar(props: CourtTouchBarProps) {
               <button
                 key={value}
                 type="button"
+                className="bt-tb-tool"
                 aria-pressed={active}
                 onClick={() => onSetTool(value)}
                 title={`${label} (touche ${shortKey})`}
@@ -106,7 +107,7 @@ export function CourtTouchBar(props: CourtTouchBarProps) {
                 }}
               >
                 <Icon size={13} strokeWidth={2.3} />
-                <span>{label}</span>
+                <span className="bt-tb-label">{label}</span>
               </button>
             );
           })}
@@ -147,6 +148,7 @@ export function CourtTouchBar(props: CourtTouchBarProps) {
               />
               {props.stepIndicator && (
                 <div
+                  className="bt-tb-stepnav"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -220,6 +222,7 @@ export function CourtTouchBar(props: CourtTouchBarProps) {
               )}
               <button
                 type="button"
+                className="bt-tb-addstep"
                 onClick={props.onAddStep}
                 title="Valider l'étape actuelle et ajouter l'étape suivante (+ Étape)"
                 style={{
@@ -244,6 +247,7 @@ export function CourtTouchBar(props: CourtTouchBarProps) {
               {props.onSetStartingPosition && (
                 <button
                   type="button"
+                  className="bt-tb-freeze"
                   onClick={props.onSetStartingPosition}
                   title="Figer la disposition actuelle des joueurs comme la position de départ (Étape 0) du système"
                   style={{

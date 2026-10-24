@@ -116,21 +116,24 @@ describe('CourtView recording and replay interaction guards', () => {
     expect(props.onMoveDefenderDuringDrag).toHaveBeenCalledWith('D2', Math.round(positions.D2.x + 20), Math.round(positions.D2.y + 10));
   });
 
-  it('read-only permits pan and zoom without moving a player, and preserves button keyboard activation', () => {
+  it('read-only permits zoom and pan without moving a player, and preserves button keyboard activation', () => {
     const { container, props, getByRole } = renderCourt({ readOnly: true });
     const svg = container.querySelector('svg')!;
     const content = svg.querySelector('g[transform]')!;
-    fireEvent.pointerDown(container.querySelector('g[data-id="O1"]')!, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
-    fireEvent.pointerMove(svg, { pointerId: 1, clientX: 340, clientY: 430 });
-    fireEvent.pointerUp(svg, { pointerId: 1, clientX: 340, clientY: 430 });
-    expect(content.getAttribute('transform')).toContain('translate(40, -40)');
-    expect(props.onBeginPlayerDrag).not.toHaveBeenCalled();
-    expect(props.onMoveAttackerDuringDrag).not.toHaveBeenCalled();
-    expect(props.onMoveDefenderDuringDrag).not.toHaveBeenCalled();
     const zoom = getByRole('button', { name: 'Zoomer' });
     zoom.focus();
     expect(fireEvent.keyDown(zoom, { key: ' ' })).toBe(true);
     fireEvent.click(zoom);
     expect(content.getAttribute('transform')).toContain('scale(1.25)');
+
+    // Zoomé, le pan est possible (et borné) sans jamais déplacer un joueur.
+    const beforePan = content.getAttribute('transform');
+    fireEvent.pointerDown(container.querySelector('g[data-id="O1"]')!, { button: 0, pointerId: 1, clientX: 300, clientY: 470 });
+    fireEvent.pointerMove(svg, { pointerId: 1, clientX: 340, clientY: 430 });
+    fireEvent.pointerUp(svg, { pointerId: 1, clientX: 340, clientY: 430 });
+    expect(content.getAttribute('transform')).not.toBe(beforePan);
+    expect(props.onBeginPlayerDrag).not.toHaveBeenCalled();
+    expect(props.onMoveAttackerDuringDrag).not.toHaveBeenCalled();
+    expect(props.onMoveDefenderDuringDrag).not.toHaveBeenCalled();
   });
 });

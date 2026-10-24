@@ -271,7 +271,7 @@ describe('CourtView Touch & Zoom/Pan interaction tests', () => {
     const { container } = renderCourt();
     const zoomInBtn = screen.getByTitle(/Zoomer/);
     const zoomOutBtn = screen.getByTitle(/Dézoomer/);
-    const resetBtn = screen.getByTitle(/Réinitialiser/);
+    const resetBtn = screen.getByTitle(/Recadrer/);
 
     const transformedGroup = container.querySelector('g[ref]'); 
     // On peut chercher par la balise g contenant le terrain

@@ -18,8 +18,9 @@ import type {
   Point,
   Tool,
 } from '@/lib/types';
-import { COURT, FULL_COURT_INNER_MAX_Y, PLAYER_PICK_RADIUS_PX } from '@/lib/data/court';
+import { COURT, FULL_COURT_HEIGHT, FULL_COURT_INNER_MAX_Y, PLAYER_PICK_RADIUS_PX } from '@/lib/data/court';
 import { clamp, distance } from '@/lib/logic/geometry';
+import { clampCamera, panCamera, viewportMetrics, zoomCameraAt, type Camera } from '@/lib/logic/camera';
 import { activeOffense, getActiveDefenderIds } from '@/lib/logic/players';
 import { simplifyPolyline } from '@/lib/logic/polyline';
 import { snapToGrid, type SnapTarget } from '@/lib/logic/snapToGrid';
@@ -207,6 +208,19 @@ export function useCourtPointerHandlers(
     22 / Math.max(0.1, screenScale)
   );
 
+  /** Métriques caméra ; en environnement sans layout (tests/SSR), on retombe
+   *  sur 1 unité = 1 px pour rester déterministe. */
+  const cameraMetrics = useCallback(
+    (viewBoxHeight: number) => {
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (rect && rect.width > 0 && rect.height > 0) {
+        return viewportMetrics(rect.width, rect.height, COURT.width, viewBoxHeight);
+      }
+      return viewportMetrics(COURT.width, viewBoxHeight, COURT.width, viewBoxHeight);
+    },
+    [svgRef]
+  );
+
   const [dragging, setDraggingState] = useState<{ id: PlayerId; isDef: boolean } | null>(null);
   const draggingRef = useRef<typeof dragging>(null);
   const setDragging = useCallback((next: typeof dragging) => {
@@ -283,7 +297,7 @@ export function useCourtPointerHandlers(
   const longPressTriggeredRef = useRef<boolean>(false);
   const activePointersRef = useRef<Map<number, Point>>(new Map());
   const lastGestureRef = useRef<{ distance: number; midpoint: Point } | null>(null);
-  const panStartRef = useRef<{ clientX: number; clientY: number; transformX: number; transformY: number; moved: boolean } | null>(null);
+  const panStartRef = useRef<{ startX: number; startY: number; camera: Camera; moved: boolean } | null>(null);
 
   useEffect(() => {
     if (!disableLongPress) return;
@@ -596,11 +610,8 @@ export function useCourtPointerHandlers(
       onEndDefenderPursuitRef.current?.();
     }
     if (panStartRef.current) {
-      onTransformChange({
-        scale: transformRef.current.scale,
-        x: panStartRef.current.transformX,
-        y: panStartRef.current.transformY,
-      });
+      // Retour exact au cadrage d'avant le pan.
+      onTransformChange(panStartRef.current.camera);
       panStartRef.current = null;
     }
     marqueeStartRef.current = null;
@@ -676,10 +687,9 @@ export function useCourtPointerHandlers(
       if (isPlayerMode) {
         // Player Mode: only panning, no drag/edit
         panStartRef.current = {
-          clientX: e.clientX,
-          clientY: e.clientY,
-          transformX: transformRef.current.x,
-          transformY: transformRef.current.y,
+          startX: e.clientX,
+          startY: e.clientY,
+          camera: transformRef.current,
           moved: false,
         };
         svgRef.current?.setPointerCapture(e.pointerId);
@@ -703,10 +713,9 @@ export function useCourtPointerHandlers(
       const forcePan = spacePressed || e.button === 1;
       const startPan = () => {
         panStartRef.current = {
-          clientX: e.clientX,
-          clientY: e.clientY,
-          transformX: transformRef.current.x,
-          transformY: transformRef.current.y,
+          startX: e.clientX,
+          startY: e.clientY,
+          camera: transformRef.current,
           moved: false,
         };
         svgRef.current?.setPointerCapture(e.pointerId);
@@ -890,39 +899,34 @@ export function useCourtPointerHandlers(
         const pts = Array.from(activePointersRef.current.values());
         const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
         const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
-        
+
         const prev = lastGestureRef.current;
-        const zoomFactor = d / prev.distance;
-        
-        const nextScale = Math.max(0.5, Math.min(5, transformRef.current.scale * zoomFactor));
-        const factor = nextScale / transformRef.current.scale;
-        
-        let nextX = mid.x - (mid.x - transformRef.current.x) * factor;
-        let nextY = mid.y - (mid.y - transformRef.current.y) * factor;
-        
-        nextX += (mid.x - prev.midpoint.x);
-        nextY += (mid.y - prev.midpoint.y);
-        
-        onTransformChange({
-          scale: nextScale,
-          x: nextX,
-          y: nextY,
-        });
-        
+        const viewBoxHeight = state.fullCourt ? FULL_COURT_HEIGHT : COURT.height;
+        const metrics = cameraMetrics(viewBoxHeight);
+        const rect = svgRef.current?.getBoundingClientRect();
+        const screen = rect
+          ? { x: mid.x - rect.left, y: mid.y - rect.top }
+          : { x: mid.x, y: mid.y };
+        // Zoom ancré sous le milieu des doigts + pan à deux doigts, le tout
+        // converti en unités SVG (fin du mélange px CSS / unités terrain).
+        const zoomed = zoomCameraAt(transformRef.current, screen, metrics, d / prev.distance);
+        const panned = panCamera(zoomed, mid.x - prev.midpoint.x, mid.y - prev.midpoint.y, metrics);
+        onTransformChange(clampCamera(panned, metrics, COURT.width, viewBoxHeight));
+
         lastGestureRef.current = { distance: d, midpoint: mid };
         return;
       }
 
       if (panStartRef.current) {
         const start = panStartRef.current;
-        const dx = e.clientX - start.clientX;
-        const dy = e.clientY - start.clientY;
+        const dx = e.clientX - start.startX;
+        const dy = e.clientY - start.startY;
         if (Math.hypot(dx, dy) > TAP_SLOP_PX) start.moved = true;
-        onTransformChange({
-          scale: transformRef.current.scale,
-          x: start.transformX + dx,
-          y: start.transformY + dy,
-        });
+        const viewBoxHeight = state.fullCourt ? FULL_COURT_HEIGHT : COURT.height;
+        const metrics = cameraMetrics(viewBoxHeight);
+        onTransformChange(
+          clampCamera(panCamera(start.camera, dx, dy, metrics), metrics, COURT.width, viewBoxHeight)
+        );
         return;
       }
 
@@ -1030,7 +1034,7 @@ export function useCourtPointerHandlers(
         }
       }
     },
-    [findPlayerAt, frameDefPos, frameOff, onBeginDefenderPursuit, onBeginPlayerDrag, pending, queueDragMove, setDragging, snapTarget, state.activeStep, state.attackingDirection, state.fullCourt, state.steps, state.tool, stickySnap, svgPoint]
+    [cameraMetrics, findPlayerAt, frameDefPos, frameOff, onBeginDefenderPursuit, onBeginPlayerDrag, onTransformChange, pending, queueDragMove, setDragging, snapTarget, state.activeStep, state.attackingDirection, state.fullCourt, state.steps, state.tool, stickySnap, svgPoint]
   );
 
   const onPointerUp = useCallback(

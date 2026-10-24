@@ -20,6 +20,7 @@ import { useInterfaceLevel } from './interface/InterfaceLevel';
 // surtout du câblage.
 
 import { useEffect, useLayoutEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import type { ManualGestureFrame } from '@/lib/state/manualGestures';
 import type {
   AppState,
@@ -74,6 +75,7 @@ import { GhostLayer } from './overlays/GhostLayer';
 import { evaluateOffensiveOptions, bestOffensiveAction } from '@/lib/logic/offense';
 import { getActiveDefenderIds, isActiveAttacker, activeBallCarrier } from '@/lib/logic/players';
 import { useCourtFrame, type DisplayedCourtFrame } from '@/hooks/useCourtFrame';
+import { clampCamera, fitCamera, viewportMetrics, zoomCameraAt } from '@/lib/logic/camera';
 import type { DefenderPursuit } from '@/hooks/useAppState';
 import { useCourtPointerHandlers } from '@/hooks/useCourtPointerHandlers';
 import { focusKindOf } from '@/hooks/useKeyboardShortcuts';
@@ -212,6 +214,25 @@ export function CourtView(props: CourtViewProps) {
   // Sert à dimensionner les cibles tactiles en PIXELS ÉCRAN : sur téléphone
   // le terrain est réduit (~0,59), donc 22 unités ne font que ~13 px.
   const [screenScale, setScreenScale] = useState(1);
+  // Hauteur du viewBox courante, lue sans dépendre du rendu (closures stables).
+  const fullCourtRef = useRef(state.fullCourt);
+  fullCourtRef.current = state.fullCourt;
+  const courtViewBoxHeight = useCallback(
+    () => (fullCourtRef.current ? FULL_COURT_HEIGHT : COURT.height),
+    []
+  );
+  /** Métriques écran du terrain, recalculées à la demande. En environnement
+   *  sans layout (tests/SSR), on retombe sur 1 unité = 1 px. */
+  const readMetrics = useCallback(() => {
+    const svg = svgRef.current;
+    if (!svg) return null;
+    const rect = svg.getBoundingClientRect();
+    const vbH = courtViewBoxHeight();
+    if (rect.width > 0 && rect.height > 0) {
+      return viewportMetrics(rect.width, rect.height, COURT.width, vbH);
+    }
+    return viewportMetrics(COURT.width, vbH, COURT.width, vbH);
+  }, [courtViewBoxHeight]);
   const [spacePressed, setSpacePressed] = useState(false);
   const [zoneRegionMenu, setZoneRegionMenu] = useState<ZoneRegionMenuState | null>(null);
   const [ctxMenu, setCtxMenu] = useState<CtxMenuState | null>(null);
@@ -313,24 +334,48 @@ export function CourtView(props: CourtViewProps) {
     if (!svg) return;
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
+      const metrics = readMetrics();
+      if (!metrics) return;
       const rect = svg.getBoundingClientRect();
-      const centerX = e.clientX - rect.left;
-      const centerY = e.clientY - rect.top;
-      const zoomFactor = e.deltaY < 0 ? 1.05 : 0.95;
+      const screen = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      const factor = e.deltaY < 0 ? 1.05 : 0.95;
       setTransform((prev) => {
-        const nextScale = Math.max(0.5, Math.min(5, prev.scale * zoomFactor));
-        if (nextScale === prev.scale) return prev;
-        const factor = nextScale / prev.scale;
-        const nextX = centerX - (centerX - prev.x) * factor;
-        const nextY = centerY - (centerY - prev.y) * factor;
-        return { scale: nextScale, x: nextX, y: nextY };
+        const zoomed = zoomCameraAt(prev, screen, metrics, factor);
+        return clampCamera(zoomed, metrics, COURT.width, courtViewBoxHeight());
       });
     };
     svg.addEventListener('wheel', handleWheel, { passive: false });
     return () => {
       svg.removeEventListener('wheel', handleWheel);
     };
-  }, []);
+  }, [courtViewBoxHeight, readMetrics]);
+
+  // Passage demi-terrain ↔ terrain complet : on recadre, sinon le zoom/pan
+  // calculé pour l'ancien viewBox laisse le terrain hors champ.
+  const prevFullCourtRef = useRef(state.fullCourt);
+  useEffect(() => {
+    if (prevFullCourtRef.current === state.fullCourt) return;
+    prevFullCourtRef.current = state.fullCourt;
+    const metrics = readMetrics();
+    if (!metrics) return;
+    setTransform(fitCamera(metrics, COURT.width, courtViewBoxHeight()));
+  }, [state.fullCourt, courtViewBoxHeight, readMetrics]);
+
+  // Redimensionnement / rotation : on garde le terrain dans la fenêtre.
+  useEffect(() => {
+    const onResize = () => {
+      const metrics = readMetrics();
+      if (!metrics) return;
+      setTransform((prev) => {
+        const next = clampCamera(prev, metrics, COURT.width, courtViewBoxHeight());
+        return next.x === prev.x && next.y === prev.y && next.scale === prev.scale
+          ? prev
+          : next;
+      });
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [courtViewBoxHeight, readMetrics]);
 
   // Échelle écran : recalculée au zoom, au passage demi/terrain complet et
   // au redimensionnement. Elle pilote les rayons de préhension.
@@ -461,14 +506,12 @@ export function CourtView(props: CourtViewProps) {
       },
       onOpenContextMenu: (id, clientX, clientY) => {
         if (editingBlocked) return;
-        const wrap = svgRef.current?.parentElement?.getBoundingClientRect();
-        if (!wrap) return;
-        const x = clientX - wrap.left;
-        const y = clientY - wrap.top;
+        // Coordonnées viewport : le menu est rendu dans un portail fixe, il
+        // ne peut donc plus être rogné par l'overflow du terrain.
         if (id.startsWith('D')) {
-          setCtxMenu({ kind: 'defender', dId: id as DefenderId, x, y });
+          setCtxMenu({ kind: 'defender', dId: id as DefenderId, x: clientX, y: clientY });
         } else if (id.startsWith('O')) {
-          setCtxMenu({ kind: 'attacker', oId: id as AttackerId, x, y });
+          setCtxMenu({ kind: 'attacker', oId: id as AttackerId, x: clientX, y: clientY });
         }
       },
       transform,
@@ -539,12 +582,8 @@ export function CourtView(props: CourtViewProps) {
     }
     if (!dId && !oId) return;
     e.preventDefault();
-    const wrap = svgRef.current?.parentElement?.getBoundingClientRect();
-    if (!wrap) return;
-    const x = e.clientX - wrap.left;
-    const y = e.clientY - wrap.top;
-    if (dId) setCtxMenu({ kind: 'defender', dId, x, y });
-    else if (oId) setCtxMenu({ kind: 'attacker', oId, x, y });
+    if (dId) setCtxMenu({ kind: 'defender', dId, x: e.clientX, y: e.clientY });
+    else if (oId) setCtxMenu({ kind: 'attacker', oId, x: e.clientX, y: e.clientY });
   };
 
   /** Convertit un point du repère terrain en coordonnées écran relatives au
@@ -565,44 +604,36 @@ export function CourtView(props: CourtViewProps) {
     return { x: screen.x - wrap.left, y: screen.y - wrap.top };
   }, []);
 
-  const handleZoomIn = (e: React.MouseEvent) => {    e.stopPropagation();
+  const zoomFromCenter = (factor: number) => {
+    const metrics = readMetrics();
     const svg = svgRef.current;
-    if (!svg) return;
+    if (!metrics || !svg) return;
     const rect = svg.getBoundingClientRect();
-    const cx = rect.width / 2;
-    const cy = rect.height / 2;
+    const screen = { x: rect.width / 2, y: rect.height / 2 };
     setTransform((prev) => {
-      const nextScale = Math.min(5, prev.scale * 1.25);
-      const factor = nextScale / prev.scale;
-      return {
-        scale: nextScale,
-        x: cx - (cx - prev.x) * factor,
-        y: cy - (cy - prev.y) * factor,
-      };
+      const zoomed = zoomCameraAt(prev, screen, metrics, factor);
+      return clampCamera(zoomed, metrics, COURT.width, courtViewBoxHeight());
     });
+  };
+
+  const handleZoomIn = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    zoomFromCenter(1.25);
   };
 
   const handleZoomOut = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const svg = svgRef.current;
-    if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    const cx = rect.width / 2;
-    const cy = rect.height / 2;
-    setTransform((prev) => {
-      const nextScale = Math.max(0.5, prev.scale / 1.25);
-      const factor = nextScale / prev.scale;
-      return {
-        scale: nextScale,
-        x: cx - (cx - prev.x) * factor,
-        y: cy - (cy - prev.y) * factor,
-      };
-    });
+    zoomFromCenter(0.8);
   };
 
   const handleZoomReset = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setTransform({ scale: 1, x: 0, y: 0 });
+    const metrics = readMetrics();
+    if (!metrics) {
+      setTransform({ scale: 1, x: 0, y: 0 });
+      return;
+    }
+    setTransform(fitCamera(metrics, COURT.width, courtViewBoxHeight()));
   };
 
   return (
@@ -1504,34 +1535,40 @@ export function CourtView(props: CourtViewProps) {
         </div>
       )}
 
-      {/* ---- Menus contextuels ---- */}
-      {!editingBlocked && <CourtMenus
-        state={state}
-        frame={frame}
-        ctxMenu={ctxMenu}
-        zoneRegionMenu={zoneRegionMenu}
-        onSetTool={props.onSetTool}
-        onSetActionTimingAnchor={props.onSetActionTimingAnchor}
-        onCloseCtxMenu={closeCtxMenu}
-        onCloseZoneRegionMenu={closeZoneRegionMenu}
-        onUpdateRule={props.onUpdateRule}
-        onApplyDefenderProfile={props.onApplyDefenderProfile}
-        onSetDefenderSpeedProfile={props.onSetDefenderSpeedProfile}
-        onClearDefenseOverride={props.onClearDefenseOverride}
-        onSetBallCarrier={props.onSetBallCarrier}
-        onSetForcedScreener={props.onSetForcedScreener}
-        onClearAnnotationsFor={props.onClearAnnotationsFor}
-        onSetAttackerHand={props.onSetAttackerHand}
-        onSetAttackerProfile={props.onSetAttackerProfile}
-        onSetAttackerSpeedTier={props.onSetAttackerSpeedTier}
-        onSetAttackerOrientation={props.onSetAttackerOrientation}
-        onAddAnnotation={props.onAddAnnotation}
-        onSetZoneOverride={props.onSetZoneOverride}
-        onClearZoneOverride={props.onClearZoneOverride}
-        onSetPlayerName={props.onSetPlayerName}
-        onSetPlayerNumber={props.onSetPlayerNumber}
-        dark={props.dark}
-      />}
+      {/* ---- Menus contextuels (portail viewport : jamais rognés par le
+          terrain, même sur un écran de téléphone) ---- */}
+      {!editingBlocked && typeof document !== 'undefined' && createPortal(
+        <div className="bt-floating-layer" style={{ position: 'fixed', inset: 0, zIndex: 1200, pointerEvents: 'none' }}>
+          <CourtMenus
+            state={state}
+            frame={frame}
+            ctxMenu={ctxMenu}
+            zoneRegionMenu={zoneRegionMenu}
+            onSetTool={props.onSetTool}
+            onSetActionTimingAnchor={props.onSetActionTimingAnchor}
+            onCloseCtxMenu={closeCtxMenu}
+            onCloseZoneRegionMenu={closeZoneRegionMenu}
+            onUpdateRule={props.onUpdateRule}
+            onApplyDefenderProfile={props.onApplyDefenderProfile}
+            onSetDefenderSpeedProfile={props.onSetDefenderSpeedProfile}
+            onClearDefenseOverride={props.onClearDefenseOverride}
+            onSetBallCarrier={props.onSetBallCarrier}
+            onSetForcedScreener={props.onSetForcedScreener}
+            onClearAnnotationsFor={props.onClearAnnotationsFor}
+            onSetAttackerHand={props.onSetAttackerHand}
+            onSetAttackerProfile={props.onSetAttackerProfile}
+            onSetAttackerSpeedTier={props.onSetAttackerSpeedTier}
+            onSetAttackerOrientation={props.onSetAttackerOrientation}
+            onAddAnnotation={props.onAddAnnotation}
+            onSetZoneOverride={props.onSetZoneOverride}
+            onClearZoneOverride={props.onClearZoneOverride}
+            onSetPlayerName={props.onSetPlayerName}
+            onSetPlayerNumber={props.onSetPlayerNumber}
+            dark={props.dark}
+          />
+        </div>,
+        document.body
+      )}
 
       {!props.isPlaying && !props.isPlayerMode && !readOnly && (
         <CourtTouchBar
@@ -1563,27 +1600,32 @@ export function CourtView(props: CourtViewProps) {
       )}
 
 
-      {/* Popover / Modal Orchestrateur tactique d'étape (Play Composer) */}
-      <PlayComposerModal
-        state={state}
-        isOpen={(props.composerOpen !== undefined ? props.composerOpen : composerOpen) && !readOnly && !props.isPlaying}
-        onClose={() => {
-          setComposerOpen(false);
-          props.onCloseComposer?.();
-        }}
-        onApplyPlan={(actions, nextCarrier) => {
-          if (editingBlocked) return;
-          actions.forEach((a) => props.onAddAnnotation(a));
-          if (nextCarrier && nextCarrier !== activeBallCarrier(state.steps[state.activeStep], state.playerCount)) {
-            props.onSetBallCarrier(nextCarrier);
-          }
-        }}
-      />
+      {/* Popover / Modal Orchestrateur tactique d'étape (Play Composer).
+          Portail viewport : la modal ne doit pas être rognée par le terrain. */}
+      {typeof document !== 'undefined' && createPortal(
+        <PlayComposerModal
+          state={state}
+          isOpen={(props.composerOpen !== undefined ? props.composerOpen : composerOpen) && !readOnly && !props.isPlaying}
+          onClose={() => {
+            setComposerOpen(false);
+            props.onCloseComposer?.();
+          }}
+          onApplyPlan={(actions, nextCarrier) => {
+            if (editingBlocked) return;
+            actions.forEach((a) => props.onAddAnnotation(a));
+            if (nextCarrier && nextCarrier !== activeBallCarrier(state.steps[state.activeStep], state.playerCount)) {
+              props.onSetBallCarrier(nextCarrier);
+            }
+          }}
+        />,
+        document.body
+      )}
 
 
 
       {/* Floating Zoom Controls (discrets, repliés dans l'angle sans masquer le jeu) */}
       <div
+        className="bt-zoom-control"
         style={{
           position: 'absolute',
           bottom: 10,
@@ -1675,8 +1717,8 @@ export function CourtView(props: CourtViewProps) {
             justifyContent: 'center',
             transition: 'background 0.15s',
           }}
-          title="Réinitialiser le zoom"
-          aria-label="Réinitialiser le zoom"
+          title="Recadrer le terrain (vue entière)"
+          aria-label="Recadrer le terrain"
           className="bt-touch"
         >
           1:1

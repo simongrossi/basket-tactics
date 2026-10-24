@@ -126,6 +126,7 @@ export function AttackerMenu({
         position: 'absolute',
         left: pos.x,
         top: pos.y,
+        pointerEvents: 'auto',
         background: DARK_PANEL.bg,
         border: `1px solid ${DARK_PANEL.border}`,
         color: DARK_PANEL.text,

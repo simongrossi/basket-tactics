@@ -255,6 +255,7 @@ export function ZoneRegionMenu({ region, x, y, onUpdate, onReset, onClose }: Zon
         position: 'absolute',
         left: x,
         top: y,
+        pointerEvents: 'auto',
         background: '#fff',
         border: '1px solid #ddd',
         borderRadius: 8,

@@ -623,3 +623,90 @@ textarea::placeholder {
 .bt-run-muted {
   color: #cbd5e1;
 }
+
+/* ------------------------------------------------------------------
+   Mobile / tablette : en-tête compact + barre d'outils basse fixe
+   ------------------------------------------------------------------ */
+@media (max-width: 900px) {
+  /* L'en-tête tient sur une ligne : marque, titre, diagnostics et libellés
+     sont masqués (les icônes et les infobulles restent). */
+  .bt-app-header .bt-header-brand,
+  .bt-app-header .bt-header-title,
+  .bt-app-header .bt-header-diagnostics,
+  .bt-app-header .bt-header-label {
+    display: none !important;
+  }
+  .bt-app-header {
+    gap: 6px;
+    min-height: 28px;
+  }
+  .bt-app-header .bt-header-actions {
+    gap: 4px !important;
+  }
+
+  /* Le terrain garde une hauteur exploitable même en paysage. */
+  .court-stage {
+    max-height: 68dvh;
+    min-height: 220px;
+  }
+
+  /* Barre d'outils fixe en bas de l'écran, au pouce. */
+  .bt-court-touchbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-width: none;
+    z-index: 80;
+    padding:
+      6px calc(8px + env(safe-area-inset-right))
+      calc(6px + env(safe-area-inset-bottom))
+      calc(8px + env(safe-area-inset-left));
+    background: var(--bt-touchbar-bg);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--bt-touchbar-border);
+    box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.12);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .bt-court-touchbar::-webkit-scrollbar {
+    display: none;
+  }
+  .bt-court-touchbar > div {
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+  .bt-court-touchbar .bt-tb-label,
+  .bt-court-touchbar .bt-tb-stepnav,
+  .bt-court-touchbar .bt-tb-freeze {
+    display: none;
+  }
+  .bt-court-touchbar .bt-tb-tool {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .bt-court-touchbar .bt-tb-addstep {
+    min-height: 44px;
+  }
+  .bt-court-touchbar .bt-touchbar-btn {
+    flex-shrink: 0;
+  }
+
+  /* Le zoom passe à l'horizontale pour ne pas manger le terrain. */
+  .bt-zoom-control {
+    flex-direction: row !important;
+  }
+}
+
+/* La barre fixe ne recouvre pas la fin du contenu (uniquement quand elle
+   existe : pas en lecture/présentation). */
+@media (max-width: 900px) {
+  main.bt-has-toolbar {
+    padding-bottom: calc(74px + env(safe-area-inset-bottom));
+  }
+}

@@ -274,6 +274,7 @@ export function DefenderMenu({
         position: 'absolute',
         left: drag.pos.x,
         top: drag.pos.y,
+        pointerEvents: 'auto',
         width: 420,
         maxWidth: 'calc(100vw - 24px)',
         maxHeight: 'min(760px, calc(100vh - 150px))',

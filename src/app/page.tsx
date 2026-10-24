@@ -492,6 +492,7 @@ export default function Page() {
 
   return (
     <main
+      className={!isPlaying && !isPlayerMode && !presentMode ? 'bt-has-toolbar' : undefined}
       style={{
         // dvh : sur iPad/iPhone, 100vh inclut la barre d'outils du navigateur
         // et coupait le bas de la timeline. Les safe-areas évitent l'encoche
@@ -513,6 +514,7 @@ export default function Page() {
     >
       {!presentMode && !isPlayerMode && !manualBusy && (
         <header
+          className="bt-app-header"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -527,6 +529,7 @@ export default function Page() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 auto' }}>
             <button
               type="button"
+              className="bt-header-brand"
               onClick={() => {
                 setIsPlayerMode(false);
                 setPresentMode(false);
@@ -561,7 +564,7 @@ export default function Page() {
                 <HistoryButton label="Rétablir" shortcut={SHORTCUT_LABELS.redo} disabled={!app.canRedo || isPlaying} onClick={app.redo} icon={<Redo2 size={15} aria-hidden />} />
               </div>
             )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <div className="bt-header-title" style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
               <strong style={{ fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {currentSavedSystem?.name ?? 'Brouillon'}
               </strong>
@@ -611,13 +614,13 @@ export default function Page() {
 
           {/* Pôle Centre : Diagnostics coach inline */}
           {app.state.showCoachDiagnostics !== false && !isPlayerMode && !manualBusy && (
-            <div style={{ flexShrink: 0 }}>
+            <div className="bt-header-diagnostics" style={{ flexShrink: 0 }}>
               <CoachDiagnosticsOverlay diagnostics={coachDiagnostics} inline />
             </div>
           )}
 
           {/* Pôle Droite : Actions système, Présentation, Partage et Menu Outils */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <div className="bt-header-actions" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <button
               type="button"
               className="bt-touch"
@@ -642,7 +645,7 @@ export default function Page() {
               title="Passer en mode Présentation / Joueur (terrain grand format avec télécommande pas-à-pas)"
             >
               <span>📺</span>
-              <span>Présenter</span>
+              <span className="bt-header-label">Présenter</span>
             </button>
 
             {currentSavedSystem ? (
@@ -664,7 +667,7 @@ export default function Page() {
                 onClick={() => lib.updateSystem(currentSavedSystem.id, app.state)}
                 title={`Enregistrer les modifications dans ${currentSavedSystem.name}`}
               >
-                💾 Enregistrer
+                💾 <span className="bt-header-label">Enregistrer</span>
               </button>
             ) : (
               <button
@@ -685,7 +688,7 @@ export default function Page() {
                 onClick={() => sidebar.setActiveView('library')}
                 title="Enregistrer ce système dans la bibliothèque"
               >
-                💾 Sauvegarder…
+                💾 <span className="bt-header-label">Sauvegarder…</span>
               </button>
             )}
 
@@ -709,7 +712,7 @@ export default function Page() {
               title="Partager le système (lien direct, code ou prompt IA)"
             >
               <Share2 size={13} />
-              <span>Partager</span>
+              <span className="bt-header-label">Partager</span>
             </button>
 
             <details className="bt-context-details" style={{ position: 'relative' }}>
@@ -1208,7 +1211,7 @@ export default function Page() {
             />
           )}
           {!isPlayerMode && !presentMode && <ManualRecordingBar recorder={manual} preparing={preparingRecording} onStart={startGestureRecording} onCopy={copyGestureRecording} onReplay={replayGestureRecording} />}
-          <div style={{ position: 'relative', flex: '1 1 0%', minHeight: 0, overflow: 'hidden', display: 'grid' }}>
+          <div className="court-stage" style={{ position: 'relative', flex: '1 1 0%', minHeight: 0, overflow: 'hidden', display: 'grid' }}>
             {runBlock && runBlockVisual?.kind === 'none' && !manualBusy && (
               <div style={{ position: 'absolute', inset: 0, zIndex: 60, display: 'grid' }}>
                 <SessionBlockCard title={runBlock.title} notes={runBlock.notes} durationMin={runBlock.durationMin} />
@@ -1907,7 +1910,7 @@ function HistoryButton({ label, shortcut, disabled, onClick, icon }: {
       }}
     >
       {icon}
-      <span>{label}</span>
+      <span className="bt-header-label">{label}</span>
     </button>
   );
 }

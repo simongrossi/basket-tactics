@@ -142,7 +142,7 @@ export function PlayComposerModal({ state, isOpen, onClose, onApplyPlan }: PlayC
   return (
     <div
       style={{
-        position: 'absolute',
+        position: 'fixed',
         inset: 0,
         background: 'rgba(15, 23, 42, 0.75)',
         backdropFilter: 'blur(4px)',
