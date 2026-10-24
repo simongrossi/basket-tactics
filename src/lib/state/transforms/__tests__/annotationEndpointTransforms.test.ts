@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeInitialState, makeStep } from '@/lib/data/initial';
-import { addAnnotation } from '../annotationTransforms';
+import { addAnnotation, setAnnotationType } from '../annotationTransforms';
 import {
   addAnnotationWaypoint,
   setAnnotationFrom,
@@ -158,8 +158,55 @@ describe('no-op cases', () => {
   });
 });
 
-describe('addAnnotationWaypoint', () => {
-  it('ajoute un point de courbure clampé au terrain, sans toucher aux joueurs', () => {
+describe('setAnnotationType', () => {
+  it('convertit une course en écran en conservant la géométrie', () => {
+    const s = stateWithTwoSteps();
+    const ann: Annotation = {
+      type: 'cut',
+      fromId: 'O3',
+      from: { x: s.steps[0].off.O3.x, y: s.steps[0].off.O3.y },
+      to: { x: 500, y: 480 },
+      waypoints: [{ x: 400, y: 420 }],
+    };
+    const s1 = addAnnotation(s, ann);
+    const idx = s1.steps[0].annotations.length - 1;
+    const next = setAnnotationType(s1, 0, idx, 'screen');
+    const out = next.steps[0].annotations[idx];
+    expect(out.type).toBe('screen');
+    expect(out.to).toEqual(ann.to);
+    expect(out.waypoints).toEqual(ann.waypoints);
+  });
+
+  it('refuse de convertir une passe (sémantique toId/porteur différente)', () => {
+    const s = stateWithTwoSteps();
+    const pass: Annotation = {
+      type: 'pass',
+      fromId: 'O1',
+      toId: 'O3',
+      from: { x: s.steps[0].off.O1.x, y: s.steps[0].off.O1.y },
+      to: { x: s.steps[0].off.O3.x, y: s.steps[0].off.O3.y },
+    };
+    const s1 = addAnnotation(s, pass);
+    const idx = s1.steps[0].annotations.length - 1;
+    expect(setAnnotationType(s1, 0, idx, 'cut')).toBe(s1);
+  });
+
+  it('no-op si le type est identique ou invalide', () => {
+    const s = stateWithTwoSteps();
+    const ann: Annotation = {
+      type: 'dribble',
+      fromId: 'O3',
+      from: { x: s.steps[0].off.O3.x, y: s.steps[0].off.O3.y },
+      to: { x: 500, y: 480 },
+    };
+    const s1 = addAnnotation(s, ann);
+    const idx = s1.steps[0].annotations.length - 1;
+    expect(setAnnotationType(s1, 0, idx, 'dribble')).toBe(s1);
+    expect(setAnnotationType(s1, 0, idx, 'pass' as never)).toBe(s1);
+  });
+});
+
+describe('addAnnotationWaypoint', () => {  it('ajoute un point de courbure clampé au terrain, sans toucher aux joueurs', () => {
     const s = stateWithTwoSteps();
     const ann: Annotation = {
       type: 'cut',

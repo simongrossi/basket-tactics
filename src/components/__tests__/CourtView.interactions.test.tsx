@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { createElement, type ComponentProps } from 'react';
 import { makeInitialState } from '@/lib/data/initial';
 import type { AppState, AttackerId, DefenderId, Tool } from '@/lib/types';
@@ -215,5 +215,22 @@ describe('CourtView interactions', () => {
     expect(handleWp).not.toBeNull();
     fireEvent.contextMenu(handleWp!);
     expect(onDeleteAnnotation).not.toHaveBeenCalled();
+  });
+
+  it('supprimer la dernière flèche propose « Annuler » et appelle onUndo', () => {
+    const onUndo = vi.fn();
+    const onDeleteAnnotation = vi.fn();
+    const state: AppState = makeInitialState();
+    state.steps[0].annotations = [
+      { type: 'cut', fromId: 'O1', from: { x: 300, y: 470 }, to: { x: 450, y: 300 } },
+    ];
+    renderCourt({ state, onUndo, onDeleteAnnotation });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer la dernière flèche' }));
+    expect(onDeleteAnnotation).toHaveBeenCalled();
+    expect(screen.getByText('Action supprimée')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(onUndo).toHaveBeenCalledOnce();
   });
 });

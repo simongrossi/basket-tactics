@@ -75,8 +75,9 @@ Règles :
 - `selectedPlayerId` et `selectedAnnotation` vivent dans `CourtView`
   uniquement : pas d'`AppState`, pas d'undo, pas d'export.
 - Un joueur sélectionné porte un halo cyan. Une trajectoire sélectionnée est
-  surlignée (drop-shadow) et affiche ses poignées + une barre contextuelle
-  (Supprimer / Fermer).
+  surlignée (drop-shadow) et affiche ses poignées + une barre contextuelle :
+  type d'action (course / dribble / écran), Supprimer, Fermer. La suppression
+  affiche un toast « Annuler » (6 s) câblé sur l'historique.
 - Le clic droit **ne supprime plus** : il sélectionne.
 - La sélection est abandonnée au changement d'étape, d'outil, de mode ou sur
   Échap.

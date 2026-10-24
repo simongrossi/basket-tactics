@@ -32,6 +32,34 @@ const MOVEMENT_TYPES: AnnotationType[] = ['cut', 'dribble', 'screen'];
 const MOVEMENT_TYPE_SET = new Set<AnnotationType>(MOVEMENT_TYPES);
 const TIMING_EPSILON = 0.001;
 
+/** Change le type d'une action de mouvement (course / dribble / écran).
+ *  La géométrie (from/to/waypoints) est conservée : le coach corrige
+ *  l'intention sans redessiner. Les passes sont exclues (leur sémantique
+ *  `toId` + porteur n'est pas la même). */
+export function setAnnotationType(
+  s: AppState,
+  stepIdx: number,
+  annoIdx: number,
+  type: AnnotationType,
+): AppState {
+  const step = s.steps[stepIdx];
+  const anno = step?.annotations[annoIdx];
+  if (!step || !anno) return s;
+  if (!MOVEMENT_TYPE_SET.has(anno.type) || !MOVEMENT_TYPE_SET.has(type)) return s;
+  if (anno.type === type) return s;
+  const steps = s.steps.map((st, i) =>
+    i === stepIdx
+      ? {
+          ...st,
+          annotations: st.annotations.map((a, j) =>
+            j === annoIdx ? { ...a, type } : a,
+          ),
+        }
+      : st,
+  );
+  return { ...s, steps };
+}
+
 function clampFullT(fullT: number, steps: Step[]): number {
   const maxT = Math.max(0, steps.length - 1);
   return Math.max(0, Math.min(maxT, fullT));

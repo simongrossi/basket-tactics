@@ -112,6 +112,10 @@ interface CourtViewProps {  onFrameChange?: (snapshot: DisplayedCourtFrame) => v
   onCommitPlayerDrag?: () => void;
   /** Échap pendant un déplacement : restaure l'état d'avant le geste. */
   onCancelPlayerDrag?: () => void;
+  /** Annule la dernière action (toast « Annuler » après une suppression). */
+  onUndo?: () => void;
+  /** Change le type d'une action de mouvement (course / dribble / écran). */
+  onSetAnnotationType?: (stepIdx: number, annoIdx: number, type: 'cut' | 'dribble' | 'screen') => void;
   /** Signale qu'un geste direct (drag joueur) est en cours : le parent peut
    *  geler les calculs lourds (diagnostics, métriques) pendant le geste. */
   onGestureActiveChange?: (active: boolean) => void;
@@ -274,6 +278,21 @@ export function CourtView(props: CourtViewProps) {
   // contextuelles (suppression, édition), sans passer par un drag.
   const [selectedPlayerId, setSelectedPlayerId] = useState<PlayerId | null>(null);
   const [selectedAnnotation, setSelectedAnnotation] = useState<{ stepIdx: number; index: number } | null>(null);
+
+  // Toast d'annulation : une suppression reste réversible pendant 6 s.
+  const [toast, setToast] = useState<{ message: string; undo?: () => void } | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
+  const showToast = useCallback((message: string, undo?: () => void) => {
+    if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+    setToast({ message, undo });
+    toastTimerRef.current = window.setTimeout(() => {
+      toastTimerRef.current = null;
+      setToast(null);
+    }, 6000);
+  }, []);
+  useEffect(() => () => {
+    if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+  }, []);
 
   // A.3 — État du popup d'édition de note. null = fermé.
   const [textPopup, setTextPopup] = useState<{
@@ -1463,16 +1482,48 @@ export function CourtView(props: CourtViewProps) {
               maxWidth: 'calc(100% - 16px)',
             }}
           >
-            <span>
-              {label} · {anno.fromId}
-              {anno.toId ? ` → ${anno.toId}` : ''}
-            </span>
+            {anno.type === 'pass' ? (
+              <span>
+                {label} · {anno.fromId}
+                {anno.toId ? ` → ${anno.toId}` : ''}
+              </span>
+            ) : (
+              <>
+                <select
+                  aria-label="Type d'action"
+                  value={anno.type}
+                  onChange={(e) => {
+                    const next = e.target.value as 'cut' | 'dribble' | 'screen';
+                    props.onSetAnnotationType?.(selectedAnnotation.stepIdx, selectedAnnotation.index, next);
+                    showToast(`Action changée en ${ANNOTATION_SELECTION_LABELS[next]?.toLowerCase() ?? next}`);
+                  }}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '2px 4px',
+                    borderRadius: 5,
+                    border: '1px solid var(--bt-border)',
+                    background: 'var(--bt-surface)',
+                    color: 'var(--bt-text)',
+                  }}
+                >
+                  <option value="cut">Course</option>
+                  <option value="dribble">Dribble</option>
+                  <option value="screen">Écran</option>
+                </select>
+                <span>
+                  {anno.fromId}
+                  {anno.toId ? ` → ${anno.toId}` : ''}
+                </span>
+              </>
+            )}
             <button
               type="button"
               className="bt-touch"
               onClick={() => {
                 props.onDeleteAnnotation(selectedAnnotation.index, selectedAnnotation.stepIdx);
                 setSelectedAnnotation(null);
+                showToast('Action supprimée', () => props.onUndo?.());
               }}
               style={{
                 border: '1px solid rgba(239, 68, 68, 0.5)',
@@ -1598,7 +1649,10 @@ export function CourtView(props: CourtViewProps) {
             if (editingBlocked) return;
             const actions = actionsOfStep(state.steps, state.activeStep);
             const last = actions[actions.length - 1];
-            if (last) props.onDeleteAnnotation(last.index, last.stepIdx);
+            if (last) {
+              props.onDeleteAnnotation(last.index, last.stepIdx);
+              showToast('Action supprimée', () => props.onUndo?.());
+            }
           }}
           pendingAutoSourceId={props.gesturesOnly ? null : pendingAutoSourceId}
           onCancelPendingAuto={cancelPendingAuto}
@@ -1638,6 +1692,71 @@ export function CourtView(props: CourtViewProps) {
       )}
 
 
+
+      {/* Toast d'annulation (suppression réversible pendant 6 s). */}
+      {toast && (
+        <div
+          role="status"
+          style={{
+            position: 'absolute',
+            left: '50%',
+            bottom: 64,
+            transform: 'translateX(-50%)',
+            zIndex: 56,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '8px 10px',
+            borderRadius: 10,
+            background: 'rgba(15, 23, 42, 0.94)',
+            color: '#f8fafc',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            fontSize: 12,
+            fontWeight: 600,
+            maxWidth: 'calc(100% - 24px)',
+          }}
+        >
+          <span>{toast.message}</span>
+          {toast.undo && (
+            <button
+              type="button"
+              className="bt-touch"
+              onClick={() => {
+                toast.undo?.();
+                setToast(null);
+              }}
+              style={{
+                border: '1px solid rgba(251, 146, 60, 0.6)',
+                background: 'rgba(234, 88, 12, 0.2)',
+                color: '#fdba74',
+                borderRadius: 6,
+                padding: '3px 10px',
+                fontSize: 12,
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              Annuler
+            </button>
+          )}
+          <button
+            type="button"
+            aria-label="Fermer"
+            onClick={() => setToast(null)}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              color: '#94a3b8',
+              fontSize: 12,
+              cursor: 'pointer',
+              padding: '2px 4px',
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Floating Zoom Controls (discrets, repliés dans l'angle sans masquer le jeu) */}
       <div

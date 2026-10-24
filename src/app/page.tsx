@@ -1305,6 +1305,8 @@ export default function Page() {
               onMoveDefenderDuringDrag={(id, x, y) => { manual.recordEvent({ type: 'move', id, x, y }); app.moveDefenderDuringDrag(id, x, y); }}
               onCommitPlayerDrag={() => { app.commitPlayerDrag(); manual.recordEvent({ type: 'end' }); }}
               onCancelPlayerDrag={app.cancelPlayerDrag}
+              onUndo={app.undo}
+              onSetAnnotationType={app.setAnnotationType}
               onBeginDefenderPursuit={app.beginDefenderPursuit}
               onEndDefenderPursuit={app.endDefenderPursuit}
               registerPendingGestureFlush={app.registerPendingGestureFlush}
