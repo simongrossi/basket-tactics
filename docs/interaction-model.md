@@ -105,12 +105,25 @@ Annuler visible).
 - Menus contextuels et orchestrateur rendus en **portail viewport** : ils ne
   sont plus rognés par l'`overflow: hidden` du terrain.
 
-## 7. Limites connues / à faire
+## 7. Réorganisation des étapes
 
-- **Réorganisation des étapes** non implémentée : les passes et arrivées sont
-  stockées sur l'étape suivante (`stepActions`), donc un simple échange de
-  `Step` déplacerait les actions hors de leur étape. À concevoir avec un
-  remappage des annotations avant de l'exposer.
+- Disponible dans le panneau Étapes (↑ / ↓ sur l'étape active), **hors
+  séquences lissées** : si une étape `isInterpolated` existe, la
+  réorganisation est désactivée (sa géométrie dépend de l'ordre d'origine).
+- L'étape (positions, porteur, contexte, label, overrides) est déplacée, puis
+  **toutes les extrémités d'actions sont recalculées** à partir des nouveaux
+  états voisins (`stepOrderTransforms.ts`) : une course va de la position du
+  joueur à sa position suivante, une passe part du porteur précédent. Les
+  waypoints (courbes) sont conservés.
+- Une confirmation est demandée dès que la séquence contient des actions,
+  car les flèches changent de géométrie. L'opération est une entrée
+  d'historique : `Annuler` restaure la séquence exacte.
+- Les déplacements historiquement stockés sur leur étape d'arrivée sont
+  d'abord normalisés vers l'étape de départ, sinon ils seraient relus comme
+  le mouvement suivant du joueur.
+
+## 8. Limites connues / à faire
+
 - Le plafond de vitesse du drag attaquant est voulu (physique). Il est
   désactivable dans Réglages → Interaction (`dragSpeedCapEnabled`) pour un
   placement direct au doigt.

@@ -25,6 +25,9 @@ import { buildFastBreakSteps } from '@/lib/logic/fastBreak';
 import { activeOffense } from '@/lib/logic/players';
 import { getDefenseHoop } from '@/lib/logic/engine';
 
+// Réorganisation des étapes (déplacement + recalcul des trajectoires).
+export { moveStep } from './stepOrderTransforms';
+
 export function setActiveStep(s: AppState, idx: number): AppState {
   return { ...s, activeStep: Math.max(0, Math.min(s.steps.length - 1, idx)) };
 }

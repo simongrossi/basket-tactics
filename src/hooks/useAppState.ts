@@ -225,6 +225,10 @@ export function useAppState() {
     setStateWithHistory(stepTx.duplicateStep);
   }, [setStateWithHistory]);
 
+  const moveStep = useCallback((direction: -1 | 1) => {
+    setStateWithHistory((s) => stepTx.moveStep(s, s.activeStep, s.activeStep + direction));
+  }, [setStateWithHistory]);
+
   const deleteStep = useCallback(() => {
     setStateWithHistory(stepTx.deleteStep);
   }, [setStateWithHistory]);
@@ -847,6 +851,7 @@ export function useAppState() {
     setActiveStep,
     addStep,
     duplicateStep,
+    moveStep,
     deleteStep,
     moveAttacker,
     moveDefender,

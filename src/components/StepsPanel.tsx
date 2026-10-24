@@ -14,6 +14,8 @@ interface StepsPanelProps {
   onSetActiveStep: (idx: number) => void;
   onAddStep: () => void;
   onDuplicateStep: () => void;
+  /** Déplace l'étape active d'un cran (les trajectoires sont recalculées). */
+  onMoveStep?: (direction: -1 | 1) => void;
   onDeleteStep: () => void;
   onSetStepLabel: (idx: number, label: string) => void;
   /** Fige la disposition actuelle comme le départ (Étape 0) du système */
@@ -100,6 +102,24 @@ export function StepsPanel(props: StepsPanelProps) {
   // on la montre, non numérotée, comme la timeline (« Position finale »).
   const onFinalPosition = stepCounterAt(state.steps, state.activeStep).kind === 'end';
 
+  // Réorganisation : refusée sur une séquence lissée automatiquement, car la
+  // géométrie des étapes interpolées dépend de l'ordre d'origine.
+  const hasInterpolatedSteps = state.steps.some((st) => !!st.isInterpolated);
+  const canReorder = !hasInterpolatedSteps && !state.steps[state.activeStep]?.isInterpolated;
+  const canMoveUp = canReorder && state.activeStep > 0;
+  const canMoveDown = canReorder && state.activeStep < state.steps.length - 1;
+  const moveUpHint = canReorder
+    ? 'Monter cette étape (les trajectoires seront recalculées)'
+    : 'Réorganisation indisponible : la séquence contient des étapes de lissage automatique';
+  const requestMove = (direction: -1 | 1) => {
+    if (!props.onMoveStep) return;
+    const hasAnnotations = state.steps.some((st) => st.annotations.length > 0);
+    if (hasAnnotations && typeof window !== 'undefined' && !window.confirm(
+      'Réorganiser cette étape ? Les trajectoires seront recalculées pour rester alignées sur la nouvelle séquence (les courbes sont conservées).',
+    )) return;
+    props.onMoveStep(direction);
+  };
+
   return (
     <Panel theme="offense" title="📖 Étapes">
       <Section theme="offense" label="Liste" open>
@@ -162,6 +182,59 @@ export function StepsPanel(props: StepsPanelProps) {
                   ) : (
                     <span style={{ flex: 1, color: '#cbd5e1', fontStyle: s.label ? 'normal' : 'italic' }}>
                       {s.label || '(sans label)'}
+                    </span>
+                  )}
+                  {isActive && props.onMoveStep && (
+                    <span
+                      style={{ display: 'inline-flex', gap: 2, flexShrink: 0 }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        aria-label="Monter l'étape"
+                        title={moveUpHint}
+                        disabled={!canMoveUp}
+                        onClick={() => requestMove(-1)}
+                        style={{
+                          width: 22,
+                          height: 22,
+                          padding: 0,
+                          borderRadius: 4,
+                          border: `1px solid ${c.border}`,
+                          background: '#262a32',
+                          color: canMoveUp ? '#e5e7eb' : '#64748b',
+                          cursor: canMoveUp ? 'pointer' : 'not-allowed',
+                          opacity: canMoveUp ? 1 : 0.5,
+                          fontSize: 12,
+                          lineHeight: 1,
+                        }}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Descendre l'étape"
+                        title={canReorder
+                          ? 'Descendre cette étape (les trajectoires seront recalculées)'
+                          : moveUpHint}
+                        disabled={!canMoveDown}
+                        onClick={() => requestMove(1)}
+                        style={{
+                          width: 22,
+                          height: 22,
+                          padding: 0,
+                          borderRadius: 4,
+                          border: `1px solid ${c.border}`,
+                          background: '#262a32',
+                          color: canMoveDown ? '#e5e7eb' : '#64748b',
+                          cursor: canMoveDown ? 'pointer' : 'not-allowed',
+                          opacity: canMoveDown ? 1 : 0.5,
+                          fontSize: 12,
+                          lineHeight: 1,
+                        }}
+                      >
+                        ↓
+                      </button>
                     </span>
                   )}
                   {s.switches && <span style={{ fontSize: 10, color: '#999' }}>↔</span>}

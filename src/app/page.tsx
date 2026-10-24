@@ -1037,6 +1037,7 @@ export default function Page() {
                     onSetActiveStep={app.setActiveStep}
                     onAddStep={app.addStep}
                     onDuplicateStep={app.duplicateStep}
+                    onMoveStep={app.moveStep}
                     onDeleteStep={app.deleteStep}
                     onSetStepLabel={app.setStepLabel}
                     onPatchStep={app.patchStep}
