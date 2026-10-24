@@ -683,6 +683,7 @@ export function CourtView(props: CourtViewProps) {
           (svgRef as React.MutableRefObject<SVGSVGElement | null>).current = el;
           if (props.externalSvgRef) props.externalSvgRef.current = el;
         }}
+        className={props.isPlayerMode || readOnly ? 'bt-player-mode' : undefined}
         viewBox={`0 0 ${COURT.width} ${state.fullCourt ? FULL_COURT_HEIGHT : COURT.height}`}
         preserveAspectRatio="xMidYMid meet"
         style={{

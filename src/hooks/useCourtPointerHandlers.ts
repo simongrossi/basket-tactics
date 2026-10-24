@@ -207,6 +207,9 @@ export function useCourtPointerHandlers(
     PLAYER_PICK_RADIUS_PX,
     22 / Math.max(0.1, screenScale)
   );
+  /** Seuil d'aimantation : ~10 px écran (au lieu de 8 unités, qui ne font
+   *  que ~5 px sur un téléphone), sans descendre sous l'ancien seuil. */
+  const snapThresholdUnits = Math.max(8, 10 / Math.max(0.1, screenScale));
 
   /** Métriques caméra ; en environnement sans layout (tests/SSR), on retombe
    *  sur 1 unité = 1 px pour rester déterministe. */
@@ -985,7 +988,7 @@ export function useCourtPointerHandlers(
         // blocs bas, ligne médiane). Visuel de feedback via snapTarget.
         if (e.ctrlKey || e.metaKey || stickySnap) {
           const hoop = state.attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP;
-          const snap = snapToGrid({ x, y }, 8, hoop);
+          const snap = snapToGrid({ x, y }, snapThresholdUnits, hoop);
           x = snap.point.x;
           y = snap.point.y;
           setSnapTarget(snap.snappedTo);
@@ -1034,7 +1037,7 @@ export function useCourtPointerHandlers(
         }
       }
     },
-    [cameraMetrics, findPlayerAt, frameDefPos, frameOff, onBeginDefenderPursuit, onBeginPlayerDrag, onTransformChange, pending, queueDragMove, setDragging, snapTarget, state.activeStep, state.attackingDirection, state.fullCourt, state.steps, state.tool, stickySnap, svgPoint]
+    [cameraMetrics, findPlayerAt, frameDefPos, frameOff, onBeginDefenderPursuit, onBeginPlayerDrag, onTransformChange, pending, queueDragMove, setDragging, snapTarget, snapThresholdUnits, state.activeStep, state.attackingDirection, state.fullCourt, state.steps, state.tool, stickySnap, svgPoint]
   );
 
   const onPointerUp = useCallback(
@@ -1112,7 +1115,7 @@ export function useCourtPointerHandlers(
         // Snap final au release si Ctrl/Cmd encore enfoncé.
         if (e.ctrlKey || e.metaKey || stickySnap) {
           const hoop = state.attackingDirection === 'down' ? HOOP_OPPOSITE : HOOP;
-          const snap = snapToGrid({ x, y }, 8, hoop);
+          const snap = snapToGrid({ x, y }, snapThresholdUnits, hoop);
           x = snap.point.x;
           y = snap.point.y;
         }
@@ -1186,6 +1189,7 @@ export function useCourtPointerHandlers(
       onSetDefenderSelection,
       pending,
       queueDragMove,
+      snapThresholdUnits,
       state.activeStep,
       state.attackingDirection,
       state.defenseInitial,

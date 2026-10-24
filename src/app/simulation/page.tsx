@@ -70,9 +70,10 @@ export default function SimulationPage() {
 
   return (
     <main
+      className="bt-sim-main"
       style={{
-        height: '100vh',
-        maxHeight: '100vh',
+        height: '100dvh',
+        maxHeight: '100dvh',
         overflow: 'hidden',
         background: '#0f172a',
         padding: '8px 12px 10px',
@@ -121,6 +122,7 @@ export default function SimulationPage() {
 
       {/* Layout principal : terrain à gauche, contrôles à droite */}
       <div
+        className="bt-sim-grid"
         style={{
           flex: 1,
           display: 'grid',

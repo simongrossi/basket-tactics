@@ -736,6 +736,7 @@ export function Player({
         pointerEvents="none"
         stroke="#FFFFFF"
         strokeWidth={2}
+        className="bt-jersey"
         style={{ paintOrder: 'stroke fill' }}
       >
         {number || id}
@@ -751,6 +752,7 @@ export function Player({
           pointerEvents="none"
           stroke="#111827"
           strokeWidth={2.5}
+          className="bt-player-name"
           style={{ paintOrder: 'stroke fill' }}
         >
           {name}

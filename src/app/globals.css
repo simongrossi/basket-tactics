@@ -710,3 +710,29 @@ textarea::placeholder {
     padding-bottom: calc(74px + env(safe-area-inset-bottom));
   }
 }
+
+/* Lisibilité en mode lecteur / présentation : numéros et noms plus grands,
+   sans toucher au rendu d'édition. */
+.bt-player-mode .bt-jersey {
+  font-size: 10px;
+  font-weight: 900;
+}
+.bt-player-mode .bt-player-name {
+  font-size: 11px;
+}
+
+/* Page simulation : une colonne sur téléphone (le terrain ne doit pas être
+   écrasé par le panneau de 320 px). */
+@media (max-width: 900px) {
+  .bt-sim-main {
+    height: auto !important;
+    max-height: none !important;
+    overflow: auto !important;
+  }
+  .bt-sim-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .bt-sim-grid > aside {
+    max-height: 48dvh;
+  }
+}
